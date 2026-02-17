@@ -433,6 +433,14 @@ export default function SettingsPage() {
         }
     };
 
+    // Auto-load promo history when section is opened
+    useEffect(() => {
+        if (activeSection === 'promos' && user?.id) {
+            loadPromoHistory();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeSection, user?.id]);
+
     const redeemPromoCode = async () => {
         if (!promoCode.trim()) return;
         setPromoLoading(true);

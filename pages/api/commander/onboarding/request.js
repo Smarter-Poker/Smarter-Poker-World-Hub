@@ -37,7 +37,8 @@ export default async function handler(req, res) {
     state,
     tableCount,
     currentSystem,
-    notes
+    notes,
+    promoCode
   } = req.body;
 
   // Validate required fields
@@ -71,6 +72,7 @@ export default async function handler(req, res) {
         table_count: tableCount || null,
         current_system: currentSystem || null,
         notes: notes || null,
+        promo_code: promoCode || null,
         status: 'new',
         source: 'website'
       })
@@ -143,6 +145,7 @@ export default async function handler(req, res) {
                 <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Tables</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${tableCount || 'Not specified'}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Current System</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${currentSystem || 'Not specified'}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Notes</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${notes || 'None'}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Promo Code</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${promoCode || 'None'}</td></tr>
               </table>
               <br/>
               <p><a href="https://smarter.poker/admin/leads/${data.id}">View Lead in Admin</a></p>
