@@ -3,12 +3,19 @@
    POST /api/sms/verify-otp
    ═══════════════════════════════════════════════════════════════════════════ */
 
-// Access the same OTP store
-const otpStore = global.otpStore || (global.otpStore = new Map());
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('Supabase credentials not configured');
+        return res.status(500).json({ error: 'Server configuration error' });
     }
 
     try {
@@ -27,8 +34,21 @@ export default async function handler(req, res) {
             cleanPhone = '+' + cleanPhone;
         }
 
-        // Get stored OTP
-        const storedOtp = otpStore.get(cleanPhone);
+        // Look up stored OTP from Supabase
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        const { data: storedOtp, error: fetchError } = await supabase
+            .from('sms_otp_codes')
+            .select('*')
+            .eq('phone', cleanPhone)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (fetchError) {
+            console.error('OTP fetch error:', fetchError);
+            return res.status(500).json({ error: 'Failed to verify code' });
+        }
 
         if (!storedOtp) {
             return res.status(400).json({
@@ -38,8 +58,12 @@ export default async function handler(req, res) {
         }
 
         // Check if expired
-        if (Date.now() > storedOtp.expires) {
-            otpStore.delete(cleanPhone);
+        if (new Date() > new Date(storedOtp.expires_at)) {
+            await supabase
+                .from('sms_otp_codes')
+                .delete()
+                .eq('id', storedOtp.id);
+
             return res.status(400).json({
                 error: 'Verification code has expired. Please request a new code.',
                 expired: true
@@ -48,7 +72,11 @@ export default async function handler(req, res) {
 
         // Check attempts (max 5)
         if (storedOtp.attempts >= 5) {
-            otpStore.delete(cleanPhone);
+            await supabase
+                .from('sms_otp_codes')
+                .delete()
+                .eq('id', storedOtp.id);
+
             return res.status(429).json({
                 error: 'Too many attempts. Please request a new code.',
                 tooManyAttempts: true
@@ -56,11 +84,14 @@ export default async function handler(req, res) {
         }
 
         // Increment attempts
-        storedOtp.attempts++;
+        await supabase
+            .from('sms_otp_codes')
+            .update({ attempts: storedOtp.attempts + 1 })
+            .eq('id', storedOtp.id);
 
         // Verify code
         if (storedOtp.code !== code.trim()) {
-            const remainingAttempts = 5 - storedOtp.attempts;
+            const remainingAttempts = 5 - (storedOtp.attempts + 1);
             return res.status(400).json({
                 error: `Invalid verification code. ${remainingAttempts} attempts remaining.`,
                 invalid: true,
@@ -68,8 +99,11 @@ export default async function handler(req, res) {
             });
         }
 
-        // Success - delete the OTP
-        otpStore.delete(cleanPhone);
+        // Success — delete the OTP
+        await supabase
+            .from('sms_otp_codes')
+            .delete()
+            .eq('id', storedOtp.id);
 
         return res.status(200).json({
             success: true,

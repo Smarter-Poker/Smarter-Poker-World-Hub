@@ -4,14 +4,14 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import twilio from 'twilio';
+import { createClient } from '@supabase/supabase-js';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-// In-memory OTP store (in production, use Redis or database)
-// Format: { phoneNumber: { code: '123456', expires: timestamp } }
-const otpStore = global.otpStore || (global.otpStore = new Map());
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -22,6 +22,11 @@ export default async function handler(req, res) {
     if (!accountSid || !authToken || !twilioPhone) {
         console.error('Twilio credentials not configured');
         return res.status(500).json({ error: 'SMS service not configured' });
+    }
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('Supabase credentials not configured');
+        return res.status(500).json({ error: 'Server configuration error' });
     }
 
     try {
@@ -43,17 +48,33 @@ export default async function handler(req, res) {
         // Generate 6-digit OTP
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Store OTP with 10-minute expiration
-        otpStore.set(cleanPhone, {
-            code: otpCode,
-            expires: Date.now() + 10 * 60 * 1000, // 10 minutes
-            attempts: 0
-        });
+        // Store OTP in Supabase (persistent across serverless invocations)
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        // Initialize Twilio client
+        // Delete any existing OTP for this phone number first
+        await supabase
+            .from('sms_otp_codes')
+            .delete()
+            .eq('phone', cleanPhone);
+
+        // Insert new OTP with 10-minute expiration
+        const { error: insertError } = await supabase
+            .from('sms_otp_codes')
+            .insert({
+                phone: cleanPhone,
+                code: otpCode,
+                expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+                attempts: 0,
+            });
+
+        if (insertError) {
+            console.error('OTP store error:', insertError);
+            return res.status(500).json({ error: 'Failed to store verification code' });
+        }
+
+        // Initialize Twilio client and send SMS
         const client = twilio(accountSid, authToken);
 
-        // Send SMS
         const message = await client.messages.create({
             body: `Your Smarter.Poker verification code is: ${otpCode}. This code expires in 10 minutes.`,
             from: twilioPhone,
@@ -65,8 +86,6 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             message: 'Verification code sent',
-            // In development, you might want to return the code for testing
-            // code: process.env.NODE_ENV === 'development' ? otpCode : undefined
         });
 
     } catch (error) {
