@@ -60,6 +60,43 @@ export default function RegisterPage() {
   const [selectedTier, setSelectedTier] = useState('charity');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Promo code
+  const [promoCode, setPromoCode] = useState('');
+  const [promoStatus, setPromoStatus] = useState(null); // null | 'checking' | 'valid' | 'invalid'
+  const [promoMessage, setPromoMessage] = useState('');
+  const [promoData, setPromoData] = useState(null);
+
+  const validatePromoCode = async (code) => {
+    if (!code.trim()) {
+      setPromoStatus(null);
+      setPromoMessage('');
+      setPromoData(null);
+      return;
+    }
+    setPromoStatus('checking');
+    try {
+      const res = await fetch('/api/promo/validate-promo-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setPromoStatus('valid');
+        setPromoMessage(data.description || 'Promo code accepted!');
+        setPromoData(data);
+      } else {
+        setPromoStatus('invalid');
+        setPromoMessage(data.error || 'Invalid promo code');
+        setPromoData(null);
+      }
+    } catch {
+      setPromoStatus('invalid');
+      setPromoMessage('Could not validate code');
+      setPromoData(null);
+    }
+  };
+
   const handleClubInfoChange = (e) => {
     setClubInfo(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -135,6 +172,20 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Registration failed');
+
+      // Redeem promo code if one was validated
+      if (promoCode.trim() && promoStatus === 'valid' && data.userId) {
+        try {
+          await fetch('/api/promo/redeem-promo-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: promoCode.trim(), userId: data.userId })
+          });
+        } catch (e) {
+          console.error('Promo redemption error:', e);
+        }
+      }
+
       setRegistrationResult(data);
       setStep(3);
     } catch (err) {
@@ -216,6 +267,38 @@ export default function RegisterPage() {
                   <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Confirm Password *</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputClass} /></div>
                 </div>
               )}
+
+              {/* Promo Code */}
+              <div className="border-t border-[#3A3B3C] pt-6 mt-6">
+                <label className="block text-sm text-[#B0B3B8] mb-1.5">Promo Code (optional)</label>
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={e => { setPromoCode(e.target.value); setPromoStatus(null); setPromoMessage(''); }}
+                      className={inputClass}
+                      placeholder="Enter promo code"
+                    />
+                    {promoStatus === 'valid' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#31A24C] text-lg">✓</span>}
+                    {promoStatus === 'invalid' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F02849] text-lg">✗</span>}
+                    {promoStatus === 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8D91] text-sm">...</span>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => validatePromoCode(promoCode)}
+                    disabled={!promoCode.trim() || promoStatus === 'checking'}
+                    className="px-5 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold text-sm disabled:opacity-40"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoMessage && (
+                  <p className={`text-sm mt-2 ${promoStatus === 'valid' ? 'text-[#31A24C]' : 'text-[#F02849]'}`}>
+                    {promoMessage}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
