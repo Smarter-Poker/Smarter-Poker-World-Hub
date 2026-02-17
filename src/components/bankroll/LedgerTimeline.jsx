@@ -13,6 +13,7 @@ const CATEGORY_COLORS = {
   slots: '#f97316',
   sports: '#f97316',
   expense: '#6b7280',
+  trip_summary: '#3b82f6',
 };
 
 const CATEGORY_LABELS = {
@@ -22,6 +23,7 @@ const CATEGORY_LABELS = {
   slots: 'Slots',
   sports: 'Sports Bet',
   expense: 'Expense',
+  trip_summary: 'Trip',
 };
 
 function CategoryIcon({ category }) {
@@ -67,6 +69,13 @@ function CategoryIcon({ category }) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M12 3L5 7V13C5 17 9 20 12 21C15 20 19 17 19 13V7L12 3Z" fill={color} />
         <path d="M9 12L11 14L15 10" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    trip_summary: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="8" width="16" height="10" rx="2" fill={color} />
+        <path d="M8 8V6C8 4.9 8.9 4 10 4H14C15.1 4 16 4.9 16 6V8" stroke={color} strokeWidth="2" />
+        <line x1="4" y1="13" x2="20" y2="13" stroke="#fff" strokeWidth="1.5" />
       </svg>
     ),
   };
@@ -149,7 +158,9 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
       </div>
       <div style={styles.entryContent}>
         <span style={styles.entryDate}>{formatDate(entry.entry_date)}:</span>
-        <span style={styles.entryLabel}>{CATEGORY_LABELS[entry.category] || entry.category}</span>
+        <span style={styles.entryLabel}>
+          {entry._isTripSummary ? entry._tripName : (CATEGORY_LABELS[entry.category] || entry.category)}
+        </span>
         <span
           style={{
             ...styles.entryAmount,
@@ -158,11 +169,14 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
         >
           {entry.net_result >= 0 ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
         </span>
-        {duration && <span style={styles.entryDuration}>({duration})</span>}
+        {entry._isTripSummary && (
+          <span style={styles.entryDuration}>({entry._sessionCount} sessions)</span>
+        )}
+        {!entry._isTripSummary && duration && <span style={styles.entryDuration}>({duration})</span>}
         {entry.location_name && (
           <span style={styles.entryLocation}>at {entry.location_name}</span>
         )}
-        {details && !entry.location_name && (
+        {!entry._isTripSummary && details && !entry.location_name && (
           <span style={styles.entryDetails}>{details}</span>
         )}
       </div>

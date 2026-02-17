@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { createLedgerEntry, updateLedgerEntry, getActiveTrip } from '../../lib/bankroll/bankrollSelectors';
+import { createLedgerEntry, updateLedgerEntry, getActiveTrip, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
 import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/locationMemory';
 import VenueSelector from './VenueSelector';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
@@ -210,15 +210,41 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
     } catch (_) { /* ignore */ }
   }, []);
 
-  // Detect active trip for display (but don't auto-assign)
+  // Detect active trip — auto-assign trip_id and location
   useEffect(() => {
     if (!userId || isEditMode) return;
     getActiveTrip(userId).then(trip => {
       if (trip) {
         setActiveTrip(trip);
+        // Auto-fill trip and location from active trip
+        setFormData(prev => ({
+          ...prev,
+          trip_id: trip.id,
+          ...(trip.location_id && !prev.location_id ? {
+            location_id: trip.location_id,
+            location_name: trip.location_name || '',
+          } : {}),
+        }));
       }
     }).catch(() => { });
   }, [userId, isEditMode]);
+
+  // Fallback: check for active series if no active trip
+  useEffect(() => {
+    if (!userId || isEditMode || activeTrip) return;
+    getActiveSeries(userId).then(series => {
+      if (series) {
+        setFormData(prev => ({
+          ...prev,
+          trip_id: prev.trip_id || series.id,
+          ...(series.location_id && !prev.location_id ? {
+            location_id: series.location_id,
+            location_name: series.location_name || '',
+          } : {}),
+        }));
+      }
+    }).catch(() => { });
+  }, [userId, isEditMode, activeTrip]);
 
   const handleCategorySelect = (cat) => {
     setCategory(cat);
@@ -838,7 +864,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               </span>
             </div>
           )}
-          {trips.length > 0 && (
+          {activeTrip && !isEditMode ? (
+            /* Active trip auto-assigned — dropdown not needed, banner above suffices */
+            null
+          ) : trips.length > 0 && (
             <div style={styles.formGroup}>
               <label style={styles.label}>Trip</label>
               <select
