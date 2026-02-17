@@ -304,7 +304,7 @@ export default async function handler(req, res) {
             smarter_poker: socialPage.slug
               ? `https://smarter.poker/club/${socialPage.slug}`
               : `https://smarter.poker/club/${socialPage.id}`,
-            waitlist_join: commanderEnabled ? `/hub/commander/waitlist?venue=${venueIdForCommander}` : null
+            waitlist_join: commanderEnabled ? `/hub/commander/waitlist/${venueIdForCommander}` : null
           }
         }
       });
@@ -440,7 +440,7 @@ export default async function handler(req, res) {
         links: {
           smarter_poker: `https://smarter.poker/club/${id}`,
           poker_near_me: `https://pokernear.me/venue/${id}`,
-          waitlist_join: venue.commander_enabled ? `/hub/commander/waitlist?venue=${id}` : null
+          waitlist_join: venue.commander_enabled ? `/hub/commander/waitlist/${id}` : null
         }
       }
     });

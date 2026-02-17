@@ -771,7 +771,7 @@ export default function ClubPage() {
                     ))}
                   </div>
                   <Link
-                    href={`/hub/commander/waitlist?venue=${venue.linked_venue_id || id}`}
+                    href={`/hub/commander/waitlist/${venue.linked_venue_id || id}`}
                     className="block mt-3 text-center text-sm font-medium text-[#1877F2] hover:underline"
                   >
                     Join Waitlist
