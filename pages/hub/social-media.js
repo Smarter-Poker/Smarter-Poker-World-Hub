@@ -263,7 +263,7 @@ function VideoThumbnail({ url, style = {}, onValidated }) {
             <img
                 ref={imgRef}
                 src={thumbnailUrl}
-                alt="Video thumbnail"
+                alt="Video Thumbnail"
                 style={{
                     width: '100%',
                     height: '100%',
@@ -2636,7 +2636,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         left: `${cx + rx * Math.cos(rad)}%`,
                                     };
                                 });
-                                const dealerSeat = game.dealer_seat || 1;
+
 
                                 return (
                                     <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
@@ -2975,7 +2975,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                         // 9-max seat positions on the table rail (ellipse edge)
                         const seatAngles = [90, 135, 180, 215, 245, 295, 325, 0, 45];
-                        const cx = 50, cy = 50, rx = 35, ry = 31;
+                        const cx = 50, cy = 50, rx = 33, ry = 28;
                         const seatPositions = seatAngles.map(deg => {
                             const rad = deg * Math.PI / 180;
                             return {
@@ -2983,7 +2983,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 left: `${cx + rx * Math.cos(rad)}%`,
                             };
                         });
-                        const dealerSeat = game.dealer_seat || 1;
+
 
                         return (
                             <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>

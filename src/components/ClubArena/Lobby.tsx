@@ -66,10 +66,10 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                     <div style={popupStyles.policySection}>
                         <h3 style={popupStyles.sectionTitle}>📜 Important Legal Notice</h3>
                         <ul style={popupStyles.policyList}>
-                            <li>Smarter.Poker provides <strong>educational software tools only</strong></li>
+                            <li>Smarter.Poker Provides <strong>educational software tools only</strong></li>
                             <li>Club Arena operates exclusively with <strong>play money chips</strong></li>
                             <li>We do not facilitate, endorse, or participate in any form of gambling</li>
-                            <li>External arrangements between users are <strong>strictly prohibited</strong></li>
+                            <li>External arrangements between users are <strong>Strictly Prohibited</strong></li>
                             <li>Violation of these terms will result in immediate account termination</li>
                         </ul>
                     </div>
@@ -101,7 +101,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                             <span>↓ Scroll to continue reading ↓</span>
                         )}
                         {scrolledToBottom && (
-                            <span style={{ color: '#00ff66' }}>✓ You have read the disclaimer</span>
+                            <span style={{ color: '#00ff66' }}>✓ You Have Read The Disclaimer</span>
                         )}
                     </div>
                 </div>
@@ -117,7 +117,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                         />
                         <span style={popupStyles.checkboxText}>
                             I have read and agree to the{' '}
-                            <a href="/terms" target="_blank" style={popupStyles.link}>Terms of Service</a>,{' '}
+                            <a href="/terms" target="_blank" style={popupStyles.link}>Terms Of Service</a>,{' '}
                             <a href="/terms#privacy" target="_blank" style={popupStyles.link}>Privacy Policy</a>, and{' '}
                             <a href="/legal/official-rules" target="_blank" style={popupStyles.link}>Official Rules</a>.
                             I understand that Club Arena is a <strong>play money platform only</strong>.

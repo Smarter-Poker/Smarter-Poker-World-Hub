@@ -9,12 +9,12 @@ import { Send, Bell, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const QUICK_MESSAGES = [
-  { label: 'Game Starting', message: 'New game starting! Check in at the desk.' },
-  { label: 'Seat Available', message: 'Seats are now available. Join the waitlist!' },
-  { label: 'Tournament Starting', message: 'Tournament registration closing soon.' },
-  { label: 'Food Service', message: 'Food service now available. See staff to order.' },
-  { label: 'Last Call', message: 'Last call for waitlist signups.' },
-  { label: 'High Hand', message: 'New high hand promotion starting now!' }
+  { label: 'Game Starting', message: 'New Game Starting! Check In At The Desk.' },
+  { label: 'Seat Available', message: 'Seats Are Now Available. Join The Waitlist!' },
+  { label: 'Tournament Starting', message: 'Tournament Registration Closing Soon.' },
+  { label: 'Food Service', message: 'Food Service Now Available. See Staff To Order.' },
+  { label: 'Last Call', message: 'Last Call For Waitlist Signups.' },
+  { label: 'High Hand', message: 'New High Hand Promotion Starting Now!' }
 ];
 
 export default function CommanderAnnouncementsPage() {

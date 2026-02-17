@@ -73,7 +73,7 @@ export default function PremiumTableDemo() {
         <>
             <SEOHead
                 title="Premium Table Demo"
-                description="Demo premium poker table."
+                description="Demo Premium Poker Table."
                 noindex={true}
             />
 

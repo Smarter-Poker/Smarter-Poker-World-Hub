@@ -397,7 +397,7 @@ function HorsesDashboard({ user, onLogout }) {
                             <div className="stable-controls">
                                 <input
                                     type="text"
-                                    placeholder="Search horses..."
+                                    placeholder="Search Horses..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="search-input"
@@ -481,7 +481,7 @@ function HorsesDashboard({ user, onLogout }) {
                                 <button onClick={() => triggerGeneration('cycle', { posts: 10, videos: 2 })} className="action-btn">
                                     <span className="icon">🔄</span>
                                     <span className="label">Quick Cycle</span>
-                                    <span className="desc">10 posts + 2 videos</span>
+                                    <span className="desc">10 Posts + 2 Videos</span>
                                 </button>
                                 <button onClick={() => triggerGeneration('daily')} className="action-btn featured">
                                     <span className="icon">📅</span>
@@ -491,7 +491,7 @@ function HorsesDashboard({ user, onLogout }) {
                                 <button onClick={() => triggerGeneration('publish')} className="action-btn">
                                     <span className="icon">📤</span>
                                     <span className="label">Publish Due</span>
-                                    <span className="desc">Post scheduled</span>
+                                    <span className="desc">Post Scheduled</span>
                                 </button>
                             </div>
                         </div>
@@ -781,7 +781,7 @@ function HorsesDashboard({ user, onLogout }) {
                             <textarea
                                 value={newPersona.bio}
                                 onChange={e => setNewPersona({ ...newPersona, bio: e.target.value })}
-                                placeholder="Brief backstory..."
+                                placeholder="Brief Backstory..."
                                 rows="3"
                                 required
                             />

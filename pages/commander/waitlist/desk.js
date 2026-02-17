@@ -84,9 +84,9 @@ export default function WaitlistDesk() {
       if (json.data?.sms_sent) {
         setSmsStatus({ id: waitlistEntry.id, type: 'sent', text: `SMS sent to ${waitlistEntry.player_name}` });
       } else if (json.data?.sms_status === 'no_phone') {
-        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'No phone — verbal page only' });
+        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'No Phone — Verbal Page Only' });
       } else {
-        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'Called — SMS unavailable' });
+        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'Called — SMS Unavailable' });
       }
       await fetchData();
       setTimeout(() => setSmsStatus(null), 3000);

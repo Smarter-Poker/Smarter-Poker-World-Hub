@@ -22,11 +22,11 @@ const POSITION_OPTIONS = [
 
 const STACK_DEPTH_OPTIONS = [
     { value: 0, label: 'All Stack Depths' },
-    { value: 20, label: '20bb (Short)' },
+    { value: 20, label: '20BB (Short)' },
     { value: 30, label: '30bb' },
     { value: 50, label: '50bb' },
-    { value: 100, label: '100bb (Deep)' },
-    { value: 200, label: '200bb (Very Deep)' },
+    { value: 100, label: '100BB (Deep)' },
+    { value: 200, label: '200BB (Very Deep)' },
 ];
 
 const FORMAT_OPTIONS = [

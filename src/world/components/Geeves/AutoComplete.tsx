@@ -11,29 +11,29 @@ interface AutoCompleteProps {
 
 const SUGGESTIONS = [
     // Navigation
-    { trigger: 'how do i', text: 'How do I access training games?' },
-    { trigger: 'how do i', text: 'How do I create a club?' },
-    { trigger: 'how do i', text: 'How do I buy diamonds?' },
-    { trigger: 'how do i', text: 'How do I join a club?' },
-    { trigger: 'how do i', text: 'How do I start a tournament?' },
+    { trigger: 'how do i', text: 'How Do I Access Training Games?' },
+    { trigger: 'how do i', text: 'How Do I Create A Club?' },
+    { trigger: 'how do i', text: 'How Do I Buy Diamonds?' },
+    { trigger: 'how do i', text: 'How Do I Join A Club?' },
+    { trigger: 'how do i', text: 'How Do I Start A Tournament?' },
 
     // What is
-    { trigger: 'what is', text: 'What is Club Arena?' },
-    { trigger: 'what is', text: 'What is Diamond Arena?' },
-    { trigger: 'what is', text: 'What is GTO Training?' },
-    { trigger: 'what is', text: 'What is the Ghost Fleet?' },
-    { trigger: 'what is', text: 'What is Poker Near Me?' },
+    { trigger: 'what is', text: 'What Is Club Arena?' },
+    { trigger: 'what is', text: 'What Is Diamond Arena?' },
+    { trigger: 'what is', text: 'What Is GTO Training?' },
+    { trigger: 'what is', text: 'What Is The Ghost Fleet?' },
+    { trigger: 'what is', text: 'What Is Poker Near Me?' },
 
     // Where
-    { trigger: 'where', text: 'Where can I find my profile?' },
-    { trigger: 'where', text: 'Where is the Diamond Store?' },
-    { trigger: 'where', text: 'Where are my settings?' },
-    { trigger: 'where', text: 'Where can I see my friends?' },
+    { trigger: 'where', text: 'Where Can I Find My Profile?' },
+    { trigger: 'where', text: 'Where Is The Diamond Store?' },
+    { trigger: 'where', text: 'Where Are My Settings?' },
+    { trigger: 'where', text: 'Where Can I See My Friends?' },
 
     // Help
-    { trigger: 'help', text: 'Help me get started' },
-    { trigger: 'help', text: 'Help with training games' },
-    { trigger: 'help', text: 'Help with club management' },
+    { trigger: 'help', text: 'Help Me Get Started' },
+    { trigger: 'help', text: 'Help With Training Games' },
+    { trigger: 'help', text: 'Help With Club Management' },
 ];
 
 export function AutoComplete({ inputValue, onSelect }: AutoCompleteProps) {
@@ -129,7 +129,7 @@ export function AutoComplete({ inputValue, onSelect }: AutoCompleteProps) {
                 justifyContent: 'space-between'
             }}>
                 <span>↑↓ Navigate</span>
-                <span>Tab to select</span>
+                <span>Tab To Select</span>
             </div>
         </div>
     );

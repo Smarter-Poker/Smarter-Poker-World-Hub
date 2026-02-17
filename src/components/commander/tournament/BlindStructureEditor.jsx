@@ -132,7 +132,7 @@ export default function BlindStructureEditor({
     <div className="space-y-4">
       {/* Preset buttons */}
       <div className="flex flex-wrap gap-2">
-        <span className="text-sm text-[#64748B] py-2">Load preset:</span>
+        <span className="text-sm text-[#64748B] py-2">Load Preset:</span>
         {Object.entries(PRESET_STRUCTURES).map(([key, preset]) => (
           <button
             key={key}
@@ -244,7 +244,7 @@ export default function BlindStructureEditor({
                     onClick={() => moveLevel(index, -1)}
                     disabled={disabled || index === 0}
                     className="p-1 text-[#64748B] hover:text-[#22D3EE] disabled:opacity-30"
-                    title="Move up"
+                    title="Move Up"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -255,7 +255,7 @@ export default function BlindStructureEditor({
                     onClick={() => moveLevel(index, 1)}
                     disabled={disabled || index === levels.length - 1}
                     className="p-1 text-[#64748B] hover:text-[#22D3EE] disabled:opacity-30"
-                    title="Move down"
+                    title="Move Down"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

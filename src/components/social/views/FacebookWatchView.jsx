@@ -19,7 +19,7 @@ const WatchSidebar = () => (
     <aside className="watch-sidebar">
         <div className="sidebar-search">
             <span className="search-icon">🔍</span>
-            <input type="text" placeholder="Search videos" />
+            <input type="text" placeholder="Search Videos" />
         </div>
 
         <nav className="watch-nav">

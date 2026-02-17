@@ -182,7 +182,7 @@ export default function HighHandDisplay({
                       type="text"
                       value={submitData.player_name}
                       onChange={(e) => setSubmitData(prev => ({ ...prev, player_name: e.target.value }))}
-                      placeholder="Player name"
+                      placeholder="Player Name"
                       className="w-full cmd-input text-sm"
                     />
                   </div>
@@ -207,7 +207,7 @@ export default function HighHandDisplay({
                     type="text"
                     value={submitData.hand_description}
                     onChange={(e) => setSubmitData(prev => ({ ...prev, hand_description: e.target.value }))}
-                    placeholder="e.g., Aces Full of Kings"
+                    placeholder="e.g., Aces Full Of Kings"
                     className="w-full cmd-input text-sm"
                   />
                 </div>

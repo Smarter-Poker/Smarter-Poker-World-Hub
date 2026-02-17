@@ -187,10 +187,10 @@ export default function ResponsibleGaming() {
               <h3 className="text-sm font-bold text-white mb-3">Staff Guidelines</h3>
               <div className="space-y-3">
                 {[
-                  { icon: Search, text: 'Always check new players before seating', color: '#1877F2' },
-                  { icon: Ban, text: 'Self-excluded players must be denied entry to gaming areas', color: '#EF4444' },
-                  { icon: Clock, text: 'Monitor for signs of problem gambling (chasing losses, extended sessions)', color: '#F59E0B' },
-                  { icon: Shield, text: 'Offer responsible gaming resources when asked', color: '#31A24C' },
+                  { icon: Search, text: 'Always Check New Players Before Seating', color: '#1877F2' },
+                  { icon: Ban, text: 'Self-excluded Players Must Be Denied Entry To Gaming Areas', color: '#EF4444' },
+                  { icon: Clock, text: 'Monitor For Signs Of Problem Gambling (chasing Losses, Extended Sessions)', color: '#F59E0B' },
+                  { icon: Shield, text: 'Offer Responsible Gaming Resources When Asked', color: '#31A24C' },
                 ].map((g, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <g.icon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: g.color }} />

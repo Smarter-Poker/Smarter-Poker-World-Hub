@@ -18,46 +18,46 @@ export function DynamicQuickActions({ onActionClick }: DynamicQuickActionsProps)
         // Training page
         if (currentPath.includes('/training')) {
             return [
-                { id: 'training-help', label: 'How do I play this game?', icon: '🎯', message: 'How do I play this training game?' },
-                { id: 'training-progress', label: 'View My Progress', icon: '📊', message: 'Show me my training progress' },
-                { id: 'training-difficulty', label: 'Change Difficulty', icon: '⚡', message: 'How do I change game difficulty?' },
-                { id: 'training-rewards', label: 'Training Rewards', icon: '💎', message: 'What rewards do I get from training?' },
+                { id: 'training-help', label: 'How Do I Play This Game?', icon: '🎯', message: 'How Do I Play This Training Game?' },
+                { id: 'training-progress', label: 'View My Progress', icon: '📊', message: 'Show Me My Training Progress' },
+                { id: 'training-difficulty', label: 'Change Difficulty', icon: '⚡', message: 'How Do I Change Game Difficulty?' },
+                { id: 'training-rewards', label: 'Training Rewards', icon: '💎', message: 'What Rewards Do I Get From Training?' },
             ];
         }
 
         // Diamond Store page
         if (currentPath.includes('/diamond-store')) {
             return [
-                { id: 'store-bundles', label: 'Best Bundle?', icon: '💰', message: 'What is the best diamond bundle?' },
-                { id: 'store-checkout', label: 'How to Checkout', icon: '🛒', message: 'How do I complete checkout?' },
-                { id: 'store-vip', label: 'VIP Benefits', icon: '👑', message: 'What are VIP membership benefits?' },
-                { id: 'store-orders', label: 'My Orders', icon: '📦', message: 'Where can I see my order history?' },
+                { id: 'store-bundles', label: 'Best Bundle?', icon: '💰', message: 'What Is The Best Diamond Bundle?' },
+                { id: 'store-checkout', label: 'How To Checkout', icon: '🛒', message: 'How Do I Complete Checkout?' },
+                { id: 'store-vip', label: 'VIP Benefits', icon: '👑', message: 'What Are VIP Membership Benefits?' },
+                { id: 'store-orders', label: 'My Orders', icon: '📦', message: 'Where Can I See My Order History?' },
             ];
         }
 
         // Social Media page
         if (currentPath.includes('/social-media')) {
             return [
-                { id: 'social-post', label: 'How to Post', icon: '📝', message: 'How do I create a post?' },
-                { id: 'social-friends', label: 'Add Friends', icon: '👥', message: 'How do I add friends?' },
-                { id: 'social-privacy', label: 'Privacy Settings', icon: '🔒', message: 'How do I change privacy settings?' },
-                { id: 'social-reels', label: 'Upload Reels', icon: '🎬', message: 'How do I upload video reels?' },
+                { id: 'social-post', label: 'How To Post', icon: '📝', message: 'How Do I Create A Post?' },
+                { id: 'social-friends', label: 'Add Friends', icon: '👥', message: 'How Do I Add Friends?' },
+                { id: 'social-privacy', label: 'Privacy Settings', icon: '🔒', message: 'How Do I Change Privacy Settings?' },
+                { id: 'social-reels', label: 'Upload Reels', icon: '🎬', message: 'How Do I Upload Video Reels?' },
             ];
         }
 
         // Settings page
         if (currentPath.includes('/settings')) {
             return [
-                { id: 'settings-profile', label: 'Edit Profile', icon: '👤', message: 'How do I edit my profile?' },
-                { id: 'settings-avatar', label: 'Change Avatar', icon: '🎨', message: 'How do I change my avatar?' },
-                { id: 'settings-notifications', label: 'Notifications', icon: '🔔', message: 'How do I manage notifications?' },
-                { id: 'settings-account', label: 'Account Security', icon: '🔐', message: 'How do I secure my account?' },
+                { id: 'settings-profile', label: 'Edit Profile', icon: '👤', message: 'How Do I Edit My Profile?' },
+                { id: 'settings-avatar', label: 'Change Avatar', icon: '🎨', message: 'How Do I Change My Avatar?' },
+                { id: 'settings-notifications', label: 'Notifications', icon: '🔔', message: 'How Do I Manage Notifications?' },
+                { id: 'settings-account', label: 'Account Security', icon: '🔐', message: 'How Do I Secure My Account?' },
             ];
         }
 
         // Default actions for Hub
         return [
-            { id: 'go-to-training', label: 'Go to Training', icon: '🎯', navigate: '/hub/training' },
+            { id: 'go-to-training', label: 'Go To Training', icon: '🎯', navigate: '/hub/training' },
             { id: 'go-to-diamond-store', label: 'Diamond Store', icon: '💎', navigate: '/hub/diamond-store' },
             { id: 'go-to-club-arena', label: 'Club Arena', icon: '♠️', navigate: 'https://club.smarter.poker' },
             { id: 'go-to-social', label: 'Social Hub', icon: '👥', navigate: '/hub/social-media' },

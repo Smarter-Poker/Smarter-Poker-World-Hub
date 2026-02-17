@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
   paused: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30', label: 'Paused' },
   break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30', label: 'On Break' },
   final_table: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', border: 'border-[#1877F2]/30', label: 'Final Table' },
-  hand_for_hand: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', border: 'border-[#EF4444]/30', label: 'Hand for Hand' },
+  hand_for_hand: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', border: 'border-[#EF4444]/30', label: 'Hand For Hand' },
   completed: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', border: 'border-[#B0B3B8]/30', label: 'Completed' },
   cancelled: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', border: 'border-[#EF4444]/30', label: 'Cancelled' }
 };
@@ -407,7 +407,7 @@ export default function TDControlCenter() {
             <StatCard icon={Trophy} label="Entries" value={stats.total_entries} color="#1877F2" />
             <StatCard icon={DollarSign} label="Prize Pool" value={formatMoney(stats.prize_pool)} color="#F59E0B" />
             <StatCard icon={RefreshCw} label="Rebuys" value={stats.total_rebuys} color="#B0B3B8" />
-            <StatCard icon={Star} label="Add-ons" value={stats.total_addons} color="#B0B3B8" />
+            <StatCard icon={Star} label="Add-Ons" value={stats.total_addons} color="#B0B3B8" />
             <StatCard icon={DollarSign} label="Avg Stack" value={formatChips(stats.average_stack)} color="#B0B3B8" />
           </div>
         </div>

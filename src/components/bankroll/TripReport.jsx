@@ -24,7 +24,7 @@ export default function TripReport({ report, onBack }) {
     return (
         <div style={styles.container}>
             {/* Back Button */}
-            <button onClick={onBack} style={styles.backBtn}>← Back to Trip Tracker</button>
+            <button onClick={onBack} style={styles.backBtn}>← Back To Trip Tracker</button>
 
             {/* Trip Header */}
             <div style={styles.header}>

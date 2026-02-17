@@ -168,7 +168,7 @@ Format your response exactly like this with clear separators:
                 <textarea
                     value={scenario}
                     onChange={e => setScenario(e.target.value)}
-                    placeholder="e.g., I have AQ on the button facing a 3-bet..."
+                    placeholder="e.g., I Have AQ On The Button Facing A 3-bet..."
                     rows={3}
                     style={{
                         width: '100%',
@@ -237,7 +237,7 @@ Format your response exactly like this with clear separators:
                 }}
             >
                 <span>⚔️</span>
-                <span>Start the Debate!</span>
+                <span>Start The Debate!</span>
             </button>
 
             {/* Instructions */}

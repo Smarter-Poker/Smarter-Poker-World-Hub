@@ -59,12 +59,12 @@ export default function MustMoveManager() {
       });
       const json = await res.json();
       if (json.success) {
-        setMessage({ type: 'success', text: 'Must-move link created' });
+        setMessage({ type: 'success', text: 'Must-move Link Created' });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error?.message || 'Failed to link' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setActionLoading(null); }
   };
 
@@ -78,12 +78,12 @@ export default function MustMoveManager() {
       });
       const json = await res.json();
       if (json.success) {
-        setMessage({ type: 'success', text: 'Must-move removed' });
+        setMessage({ type: 'success', text: 'Must-move Removed' });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error?.message || 'Failed to unlink' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setActionLoading(null); }
   };
 
@@ -103,7 +103,7 @@ export default function MustMoveManager() {
       } else {
         setMessage({ type: 'error', text: json.error || 'Failed to move player' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setMoveLoading(null); }
   };
 

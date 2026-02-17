@@ -145,7 +145,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                                 type="number"
                                 value={newGoal.target}
                                 onChange={(e) => setNewGoal({ ...newGoal, target: e.target.value })}
-                                placeholder="Target profit"
+                                placeholder="Target Profit"
                                 style={styles.input}
                             />
                         </div>
@@ -239,7 +239,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
             {/* No Goals State */}
             {!isLoading && !activeGoal && !showAddGoal && (
                 <div style={styles.emptyState}>
-                    <span style={{ opacity: 0.5 }}>No active goal</span>
+                    <span style={{ opacity: 0.5 }}>No Active Goal</span>
                     <button onClick={() => setShowAddGoal(true)} style={styles.setGoalBtn}>
                         Set a Profit Target
                     </button>

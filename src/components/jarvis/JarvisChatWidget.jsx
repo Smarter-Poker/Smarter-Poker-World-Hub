@@ -51,7 +51,7 @@ export default function JarvisChatWidget({ user }) {
                 {/* Jarvis Avatar */}
                 <img
                     src="/images/jarvis-avatar.png"
-                    alt="Chat with Jarvis"
+                    alt="Chat With Jarvis"
                     style={{
                         width: 48,
                         height: 48,

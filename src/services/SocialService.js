@@ -620,7 +620,7 @@ export class SocialService {
             {
                 id: 'c1',
                 unreadCount: 1,
-                lastMessage: { text: 'You call that a raise?', time: '2m', isOwn: false },
+                lastMessage: { text: 'You Call That A Raise?', time: '2m', isOwn: false },
                 participants: [
                     { id: 'u2', name: 'Mike Shark', avatar: 'https://picsum.photos/101/101', online: true }
                 ]
@@ -631,8 +631,8 @@ export class SocialService {
     async getMessages(conversationId) {
         await new Promise(r => setTimeout(r, 300));
         return [
-            { id: 1, text: 'Hey, nice hand earlier!', time: '10:30 AM', senderId: 'u2' },
-            { id: 2, text: 'Thanks! I knew he was bluffing.', time: '10:31 AM', senderId: 'u1' }
+            { id: 1, text: 'Hey, Nice Hand Earlier!', time: '10:30 AM', senderId: 'u2' },
+            { id: 2, text: 'Thanks! I Knew He Was Bluffing.', time: '10:31 AM', senderId: 'u1' }
         ];
     }
 

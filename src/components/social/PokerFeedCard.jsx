@@ -174,7 +174,7 @@ export const PokerFeedCard = ({
                     <div className={`post-media media-count-${Math.min(post.media.length, 4)}`}>
                         {post.media.slice(0, 4).map((media, i) => (
                             <div key={i} className="media-item">
-                                <img src={media.url} alt="Post media" />
+                                <img src={media.url} alt="Post Media" />
                                 {i === 3 && post.media.length > 4 && (
                                     <div className="media-more">+{post.media.length - 4}</div>
                                 )}
@@ -236,7 +236,7 @@ export const PokerFeedCard = ({
                         <img src="/default-avatar.png" alt="You" className="comment-avatar" />
                         <input
                             type="text"
-                            placeholder="Write a comment..."
+                            placeholder="Write A Comment..."
                             className="comment-field"
                         />
                     </div>

@@ -20,7 +20,7 @@ const POKER_TOPICS = [
     { id: 'final-table', label: 'Final Table', icon: '👑', query: 'What are the key adjustments for final table play?' },
 
     // Hand Analysis
-    { id: 'analyze-hand', label: 'Analyze a Hand', icon: '🃏', query: 'I want to analyze a specific poker hand. How should I describe it?' },
+    { id: 'analyze-hand', label: 'Analyze A Hand', icon: '🃏', query: 'I want to analyze a specific poker hand. How should I describe it?' },
     { id: 'equity-calc', label: 'Equity & Odds', icon: '🧮', query: 'Explain pot odds, equity, and how to calculate them' },
 
     // Learning

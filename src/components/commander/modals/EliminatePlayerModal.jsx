@@ -114,7 +114,7 @@ export default function EliminatePlayerModal({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search player..."
+              placeholder="Search Player..."
               className="cmd-input w-full h-12 pl-10 pr-4"
             />
           </div>

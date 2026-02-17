@@ -174,7 +174,7 @@ export default function TournamentManager({
               type="text"
               value={registerName}
               onChange={(e) => setRegisterName(e.target.value)}
-              placeholder="Player name"
+              placeholder="Player Name"
               className="flex-1 cmd-input"
             />
             <input

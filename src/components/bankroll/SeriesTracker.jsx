@@ -228,7 +228,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                     <button
                         onClick={() => setConfirmDelete(true)}
                         style={styles.deleteX}
-                        title="Delete series"
+                        title="Delete Series"
                     >&#x2715;</button>
 
                     <div style={styles.activeHeader}>
@@ -383,9 +383,9 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                     onClick={() => setShowCreateForm(true)}
                     style={styles.createBtn}
                 >
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No active series</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Series</span>
                     <div>
-                        <div style={styles.createTitle}>Start a New Series</div>
+                        <div style={styles.createTitle}>Start A New Series</div>
                         <div style={styles.createSub}>Track multi-day tournament series, WSOP runs, and events</div>
                     </div>
                 </motion.button>
@@ -413,7 +413,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                 }}
                                 onFocus={() => setShowSeriesSuggestions(true)}
                                 onBlur={() => setTimeout(() => setShowSeriesSuggestions(false), 200)}
-                                placeholder="Type series or tour name..."
+                                placeholder="Type Series Or Tour Name..."
                                 style={styles.formInput}
                                 autoFocus
                             />
@@ -468,7 +468,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                 }}
                                 onFocus={() => setShowLocationSuggestions(true)}
                                 onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
-                                placeholder="Type venue name..."
+                                placeholder="Type Venue Name..."
                                 style={styles.formInput}
                             />
                             {showLocationSuggestions && (() => {
@@ -552,7 +552,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                 {isLoading ? (
                     <div style={styles.loadingPlaceholder}>Loading series...</div>
                 ) : completedSeries.length === 0 ? (
-                    <div style={styles.emptyState}>No completed series yet. Start your first series above!</div>
+                    <div style={styles.emptyState}>No Completed Series Yet. Start Your First Series Above!</div>
                 ) : (
                     <div style={styles.seriesGrid}>
                         {completedSeries.map(series => (

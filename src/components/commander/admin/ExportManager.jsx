@@ -304,7 +304,7 @@ export default function ExportManager({
       ) : exports.length === 0 ? (
         <div className="cmd-panel p-8 text-center">
           <Download size={32} className="mx-auto text-[#4A5E78] mb-2" />
-          <p className="text-[#64748B]">No exports yet</p>
+          <p className="text-[#64748B]">No Exports Yet</p>
           <p className="text-sm text-[#4A5E78]">Create an export to download your data</p>
         </div>
       ) : (

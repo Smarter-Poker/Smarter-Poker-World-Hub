@@ -292,7 +292,7 @@ export default function SurvivalModePage() {
                                         variant="primary"
                                     />
                                     <HexButton
-                                        label="Back to Trivia"
+                                        label="Back To Trivia"
                                         onClick={() => router.push('/hub/trivia')}
                                         variant="secondary"
                                     />

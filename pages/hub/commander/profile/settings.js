@@ -176,7 +176,7 @@ export default function ProfileSettingsPage() {
             </div>
             <div className="divide-y divide-[#4A5E78]/50">
               <ToggleSetting
-                label="Show Stats on Profile"
+                label="Show Stats On Profile"
                 description="Let Others See Your Session Stats"
                 value={settings.privacy_show_stats}
                 onChange={(v) => updateSetting('privacy_show_stats', v)}

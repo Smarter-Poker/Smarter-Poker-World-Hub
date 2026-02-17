@@ -251,7 +251,7 @@ export default function PlayerProfilePage() {
               />
               <StatCard
                 icon={DollarSign}
-                label="Total Buy-ins"
+                label="Total Buy-Ins"
                 value={`$${(stats?.totalBuyins || 0).toLocaleString()}`}
                 color="#F59E0B"
               />

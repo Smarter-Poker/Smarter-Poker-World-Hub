@@ -185,7 +185,7 @@ export default function PlayerTournamentsHub() {
       }
     } catch (err) {
       console.error('Register error:', err);
-      setMessage({ type: 'error', text: 'Registration failed' });
+      setMessage({ type: 'error', text: 'Registration Failed' });
       setTimeout(() => setMessage(null), 4000);
     }
   };

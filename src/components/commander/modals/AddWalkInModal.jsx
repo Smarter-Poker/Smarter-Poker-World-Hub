@@ -121,7 +121,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Optional - for announcements"
+              placeholder="Optional - For Announcements"
               className="cmd-input w-full h-12"
             />
           </div>
@@ -222,7 +222,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional notes"
+              placeholder="Optional Notes"
               className="cmd-input w-full h-12"
             />
           </div>

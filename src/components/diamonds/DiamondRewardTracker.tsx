@@ -225,7 +225,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                             <div style={styles.rule}>📊 Daily Cap: <strong>500 diamonds</strong></div>
                             <div style={styles.rule}>🔥 Streak Bonus: <strong>Days 4-6: 1.5x | Day 7+: 2.0x</strong></div>
                             <div style={styles.rule}>⭐ Min Award: <strong>5 diamonds</strong></div>
-                            <div style={styles.rule}>👥 Referrals: <strong>Bypass daily cap!</strong></div>
+                            <div style={styles.rule}>👥 Referrals: <strong>Bypass Daily Cap!</strong></div>
                         </div>
                     </div>
                 ) : (

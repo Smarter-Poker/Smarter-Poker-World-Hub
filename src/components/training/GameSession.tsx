@@ -1049,8 +1049,8 @@ const GameSession: React.FC<GameSessionProps> = ({
                         situationContext={(currentHand as any).situationContext}
                         choices={(currentHand as any).choices || [
                             { id: 'TILT', label: 'Express Frustration', icon: '😤', emotionalType: 'impulsive' },
-                            { id: 'BREATHE', label: 'Take a Deep Breath', icon: '🧘', emotionalType: 'rational' },
-                            { id: 'LEAVE', label: 'Leave the Table', icon: '🚪', emotionalType: 'passive' },
+                            { id: 'BREATHE', label: 'Take A Deep Breath', icon: '🧘', emotionalType: 'rational' },
+                            { id: 'LEAVE', label: 'Leave The Table', icon: '🚪', emotionalType: 'passive' },
                         ]}
                         correctChoiceId={(currentHand as any).correctChoice || 'BREATHE'}
                         timeLimit={(currentHand as any).timeLimit || 15}

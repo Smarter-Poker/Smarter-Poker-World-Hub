@@ -965,7 +965,7 @@ export default function DiamondStorePage() {
                         }}>
                             <img
                                 src="/images/diamond-store-checkout.png"
-                                alt="Diamond Packages — Click any box to add to cart"
+                                alt="Diamond Packages — Click Any Box To Add To Cart"
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
                             />

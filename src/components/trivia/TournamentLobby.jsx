@@ -207,7 +207,7 @@ export default function TournamentLobby({
                         {isRegistered && status === 'upcoming' && (
                             <div className="registered-badge">
                                 <Award size={20} />
-                                <span>You're registered! Wait for start.</span>
+                                <span>You're Registered! Wait For Start.</span>
                             </div>
                         )}
                     </div>

@@ -67,7 +67,7 @@ export default function MemberCard({ member, venueName, qrCodeUrl, onPrint }) {
             </div>
             <div class="footer">
               <span>Member Since ${new Date(member.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-              <span>Powered by CLUB COMMANDER</span>
+              <span>Powered By CLUB COMMANDER</span>
             </div>
           </div>
         </body>

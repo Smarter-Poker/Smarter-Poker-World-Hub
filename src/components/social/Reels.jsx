@@ -152,7 +152,7 @@ export function ReelsViewer({ onClose }) {
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🎬</div>
-                <div style={{ color: C.text, fontSize: 18 }}>No Reels yet</div>
+                <div style={{ color: C.text, fontSize: 18 }}>No Reels Yet</div>
                 <button onClick={onClose} style={{
                     marginTop: 24, padding: '12px 24px', background: C.blue,
                     color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer',

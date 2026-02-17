@@ -396,7 +396,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 >
                     <img
                         src="/images/trivia/quick-stakes.png?v=rembg2"
-                        alt="Quick Stakes - 10 Questions in 60 Seconds"
+                        alt="Quick Stakes - 10 Questions In 60 Seconds"
                         className="quick-stakes-banner__img"
                     />
                 </div>

@@ -205,7 +205,7 @@ export const PhotoLightbox = ({
                     {/* Comment Input */}
                     <div className="panel-input">
                         <FBAvatar size={32} />
-                        <input type="text" placeholder="Write a comment..." />
+                        <input type="text" placeholder="Write A Comment..." />
                     </div>
                 </div>
             )}

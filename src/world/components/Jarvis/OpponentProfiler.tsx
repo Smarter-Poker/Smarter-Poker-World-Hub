@@ -385,7 +385,7 @@ Give me 3 specific exploits for this player type.`;
                                 value={newNote}
                                 onChange={e => setNewNote(e.target.value)}
                                 onKeyPress={e => e.key === 'Enter' && addNote()}
-                                placeholder="Add note..."
+                                placeholder="Add Note..."
                                 style={{
                                     flex: 1,
                                     padding: '6px 10px',

@@ -206,7 +206,7 @@ export const SpatialFeed = ({
         {!feedState.isLoading && feedState.posts.length === 0 && (
           <div className="feed-empty glass-card">
             <div className="empty-icon">🌐</div>
-            <h3>No posts yet</h3>
+            <h3>No Posts Yet</h3>
             <p>Be the first to share something with the community!</p>
             <button
               className="empty-cta interactive glow-shift"

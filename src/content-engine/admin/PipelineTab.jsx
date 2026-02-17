@@ -90,7 +90,7 @@ export function PipelineTab() {
                     >
                         <span className="icon">🔄</span>
                         <span className="label">Quick Cycle</span>
-                        <span className="desc">10 posts + 2 videos</span>
+                        <span className="desc">10 Posts + 2 Videos</span>
                     </button>
 
                     <button

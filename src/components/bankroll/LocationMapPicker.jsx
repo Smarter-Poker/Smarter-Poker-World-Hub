@@ -199,7 +199,7 @@ export default function LocationMapPicker({ initialLat, initialLng, onConfirm, o
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleSearchKeyDown}
-                        placeholder="Search address or place..."
+                        placeholder="Search Address Or Place..."
                         style={styles.searchInput}
                     />
                     <button

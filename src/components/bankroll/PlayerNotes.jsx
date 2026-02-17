@@ -76,7 +76,7 @@ export default function PlayerNotes({ userId }) {
             {/* Search */}
             <input
                 type="text"
-                placeholder="Search players..."
+                placeholder="Search Players..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 style={styles.searchInput}
@@ -87,8 +87,8 @@ export default function PlayerNotes({ userId }) {
                 <div style={styles.loading}>Loading players...</div>
             ) : filteredPlayers.length === 0 ? (
                 <div style={styles.empty}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No players yet</span>
-                    <p style={{ margin: 0 }}>No players yet</p>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Players Yet</span>
+                    <p style={{ margin: 0 }}>No Players Yet</p>
                     <p style={{ margin: '8px 0 0', fontSize: 12, opacity: 0.6 }}>
                         Add notes on opponents you've played against
                     </p>
@@ -427,7 +427,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                     }}
                                     style={styles.select}
                                 >
-                                    <option value="">Select stakes...</option>
+                                    <option value="">Select Stakes...</option>
                                     {savedStakes.map(s => (
                                         <option key={s} value={s}>{s}</option>
                                     ))}
@@ -494,7 +494,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                         <textarea
                             value={formData.notes}
                             onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                            placeholder="Physical description, personality, any general observations..."
+                            placeholder="Physical Description, Personality, Any General Observations..."
                             style={styles.textarea}
                         />
                     </div>
@@ -505,7 +505,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                         <textarea
                             value={formData.tells}
                             onChange={e => setFormData({ ...formData, tells: e.target.value })}
-                            placeholder="Physical tells, timing tells, bet sizing tells..."
+                            placeholder="Physical Tells, Timing Tells, Bet Sizing Tells..."
                             style={styles.textarea}
                         />
                     </div>
@@ -516,7 +516,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                         <textarea
                             value={formData.tendencies}
                             onChange={e => setFormData({ ...formData, tendencies: e.target.value })}
-                            placeholder="3-bets light, folds to river raises, overplays top pair..."
+                            placeholder="3-bets Light, Folds To River Raises, Overplays Top Pair..."
                             style={styles.textarea}
                         />
                     </div>

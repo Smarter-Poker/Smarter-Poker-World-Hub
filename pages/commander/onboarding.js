@@ -170,7 +170,7 @@ export default function VenueOnboardingPage() {
       <Head>
         <title>Get Started | Club Commander</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <meta name="description" content="Request a demo of Club Commander for your poker room" />
+        <meta name="description" content="Request A Demo Of Club Commander For Your Poker Room" />
       </Head>
 
       <div className="cmd-page">

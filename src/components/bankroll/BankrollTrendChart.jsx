@@ -407,7 +407,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     const renderHeatmap = () => {
         const days = Object.keys(heatmapData).sort();
-        if (days.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No data for heatmap</span></div>;
+        if (days.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Data For Heatmap</span></div>;
         const values = Object.values(heatmapData);
         const maxAbs = Math.max(1, ...values.map(Math.abs));
 
@@ -557,7 +557,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     };
 
     const renderDonut = () => {
-        if (donutData.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No category data</span></div>;
+        if (donutData.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Category Data</span></div>;
         const total = donutData.reduce((s, d) => s + d.rawValue, 0);
         const totalAbs = donutData.reduce((s, d) => s + d.value, 0);
 
@@ -680,7 +680,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             return (
                 <div style={S.emptyState}>
                     <span style={{ fontSize: 24, opacity: 0.3 }}></span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No data for this period</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Data For This Period</span>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Log sessions to see your trend</span>
                 </div>
             );

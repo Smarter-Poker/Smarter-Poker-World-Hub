@@ -357,7 +357,7 @@ export default function HamburgerMenu({
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? '#e0e0e0' : 'rgba(255, 255, 255, 0.15)'}
                         onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? '#f0f0f0' : 'rgba(255, 255, 255, 0.1)'}
-                        aria-label="Close menu"
+                        aria-label="Close Menu"
                     >
                         ✕
                     </button>

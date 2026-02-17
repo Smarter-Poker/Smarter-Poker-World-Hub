@@ -91,7 +91,7 @@ export default function VenueQRCodePage() {
         <p className="text-xl text-[#B0B3B8] mb-8">Scan To Check In</p>
         <img
           src={getQRCodeUrl(400)}
-          alt="Check-in QR Code"
+          alt="Check-In QR Code"
           className="w-96 h-96"
         />
         <p className="text-sm text-[#3A3B3C] mt-8">Tap Anywhere To Exit Fullscreen</p>
@@ -140,7 +140,7 @@ export default function VenueQRCodePage() {
                 {qrUrl ? (
                   <img
                     src={getQRCodeUrl(250)}
-                    alt="Check-in QR Code"
+                    alt="Check-In QR Code"
                     className="w-64 h-64 mx-auto"
                   />
                 ) : (

@@ -374,37 +374,37 @@ export default function PilotVenuesPage() {
             <div className="space-y-3">
               <ChecklistItem
                 checked={true}
-                label="Load tests pass"
+                label="Load Tests Pass"
                 description="K6 Tests Complete With Passing Thresholds"
               />
               <ChecklistItem
                 checked={true}
-                label="Security audit complete"
+                label="Security Audit Complete"
                 description="All Security Checks Passing (90%+ Score)"
               />
               <ChecklistItem
                 checked={true}
-                label="Error monitoring active"
+                label="Error Monitoring Active"
                 description="Sentry Integration Configured"
               />
               <ChecklistItem
                 checked={true}
-                label="Documentation complete"
+                label="Documentation Complete"
                 description="Staff Guide, Manager Guide, FAQ, Troubleshooting"
               />
               <ChecklistItem
                 checked={true}
-                label="Onboarding flow tested"
+                label="Onboarding Flow Tested"
                 description="Lead Capture And Pipeline Management Working"
               />
               <ChecklistItem
                 checked={activePilots.length >= 5}
-                label="5 pilot venues live"
+                label="5 Pilot Venues Live"
                 description={`${activePilots.length}/5 venues currently active`}
               />
               <ChecklistItem
                 checked={avgUptime >= 95 && AvgTickets <= 5 && avgSatisfaction >= 4 && avgAdoption >= 50}
-                label="Success metrics met"
+                label="Success Metrics Met"
                 description="95% Uptime, <5 Tickets/week, 4+/5 Satisfaction, 50%+ Adoption"
               />
             </div>

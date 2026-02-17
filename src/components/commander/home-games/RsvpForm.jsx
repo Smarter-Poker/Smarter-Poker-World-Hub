@@ -101,7 +101,7 @@ export default function RsvpForm({
               onChange={(e) => setBringingGuests(parseInt(e.target.value))}
               className="cmd-input px-3 py-2"
             >
-              <option value={0}>No guests</option>
+              <option value={0}>No Guests</option>
               {Array.from({ length: event.guest_limit || 1 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
                   {i + 1} guest{i > 0 ? 's' : ''}
@@ -118,7 +118,7 @@ export default function RsvpForm({
               type="text"
               value={guestNames}
               onChange={(e) => setGuestNames(e.target.value)}
-              placeholder="Guest names (comma separated)"
+              placeholder="Guest Names (comma Separated)"
               className="cmd-input mt-2 w-full px-3 py-2"
             />
           )}
@@ -133,7 +133,7 @@ export default function RsvpForm({
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Any notes for the host..."
+          placeholder="Any Notes For The Host..."
           rows={2}
           className="cmd-input w-full px-3 py-2 resize-none"
         />

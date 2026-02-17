@@ -541,7 +541,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                         <span style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>Receipt Captured</span>
                     </div>
                     <div style={styles.previewArea}>
-                        <img src={croppedImage} alt="Cropped receipt" style={styles.previewImage} />
+                        <img src={croppedImage} alt="Cropped Receipt" style={styles.previewImage} />
                     </div>
                     <div style={styles.previewActions}>
                         <button onClick={handleRetry} style={styles.retryBtn}>Try Again</button>

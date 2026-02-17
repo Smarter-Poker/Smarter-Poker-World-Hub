@@ -187,7 +187,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                         type="text"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder="Search clubs, players, content..."
+                        placeholder="Search Clubs, Players, Content..."
                         style={{
                             flex: 1,
                             background: 'transparent',

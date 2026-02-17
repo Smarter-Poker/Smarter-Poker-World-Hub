@@ -44,7 +44,7 @@ export default function TableUtilization() {
 
   const s = data?.summary || {};
   const maxHeat = Math.max(...(data?.hourly_heatmap || [1]), 1);
-  const fmtHour = h => H === 0 ? ''12a' : H < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
+  const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
 
   return (
     <>

@@ -107,7 +107,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
                                 <div className="flex items-center gap-1.5 text-[#B0B3B8]"><Star className="w-3.5 h-3.5" /><span>{member.membership_status}</span></div>
                             </div>
                             <div className="grid grid-cols-2 gap-2 pt-2">
-                                <button className="py-2.5 bg-[#1877F2] text-white rounded-lg text-sm font-medium">Seat at Table</button>
+                                <button className="py-2.5 bg-[#1877F2] text-white rounded-lg text-sm font-medium">Seat At Table</button>
                                 <button className="py-2.5 bg-[#3A3B3C] text-[#E4E6EB] rounded-lg text-sm font-medium">Tournament Entry</button>
                                 <button className="py-2.5 bg-[#3A3B3C] text-[#E4E6EB] rounded-lg text-sm font-medium">Add Time</button>
                                 <button className="py-2.5 bg-[#3A3B3C] text-[#E4E6EB] rounded-lg text-sm font-medium">Update Status</button>

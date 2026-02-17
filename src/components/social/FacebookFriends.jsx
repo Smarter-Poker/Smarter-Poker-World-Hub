@@ -546,7 +546,7 @@ export const FriendsList = ({
                 <span className="search-icon">🔍</span>
                 <input
                     type="text"
-                    placeholder="Search friends"
+                    placeholder="Search Friends"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />

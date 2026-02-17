@@ -389,7 +389,7 @@ export default function PlayerTableDisplay() {
         setScanStatus({ type: 'error', message: json.error || 'Scan failed' });
       }
     } catch (err) {
-      setScanStatus({ type: 'error', message: 'Network error. Please try again.' });
+      setScanStatus({ type: 'error', message: 'Network Error. Please Try Again.' });
     }
 
     setTimeout(() => setScanStatus(null), 4000);
@@ -398,7 +398,7 @@ export default function PlayerTableDisplay() {
   // Handle player QR scan
   const handlePlayerScan = useCallback(async (qrData) => {
     setShowScanner(false);
-    setScanStatus({ type: 'loading', message: 'Scanning player...' });
+    setScanStatus({ type: 'loading', message: 'Scanning Player...' });
 
     try {
       const res = await fetch('/api/commander/dealer/player-scan-in', {
@@ -424,7 +424,7 @@ export default function PlayerTableDisplay() {
         setScanStatus({ type: 'error', message: json.error || 'Scan failed' });
       }
     } catch (err) {
-      setScanStatus({ type: 'error', message: 'Network error. Please try again.' });
+      setScanStatus({ type: 'error', message: 'Network Error. Please Try Again.' });
     }
 
     setTimeout(() => setScanStatus(null), 4000);
@@ -433,7 +433,7 @@ export default function PlayerTableDisplay() {
   // Handle player removal
   const handleRemovePlayer = useCallback(async (player) => {
     setSelectedPlayer(null);
-    setScanStatus({ type: 'loading', message: 'Removing player...' });
+    setScanStatus({ type: 'loading', message: 'Removing Player...' });
 
     try {
       const res = await fetch('/api/commander/dealer/player-unseat', {
@@ -453,7 +453,7 @@ export default function PlayerTableDisplay() {
         setScanStatus({ type: 'error', message: json.error || 'Remove failed' });
       }
     } catch (err) {
-      setScanStatus({ type: 'error', message: 'Network error. Please try again.' });
+      setScanStatus({ type: 'error', message: 'Network Error. Please Try Again.' });
     }
 
     setTimeout(() => setScanStatus(null), 5000);

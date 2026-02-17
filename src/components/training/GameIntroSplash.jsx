@@ -191,7 +191,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                                     <span style={styles.statLabel}>To Pass</span>
                                 </div>
                                 <div style={styles.statBox}>
-                                    <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up to 💎10</span>
+                                    <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 💎10</span>
                                     <span style={styles.statLabel}>Perfect Bonus</span>
                                 </div>
                             </div>

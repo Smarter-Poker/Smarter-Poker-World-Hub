@@ -349,7 +349,7 @@ export const LeaderboardOrb = ({
                 ) : entries.length === 0 ? (
                     <div className="empty-state">
                         <span className="empty-icon">📊</span>
-                        <span>No data yet</span>
+                        <span>No Data Yet</span>
                         <span className="empty-hint">Be the first to earn XP!</span>
                     </div>
                 ) : (

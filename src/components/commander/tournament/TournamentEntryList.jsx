@@ -99,7 +99,7 @@ export default function TournamentEntryList({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search players..."
+            placeholder="Search Players..."
             className="w-full pl-10 pr-4 py-2 cmd-input"
           />
         </div>
@@ -224,7 +224,7 @@ export default function TournamentEntryList({
                               setChipUpdateValue(entry.current_chips?.toString() || '');
                             }}
                             className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors"
-                            title="Update chips"
+                            title="Update Chips"
                           >
                             <Coins className="w-4 h-4" />
                           </button>
@@ -234,7 +234,7 @@ export default function TournamentEntryList({
                               onClick={() => onRebuy?.(entry)}
                               disabled={tournament.rebuy_end_level && tournament.current_level > tournament.rebuy_end_level}
                               className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#F59E0B] hover:text-[#F59E0B] disabled:opacity-50 transition-colors"
-                              title="Add rebuy"
+                              title="Add Rebuy"
                             >
                               <RotateCcw className="w-4 h-4" />
                             </button>
@@ -244,7 +244,7 @@ export default function TournamentEntryList({
                             <button
                               onClick={() => onAddon?.(entry)}
                               className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#8B5CF6] hover:text-[#8B5CF6] transition-colors"
-                              title="Add add-on"
+                              title="Add Add-On"
                             >
                               <Plus className="w-4 h-4" />
                             </button>
@@ -253,7 +253,7 @@ export default function TournamentEntryList({
                           <button
                             onClick={() => onEliminate?.(entry)}
                             className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#EF4444] hover:text-[#EF4444] transition-colors"
-                            title="Eliminate player"
+                            title="Eliminate Player"
                           >
                             <UserMinus className="w-4 h-4" />
                           </button>

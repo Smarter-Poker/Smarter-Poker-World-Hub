@@ -208,14 +208,14 @@ export default function NotificationsPage() {
 
                 // Update notification to show accepted
                 await supabase.from('notifications').update({
-                    message: 'is now your friend!',
+                    message: 'Is Now Your Friend!',
                     type: 'friend_accepted'
                 }).eq('id', notification.id);
 
                 // Update local state
                 setNotifications(prev => prev.map(n =>
                     n.id === notification.id
-                        ? { ...n, message: 'is now your friend!', type: 'friend_accepted', handled: true }
+                        ? { ...n, message: 'Is Now Your Friend!', type: 'friend_accepted', handled: true }
                         : n
                 ));
 
@@ -265,14 +265,14 @@ export default function NotificationsPage() {
 
             // Update notification
             await supabase.from('notifications').update({
-                message: 'is now following you',
+                message: 'Is Now Following You',
                 type: 'new_follow'
             }).eq('id', notification.id);
 
             // Update local state
             setNotifications(prev => prev.map(n =>
                 n.id === notification.id
-                    ? { ...n, message: 'is now following you', type: 'new_follow', handled: true }
+                    ? { ...n, message: 'Is Now Following You', type: 'new_follow', handled: true }
                     : n
             ));
 

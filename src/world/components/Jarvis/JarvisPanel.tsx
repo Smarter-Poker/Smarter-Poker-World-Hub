@@ -457,7 +457,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                                                 alignItems: 'center',
                                                 gap: '4px'
                                             }}
-                                            title="Copy response"
+                                            title="Copy Response"
                                         >
                                             📋 Copy
                                         </button>
@@ -536,7 +536,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Ask any poker question... (or use 🎤)"
+                            placeholder="Ask Any Poker Question... (or Use 🎤)"
                             rows={2}
                             style={{
                                 flex: 1,

@@ -45,11 +45,11 @@ const PROMO_TYPES = [
 const HAND_RANKS = [
   { value: 10, label: 'Royal Flush' },
   { value: 9, label: 'Straight Flush' },
-  { value: 8, label: 'Four of a Kind' },
+  { value: 8, label: 'Four Of A Kind' },
   { value: 7, label: 'Full House' },
   { value: 6, label: 'Flush' },
   { value: 5, label: 'Straight' },
-  { value: 4, label: 'Three of a Kind' },
+  { value: 4, label: 'Three Of A Kind' },
   { value: 3, label: 'Two Pair' },
   { value: 2, label: 'One Pair' },
   { value: 1, label: 'High Card' }

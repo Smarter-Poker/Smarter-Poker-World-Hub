@@ -269,7 +269,7 @@ export default function TDPlayers() {
                     <ActionBtn icon={RotateCcw} label="Rebuy" color="#31A24C"
                       loading={actionLoading === 'rebuy'}
                       onClick={() => handleRebuy(selectedPlayer)} />
-                    <ActionBtn icon={Star} label="Add-on" color="#B0B3B8"
+                    <ActionBtn icon={Star} label="Add-On" color="#B0B3B8"
                       loading={actionLoading === 'addon'}
                       onClick={() => handleAddon(selectedPlayer)} />
                     <ActionBtn icon={UserX} label="Eliminate" color="#EF4444" danger
@@ -278,7 +278,7 @@ export default function TDPlayers() {
                   </>
                 )}
                 {selectedPlayer.status === 'eliminated' && (
-                  <ActionBtn icon={RotateCcw} label="Re-entry" color="#31A24C"
+                  <ActionBtn icon={RotateCcw} label="Re-Entry" color="#31A24C"
                     onClick={() => navigateTo(`/register?reentry=${selectedPlayer.entry_id}`)} />
                 )}
               </div>

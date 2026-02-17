@@ -18,7 +18,7 @@ const generateQuestions = (gameId, category, count = 20) => {
         options: [
             { id: 'fold', text: 'Fold', isCorrect: false, frequency: 0 },
             { id: 'call', text: 'Call', isCorrect: false, frequency: 15 },
-            { id: 'raise', text: 'Raise to 8bb', isCorrect: true, frequency: 85 },
+            { id: 'raise', text: 'Raise To 8BB', isCorrect: true, frequency: 85 },
             { id: 'shove', text: 'All-In', isCorrect: false, frequency: 0 }
         ],
         explanation: `This is a standard value 3-bet configuration for ${category} strategy in this specific spot.`,
@@ -76,10 +76,10 @@ for (let i = 1; i <= 20; i++) {
         heroHand: [],
         action: 'After losing a 80/20 pot for your tournament life, you feel heat rising. What is the best immediate response?',
         options: [
-            { id: 'A', text: 'Scream into a pillow', isCorrect: false },
-            { id: 'B', text: 'Take a deep breath and reset', isCorrect: true },
-            { id: 'C', text: 'Check the lobby for the next tourney instantly', isCorrect: false },
-            { id: 'D', text: 'Complaint in chat', isCorrect: false }
+            { id: 'A', text: 'Scream Into A Pillow', isCorrect: false },
+            { id: 'B', text: 'Take A Deep Breath And Reset', isCorrect: true },
+            { id: 'C', text: 'Check The Lobby For The Next Tourney Instantly', isCorrect: false },
+            { id: 'D', text: 'Complaint In Chat', isCorrect: false }
         ],
         explanation: 'Resetting your physiological state is the first priority to prevent tilt carryover.',
         difficulty: Math.min(5, Math.floor(q / 4) + 1)

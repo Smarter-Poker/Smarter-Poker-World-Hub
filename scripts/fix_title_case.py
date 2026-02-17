@@ -40,10 +40,6 @@ KEEP_AS_IS = {
     'Smarter.Poker', 'JavaScript', 'TypeScript',
 }
 
-# Words that should stay lowercase (prepositions/articles in mid-sentence)
-# But user says EVERY word capitalized, so we capitalize everything
-# SMALL_WORDS = {'a', 'an', 'the', 'of', 'in', 'on', 'at', 'by', 'for', 'to', 'and', 'or', 'but', 'is', 'it', 'if', 'as', 'no', 'not', 'so'}
-
 def title_case_word(word):
     """Apply Title Case to a single word, respecting poker rules."""
     if not word:
@@ -101,6 +97,28 @@ def title_case_text(text):
     fixed_words = [title_case_word(w) for w in words]
     return ' '.join(fixed_words)
 
+def is_display_text(text):
+    """Check if text looks like display text (not code, URLs, CSS, etc.)."""
+    if not text or not text.strip() or len(text.strip()) < 2:
+        return False
+    t = text.strip()
+    # Skip code-like content
+    if '{' in t or '@' in t or 'http' in t:
+        return False
+    # Skip CSS/code values
+    if '_' in t and ' ' not in t:
+        return False
+    # Skip camelCase identifiers
+    if re.match(r'^[a-z]+[A-Z]', t):
+        return False
+    # Skip pure numbers
+    if re.match(r'^[\d.%]+$', t):
+        return False
+    # Skip file paths
+    if '/' in t and ' ' not in t:
+        return False
+    return True
+
 def process_line(line):
     """Process a single line to fix Title Case in display text."""
     original = line
@@ -113,36 +131,66 @@ def process_line(line):
     # Pattern 1: Text between JSX tags >text<
     def fix_tag_text(match):
         text = match.group(1)
-        if not text.strip() or len(text.strip()) < 2:
-            return match.group(0)
-        # Skip if it's code/variable-like
-        if '{' in text or text.strip().startswith('{'):
-            return match.group(0)
-        # Skip email addresses and URLs
-        if '@' in text or 'http' in text:
+        if not is_display_text(text):
             return match.group(0)
         fixed = title_case_text(text)
         return '>' + fixed + '<'
     
-    line = re.sub(r'>([^<>{}\n]+)<', fix_tag_text, line)
+    # Only apply to lines that look like JSX (contain HTML-like content)
+    # Avoid matching JS comparison operators by requiring the > and < to be part of tags
+    if re.search(r'<\w+[\s>]', line) or re.search(r'</\w+>', line):
+        line = re.sub(r'>([^<>{}\\n]+)<', fix_tag_text, line)
     
-    # Pattern 2: placeholder="text"
+    # Pattern 2: JSX attribute values
     def fix_attr(match):
         prefix = match.group(1)
         quote = match.group(2)
         text = match.group(3)
-        if not text.strip() or len(text.strip()) < 2:
-            return match.group(0)
-        if '{' in text or '@' in text or 'http' in text:
+        if not is_display_text(text):
             return match.group(0)
         fixed = title_case_text(text)
         return prefix + quote + fixed + quote
     
-    for attr in ['placeholder', 'title', 'aria-label']:
+    # Standard JSX display attributes
+    for attr in ['placeholder', 'title', 'aria-label', 'alt', 'label', 'header', 'helperText']:
         line = re.sub(rf'({attr}=)(["\'])([^"\']+)\2', fix_attr, line)
     
-    # Pattern 3: description="text"  
+    # description= attribute
     line = re.sub(r'(description=)(["\'])([^"\']+)\2', fix_attr, line)
+    
+    # content= attribute (skip viewport/robots/meta directives)
+    def fix_content_attr(match):
+        prefix = match.group(1)
+        quote = match.group(2)
+        text = match.group(3)
+        # Skip viewport, robots, and other meta config values
+        if any(x in text for x in ['width=', 'device-width', 'index,', 'follow', 'max-', 'viewport', 'charset', 'http', 'text/', 'application/']):
+            return match.group(0)
+        return fix_attr(match)
+    
+    line = re.sub(r'(content=)(["\'])([^"\']+)\2', fix_content_attr, line)
+    
+    # message= attribute
+    line = re.sub(r'(message=)(["\'])([^"\']+)\2', fix_attr, line)
+    
+    # Pattern 3: JS object property strings for common display-text keys
+    # e.g., label: 'All tables closed', message: 'No pending requests', text: 'some text'
+    def fix_js_string(match):
+        prefix = match.group(1)
+        quote = match.group(2)
+        text = match.group(3)
+        if not is_display_text(text):
+            return match.group(0)
+        # Only fix if it contains spaces (it's a phrase, not a single word identifier)
+        if ' ' not in text:
+            return match.group(0)
+        fixed = title_case_text(text)
+        return prefix + quote + fixed + quote
+    
+    for prop in ['text', 'label', 'message', 'tip', 'hint', 'heading', 'subtitle',
+                 'emptyText', 'emptyMessage', 'errorMessage', 'successMessage',
+                 'confirmText', 'cancelText', 'buttonText']:
+        line = re.sub(rf'({prop}:\s*)(["\'])([^"\']+)\2', fix_js_string, line)
     
     return line
 
@@ -173,6 +221,10 @@ def main():
     target_dir = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else 'pages/commander'
     
     files = sorted(set(glob.glob(f'{target_dir}/**/*.js', recursive=True)))
+    # Also include .jsx and .tsx files
+    files += sorted(set(glob.glob(f'{target_dir}/**/*.jsx', recursive=True)))
+    files += sorted(set(glob.glob(f'{target_dir}/**/*.tsx', recursive=True)))
+    files = sorted(set(files))
     
     total_changes = 0
     files_changed = 0

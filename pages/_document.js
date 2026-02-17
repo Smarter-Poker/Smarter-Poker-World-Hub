@@ -20,11 +20,11 @@ export default function Document() {
 
                 {/* Fallback Open Graph — overridden by per-page SEOHead */}
                 <meta property="og:site_name" content="Smarter.Poker" />
-                <meta property="og:type" content="website" />
+                <meta property="og:type" content="Website" />
                 <meta property="og:locale" content="en_US" />
                 <meta property="og:url" content="https://smarter.poker" />
                 <meta property="og:title" content="Smarter.Poker | The Future Of The Game" />
-                <meta property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The premier poker platform with GTO training, AI coaching, social networking, bankroll tracking, and Club Commander poker room management." />
+                <meta property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
                 <meta property="og:image" content="https://smarter.poker/images/og-default.png" />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="2151" />
@@ -33,7 +33,7 @@ export default function Document() {
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:site" content="@SmarterPoker" />
                 <meta name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
-                <meta name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The premier poker platform with GTO training, AI coaching, social networking, bankroll tracking, and Club Commander poker room management." />
+                <meta name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
                 <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
 
                 {/* PWA Manifest — Required for iOS Safari Push Notifications */}
@@ -43,9 +43,9 @@ export default function Document() {
                 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
 
                 {/* PWA / Mobile App settings */}
-                <meta name="mobile-web-app-capable" content="yes" />
-                <meta name="apple-mobile-web-app-capable" content="yes" />
-                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+                <meta name="mobile-web-app-capable" content="Yes" />
+                <meta name="apple-mobile-web-app-capable" content="Yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="Black-translucent" />
                 <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
 
                 {/* Theme color for mobile browsers */}

@@ -194,14 +194,14 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                                                 <button
                                                     onClick={() => addBreak(idx)}
                                                     className="p-1 hover:bg-[#F59E0B]/20 rounded transition-colors"
-                                                    title="Insert break after"
+                                                    title="Insert Break After"
                                                 >
                                                     <Coffee className="w-3.5 h-3.5 text-[#F59E0B]" />
                                                 </button>
                                                 <button
                                                     onClick={() => removeLevel(idx)}
                                                     className="p-1 hover:bg-[#EF4444]/20 rounded transition-colors"
-                                                    title="Remove level"
+                                                    title="Remove Level"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5 text-[#EF4444]" />
                                                 </button>

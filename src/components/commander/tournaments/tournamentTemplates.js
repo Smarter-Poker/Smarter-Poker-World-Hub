@@ -126,7 +126,7 @@ const REBUY_MADNESS_BLINDS = [
     { is_break: true, duration: 10, label: 'Break' },
     { level: 5, small_blind: 150, big_blind: 300, ante: 50, duration: 15 },
     { level: 6, small_blind: 200, big_blind: 400, ante: 50, duration: 15 },
-    { is_break: true, duration: 15, label: 'Add-on Break (Last Rebuy/Add-on)' },
+    { is_break: true, duration: 15, label: 'Add-On Break (Last Rebuy/Add-On)' },
     { level: 7, small_blind: 300, big_blind: 600, ante: 75, duration: 15 },
     { level: 8, small_blind: 400, big_blind: 800, ante: 100, duration: 15 },
     { level: 9, small_blind: 500, big_blind: 1000, ante: 100, duration: 15 },

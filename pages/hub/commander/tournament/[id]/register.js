@@ -217,7 +217,7 @@ export default function TournamentRegisterPage() {
               />
               <DetailRow
                 icon={DollarSign}
-                label="Buy-in"
+                label="Buy-In"
                 value={`$${tournament.buyin_amount} + $${tournament.buyin_fee} fee`}
               />
               <DetailRow

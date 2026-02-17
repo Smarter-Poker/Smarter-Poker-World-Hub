@@ -724,7 +724,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
                                     <img
                                         src={url}
-                                        alt="Shared image"
+                                        alt="Shared Image"
                                         style={{
                                             maxWidth: '100%',
                                             maxHeight: 300,
@@ -1411,7 +1411,7 @@ export default function MessengerPage() {
                 console.log('📞 Call ended by other party:', payload);
                 setShowCall(false);
                 setCallRoomName('');
-                setToast({ type: 'info', message: 'Call ended' });
+                setToast({ type: 'info', message: 'Call Ended' });
                 // Stop any ringing (Web Audio only now)
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
             })
@@ -1923,7 +1923,7 @@ export default function MessengerPage() {
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
-            setToast({ type: 'error', message: 'Failed to send message. Tap to retry.' });
+            setToast({ type: 'error', message: 'Failed To Send Message. Tap To Retry.' });
         }
     };
 
@@ -1975,18 +1975,18 @@ export default function MessengerPage() {
                             ? { ...m, content: '[Message deleted]', is_deleted: true }
                             : m
                     ));
-                    setToast({ type: 'success', message: 'Message deleted for everyone' });
+                    setToast({ type: 'success', message: 'Message Deleted For Everyone' });
                 } else {
-                    setToast({ type: 'error', message: 'Could not delete message' });
+                    setToast({ type: 'error', message: 'Could Not Delete Message' });
                 }
             } else {
                 // Delete for me only (hide locally)
                 setMessages(prev => prev.filter(m => m.id !== messageId));
-                setToast({ type: 'success', message: 'Message removed' });
+                setToast({ type: 'success', message: 'Message Removed' });
             }
         } catch (e) {
             console.error('Delete message error:', e);
-            setToast({ type: 'error', message: 'Failed to delete message' });
+            setToast({ type: 'error', message: 'Failed To Delete Message' });
         }
     };
 
@@ -2002,7 +2002,7 @@ export default function MessengerPage() {
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
         if (!isImage && !isVideo) {
-            setToast({ type: 'error', message: 'Only images and videos are supported' });
+            setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
             return;
         }
 
@@ -2231,20 +2231,20 @@ export default function MessengerPage() {
 
         // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
         if (!otherUser?.id) {
-            setToast({ type: 'error', message: 'Cannot start call - user not found' });
+            setToast({ type: 'error', message: 'Cannot Start Call - User Not Found' });
             console.error('❌ CALL ERROR: otherUser is missing!', { activeConversation });
             return;
         }
 
         // Block calls in group chats - only 1-on-1 calls are supported
         if (otherUser.isGroupChat) {
-            setToast({ type: 'error', message: 'Calls are only available in 1-on-1 conversations' });
+            setToast({ type: 'error', message: 'Calls Are Only Available In 1-on-1 Conversations' });
             return;
         }
 
         // NEVER call yourself - this would be a bug
         if (otherUser.id === user.id) {
-            setToast({ type: 'error', message: 'Cannot call yourself' });
+            setToast({ type: 'error', message: 'Cannot Call Yourself' });
             console.error('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
             return;
         }
@@ -2346,7 +2346,7 @@ export default function MessengerPage() {
             }
         } catch (e) {
             console.error('Failed to send call signal:', e);
-            setToast({ type: 'error', message: 'Failed to call. Please try again.' });
+            setToast({ type: 'error', message: 'Failed To Call. Please Try Again.' });
             setCallingUser(null);
             return;
         }
@@ -2429,7 +2429,7 @@ export default function MessengerPage() {
         setShowCall(false);
         setCallRoomName('');
         setCallingUser(null);
-        setToast({ type: 'info', message: 'Call ended' });
+        setToast({ type: 'info', message: 'Call Ended' });
     };
 
     if (loading) {
@@ -2592,7 +2592,7 @@ export default function MessengerPage() {
                             const success = await subscribePush();
                             if (success) {
                                 setShowPushPrompt(false);
-                                setToast({ type: 'success', message: 'Push notifications enabled!' });
+                                setToast({ type: 'success', message: 'Push Notifications Enabled!' });
                             }
                         }}
                         style={{

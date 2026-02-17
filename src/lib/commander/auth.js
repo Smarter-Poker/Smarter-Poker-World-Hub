@@ -39,7 +39,7 @@ export async function requireAuth(req, res) {
   if (!user) {
     res.status(401).json({
       success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      error: { code: 'AUTH_REQUIRED', message: 'Authentication Required' }
     });
     return null;
   }
@@ -70,7 +70,7 @@ export async function requireStaff(req, res, venueId, allowedRoles = null) {
   if (error || !staff) {
     res.status(403).json({
       success: false,
-      error: { code: 'FORBIDDEN', message: 'Staff access required' }
+      error: { code: 'FORBIDDEN', message: 'Staff Access Required' }
     });
     return null;
   }
@@ -196,14 +196,14 @@ export async function verifyPin(venueId, pinCode) {
 export async function verifyStaffSession(req) {
   const staffSession = req.headers['x-staff-session'];
   if (!staffSession) {
-    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
+    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff Authentication Required' } };
   }
 
   let sessionData;
   try {
     sessionData = JSON.parse(staffSession);
   } catch {
-    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
+    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid Session Format' } };
   }
 
   // Path 1: PIN-based staff terminal — session contains staff row `id`
@@ -216,7 +216,7 @@ export async function verifyStaffSession(req) {
       .single();
 
     if (staffError || !staff) {
-      return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+      return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff Member Not Found Or Inactive' } };
     }
 
     return { staff };
@@ -261,7 +261,7 @@ export async function verifyStaffSession(req) {
     }
   }
 
-  return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+  return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff Member Not Found Or Inactive' } };
 }
 
 /**
@@ -275,11 +275,11 @@ export async function verifyManagerSession(req, venueId = null) {
   if (result.error) return result;
 
   if (venueId && result.staff.venue_id !== parseInt(venueId)) {
-    return { error: { status: 403, code: 'FORBIDDEN', message: 'Not authorized for this venue' } };
+    return { error: { status: 403, code: 'FORBIDDEN', message: 'Not Authorized For This Venue' } };
   }
 
   if (!['owner', 'manager'].includes(result.staff.role)) {
-    return { error: { status: 403, code: 'FORBIDDEN', message: 'Manager role required' } };
+    return { error: { status: 403, code: 'FORBIDDEN', message: 'Manager Role Required' } };
   }
 
   return result;
@@ -373,7 +373,7 @@ export async function guardManager(req, res) {
 export async function guardUser(req, res) {
   const user = await getUser(req, res);
   if (!user) {
-    res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authentication required' } });
+    res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authentication Required' } });
     return null;
   }
   return user;

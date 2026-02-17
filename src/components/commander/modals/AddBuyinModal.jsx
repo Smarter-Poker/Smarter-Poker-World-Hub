@@ -143,7 +143,7 @@ export default function AddBuyinModal({
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount"
+                placeholder="Enter Amount"
                 className="cmd-input w-full h-12 pl-10 pr-4 text-lg"
                 min={minBuyin || 0}
                 max={maxBuyin || undefined}

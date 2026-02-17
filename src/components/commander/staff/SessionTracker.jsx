@@ -121,7 +121,7 @@ function SessionRow({ session, onCheckout, onView }) {
       <button
         onClick={onCheckout}
         className="p-3 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#EF4444] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-        title="Check out player"
+        title="Check Out Player"
       >
         <LogOut className="w-5 h-5" />
       </button>

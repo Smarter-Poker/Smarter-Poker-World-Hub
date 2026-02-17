@@ -472,7 +472,7 @@ const AboutCard = ({ user }) => (
                 {user.club && (
                     <div className="about-item">
                         <span className="item-icon">🏠</span>
-                        <span>Member of <strong>{user.club}</strong></span>
+                        <span>Member Of <strong>{user.club}</strong></span>
                     </div>
                 )}
                 <div className="about-item">
@@ -578,7 +578,7 @@ export const FacebookProfileView = ({ onNavigate, onOpenChat }) => {
         {
             id: 1,
             user: user,
-            text: "Just hit Diamond status! 💎 Thanks for the support everyone.",
+            text: "Just Hit Diamond Status! 💎 Thanks For The Support Everyone.",
             createdAt: '1d ago',
             likeCount: 124,
             commentCount: 42
@@ -612,7 +612,7 @@ export const FacebookProfileView = ({ onNavigate, onOpenChat }) => {
                     <div className="photos-card">
                         <div className="card-header">
                             <h3>Photos</h3>
-                            <a href="#photos">See all photos</a>
+                            <a href="#photos">See All Photos</a>
                         </div>
                         <div className="photos-grid">
                             {photos.slice(0, 9).map((photo, i) => (

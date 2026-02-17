@@ -161,13 +161,13 @@ export default function StaffReportsPage() {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        setExportMessage({ type: 'success', text: 'Report downloaded successfully' });
+        setExportMessage({ type: 'success', text: 'Report Downloaded Successfully' });
       } else {
-        setExportMessage({ type: 'error', text: 'Failed to export report' });
+        setExportMessage({ type: 'error', text: 'Failed To Export Report' });
       }
     } catch (err) {
       console.error('Export failed:', err);
-      setExportMessage({ type: 'error', text: 'Export failed' });
+      setExportMessage({ type: 'error', text: 'Export Failed' });
     }
     setTimeout(() => setExportMessage(null), 3000);
   }

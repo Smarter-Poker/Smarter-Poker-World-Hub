@@ -343,7 +343,7 @@ export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user
                         <textarea
                             value={formData.notes}
                             onChange={e => handleChange('notes', e.target.value)}
-                            placeholder="Any additional details about the game..."
+                            placeholder="Any Additional Details About The Game..."
                             rows={3}
                             style={{
                                 width: '100%',

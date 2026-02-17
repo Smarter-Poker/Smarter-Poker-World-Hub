@@ -124,7 +124,7 @@ export default function PlayerHomeGamesHub() {
       const data = await res.json();
 
       if (data.membership) {
-        setMessage({ type: 'success', text: 'Successfully joined ' + (data.group?.name || 'the group') });
+        setMessage({ type: 'success', text: 'Successfully Joined ' + (data.group?.name || 'the group') });
         setShowJoinModal(false);
         setJoinCode('');
         loadGames();
@@ -133,7 +133,7 @@ export default function PlayerHomeGamesHub() {
       }
     } catch (err) {
       console.error('Join error:', err);
-      setMessage({ type: 'error', text: 'Failed to join game' });
+      setMessage({ type: 'error', text: 'Failed To Join Game' });
     }
     setTimeout(() => setMessage(null), 4000);
   };

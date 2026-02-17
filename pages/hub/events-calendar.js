@@ -20,7 +20,7 @@ const MONTH_NAMES = [
 ];
 
 const BUY_IN_RANGES = [
-  { key: 'all', label: 'All Buy-ins' },
+  { key: 'all', label: 'All Buy-Ins' },
   { key: '0-500', label: 'Under $500', min: 0, max: 500 },
   { key: '500-1500', label: '$500 - $1,500', min: 500, max: 1500 },
   { key: '1500-5000', label: '$1,500 - $5,000', min: 1500, max: 5000 },

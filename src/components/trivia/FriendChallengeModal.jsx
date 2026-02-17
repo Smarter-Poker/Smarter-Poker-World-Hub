@@ -74,7 +74,7 @@ export default function FriendChallengeModal({
                                     <Search size={18} />
                                     <input
                                         type="text"
-                                        placeholder="Search friends..."
+                                        placeholder="Search Friends..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />

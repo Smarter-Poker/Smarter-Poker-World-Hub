@@ -10,10 +10,10 @@ import {
 } from 'lucide-react';
 
 const PERIOD_OPTIONS = [
-  { value: 7, label: 'Last 7 days' },
-  { value: 14, label: 'Last 14 days' },
-  { value: 30, label: 'Last 30 days' },
-  { value: 90, label: 'Last 90 days' }
+  { value: 7, label: 'Last 7 Days' },
+  { value: 14, label: 'Last 14 Days' },
+  { value: 30, label: 'Last 30 Days' },
+  { value: 90, label: 'Last 90 Days' }
 ];
 
 function StatCard({ icon: Icon, label, value, change, changeLabel, color = '#22D3EE' }) {
@@ -33,7 +33,7 @@ function StatCard({ icon: Icon, label, value, change, changeLabel, color = '#22D
           <div className={`flex items-center gap-1 text-xs ${
             isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-[#4A5E78]'
           }`}>
-            {isPositive ? <TrendingUp size={14} /> : isNegative ? <TrendingDown size={14} /> : null}
+            {isPositive ? <TrendingUp size={14} /> : IsNegative ? <TrendingDown size={14} /> : null}
             {Math.abs(change).toFixed(1)}%
           </div>
         )}
@@ -194,7 +194,7 @@ export default function AnalyticsDashboard({
         />
         <StatCard
           icon={DollarSign}
-          label="Total Buy-ins"
+          label="Total Buy-Ins"
           value={`$${(summary.total_buyin || 0).toLocaleString()}`}
           change={trends.buyin}
           color="#F59E0B"
@@ -210,7 +210,7 @@ export default function AnalyticsDashboard({
             <Activity size={16} className="text-[#22D3EE]" />
           </div>
           <MiniChart data={chartData.sessions} color="#3B82F6" />
-          <div className="text-xs text-[#4A5E78] mt-2">Last 14 days</div>
+          <div className="text-xs text-[#4A5E78] mt-2">Last 14 Days</div>
         </div>
 
         {/* Players Chart */}
@@ -220,7 +220,7 @@ export default function AnalyticsDashboard({
             <Users size={16} className="text-purple-400" />
           </div>
           <MiniChart data={chartData.players} color="#8B5CF6" />
-          <div className="text-xs text-[#4A5E78] mt-2">Last 14 days</div>
+          <div className="text-xs text-[#4A5E78] mt-2">Last 14 Days</div>
         </div>
 
         {/* Hours Chart */}
@@ -230,7 +230,7 @@ export default function AnalyticsDashboard({
             <Clock size={16} className="text-green-400" />
           </div>
           <MiniChart data={chartData.hours} color="#10B981" />
-          <div className="text-xs text-[#4A5E78] mt-2">Last 14 days</div>
+          <div className="text-xs text-[#4A5E78] mt-2">Last 14 Days</div>
         </div>
       </div>
 

@@ -189,7 +189,7 @@ export default function PersonalAssistantPage() {
                 { label: 'Bankroll', href: '/hub/personal-assistant?tab=bankroll' },
                 { label: 'Opponents', href: '/hub/personal-assistant?tab=opponents' },
                 { label: 'Hand History', href: '/hub/personal-assistant?tab=hands' },
-                { label: 'Chat with Jarvis', href: '/hub/messenger?chat=jarvis' },
+                { label: 'Chat With Jarvis', href: '/hub/messenger?chat=jarvis' },
               ].map((item) => (
                 <button
                   key={item.label}

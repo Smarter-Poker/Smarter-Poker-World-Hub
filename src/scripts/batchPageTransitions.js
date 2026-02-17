@@ -84,7 +84,7 @@ function addPageTransitionToFile(filePath) {
         }
 
         if (lastFragmentIndex !== -1) {
-            lines[lastFragmentIndex] = lines[lastFragmentIndex].replace('</>', '</PageTransition>');
+            lines[lastFragmentIndex] = lines[lastFragmentIndex].replace('</>'', ''</PageTransition>');
             content = lines.join('\n');
         }
 

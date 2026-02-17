@@ -526,7 +526,7 @@ export const FacebookClubView = ({ onNavigate }) => {
         {
             id: 1,
             user: { name: 'Club Admin', isVerified: true },
-            text: "Welcome to the new weekly leaderboard! Top 3 grinders get a free month of GTO Training access. 🚀",
+            text: "Welcome To The New Weekly Leaderboard! Top 3 Grinders Get A Free Month Of GTO Training Access. 🚀",
             createdAt: '2h ago',
             likeCount: 45,
             commentCount: 12
@@ -545,7 +545,7 @@ export const FacebookClubView = ({ onNavigate }) => {
             <div className="club-content">
                 {/* Left Rail (Main Content) */}
                 <div className="club-main">
-                    <CreatePostBox user={currentUser} placeholder="Write something..." />
+                    <CreatePostBox user={currentUser} placeholder="Write Something..." />
 
                     <ClubLeaderboard data={leaderboard} />
 

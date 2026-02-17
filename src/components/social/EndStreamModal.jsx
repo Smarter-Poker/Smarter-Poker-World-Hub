@@ -214,7 +214,7 @@ export function EndStreamModal({
                     ) : thumbnailUrl ? (
                         <img
                             src={thumbnailUrl}
-                            alt="Stream preview"
+                            alt="Stream Preview"
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                     ) : (
@@ -236,7 +236,7 @@ export function EndStreamModal({
                     <input
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
-                        placeholder="Add a caption... (optional)"
+                        placeholder="Add A Caption... (optional)"
                         disabled={isUploading}
                         style={{
                             width: '100%',

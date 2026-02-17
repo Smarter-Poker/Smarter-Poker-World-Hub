@@ -59,7 +59,7 @@ export default function WaitlistCard({ entry, onLeave }) {
           </div>
         </div>
         {onLeave && !isCalled && (
-          <button onClick={onLeave} className="cmd-btn cmd-btn-danger py-3 px-4" title="Leave waitlist">
+          <button onClick={onLeave} className="cmd-btn cmd-btn-danger py-3 px-4" title="Leave Waitlist">
             <X className="w-5 h-5" />
           </button>
         )}

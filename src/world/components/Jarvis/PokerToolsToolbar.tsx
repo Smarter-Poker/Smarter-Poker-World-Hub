@@ -85,7 +85,7 @@ export function PokerToolsToolbar({ onAskQuestion }: PokerToolsToolbarProps) {
                                 fontSize: '10px',
                                 cursor: 'pointer'
                             }}
-                            title="Ask about preflop"
+                            title="Ask About Preflop"
                         >
                             Preflop?
                         </button>
@@ -100,7 +100,7 @@ export function PokerToolsToolbar({ onAskQuestion }: PokerToolsToolbarProps) {
                                 fontSize: '10px',
                                 cursor: 'pointer'
                             }}
-                            title="Ask about c-betting"
+                            title="Ask About C-betting"
                         >
                             C-bet?
                         </button>

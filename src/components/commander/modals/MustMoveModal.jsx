@@ -184,7 +184,7 @@ export default function MustMoveModal({
               {availableGames.length === 0 ? (
                 <div className="text-center py-8">
                   <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-2" />
-                  <p className="text-[#64748B]">No compatible games available</p>
+                  <p className="text-[#64748B]">No Compatible Games Available</p>
                   <p className="text-sm text-[#4A5E78] mt-1">
                     Open another {game.stakes} {game.game_type?.toUpperCase()} game first
                   </p>

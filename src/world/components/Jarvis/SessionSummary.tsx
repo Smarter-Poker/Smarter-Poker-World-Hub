@@ -215,7 +215,7 @@ Please analyze:
                         value={newHandNote}
                         onChange={e => setNewHandNote(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && addKeyHand()}
-                        placeholder="e.g., Lost big pot with AA vs set..."
+                        placeholder="e.g., Lost Big Pot With AA vs Set..."
                         style={{
                             flex: 1, padding: '6px 10px',
                             background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 215, 0, 0.2)',
@@ -255,7 +255,7 @@ Please analyze:
                 <textarea
                     value={session.notes}
                     onChange={e => setSession({ ...session, notes: e.target.value })}
-                    placeholder="How did you play? Any tilts or victories?"
+                    placeholder="How Did You Play? Any Tilts Or Victories?"
                     style={{
                         width: '100%', padding: '8px', height: '50px', resize: 'none',
                         background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 215, 0, 0.2)',

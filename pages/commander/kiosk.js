@@ -294,12 +294,12 @@ export default function MembershipKiosk() {
 
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { minutes: 30, price: 5, label: '30 min' },
-                  { minutes: 60, price: 10, label: '1 hour' },
-                  { minutes: 120, price: 18, label: '2 hours' },
-                  { minutes: 180, price: 25, label: '3 hours' },
-                  { minutes: 300, price: 35, label: '5 hours' },
-                  { minutes: 480, price: 50, label: '8 hours' }
+                  { minutes: 30, price: 5, label: '30 Min' },
+                  { minutes: 60, price: 10, label: '1 Hour' },
+                  { minutes: 120, price: 18, label: '2 Hours' },
+                  { minutes: 180, price: 25, label: '3 Hours' },
+                  { minutes: 300, price: 35, label: '5 Hours' },
+                  { minutes: 480, price: 50, label: '8 Hours' }
                 ].map(pkg => (
                   <button key={pkg.minutes}
                     onClick={() => setSelectedTimePackage(pkg)}

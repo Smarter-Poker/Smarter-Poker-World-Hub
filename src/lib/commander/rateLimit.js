@@ -88,7 +88,7 @@ export function withRateLimit(handler, category = 'default') {
 
       return res.status(429).json({
         error: 'Too many requests',
-        message: 'Rate limit exceeded. Please try again later.',
+        message: 'Rate Limit Exceeded. Please Try Again Later.',
         retryAfter: (result.window || 1) * 60
       });
     }

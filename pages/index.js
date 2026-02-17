@@ -128,8 +128,8 @@ export default function LandingPage() {
   return (
     <>
       <SEOHead
-        title="Smarter.Poker — The Future of the Game"
-        description="Train smarter, connect globally, manage everything. The ultimate poker platform for GTO training, live venue discovery, bankroll tracking, trivia, and community."
+        title="Smarter.Poker — The Future Of The Game"
+        description="Train Smarter, Connect Globally, Manage Everything. The Ultimate Poker Platform For GTO Training, Live Venue Discovery, Bankroll Tracking, Trivia, And Community."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
       >

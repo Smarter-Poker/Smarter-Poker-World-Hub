@@ -179,7 +179,7 @@ export default function PromotionEditor({
                 onChange={(e) => handleChange('description', e.target.value)}
                 className="cmd-input w-full px-3 py-2"
                 rows={3}
-                placeholder="Describe the promotion..."
+                placeholder="Describe The Promotion..."
               />
             </div>
 
@@ -254,7 +254,7 @@ export default function PromotionEditor({
                   value={formData.prize_description}
                   onChange={(e) => handleChange('prize_description', e.target.value)}
                   className="cmd-input w-full px-3 py-2"
-                  placeholder="e.g., $100 cash"
+                  placeholder="e.g., $100 Cash"
                 />
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function PromotionEditor({
             </div>
 
             <div>
-              <label className="block text-sm text-[#64748B] mb-2">Days of Week</label>
+              <label className="block text-sm text-[#64748B] mb-2">Days Of Week</label>
               <div className="flex gap-2">
                 {DAYS_OF_WEEK.map(day => (
                   <button
@@ -409,7 +409,7 @@ export default function PromotionEditor({
                 value={formData.qualifying_hands}
                 onChange={(e) => handleChange('qualifying_hands', e.target.value)}
                 className="cmd-input w-full px-3 py-2"
-                placeholder="e.g., Aces full or better"
+                placeholder="e.g., Aces Full Or Better"
               />
             </div>
           </div>
@@ -435,7 +435,7 @@ export default function PromotionEditor({
                 onChange={(e) => handleChange('terms_conditions', e.target.value)}
                 className="cmd-input w-full px-3 py-2"
                 rows={3}
-                placeholder="Enter any terms and conditions..."
+                placeholder="Enter Any Terms And Conditions..."
               />
             </div>
           </div>

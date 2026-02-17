@@ -269,7 +269,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             {!isOwn && (showAvatar ? <Avatar src={sender?.avatar_url} name={sender?.username || sender?.alias} size={28} showOnline={false} /> : <div style={{ width: 28 }} />)}
 
             {imageMatch ? (
-                <img src={imageMatch[1]} alt="Shared image" style={{ maxWidth: '70%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
+                <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '70%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
             ) : videoMatch ? (
                 <video src={videoMatch[1]} controls style={{ maxWidth: '70%', borderRadius: 12 }} />
             ) : (
@@ -590,7 +590,7 @@ export default function ClubMessages() {
             }
         } catch (e) {
             console.error('Failed to send call signal:', e);
-            setToast({ type: 'error', message: 'Failed to call. Please try again.' });
+            setToast({ type: 'error', message: 'Failed To Call. Please Try Again.' });
             setCallingUser(null);
             return;
         }
@@ -642,7 +642,7 @@ export default function ClubMessages() {
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
         if (!isImage && !isVideo) {
-            setToast({ type: 'error', message: 'Only photos and videos are supported' });
+            setToast({ type: 'error', message: 'Only Photos And Videos Are Supported' });
             return;
         }
 
@@ -679,7 +679,7 @@ export default function ClubMessages() {
         } catch (e) {
             console.error('Media upload error:', e);
             setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'failed' } : m));
-            setToast({ type: 'error', message: 'Upload failed. Please try again.' });
+            setToast({ type: 'error', message: 'Upload Failed. Please Try Again.' });
         }
     };
 

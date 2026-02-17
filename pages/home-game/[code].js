@@ -190,7 +190,7 @@ function PostCard({ post }) {
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Write a comment..."
+              placeholder="Write A Comment..."
               className="flex-1 h-10 px-4 bg-white border border-[#E5E7EB] rounded-full focus:outline-none focus:ring-2 focus:ring-[#10B981] text-sm"
             />
             <button className="p-2 text-[#10B981] hover:bg-[#10B981]/10 rounded-full">
@@ -275,7 +275,7 @@ export default function HomeGamePage() {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[#6B7280] mb-4">Home game not found</p>
+          <p className="text-[#6B7280] mb-4">Home Game Not Found</p>
           <Link href="/" className="text-[#10B981] font-medium">
             Go Home
           </Link>
@@ -442,7 +442,7 @@ export default function HomeGamePage() {
                   )}
                   {group.typical_buyin_min && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#6B7280]">Buy-in</span>
+                      <span className="text-[#6B7280]">Buy-In</span>
                       <span className="font-medium text-[#1F2937]">
                         ${group.typical_buyin_min}
                         {group.typical_buyin_max && group.typical_buyin_max !== group.typical_buyin_min
@@ -524,7 +524,7 @@ export default function HomeGamePage() {
                   {group.is_private && !isMember ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <Lock className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">Join the group to see upcoming games</p>
+                      <p className="text-[#6B7280]">Join The Group To See Upcoming Games</p>
                       <button
                         onClick={handleJoinRequest}
                         className="mt-4 px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors"
@@ -535,8 +535,8 @@ export default function HomeGamePage() {
                   ) : upcomingGames.length === 0 ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <Calendar className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No upcoming games scheduled</p>
-                      <p className="text-sm text-[#9CA3AF] mt-1">Check back later or contact the host</p>
+                      <p className="text-[#6B7280]">No Upcoming Games Scheduled</p>
+                      <p className="text-sm text-[#9CA3AF] mt-1">Check Back Later Or Contact The Host</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -613,12 +613,12 @@ export default function HomeGamePage() {
                   {group.is_private && !isMember ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <MessageCircle className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">Join the group to see discussions</p>
+                      <p className="text-[#6B7280]">Join The Group To See Discussions</p>
                     </div>
                   ) : posts.length === 0 ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <MessageCircle className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No posts yet</p>
+                      <p className="text-[#6B7280]">No Posts Yet</p>
                     </div>
                   ) : (
                     posts.map((post) => (
@@ -633,7 +633,7 @@ export default function HomeGamePage() {
 
         {/* Footer */}
         <footer className="max-w-4xl mx-auto px-4 py-6 text-center text-sm text-[#6B7280]">
-          <p>Powered by <a href="https://smarter.poker" className="text-[#10B981]">Smarter Poker</a></p>
+          <p>Powered By <a href="https://smarter.poker" className="text-[#10B981]">Smarter Poker</a></p>
         </footer>
       </div>
     </>

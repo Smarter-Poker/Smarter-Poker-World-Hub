@@ -360,7 +360,7 @@ What should be my next priority, and how can I stay on track?`);
                         value={newGoalTitle}
                         onChange={e => setNewGoalTitle(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && addGoal()}
-                        placeholder="Add custom goal..."
+                        placeholder="Add Custom Goal..."
                         style={{
                             flex: 1,
                             padding: '8px 12px',

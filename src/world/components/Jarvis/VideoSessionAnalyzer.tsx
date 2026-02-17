@@ -157,7 +157,7 @@ Please analyze:
                         value={newMoment.description}
                         onChange={e => setNewMoment({ ...newMoment, description: e.target.value })}
                         onKeyPress={e => e.key === 'Enter' && addMoment()}
-                        placeholder="What happened in this hand?"
+                        placeholder="What Happened In This Hand?"
                         style={{
                             flex: 1, padding: '6px 10px',
                             background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 215, 0, 0.2)',

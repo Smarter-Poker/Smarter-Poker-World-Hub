@@ -144,17 +144,17 @@ export default function CloseDay() {
               {/* Checklist */}
               <div className="space-y-2">
                 <CheckItem
-                  label="All tables closed"
+                  label="All Tables Closed"
                   detail={openTables.length === 0 ? 'All tables are closed' : `${openTables.length} table(s) still open`}
                   ok={openTables.length === 0}
                 />
                 <CheckItem
-                  label="All players checked out"
+                  label="All Players Checked Out"
                   detail={activeSessions.length === 0 ? 'No active sessions' : `${activeSessions.length} session(s) still active`}
                   ok={activeSessions.length === 0}
                 />
                 <CheckItem
-                  label="Waitlist cleared"
+                  label="Waitlist Cleared"
                   detail={waitlistCount === 0 ? 'Waitlist is empty' : `${waitlistCount} player(s) still waiting`}
                   ok={waitlistCount === 0}
                 />
@@ -189,7 +189,7 @@ export default function CloseDay() {
               <h2 className="text-xl font-bold text-white">Day Summary</h2>
 
               <div className="grid grid-cols-2 gap-3">
-                <StatCard label="Total Check-ins" value={dayStats.total_checkins || dayStats.check_ins || 0} color="#1877F2" />
+                <StatCard label="Total Check-Ins" value={dayStats.total_checkins || dayStats.check_ins || 0} color="#1877F2" />
                 <StatCard label="Unique Players" value={dayStats.unique_players || 0} color="#31A24C" />
                 <StatCard label="Table Hours" value={`${dayStats.table_hours || 0}h`} color="#F59E0B" />
                 <StatCard label="Peak Tables" value={dayStats.peak_tables || openTables.length || 0} color="#A855F7" />

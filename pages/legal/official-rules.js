@@ -6,7 +6,7 @@ export default function OfficialRules() {
         <>
             <SEOHead
                 title="Official Rules — Promotions & Contests"
-                description="Official rules for Smarter.Poker promotions, contests, and giveaways."
+                description="Official Rules For Smarter.Poker Promotions, Contests, And Giveaways."
                 canonical="/legal/official-rules"
             />
 
@@ -50,7 +50,7 @@ export default function OfficialRules() {
                                 of the 50 United States who are at least 18 years of age at the time of entry.
                             </p>
                             <p style={styles.paragraph}>
-                                <strong>Geographic Restrictions for Prize Redemption:</strong> Real-world prize
+                                <strong>Geographic Restrictions For Prize Redemption:</strong> Real-world prize
                                 redemptions are <strong>VOID in Washington (WA), Idaho (ID), Michigan (MI),
                                     Nevada (NV), and California (CA)</strong>. Residents of these states may
                                 participate in training and social features but are not eligible to redeem
@@ -59,32 +59,32 @@ export default function OfficialRules() {
 
                             <h2 style={styles.heading}>2. Platform Description</h2>
                             <p style={styles.paragraph}>
-                                Smarter.Poker is a <strong>social training platform</strong> available nationwide.
+                                Smarter.Poker is a <strong>Social Training Platform</strong> available nationwide.
                                 Users can access:
                             </p>
                             <ul style={styles.list}>
-                                <li><strong>PokerIQ Training:</strong> GTO strategy lessons and interactive drills</li>
-                                <li><strong>Social Features:</strong> Community posts, leaderboards, and club management</li>
-                                <li><strong>AI Coaching:</strong> Personalized leak detection and improvement suggestions</li>
-                                <li><strong>Diamond Economy:</strong> Virtual currency earned through skill and activity</li>
+                                <li><strong>PokerIQ Training:</strong> GTO Strategy Lessons And Interactive Drills</li>
+                                <li><strong>Social Features:</strong> Community Posts, Leaderboards, And Club Management</li>
+                                <li><strong>AI Coaching:</strong> Personalized Leak Detection And Improvement Suggestions</li>
+                                <li><strong>Diamond Economy:</strong> Virtual Currency Earned Through Skill And Activity</li>
                             </ul>
                             <p style={styles.paragraph}>
-                                <em>"Train from anywhere. Win prizes where legal."</em>
+                                <em>"Train From Anywhere. Win Prizes Where Legal."</em>
                             </p>
 
-                            <h2 style={styles.heading}>3. How to Enter</h2>
+                            <h2 style={styles.heading}>3. How To Enter</h2>
 
                             <h3 style={styles.subheading}>Free Entry Methods (AMOE)</h3>
                             <p style={styles.paragraph}>
                                 You may earn Entry Diamonds without making any purchase:
                             </p>
                             <ul style={styles.list}>
-                                <li><strong>Daily Login Streak:</strong> Log in daily to earn free Entry Diamonds (up to 100/day)</li>
-                                <li><strong>Training Completion:</strong> Complete GTO training modules to earn Diamonds</li>
-                                <li><strong>Social Tasks:</strong> Post, share, and engage with the community</li>
-                                <li><strong>Referral Program:</strong> Invite friends to earn bonus Diamonds</li>
-                                <li><strong>Leaderboard Ranking:</strong> Top performers on weekly leaderboards receive Diamond bonuses</li>
-                                <li><strong>Free Roll Hourly Tournaments:</strong> Enter the Diamond Arena every hour with <strong>ZERO entry fee</strong> — winners receive Diamond prizes</li>
+                                <li><strong>Daily Login Streak:</strong> Log In Daily To Earn Free Entry Diamonds (up To 100/day)</li>
+                                <li><strong>Training Completion:</strong> Complete GTO Training Modules To Earn Diamonds</li>
+                                <li><strong>Social Tasks:</strong> Post, Share, And Engage With The Community</li>
+                                <li><strong>Referral Program:</strong> Invite Friends To Earn Bonus Diamonds</li>
+                                <li><strong>Leaderboard Ranking:</strong> Top Performers On Weekly Leaderboards Receive Diamond Bonuses</li>
+                                <li><strong>Free Roll Hourly Tournaments:</strong> Enter The Diamond Arena Every Hour With <strong>ZERO Entry Fee</strong> — Winners Receive Diamond Prizes</li>
                             </ul>
 
                             <h3 style={styles.subheading}>Premium Features (Optional)</h3>
@@ -111,16 +111,16 @@ export default function OfficialRules() {
                                     <strong>Physical Standards:</strong>
                                 </p>
                                 <ul style={styles.list}>
-                                    <li>Must be a <strong>handwritten 3×5 index card</strong></li>
-                                    <li>Include: Your <strong>Full Legal Name</strong>, <strong>Email Address</strong>, and <strong>State of Residence</strong></li>
-                                    <li>Place the card in a <strong>hand-addressed #10 envelope</strong> with a <strong>First-Class stamp</strong></li>
-                                    <li>No photocopies, mechanical reproductions, or printed labels allowed</li>
+                                    <li>Must Be A <strong>Handwritten 3×5 Index Card</strong></li>
+                                    <li>Include: Your <strong>Full Legal Name</strong>, <strong>Email Address</strong>, And <strong>State Of Residence</strong></li>
+                                    <li>Place The Card In A <strong>Hand-addressed #10 Envelope</strong> With A <strong>First-Class Stamp</strong></li>
+                                    <li>No Photocopies, Mechanical Reproductions, Or Printed Labels Allowed</li>
                                 </ul>
                                 <p style={styles.paragraph}>
                                     <strong>Entry Limit:</strong> <strong>ONE (1)</strong> mail-in request per person per week.
                                 </p>
                                 <p style={styles.paragraph}>
-                                    <strong>Reward:</strong> Each valid mail-in entry receives <strong>500 Entry Diamonds</strong> —
+                                    <strong>Reward:</strong> Each Valid Mail-in Entry Receives <strong>500 Entry Diamonds</strong> —
                                     equivalent to the maximum a player can earn in a day through free platform activity.
                                 </p>
                                 <p style={styles.paragraph}>
@@ -159,7 +159,7 @@ export default function OfficialRules() {
                                     </tr>
                                     <tr style={styles.tableRow}>
                                         <td style={styles.td}>Cash Out Prizes</td>
-                                        <td style={{ ...styles.td, color: '#00ff66' }}>✅ Up to $1,100 per redemption</td>
+                                        <td style={{ ...styles.td, color: '#00ff66' }}>✅ Up To $1,100 Per Redemption</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -175,11 +175,11 @@ export default function OfficialRules() {
                                 <tbody>
                                     <tr style={styles.tableRow}>
                                         <td style={styles.td}>PokerIQ Hub</td>
-                                        <td style={{ ...styles.td, color: '#00ff66' }}>✅ ENABLED (Training/Study only)</td>
+                                        <td style={{ ...styles.td, color: '#00ff66' }}>✅ ENABLED (Training/Study Only)</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
                                         <td style={styles.td}>GTO Training</td>
-                                        <td style={{ ...styles.td, color: '#00ff66' }}>✅ ENABLED (Skill development)</td>
+                                        <td style={{ ...styles.td, color: '#00ff66' }}>✅ ENABLED (Skill Development)</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
                                         <td style={styles.td}>Social Media</td>
@@ -187,7 +187,7 @@ export default function OfficialRules() {
                                     </tr>
                                     <tr style={styles.tableRow}>
                                         <td style={styles.td}>Diamond Arena</td>
-                                        <td style={{ ...styles.td, color: '#ff4d4d' }}>❌ DISABLED (No prize entry)</td>
+                                        <td style={{ ...styles.td, color: '#ff4d4d' }}>❌ DISABLED (No Prize Entry)</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
                                         <td style={styles.td}>Cash Out Prizes</td>
@@ -206,10 +206,10 @@ export default function OfficialRules() {
                                 Eligible users may redeem Diamonds in the Diamond Store for:
                             </p>
                             <ul style={styles.list}>
-                                <li><strong>Merchandise:</strong> Official Smarter.Poker branded apparel and accessories</li>
-                                <li><strong>Gift Cards:</strong> Digital gift cards for popular retailers (up to $100 value)</li>
-                                <li><strong>Platform Upgrades:</strong> Premium cosmetics and feature unlocks</li>
-                                <li><strong>Tournament Buy-ins:</strong> Entry into partner live poker events</li>
+                                <li><strong>Merchandise:</strong> Official Smarter.Poker Branded Apparel And Accessories</li>
+                                <li><strong>Gift Cards:</strong> Digital Gift Cards For Popular Retailers (up To $100 Value)</li>
+                                <li><strong>Platform Upgrades:</strong> Premium Cosmetics And Feature Unlocks</li>
+                                <li><strong>Tournament Buy-Ins:</strong> Entry Into Partner Live Poker Events</li>
                             </ul>
                             <p style={styles.paragraph}>
                                 Maximum prize value per redemption: <strong>$1,100</strong>. Annual prize limit per
@@ -217,7 +217,7 @@ export default function OfficialRules() {
                                 tax purposes.
                             </p>
 
-                            <h2 style={styles.heading}>6. Odds of Winning</h2>
+                            <h2 style={styles.heading}>6. Odds Of Winning</h2>
                             <p style={styles.paragraph}>
                                 Diamond accumulation and prize eligibility are based solely on skill, activity,
                                 and participation. The odds of accumulating sufficient Diamonds for prize
@@ -242,11 +242,11 @@ export default function OfficialRules() {
 
                             <h2 style={styles.heading}>8. General Conditions</h2>
                             <ul style={styles.list}>
-                                <li>Sponsor reserves the right to modify, suspend, or terminate the Program at any time</li>
-                                <li>All decisions by Sponsor are final and binding</li>
-                                <li>Prize substitutions may occur at Sponsor's discretion</li>
-                                <li>Participants must comply with all Platform Terms of Service</li>
-                                <li>Fraudulent activity will result in disqualification and account termination</li>
+                                <li>Sponsor Reserves The Right To Modify, Suspend, Or Terminate The Program At Any Time</li>
+                                <li>All Decisions By Sponsor Are Final And Binding</li>
+                                <li>Prize Substitutions May Occur At Sponsor's Discretion</li>
+                                <li>Participants Must Comply With All Platform Terms Of Service</li>
+                                <li>Fraudulent Activity Will Result In Disqualification And Account Termination</li>
                             </ul>
 
                             <h2 style={styles.heading}>9. Sponsor Contact</h2>

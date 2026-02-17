@@ -525,7 +525,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                   }}
                   style={styles.select}
                 >
-                  <option value="">Select stakes...</option>
+                  <option value="">Select Stakes...</option>
                   {savedStakes.map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -619,7 +619,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                       }}
                       style={styles.select}
                     >
-                      <option value="">Select player...</option>
+                      <option value="">Select Player...</option>
                       {savedSwapNames.map(n => (
                         <option key={n} value={n}>{n}</option>
                       ))}
@@ -631,7 +631,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                         type="text"
                         value={formData.swap_player}
                         onChange={(e) => handleInputChange('swap_player', e.target.value)}
-                        placeholder="Player name"
+                        placeholder="Player Name"
                         style={{ ...styles.input, flex: 1 }}
                       />
                       {savedSwapNames.length > 0 && (
@@ -679,7 +679,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                       }}
                       style={styles.select}
                     >
-                      <option value="">Select staker...</option>
+                      <option value="">Select Staker...</option>
                       {savedStakerNames.map(n => (
                         <option key={n} value={n}>{n}</option>
                       ))}
@@ -691,7 +691,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                         type="text"
                         value={formData.staker_name}
                         onChange={(e) => handleInputChange('staker_name', e.target.value)}
-                        placeholder="Staker name"
+                        placeholder="Staker Name"
                         style={{ ...styles.input, flex: 1 }}
                       />
                       {savedStakerNames.length > 0 && (
@@ -975,7 +975,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
           <textarea
             value={formData.notes}
             onChange={(e) => handleInputChange('notes', e.target.value)}
-            placeholder="Key hands, table dynamics, reads on players, mental state, lessons learned..."
+            placeholder="Key Hands, Table Dynamics, Reads On Players, Mental State, Lessons Learned..."
             style={{ ...styles.textarea, minHeight: 100 }}
           />
         </div>

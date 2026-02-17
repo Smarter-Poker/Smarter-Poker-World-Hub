@@ -147,7 +147,7 @@ export default function SavedReceipts({ userId }) {
                         <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteReceipt(r); }}
                             style={styles.deleteBtn}
-                            title="Remove receipt"
+                            title="Remove Receipt"
                         >
                             <Trash2 size={12} />
                         </button>

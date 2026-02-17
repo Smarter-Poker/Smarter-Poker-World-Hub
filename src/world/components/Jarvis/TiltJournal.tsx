@@ -272,7 +272,7 @@ What patterns do you see? How can I better manage my emotional state?`);
                         <input
                             value={newEntry.response}
                             onChange={e => setNewEntry({ ...newEntry, response: e.target.value })}
-                            placeholder="e.g., Took a break, kept playing tilted..."
+                            placeholder="e.g., Took A Break, Kept Playing Tilted..."
                             style={{
                                 width: '100%',
                                 padding: '6px 10px',

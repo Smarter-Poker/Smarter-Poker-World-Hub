@@ -384,7 +384,7 @@ export default function BankrollRulesCard({ userId }) {
                       <button
                         onClick={() => handleDeleteCustom(cr)}
                         style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 14, cursor: 'pointer', padding: '2px 4px' }}
-                        title="Delete rule"
+                        title="Delete Rule"
                       >
                         🗑
                       </button>
@@ -456,7 +456,7 @@ export default function BankrollRulesCard({ userId }) {
             type="text"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            placeholder="Rule name (e.g. Weekly Loss Limit)"
+            placeholder="Rule Name (e.g. Weekly Loss Limit)"
             style={styles.formInput}
           />
           <input
@@ -471,7 +471,7 @@ export default function BankrollRulesCard({ userId }) {
               type="number"
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
-              placeholder="Threshold value"
+              placeholder="Threshold Value"
               style={{ ...styles.formInput, flex: 1 }}
             />
             <select

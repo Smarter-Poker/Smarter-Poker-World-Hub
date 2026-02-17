@@ -178,8 +178,8 @@ export const ChatWindow = ({
                     </span>
                 </div>
                 <div className="chat-header-actions">
-                    <button className="header-btn" title="Start a call">📞</button>
-                    <button className="header-btn" title="Start a video call">📹</button>
+                    <button className="header-btn" title="Start A Call">📞</button>
+                    <button className="header-btn" title="Start A Video Call">📹</button>
                     <button className="header-btn" onClick={onMinimize}>−</button>
                     <button className="header-btn" onClick={onClose}>✕</button>
                 </div>
@@ -389,8 +389,8 @@ export const ConversationList = ({
                 <h2 className="conv-title">Chats</h2>
                 <div className="conv-header-actions">
                     <button className="header-btn" title="Options">⋯</button>
-                    <button className="header-btn" title="See all in Messenger">↗️</button>
-                    <button className="header-btn" onClick={onNewMessage} title="New message">✏️</button>
+                    <button className="header-btn" title="See All In Messenger">↗️</button>
+                    <button className="header-btn" onClick={onNewMessage} title="New Message">✏️</button>
                 </div>
             </div>
 

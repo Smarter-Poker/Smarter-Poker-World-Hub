@@ -164,9 +164,9 @@ export async function sendSeatReadyEmail(email, name, venueName, game) {
         to: email,
         subject: `Your seat is ready at ${venueName}!`,
         html: emailWrapper('Seat Ready', `
-            <h2>Your Seat is Ready!</h2>
+            <h2>Your Seat Is Ready!</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p>Great news - your seat at <strong>${venueName}</strong> for <strong>${game}</strong> is ready!</p>
+            <p>Great news - your seat at <strong>${venueName}</strong> For <strong>${game}</strong> Is Ready!</p>
             <div class="highlight">
                 <p>Please check in within 5 minutes or you may lose your spot.</p>
             </div>
@@ -211,7 +211,7 @@ export async function sendTournamentConfirmationEmail(email, name, tournamentNam
                 <div class="info-row"><span class="info-label">Start Time</span><span class="info-value">${startTime}</span></div>
                 ${buyin ? `<div class="info-row"><span class="info-label">Buy-in</span><span class="info-value">$${buyin}</span></div>` : ''}
             </div>
-            <p class="muted">Good luck at the tables!</p>
+            <p class="muted">Good Luck At The Tables!</p>
         `),
     });
 }
@@ -223,7 +223,7 @@ export async function sendTournamentReminderEmail(email, name, tournamentName, v
         html: emailWrapper('Tournament Reminder', `
             <h2>Tournament Starting Soon</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${tournamentName}</strong> at <strong>${venueName}</strong> starts in <strong>${minutesUntil} minutes</strong>.</p>
+            <p><strong>${tournamentName}</strong> At <strong>${venueName}</strong> starts in <strong>${minutesUntil} minutes</strong>.</p>
             <p>Please arrive on time for registration.</p>
         `),
     });
@@ -261,7 +261,7 @@ export async function sendHomeGameReminderEmail(email, name, gameName, date, hos
         html: emailWrapper('Game Reminder', `
             <h2>Game Reminder</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${gameName}</strong> hosted by <strong>${hostName}</strong> is on <strong>${date}</strong>.</p>
+            <p><strong>${gameName}</strong> Hosted By <strong>${hostName}</strong> is on <strong>${date}</strong>.</p>
             <p>The host will share the exact location closer to game time.</p>
             <p class="muted">Have fun at the tables!</p>
         `),
@@ -311,11 +311,11 @@ export async function sendPromotionWinnerEmail(email, name, venueName, promotion
         subject: `You won ${promotionName} at ${venueName}!`,
         html: emailWrapper('Winner', `
             <h2>Congratulations, ${name || 'Player'}!</h2>
-            <p>You won <strong>${promotionName}</strong> at <strong>${venueName}</strong>!</p>
+            <p>You won <strong>${promotionName}</strong> At <strong>${venueName}</strong>!</p>
             <div class="highlight">
                 <p>Prize: $${prizeAmount}</p>
             </div>
-            <p>See staff to claim your prize.</p>
+            <p>See Staff To Claim Your Prize.</p>
         `),
     });
 }
@@ -331,7 +331,7 @@ export async function sendCompBalanceEmail(email, name, venueName, compAmount, n
             <div class="highlight">
                 <p>New balance: $${newBalance.toFixed(2)}</p>
             </div>
-            <p class="muted">Ask staff to redeem your comps.</p>
+            <p class="muted">Ask Staff To Redeem Your Comps.</p>
         `),
     });
 }
@@ -351,12 +351,12 @@ export async function sendVenueOnboardingEmail(email, venueName, adminName) {
             <ol style="padding-left: 20px; color: #050505; font-size: 14px; line-height: 2;">
                 <li>Set up your tables and games</li>
                 <li>Configure your waitlist</li>
-                <li>Add staff members</li>
+                <li>Add Staff Members</li>
                 <li>Create your first tournament</li>
                 <li>Set up promotions</li>
             </ol>
             <div style="text-align: center; margin: 24px 0;">
-                <a href="https://smarter.poker/commander/dashboard" class="btn">Go to Dashboard</a>
+                <a href="https://smarter.poker/commander/dashboard" class="btn">Go To Dashboard</a>
             </div>
         `),
     });

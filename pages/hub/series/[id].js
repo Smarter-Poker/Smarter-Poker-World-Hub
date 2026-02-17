@@ -106,7 +106,7 @@ function getSeriesStatus(startDate, endDate) {
   if (now < start) {
     const diffMs = start - now;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays <= 30) return { label: 'Starts in ' + diffDays + ' day' + (diffDays === 1 ? '' : 's'), color: '#fbbf24' };
+    if (diffDays <= 30) return { label: 'Starts In ' + diffDays + ' day' + (diffDays === 1 ? '' : 's'), color: '#fbbf24' };
     return { label: 'Upcoming', color: '#60a5fa' };
   }
   if (now <= end) return { label: 'In Progress', color: '#4ade80' };

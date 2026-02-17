@@ -100,7 +100,7 @@ export default function VenueDetail() {
       }
     } catch (error) {
       console.error('Failed to join waitlist:', error);
-      setMessage({ type: 'error', text: 'Failed to join waitlist' });
+      setMessage({ type: 'error', text: 'Failed To Join Waitlist' });
     } finally {
       setTimeout(() => setMessage(null), 4000);
       setJoining(null);

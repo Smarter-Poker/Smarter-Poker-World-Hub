@@ -404,7 +404,7 @@ export function StaticMapDisplay({ lat, lng, city, state, height = 200 }) {
 
     return (
         <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: `1px solid ${C.border}` }}>
-            <img src={mapUrl} alt="Approximate location" style={{ width: '100%', height, objectFit: 'cover', display: 'block' }} />
+            <img src={mapUrl} alt="Approximate Location" style={{ width: '100%', height, objectFit: 'cover', display: 'block' }} />
             <div style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
                 background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',

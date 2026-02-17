@@ -114,7 +114,7 @@ export default function AllInMode({
                     <div className="header">
                         <Zap size={48} className="header-icon" />
                         <h1>ALL-IN MODE</h1>
-                        <p>High risk, high reward! Get 8/10 correct to double your stake.</p>
+                        <p>High Risk, High Reward! Get 8/10 Correct To Double Your Stake.</p>
                     </div>
 
                     <div className="warning-box">
@@ -149,7 +149,7 @@ export default function AllInMode({
                         <div className="custom-stake">
                             <input
                                 type="number"
-                                placeholder="Custom amount..."
+                                placeholder="Custom Amount..."
                                 value={customStake}
                                 onChange={(e) => setCustomStake(e.target.value)}
                                 min="10"

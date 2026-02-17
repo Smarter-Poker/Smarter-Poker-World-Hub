@@ -339,7 +339,7 @@ const PokerGame: React.FC<PokerGameProps> = ({
             <div className="grid grid-cols-2 gap-3 p-4" style={{ backgroundColor: '#080810' }}>
                 <button onClick={onFold} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#1d4ed8' }}>Fold</button>
                 <button onClick={onCall} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#2563eb' }}>Call</button>
-                <button onClick={onRaise} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#2563eb' }}>Raise to 8bb</button>
+                <button onClick={onRaise} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#2563eb' }}>Raise To 8BB</button>
                 <button onClick={onAllIn} className="font-bold py-4 rounded-xl text-white text-lg" style={{ backgroundColor: '#2563eb' }}>All-In</button>
             </div>
         </div>

@@ -694,7 +694,7 @@ export const EnhancedPostCreator = ({
           <textarea
             ref={textareaRef}
             className="content-textarea"
-            placeholder="Share your poker journey, achievements, or insights..."
+            placeholder="Share Your Poker Journey, Achievements, Or Insights..."
             value={content}
             onChange={(e) => {
               setContent(e.target.value);

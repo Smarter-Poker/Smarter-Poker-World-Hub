@@ -260,7 +260,7 @@ export const MTT_QUESTIONS_PART1 = {
             heroCards: ['As', 'Ad'],
             board: ['Ks', 'Qd', '7c', '2h'],
             options: [
-                { id: 'hope', text: 'Need an Ace', ev: 0.0, isCorrect: true },
+                { id: 'hope', text: 'Need An Ace', ev: 0.0, isCorrect: true },
             ],
             explanation: 'You need one of two remaining Aces (8.7%). Sometimes poker is cruel.',
         },
@@ -515,7 +515,7 @@ export const MTT_QUESTIONS_PART1 = {
             heroCards: ['Kh', 'Kd'],
             board: ['Ks', 'Tc', '7h', 'Qd'],
             options: [
-                { id: 'sweat', text: 'Fade the J', ev: 0.0, isCorrect: true },
+                { id: 'sweat', text: 'Fade The J', ev: 0.0, isCorrect: true },
             ],
             explanation: 'Top set but villain has AJ for open-ender. You have to fade 8 outs (83%).',
         },

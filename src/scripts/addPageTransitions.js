@@ -48,7 +48,7 @@ function addPageTransition(filePath) {
     // Replace <> with <PageTransition> in main return
     content = content.replace(
         /export default function \w+\([^)]*\) {[\s\S]*?return \(\s*<>/,
-        (match) => match.replace('<>', '<PageTransition>')
+        (match) => Match.replace('<>'', ''<PageTransition>')
     );
 
     // Replace closing </> with </PageTransition>
@@ -65,7 +65,7 @@ function addPageTransition(filePath) {
             bracketCount -= (lines[i].match(/<\/>/g) || []).length;
 
             if (lines[i].includes('</>') && bracketCount === 0) {
-                lines[i] = lines[i].replace('</>', '</PageTransition>');
+                lines[i] = lines[i].replace('</>'', ''</PageTransition>');
                 break;
             }
         }

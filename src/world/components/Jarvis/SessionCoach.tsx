@@ -32,10 +32,10 @@ export function SessionCoach({ onAskQuestion, onClose }: SessionCoachProps) {
 
     // Quick decision buttons
     const quickDecisions = [
-        { label: 'Should I call?', emoji: '📞' },
-        { label: 'Should I raise?', emoji: '🚀' },
-        { label: 'Is this a fold?', emoji: '🃏' },
-        { label: 'All-in or fold?', emoji: '💰' }
+        { label: 'Should I Call?', emoji: '📞' },
+        { label: 'Should I Raise?', emoji: '🚀' },
+        { label: 'Is This A Fold?', emoji: '🃏' },
+        { label: 'All-in Or Fold?', emoji: '💰' }
     ];
 
     // Tilt indicators

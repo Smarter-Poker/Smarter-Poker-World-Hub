@@ -190,7 +190,7 @@ export default function BankrollProGate({ userId, children }) {
                             <div style={styles.successState}>
                                 <CheckCircle size={56} style={styles.successIcon} />
                                 <h3 style={styles.successTitle}>PRO UNLOCKED</h3>
-                                <p style={styles.successDesc}>24-hour access activated</p>
+                                <p style={styles.successDesc}>24-hour Access Activated</p>
                             </div>
                         ) : (
                             <>

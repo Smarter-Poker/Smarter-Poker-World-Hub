@@ -385,7 +385,7 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
                                 </label>
                                 <textarea value={form.notes} onChange={e => updateForm('notes', e.target.value)}
                                     className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4E4F50] rounded-lg text-[#E4E6EB] text-sm focus:border-[#1877F2] focus:outline-none resize-none"
-                                    rows={2} placeholder="Optional notes about this member..." />
+                                    rows={2} placeholder="Optional Notes About This Member..." />
                             </div>
                         </>
                     )}

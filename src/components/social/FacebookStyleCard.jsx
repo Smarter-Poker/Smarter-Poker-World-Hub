@@ -351,7 +351,7 @@ export const FBPostCard = ({
                 <div className="fb-comments">
                     <div className="fb-comment-input">
                         <FBAvatar size={32} />
-                        <input type="text" placeholder="Write a comment..." />
+                        <input type="text" placeholder="Write A Comment..." />
                     </div>
                     {post.comments?.map((comment, i) => (
                         <div key={i} className="fb-comment">
@@ -741,7 +741,7 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     <img src={currentUser?.avatar || '/default-avatar.png'} alt="" />
                 </div>
                 <div className="create-btn">+</div>
-                <span className="story-label">Create story</span>
+                <span className="story-label">Create Story</span>
             </div>
 
             {/* User Stories */}

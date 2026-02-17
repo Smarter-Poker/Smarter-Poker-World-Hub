@@ -34,7 +34,7 @@ export default function TrainingTableDemo() {
         <>
             <SEOHead
                 title="Training Table Demo"
-                description="Demo training poker table."
+                description="Demo Training Poker Table."
                 noindex={true}
             />
 

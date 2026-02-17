@@ -117,7 +117,7 @@ export default function CommandBar() {
                         <input
                             type="text"
                             className="search-input"
-                            placeholder="ZIP, City, or Casino Name..."
+                            placeholder="ZIP, City, Or Casino Name..."
                             value={searchInput}
                             onChange={(e) => handleSearchInput(e.target.value)}
                         />
@@ -196,7 +196,7 @@ export default function CommandBar() {
                     {!results.loading && !results.error && (results.venues.length > 0 || results.tournaments.length > 0) && (
                         <div className="results-count">
                             <span className="count">{results.venues.length + results.tournaments.length}</span>
-                            <span className="label">targets acquired</span>
+                            <span className="label">Targets Acquired</span>
                         </div>
                     )}
                     {!results.loading && !results.error && results.venues.length === 0 && results.tournaments.length === 0 && results.lastQuery && (

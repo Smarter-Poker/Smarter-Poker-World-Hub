@@ -135,7 +135,7 @@ For each street (flop, turn, river), what should my default plan be? Include:
             <input
                 value={streetPlans[streetKey].reasoning}
                 onChange={e => updatePlan(streetKey, { reasoning: e.target.value })}
-                placeholder="Note: why this action?"
+                placeholder="Note: Why This Action?"
                 style={{
                     width: '100%',
                     marginTop: '6px',

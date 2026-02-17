@@ -64,7 +64,7 @@ export default function ClearCachePage() {
                 marginBottom: 20
             }}>🧹</div>
             <h1 style={{ marginBottom: 10 }}>Clearing Cache...</h1>
-            <p style={{ color: '#888' }}>Removing old data and reloading fresh content</p>
+            <p style={{ color: '#888' }}>Removing Old Data And Reloading Fresh Content</p>
             <div style={{
                 marginTop: 30,
                 width: 200,

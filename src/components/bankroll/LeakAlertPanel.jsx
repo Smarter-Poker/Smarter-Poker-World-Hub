@@ -84,7 +84,7 @@ export default function LeakAlertPanel({ leakAnalysis, locationId, isLoading }) 
         <h3 style={styles.title}>Assistant Alerts</h3>
         <div style={styles.emptyState}>
           <span style={styles.emptyIcon}>✓</span>
-          <p style={styles.emptyText}>No active alerts</p>
+          <p style={styles.emptyText}>No Active Alerts</p>
         </div>
       </div>
     );

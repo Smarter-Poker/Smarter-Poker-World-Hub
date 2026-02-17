@@ -384,7 +384,7 @@ export default function AvatarGallery({ onSelect }) {
                     }}
                     onMouseOver={(e) => e.target.style.background = '#ff0000'}
                     onMouseOut={(e) => e.target.style.background = 'rgba(255, 68, 68, 0.9)'}
-                    title="Delete this avatar"
+                    title="Delete This Avatar"
                   >
                     ✕
                   </button>

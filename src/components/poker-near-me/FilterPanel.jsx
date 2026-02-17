@@ -33,11 +33,11 @@ const VENUE_TYPES = [
 ];
 
 const RADIUS_OPTIONS = [
-    { value: 10, label: '10 miles' },
-    { value: 25, label: '25 miles' },
-    { value: 50, label: '50 miles' },
-    { value: 100, label: '100 miles' },
-    { value: 250, label: '250 miles' }
+    { value: 10, label: '10 Miles' },
+    { value: 25, label: '25 Miles' },
+    { value: 50, label: '50 Miles' },
+    { value: 100, label: '100 Miles' },
+    { value: 250, label: '250 Miles' }
 ];
 
 export default function FilterPanel({

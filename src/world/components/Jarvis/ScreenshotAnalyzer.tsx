@@ -138,7 +138,7 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
                 {image ? (
                     <img
                         src={image}
-                        alt="Poker table screenshot"
+                        alt="Poker Table Screenshot"
                         style={{
                             maxWidth: '100%',
                             maxHeight: '200px',
@@ -177,7 +177,7 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
             }}>
                 <strong style={{ color: '#FFD700' }}>💡 Tips:</strong>
                 <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
-                    <li>Works with PokerStars, GGPoker, ACR, etc.</li>
+                    <li>Works With PokerStars, GGPoker, ACR, etc.</li>
                     <li>Include visible hole cards and board</li>
                     <li>Stack sizes and pot size help accuracy</li>
                 </ul>

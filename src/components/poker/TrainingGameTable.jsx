@@ -418,7 +418,7 @@ export default function TrainingGameTable({
                 {[
                     { label: 'Fold', onClick: onFold },
                     { label: 'Call', onClick: onCall },
-                    { label: 'Raise to 8bb', onClick: onRaise },
+                    { label: 'Raise To 8BB', onClick: onRaise },
                     { label: 'All-In', onClick: onAllIn },
                 ].map((btn) => (
                     <button

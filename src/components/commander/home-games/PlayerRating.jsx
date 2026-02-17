@@ -143,7 +143,7 @@ export default function PlayerRating({
           <textarea
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
-            placeholder="How was the game?"
+            placeholder="How Was The Game?"
             className="w-full cmd-input min-h-[80px] resize-none"
             maxLength={500}
           />

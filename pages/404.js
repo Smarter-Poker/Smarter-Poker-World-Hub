@@ -11,7 +11,7 @@ export default function Custom404() {
         }}>
             <div style={{ textAlign: 'center' }}>
                 <h1 style={{ fontSize: 72, marginBottom: 16, color: '#00D4FF' }}>404</h1>
-                <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }}>Page not found</p>
+                <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }}>Page Not Found</p>
                 <a href="/hub" style={{
                     display: 'inline-block',
                     marginTop: 24,

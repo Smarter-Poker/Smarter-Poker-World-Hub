@@ -448,7 +448,7 @@ export default function SettingsPage() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                setPromoResult({ success: false, message: 'Please log in to redeem a promo code.' });
+                setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
                 return;
             }
             const res = await fetch('/api/promo/redeem', {
@@ -468,7 +468,7 @@ export default function SettingsPage() {
                 setPromoResult({ success: false, message: data.error || 'Failed to redeem code.' });
             }
         } catch (err) {
-            setPromoResult({ success: false, message: 'Network error. Please try again.' });
+            setPromoResult({ success: false, message: 'Network Error. Please Try Again.' });
         } finally {
             setPromoLoading(false);
         }
@@ -1021,7 +1021,7 @@ export default function SettingsPage() {
 
                                 <div style={styles.card}>
                                     <Select
-                                        label="Display Name in Social Media"
+                                        label="Display Name In Social Media"
                                         value={settings.display_name_preference || 'full_name'}
                                         onChange={(v) => updateSetting('display_name_preference', v)}
                                         options={[
@@ -1123,9 +1123,9 @@ export default function SettingsPage() {
                                         value={settings.timeBank}
                                         onChange={(v) => updateSetting('timeBank', parseInt(v))}
                                         options={[
-                                            { value: 15, label: '15 seconds' },
-                                            { value: 30, label: '30 seconds' },
-                                            { value: 60, label: '60 seconds' },
+                                            { value: 15, label: '15 Seconds' },
+                                            { value: 30, label: '30 Seconds' },
+                                            { value: 60, label: '60 Seconds' },
                                         ]}
                                     />
                                 </div>

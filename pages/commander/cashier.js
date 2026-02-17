@@ -81,7 +81,7 @@ export default function Cashier() {
 
   const submitTransaction = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setMessage({ type: 'error', text: 'Enter a valid amount' });
+      setMessage({ type: 'error', text: 'Enter A Valid Amount' });
       return;
     }
     setActionLoading(true);
@@ -119,7 +119,7 @@ export default function Cashier() {
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction failed' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setActionLoading(false); }
   };
 

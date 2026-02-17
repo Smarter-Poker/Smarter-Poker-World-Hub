@@ -182,7 +182,7 @@ const LevelCard: React.FC<{
                             </div>
                         ) : (
                             <div style={styles.notAttempted}>
-                                <span>Not attempted</span>
+                                <span>Not Attempted</span>
                             </div>
                         )}
 

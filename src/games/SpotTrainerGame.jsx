@@ -579,7 +579,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
     if (!currentSpot) {
         return (
             <div style={styles.container}>
-                <p style={{ color: '#fff', textAlign: 'center' }}>No spots available</p>
+                <p style={{ color: '#fff', textAlign: 'center' }}>No Spots Available</p>
             </div>
         );
     }

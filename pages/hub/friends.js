@@ -829,7 +829,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>} message="No pending friend requests" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>} message="No Pending Friend Requests" />
                 );
 
             case 'friends':
@@ -894,7 +894,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>} message="No followers yet" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>} message="No Followers Yet" />
                 );
 
             case 'discover':
@@ -918,7 +918,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="" message="No suggestions available" />
+                    <EmptyState icon="" message="No Suggestions Available" />
                 );
         }
     };

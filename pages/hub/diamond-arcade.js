@@ -381,7 +381,7 @@ export default function DiamondArcade() {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             setBalance(prev => prev - (costs[duelType] || 25));
-                            setDuelResult({ matched: true, message: 'Opponent found! Starting duel...' });
+                            setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
                             setTimeout(() => {
                                 setDuelSearching(null);
                                 setDuelResult(null);

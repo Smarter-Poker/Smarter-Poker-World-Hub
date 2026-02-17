@@ -207,7 +207,7 @@ Compare this to a standard ${compareTo} range and tell me:
 
             {/* Compare To Select */}
             <div style={{ marginBottom: '12px' }}>
-                <span style={{ fontSize: '10px', color: 'rgba(255, 215, 0, 0.7)' }}>Compare to: </span>
+                <span style={{ fontSize: '10px', color: 'rgba(255, 215, 0, 0.7)' }}>Compare To: </span>
                 <select
                     value={compareTo}
                     onChange={(e) => setCompareTo(e.target.value)}

@@ -217,7 +217,7 @@ export default function GameCalendar({
           {selectedDateEvents.length === 0 ? (
             <div className="cmd-panel p-6 text-center">
               <Calendar size={28} className="mx-auto text-[#4A5E78] mb-2" />
-              <p className="text-sm text-[#64748B]">No games scheduled</p>
+              <p className="text-sm text-[#64748B]">No Games Scheduled</p>
             </div>
           ) : (
             <div className="space-y-2">

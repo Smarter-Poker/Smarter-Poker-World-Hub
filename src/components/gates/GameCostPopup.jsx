@@ -75,7 +75,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
                 <div style={s.vipBox}>
                     <Crown size={16} style={{ color: M.gold }} />
                     <span>
-                        <strong>VIP members play FREE</strong> — unlimited games, no diamond cost
+                        <strong>VIP Members Play FREE</strong> — unlimited games, no diamond cost
                     </span>
                 </div>
 

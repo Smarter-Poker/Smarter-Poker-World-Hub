@@ -397,7 +397,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               <button
                 className="cmd-hub-btn"
                 onClick={() => router.push('/hub')}
-                title="Back to Smarter.Poker Hub"
+                title="Back To Smarter.Poker Hub"
               >
                 <img src="/images/btn-hub.png" alt="Hub" />
               </button>

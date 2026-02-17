@@ -262,7 +262,7 @@ export default function StakingTracker({ userId }) {
                             <input
                                 value={form.backer_name}
                                 onChange={e => setForm({ ...form, backer_name: e.target.value })}
-                                placeholder="Enter backer name..."
+                                placeholder="Enter Backer Name..."
                                 style={styles.formInput}
                             />
                         </div>
@@ -323,7 +323,7 @@ export default function StakingTracker({ userId }) {
                             <textarea
                                 value={form.notes}
                                 onChange={e => setForm({ ...form, notes: e.target.value })}
-                                placeholder="Optional notes..."
+                                placeholder="Optional Notes..."
                                 rows={2}
                                 style={{ ...styles.formInput, resize: 'none' }}
                             />

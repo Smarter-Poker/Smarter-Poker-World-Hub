@@ -263,7 +263,7 @@ What did I do right? What could I improve?`;
                         <input
                             value={form.hand}
                             onChange={e => setForm({ ...form, hand: e.target.value })}
-                            placeholder="Your hand (e.g., AhKs)"
+                            placeholder="Your Hand (e.g., AhKs)"
                             style={{
                                 flex: 1, padding: '6px 10px',
                                 background: 'rgba(0, 0, 0, 0.4)',
@@ -301,7 +301,7 @@ What did I do right? What could I improve?`;
                     <textarea
                         value={form.action}
                         onChange={e => setForm({ ...form, action: e.target.value })}
-                        placeholder="What happened? (e.g., Raised flop, called river shove)"
+                        placeholder="What Happened? (e.g., Raised Flop, Called River Shove)"
                         style={{
                             width: '100%', padding: '6px 10px', marginBottom: '8px', minHeight: '50px',
                             background: 'rgba(0, 0, 0, 0.4)',
@@ -372,7 +372,7 @@ What did I do right? What could I improve?`;
                 <input
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search hands..."
+                    placeholder="Search Hands..."
                     style={{
                         flex: 1, padding: '6px 10px',
                         background: 'rgba(0, 0, 0, 0.3)',

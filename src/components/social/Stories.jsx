@@ -883,7 +883,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                                 <textarea
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
-                                    placeholder="Start typing..."
+                                    placeholder="Start Typing..."
                                     autoFocus
                                     style={{
                                         background: 'transparent',
@@ -996,7 +996,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                                     type="text"
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
-                                    placeholder="Add a caption..."
+                                    placeholder="Add A Caption..."
                                     style={{
                                         width: '100%',
                                         background: 'rgba(255,255,255,0.1)',
@@ -1075,8 +1075,8 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
         }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                    <div style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>Add to your Story?</div>
-                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>Share this with your followers</div>
+                    <div style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>Add To Your Story?</div>
+                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>Share This With Your Followers</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={onClose} style={{

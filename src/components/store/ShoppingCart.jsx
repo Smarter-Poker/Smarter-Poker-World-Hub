@@ -181,7 +181,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds })
                                         color: 'rgba(255, 255, 255, 0.5)'
                                     }}>
                                         <img src="/images/cart-icon.png" alt="Cart" style={{ width: 64, height: 64, margin: '0 auto 16px', objectFit: 'contain', opacity: 0.5 }} />
-                                        <p>Your cart is empty</p>
+                                        <p>Your Cart Is Empty</p>
                                     </div>
                                 ) : (
                                     items.map((item) => (

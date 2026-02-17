@@ -89,7 +89,7 @@ const GUIDE_SECTIONS = [
           'Player receives notification with 5-minute window',
           'Player status changes to "Called"',
         ],
-        tip: 'SMS notifications go to the phone number on file. Ensure it\'s correct.',
+        tip: 'SMS Notifications Go To The Phone Number On File. Ensure It\'s correct.',
       },
       {
         title: 'Seating a Player',

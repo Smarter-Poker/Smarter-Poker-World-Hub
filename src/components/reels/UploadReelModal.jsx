@@ -120,7 +120,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
                     {/* Caption Input */}
                     <textarea
-                        placeholder="Add a caption..."
+                        placeholder="Add A Caption..."
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
                         style={styles.textarea}

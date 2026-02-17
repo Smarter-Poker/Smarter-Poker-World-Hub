@@ -221,7 +221,7 @@ export default function CreateGameForm({
               onChange={(e) => updateField('requires_approval', e.target.checked)}
               className="w-5 h-5 rounded border-[#4A5E78]"
             />
-            <span className="text-sm text-[#94A3B8]">Require host approval for RSVPs</span>
+            <span className="text-sm text-[#94A3B8]">Require Host Approval For RSVPs</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input

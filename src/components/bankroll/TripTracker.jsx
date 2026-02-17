@@ -199,7 +199,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                     <button
                         onClick={() => setConfirmDelete(true)}
                         style={styles.deleteX}
-                        title="Delete trip"
+                        title="Delete Trip"
                     >✕</button>
 
                     <div style={styles.activeTripHeader}>
@@ -342,9 +342,9 @@ export default function TripTracker({ userId, onOpenLog }) {
                     onClick={() => setShowCreateForm(true)}
                     style={styles.createTripBtn}
                 >
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No active trip</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Trip</span>
                     <div>
-                        <div style={styles.createTripTitle}>Start a New Trip</div>
+                        <div style={styles.createTripTitle}>Start A New Trip</div>
                         <div style={styles.createTripSub}>Track all sessions and expenses in one place</div>
                     </div>
                 </motion.button>
@@ -403,7 +403,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                             type="text"
                             value={newTrip.purpose}
                             onChange={e => setNewTrip({ ...newTrip, purpose: e.target.value })}
-                            placeholder="e.g. WSOP Series, Weekend getaway"
+                            placeholder="e.g. WSOP Series, Weekend Getaway"
                             style={styles.formInput}
                         />
 
@@ -411,7 +411,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                         <textarea
                             value={newTrip.notes}
                             onChange={e => setNewTrip({ ...newTrip, notes: e.target.value })}
-                            placeholder="Any notes..."
+                            placeholder="Any Notes..."
                             style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                         />
 
@@ -429,7 +429,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                 {isLoading ? (
                     <div style={styles.loadingPlaceholder}>Loading trips...</div>
                 ) : completedTrips.length === 0 ? (
-                    <div style={styles.emptyState}>No completed trips yet. Start your first trip above!</div>
+                    <div style={styles.emptyState}>No Completed Trips Yet. Start Your First Trip Above!</div>
                 ) : (
                     <div style={styles.tripGrid}>
                         {completedTrips.map(trip => (

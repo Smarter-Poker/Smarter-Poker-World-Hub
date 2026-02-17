@@ -292,7 +292,7 @@ Questions:
                     type="number"
                     value={newAmount}
                     onChange={e => setNewAmount(e.target.value)}
-                    placeholder="Update bankroll..."
+                    placeholder="Update Bankroll..."
                     style={{
                         flex: 1, padding: '8px',
                         background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 215, 0, 0.2)',

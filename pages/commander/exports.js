@@ -83,13 +83,13 @@ export default function ExportsHub() {
       });
       const json = await res.json();
       if (json.export) {
-        setMessage({ type: 'success', text: 'Export created!' });
+        setMessage({ type: 'success', text: 'Export Created!' });
         setShowOptions(null);
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error || 'Export failed' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setCreating(null); }
   };
 
@@ -115,12 +115,12 @@ export default function ExportsHub() {
         a.download = `hendon_mob_${tournamentId}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        setMessage({ type: 'success', text: 'Hendon Mob export downloaded!' });
+        setMessage({ type: 'success', text: 'Hendon Mob Export Downloaded!' });
       } else {
         const json = await res.json();
         setMessage({ type: 'error', text: json.error || 'Hendon Mob export failed' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setCreating(null); }
   };
 

@@ -188,7 +188,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     </div>
                     <div style={styles.uploadDivider}>
                         <span style={styles.uploadDividerLine} />
-                        <span style={styles.uploadDividerText}>or</span>
+                        <span style={styles.uploadDividerText}>Or</span>
                         <span style={styles.uploadDividerLine} />
                     </div>
                     <button

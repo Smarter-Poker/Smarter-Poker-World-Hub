@@ -159,13 +159,13 @@ export default function ResponsibleGamingPage() {
 
       const data = await res.json();
       if (data.success) {
-        setSaveMessage({ type: 'success', text: 'Limits saved successfully' });
+        setSaveMessage({ type: 'success', text: 'Limits Saved Successfully' });
       } else {
-        setSaveMessage({ type: 'error', text: 'Failed to save limits' });
+        setSaveMessage({ type: 'error', text: 'Failed To Save Limits' });
       }
     } catch (err) {
       console.error('Save failed:', err);
-      setSaveMessage({ type: 'error', text: 'Failed to save limits' });
+      setSaveMessage({ type: 'error', text: 'Failed To Save Limits' });
     } finally {
       setSaving(false);
       setTimeout(() => setSaveMessage(null), 4000);
@@ -313,21 +313,21 @@ export default function ResponsibleGamingPage() {
             <div className="space-y-3">
               <LimitCard
                 icon={Calendar}
-                label="Daily Buy-in Limit"
+                label="Daily Buy-In Limit"
                 value={limits.daily_limit}
                 onChange={(v) => setLimits(prev => ({ ...prev, daily_limit: v }))}
                 max={5000}
               />
               <LimitCard
                 icon={Calendar}
-                label="Weekly Buy-in Limit"
+                label="Weekly Buy-In Limit"
                 value={limits.weekly_limit}
                 onChange={(v) => setLimits(prev => ({ ...prev, weekly_limit: v }))}
                 max={20000}
               />
               <LimitCard
                 icon={Calendar}
-                label="Monthly Buy-in Limit"
+                label="Monthly Buy-In Limit"
                 value={limits.monthly_limit}
                 onChange={(v) => setLimits(prev => ({ ...prev, monthly_limit: v }))}
                 max={50000}

@@ -13,18 +13,18 @@ import { FBAvatar, FB_COLORS } from './FacebookStyleCard';
 // ═══════════════════════════════════════════════════════════════════════════
 
 const NOTIFICATION_TYPES = {
-    like: { icon: '👍', color: FB_COLORS.blue, label: 'liked your post' },
-    comment: { icon: '💬', color: '#31A24C', label: 'commented on your post' },
-    share: { icon: '↗️', color: '#F7B928', label: 'shared your post' },
-    friend_request: { icon: '👤', color: FB_COLORS.blue, label: 'sent you a friend request' },
-    friend_accepted: { icon: '👥', color: '#31A24C', label: 'accepted your friend request' },
-    mention: { icon: '@', color: FB_COLORS.blue, label: 'mentioned you' },
-    tag: { icon: '📷', color: '#E41E3F', label: 'tagged you in a photo' },
-    hand_reaction: { icon: '🃏', color: '#FF6B35', label: 'reacted to your hand' },
-    gto_badge: { icon: '👑', color: '#FFD700', label: 'You earned GTO Master!' },
-    streak: { icon: '🔥', color: '#FF6B35', label: 'Your streak is at risk!' },
-    tournament: { icon: '🏆', color: '#8B5CF6', label: 'Tournament starting soon' },
-    live: { icon: '🔴', color: '#E41E3F', label: 'is live now' }
+    like: { icon: '👍', color: FB_COLORS.blue, label: 'Liked Your Post' },
+    comment: { icon: '💬', color: '#31A24C', label: 'Commented On Your Post' },
+    share: { icon: '↗️', color: '#F7B928', label: 'Shared Your Post' },
+    friend_request: { icon: '👤', color: FB_COLORS.blue, label: 'Sent You A Friend Request' },
+    friend_accepted: { icon: '👥', color: '#31A24C', label: 'Accepted Your Friend Request' },
+    mention: { icon: '@', color: FB_COLORS.blue, label: 'Mentioned You' },
+    tag: { icon: '📷', color: '#E41E3F', label: 'Tagged You In A Photo' },
+    hand_reaction: { icon: '🃏', color: '#FF6B35', label: 'Reacted To Your Hand' },
+    gto_badge: { icon: '👑', color: '#FFD700', label: 'You Earned GTO Master!' },
+    streak: { icon: '🔥', color: '#FF6B35', label: 'Your Streak Is At Risk!' },
+    tournament: { icon: '🏆', color: '#8B5CF6', label: 'Tournament Starting Soon' },
+    live: { icon: '🔴', color: '#E41E3F', label: 'Is Live Now' }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

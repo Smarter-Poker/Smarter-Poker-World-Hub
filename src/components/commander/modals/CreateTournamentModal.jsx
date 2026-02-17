@@ -248,7 +248,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                 {step === 1 ? 'Choose Template' : 'Create Tournament'}
               </h2>
               {step === 1 && (
-                <p className="text-xs text-[#64748B]">Select a template or start from scratch</p>
+                <p className="text-xs text-[#64748B]">Select A Template Or Start From Scratch</p>
               )}
             </div>
           </div>
@@ -272,7 +272,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                 <Settings className="w-5 h-5 text-[#94A3B8]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">Start from Scratch</p>
+                <p className="text-sm font-medium text-white">Start From Scratch</p>
                 <p className="text-xs text-[#64748B]">Build a custom tournament with default blinds</p>
               </div>
             </button>
@@ -545,7 +545,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                   type="number"
                   value={maxEntries}
                   onChange={(e) => setMaxEntries(e.target.value)}
-                  placeholder="No limit"
+                  placeholder="No Limit"
                   className="cmd-input w-full h-10"
                 />
               </div>
@@ -608,8 +608,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
             {/* Post to Club Page Toggle */}
             <div className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg">
               <div>
-                <p className="text-sm font-medium text-white">Post to Club Page</p>
-                <p className="text-xs text-[#64748B]">Auto-add to your Club Page schedule</p>
+                <p className="text-sm font-medium text-white">Post To Club Page</p>
+                <p className="text-xs text-[#64748B]">Auto-add To Your Club Page Schedule</p>
               </div>
               <button
                 type="button"

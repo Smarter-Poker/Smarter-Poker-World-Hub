@@ -122,7 +122,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
               Table
             </label>
             {availableTables.length === 0 ? (
-              <p className="text-sm text-[#EF4444]">No tables available</p>
+              <p className="text-sm text-[#EF4444]">No Tables Available</p>
             ) : (
               <select
                 value={selectedTable}

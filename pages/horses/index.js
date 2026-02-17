@@ -288,7 +288,7 @@ export default function HorsesAdmin() {
         return (
             <div className={styles.loading}>
                 <span className={styles.logo}>🐴</span>
-                <p>Loading stable...</p>
+                <p>Loading Stable...</p>
             </div>
         );
     }
@@ -299,7 +299,7 @@ export default function HorsesAdmin() {
             <>
                 <SEOHead
                 title="Poker Horses — Fantasy Poker Game"
-                description="Play fantasy poker by picking your horses. Follow live tournament action and compete on leaderboards."
+                description="Play Fantasy Poker By Picking Your Horses. Follow Live Tournament Action And Compete On Leaderboards."
                 canonical="/horses"
             >
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -334,7 +334,7 @@ export default function HorsesAdmin() {
                                 />
                             </div>
                             {loginError && <div className={styles.error}>{loginError}</div>}
-                            <button type="submit" className={styles.loginBtn}>Enter the Stable</button>
+                            <button type="submit" className={styles.loginBtn}>Enter The Stable</button>
                         </form>
                     </div>
                 </div>
@@ -363,7 +363,7 @@ export default function HorsesAdmin() {
                 <header className={styles.header}>
                     <div className={styles.headerLeft}>
                         <span className={styles.logo}>🐴</span>
-                        <h1>STABLE ADMIN v1.0</h1>
+                        <h1>STABLE ADMIN V1.0</h1>
                         <span className={styles.subtitle}>Content Stable & Search</span>
                     </div>
                     <div className={styles.headerRight}>
@@ -426,7 +426,7 @@ export default function HorsesAdmin() {
                                 <div className={styles.stableControls}>
                                     <input
                                         type="text"
-                                        placeholder="Search horses..."
+                                        placeholder="Search Horses..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className={styles.searchInput}
@@ -504,7 +504,7 @@ export default function HorsesAdmin() {
                         <div className={styles.grinderView}>
                             <div className={styles.grinderHeader}>
                                 <h2>🎰 Grinder Horses - Poker AI</h2>
-                                <p className={styles.grinderSubtitle}>Same horses, second job: Playing poker 16hrs/day across 4 tables max</p>
+                                <p className={styles.grinderSubtitle}>Same Horses, Second Job: Playing Poker 16hrs/day Across 4 Tables Max</p>
                             </div>
 
                             <div className={styles.grinderStats}>
@@ -635,17 +635,17 @@ export default function HorsesAdmin() {
                                     <div className={styles.shift}>
                                         <h4>🌅 Morning Shift</h4>
                                         <p>8 AM - 4 PM</p>
-                                        <span>40 horses</span>
+                                        <span>40 Horses</span>
                                     </div>
                                     <div className={styles.shift}>
                                         <h4>☀️ Day Shift</h4>
                                         <p>12 PM - 8 PM</p>
-                                        <span>35 horses</span>
+                                        <span>35 Horses</span>
                                     </div>
                                     <div className={styles.shift}>
                                         <h4>🌙 Night Shift</h4>
                                         <p>4 PM - 12 AM</p>
-                                        <span>25 horses</span>
+                                        <span>25 Horses</span>
                                     </div>
                                 </div>
                             </div>
@@ -663,12 +663,12 @@ export default function HorsesAdmin() {
                                     <button onClick={() => triggerPipeline('test')} className={styles.actionBtn}>
                                         <span className={styles.icon}>🧪</span>
                                         <span className={styles.label}>Test Run</span>
-                                        <span className={styles.desc}>3 posts, no video</span>
+                                        <span className={styles.desc}>3 Posts, No Video</span>
                                     </button>
                                     <button onClick={() => triggerPipeline('cycle')} className={styles.actionBtn}>
                                         <span className={styles.icon}>🔄</span>
                                         <span className={styles.label}>Quick Cycle</span>
-                                        <span className={styles.desc}>10 posts + 2 videos</span>
+                                        <span className={styles.desc}>10 Posts + 2 Videos</span>
                                     </button>
                                     <button onClick={() => triggerPipeline('daily')} className={`${styles.actionBtn} ${styles.featured}`}>
                                         <span className={styles.icon}>📅</span>
@@ -678,7 +678,7 @@ export default function HorsesAdmin() {
                                     <button onClick={() => triggerPipeline('publish')} className={styles.actionBtn}>
                                         <span className={styles.icon}>📤</span>
                                         <span className={styles.label}>Publish Due</span>
-                                        <span className={styles.desc}>Post scheduled</span>
+                                        <span className={styles.desc}>Post Scheduled</span>
                                     </button>
                                 </div>
                             </div>
@@ -698,7 +698,7 @@ export default function HorsesAdmin() {
                             <div className={styles.recentRuns}>
                                 <h3>📊 Recent Pipeline Runs</h3>
                                 {pipelineRuns.length === 0 ? (
-                                    <p className={styles.noData}>No pipeline runs yet</p>
+                                    <p className={styles.noData}>No Pipeline Runs Yet</p>
                                 ) : (
                                     <table className={styles.runsTable}>
                                         <thead>
@@ -918,7 +918,7 @@ export default function HorsesAdmin() {
                                 }}>
                                     <div className={styles.formRow} style={{ marginBottom: '12px' }}>
                                         <div className={styles.formGroup}>
-                                            <label>Code (leave blank to auto-generate)</label>
+                                            <label>Code (leave Blank To Auto-generate)</label>
                                             <input
                                                 type="text"
                                                 value={promoForm.code}
@@ -934,7 +934,7 @@ export default function HorsesAdmin() {
                                                 type="text"
                                                 value={promoForm.description}
                                                 onChange={e => setPromoForm({ ...promoForm, description: e.target.value })}
-                                                placeholder="e.g. Welcome bonus for new users"
+                                                placeholder="e.g. Welcome Bonus For New Users"
                                                 required
                                             />
                                         </div>
@@ -964,7 +964,7 @@ export default function HorsesAdmin() {
                                     </div>
                                     <div className={styles.formRow} style={{ marginBottom: '16px' }}>
                                         <div className={styles.formGroup}>
-                                            <label>Max Uses (blank = unlimited)</label>
+                                            <label>Max Uses (blank = Unlimited)</label>
                                             <input
                                                 type="number"
                                                 value={promoForm.maxUses}
@@ -992,9 +992,9 @@ export default function HorsesAdmin() {
                             <div className={styles.contentBreakdown}>
                                 <h3>All Promo Codes ({promoCodes.length})</h3>
                                 {promoLoading ? (
-                                    <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Loading codes...</p>
+                                    <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Loading Codes...</p>
                                 ) : promoCodes.length === 0 ? (
-                                    <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No promo codes yet. Create one above!</p>
+                                    <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No Promo Codes Yet. Create One Above!</p>
                                 ) : (
                                     <div style={{ overflowX: 'auto' }}>
                                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
@@ -1069,7 +1069,7 @@ export default function HorsesAdmin() {
                                                                         cursor: 'pointer',
                                                                         fontSize: '12px',
                                                                     }}
-                                                                    title="Copy code"
+                                                                    title="Copy Code"
                                                                 >📋</button>
                                                                 <button
                                                                     onClick={async () => {
@@ -1114,9 +1114,9 @@ export default function HorsesAdmin() {
                             <h2>💎 Diamond Economy Dashboard</h2>
 
                             {economyLoading ? (
-                                <div className={styles.loadingSpinner}>Loading economy data...</div>
+                                <div className={styles.loadingSpinner}>Loading Economy Data...</div>
                             ) : !economyData ? (
-                                <div className={styles.loadingSpinner}>No data available</div>
+                                <div className={styles.loadingSpinner}>No Data Available</div>
                             ) : (
                                 <>
                                     {/* Stat Cards */}
@@ -1355,7 +1355,7 @@ export default function HorsesAdmin() {
                                     <textarea
                                         value={newPersona.bio}
                                         onChange={e => setNewPersona({ ...newPersona, bio: e.target.value })}
-                                        placeholder="Brief backstory..."
+                                        placeholder="Brief Backstory..."
                                         rows="3"
                                         required
                                     />

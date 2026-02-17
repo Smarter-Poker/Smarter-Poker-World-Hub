@@ -115,7 +115,7 @@ export default function SessionHandReview({ userId }) {
                 <input
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search hands..."
+                    placeholder="Search Hands..."
                     style={styles.searchInput}
                 />
             </div>

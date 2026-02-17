@@ -58,13 +58,13 @@ const DEFAULT_SCENARIOS: Record<string, {
     correctId: string;
 }> = {
     'tilt-control': {
-        text: "You just lost 3 buy-ins to coolers. Your opponent shows you 72o after rivering a boat. Your blood is boiling.",
-        context: "Session: -5 buy-ins | Time at table: 4 hours",
+        text: "You Just Lost 3 Buy-Ins To Coolers. Your Opponent Shows You 72o After Rivering A Boat. Your Blood Is Boiling.",
+        context: "Session: -5 Buy-Ins | Time At Table: 4 Hours",
         choices: [
             { id: 'TILT', label: 'Express Frustration', icon: '😤', description: 'Let villain know how you feel', emotionalType: 'impulsive' },
-            { id: 'BREATHE', label: 'Take a Deep Breath', icon: '🧘', description: 'Center yourself, stay calm', emotionalType: 'rational' },
+            { id: 'BREATHE', label: 'Take A Deep Breath', icon: '🧘', description: 'Center yourself, stay calm', emotionalType: 'rational' },
             { id: 'RELOAD', label: 'Immediately Reload', icon: '💰', description: 'Get back in action fast', emotionalType: 'aggressive' },
-            { id: 'LEAVE', label: 'Leave the Table', icon: '🚪', description: 'Walk away for now', emotionalType: 'passive' },
+            { id: 'LEAVE', label: 'Leave The Table', icon: '🚪', description: 'Walk away for now', emotionalType: 'passive' },
         ],
         correctId: 'BREATHE',
     },
@@ -75,17 +75,17 @@ const DEFAULT_SCENARIOS: Record<string, {
             { id: 'SHOVE', label: 'Shove All-In', icon: '🚀', description: 'Maximum pressure', emotionalType: 'aggressive' },
             { id: 'MINRAISE', label: 'Min-Raise', icon: '📈', description: 'Control the pot', emotionalType: 'rational' },
             { id: 'LIMP', label: 'Limp In', icon: '🐌', description: 'See a cheap flop', emotionalType: 'passive' },
-            { id: 'FOLD', label: 'Fold to Ladder', icon: '📉', description: 'Wait for a better spot', emotionalType: 'passive' },
+            { id: 'FOLD', label: 'Fold To Ladder', icon: '📉', description: 'Wait for a better spot', emotionalType: 'passive' },
         ],
         correctId: 'SHOVE',
     },
     'greed-check': {
         text: "You've turned a $200 session into $1,500. You're playing your A-game but it's 3 AM and you need to work tomorrow.",
-        context: "Session: +$1,300 | Time: 3:00 AM | Work at 8 AM",
+        context: "Session: +$1,300 | Time: 3:00 AM | Work At 8 AM",
         choices: [
             { id: 'GRIND', label: 'Keep Grinding', icon: '💎', description: 'Run it up while hot', emotionalType: 'aggressive' },
             { id: 'ONEHOUR', label: 'One More Hour', icon: '⏰', description: 'Set a hard stop', emotionalType: 'impulsive' },
-            { id: 'QUIT', label: 'Book the Win', icon: '✅', description: 'Lock in profits', emotionalType: 'rational' },
+            { id: 'QUIT', label: 'Book The Win', icon: '✅', description: 'Lock in profits', emotionalType: 'rational' },
             { id: 'MOVING', label: 'Move Up Stakes', icon: '🎰', description: 'Shot at higher limits', emotionalType: 'impulsive' },
         ],
         correctId: 'QUIT',
@@ -239,7 +239,7 @@ const MentalGym: React.FC<MentalGymProps> = ({
                 transition={{ delay: 0.4 }}
                 style={styles.choicesContainer}
             >
-                <div style={styles.choicePrompt}>What do you do?</div>
+                <div style={styles.choicePrompt}>What Do You Do?</div>
                 <div style={styles.choicesGrid}>
                     {displayChoices.map((choice, idx) => (
                         <motion.button

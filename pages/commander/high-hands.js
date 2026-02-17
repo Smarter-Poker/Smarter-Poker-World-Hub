@@ -79,14 +79,14 @@ export default function HighHands() {
       });
       const json = await res.json();
       if (json.high_hand) {
-        setMessage({ type: 'success', text: 'High hand recorded!' });
+        setMessage({ type: 'success', text: 'High Hand Recorded!' });
         setShowForm(false);
         setForm({ player_name: '', hand_description: '', hand_rank: '', table_number: '', prize_amount: '' });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error || 'Failed to record' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network error' }); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setSubmitting(false); }
   };
 

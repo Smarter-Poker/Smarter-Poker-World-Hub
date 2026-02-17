@@ -23,7 +23,7 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
     const actions: QuickAction[] = [
         {
             id: 'go-to-training',
-            label: 'Go to Training',
+            label: 'Go To Training',
             icon: '🎯',
             category: 'navigation',
             action: () => {
@@ -63,7 +63,7 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
         },
         {
             id: 'how-to-create-club',
-            label: 'How to Create Club',
+            label: 'How To Create Club',
             icon: '🏛️',
             category: 'feature',
             action: () => {
@@ -72,7 +72,7 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
         },
         {
             id: 'how-to-buy-diamonds',
-            label: 'How to Buy Diamonds',
+            label: 'How To Buy Diamonds',
             icon: '💰',
             category: 'feature',
             action: () => {

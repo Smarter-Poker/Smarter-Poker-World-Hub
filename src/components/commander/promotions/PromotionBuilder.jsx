@@ -210,7 +210,7 @@ export default function PromotionBuilder({
               <textarea
                 value={formData.description}
                 onChange={(e) => updateField('description', e.target.value)}
-                placeholder="Describe the promotion rules..."
+                placeholder="Describe The Promotion Rules..."
                 className="w-full cmd-input min-h-[80px] resize-none"
               />
             </div>
@@ -321,7 +321,7 @@ export default function PromotionBuilder({
                 type="text"
                 value={formData.prize_description}
                 onChange={(e) => updateField('prize_description', e.target.value)}
-                placeholder="Describe the prize details..."
+                placeholder="Describe The Prize Details..."
                 className="w-full cmd-input"
               />
             </div>
