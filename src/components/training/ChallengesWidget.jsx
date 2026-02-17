@@ -65,7 +65,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
     if (loading) {
         return (
             <div style={styles.container}>
-                <div style={styles.loadingText}>Loading challenges...</div>
+                <div style={styles.loadingText}>Loading Challenges...</div>
             </div>
         );
     }

@@ -86,7 +86,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
                 </div>
                 <div className="p-4 space-y-4">
                     {error && <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0" /><p className="text-sm text-[#EF4444]">{error}</p></div>}
-                    {loading && <div className="text-center py-8"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin mx-auto mb-2" /><p className="text-sm text-[#B0B3B8]">Looking up member...</p></div>}
+                    {loading && <div className="text-center py-8"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin mx-auto mb-2" /><p className="text-sm text-[#B0B3B8]">Looking Up Member...</p></div>}
 
                     {member && !loading && (
                         <div className="bg-[#18191A] rounded-xl p-4 space-y-3">
@@ -124,18 +124,18 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
                                         <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-[4/3]" />
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-48 h-48 border-2 border-[#1877F2] rounded-xl animate-pulse" /></div>
                                     </div>
-                                    <p className="text-center text-sm text-[#B0B3B8]">Hold the member card QR code in view</p>
+                                    <p className="text-center text-sm text-[#B0B3B8]">Hold The Member Card QR Code In View</p>
                                     <button onClick={stopScanning} className="w-full py-2.5 bg-[#3A3B3C] text-[#B0B3B8] rounded-lg text-sm font-medium">Stop Camera</button>
                                 </div>
                             ) : (
                                 <button onClick={startScanning} className="w-full py-8 border-2 border-dashed border-[#3A3B3C] rounded-xl flex flex-col items-center gap-3 hover:border-[#1877F2] transition-colors">
                                     <Camera className="w-10 h-10 text-[#B0B3B8]" />
-                                    <span className="text-sm font-medium text-[#E4E6EB]">Open Camera to Scan</span>
-                                    <span className="text-xs text-[#8A8D91]">Scan a member QR code card</span>
+                                    <span className="text-sm font-medium text-[#E4E6EB]">Open Camera To Scan</span>
+                                    <span className="text-xs text-[#8A8D91]">Scan A Member QR Code Card</span>
                                 </button>
                             )}
                             <div className="border-t border-[#3A3B3C] pt-4">
-                                <p className="text-xs text-[#B0B3B8] mb-2">Or enter QR code manually:</p>
+                                <p className="text-xs text-[#B0B3B8] mb-2">Or Enter QR Code Manually:</p>
                                 <div className="flex gap-2">
                                     <input type="text" value={manualCode} onChange={e => setManualCode(e.target.value)} className="flex-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4E4F50] rounded-lg text-[#E4E6EB] text-sm focus:border-[#1877F2] focus:outline-none" placeholder="CMD-1996-abc12345" onKeyDown={e => e.key === 'Enter' && lookupMember(manualCode.trim())} />
                                     <button onClick={() => lookupMember(manualCode.trim())} className="px-4 py-2.5 bg-[#1877F2] text-white rounded-lg text-sm font-medium">Look Up</button>

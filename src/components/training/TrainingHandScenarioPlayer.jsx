@@ -118,7 +118,7 @@ export default function TrainingHandScenarioPlayer({
             <div style={styles.container}>
                 <div style={styles.loadingContainer}>
                     <div style={styles.spinner} />
-                    <div style={styles.loadingText}>Loading scenario...</div>
+                    <div style={styles.loadingText}>Loading Scenario...</div>
                 </div>
             </div>
         );

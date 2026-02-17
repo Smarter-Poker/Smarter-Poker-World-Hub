@@ -141,7 +141,7 @@ export default function PvPBattle({
     };
 
     if (!currentQuestion && !gameOver) {
-        return <div className="loading">Loading battle...</div>;
+        return <div className="loading">Loading Battle...</div>;
     }
 
     const playerWon = playerScore > opponentScore;
@@ -232,7 +232,7 @@ export default function PvPBattle({
                                 {roundResult === 'player' && (
                                     <>
                                         <Check size={24} />
-                                        <span>You won this round!</span>
+                                        <span>You Won This Round!</span>
                                     </>
                                 )}
                                 {roundResult === 'opponent' && (
@@ -243,7 +243,7 @@ export default function PvPBattle({
                                 )}
                                 {roundResult === 'tie' && (
                                     <>
-                                        <span>Tie! No points awarded</span>
+                                        <span>Tie! No Points Awarded</span>
                                     </>
                                 )}
                             </motion.div>

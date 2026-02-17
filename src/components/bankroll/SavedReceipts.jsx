@@ -90,7 +90,7 @@ export default function SavedReceipts({ userId }) {
         return (
             <div style={styles.loadingState}>
                 <div style={styles.spinner} />
-                <span>Loading receipts...</span>
+                <span>Loading Receipts...</span>
             </div>
         );
     }
@@ -100,7 +100,7 @@ export default function SavedReceipts({ userId }) {
             <div style={styles.emptyState}>
                 <Image size={40} style={{ color: 'rgba(255,255,255,0.2)', marginBottom: 16 }} />
                 <p style={styles.emptyTitle}>No Saved Receipts</p>
-                <p style={styles.emptyHint}>Scan or upload a receipt from the Scan Receipt section to see it here.</p>
+                <p style={styles.emptyHint}>Scan Or Upload A Receipt From The Scan Receipt Section To See It Here.</p>
             </div>
         );
     }

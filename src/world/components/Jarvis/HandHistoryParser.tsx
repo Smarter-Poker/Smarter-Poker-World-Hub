@@ -211,7 +211,7 @@ What should I have done differently? What are the key decision points?`;
                 <textarea
                     value={rawText}
                     onChange={(e) => handleTextChange(e.target.value)}
-                    placeholder="Paste hand history here, or drag & drop a .txt file...
+                    placeholder="Paste Hand History Here, Or Drag & Drop A .txt File...
 
 Example (PokerStars format):
 PokerStars Hand #123456789: Hold'em No Limit ($0.50/$1.00)

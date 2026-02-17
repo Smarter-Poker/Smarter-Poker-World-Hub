@@ -166,7 +166,7 @@ export default function LiveKitCall({
             }}>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 48, marginBottom: 16 }}>📹</div>
-                    <div>Connecting to call...</div>
+                    <div>Connecting To Call...</div>
                 </div>
             </div>
         );

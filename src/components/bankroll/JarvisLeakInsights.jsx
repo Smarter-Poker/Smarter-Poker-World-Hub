@@ -120,7 +120,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                                         >
                                             🧠 Analyzing your bankroll data...
                                         </motion.div>
-                                        <p style={styles.loadingHint}>This usually takes a few seconds</p>
+                                        <p style={styles.loadingHint}>This Usually Takes A Few Seconds</p>
                                     </div>
                                 )}
 
@@ -205,8 +205,8 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                                 {!isLoading && !error && !insights && (
                                     <div style={styles.emptyState}>
                                         <div style={styles.emptyIcon}>🧠</div>
-                                        <h3 style={styles.emptyTitle}>Ready to Analyze</h3>
-                                        <p style={styles.emptyHint}>Get AI-powered insights on your bankroll performance, leak detection, and personalized recommendations.</p>
+                                        <h3 style={styles.emptyTitle}>Ready To Analyze</h3>
+                                        <p style={styles.emptyHint}>Get AI-powered Insights On Your Bankroll Performance, Leak Detection, And Personalized Recommendations.</p>
                                         <button onClick={fetchInsights} style={styles.analyzeBtn}>
                                             Run Analysis
                                         </button>

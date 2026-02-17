@@ -216,7 +216,7 @@ export default function StakingTracker({ userId }) {
                         <Users size={28} style={{ color: METAL.cyan }} />
                     </div>
                     <p style={styles.emptyTitle}>NO ACTIVE STAKING ARRANGEMENT</p>
-                    <p style={styles.emptyHint}>Track backer relationships & profit splits</p>
+                    <p style={styles.emptyHint}>Track Backer Relationships & Profit Splits</p>
                     <button onClick={handleAddNew} style={styles.emptyAddBtn}>
                         <Plus size={14} /> ADD BACKER
                     </button>

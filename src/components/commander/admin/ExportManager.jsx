@@ -163,7 +163,7 @@ export default function ExportManager({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-white">Data Exports</h2>
-          <p className="text-sm text-[#4A5E78]">Export your data for analysis or reporting</p>
+          <p className="text-sm text-[#4A5E78]">Export Your Data For Analysis Or Reporting</p>
         </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
@@ -305,7 +305,7 @@ export default function ExportManager({
         <div className="cmd-panel p-8 text-center">
           <Download size={32} className="mx-auto text-[#4A5E78] mb-2" />
           <p className="text-[#64748B]">No Exports Yet</p>
-          <p className="text-sm text-[#4A5E78]">Create an export to download your data</p>
+          <p className="text-sm text-[#4A5E78]">Create An Export To Download Your Data</p>
         </div>
       ) : (
         <div className="space-y-3">

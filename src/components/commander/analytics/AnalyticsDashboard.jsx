@@ -244,7 +244,7 @@ export default function AnalyticsDashboard({
           <div className="text-xl font-bold text-white">
             {summary.tournaments_run || 0}
           </div>
-          <div className="text-xs text-[#4A5E78]">tournaments run</div>
+          <div className="text-xs text-[#4A5E78]">Tournaments Run</div>
         </div>
 
         <div className="cmd-panel p-4">
@@ -255,7 +255,7 @@ export default function AnalyticsDashboard({
           <div className="text-xl font-bold text-white">
             {summary.promotions_awarded || 0}
           </div>
-          <div className="text-xs text-[#4A5E78]">awards given</div>
+          <div className="text-xs text-[#4A5E78]">Awards Given</div>
         </div>
 
         <div className="cmd-panel p-4">
@@ -268,7 +268,7 @@ export default function AnalyticsDashboard({
               ? (analytics.reduce((sum, d) => sum + (parseFloat(d.avg_session_hours) || 0), 0) / analytics.length).toFixed(1)
               : '0'}h
           </div>
-          <div className="text-xs text-[#4A5E78]">average duration</div>
+          <div className="text-xs text-[#4A5E78]">Average Duration</div>
         </div>
 
         <div className="cmd-panel p-4">
@@ -281,7 +281,7 @@ export default function AnalyticsDashboard({
               ? Math.round(analytics.reduce((sum, d) => sum + (d.avg_buyin || 0), 0) / analytics.length)
               : 0}
           </div>
-          <div className="text-xs text-[#4A5E78]">per session</div>
+          <div className="text-xs text-[#4A5E78]">Per Session</div>
         </div>
       </div>
 

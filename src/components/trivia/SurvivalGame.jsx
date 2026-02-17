@@ -116,7 +116,7 @@ export default function SurvivalGame({
         return (
             <div className="survival-loading">
                 <div className="spinner" />
-                <p>Loading questions...</p>
+                <p>Loading Questions...</p>
             </div>
         );
     }

@@ -29,12 +29,12 @@ export default function HistoricalComparison({ entries = [] }) {
 
         const currentEntries = entries.filter(e => {
             const d = new Date(e.entry_date + 'T12:00:00');
-            return d >= currentStart && d <= now;
+            return d >= currentStart && D <= now;
         });
 
         const previousEntries = entries.filter(e => {
             const d = new Date(e.entry_date + 'T12:00:00');
-            return d >= previousStart && d <= previousEnd;
+            return d >= previousStart && D <= previousEnd;
         });
 
         const calc = (arr) => {
@@ -74,7 +74,7 @@ export default function HistoricalComparison({ entries = [] }) {
     };
 
     if (!comparison) {
-        return <div style={styles.loading}>No data for comparison</div>;
+        return <div style={styles.loading}>No Data For Comparison</div>;
     }
 
     const periodLabel = period === 'month' ? 'vs Last Month' : 'vs Last Year';

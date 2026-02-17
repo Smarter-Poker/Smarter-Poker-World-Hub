@@ -126,7 +126,7 @@ export default function EliminatePlayerModal({
             </label>
             {filteredEntries.length === 0 ? (
               <div className="text-center py-6 bg-[#0D192E] rounded-lg">
-                <p className="text-[#64748B]">No players found</p>
+                <p className="text-[#64748B]">No Players Found</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto">

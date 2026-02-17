@@ -83,7 +83,7 @@ export default function TaxReportPanel({ userId }) {
                     <FileText size={16} style={{ color: METAL.cyan }} />
                     <span>TAX REPORT GENERATOR</span>
                 </div>
-                <span style={styles.headerHint}>IRS-ready logs with W2-G tracking</span>
+                <span style={styles.headerHint}>IRS-ready Logs With W2-G Tracking</span>
             </div>
 
             {/* Year Selector */}

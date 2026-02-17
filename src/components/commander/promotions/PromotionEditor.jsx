@@ -338,7 +338,7 @@ export default function PromotionEditor({
                 onChange={(e) => handleChange('is_recurring', e.target.checked)}
                 className="w-4 h-4 rounded text-[#22D3EE] focus:ring-[#22D3EE] border-[#4A5E78]"
               />
-              <span className="text-sm text-gray-300">Recurring promotion</span>
+              <span className="text-sm text-gray-300">Recurring Promotion</span>
             </label>
           </div>
 
@@ -425,7 +425,7 @@ export default function PromotionEditor({
                 onChange={(e) => handleChange('is_featured', e.target.checked)}
                 className="w-4 h-4 rounded text-[#22D3EE] focus:ring-[#22D3EE] border-[#4A5E78]"
               />
-              <span className="text-sm text-gray-300">Featured promotion (highlighted)</span>
+              <span className="text-sm text-gray-300">Featured Promotion (highlighted)</span>
             </label>
 
             <div>

@@ -142,7 +142,7 @@ const FBRightSidebar = ({ onlineContacts = [], onMessage }) => (
                 <img src="/ads/poker-book.jpg" alt="Ad" onError={(e) => e.target.src = 'https://picsum.photos/100/100'} />
                 <div className="sponsored-text">
                     <span className="sponsored-title">Master GTO Poker</span>
-                    <span className="sponsored-link">gtotraining.com</span>
+                    <span className="sponsored-link">Gtotraining.com</span>
                 </div>
             </div>
         </div>

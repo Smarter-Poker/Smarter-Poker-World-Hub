@@ -150,7 +150,7 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
                 </h2>
 
                 {isLoading ? (
-                    <div style={styles.loadingMessage}>Loading entries...</div>
+                    <div style={styles.loadingMessage}>Loading Entries...</div>
                 ) : entries.length === 0 ? (
                     <div style={styles.emptyState}>
                         <span style={{ fontSize: 40 }}>{meta.icon}</span>

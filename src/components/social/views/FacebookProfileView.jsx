@@ -454,7 +454,7 @@ const AboutCard = ({ user }) => (
                 {user.location && (
                     <div className="about-item">
                         <span className="item-icon">📍</span>
-                        <span>Lives in <strong>{user.location}</strong></span>
+                        <span>Lives In <strong>{user.location}</strong></span>
                     </div>
                 )}
                 {user.favoriteGame && (
@@ -625,7 +625,7 @@ export const FacebookProfileView = ({ onNavigate, onOpenChat }) => {
                     <div className="friends-card">
                         <div className="card-header">
                             <h3>Friends</h3>
-                            <a href="#friends">See all friends</a>
+                            <a href="#friends">See All Friends</a>
                         </div>
                         <span className="friends-count">{user.friendsCount} friends</span>
                         <div className="friends-grid">

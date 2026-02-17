@@ -103,7 +103,7 @@ export default function AddBuyinModal({
 
           {/* Current total */}
           <div className="p-3 bg-[#0D192E] rounded-lg">
-            <p className="text-sm text-[#64748B]">Current total buy-in</p>
+            <p className="text-sm text-[#64748B]">Current Total Buy-in</p>
             <p className="text-xl font-bold text-white">
               ${session.total_buyin || 0}
             </p>

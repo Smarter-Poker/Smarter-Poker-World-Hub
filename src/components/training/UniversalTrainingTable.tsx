@@ -541,7 +541,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                     cursor: 'pointer'
                                 }}
                             >
-                                Back to Hub
+                                Back To Hub
                             </button>
                         </div>
                     </div>

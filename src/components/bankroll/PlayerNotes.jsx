@@ -84,7 +84,7 @@ export default function PlayerNotes({ userId }) {
 
             {/* Player List */}
             {isLoading ? (
-                <div style={styles.loading}>Loading players...</div>
+                <div style={styles.loading}>Loading Players...</div>
             ) : filteredPlayers.length === 0 ? (
                 <div style={styles.empty}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Players Yet</span>
@@ -466,7 +466,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                 }}
                                 style={styles.select}
                             >
-                                <option value="">Select venue...</option>
+                                <option value="">Select Venue...</option>
                                 {savedVenues.map(v => (
                                     <option key={v} value={v}>{v}</option>
                                 ))}

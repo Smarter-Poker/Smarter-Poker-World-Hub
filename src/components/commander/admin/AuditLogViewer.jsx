@@ -289,8 +289,8 @@ export default function AuditLogViewer({
       {logs.length === 0 ? (
         <div className="p-8 text-center">
           <Shield size={32} className="mx-auto text-[#4A5E78] mb-2" />
-          <p className="text-[#64748B]">No audit logs found</p>
-          <p className="text-xs text-[#4A5E78]">Logs will appear as actions are performed</p>
+          <p className="text-[#64748B]">No Audit Logs Found</p>
+          <p className="text-xs text-[#4A5E78]">Logs Will Appear As Actions Are Performed</p>
         </div>
       ) : (
         <div className="max-h-[600px] overflow-y-auto">

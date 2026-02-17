@@ -54,7 +54,7 @@ export default function TripReport({ report, onBack }) {
             {/* Category Breakdown */}
             {Object.keys(categoryBreakdown).length > 0 && (
                 <div style={styles.section}>
-                    <h3 style={styles.sectionTitle}>Breakdown by Category</h3>
+                    <h3 style={styles.sectionTitle}>Breakdown By Category</h3>
                     <div style={styles.catGrid}>
                         {Object.entries(categoryBreakdown).map(([cat, data]) => (
                             <div key={cat} style={styles.catCard}>

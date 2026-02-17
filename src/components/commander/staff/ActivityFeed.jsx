@@ -32,7 +32,7 @@ export default function ActivityFeed({ activities = [], maxItems = 10 }) {
     return (
       <div className="cmd-panel p-6 text-center">
         <Clock className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
-        <p className="text-[#64748B] text-sm">No recent activity</p>
+        <p className="text-[#64748B] text-sm">No Recent Activity</p>
       </div>
     );
   }

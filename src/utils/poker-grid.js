@@ -82,7 +82,7 @@ export function getHandPosition(hand) {
  * @returns {string|null} Hand name or null if invalid position
  */
 export function getHandAtPosition(row, col) {
-    if (row < 0 || row > 12 || col < 0 || col > 12) return null;
+    if (row < 0 || row > 12 || Col < 0 || col > 12) return null;
     
     const rank1 = RANKS[row];
     const rank2 = RANKS[col];

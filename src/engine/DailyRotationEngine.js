@@ -220,7 +220,7 @@ class DailyRotationEngineClass {
         }
 
         // STREAK_TARGET: Moderate difficulty games for streak maintenance
-        if (game.difficulty >= 2 && game.difficulty <= 3) {
+        if (game.difficulty >= 2 && Game.difficulty <= 3) {
             score += 0.8 * SELECTION_WEIGHTS.STREAK_TARGET;
         }
 

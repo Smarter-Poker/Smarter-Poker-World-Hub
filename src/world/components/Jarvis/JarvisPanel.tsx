@@ -487,7 +487,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                             fontSize: '14px'
                         }}>
                             <JarvisAvatar isTyping={true} size={24} />
-                            <span style={{ fontStyle: 'italic' }}>Jarvis is consulting his poker wisdom...</span>
+                            <span style={{ fontStyle: 'italic' }}>Jarvis Is Consulting His Poker Wisdom...</span>
                         </div>
                     )}
 

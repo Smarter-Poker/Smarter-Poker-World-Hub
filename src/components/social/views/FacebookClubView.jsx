@@ -558,7 +558,7 @@ export const FacebookClubView = ({ onNavigate }) => {
                 <div className="club-sidebar">
                     <div className="sidebar-card">
                         <h3>About</h3>
-                        <p>Official community for Las Vegas $5/$10 NLH players. Share hands, discuss strategy, and organize home games.</p>
+                        <p>Official Community For Las Vegas $5/$10 NLH Players. Share Hands, Discuss Strategy, And Organize Home Games.</p>
                         <div className="security-check">
                             <span>🔒</span> Private · Only members can see who's in the group and what they post.
                         </div>

@@ -232,7 +232,7 @@ export function generateLevelsInBackground(startLevel, endLevel, onProgress, onC
     let currentLevel = startLevel;
 
     function generateNext(deadline) {
-        while ((deadline.timeRemaining() > 0 || deadline.didTimeout) && currentLevel <= endLevel) {
+        while ((deadline.timeRemaining() > 0 || Deadline.didTimeout) && currentLevel <= endLevel) {
             const levelData = generateLevel(currentLevel);
             levels.push(levelData);
 

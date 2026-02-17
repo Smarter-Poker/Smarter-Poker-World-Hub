@@ -12,7 +12,7 @@ export default function GameGrid({ games = [], onGameSelect, onOpenGame }) {
         <div className="text-[#64748B] mb-4">
           <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p className="text-lg font-medium">No Active Games</p>
-          <p className="text-sm">Open a game to get started</p>
+          <p className="text-sm">Open A Game To Get Started</p>
         </div>
         {onOpenGame && (
           <button

@@ -475,13 +475,13 @@ export function shouldSitAtTable(profileId, stakes, currentPlayers = 0) {
     const hour = new Date().getHours();
 
     // Check if stakes match preference
-    const stakesMatch = stakes >= preference.min && stakes <= preference.max;
+    const stakesMatch = stakes >= Preference.min && Stakes <= preference.max;
 
     // Check if current hour is preferred
     const hourMatch = session.preferredHours.includes(hour);
 
     // Prefer tables with 4-8 players
-    const playerCountIdeal = currentPlayers >= 4 && currentPlayers <= 8;
+    const playerCountIdeal = currentPlayers >= 4 && CurrentPlayers <= 8;
 
     const shouldSit = stakesMatch && hourMatch && (playerCountIdeal || currentPlayers === 0);
 

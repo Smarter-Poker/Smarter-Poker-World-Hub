@@ -63,7 +63,7 @@ export default function PvPLobby({
                 <div className="lobby-header">
                     <Swords size={48} className="pvp-icon" />
                     <h1>1v1 BATTLE</h1>
-                    <p>Challenge another player. Winner takes all!</p>
+                    <p>Challenge Another Player. Winner Takes All!</p>
                 </div>
 
                 {!searching && !matchFound && (
@@ -177,7 +177,7 @@ export default function PvPLobby({
                             </div>
                         </div>
 
-                        <p className="starting-soon">Battle starting in 3...</p>
+                        <p className="starting-soon">Battle Starting In 3...</p>
                     </div>
                 )}
             </MetalFrame>

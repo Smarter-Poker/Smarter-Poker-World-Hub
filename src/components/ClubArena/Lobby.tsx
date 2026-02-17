@@ -66,39 +66,39 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                     <div style={popupStyles.policySection}>
                         <h3 style={popupStyles.sectionTitle}>📜 Important Legal Notice</h3>
                         <ul style={popupStyles.policyList}>
-                            <li>Smarter.Poker Provides <strong>educational software tools only</strong></li>
-                            <li>Club Arena operates exclusively with <strong>play money chips</strong></li>
-                            <li>We do not facilitate, endorse, or participate in any form of gambling</li>
-                            <li>External arrangements between users are <strong>Strictly Prohibited</strong></li>
-                            <li>Violation of these terms will result in immediate account termination</li>
+                            <li>Smarter.Poker Provides <strong>Educational Software Tools Only</strong></li>
+                            <li>Club Arena Operates Exclusively With <strong>Play Money Chips</strong></li>
+                            <li>We Do Not Facilitate, Endorse, Or Participate In Any Form Of Gambling</li>
+                            <li>External Arrangements Between Users Are <strong>Strictly Prohibited</strong></li>
+                            <li>Violation Of These Terms Will Result In Immediate Account Termination</li>
                         </ul>
                     </div>
 
                     <div style={popupStyles.policySection}>
                         <h3 style={popupStyles.sectionTitle}>🛡️ User Responsibilities</h3>
                         <ul style={popupStyles.policyList}>
-                            <li>You agree to use Club Arena <strong>for entertainment only</strong></li>
-                            <li>You will not use the platform to facilitate real-money transactions</li>
-                            <li>You understand play money has <strong>no cash value</strong></li>
-                            <li>You accept full responsibility for your use of the platform</li>
-                            <li>You indemnify Smarter.Poker from any liability arising from your actions</li>
+                            <li>You Agree To Use Club Arena <strong>For Entertainment Only</strong></li>
+                            <li>You Will Not Use The Platform To Facilitate Real-money Transactions</li>
+                            <li>You Understand Play Money Has <strong>No Cash Value</strong></li>
+                            <li>You Accept Full Responsibility For Your Use Of The Platform</li>
+                            <li>You Indemnify Smarter.Poker From Any Liability Arising From Your Actions</li>
                         </ul>
                     </div>
 
                     <div style={popupStyles.policySection}>
                         <h3 style={popupStyles.sectionTitle}>🚫 Prohibited Activities</h3>
                         <ul style={popupStyles.policyList}>
-                            <li>Discussing or arranging real-money settlements</li>
-                            <li>Sharing payment app information (Venmo, CashApp, Zelle, etc.)</li>
-                            <li>Converting play money to real currency</li>
-                            <li>Using the platform for any form of gambling</li>
-                            <li>Advertising external gambling services</li>
+                            <li>Discussing Or Arranging Real-money Settlements</li>
+                            <li>Sharing Payment App Information (Venmo, CashApp, Zelle, Etc.)</li>
+                            <li>Converting Play Money To Real Currency</li>
+                            <li>Using The Platform For Any Form Of Gambling</li>
+                            <li>Advertising External Gambling Services</li>
                         </ul>
                     </div>
 
                     <div style={popupStyles.scrollHint}>
                         {!scrolledToBottom && (
-                            <span>↓ Scroll to continue reading ↓</span>
+                            <span>↓ Scroll To Continue Reading ↓</span>
                         )}
                         {scrolledToBottom && (
                             <span style={{ color: '#00ff66' }}>✓ You Have Read The Disclaimer</span>
@@ -120,7 +120,7 @@ const DisclaimerPopup: React.FC<DisclaimerPopupProps> = ({ onAccept, isVisible }
                             <a href="/terms" target="_blank" style={popupStyles.link}>Terms Of Service</a>,{' '}
                             <a href="/terms#privacy" target="_blank" style={popupStyles.link}>Privacy Policy</a>, and{' '}
                             <a href="/legal/official-rules" target="_blank" style={popupStyles.link}>Official Rules</a>.
-                            I understand that Club Arena is a <strong>play money platform only</strong>.
+                            I understand that Club Arena is a <strong>Play Money Platform Only</strong>.
                         </span>
                     </label>
 
@@ -201,7 +201,7 @@ export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterC
                 <div style={lobbyStyles.lobbyContent}>
                     <header style={lobbyStyles.header}>
                         <h1 style={lobbyStyles.title}>🏛️ Club Arena</h1>
-                        <p style={lobbyStyles.subtitle}>Play Money Home Games — Train with Friends</p>
+                        <p style={lobbyStyles.subtitle}>Play Money Home Games — Train With Friends</p>
 
                         {/* Play Money Badge */}
                         <div style={lobbyStyles.playMoneyBadge}>

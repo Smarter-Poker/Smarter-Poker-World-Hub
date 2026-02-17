@@ -125,8 +125,8 @@ export default function ResultsMatrix() {
                     ) : (
                         <div className="empty-state">
                             <div className="empty-icon">🎯</div>
-                            <p>No results found</p>
-                            <span>Try adjusting your search parameters</span>
+                            <p>No Results Found</p>
+                            <span>Try Adjusting Your Search Parameters</span>
                         </div>
                     )}
                 </div>
@@ -158,7 +158,7 @@ export default function ResultsMatrix() {
                     ) : (
                         <div className="empty-state">
                             <div className="empty-icon">🎯</div>
-                            <p>No results found</p>
+                            <p>No Results Found</p>
                         </div>
                     )}
                 </div>

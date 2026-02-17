@@ -301,7 +301,7 @@ export default function BankrollRulesCard({ userId }) {
   return (
     <div style={styles.container}>
       <h3 style={styles.title}>Bankroll Rules</h3>
-      <p style={styles.subtitle}>Toggle rules on or off. Tap the value to customize.</p>
+      <p style={styles.subtitle}>Toggle Rules On Or Off. Tap The Value To Customize.</p>
       <div style={styles.ruleList}>
         {PREMADE_RULES.map((premade) => {
           const existing = rules[premade.rule_type];

@@ -50,7 +50,7 @@ export default function VarianceCalculator({ entries = [] }) {
     if (!stats) {
         return (
             <div style={styles.empty}>
-                <p style={{ margin: 0, fontSize: 12 }}>Need 2+ sessions for variance analysis</p>
+                <p style={{ margin: 0, fontSize: 12 }}>Need 2+ Sessions For Variance Analysis</p>
             </div>
         );
     }

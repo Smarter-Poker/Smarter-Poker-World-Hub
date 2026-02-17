@@ -206,7 +206,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-6">
           <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md mx-auto rounded-lg" />
-          <p className="text-[#B0B3B8] mt-4">Set Up Your Poker Room In Minutes - 14-day Free Trial</p>
+          <p className="text-[#B0B3B8] mt-4">Set Up Your Poker Room In Minutes - 14-Day Free Trial</p>
         </div>
 
         {/* Progress Steps */}
@@ -270,7 +270,7 @@ export default function RegisterPage() {
 
               {/* Promo Code */}
               <div className="border-t border-[#3A3B3C] pt-6 mt-6">
-                <label className="block text-sm text-[#B0B3B8] mb-1.5">Promo Code (optional)</label>
+                <label className="block text-sm text-[#B0B3B8] mb-1.5">Promo Code (Optional)</label>
                 <div className="flex gap-3">
                   <div className="relative flex-1">
                     <input
@@ -320,7 +320,7 @@ export default function RegisterPage() {
                   </div>
                 ))}
               </div>
-              <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-day Free Trial</span> - No Credit Card Required</div>
+              <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-Day Free Trial</span> - No Credit Card Required</div>
               <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <a href="/legal/terms" className="text-[#1877F2]">Terms</a> And <a href="/legal/privacy" className="text-[#1877F2]">Privacy Policy</a></label></div>
             </div>
           )}
@@ -353,7 +353,7 @@ export default function RegisterPage() {
         {/* Already have account link */}
         <div className="text-center mt-6">
           <Link href="/commander/login" className="text-[#B0B3B8] hover:text-[#E4E6EB]">
-            Already have a Club Commander account? <span className="text-[#1877F2]">Sign In</span>
+            Already Have A Club Commander Account? <span className="text-[#1877F2]">Sign In</span>
           </Link>
         </div>
 

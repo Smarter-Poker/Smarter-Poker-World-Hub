@@ -39,7 +39,7 @@ export default function CompTransactionList({
     return (
       <div className="cmd-panel p-8 text-center">
         <Clock size={32} className="mx-auto text-[#4A5E78] mb-2" />
-        <p className="text-[#64748B]">No transactions yet</p>
+        <p className="text-[#64748B]">No Transactions Yet</p>
       </div>
     );
   }

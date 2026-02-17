@@ -476,7 +476,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     }
 
     if (!state || !currentScenario) {
-        return <div style={{ color: '#fff', padding: '20px' }}>Loading scenario...</div>;
+        return <div style={{ color: '#fff', padding: '20px' }}>Loading Scenario...</div>;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -909,8 +909,8 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                                             <div style={{ color: '#FFD700', marginBottom: '4px' }}>
                                                 Alternative Lines:
                                             </div>
-                                            <div>• CALL is 2nd best (+0.3 EV)</div>
-                                            <div>• FOLD is break-even (-0.1 EV)</div>
+                                            <div>• CALL Is 2nd Best (+0.3 EV)</div>
+                                            <div>• FOLD Is Break-even (-0.1 EV)</div>
                                         </div>
                                     </div>
                                 </motion.div>

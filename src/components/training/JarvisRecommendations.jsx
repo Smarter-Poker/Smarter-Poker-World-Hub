@@ -39,7 +39,7 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
             <div style={styles.container}>
                 <div style={styles.loadingContainer}>
                     <span style={styles.jarvisIcon}>🧠</span>
-                    <span style={styles.loadingText}>Jarvis is analyzing your game...</span>
+                    <span style={styles.loadingText}>Jarvis Is Analyzing Your Game...</span>
                 </div>
             </div>
         );

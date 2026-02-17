@@ -59,7 +59,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span style={styles.lockText}>Sign in to log sessions</span>
+                    <span style={styles.lockText}>Sign In To Log Sessions</span>
                 </div>
             </div>
         );

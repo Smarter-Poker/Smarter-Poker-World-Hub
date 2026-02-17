@@ -217,7 +217,7 @@ export default function TrainingArena({
         return (
             <div style={styles.loadingContainer}>
                 <div style={styles.loadingSpinner} />
-                <p style={styles.loadingText}>Preparing training session...</p>
+                <p style={styles.loadingText}>Preparing Training Session...</p>
             </div>
         );
     }

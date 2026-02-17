@@ -72,7 +72,7 @@ const SUPERSTITIONS = {
         name: 'Never posts on Fridays'
     },
     no_session_tweets: {
-        check: (hour) => hour >= 18 && hour <= 23,
+        check: (hour) => hour >= 18 && Hour <= 23,
         name: 'Quiet during peak session hours'
     },
     lucky_hours: {
@@ -81,7 +81,7 @@ const SUPERSTITIONS = {
         invert: true // Posts MORE at these times
     },
     morning_only: {
-        check: (hour) => hour >= 6 && hour <= 12,
+        check: (hour) => hour >= 6 && Hour <= 12,
         name: 'Morning poster only',
         invert: true
     }
@@ -232,9 +232,9 @@ export function isHorseSleeping(profileId, hour = null) {
 
     // Handle overnight sleep (e.g., 22-6)
     if (sleepStart > sleepEnd) {
-        return hour >= sleepStart || hour < sleepEnd;
+        return hour >= sleepStart || Hour < sleepEnd;
     }
-    return hour >= sleepStart && hour < sleepEnd;
+    return hour >= sleepStart && Hour < sleepEnd;
 }
 
 /**
@@ -468,7 +468,7 @@ export function checkFollowerMilestone(followerCount) {
 
     for (const milestone of milestones) {
         // Within 5 of milestone (recently hit it)
-        if (followerCount >= milestone && followerCount < milestone + 5) {
+        if (followerCount >= Milestone && FollowerCount < milestone + 5) {
             return {
                 milestone,
                 template: milestone >= 1000

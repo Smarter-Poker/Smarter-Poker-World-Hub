@@ -103,7 +103,7 @@ export default function TournamentClock({
   if (!clockData) {
     return (
       <div className="bg-[#1F2937] rounded-lg p-8 text-center">
-        <p className="text-white">Loading tournament clock...</p>
+        <p className="text-white">Loading Tournament Clock...</p>
       </div>
     );
   }

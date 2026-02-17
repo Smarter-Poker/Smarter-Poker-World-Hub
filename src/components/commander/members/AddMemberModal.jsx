@@ -254,8 +254,8 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
                                 ) : (
                                     <button onClick={startCamera} className="w-full py-6 border-2 border-dashed border-[#3A3B3C] rounded-lg flex flex-col items-center gap-2 hover:border-[#1877F2] transition-colors">
                                         <Camera className="w-8 h-8 text-[#B0B3B8]" />
-                                        <span className="text-sm text-[#B0B3B8]">Scan ID or Take Photo</span>
-                                        <span className="text-xs text-[#8A8D91]">Optional - position ID in front of camera</span>
+                                        <span className="text-sm text-[#B0B3B8]">Scan ID Or Take Photo</span>
+                                        <span className="text-xs text-[#8A8D91]">Optional - Position ID In Front Of Camera</span>
                                     </button>
                                 )}
                             </div>

@@ -69,14 +69,14 @@ function emailWrapper(title, bodyContent) {
         <div class="card">
             <div class="header">
                 <h1>Smarter.Poker</h1>
-                <p>Your poker companion</p>
+                <p>Your Poker Companion</p>
             </div>
             <div class="body">
                 ${bodyContent}
             </div>
             <div class="footer">
-                <p>Smarter.Poker - Play smarter, win bigger</p>
-                <p><a href="https://smarter.poker/hub/settings">Manage email preferences</a></p>
+                <p>Smarter.Poker - Play Smarter, Win Bigger</p>
+                <p><a href="https://smarter.poker/hub/settings">Manage Email Preferences</a></p>
             </div>
         </div>
     </div>
@@ -124,14 +124,14 @@ export async function sendWelcomeEmail(email, name) {
         subject: 'Welcome to Smarter.Poker!',
         html: emailWrapper('Welcome', `
             <h2>Welcome to Smarter.Poker, ${name || 'Player'}!</h2>
-            <p>Your account has been created and you're ready to start playing smarter.</p>
-            <p>Here's what you can do:</p>
+            <p>Your Account Has Been Created And You're Ready To Start Playing Smarter.</p>
+            <p>Here's What You Can Do:</p>
             <ul style="padding-left: 20px; color: #050505; font-size: 14px; line-height: 2;">
-                <li>Find poker games near you</li>
-                <li>Join the waitlist at your favorite venues</li>
-                <li>Track your sessions and progress</li>
-                <li>Connect with other players</li>
-                <li>Create or join home games</li>
+                <li>Find Poker Games Near You</li>
+                <li>Join The Waitlist At Your Favorite Venues</li>
+                <li>Track Your Sessions And Progress</li>
+                <li>Connect With Other Players</li>
+                <li>Create Or Join Home Games</li>
             </ul>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="https://smarter.poker/hub" class="btn">Get Started</a>
@@ -146,11 +146,11 @@ export async function sendPasswordResetEmail(email, resetLink) {
         subject: 'Reset your Smarter.Poker password',
         html: emailWrapper('Password Reset', `
             <h2>Password Reset Request</h2>
-            <p>We received a request to reset your password. Click the button below to create a new password.</p>
+            <p>We Received A Request To Reset Your Password. Click The Button Below To Create A New Password.</p>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="${resetLink}" class="btn">Reset Password</a>
             </div>
-            <p class="muted">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+            <p class="muted">This Link Expires In 1 Hour. If You Didn't Request This, You Can Safely Ignore This Email.</p>
         `),
     });
 }
@@ -166,9 +166,9 @@ export async function sendSeatReadyEmail(email, name, venueName, game) {
         html: emailWrapper('Seat Ready', `
             <h2>Your Seat Is Ready!</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p>Great news - your seat at <strong>${venueName}</strong> For <strong>${game}</strong> Is Ready!</p>
+            <p>Great News - Your Seat At <strong>${venueName}</strong> For <strong>${game}</strong> Is Ready!</p>
             <div class="highlight">
-                <p>Please check in within 5 minutes or you may lose your spot.</p>
+                <p>Please Check In Within 5 Minutes Or You May Lose Your Spot.</p>
             </div>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="https://smarter.poker/hub/commander/check-in" class="btn">Check In Now</a>
@@ -184,11 +184,11 @@ export async function sendWaitlistUpdateEmail(email, name, venueName, position, 
         html: emailWrapper('Waitlist Update', `
             <h2>Waitlist Position Update</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p>Your position at <strong>${venueName}</strong> has been updated.</p>
+            <p>Your Position At <strong>${venueName}</strong> Has Been Updated.</p>
             <div class="highlight">
                 <p>Position: #${position} | Estimated wait: ${estimatedWait} minutes</p>
             </div>
-            <p class="muted">We'll notify you when your seat is ready.</p>
+            <p class="muted">We'll Notify You When Your Seat Is Ready.</p>
         `),
     });
 }
@@ -204,7 +204,7 @@ export async function sendTournamentConfirmationEmail(email, name, tournamentNam
         html: emailWrapper('Tournament Registration', `
             <h2>You're Registered!</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p>Your registration for <strong>${tournamentName}</strong> is confirmed.</p>
+            <p>Your Registration For <strong>${tournamentName}</strong> Is Confirmed.</p>
             <div style="margin: 16px 0;">
                 <div class="info-row"><span class="info-label">Tournament</span><span class="info-value">${tournamentName}</span></div>
                 <div class="info-row"><span class="info-label">Venue</span><span class="info-value">${venueName}</span></div>
@@ -223,8 +223,8 @@ export async function sendTournamentReminderEmail(email, name, tournamentName, v
         html: emailWrapper('Tournament Reminder', `
             <h2>Tournament Starting Soon</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${tournamentName}</strong> At <strong>${venueName}</strong> starts in <strong>${minutesUntil} minutes</strong>.</p>
-            <p>Please arrive on time for registration.</p>
+            <p><strong>${tournamentName}</strong> At <strong>${venueName}</strong> Starts In <strong>${minutesUntil} minutes</strong>.</p>
+            <p>Please Arrive On Time For Registration.</p>
         `),
     });
 }
@@ -240,7 +240,7 @@ export async function sendHomeGameInviteEmail(email, name, hostName, gameName, d
         html: emailWrapper('Game Invite', `
             <h2>You're Invited!</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${hostName}</strong> invited you to <strong>${gameName}</strong>.</p>
+            <p><strong>${hostName}</strong> Invited You To <strong>${gameName}</strong>.</p>
             <div style="margin: 16px 0;">
                 <div class="info-row"><span class="info-label">Game</span><span class="info-value">${gameName}</span></div>
                 <div class="info-row"><span class="info-label">Host</span><span class="info-value">${hostName}</span></div>
@@ -261,9 +261,9 @@ export async function sendHomeGameReminderEmail(email, name, gameName, date, hos
         html: emailWrapper('Game Reminder', `
             <h2>Game Reminder</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${gameName}</strong> Hosted By <strong>${hostName}</strong> is on <strong>${date}</strong>.</p>
-            <p>The host will share the exact location closer to game time.</p>
-            <p class="muted">Have fun at the tables!</p>
+            <p><strong>${gameName}</strong> Hosted By <strong>${hostName}</strong> Is On <strong>${date}</strong>.</p>
+            <p>The Host Will Share The Exact Location Closer To Game Time.</p>
+            <p class="muted">Have Fun At The Tables!</p>
         `),
     });
 }
@@ -279,7 +279,7 @@ export async function sendNewFollowerEmail(email, name, followerName) {
         html: emailWrapper('New Follower', `
             <h2>New Follower</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p><strong>${followerName}</strong> started following you on Smarter.Poker.</p>
+            <p><strong>${followerName}</strong> Started Following You On Smarter.Poker.</p>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="https://smarter.poker/hub/friends" class="btn">View Profile</a>
             </div>
@@ -293,7 +293,7 @@ export async function sendPageFollowerEmail(email, pageName, followerName) {
         subject: `${followerName} followed ${pageName}`,
         html: emailWrapper('Page Update', `
             <h2>New Page Follower</h2>
-            <p><strong>${followerName}</strong> started following <strong>${pageName}</strong>.</p>
+            <p><strong>${followerName}</strong> Started Following <strong>${pageName}</strong>.</p>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="https://smarter.poker/hub/social-pages" class="btn">View Page</a>
             </div>
@@ -311,7 +311,7 @@ export async function sendPromotionWinnerEmail(email, name, venueName, promotion
         subject: `You won ${promotionName} at ${venueName}!`,
         html: emailWrapper('Winner', `
             <h2>Congratulations, ${name || 'Player'}!</h2>
-            <p>You won <strong>${promotionName}</strong> At <strong>${venueName}</strong>!</p>
+            <p>You Won <strong>${promotionName}</strong> At <strong>${venueName}</strong>!</p>
             <div class="highlight">
                 <p>Prize: $${prizeAmount}</p>
             </div>
@@ -327,7 +327,7 @@ export async function sendCompBalanceEmail(email, name, venueName, compAmount, n
         html: emailWrapper('Comps Earned', `
             <h2>Comps Earned</h2>
             <p>Hi ${name || 'Player'},</p>
-            <p>You earned <strong>$${compAmount.toFixed(2)}</strong> in comps at <strong>${venueName}</strong>.</p>
+            <p>You Earned <strong>$${compAmount.toFixed(2)}</strong> In Comps At <strong>${venueName}</strong>.</p>
             <div class="highlight">
                 <p>New balance: $${newBalance.toFixed(2)}</p>
             </div>
@@ -345,15 +345,15 @@ export async function sendVenueOnboardingEmail(email, venueName, adminName) {
         to: email,
         subject: `Welcome to Club Commander - ${venueName}`,
         html: emailWrapper('Venue Onboarding', `
-            <h2>Welcome to Club Commander!</h2>
+            <h2>Welcome To Club Commander!</h2>
             <p>Hi ${adminName || 'Admin'},</p>
-            <p><strong>${venueName}</strong> has been set up on Club Commander. Here's how to get started:</p>
+            <p><strong>${venueName}</strong> Has Been Set Up On Club Commander. Here's How To Get Started:</p>
             <ol style="padding-left: 20px; color: #050505; font-size: 14px; line-height: 2;">
-                <li>Set up your tables and games</li>
-                <li>Configure your waitlist</li>
+                <li>Set Up Your Tables And Games</li>
+                <li>Configure Your Waitlist</li>
                 <li>Add Staff Members</li>
-                <li>Create your first tournament</li>
-                <li>Set up promotions</li>
+                <li>Create Your First Tournament</li>
+                <li>Set Up Promotions</li>
             </ol>
             <div style="text-align: center; margin: 24px 0;">
                 <a href="https://smarter.poker/commander/dashboard" class="btn">Go To Dashboard</a>

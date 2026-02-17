@@ -956,7 +956,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         >
                             🎰
                         </motion.div>
-                        <p>Dealing hand...</p>
+                        <p>Dealing Hand...</p>
                     </div>
                 )}
 

@@ -463,7 +463,7 @@ export default function MemoryGameClient({
                 <div className="text-center">
                     <div className="text-6xl mb-6">🎯</div>
                     <h1 className="text-4xl font-black text-white mb-4">Loading Memory Game...</h1>
-                    <div className="animate-pulse text-purple-400">Preparing your training session</div>
+                    <div className="animate-pulse text-purple-400">Preparing Your Training Session</div>
                 </div>
             </div>
         );

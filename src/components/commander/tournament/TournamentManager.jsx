@@ -87,7 +87,7 @@ export default function TournamentManager({
     return (
       <div className="cmd-panel p-8 text-center">
         <Trophy size={48} className="mx-auto text-[#4A5E78] mb-3" />
-        <p className="text-[#64748B]">No tournament selected</p>
+        <p className="text-[#64748B]">No Tournament Selected</p>
       </div>
     );
   }
@@ -418,7 +418,7 @@ export default function TournamentManager({
           ) : (
             <div className="text-center py-6">
               <Award size={36} className="mx-auto text-[#4A5E78] mb-2" />
-              <p className="text-[#64748B]">No payout structure defined</p>
+              <p className="text-[#64748B]">No Payout Structure Defined</p>
             </div>
           )}
         </div>

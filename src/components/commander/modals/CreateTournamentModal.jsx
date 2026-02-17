@@ -273,7 +273,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Start From Scratch</p>
-                <p className="text-xs text-[#64748B]">Build a custom tournament with default blinds</p>
+                <p className="text-xs text-[#64748B]">Build A Custom Tournament With Default Blinds</p>
               </div>
             </button>
 
@@ -322,7 +322,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
             {selectedTemplate && (
               <div className="flex items-center gap-2 text-xs text-[#64748B]">
                 <Check className="w-3.5 h-3.5 text-[#10B981]" />
-                <span>Based on: <strong className="text-white">{selectedTemplate.name}</strong></span>
+                <span>Based On: <strong className="text-white">{selectedTemplate.name}</strong></span>
               </div>
             )}
 

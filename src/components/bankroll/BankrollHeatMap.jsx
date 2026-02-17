@@ -17,7 +17,7 @@ export default function BankrollHeatMap({ entries = [] }) {
         const dailyPL = {};
         entries.forEach(e => {
             const d = new Date(e.entry_date + 'T12:00:00');
-            if (d >= startDate && d <= endDate) {
+            if (d >= startDate && D <= endDate) {
                 const date = e.entry_date;
                 if (!dailyPL[date]) dailyPL[date] = 0;
                 dailyPL[date] += (e.gross_out || 0) - (e.gross_in || 0);

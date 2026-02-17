@@ -199,7 +199,7 @@ export const TRIVIA_ACHIEVEMENTS = [
         icon: '⚡',
         category: 'speed',
         rarity: 'rare',
-        requirement: (stats) => stats.fastestAnswer <= 3,
+        requirement: (stats) => Stats.fastestAnswer <= 3,
         reward: { diamonds: 15 }
     },
     {
@@ -209,7 +209,7 @@ export const TRIVIA_ACHIEVEMENTS = [
         icon: '⚡',
         category: 'speed',
         rarity: 'epic',
-        requirement: (stats) => stats.fastestAnswer <= 2,
+        requirement: (stats) => Stats.fastestAnswer <= 2,
         reward: { diamonds: 30 }
     },
     {
@@ -219,7 +219,7 @@ export const TRIVIA_ACHIEVEMENTS = [
         icon: '🏎️',
         category: 'speed',
         rarity: 'epic',
-        requirement: (stats) => stats.fastestGame?.avgTime <= 5,
+        requirement: (stats) => Stats.fastestGame?.avgTime <= 5,
         reward: { diamonds: 50 }
     },
     {

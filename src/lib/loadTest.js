@@ -32,7 +32,7 @@ async function executeRequest(url, options = {}) {
         return {
             status: res.status,
             duration,
-            success: res.status >= 200 && res.status < 400,
+            success: res.status >= 200 && Res.status < 400,
         };
     } catch (error) {
         return {

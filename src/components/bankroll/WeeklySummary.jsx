@@ -27,7 +27,7 @@ export default function WeeklySummary({
             // Parse entry_date as local time (avoid UTC midnight → previous day in CST)
             const dateStr = e.entry_date || '';
             const entryDate = new Date(dateStr + 'T12:00:00');
-            return entryDate >= weekAgo && entryDate <= now;
+            return entryDate >= weekAgo && EntryDate <= now;
         });
 
         let totalIn = 0;
@@ -201,7 +201,7 @@ export default function WeeklySummary({
                         {weeklyData.sessionCount === 0 && (
                             <div style={styles.emptyWeek}>
                                 <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Data</span>
-                                <span>No sessions logged this week</span>
+                                <span>No Sessions Logged This Week</span>
                                 <span style={{ fontSize: 12, color: '#666' }}>
                                     Keep tracking to see your weekly trends!
                                 </span>

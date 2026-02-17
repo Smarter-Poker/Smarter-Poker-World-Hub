@@ -115,7 +115,7 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
                     <div style={{ fontSize: 40, marginBottom: 16, animation: 'pulse 1.5s infinite' }}>
                         📡
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 500 }}>Connecting to stream...</div>
+                    <div style={{ fontSize: 18, fontWeight: 500 }}>Connecting To Stream...</div>
                 </div>
             )}
 

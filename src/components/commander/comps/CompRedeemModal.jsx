@@ -98,7 +98,7 @@ export default function CompRedeemModal({
 
           {/* Amount */}
           <div>
-            <label className="block text-sm text-[#64748B] mb-1">Amount to Redeem</label>
+            <label className="block text-sm text-[#64748B] mb-1">Amount To Redeem</label>
             <div className="relative">
               <DollarSign
                 size={18}
@@ -151,7 +151,7 @@ export default function CompRedeemModal({
           )}
 
           {/* Summary */}
-          {amount && parseFloat(amount) > 0 && parseFloat(amount) <= currentBalance && (
+          {amount && parseFloat(amount) > 0 && ParseFloat(amount) <= currentBalance && (
             <div className="p-3 rounded-lg bg-[#0B1426]">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-[#64748B]">Redeeming</span>

@@ -604,7 +604,7 @@ export const LEVEL_10_SCENARIOS = [
 export const MIXED_SCENARIOS = [
     { id: 'mix-1', title: 'BTN Open vs SB 3bet', hand: 'A5s', context: 'You Are BTN Facing A 3bet From SB', frequencies: { call: 45, raise: 55, fold: 0 } },
     { id: 'mix-2', title: 'BB Defense vs BTN', hand: 'KJo', context: 'You Are BB Facing A 2.5x Open', frequencies: { call: 60, raise: 0, fold: 40 } },
-    { id: 'mix-3', title: 'SB vs BB Limp', hand: 'Q9o', context: 'You are SB, BB checks', frequencies: { raise: 50, fold: 10, call: 40 } }, // Limp strategy mocked
+    { id: 'mix-3', title: 'SB vs BB Limp', hand: 'Q9o', context: 'You Are SB, BB Checks', frequencies: { raise: 50, fold: 10, call: 40 } }, // Limp strategy mocked
     { id: 'mix-4', title: 'UTG vs MP 3bet', hand: 'QQ', context: 'You Are UTG Facing MP 3bet', frequencies: { call: 50, raise: 50, fold: 0 } },
     { id: 'mix-5', title: 'Flop C-Bet', hand: 'Bottom Set', context: 'As PFR On Wet Board', frequencies: { check: 30, bet: 70 } },
     { id: 'mix-6', title: 'River Bluff', hand: 'Missed Draw', context: 'Triple Barrel Spot', frequencies: { check: 25, bet: 75 } },

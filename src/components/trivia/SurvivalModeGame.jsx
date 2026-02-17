@@ -83,7 +83,7 @@ export default function SurvivalModeGame({
     if (!currentQuestion && !isGameOver) {
         return (
             <div style={{ textAlign: 'center', padding: '48px', color: 'white' }}>
-                <p>Loading questions...</p>
+                <p>Loading Questions...</p>
             </div>
         );
     }

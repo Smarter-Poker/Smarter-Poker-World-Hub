@@ -345,7 +345,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             </>
                         ) : (
                             <div style={styles.confirmRow}>
-                                <span style={styles.confirmText}>Finalize this series?</span>
+                                <span style={styles.confirmText}>Finalize This Series?</span>
                                 <button onClick={handleCompleteSeries} style={styles.confirmYes}>Yes, Complete</button>
                                 <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                             </div>
@@ -362,8 +362,8 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                 style={styles.deleteOverlay}
                             >
                                 <div style={styles.deletePopup}>
-                                    <p style={styles.deletePopupText}>Are you sure you want to delete this series?</p>
-                                    <p style={styles.deletePopupSub}>All entries will be unlinked from this series.</p>
+                                    <p style={styles.deletePopupText}>Are You Sure You Want To Delete This Series?</p>
+                                    <p style={styles.deletePopupSub}>All Entries Will Be Unlinked From This Series.</p>
                                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                                         <button onClick={handleDeleteSeries} style={styles.deleteConfirmBtn}>Yes, Delete</button>
                                         <button onClick={() => setConfirmDelete(false)} style={styles.deleteCancelBtn}>Cancel</button>
@@ -386,7 +386,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                     <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Series</span>
                     <div>
                         <div style={styles.createTitle}>Start A New Series</div>
-                        <div style={styles.createSub}>Track multi-day tournament series, WSOP runs, and events</div>
+                        <div style={styles.createSub}>Track Multi-day Tournament Series, WSOP Runs, And Events</div>
                     </div>
                 </motion.button>
             )}
@@ -550,7 +550,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
             <div style={styles.historySection}>
                 <h3 style={styles.historyTitle}>Completed Series</h3>
                 {isLoading ? (
-                    <div style={styles.loadingPlaceholder}>Loading series...</div>
+                    <div style={styles.loadingPlaceholder}>Loading Series...</div>
                 ) : completedSeries.length === 0 ? (
                     <div style={styles.emptyState}>No Completed Series Yet. Start Your First Series Above!</div>
                 ) : (

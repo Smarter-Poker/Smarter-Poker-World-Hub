@@ -158,7 +158,7 @@ export default function HighHandDisplay({
         ) : (
           <div className="bg-[#0B1426] rounded-lg p-8 text-center">
             <Trophy size={48} className="mx-auto text-[#4A5E78] mb-2" />
-            <p className="text-[#64748B]">No qualifying hand yet this period</p>
+            <p className="text-[#64748B]">No Qualifying Hand Yet This Period</p>
             {promotion?.qualifying_hand && (
               <p className="text-xs text-[#4A5E78] mt-1">
                 Minimum: {promotion.qualifying_hand}
@@ -221,7 +221,7 @@ export default function HighHandDisplay({
                       onChange={(e) => setSubmitData(prev => ({ ...prev, hand_rank: e.target.value }))}
                       className="w-full cmd-input text-sm"
                     >
-                      <option value="">Select rank...</option>
+                      <option value="">Select Rank...</option>
                       {HAND_RANKS.map(rank => (
                         <option key={rank} value={rank}>{rank}</option>
                       ))}

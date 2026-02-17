@@ -128,7 +128,7 @@ export default function SessionHandReview({ userId }) {
                             <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 36, height: 36, borderRadius: '50%' }} />
                         </div>
                         <p style={styles.emptyTitle}>NO ANALYZED HANDS</p>
-                        <p style={styles.emptyHintText}>Complete hand analysis in Training Hub to see hands here</p>
+                        <p style={styles.emptyHintText}>Complete Hand Analysis In Training Hub To See Hands Here</p>
                     </div>
                 ) : (
                     filteredHands.map(hand => (
@@ -189,7 +189,7 @@ export default function SessionHandReview({ userId }) {
 
                         <div style={styles.sessionList}>
                             {recentSessions.length === 0 ? (
-                                <div style={styles.noSessions}>No recent sessions</div>
+                                <div style={styles.noSessions}>No Recent Sessions</div>
                             ) : (
                                 recentSessions.map(session => (
                                     <div

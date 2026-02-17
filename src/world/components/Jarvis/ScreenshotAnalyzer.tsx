@@ -178,8 +178,8 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
                 <strong style={{ color: '#FFD700' }}>💡 Tips:</strong>
                 <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
                     <li>Works With PokerStars, GGPoker, ACR, etc.</li>
-                    <li>Include visible hole cards and board</li>
-                    <li>Stack sizes and pot size help accuracy</li>
+                    <li>Include Visible Hole Cards And Board</li>
+                    <li>Stack Sizes And Pot Size Help Accuracy</li>
                 </ul>
             </div>
 

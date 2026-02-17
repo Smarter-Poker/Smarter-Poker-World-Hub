@@ -627,7 +627,7 @@ export default function StrategyTrivia({ mode }) {
                                 {!preloadedQuestions && (
                                     <div className="lobby-loading-overlay">
                                         <div className="lobby-spinner" />
-                                        <span>Loading questions...</span>
+                                        <span>Loading Questions...</span>
                                     </div>
                                 )}
                             </div>
@@ -644,8 +644,8 @@ export default function StrategyTrivia({ mode }) {
                                         <span>20</span>
                                     </div>
                                     <div className="info-row">
-                                        <span>Time per Question</span>
-                                        <span>60 seconds</span>
+                                        <span>Time Per Question</span>
+                                        <span>60 Seconds</span>
                                     </div>
                                     <div className="info-row">
                                         <span>Perfect Score Bonus</span>

@@ -65,8 +65,8 @@ export default function PlayerRating({
     return (
       <div className="cmd-panel p-6 text-center">
         <Star size={36} className="mx-auto text-[#F59E0B] mb-2" fill="#F59E0B" />
-        <h3 className="text-lg font-medium text-white">Thanks for your review</h3>
-        <p className="text-sm text-[#64748B] mt-1">Your feedback helps the community</p>
+        <h3 className="text-lg font-medium text-white">Thanks For Your Review</h3>
+        <p className="text-sm text-[#64748B] mt-1">Your Feedback Helps The Community</p>
       </div>
     );
   }

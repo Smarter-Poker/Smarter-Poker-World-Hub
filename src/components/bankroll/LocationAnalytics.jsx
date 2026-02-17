@@ -60,7 +60,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
     if (isLoading) {
         return (
             <div style={styles.container}>
-                <div style={styles.loading}>Loading venue stats...</div>
+                <div style={styles.loading}>Loading Venue Stats...</div>
             </div>
         );
     }
@@ -72,7 +72,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
                     <h4 style={styles.title}>Venue Analytics</h4>
                 </div>
                 <div style={styles.emptyState}>
-                    <span style={{ opacity: 0.5 }}>No venue data yet</span>
+                    <span style={{ opacity: 0.5 }}>No Venue Data Yet</span>
                     <span style={{ fontSize: 11, color: '#666' }}>
                         Add locations to your sessions to see analytics
                     </span>

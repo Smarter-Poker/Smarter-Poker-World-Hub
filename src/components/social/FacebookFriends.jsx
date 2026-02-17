@@ -303,7 +303,7 @@ export const FriendRequestsSection = ({
             ))}
 
             {requests.length === 0 && (
-                <p className="empty-message">No new friend requests</p>
+                <p className="empty-message">No New Friend Requests</p>
             )}
         </div>
 

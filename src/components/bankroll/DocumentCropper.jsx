@@ -208,7 +208,7 @@ function perspectiveWarp(srcCanvas, corners, outputWidth, outputHeight) {
             const src = applyHomography(h, dx, dy);
             const sx = Math.round(src.x), sy = Math.round(src.y);
 
-            if (sx >= 0 && sx < sw && sy >= 0 && sy < sh) {
+            if (sx >= 0 && Sx < sw && sy >= 0 && Sy < sh) {
                 const si = (sy * sw + sx) * 4;
                 const di = (dy * outputWidth + dx) * 4;
                 dd[di] = sd[si];
@@ -474,7 +474,7 @@ export default function DocumentCropper({ imageSrc, onConfirm, onCancel }) {
                 {/* Header */}
                 <div style={styles.header}>
                     <span style={styles.title}>Adjust Corners</span>
-                    <span style={styles.hint}>Drag corners to fit the receipt</span>
+                    <span style={styles.hint}>Drag Corners To Fit The Receipt</span>
                 </div>
 
                 {/* Canvas area */}

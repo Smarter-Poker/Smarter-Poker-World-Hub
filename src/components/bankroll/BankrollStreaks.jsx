@@ -58,7 +58,7 @@ export default function BankrollStreaks({ userId, streakData, isLoading }) {
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span>Sign in to track streaks</span>
+                    <span>Sign In To Track Streaks</span>
                 </div>
             </div>
         );

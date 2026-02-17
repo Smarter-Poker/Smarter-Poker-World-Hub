@@ -575,12 +575,12 @@ export default function BankrollManagerPage() {
         </div>
       )}
       <SEOHead
-                title="Bankroll Manager — Track Your Poker Profits"
-                description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
-                canonical="/hub/bankroll-manager"
-            >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            </SEOHead>
+        title="Bankroll Manager — Track Your Poker Profits"
+        description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
+        canonical="/hub/bankroll-manager"
+      >
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </SEOHead>
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
@@ -625,23 +625,7 @@ export default function BankrollManagerPage() {
 
             {/* Main Content - Switches based on activeSection */}
             <main className="bankroll-main-content" style={styles.mainContent}>
-              {/* Mobile Navigation — horizontal pill bar, visible only on mobile */}
-              <div className="bankroll-mobile-nav">
-                {SIDEBAR_SECTIONS.map((section) => {
-                  const isDashboard = section.id === 'dashboard';
-                  const onSubPage = activeSection !== 'dashboard';
-                  const displayLabel = isDashboard && onSubPage ? '← Back' : section.label;
-                  return (
-                    <button
-                      key={section.id}
-                      className={`bankroll-mobile-nav-item${activeSection === section.id && !section.action ? ' active' : ''}`}
-                      onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
-                    >
-                      {displayLabel}
-                    </button>
-                  );
-                })}
-              </div>
+
               {/* Header */}
               <div className="bankroll-content-header" style={styles.contentHeader}>
                 <h1 className="bankroll-page-title" style={styles.pageTitle}>

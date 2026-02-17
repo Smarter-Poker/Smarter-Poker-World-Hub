@@ -398,7 +398,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                         >
                             🎰
                         </motion.div>
-                        <p>Loading levels...</p>
+                        <p>Loading Levels...</p>
                     </div>
                 ) : (
                     <div style={styles.levelList}>
@@ -417,9 +417,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
             {/* Footer */}
             <footer style={styles.footer}>
-                <span>85% minimum to pass each level</span>
+                <span>85% Minimum To Pass Each Level</span>
                 <span>•</span>
-                <span>20 hands per round</span>
+                <span>20 Hands Per Round</span>
             </footer>
 
             {/* Loading Overlay */}

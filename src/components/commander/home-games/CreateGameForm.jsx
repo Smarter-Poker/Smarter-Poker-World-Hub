@@ -230,7 +230,7 @@ export default function CreateGameForm({
               onChange={(e) => updateField('allow_guests', e.target.checked)}
               className="w-5 h-5 rounded border-[#4A5E78]"
             />
-            <span className="text-sm text-[#94A3B8]">Allow players to bring guests</span>
+            <span className="text-sm text-[#94A3B8]">Allow Players To Bring Guests</span>
           </label>
         </div>
       </div>

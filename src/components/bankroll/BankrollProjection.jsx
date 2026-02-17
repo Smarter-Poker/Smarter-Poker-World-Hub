@@ -84,7 +84,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             </div>
 
                             <div style={styles.formRow}>
-                                <label style={styles.label}>Sessions per Week</label>
+                                <label style={styles.label}>Sessions Per Week</label>
                                 <input
                                     type="number"
                                     min={1}
@@ -183,13 +183,13 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                         <div style={styles.probGrid}>
                             <div style={styles.probBox}>
                                 <span style={styles.probValue}>{projection.projection.winProbability}%</span>
-                                <span style={styles.probLabel}>Chance of Profit</span>
+                                <span style={styles.probLabel}>Chance Of Profit</span>
                             </div>
                             <div style={styles.probBox}>
                                 <span style={{ ...styles.probValue, color: '#ef4444' }}>
                                     {projection.projection.ruinProbability}%
                                 </span>
-                                <span style={styles.probLabel}>Risk of Ruin</span>
+                                <span style={styles.probLabel}>Risk Of Ruin</span>
                             </div>
                             <div style={styles.probBox}>
                                 <span style={styles.probValue}>

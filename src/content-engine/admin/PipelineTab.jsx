@@ -64,7 +64,7 @@ export function PipelineTab() {
     };
 
     if (loading) {
-        return <div className="loading">Loading pipeline data...</div>;
+        return <div className="loading">Loading Pipeline Data...</div>;
     }
 
     return (
@@ -81,7 +81,7 @@ export function PipelineTab() {
                     >
                         <span className="icon">🧪</span>
                         <span className="label">Test Run</span>
-                        <span className="desc">3 posts, no video</span>
+                        <span className="desc">3 Posts, No Video</span>
                     </button>
 
                     <button
@@ -99,7 +99,7 @@ export function PipelineTab() {
                     >
                         <span className="icon">📅</span>
                         <span className="label">Full Daily</span>
-                        <span className="desc">Full daily run</span>
+                        <span className="desc">Full Daily Run</span>
                     </button>
 
                     <button
@@ -108,7 +108,7 @@ export function PipelineTab() {
                     >
                         <span className="icon">📤</span>
                         <span className="label">Publish Due</span>
-                        <span className="desc">Post scheduled content</span>
+                        <span className="desc">Post Scheduled Content</span>
                     </button>
                 </div>
             </div>
@@ -138,7 +138,7 @@ export function PipelineTab() {
             <div className="recent-runs">
                 <h3>📊 Recent Pipeline Runs</h3>
                 {recentRuns.length === 0 ? (
-                    <p className="no-data">No pipeline runs yet</p>
+                    <p className="no-data">No Pipeline Runs Yet</p>
                 ) : (
                     <table className="runs-table">
                         <thead>
@@ -171,7 +171,7 @@ export function PipelineTab() {
             <div className="video-queue">
                 <h3>🎬 Video Generation Queue</h3>
                 {videoQueue.length === 0 ? (
-                    <p className="no-data">No videos in queue</p>
+                    <p className="no-data">No Videos In Queue</p>
                 ) : (
                     <div className="queue-list">
                         {videoQueue.map(item => (

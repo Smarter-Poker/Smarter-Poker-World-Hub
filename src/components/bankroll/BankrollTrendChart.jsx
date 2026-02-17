@@ -364,7 +364,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     const renderHistogram = () => {
         if (histogramData.length === 0) {
-            return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Not enough sessions for a histogram</span></div>;
+            return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Not Enough Sessions For A Histogram</span></div>;
         }
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
@@ -681,7 +681,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                 <div style={S.emptyState}>
                     <span style={{ fontSize: 24, opacity: 0.3 }}></span>
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Data For This Period</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Log sessions to see your trend</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Log Sessions To See Your Trend</span>
                 </div>
             );
         }

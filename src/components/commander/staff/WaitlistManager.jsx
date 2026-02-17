@@ -24,7 +24,7 @@ export default function WaitlistManager({
     return (
       <div className="cmd-panel p-8 text-center">
         <Clock className="w-12 h-12 mx-auto mb-2 text-[#64748B] opacity-50" />
-        <p className="text-[#64748B]">No players on waitlist</p>
+        <p className="text-[#64748B]">No Players On Waitlist</p>
         {onAddWalkIn && (
           <button
             onClick={onAddWalkIn}

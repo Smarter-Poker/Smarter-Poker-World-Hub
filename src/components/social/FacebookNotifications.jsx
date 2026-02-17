@@ -232,7 +232,7 @@ export const NotificationsDropdown = ({
                 {filteredNotifications.length === 0 && (
                     <div className="empty-state">
                         <span className="empty-icon">🔔</span>
-                        <p>No notifications to show</p>
+                        <p>No Notifications To Show</p>
                     </div>
                 )}
             </div>

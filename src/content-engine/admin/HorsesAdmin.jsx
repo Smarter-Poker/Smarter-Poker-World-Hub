@@ -313,7 +313,7 @@ function HorsesDashboard({ user, onLogout }) {
         return (
             <div className="horses-loading">
                 <span className="logo spinning">🐴</span>
-                <p>Loading stable...</p>
+                <p>Loading Stable...</p>
             </div>
         );
     }
@@ -476,7 +476,7 @@ function HorsesDashboard({ user, onLogout }) {
                                 <button onClick={() => triggerGeneration('test')} className="action-btn">
                                     <span className="icon">🧪</span>
                                     <span className="label">Test Run</span>
-                                    <span className="desc">3 posts, no video</span>
+                                    <span className="desc">3 Posts, No Video</span>
                                 </button>
                                 <button onClick={() => triggerGeneration('cycle', { posts: 10, videos: 2 })} className="action-btn">
                                     <span className="icon">🔄</span>
@@ -517,7 +517,7 @@ function HorsesDashboard({ user, onLogout }) {
                         <div className="recent-runs">
                             <h3>📊 Recent Pipeline Runs</h3>
                             {pipelineRuns.length === 0 ? (
-                                <p className="no-data">No pipeline runs yet. Trigger one above!</p>
+                                <p className="no-data">No Pipeline Runs Yet. Trigger One Above!</p>
                             ) : (
                                 <table className="runs-table">
                                     <thead>
@@ -658,7 +658,7 @@ function HorsesDashboard({ user, onLogout }) {
 
                             <div className="setting-card full-width">
                                 <h3>⏰ Peak Hours</h3>
-                                <p className="setting-description">Posts will be scheduled during these hours.</p>
+                                <p className="setting-description">Posts Will Be Scheduled During These Hours.</p>
                                 <div className="hour-grid">
                                     {Array.from({ length: 24 }, (_, i) => (
                                         <button
@@ -859,7 +859,7 @@ export default function HorsesAdmin() {
         return (
             <div className="horses-loading">
                 <span className="logo spinning">🐴</span>
-                <p>Saddling up...</p>
+                <p>Saddling Up...</p>
             </div>
         );
     }

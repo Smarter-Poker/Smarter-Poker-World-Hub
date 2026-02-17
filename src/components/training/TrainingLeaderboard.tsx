@@ -76,7 +76,7 @@ export function TrainingLeaderboard({ userId, compact = false }) {
                 {loading ? (
                     <div style={styles.loading}>Loading...</div>
                 ) : leaderboard.length === 0 ? (
-                    <div style={styles.empty}>No rankings yet. Be the first!</div>
+                    <div style={styles.empty}>No Rankings Yet. Be The First!</div>
                 ) : (
                     <AnimatePresence>
                         {leaderboard.map((entry, idx) => (

@@ -184,7 +184,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                             <Camera size={32} />
                         </div>
                         <p style={styles.uploadText}>TAP TO SCAN RECEIPT</p>
-                        <p style={styles.uploadHint}>Auto-detects and captures receipts</p>
+                        <p style={styles.uploadHint}>Auto-detects And Captures Receipts</p>
                     </div>
                     <div style={styles.uploadDivider}>
                         <span style={styles.uploadDividerLine} />

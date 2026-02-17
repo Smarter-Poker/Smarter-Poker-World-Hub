@@ -53,7 +53,7 @@ export function JarvisDashboard({ userId, compact = false }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <h3 style={styles.title}>🧠 Jarvis Insights</h3>
-                <span style={styles.subtitle}>Your personal training analysis</span>
+                <span style={styles.subtitle}>Your Personal Training Analysis</span>
             </div>
 
             {/* Overview Stats */}

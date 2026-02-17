@@ -245,7 +245,7 @@ export const EnhancedSpatialFeed = ({
                 onClick={onCreatePost}
             >
                 <span className="create-icon">✍️</span>
-                <span className="create-text">Share with the community...</span>
+                <span className="create-text">Share With The Community...</span>
             </button>
 
             {/* Feed Container */}
@@ -255,7 +255,7 @@ export const EnhancedSpatialFeed = ({
                     <div className="feed-empty glass-card">
                         <div className="empty-icon">🌐</div>
                         <h3>No Posts Yet</h3>
-                        <p>Be the first to share something!</p>
+                        <p>Be The First To Share Something!</p>
                         <button
                             className="empty-cta interactive glow-shift"
                             onClick={onCreatePost}
@@ -335,7 +335,7 @@ export const EnhancedSpatialFeed = ({
                         {feedState.isLoading && (
                             <div className="loading-indicator">
                                 <div className="loading-spinner" />
-                                <span>Loading more...</span>
+                                <span>Loading More...</span>
                             </div>
                         )}
                     </div>

@@ -333,7 +333,7 @@ export default function PromotionBuilder({
                 onChange={(e) => updateField('is_featured', e.target.checked)}
                 className="w-5 h-5 rounded border-[#4A5E78]"
               />
-              <span className="text-sm text-[#94A3B8]">Feature this promotion (shown prominently)</span>
+              <span className="text-sm text-[#94A3B8]">Feature This Promotion (shown Prominently)</span>
             </label>
           </div>
         )}
@@ -394,12 +394,12 @@ export default function PromotionBuilder({
                 onChange={(e) => updateField('is_recurring', e.target.checked)}
                 className="w-5 h-5 rounded border-[#4A5E78]"
               />
-              <span className="text-sm text-[#94A3B8]">Recurring promotion</span>
+              <span className="text-sm text-[#94A3B8]">Recurring Promotion</span>
             </label>
 
             {formData.is_recurring && (
               <div>
-                <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">Repeat on</label>
+                <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">Repeat On</label>
                 <div className="flex gap-2">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
                     <button

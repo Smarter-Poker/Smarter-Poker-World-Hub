@@ -530,7 +530,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         ⚔️
                     </motion.div>
                     <h2 style={styles.matchmakingTitle}>Finding Opponent...</h2>
-                    <p style={styles.matchmakingSubtitle}>Searching for a worthy challenger</p>
+                    <p style={styles.matchmakingSubtitle}>Searching For A Worthy Challenger</p>
                     <div style={styles.eloSearchRange}>
                         ELO Range: {playerElo - 200} - {playerElo + 200}
                     </div>

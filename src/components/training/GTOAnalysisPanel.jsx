@@ -122,7 +122,7 @@ export default function GTOAnalysisPanel({
             <div style={styles.container}>
                 <div style={styles.loadingContainer}>
                     <div style={styles.loadingSpinner} />
-                    <p style={styles.loadingText}>Analyzing with PioSolver...</p>
+                    <p style={styles.loadingText}>Analyzing With PioSolver...</p>
                 </div>
             </div>
         );

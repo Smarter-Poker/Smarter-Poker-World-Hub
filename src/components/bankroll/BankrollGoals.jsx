@@ -110,7 +110,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span>Sign in to set goals</span>
+                    <span>Sign In To Set Goals</span>
                 </div>
             </div>
         );

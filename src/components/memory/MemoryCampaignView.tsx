@@ -206,7 +206,7 @@ export default function MemoryCampaignView() {
                 <div className="text-center">
                     <div className="text-6xl mb-6 animate-pulse">🧠</div>
                     <h1 className="text-4xl font-black text-white mb-4">Loading Campaign...</h1>
-                    <div className="text-purple-400">Preparing your training path</div>
+                    <div className="text-purple-400">Preparing Your Training Path</div>
                 </div>
             </div>
         );

@@ -17,7 +17,7 @@ export default function SessionTracker({
     return (
       <div className="cmd-panel p-6 text-center">
         <User className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
-        <p className="text-[#64748B]">No active sessions</p>
+        <p className="text-[#64748B]">No Active Sessions</p>
       </div>
     );
   }

@@ -17,7 +17,7 @@ export default function CompBalanceCard({
     return (
       <div className="cmd-panel p-4 text-center">
         <Wallet size={24} className="mx-auto text-[#4A5E78] mb-2" />
-        <p className="text-[#64748B] text-sm">No comp balance</p>
+        <p className="text-[#64748B] text-sm">No Comp Balance</p>
       </div>
     );
   }

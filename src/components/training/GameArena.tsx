@@ -441,7 +441,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                         >
                             ⟳
                         </motion.div>
-                        <p>Loading hand...</p>
+                        <p>Loading Hand...</p>
                     </div>
                 )}
             </div>
@@ -461,7 +461,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                             style={styles.quitModal}
                         >
                             <h3 style={styles.modalTitle}>Quit Session?</h3>
-                            <p style={styles.modalText}>Your progress will not be saved.</p>
+                            <p style={styles.modalText}>Your Progress Will Not Be Saved.</p>
                             <div style={styles.modalButtons}>
                                 <button
                                     onClick={() => setShowQuitConfirm(false)}
@@ -497,7 +497,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                         >
                             <div style={{ fontSize: 64, marginBottom: 16 }}>💔</div>
                             <h2 style={{ color: '#ff4444', margin: 0 }}>LEVEL FAILED</h2>
-                            <p style={styles.modalText}>You ran out of HP!</p>
+                            <p style={styles.modalText}>You Ran Out Of HP!</p>
                             <p>Accuracy: {handNumber > 0 ? Math.round((correctCount / handNumber) * 100) : 0}%</p>
                             <div style={styles.modalButtons}>
                                 <button onClick={handleRetry} style={styles.retryBtn}>

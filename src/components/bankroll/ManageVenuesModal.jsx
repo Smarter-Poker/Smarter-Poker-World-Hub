@@ -97,7 +97,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
                     {loading ? (
                         <p style={s.emptyText}>Loading...</p>
                     ) : venues.length === 0 ? (
-                        <p style={s.emptyText}>No venues yet. Add one when logging an entry.</p>
+                        <p style={s.emptyText}>No Venues Yet. Add One When Logging An Entry.</p>
                     ) : (
                         venues.map((venue) => (
                             <div key={venue.id} style={s.venueRow}>

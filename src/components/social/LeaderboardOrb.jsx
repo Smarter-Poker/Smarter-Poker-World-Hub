@@ -339,7 +339,7 @@ export const LeaderboardOrb = ({
                 {isLoading ? (
                     <div className="loading-state">
                         <div className="loading-spinner" />
-                        <span>Loading rankings...</span>
+                        <span>Loading Rankings...</span>
                     </div>
                 ) : error ? (
                     <div className="error-state">
@@ -350,7 +350,7 @@ export const LeaderboardOrb = ({
                     <div className="empty-state">
                         <span className="empty-icon">📊</span>
                         <span>No Data Yet</span>
-                        <span className="empty-hint">Be the first to earn XP!</span>
+                        <span className="empty-hint">Be The First To Earn XP!</span>
                     </div>
                 ) : (
                     <div className="entries-list">

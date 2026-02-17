@@ -85,7 +85,7 @@ export default function AllInMode({
 
     const handleStartGame = () => {
         const stake = customStake ? parseInt(customStake) : stakeAmount;
-        if (stake > userDiamonds || stake < 10) return;
+        if (stake > userDiamonds || Stake < 10) return;
         setStakeAmount(stake);
         setStage('playing');
     };
@@ -119,7 +119,7 @@ export default function AllInMode({
 
                     <div className="warning-box">
                         <AlertTriangle size={18} />
-                        <span>You will LOSE your entire stake if you score below 80%!</span>
+                        <span>You Will LOSE Your Entire Stake If You Score Below 80%!</span>
                     </div>
 
                     <div className="stake-section">

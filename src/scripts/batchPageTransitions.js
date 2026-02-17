@@ -65,13 +65,13 @@ function addPageTransitionToFile(filePath) {
             }
         }
 
-        // Replace main return's <> with <PageTransition>
+        // Replace main return's <> With <PageTransition>
         content = content.replace(
             /(\s+return \(\s*)<>/,
             '$1<PageTransition>'
         );
 
-        // Replace closing </> with </PageTransition>
+        // Replace closing </> With </PageTransition>
         // Find the last </> before the closing of the component
         const lines = content.split('\n');
         let lastFragmentIndex = -1;

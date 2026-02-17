@@ -405,7 +405,7 @@ export const FacebookWatchView = ({ onNavigate }) => {
                 </div>
 
                 {loading ? (
-                    <div>Loading videos...</div>
+                    <div>Loading Videos...</div>
                 ) : (
                     videos.map(v => (
                         <WatchVideoCard key={v.id} video={v} />

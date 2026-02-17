@@ -446,7 +446,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                 style={{ color: '#22D3EE', fontWeight: 600 }}
                 onClick={() => { setMenuOpen(false); router.push('/hub'); }}
               >
-                <Globe size={18} /> Back to Hub
+                <Globe size={18} /> Back To Hub
               </button>
               <div className="cmd-menu-divider" />
               {NAV_ITEMS.map((item, idx) => {

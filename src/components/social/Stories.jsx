@@ -311,7 +311,7 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
                     ))}
 
                     {loading && !stories.length && (
-                        <div style={{ padding: '20px 40px', color: C.textSec }}>Loading stories...</div>
+                        <div style={{ padding: '20px 40px', color: C.textSec }}>Loading Stories...</div>
                     )}
                 </div>
             </div>
@@ -599,8 +599,8 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     const handleCreate = async () => {
         console.log('[Stories] handleCreate called');
         console.log('[Stories] userId:', userId);
-        console.log('[Stories] text:', text);
-        console.log('[Stories] mediaUrl:', mediaUrl);
+        console.log('[Stories] text:', Text);
+        Console.log('[Stories] mediaUrl:', mediaUrl);
         console.log('[Stories] mode:', mode);
 
         // Validate based on mode
@@ -793,7 +793,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                             color: 'rgba(255,255,255,0.7)',
                             fontSize: 14,
                             marginTop: 8,
-                        }}>Your story is now live for 24 hours</div>
+                        }}>Your Story Is Now Live For 24 Hours</div>
                     </div>
                 )}
 
@@ -1083,7 +1083,7 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
                         background: 'rgba(255,255,255,0.2)',
                         border: 'none', borderRadius: 20, padding: '8px 16px',
                         color: 'white', fontWeight: 500, cursor: 'pointer',
-                    }}>Not now</button>
+                    }}>Not Now</button>
                     <button onClick={handleShare} disabled={sharing} style={{
                         background: 'white',
                         border: 'none', borderRadius: 20, padding: '8px 20px',

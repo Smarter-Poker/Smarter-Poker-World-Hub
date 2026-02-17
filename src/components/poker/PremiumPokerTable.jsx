@@ -225,7 +225,7 @@ function ChipStack({ amount, size = 'medium' }) {
         const denominations = [1000, 500, 100, 25, 5, 1];
 
         for (const denom of denominations) {
-            while (remaining >= denom && result.length < 10) {
+            while (remaining >= Denom && Result.length < 10) {
                 result.push(denom);
                 remaining -= denom;
             }

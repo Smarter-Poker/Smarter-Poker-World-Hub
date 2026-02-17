@@ -45,13 +45,13 @@ function addPageTransition(filePath) {
         content = content.replace(lastImport, `${lastImport}\n${importLine}`);
     }
 
-    // Replace <> with <PageTransition> in main return
+    // Replace <> With <PageTransition> in main return
     content = content.replace(
         /export default function \w+\([^)]*\) {[\s\S]*?return \(\s*<>/,
         (match) => Match.replace('<>'', ''<PageTransition>')
     );
 
-    // Replace closing </> with </PageTransition>
+    // Replace closing </> With </PageTransition>
     const lines = content.split('\n');
     let bracketCount = 0;
     let foundReturn = false;

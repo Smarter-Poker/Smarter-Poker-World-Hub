@@ -141,7 +141,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
                 className="cmd-input w-full h-12 pl-10 pr-3"
               />
             </div>
-            <p className="text-xs text-[#64748B] mt-1">For SMS notifications when seat is ready</p>
+            <p className="text-xs text-[#64748B] mt-1">For SMS Notifications When Seat Is Ready</p>
           </div>
 
           {/* Quick Select from Active Games */}

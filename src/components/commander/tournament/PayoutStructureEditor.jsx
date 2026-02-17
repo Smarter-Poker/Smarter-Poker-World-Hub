@@ -131,7 +131,7 @@ export default function PayoutStructureEditor({
     <div className="space-y-4">
       {/* Preset buttons */}
       <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-sm text-[#64748B]">Load for entries:</span>
+        <span className="text-sm text-[#64748B]">Load For Entries:</span>
         {Object.keys(PAYOUT_PRESETS).map((count) => (
           <button
             key={count}

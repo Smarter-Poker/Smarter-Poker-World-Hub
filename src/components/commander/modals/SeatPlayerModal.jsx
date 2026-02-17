@@ -135,7 +135,7 @@ export default function SeatPlayerModal({
 
           {matchingGames.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-[#64748B]">No matching games available</p>
+              <p className="text-[#64748B]">No Matching Games Available</p>
               <p className="text-sm text-[#4A5E78] mt-1">
                 Open a {player.stakes} {player.game_type?.toUpperCase()} game first
               </p>

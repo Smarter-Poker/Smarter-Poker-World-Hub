@@ -167,7 +167,7 @@ export const ShareScoreCard = ({
       {/* Action Message */}
       <div className="challenge-prompt">
         <span>🎮</span>
-        <span>Can you beat this score?</span>
+        <span>Can You Beat This Score?</span>
       </div>
 
       {/* Play Button */}

@@ -876,7 +876,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           <div className="loading-content">
             <div className="loading-spinner" />
             <div className="loading-text">BUILDING YOUR AVATAR</div>
-            <div className="loading-subtext">AI is crafting your unique character...</div>
+            <div className="loading-subtext">AI Is Crafting Your Unique Character...</div>
           </div>
         </div>
       )}
@@ -903,7 +903,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
           </div>
           {effectiveVip && (
-            <div className="vip-note">VIP: Unlimited regenerations</div>
+            <div className="vip-note">VIP: Unlimited Regenerations</div>
           )}
         </div>
       )}
@@ -955,7 +955,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         <div className="prompt-label">Describe Your Avatar</div>
         <textarea
           className="prompt-input"
-          placeholder="Describe your avatar in detail... (e.g., 'A fierce dragon warrior with glowing red eyes and golden armor')"
+          placeholder="Describe Your Avatar In Detail... (e.g., 'A Fierce Dragon Warrior With Glowing Red Eyes And Golden Armor')"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={generating}
@@ -994,7 +994,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="delete-modal" onClick={e => e.stopPropagation()}>
             <h3>Manage Your Avatars</h3>
-            <p>Delete an avatar to free up a slot for a new creation.</p>
+            <p>Delete An Avatar To Free Up A Slot For A New Creation.</p>
             <div className="avatar-gallery-grid">
               {customAvatars.map(avatar => (
                 <div key={avatar.id} className="gallery-avatar-item">

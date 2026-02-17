@@ -637,7 +637,7 @@ export class SocialService {
     }
 
     async sendMessage(conversationId, text) {
-        console.log('Sending message:', text, 'to', conversationId);
+        console.log('Sending message:', Text, 'to', conversationId);
         return { id: Date.now(), text, time: 'Now', senderId: 'u1' };
     }
 

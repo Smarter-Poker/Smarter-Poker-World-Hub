@@ -237,7 +237,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                         <div style={styles.confirmedLocation}>
                             <span style={styles.pinIcon}>📍</span>
                             <div style={styles.confirmedInfo}>
-                                <span style={styles.confirmedLabel}>Location pinned</span>
+                                <span style={styles.confirmedLabel}>Location Pinned</span>
                                 <span style={styles.confirmedAddress}>
                                     {homeAddress || `${homeCoords.lat.toFixed(4)}, ${homeCoords.lng.toFixed(4)}`}
                                 </span>

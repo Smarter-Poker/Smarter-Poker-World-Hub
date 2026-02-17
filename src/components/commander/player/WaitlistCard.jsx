@@ -34,7 +34,7 @@ export default function WaitlistCard({ entry, onLeave }) {
               <p className="font-extrabold text-[#10B981] text-lg uppercase tracking-wider cmd-text-glow">
                 YOUR SEAT IS READY!
               </p>
-              <p className="text-sm text-[#CBD5E1] font-medium mt-1">Please check in at the desk</p>
+              <p className="text-sm text-[#CBD5E1] font-medium mt-1">Please Check In At The Desk</p>
             </div>
           </div>
         </div>

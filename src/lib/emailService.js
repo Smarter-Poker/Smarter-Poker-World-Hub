@@ -82,7 +82,7 @@ export async function sendTicketNotification({
                         
                         <div class="footer">
                             <p>
-                                <a href="https://smarter.poker/admin/support-tickets/${ticketId}">View Ticket in Admin Panel</a>
+                                <a href="https://smarter.poker/admin/support-tickets/${ticketId}">View Ticket In Admin Panel</a>
                                 ${conversationId ? ` | <a href="https://smarter.poker/admin/live-help/${conversationId}">View Conversation</a>` : ''}
                             </p>
                             <p>This ticket was created via the Live Help system at ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CST</p>
@@ -146,21 +146,21 @@ export async function sendTicketStatusUpdate({
                         </div>
                         
                         <p>Hi ${userName},</p>
-                        <p>Your support ticket has been updated:</p>
+                        <p>Your Support Ticket Has Been Updated:</p>
                         
                         <p><strong>Subject:</strong> ${subject}</p>
                         <p><strong>Ticket ID:</strong> <code>${ticketId.slice(0, 8)}</code></p>
                         
                         ${responseMessage ? `
                             <div class="message">
-                                <p><strong>Response from Support Team:</strong></p>
+                                <p><strong>Response From Support Team:</strong></p>
                                 <p>${responseMessage.replace(/\n/g, '<br>')}</p>
                             </div>
                         ` : ''}
                         
                         <div class="footer">
                             <p><a href="https://smarter.poker/hub/help">View Your Tickets</a></p>
-                            <p>Thank you for using Smarter.Poker Live Help!</p>
+                            <p>Thank You For Using Smarter.Poker Live Help!</p>
                         </div>
                     </div>
                 </body>

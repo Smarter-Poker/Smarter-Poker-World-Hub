@@ -241,8 +241,8 @@ export default function MultiVenueDashboard({
         {venues.length === 0 ? (
           <div className="cmd-panel p-8 text-center">
             <Building2 size={48} className="mx-auto text-[#4A5E78] mb-3" />
-            <p className="text-[#64748B]">No venues found</p>
-            <p className="text-sm text-[#4A5E78]">You need to be added as staff to a venue</p>
+            <p className="text-[#64748B]">No Venues Found</p>
+            <p className="text-sm text-[#4A5E78]">You Need To Be Added As Staff To A Venue</p>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

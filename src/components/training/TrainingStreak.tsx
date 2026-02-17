@@ -50,7 +50,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
     if (loading) {
         return (
             <div style={styles.container}>
-                <div style={styles.loading}>Loading streak...</div>
+                <div style={styles.loading}>Loading Streak...</div>
             </div>
         );
     }

@@ -304,7 +304,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                             </>
                         ) : (
                             <div style={styles.confirmRow}>
-                                <span style={styles.confirmText}>Finalize this trip?</span>
+                                <span style={styles.confirmText}>Finalize This Trip?</span>
                                 <button onClick={handleCompleteTrip} style={styles.confirmYes}>Yes, Complete</button>
                                 <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                             </div>
@@ -321,8 +321,8 @@ export default function TripTracker({ userId, onOpenLog }) {
                                 style={styles.deleteOverlay}
                             >
                                 <div style={styles.deletePopup}>
-                                    <p style={styles.deletePopupText}>Are you sure you want to delete this trip?</p>
-                                    <p style={styles.deletePopupSub}>All entries will be unlinked from this trip.</p>
+                                    <p style={styles.deletePopupText}>Are You Sure You Want To Delete This Trip?</p>
+                                    <p style={styles.deletePopupSub}>All Entries Will Be Unlinked From This Trip.</p>
                                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                                         <button onClick={handleDeleteTrip} style={styles.deleteConfirmBtn}>Yes, Delete</button>
                                         <button onClick={() => setConfirmDelete(false)} style={styles.deleteCancelBtn}>Cancel</button>
@@ -345,7 +345,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                     <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Trip</span>
                     <div>
                         <div style={styles.createTripTitle}>Start A New Trip</div>
-                        <div style={styles.createTripSub}>Track all sessions and expenses in one place</div>
+                        <div style={styles.createTripSub}>Track All Sessions And Expenses In One Place</div>
                     </div>
                 </motion.button>
             )}
@@ -427,7 +427,7 @@ export default function TripTracker({ userId, onOpenLog }) {
             <div style={styles.historySection}>
                 <h3 style={styles.historyTitle}>Completed Trips</h3>
                 {isLoading ? (
-                    <div style={styles.loadingPlaceholder}>Loading trips...</div>
+                    <div style={styles.loadingPlaceholder}>Loading Trips...</div>
                 ) : completedTrips.length === 0 ? (
                     <div style={styles.emptyState}>No Completed Trips Yet. Start Your First Trip Above!</div>
                 ) : (

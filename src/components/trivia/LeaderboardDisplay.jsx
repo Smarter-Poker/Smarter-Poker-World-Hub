@@ -41,7 +41,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
             <div className="leaderboard-list">
                 {entries.length === 0 ? (
                     <div className="empty-state">
-                        <p>No entries yet. Be the first!</p>
+                        <p>No Entries Yet. Be The First!</p>
                     </div>
                 ) : (
                     entries.map((entry, index) => {
