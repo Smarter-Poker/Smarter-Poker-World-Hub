@@ -1,8 +1,9 @@
 /**
  * Waitlist Desk View — The Board
  * /commander/waitlist/desk
- * Professional Bravo Poker-style grid: black background, colored column headers,
+ * Professional Bravo Poker-style grid: black background, uniform colored headers,
  * table numbers sub-row, venue branding, scrolling ticker.
+ * 4 games per page, auto-rotates every 10s if more games exist.
  * Click a player name → action buttons. Real-time via Supabase + 15s polling.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -15,8 +16,10 @@ import {
   MessageSquare, Phone, X
 } from 'lucide-react';
 
-// Single solid header color — professional, uniform
+// Single uniform header color — professional, classy
 const HEADER_COLOR = '#1B5E20';
+const GAMES_PER_PAGE = 4;
+const ROTATE_INTERVAL = 10000; // 10 seconds
 
 export default function WaitlistDesk() {
   const router = useRouter();
@@ -30,12 +33,12 @@ export default function WaitlistDesk() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [venueName, setVenueName] = useState('');
   const [venueLogo, setVenueLogo] = useState(null);
-  const tickerRef = useRef(null);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  // Load venue info from localStorage
+  // Load venue info
   useEffect(() => {
     try {
       const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
@@ -170,14 +173,12 @@ export default function WaitlistDesk() {
         const tStakes = (t.stakes || '').trim();
         if (tGame === gameType && tStakes === stakes) return true;
         if (tGame === gameType && !tStakes) return true;
-        const combined = `${tGame} ${tStakes}`.trim();
-        return combined === gameLabel;
+        return `${tGame} ${tStakes}`.trim() === gameLabel;
       })
       .map(t => t.table_number)
       .sort((a, b) => a - b);
   };
 
-  // Dealer break tables (tables on break)
   const breakTables = tables
     .filter(t => t.status === 'break' || t.status === 'dealer_break')
     .map(t => t.table_number)
@@ -187,7 +188,28 @@ export default function WaitlistDesk() {
   const totalWaiting = waitlists.filter(w => w.status === 'waiting').length;
   const gameEntries = Object.entries(waitlistByGame);
 
-  // Build ticker message
+  // ── PAGINATION: 4 per page, auto-rotate ─────────────────────────
+  const totalPages = Math.max(1, Math.ceil(gameEntries.length / GAMES_PER_PAGE));
+  const visibleGames = gameEntries.slice(
+    currentPage * GAMES_PER_PAGE,
+    (currentPage + 1) * GAMES_PER_PAGE
+  );
+
+  // Auto-rotate pages every 10 seconds
+  useEffect(() => {
+    if (totalPages <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentPage(prev => (prev + 1) % totalPages);
+    }, ROTATE_INTERVAL);
+    return () => clearInterval(timer);
+  }, [totalPages]);
+
+  // Reset page if games change
+  useEffect(() => {
+    if (currentPage >= totalPages) setCurrentPage(0);
+  }, [totalPages, currentPage]);
+
+  // Ticker message
   const tickerParts = [];
   if (breakTables.length > 0) tickerParts.push(`BREAK ${breakTables.join('--')}`);
   tickerParts.push('Download the Smarter Poker App for live waitlist updates');
@@ -203,15 +225,13 @@ export default function WaitlistDesk() {
       <SEOHead title="The Board — Poker Waiting List" noindex={true} />
       <div style={S.page}>
 
-        {/* ═══ TOP BAR: Venue Name + Logo | POKER WAITING LIST | Count Boxes | Powered By ═══ */}
+        {/* ═══ TOP BAR ═══ */}
         <div style={S.topBar}>
           <div style={S.topLeft}>
             <button onClick={() => router.back()} style={S.backBtn}>
               <ArrowLeft size={16} color="#D4AF37" />
             </button>
-            {venueLogo && (
-              <img src={venueLogo} alt="" style={S.venueLogo} />
-            )}
+            {venueLogo && <img src={venueLogo} alt="" style={S.venueLogo} />}
             <span style={S.venueNameText}>{venueName || 'Poker Room'}</span>
           </div>
 
@@ -226,7 +246,10 @@ export default function WaitlistDesk() {
 
         {/* ═══ CONTROLS BAR ═══ */}
         <div style={S.controls}>
-          <span style={S.controlInfo}>{totalWaiting} waiting &bull; {gameEntries.length} game{gameEntries.length !== 1 ? 's' : ''}</span>
+          <span style={S.controlInfo}>
+            {totalWaiting} waiting &bull; {gameEntries.length} game{gameEntries.length !== 1 ? 's' : ''}
+            {totalPages > 1 && <span style={{ marginLeft: '8px', color: '#D4AF37' }}>Page {currentPage + 1}/{totalPages}</span>}
+          </span>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button onClick={() => setShowAddWalkIn(true)} style={S.addBtn}>
               <UserPlus size={13} /> Add Player
@@ -251,13 +274,13 @@ export default function WaitlistDesk() {
           </div>
         ) : (
           <div style={S.grid}>
-            {gameEntries.map(([gameLabel, entries], colIdx) => {
+            {visibleGames.map(([gameLabel, entries]) => {
               const tableNums = getTableNums(gameLabel);
 
               return (
                 <div key={gameLabel} style={S.column}>
-                  {/* Colored Header */}
-                  <div style={{ ...S.colHeader, background: HEADER_COLOR }}>
+                  {/* Header */}
+                  <div style={S.colHeader}>
                     {gameLabel}
                   </div>
 
@@ -321,9 +344,26 @@ export default function WaitlistDesk() {
           </div>
         )}
 
+        {/* ═══ PAGE DOTS ═══ */}
+        {totalPages > 1 && (
+          <div style={S.pageDots}>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <span
+                key={i}
+                onClick={() => setCurrentPage(i)}
+                style={{
+                  ...S.dot,
+                  background: i === currentPage ? '#D4AF37' : '#333',
+                  transform: i === currentPage ? 'scale(1.3)' : 'scale(1)'
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* ═══ SCROLLING TICKER ═══ */}
         <div style={S.ticker}>
-          <div ref={tickerRef} style={S.tickerTrack}>
+          <div style={S.tickerTrack}>
             <span style={S.tickerContent}>{tickerMessage}</span>
             <span style={S.tickerContent}>{tickerMessage}</span>
           </div>
@@ -488,12 +528,6 @@ const S = {
   topRight: {
     display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 auto'
   },
-  countBoxes: { display: 'flex', gap: '3px', alignItems: 'center' },
-  countBox: {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    minWidth: '26px', height: '22px', fontSize: '12px', fontWeight: 700,
-    color: '#fff', borderRadius: '3px', padding: '0 4px'
-  },
   poweredBy: {
     fontSize: '9px', color: '#666', textAlign: 'right',
     lineHeight: '1.3', letterSpacing: '0.3px', textTransform: 'uppercase'
@@ -529,20 +563,20 @@ const S = {
     alignItems: 'center', justifyContent: 'center', padding: '80px 20px'
   },
 
-  // ── GRID ──
+  // ── GRID — columns with gaps ──
   grid: {
-    flex: 1, display: 'flex', overflowX: 'auto', padding: '10px 12px',
-    gap: '0', alignItems: 'flex-start'
+    flex: 1, display: 'flex', padding: '12px 16px',
+    gap: '12px', alignItems: 'flex-start'
   },
   column: {
-    flex: '1 1 0', minWidth: '140px', maxWidth: '260px',
-    border: '1px solid #444', marginLeft: '-1px',
-    display: 'flex', flexDirection: 'column'
+    flex: '1 1 0', minWidth: '140px',
+    border: '1px solid #444', borderRadius: '4px',
+    display: 'flex', flexDirection: 'column', overflow: 'hidden'
   },
   colHeader: {
     padding: '8px 10px', textAlign: 'center', fontWeight: 700,
     fontSize: '13px', color: '#fff', textTransform: 'uppercase',
-    letterSpacing: '0.5px', borderBottom: '1px solid #444'
+    letterSpacing: '0.5px', background: HEADER_COLOR
   },
   colTableNums: {
     padding: '3px 8px', textAlign: 'center', fontSize: '11px',
@@ -582,6 +616,16 @@ const S = {
     display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px',
     borderRadius: '3px', border: '1px solid #5a2a2a', fontSize: '10px',
     fontWeight: 600, cursor: 'pointer', background: '#1a0a0a', color: '#E57373'
+  },
+
+  // ── PAGE DOTS ──
+  pageDots: {
+    display: 'flex', justifyContent: 'center', gap: '6px',
+    padding: '6px 0', background: '#050505'
+  },
+  dot: {
+    width: '8px', height: '8px', borderRadius: '50%',
+    cursor: 'pointer', transition: 'all 0.2s'
   },
 
   // ── TICKER ──
