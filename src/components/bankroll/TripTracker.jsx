@@ -76,7 +76,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
             // Fetch individual entries for active trip
             if (active && active.id) {
                 try {
-                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, limit: 100 });
+                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, includeExpenses: true, limit: 100 });
                     setTripEntries(entries || []);
                 } catch (entryErr) {
                     console.warn('Could not load trip entries:', entryErr);
@@ -624,6 +624,95 @@ const styles = {
         borderRadius: 4,
         padding: '3px 8px',
         color: '#94a3b8',
+    },
+
+    // Entry list
+    entriesSection: {
+        marginBottom: 16,
+    },
+    entriesSectionTitle: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#94a3b8',
+        marginBottom: 8,
+        letterSpacing: 0.5,
+    },
+    entriesScroll: {
+        maxHeight: 240,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+    },
+    entryRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.25)',
+        borderRadius: 6,
+        padding: '8px 10px',
+        border: '1px solid rgba(255,255,255,0.05)',
+    },
+    entryInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        minWidth: 0,
+        flex: 1,
+    },
+    entryDate: {
+        fontSize: 12,
+        color: '#64748b',
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+    },
+    entryCat: {
+        fontSize: 12,
+        color: '#cbd5e1',
+        fontWeight: 500,
+    },
+    entryStakes: {
+        fontSize: 11,
+        color: '#64748b',
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: 3,
+        padding: '1px 5px',
+    },
+    entryRight: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexShrink: 0,
+    },
+    entryNet: {
+        fontSize: 13,
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+    },
+    entryActions: {
+        display: 'flex',
+        gap: 4,
+    },
+    entryEditBtn: {
+        background: 'rgba(59,130,246,0.15)',
+        border: '1px solid rgba(59,130,246,0.3)',
+        borderRadius: 4,
+        padding: '2px 6px',
+        fontSize: 12,
+        cursor: 'pointer',
+        color: '#3b82f6',
+        lineHeight: 1,
+    },
+    entryDeleteBtn: {
+        background: 'rgba(239,68,68,0.15)',
+        border: '1px solid rgba(239,68,68,0.3)',
+        borderRadius: 4,
+        padding: '2px 6px',
+        fontSize: 12,
+        cursor: 'pointer',
+        color: '#ef4444',
+        lineHeight: 1,
     },
 
     // Active trip actions

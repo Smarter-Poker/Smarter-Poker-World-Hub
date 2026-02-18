@@ -94,6 +94,19 @@ export default async function handler(req, res) {
                             .order('seat_number', { ascending: true });
                         const allCmdSeats = cmdSeats || [];
 
+                        // Fetch profile pictures for players with Smarter.Poker accounts
+                        const playerIds = allCmdSeats.map(s => s.player_id).filter(Boolean);
+                        let profilePicMap = {};
+                        if (playerIds.length > 0) {
+                            try {
+                                const { data: profiles } = await supabase
+                                    .from('profiles')
+                                    .select('id, avatar_url')
+                                    .in('id', playerIds);
+                                (profiles || []).forEach(p => { profilePicMap[p.id] = p.avatar_url; });
+                            } catch (e) { /* no profile pics */ }
+                        }
+
                         // Fetch table names for display
                         const tableIds = cmdGames.map(g => g.table_id).filter(Boolean);
                         let tableMap = {};
@@ -185,6 +198,7 @@ export default async function handler(req, res) {
                                 seat_number: s.seat_number,
                                 player_name: s.player_name || null,
                                 player_id: s.player_id || null,
+                                avatar_url: s.player_id ? (profilePicMap[s.player_id] || null) : null,
                                 status: s.status === 'occupied' ? 'reserved' : s.status === 'empty' ? null : s.status,
                             })).filter(s => s.status === 'reserved'); // Only include occupied seats
 

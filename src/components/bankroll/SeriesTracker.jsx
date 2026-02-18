@@ -16,6 +16,8 @@ import {
     completeSeries,
     deleteSeries,
     getSeriesReport,
+    fetchLedgerEntries,
+    deleteLedgerEntry,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
@@ -31,9 +33,10 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function SeriesTracker({ userId, onOpenLog }) {
+export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry }) {
     const [activeSeries, setActiveSeries] = useState(null);
     const [completedSeries, setCompletedSeries] = useState([]);
+    const [seriesEntries, setSeriesEntries] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -71,6 +74,19 @@ export default function SeriesTracker({ userId, onOpenLog }) {
             setActiveSeries(active);
             setCompletedSeries(all.filter(s => s.status === 'completed'));
             setLocations(locs || []);
+
+            // Fetch individual entries for active series
+            if (active && active.id) {
+                try {
+                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, includeExpenses: true, limit: 100 });
+                    setSeriesEntries(entries || []);
+                } catch (entryErr) {
+                    console.warn('Could not load series entries:', entryErr);
+                    setSeriesEntries([]);
+                }
+            } else {
+                setSeriesEntries([]);
+            }
         } catch (err) {
             console.error('Error loading series data:', err);
         } finally {
@@ -326,6 +342,56 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                     {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
                                 </span>
                             ))}
+                        </div>
+                    )}
+
+                    {/* --- SERIES ENTRIES LIST --- */}
+                    {!editMode && seriesEntries.length > 0 && (
+                        <div style={styles.entriesSection}>
+                            <h4 style={styles.entriesSectionTitle}>Series Entries ({seriesEntries.length})</h4>
+                            <div style={styles.entriesScroll}>
+                                {seriesEntries.map(entry => {
+                                    const net = (entry.gross_out || 0) - (entry.gross_in || 0);
+                                    const catLabel = CATEGORY_LABELS[entry.category] || entry.category || 'Entry';
+                                    return (
+                                        <div key={entry.id} style={styles.entryRow}>
+                                            <div style={styles.entryInfo}>
+                                                <span style={styles.entryDate}>
+                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                                </span>
+                                                <span style={styles.entryCat}>{catLabel}</span>
+                                                {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}
+                                            </div>
+                                            <div style={styles.entryRight}>
+                                                <span style={{ ...styles.entryNet, color: net >= 0 ? '#10b981' : '#ef4444' }}>
+                                                    {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                                                </span>
+                                                <div style={styles.entryActions}>
+                                                    {onEditEntry && (
+                                                        <button
+                                                            onClick={() => onEditEntry(entry)}
+                                                            style={styles.entryEditBtn}
+                                                            title="Edit Entry"
+                                                        >✏</button>
+                                                    )}
+                                                    {onDeleteEntry && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm('Delete this entry?')) {
+                                                                    await onDeleteEntry(entry.id);
+                                                                    loadData();
+                                                                }
+                                                            }}
+                                                            style={styles.entryDeleteBtn}
+                                                            title="Delete Entry"
+                                                        >✕</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
@@ -681,6 +747,95 @@ const styles = {
         borderRadius: 4,
         padding: '3px 8px',
         color: '#94a3b8',
+    },
+
+    // Entry list
+    entriesSection: {
+        marginBottom: 16,
+    },
+    entriesSectionTitle: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#94a3b8',
+        marginBottom: 8,
+        letterSpacing: 0.5,
+    },
+    entriesScroll: {
+        maxHeight: 240,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+    },
+    entryRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.25)',
+        borderRadius: 6,
+        padding: '8px 10px',
+        border: '1px solid rgba(255,255,255,0.05)',
+    },
+    entryInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        minWidth: 0,
+        flex: 1,
+    },
+    entryDate: {
+        fontSize: 12,
+        color: '#64748b',
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+    },
+    entryCat: {
+        fontSize: 12,
+        color: '#cbd5e1',
+        fontWeight: 500,
+    },
+    entryStakes: {
+        fontSize: 11,
+        color: '#64748b',
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: 3,
+        padding: '1px 5px',
+    },
+    entryRight: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexShrink: 0,
+    },
+    entryNet: {
+        fontSize: 13,
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+    },
+    entryActions: {
+        display: 'flex',
+        gap: 4,
+    },
+    entryEditBtn: {
+        background: 'rgba(59,130,246,0.15)',
+        border: '1px solid rgba(59,130,246,0.3)',
+        borderRadius: 4,
+        padding: '2px 6px',
+        fontSize: 12,
+        cursor: 'pointer',
+        color: '#3b82f6',
+        lineHeight: 1,
+    },
+    entryDeleteBtn: {
+        background: 'rgba(239,68,68,0.15)',
+        border: '1px solid rgba(239,68,68,0.3)',
+        borderRadius: 4,
+        padding: '2px 6px',
+        fontSize: 12,
+        cursor: 'pointer',
+        color: '#ef4444',
+        lineHeight: 1,
     },
 
     // Actions

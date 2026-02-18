@@ -1263,6 +1263,8 @@ export default function BankrollManagerPage() {
                 <TripTracker
                   userId={userId}
                   onOpenLog={handleLogClick}
+                  onEditEntry={handleEditEntry}
+                  onDeleteEntry={handleDeleteEntry}
                 />
               )}
 
@@ -1271,6 +1273,8 @@ export default function BankrollManagerPage() {
                 <SeriesTracker
                   userId={userId}
                   onOpenLog={handleLogClick}
+                  onEditEntry={handleEditEntry}
+                  onDeleteEntry={handleDeleteEntry}
                 />
               )}
 
