@@ -213,7 +213,7 @@ export default function useTrainingProgress() {
     const getLeakGames = useCallback((allGames) => {
         return allGames.filter(game => {
             const p = progress[game.id];
-            return p && p.attempts > 0 && P.mastery < 70;
+            return p && p.attempts > 0 && p.mastery < 70;
         });
     }, [progress]);
 

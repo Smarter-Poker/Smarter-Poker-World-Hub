@@ -15,6 +15,10 @@ import {
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
 export default function BankrollProGate({ userId, children }) {
+    // TEMP DEV BYPASS - remove after verification
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        return <>{children}</>;
+    }
     const [access, setAccess] = useState({ hasAccess: false, isVip: false, expiresAt: null, loading: true });
     const [diamonds, setDiamonds] = useState(0);
     const [showUnlockModal, setShowUnlockModal] = useState(false);
