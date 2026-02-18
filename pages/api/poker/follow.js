@@ -51,8 +51,7 @@ async function handleGet(req, res) {
         const { data, error } = await supabase
             .from('page_followers')
             .select('*')
-            .eq('user_id', user_id)
-            .order('created_at', { ascending: false });
+            .eq('user_id', user_id);
 
         if (error) {
             console.error('Error fetching follows:', error);
