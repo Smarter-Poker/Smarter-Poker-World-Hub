@@ -291,12 +291,16 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
     useEffect(() => {
         if (!authUser?.id) return;
 
+        // Low-value notification types to suppress (noise reduction)
+        const BLOCKED_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
+
         async function fetchNotifications() {
             try {
                 const { data } = await supabase
                     .from('notifications')
                     .select('id, type, message, created_at, read')
                     .eq('user_id', authUser.id)
+                    .not('type', 'in', `(${BLOCKED_TYPES.join(',')})`)
                     .order('created_at', { ascending: false })
                     .limit(20);
 

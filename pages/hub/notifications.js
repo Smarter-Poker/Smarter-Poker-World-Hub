@@ -43,6 +43,9 @@ export default function NotificationsPage() {
     const menuConfig = getMenuConfig('notifications', user, {}, {});
 
     useEffect(() => {
+        // Low-value notification types to suppress (noise reduction)
+        const BLOCKED_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
+
         const fetchNotifications = async () => {
             //  BULLETPROOF: Use authUtils to avoid AbortError
             const au = getAuthUser();
@@ -55,6 +58,7 @@ export default function NotificationsPage() {
                         .from('notifications')
                         .select('*')
                         .eq('user_id', au.id)
+                        .not('type', 'in', `(${BLOCKED_TYPES.join(',')})`)
                         .order('created_at', { ascending: false })
                         .limit(50),
                     fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30')
