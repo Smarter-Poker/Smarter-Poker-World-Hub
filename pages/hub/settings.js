@@ -1255,9 +1255,9 @@ export default function SettingsPage() {
                                                 marginTop: 16,
                                                 padding: '10px 20px',
                                                 background: 'transparent',
-                                                border: '1px solid rgba(255, 71, 87, 0.3)',
+                                                border: '1px solid rgba(24, 119, 242, 0.3)',
                                                 borderRadius: 8,
-                                                color: '#ff4757',
+                                                color: '#1877F2',
                                                 fontSize: 13,
                                                 fontWeight: 500,
                                                 cursor: 'pointer',
@@ -1823,7 +1823,7 @@ export default function SettingsPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
-                                                background: cancelReason ? '#ff4757' : 'rgba(255, 71, 87, 0.3)',
+                                                background: cancelReason ? '#1877F2' : 'rgba(24, 119, 242, 0.3)',
                                                 border: 'none',
                                                 borderRadius: 10,
                                                 color: '#fff',
@@ -1847,16 +1847,16 @@ export default function SettingsPage() {
                                         padding: '20px 0',
                                     }}>
                                         <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                        <h4 style={{ color: '#FFD700', fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
+                                        <h4 style={{ color: '#1877F2', fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
                                             50% Off For 3 Months!
                                         </h4>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
-                                            Before You Go, We Would Love To Offer You <strong style={{ color: '#FFD700' }}>50% Off Your VIP Membership</strong> For The Next 3 Months. Keep All Your Premium Benefits At Half The Price.
+                                            Before You Go, We Would Love To Offer You <strong style={{ color: '#1877F2' }}>50% Off Your VIP Membership</strong> For The Next 3 Months. Keep All Your Premium Benefits At Half The Price.
                                         </p>
 
                                         <div style={{
-                                            background: 'rgba(255, 215, 0, 0.08)',
-                                            border: '1px solid rgba(255, 215, 0, 0.25)',
+                                            background: 'rgba(24, 119, 242, 0.08)',
+                                            border: '1px solid rgba(24, 119, 242, 0.25)',
                                             borderRadius: 12,
                                             padding: '16px 20px',
                                             marginBottom: 24,
@@ -1864,7 +1864,7 @@ export default function SettingsPage() {
                                             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>Your New Price</div>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                                                 <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$19.99/mo</span>
-                                                <span style={{ color: '#FFD700', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$9.99/mo</span>
+                                                <span style={{ color: '#1877F2', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$9.99/mo</span>
                                             </div>
                                             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 Months, Then Regular Price Resumes</div>
                                         </div>
@@ -1881,14 +1881,14 @@ export default function SettingsPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                                 border: 'none',
                                                 borderRadius: 10,
-                                                color: '#000',
+                                                color: '#fff',
                                                 fontSize: 14,
                                                 fontWeight: 700,
                                                 cursor: 'pointer',
-                                                boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+                                                boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
                                             }}
                                         >
                                             Claim 50% Off
@@ -1918,10 +1918,10 @@ export default function SettingsPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
-                                                background: 'rgba(255, 71, 87, 0.15)',
-                                                border: '1px solid rgba(255, 71, 87, 0.3)',
+                                                background: 'rgba(24, 119, 242, 0.1)',
+                                                border: '1px solid rgba(24, 119, 242, 0.25)',
                                                 borderRadius: 10,
-                                                color: '#ff4757',
+                                                color: '#1877F2',
                                                 fontSize: 14,
                                                 fontWeight: 600,
                                                 cursor: cancelLoading ? 'wait' : 'pointer',
@@ -1969,11 +1969,11 @@ export default function SettingsPage() {
                             {cancelStep === 'retained' && (
                                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                                     <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                    <h4 style={{ color: '#FFD700', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+                                    <h4 style={{ color: '#1877F2', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
                                         Discount Applied!
                                     </h4>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
-                                        Your VIP Membership Is Now <strong style={{ color: '#FFD700' }}>$9.99/Month</strong> For The Next 3 Months.
+                                        Your VIP Membership Is Now <strong style={{ color: '#1877F2' }}>$9.99/Month</strong> For The Next 3 Months.
                                     </p>
                                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
                                         Thank You For Staying With Us! Enjoy Your Premium Benefits.
@@ -1982,14 +1982,14 @@ export default function SettingsPage() {
                                         onClick={() => setShowCancelModal(false)}
                                         style={{
                                             padding: '14px 40px',
-                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                             border: 'none',
                                             borderRadius: 10,
-                                            color: '#000',
+                                            color: '#fff',
                                             fontSize: 14,
                                             fontWeight: 700,
                                             cursor: 'pointer',
-                                            boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+                                            boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
                                         }}
                                     >
                                         Awesome!

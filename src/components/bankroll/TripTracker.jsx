@@ -15,6 +15,8 @@ import {
     completeTrip,
     deleteTrip,
     getTripReport,
+    fetchLedgerEntries,
+    deleteLedgerEntry,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
@@ -31,9 +33,10 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function TripTracker({ userId, onOpenLog }) {
+export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry }) {
     const [activeTrip, setActiveTrip] = useState(null);
     const [completedTrips, setCompletedTrips] = useState([]);
+    const [tripEntries, setTripEntries] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -69,6 +72,19 @@ export default function TripTracker({ userId, onOpenLog }) {
             setActiveTrip(active);
             setCompletedTrips(trips.filter(t => t.status === 'completed'));
             setLocations(locs || []);
+
+            // Fetch individual entries for active trip
+            if (active && active.id) {
+                try {
+                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, limit: 100 });
+                    setTripEntries(entries || []);
+                } catch (entryErr) {
+                    console.warn('Could not load trip entries:', entryErr);
+                    setTripEntries([]);
+                }
+            } else {
+                setTripEntries([]);
+            }
         } catch (err) {
             console.error('Error loading trip data:', err);
         } finally {
@@ -285,6 +301,56 @@ export default function TripTracker({ userId, onOpenLog }) {
                                     {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
                                 </span>
                             ))}
+                        </div>
+                    )}
+
+                    {/* --- TRIP ENTRIES LIST --- */}
+                    {!editMode && tripEntries.length > 0 && (
+                        <div style={styles.entriesSection}>
+                            <h4 style={styles.entriesSectionTitle}>Trip Entries ({tripEntries.length})</h4>
+                            <div style={styles.entriesScroll}>
+                                {tripEntries.map(entry => {
+                                    const net = (entry.gross_out || 0) - (entry.gross_in || 0);
+                                    const catLabel = CATEGORY_LABELS[entry.category] || entry.category || 'Entry';
+                                    return (
+                                        <div key={entry.id} style={styles.entryRow}>
+                                            <div style={styles.entryInfo}>
+                                                <span style={styles.entryDate}>
+                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                                                </span>
+                                                <span style={styles.entryCat}>{catLabel}</span>
+                                                {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}
+                                            </div>
+                                            <div style={styles.entryRight}>
+                                                <span style={{ ...styles.entryNet, color: net >= 0 ? '#10b981' : '#ef4444' }}>
+                                                    {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                                                </span>
+                                                <div style={styles.entryActions}>
+                                                    {onEditEntry && (
+                                                        <button
+                                                            onClick={() => onEditEntry(entry)}
+                                                            style={styles.entryEditBtn}
+                                                            title="Edit Entry"
+                                                        >✏</button>
+                                                    )}
+                                                    {onDeleteEntry && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm('Delete this entry?')) {
+                                                                    await onDeleteEntry(entry.id);
+                                                                    loadData();
+                                                                }
+                                                            }}
+                                                            style={styles.entryDeleteBtn}
+                                                            title="Delete Entry"
+                                                        >✕</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
