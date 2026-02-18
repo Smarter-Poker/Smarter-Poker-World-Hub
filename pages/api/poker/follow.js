@@ -170,7 +170,8 @@ async function handlePost(req, res) {
         return res.status(400).json({ error: 'user_id is required (body or x-user-id header)' });
     }
 
-    const pageIdStr = String(page_id);
+    // Normalize tour page_id to uppercase (tour registry uses uppercase codes like WPT, WSOP)
+    const pageIdStr = page_type === 'tour' ? String(page_id).toUpperCase() : String(page_id);
 
     if (action === 'follow') {
         // Upsert - insert if not exists

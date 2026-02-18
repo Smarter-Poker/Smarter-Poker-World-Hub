@@ -639,23 +639,22 @@ export default function UniversalHeader({
                             style={{ height: '100%', width: '100%', objectFit: 'contain' }}
                         />
                     </button>
-                    <span className="brand-text">Smarter.Poker</span>
+                    <img src="/images/brand-text.png" alt="Smarter.Poker" className="brand-text-img" style={{ height: 22, objectFit: 'contain' }} />
                 </div>
 
-                {/* CENTER: Diamond Wallet Icon */}
-                <div className="header-center">
+
+                {/* RIGHT: Orb Icons */}
+                <div className="header-right">
+                    {/* Diamond Wallet Icon */}
                     <button
                         onClick={() => setIsWalletOpen(true)}
                         className="orb-btn"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         title="Diamond Wallet"
                     >
-                        <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
-                </div>
 
-                {/* RIGHT: Orb Icons */}
-                <div className="header-right">
                     {/* VIP Card Icon — only for VIP members */}
                     {isVip && (
                         <Link href="/hub/diamond-store" style={{ textDecoration: 'none' }}>

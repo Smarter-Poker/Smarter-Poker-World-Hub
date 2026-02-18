@@ -60,11 +60,11 @@ function buildTourPages() {
     return tours.sort((a, b) => (a.priority || 3) - (b.priority || 3));
 }
 
-function buildSeriesPages() {
+function buildSeriesPages(includeExpired = false) {
     const allSeries = tourSeriesData.series_2026 || [];
     const today = new Date().toISOString().split('T')[0];
     return allSeries
-        .filter(s => s.end_date >= today)
+        .filter(s => includeExpired || s.end_date >= today)
         .map((s, i) => ({
             page_type: 'series',
             page_id: String(s.id || i + 1),
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
             pages.push(...buildTourPages());
         }
         if (category === 'all' || category === 'series') {
-            pages.push(...buildSeriesPages());
+            pages.push(...buildSeriesPages(followed_only === 'true'));
         }
         // Social pages: home games, charity, clubs from Supabase
         if (category === 'all' || category === 'home_games') {

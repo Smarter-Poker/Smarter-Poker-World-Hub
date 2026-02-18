@@ -239,33 +239,7 @@ export default function ThreePillHeader({
                         justifyContent: 'center',
                         gap: 20,
                     }}>
-                        <span style={{
-                            color: 'white',
-                            fontSize: 20,
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                            whiteSpace: 'nowrap',
-                            textShadow: '0 0 12px rgba(0, 200, 255, 0.4)',
-                        }}>
-                            Smarter.Poker
-                        </span>
-                        <button
-                            onClick={() => setIsWalletOpen(true)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: 40,
-                                height: 40,
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 0,
-                            }}
-                            title="Diamond Wallet"
-                        >
-                            <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        </button>
+                        <img src="/images/brand-text.png" alt="Smarter.Poker" style={{ height: 22, objectFit: 'contain' }} />
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════════════
@@ -284,6 +258,15 @@ export default function ThreePillHeader({
                         gap: 6,
                         paddingRight: 16,
                     }}>
+                        {/* Diamond Wallet */}
+                        <button
+                            onClick={() => setIsWalletOpen(true)}
+                            style={{ ...iconBtnStyle, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            title="Diamond Wallet"
+                        >
+                            <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                        </button>
+
                         {/* Profile */}
                         <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
                             <div style={{
