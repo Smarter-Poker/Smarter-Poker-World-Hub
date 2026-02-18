@@ -61,18 +61,30 @@ export default async function handler(req, res) {
             console.log(`❌ VIP subscription ${sub.stripe_subscription_id} set to cancel at period end`);
         }
 
-        // 3. Update local record
+        // 3. Update local record — core fields (always exist)
         await supabase
             .from('vip_subscriptions')
             .update({
                 cancel_at_period_end: true,
-                cancel_reason: reason || 'unspecified',
-                cancel_reason_text: reasonText || '',
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_subscription_id', sub.stripe_subscription_id);
 
-        // 4. Log the cancellation event
+        // 4. Store cancellation reason (columns may not exist if migration not run)
+        try {
+            await supabase
+                .from('vip_subscriptions')
+                .update({
+                    cancel_reason: reason || 'unspecified',
+                    cancel_reason_text: reasonText || '',
+                })
+                .eq('stripe_subscription_id', sub.stripe_subscription_id);
+        } catch (reasonErr) {
+            // Non-critical — reason is also stored in Stripe metadata
+            console.warn('Could not store cancel reason locally:', reasonErr.message);
+        }
+
+        // 5. Log the cancellation event
         console.log(`📊 VIP cancellation — user: ${userId}, reason: ${reason}`);
 
         return res.status(200).json({
