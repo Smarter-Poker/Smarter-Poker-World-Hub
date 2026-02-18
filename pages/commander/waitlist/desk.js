@@ -57,7 +57,7 @@ export default function WaitlistDesk() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // 30s fallback — realtime handles instant updates
+    const interval = setInterval(fetchData, 15000); // 15s fallback — Bravo-style fast refresh
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -175,10 +175,10 @@ export default function WaitlistDesk() {
   return (
     <>
       <SEOHead
-                title="Commander — Desk"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Desk"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -261,62 +261,89 @@ export default function WaitlistDesk() {
               </div>
             ) : (
               <div className="space-y-4">
-                {Object.entries(waitlistByGame).map(([gameType, entries]) => (
-                  <div key={gameType}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-white">{gameType}</h3>
-                      <span className="text-xs text-[#B0B3B8] bg-[#3A3B3C] px-2 py-0.5 rounded-full">{entries.length}</span>
+                {Object.entries(waitlistByGame).map(([gameType, entries]) => {
+                  // Sort: called first, then by position/created_at
+                  const sorted = [...entries].sort((a, b) => {
+                    if (a.status === 'called' && b.status !== 'called') return -1;
+                    if (b.status === 'called' && a.status !== 'called') return 1;
+                    return new Date(a.created_at) - new Date(b.created_at);
+                  });
+                  return (
+                    <div key={gameType}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-white">{gameType}</h3>
+                        <span className="text-xs text-[#B0B3B8] bg-[#3A3B3C] px-2 py-0.5 rounded-full">{entries.length}</span>
+                      </div>
+                      <div className="space-y-1">
+                        {sorted.map((entry, idx) => {
+                          const waitMins = entry.created_at
+                            ? Math.round((Date.now() - new Date(entry.created_at).getTime()) / 60000)
+                            : 0;
+                          return (
+                            <div key={entry.id}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${entry.status === 'called'
+                                ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
+                                : 'bg-[#242526] border-[#3A3B3C]'
+                                }`}>
+                              <span className="w-6 h-6 rounded-full bg-[#3A3B3C] flex items-center justify-center text-xs font-bold text-[#B0B3B8]">
+                                {idx + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium text-[#E4E6EB] truncate">{entry.player_name}</p>
+                                  {entry.status === 'called' && (
+                                    <span className="text-[9px] font-bold bg-[#F59E0B] text-white px-1.5 py-0.5 rounded">CALLED</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-[#B0B3B8]">
+                                  <span className="inline-flex items-center gap-0.5">
+                                    <Clock className="w-2.5 h-2.5" />{waitMins}m
+                                  </span>
+                                  {entry.signup_method && (
+                                    <span className={`px-1 py-0.5 rounded text-[9px] font-medium ${entry.signup_method === 'app' ? 'bg-[#1877F2]/15 text-[#1877F2]' : entry.signup_method === 'kiosk' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                                      {entry.signup_method === 'app' ? 'APP' : entry.signup_method === 'kiosk' ? 'KIOSK' : entry.signup_method === 'staff' ? 'STAFF' : entry.signup_method?.toUpperCase()}
+                                    </span>
+                                  )}
+                                  {entry.call_count > 0 && (
+                                    <span className="text-[#F59E0B]">Called {entry.call_count}x</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                {entry.status !== 'called' && (
+                                  <button onClick={() => handleCall(entry)}
+                                    disabled={callLoading === entry.id}
+                                    className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center active:bg-[#F59E0B]/20 disabled:opacity-50"
+                                    title="Call Player">
+                                    {callLoading === entry.id
+                                      ? <Loader2 className="w-4 h-4 text-[#F59E0B] animate-spin" />
+                                      : <PhoneCall className="w-4 h-4 text-[#F59E0B]" />
+                                    }
+                                  </button>
+                                )}
+                                <button onClick={() => setSeatModal(entry)}
+                                  className="w-9 h-9 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20"
+                                  title="Seat Player">
+                                  <Armchair className="w-4 h-4 text-[#31A24C]" />
+                                </button>
+                                <button onClick={() => handlePass(entry)}
+                                  className="w-9 h-9 rounded-lg bg-[#6B7280]/10 flex items-center justify-center active:bg-[#6B7280]/20"
+                                  title="Pass">
+                                  <SkipForward className="w-4 h-4 text-[#6B7280]" />
+                                </button>
+                                <button onClick={() => handleRemove(entry)}
+                                  className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20"
+                                  title="Remove From List">
+                                  <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      {entries.map((entry, idx) => (
-                        <div key={entry.id}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border ${entry.status === 'called'
-                              ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
-                              : 'bg-[#242526] border-[#3A3B3C]'
-                            }`}>
-                          <span className="w-6 h-6 rounded-full bg-[#3A3B3C] flex items-center justify-center text-xs font-bold text-[#B0B3B8]">
-                            {idx + 1}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#E4E6EB] truncate">{entry.player_name}</p>
-                            <p className="text-[10px] text-[#B0B3B8]">
-                              {entry.status === 'called' ? 'Called' : 'Waiting'}
-                              {entry.wait_time && ` — ${entry.wait_time}m`}
-                            </p>
-                          </div>
-                          <div className="flex gap-1">
-                            {entry.status !== 'called' && (
-                              <button onClick={() => handleCall(entry)}
-                                disabled={callLoading === entry.id}
-                                className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center active:bg-[#F59E0B]/20 disabled:opacity-50"
-                                title="Call Player">
-                                {callLoading === entry.id
-                                  ? <Loader2 className="w-4 h-4 text-[#F59E0B] animate-spin" />
-                                  : <PhoneCall className="w-4 h-4 text-[#F59E0B]" />
-                                }
-                              </button>
-                            )}
-                            <button onClick={() => setSeatModal(entry)}
-                              className="w-9 h-9 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20"
-                              title="Seat Player">
-                              <Armchair className="w-4 h-4 text-[#31A24C]" />
-                            </button>
-                            <button onClick={() => handlePass(entry)}
-                              className="w-9 h-9 rounded-lg bg-[#6B7280]/10 flex items-center justify-center active:bg-[#6B7280]/20"
-                              title="Pass">
-                              <SkipForward className="w-4 h-4 text-[#6B7280]" />
-                            </button>
-                            <button onClick={() => handleRemove(entry)}
-                              className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20"
-                              title="Remove From List">
-                              <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -351,23 +378,21 @@ export default function WaitlistDesk() {
                     }
                   }
                   return (
-                    <CommanderLayout title="The Board" backHref="/commander/dashboard">
-                      <div key={table.table_number} className="bg-[#3A3B3C]/50 rounded-xl p-3">
-                        <p className="text-sm font-medium text-white mb-2">
-                          Table {table.table_number}
-                          {table.game_type && <span className="text-[#B0B3B8]"> — {table.game_type}</span>}
-                        </p>
-                        <div className="flex gap-1.5 flex-wrap">
-                          {openSeats.map(seat => (
-                            <button key={seat}
-                              onClick={() => handleSeat(seatModal, table.table_number, seat)}
-                              className="w-10 h-10 rounded-lg bg-[#31A24C]/10 border border-[#31A24C]/30 flex items-center justify-center text-sm font-bold text-[#31A24C] active:bg-[#31A24C]/20">
-                              {seat}
-                            </button>
-                          ))}
-                        </div>
+                    <div key={table.table_number} className="bg-[#3A3B3C]/50 rounded-xl p-3">
+                      <p className="text-sm font-medium text-white mb-2">
+                        Table {table.table_number}
+                        {table.game_type && <span className="text-[#B0B3B8]"> — {table.game_type}</span>}
+                      </p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {openSeats.map(seat => (
+                          <button key={seat}
+                            onClick={() => handleSeat(seatModal, table.table_number, seat)}
+                            className="w-10 h-10 rounded-lg bg-[#31A24C]/10 border border-[#31A24C]/30 flex items-center justify-center text-sm font-bold text-[#31A24C] active:bg-[#31A24C]/20">
+                            {seat}
+                          </button>
+                        ))}
                       </div>
-                    </CommanderLayout>
+                    </div>
                   );
                 })}
               </div>
