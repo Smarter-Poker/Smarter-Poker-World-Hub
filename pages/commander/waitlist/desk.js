@@ -15,12 +15,8 @@ import {
   MessageSquare, Phone, X
 } from 'lucide-react';
 
-// Professional column colors — muted, classy tones (Bravo-style)
-const COL_COLORS = [
-  '#1B5E20', '#0D47A1', '#B71C1C', '#4A148C',
-  '#E65100', '#006064', '#880E4F', '#1A237E',
-  '#33691E', '#4E342E'
-];
+// Single solid header color — professional, uniform
+const HEADER_COLOR = '#1B5E20';
 
 export default function WaitlistDesk() {
   const router = useRouter();
@@ -224,11 +220,6 @@ export default function WaitlistDesk() {
           </div>
 
           <div style={S.topRight}>
-            <div style={S.countBoxes}>
-              {gameEntries.map(([, entries], i) => (
-                <span key={i} style={{ ...S.countBox, background: COL_COLORS[i % COL_COLORS.length] }}>{entries.length}</span>
-              ))}
-            </div>
             <span style={S.poweredBy}>Powered By<br /><strong>Club Commander</strong></span>
           </div>
         </div>
@@ -261,13 +252,12 @@ export default function WaitlistDesk() {
         ) : (
           <div style={S.grid}>
             {gameEntries.map(([gameLabel, entries], colIdx) => {
-              const color = COL_COLORS[colIdx % COL_COLORS.length];
               const tableNums = getTableNums(gameLabel);
 
               return (
                 <div key={gameLabel} style={S.column}>
                   {/* Colored Header */}
-                  <div style={{ ...S.colHeader, background: color }}>
+                  <div style={{ ...S.colHeader, background: HEADER_COLOR }}>
                     {gameLabel}
                   </div>
 
@@ -492,7 +482,8 @@ const S = {
   topCenter: { flex: 1, textAlign: 'center' },
   titleText: {
     fontSize: '22px', fontWeight: 800, color: '#D4AF37',
-    letterSpacing: '3px', textTransform: 'uppercase'
+    letterSpacing: '3px', textTransform: 'uppercase',
+    whiteSpace: 'nowrap'
   },
   topRight: {
     display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 auto'

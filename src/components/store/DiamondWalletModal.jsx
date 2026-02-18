@@ -112,30 +112,41 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                 }}
             />
 
-            {/* Modal */}
+            {/* Modal — Full Screen */}
             <div
                 style={{
                     position: 'fixed',
-                    bottom: 0, left: 0, right: 0,
-                    maxHeight: '85vh',
+                    top: 0, left: 0, right: 0, bottom: 0,
                     zIndex: 9999,
-                    background: 'linear-gradient(180deg, rgba(8, 20, 40, 0.98) 0%, rgba(4, 10, 24, 0.99) 100%)',
-                    borderRadius: '24px 24px 0 0',
-                    border: '1px solid rgba(0, 212, 255, 0.25)',
-                    borderBottom: 'none',
-                    boxShadow: '0 -8px 40px rgba(0, 212, 255, 0.15), 0 -2px 20px rgba(0, 0, 0, 0.4)',
+                    background: 'linear-gradient(180deg, rgba(8, 20, 40, 0.99) 0%, rgba(4, 10, 24, 1) 100%)',
                     display: 'flex',
                     flexDirection: 'column',
-                    animation: 'walletSlideUp 0.3s ease',
+                    animation: 'walletFadeScale 0.25s ease',
                     fontFamily: "'Inter', -apple-system, sans-serif",
                 }}
             >
-                {/* Drag handle */}
-                <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
-                    <div style={{
-                        width: 40, height: 4, borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.2)',
-                    }} />
+                {/* Close button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 8,
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            fontSize: 18,
+                            width: 36, height: 36,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'; }}
+                    >
+                        ✕
+                    </button>
                 </div>
 
                 {/* Header — Balance Display */}
@@ -370,9 +381,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
 
             {/* Keyframe animations */}
             <style jsx global>{`
-                @keyframes walletSlideUp {
-                    from { transform: translateY(100%); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
+                @keyframes walletFadeScale {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
                 }
                 @keyframes walletFadeIn {
                     from { opacity: 0; }

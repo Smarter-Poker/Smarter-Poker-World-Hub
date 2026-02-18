@@ -3,31 +3,51 @@
  * Shows a non-intrusive prompt to enable push notifications
  * - Only appears ONCE per user (60s after first login)
  * - Remembers the choice permanently via localStorage
+ * - Works across ALL pages: /hub/*, /commander/*, and all other routes
  * - Never reappears after Yes or No is clicked
  */
 import { useState, useEffect } from 'react';
 import { useOneSignal } from '../../contexts/OneSignalContext';
 
-const PROMPT_KEY = 'push_prompt_responded'; // universal key, no user suffix needed
+const PROMPT_KEY = 'push_prompt_responded'; // universal key — shared across all pages/routes
 
 export default function NotificationPrompt({ userId, onDismiss }) {
     const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = useOneSignal();
     const [visible, setVisible] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Check if user has already responded (Yes or No)
+    // ─── Guard: Check IMMEDIATELY on mount if user already responded ───
     useEffect(() => {
         if (typeof window === 'undefined' || !userId) return;
 
+        // Check localStorage first — this is the primary persistence mechanism
         const alreadyResponded = localStorage.getItem(PROMPT_KEY);
 
-        // Never show again if user already responded, is already subscribed, or permission denied
-        if (alreadyResponded || isSubscribed || permission === 'denied') return;
+        // If already responded, already subscribed, or permission denied → NEVER show
+        if (alreadyResponded) {
+            return; // Hard stop — user already made their choice
+        }
+        if (isSubscribed) {
+            // User is already subscribed — mark as responded so we never ask again
+            localStorage.setItem(PROMPT_KEY, `subscribed_${Date.now()}`);
+            return;
+        }
+        if (permission === 'denied') {
+            // Browser denied — mark as responded so we never ask again
+            localStorage.setItem(PROMPT_KEY, `denied_${Date.now()}`);
+            return;
+        }
 
         // Only show if OneSignal is initialized and user hasn't responded
         if (isInitialized && !isSubscribed && permission !== 'denied') {
             // 60 second delay after page load (first login experience)
-            const timer = setTimeout(() => setVisible(true), 60000);
+            const timer = setTimeout(() => {
+                // Double-check localStorage right before showing (race condition guard)
+                const check = localStorage.getItem(PROMPT_KEY);
+                if (!check) {
+                    setVisible(true);
+                }
+            }, 60000);
             return () => clearTimeout(timer);
         }
     }, [isInitialized, isSubscribed, permission, userId]);
@@ -40,12 +60,26 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         }
     }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);
 
-    const markResponded = () => {
-        localStorage.setItem(PROMPT_KEY, Date.now().toString());
+    // ─── Persistence: mark as responded in localStorage ───
+    const markResponded = (action) => {
+        const value = `${action}_${Date.now()}`;
+        try {
+            localStorage.setItem(PROMPT_KEY, value);
+            // Verify the write succeeded
+            const verify = localStorage.getItem(PROMPT_KEY);
+            if (!verify) {
+                console.error('[NotificationPrompt] localStorage write FAILED, retrying...');
+                localStorage.setItem(PROMPT_KEY, value);
+            }
+        } catch (err) {
+            console.error('[NotificationPrompt] localStorage error:', err);
+        }
     };
 
     const handleEnable = async () => {
         setLoading(true);
+        markResponded('yes'); // Mark FIRST, before async operations
+        setVisible(false);   // Hide immediately
         try {
             const success = await subscribe();
             if (success && userId) {
@@ -54,13 +88,11 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         } catch (error) {
             console.error('Failed to enable notifications:', error);
         }
-        markResponded();
-        setVisible(false);
         setLoading(false);
     };
 
     const handleDismiss = () => {
-        markResponded();
+        markResponded('no');
         setVisible(false);
         onDismiss?.();
     };

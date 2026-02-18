@@ -651,7 +651,7 @@ export default function UniversalHeader({
                             style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0 }}
                             title="View Transaction History"
                         >
-                            <span>💎</span>
+                            <img src="/images/diamond-icon.png" alt="💎" style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} />
                             <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
                                 {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                             </span>
