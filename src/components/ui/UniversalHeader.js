@@ -597,7 +597,7 @@ export default function UniversalHeader({
                             aria-label="Open Menu"
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                         >
-                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
                     <button

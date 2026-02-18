@@ -556,6 +556,9 @@ export default function MyClubsPage() {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
                 }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
             `}</style>
 
             <div style={{
@@ -634,7 +637,7 @@ export default function MyClubsPage() {
                                         margin: '0 auto 16px',
                                     }} />
                                     <div style={{ fontSize: 14, color: C.textSec }}>Loading Your Clubs...</div>
-                                    <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
                                 </div>
                             ) : followedVenues.length === 0 ? (
                                 <EmptyState onSearchFocus={focusSearch} />
@@ -770,7 +773,7 @@ export default function MyClubsPage() {
                                         margin: '0 auto 12px',
                                     }} />
                                     Searching...
-                                    <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
                                 </div>
                             )}
 
