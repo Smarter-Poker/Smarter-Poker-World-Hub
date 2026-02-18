@@ -3,7 +3,7 @@
  * Main dashboard view with stats cards and activity feed
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { getBankrollStats, calculateTravelROI } from '../../lib/bankroll/calculations';
@@ -64,7 +64,7 @@ export default function BankrollDashboard({ userId }) {
   const [isLoading, setIsLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
-  const [activeTripIds, setActiveTripIds] = useState(new Set());
+  const [activeTripIds, setActiveTripIds] = useState([]);
 
   // Filters
   const [locationFilter, setLocationFilter] = useState(null);
@@ -103,8 +103,7 @@ export default function BankrollDashboard({ userId }) {
       setLeakAnalysis(leakData);
 
       // Track active trip/series IDs for filtering Recent Activity
-      const activeIds = new Set();
-      tripsData.forEach(t => { if (t.status === 'active') activeIds.add(t.id); });
+      const activeIds = tripsData.filter(t => t.status === 'active').map(t => t.id);
       setActiveTripIds(activeIds);
     } catch (error) {
       console.error('Error loading bankroll data:', error);
@@ -145,6 +144,53 @@ export default function BankrollDashboard({ userId }) {
   const selectedLocationName = locationFilter
     ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
     : 'All Locations';
+
+  // Filter active-trip entries and group completed-trip entries into summary rows
+  const processedEntries = useMemo(() => {
+    if (!entries || entries.length === 0) return [];
+
+    // 1. Remove entries belonging to active trips
+    const filtered = entries.filter(e => !e.trip_id || !activeTripIds.includes(e.trip_id));
+
+    // 2. Group completed-trip entries into summary rows
+    const tripEntryMap = {};
+    const nonTripEntries = [];
+    filtered.forEach(e => {
+      if (e.trip_id) {
+        if (!tripEntryMap[e.trip_id]) tripEntryMap[e.trip_id] = [];
+        tripEntryMap[e.trip_id].push(e);
+      } else {
+        nonTripEntries.push(e);
+      }
+    });
+
+    // 3. Create summary rows for each completed trip
+    const summaryRows = Object.keys(tripEntryMap).map(tripId => {
+      const tripEnts = tripEntryMap[tripId];
+      const trip = trips.find(t => t.id === tripId);
+      let totalNet = 0;
+      for (let i = 0; i < tripEnts.length; i++) {
+        totalNet += tripEnts[i].net_result || 0;
+      }
+      const latestDate = tripEnts.reduce((latest, e) =>
+        e.entry_date > latest ? e.entry_date : latest, tripEnts[0].entry_date || '');
+      return {
+        id: 'trip-summary-' + tripId,
+        category: 'trip_summary',
+        entry_date: latestDate,
+        net_result: totalNet,
+        location_name: (trip && trip.location_name) || (tripEnts[0] && tripEnts[0].location_name) || '',
+        _tripName: (trip && trip.name) || 'Trip',
+        _sessionCount: tripEnts.length,
+        _isTripSummary: true,
+      };
+    });
+
+    // 4. Merge and sort by date (most recent first)
+    const merged = nonTripEntries.concat(summaryRows);
+    merged.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
+    return merged;
+  }, [entries, trips, activeTripIds]);
 
   return (
     <div style={styles.container}>
@@ -268,50 +314,9 @@ export default function BankrollDashboard({ userId }) {
             <h2 style={styles.sectionTitle}>Recent Activity</h2>
 
             {/* Ledger Timeline — flat chronological list */}
-            {/* Ledger Timeline — flat chronological list */}
             {/* Filter out active-trip entries; group completed-trip entries into summary rows */}
             <LedgerTimeline
-              entries={(() => {
-                // 1. Remove entries belonging to active trips
-                const filtered = entries.filter(e => !e.trip_id || !activeTripIds.has(e.trip_id));
-
-                // 2. Group completed-trip entries into summary rows
-                const tripEntries = {};
-                const nonTripEntries = [];
-                filtered.forEach(e => {
-                  if (e.trip_id) {
-                    if (!tripEntries[e.trip_id]) tripEntries[e.trip_id] = [];
-                    tripEntries[e.trip_id].push(e);
-                  } else {
-                    nonTripEntries.push(e);
-                  }
-                });
-
-                // 3. Create summary rows for each completed trip
-                const summaryRows = Object.entries(tripEntries).map(([tripId, tripEnts]) => {
-                  const trip = trips.find(t => t.id === tripId);
-                  let totalNet = 0;
-                  tripEnts.forEach(e => {
-                    totalNet += e.net_result || 0;
-                  });
-                  const latestDate = tripEnts.reduce((latest, e) =>
-                    e.entry_date > latest ? e.entry_date : latest, tripEnts[0]?.entry_date || '');
-                  return {
-                    id: `trip-summary-${tripId}`,
-                    category: 'trip_summary',
-                    entry_date: latestDate,
-                    net_result: totalNet,
-                    location_name: trip?.location_name || tripEnts[0]?.location_name || '',
-                    _tripName: trip?.name || 'Trip',
-                    _sessionCount: tripEnts.length,
-                    _isTripSummary: true,
-                  };
-                });
-
-                // 4. Merge and sort by date (most recent first)
-                return [...nonTripEntries, ...summaryRows]
-                  .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-              })()}
+              entries={processedEntries}
               isLoading={isLoading}
               onEdit={handleEditEntry}
               onDelete={handleDeleteEntry}
