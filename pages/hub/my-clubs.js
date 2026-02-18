@@ -580,13 +580,15 @@ export default function MyClubsPage() {
                 }
             }
 
-            // Merge with localStorage follows
+            // Merge with localStorage follows (only numeric venue IDs)
             try {
                 const stored = localStorage.getItem('followed-venues');
                 if (stored) {
                     const localIds = JSON.parse(stored);
                     localIds.forEach(id => {
-                        if (!venueIds.includes(String(id))) venueIds.push(String(id));
+                        const sid = String(id);
+                        // Only merge numeric IDs — social page IDs (sp-xxx) are not valid venue IDs
+                        if (/^\d+$/.test(sid) && !venueIds.includes(sid)) venueIds.push(sid);
                     });
                 }
             } catch { }
