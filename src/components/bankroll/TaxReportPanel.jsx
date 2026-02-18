@@ -4,10 +4,12 @@
  * Includes W-2G Document Vault for uploading and managing W-2G forms
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Calendar, AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Upload, Trash2, Eye, Plus, X, Check } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { FileText, Download, Calendar, AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Upload, Trash2, Eye, Plus, X, Check, Camera, Scan, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
+import DocumentCropper from './DocumentCropper';
+import LiveCameraScanner from './LiveCameraScanner';
 
 const W2G_TYPES = [
     { value: 'poker', label: 'Poker' },
@@ -32,6 +34,10 @@ export default function TaxReportPanel({ userId }) {
     const [uploadFile, setUploadFile] = useState(null);
     const [uploadMeta, setUploadMeta] = useState({ form_type: 'poker', source_description: '', amount: '' });
     const [dragOver, setDragOver] = useState(false);
+    const [showLiveCamera, setShowLiveCamera] = useState(false);
+    const [showCropper, setShowCropper] = useState(false);
+    const [rawImage, setRawImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     const fileInputRef = useRef(null);
 
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -60,7 +66,7 @@ export default function TaxReportPanel({ userId }) {
         }
     };
 
-    const handleFileSelect = (file) => {
+    const handleFileSelect = useCallback((file) => {
         if (!file) return;
         const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
         if (!validTypes.includes(file.type)) {
@@ -71,9 +77,55 @@ export default function TaxReportPanel({ userId }) {
             setError('File too large (max 10MB)');
             return;
         }
-        setUploadFile(file);
         setError(null);
-    };
+
+        // For images, open the DocumentCropper for edge detection + perspective warp
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setRawImage(ev.target.result);
+                setShowCropper(true);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // PDFs go straight through — no cropping needed
+            setUploadFile(file);
+        }
+    }, []);
+
+    // Handle cropped image from DocumentCropper
+    const handleCropConfirm = useCallback(async (croppedBase64) => {
+        setShowCropper(false);
+        setRawImage(null);
+        setImagePreview(croppedBase64);
+        const res = await fetch(croppedBase64);
+        const blob = await res.blob();
+        const file = new File([blob], 'w2g-cropped.jpg', { type: 'image/jpeg' });
+        setUploadFile(file);
+    }, []);
+
+    // Skip cropper — use original image
+    const handleCropSkip = useCallback(async () => {
+        setShowCropper(false);
+        if (rawImage) {
+            setImagePreview(rawImage);
+            const res = await fetch(rawImage);
+            const blob = await res.blob();
+            const file = new File([blob], 'w2g-original.jpg', { type: 'image/jpeg' });
+            setUploadFile(file);
+        }
+        setRawImage(null);
+    }, [rawImage]);
+
+    // Handle live camera capture — already cropped by OpenCV scanner
+    const handleLiveCapture = useCallback(async (capturedBase64) => {
+        setShowLiveCamera(false);
+        setImagePreview(capturedBase64);
+        const res = await fetch(capturedBase64);
+        const blob = await res.blob();
+        const file = new File([blob], 'w2g-scanned.jpg', { type: 'image/jpeg' });
+        setUploadFile(file);
+    }, []);
 
     const handleDrop = (e) => {
         e.preventDefault();
@@ -117,6 +169,9 @@ export default function TaxReportPanel({ userId }) {
             if (insertError) throw insertError;
 
             setUploadFile(null);
+            setImagePreview(null);
+            setShowLiveCamera(false);
+            setRawImage(null);
             setUploadMeta({ form_type: 'poker', source_description: '', amount: '' });
             setShowUploadForm(false);
             fetchW2gForms();
@@ -259,47 +314,90 @@ export default function TaxReportPanel({ userId }) {
                 {/* Upload Form */}
                 {showUploadForm && (
                     <div style={styles.uploadForm}>
-                        {/* Drop Zone */}
-                        <div
-                            style={{
-                                ...styles.dropZone,
-                                ...(dragOver ? styles.dropZoneActive : {}),
-                                ...(uploadFile ? styles.dropZoneHasFile : {}),
-                            }}
-                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                            onDragLeave={() => setDragOver(false)}
-                            onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*,.pdf"
-                                style={{ display: 'none' }}
-                                onChange={(e) => handleFileSelect(e.target.files[0])}
+                        {/* Live Camera Scanner */}
+                        {showLiveCamera && !uploadFile && (
+                            <LiveCameraScanner
+                                onCapture={handleLiveCapture}
+                                onClose={() => setShowLiveCamera(false)}
                             />
-                            {uploadFile ? (
-                                <div style={{ textAlign: 'center' }}>
-                                    <Check size={28} style={{ color: METAL.success, marginBottom: 6 }} />
-                                    <div style={{ color: '#fff', fontSize: 16, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                                        {uploadFile.name}
+                        )}
+
+                        {/* File/Camera Selection Area — only when no file selected and camera not active */}
+                        {!showLiveCamera && !uploadFile && (
+                            <div style={styles.w2gCaptureArea}>
+                                {/* Camera Scan Button */}
+                                <div
+                                    style={styles.w2gCameraBtn}
+                                    onClick={() => setShowLiveCamera(true)}
+                                >
+                                    <div style={styles.w2gCameraIcon}>
+                                        <Camera size={32} />
                                     </div>
-                                    <div style={{ color: METAL.textSecondary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif" }}>
-                                        {(uploadFile.size / 1024).toFixed(0)}KB — Tap to change
+                                    <p style={styles.w2gCameraText}>TAP TO SCAN W-2G</p>
+                                    <p style={styles.w2gCameraHint}>Auto-Detects And Isolates Document</p>
+                                </div>
+
+                                {/* Divider */}
+                                <div style={styles.w2gDivider}>
+                                    <span style={styles.w2gDividerLine} />
+                                    <span style={styles.w2gDividerText}>Or</span>
+                                    <span style={styles.w2gDividerLine} />
+                                </div>
+
+                                {/* File Upload Drop Zone */}
+                                <div
+                                    style={{
+                                        ...styles.dropZone,
+                                        ...(dragOver ? styles.dropZoneActive : {}),
+                                        padding: '20px',
+                                    }}
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                    onDragLeave={() => setDragOver(false)}
+                                    onDrop={handleDrop}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => handleFileSelect(e.target.files[0])}
+                                    />
+                                    <div style={{ textAlign: 'center' }}>
+                                        <Upload size={22} style={{ color: METAL.textSecondary, marginBottom: 4 }} />
+                                        <div style={{ color: METAL.textSecondary, fontSize: 15, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                            Upload from gallery or drop file
+                                        </div>
+                                        <div style={{ color: METAL.textMuted, fontSize: 13, fontFamily: "'Rajdhani', sans-serif" }}>
+                                            JPG, PNG, WEBP, PDF — Max 10MB
+                                        </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div style={{ textAlign: 'center' }}>
-                                    <Upload size={28} style={{ color: METAL.primary, marginBottom: 6 }} />
-                                    <div style={{ color: METAL.textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                                        Drop W-2G form here or tap to browse
+                            </div>
+                        )}
+
+                        {/* File Selected Preview */}
+                        {uploadFile && (
+                            <div style={styles.w2gFilePreview}>
+                                {imagePreview ? (
+                                    <img src={imagePreview} alt="W-2G Preview" style={styles.w2gPreviewImage} />
+                                ) : (
+                                    <div style={styles.w2gFileInfo}>
+                                        <Check size={28} style={{ color: METAL.success, marginBottom: 6 }} />
+                                        <div style={{ color: '#fff', fontSize: 16, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                            {uploadFile.name}
+                                        </div>
                                     </div>
-                                    <div style={{ color: METAL.textMuted, fontSize: 14, fontFamily: "'Rajdhani', sans-serif" }}>
-                                        JPG, PNG, WEBP, PDF — Max 10MB
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                                <button
+                                    onClick={() => { setUploadFile(null); setImagePreview(null); }}
+                                    style={styles.w2gChangeBtn}
+                                >
+                                    <RefreshCw size={12} />
+                                    CHANGE
+                                </button>
+                            </div>
+                        )}
 
                         {/* Metadata Inputs */}
                         <div style={styles.metaRow}>
@@ -563,6 +661,15 @@ export default function TaxReportPanel({ userId }) {
             )}
 
             <style jsx global>{ANIMATIONS}</style>
+
+            {/* Document Cropper Overlay — for gallery image uploads */}
+            {showCropper && rawImage && (
+                <DocumentCropper
+                    imageSrc={rawImage}
+                    onConfirm={handleCropConfirm}
+                    onCancel={handleCropSkip}
+                />
+            )}
         </div>
     );
 }
@@ -1016,6 +1123,101 @@ const styles = {
         fontWeight: 700,
         color: '#fff',
         letterSpacing: '0.06em',
+        cursor: 'pointer',
+    },
+
+    // ━━━ W-2G DOCUMENT SCANNER STYLES ━━━
+    w2gCaptureArea: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    w2gCameraBtn: {
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '24px 0',
+    },
+    w2gCameraIcon: {
+        width: 64,
+        height: 64,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,180,255,0.1)',
+        border: `2px dashed ${METAL.primary}`,
+        borderRadius: '50%',
+        color: METAL.primary,
+        marginBottom: 12,
+    },
+    w2gCameraText: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        letterSpacing: '0.12em',
+        color: '#fff',
+        margin: 0,
+    },
+    w2gCameraHint: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: 4,
+    },
+    w2gDivider: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        padding: '0 24px',
+        margin: '4px 0 12px',
+    },
+    w2gDividerLine: {
+        flex: 1,
+        height: 1,
+        background: 'rgba(255,255,255,0.1)',
+    },
+    w2gDividerText: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.3)',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+    },
+    w2gFilePreview: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        padding: '16px',
+        border: `2px solid ${METAL.success}`,
+        borderRadius: 12,
+        background: 'rgba(49,162,76,0.06)',
+        marginBottom: 16,
+    },
+    w2gPreviewImage: {
+        maxWidth: '100%',
+        maxHeight: 200,
+        objectFit: 'contain',
+        borderRadius: 8,
+        border: `2px solid ${METAL.highlight}`,
+    },
+    w2gFileInfo: {
+        textAlign: 'center',
+    },
+    w2gChangeBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 14px',
+        background: 'rgba(255,255,255,0.1)',
+        border: `1px solid ${METAL.highlight}`,
+        borderRadius: 6,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        fontWeight: 600,
+        letterSpacing: '0.08em',
+        color: 'rgba(255,255,255,0.6)',
         cursor: 'pointer',
     },
 };
