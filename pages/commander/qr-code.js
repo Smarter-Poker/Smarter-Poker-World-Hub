@@ -21,7 +21,7 @@ export default function VenueQRCodePage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
       return;
     }
 
@@ -38,7 +38,7 @@ export default function VenueQRCodePage() {
       const checkInUrl = `${baseUrl}/hub/commander/check-in/${staffData.venue_id}`;
       setQrUrl(checkInUrl);
     } catch (err) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
     }
   }, [router]);
 

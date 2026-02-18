@@ -36,13 +36,13 @@ export default function TournamentSettingsPage() {
 
     useEffect(() => {
         const storedStaff = localStorage.getItem('commander_staff');
-        if (!storedStaff) { router.push('/commander/login'); return; }
+        if (!storedStaff) { router.push('/commander/login').catch(() => {}); return; }
         try {
             const staffData = JSON.parse(storedStaff);
-            if (!staffData.venue_id) { router.push('/commander/login'); return; }
+            if (!staffData.venue_id) { router.push('/commander/login').catch(() => {}); return; }
             setStaff(staffData);
             setVenue({ id: staffData.venue_id, name: staffData.venue_name });
-        } catch { router.push('/commander/login'); }
+        } catch { router.push('/commander/login').catch(() => {}); }
     }, [router]);
 
     async function useTemplate(template) {

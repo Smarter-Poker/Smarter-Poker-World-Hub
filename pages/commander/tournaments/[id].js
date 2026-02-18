@@ -60,7 +60,7 @@ export default function TournamentDetailPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
       return;
     }
 
@@ -68,7 +68,7 @@ export default function TournamentDetailPage() {
       const staffData = JSON.parse(storedStaff);
       setStaff(staffData);
     } catch (err) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
     }
   }, [router]);
 

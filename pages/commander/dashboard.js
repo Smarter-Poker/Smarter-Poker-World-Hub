@@ -146,12 +146,12 @@ export default function CommanderDashboard() {
   // Auth guard
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login'); return; }
+    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
     try {
       const data = JSON.parse(stored);
-      if (!data.venue_id) { router.push('/commander/login'); return; }
+      if (!data.venue_id) { router.push('/commander/login').catch(() => {}); return; }
       setStaff(data);
-    } catch { router.push('/commander/login'); }
+    } catch { router.push('/commander/login').catch(() => {}); }
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
@@ -200,7 +200,7 @@ export default function CommanderDashboard() {
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    router.push('/commander/login');
+    router.push('/commander/login').catch(() => {});
   };
 
   const handleFeatureClick = (feat) => {

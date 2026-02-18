@@ -44,13 +44,13 @@ export default function MembersPage() {
     // Auth
     useEffect(() => {
         const stored = localStorage.getItem('commander_staff');
-        if (!stored) { router.push('/commander/login'); return; }
+        if (!stored) { router.push('/commander/login').catch(() => {}); return; }
         try {
             const data = JSON.parse(stored);
             setStaff(data);
             setVenueId(data.venue_id);
             setVenueName(data.venue_name || '');
-        } catch { router.push('/commander/login'); }
+        } catch { router.push('/commander/login').catch(() => {}); }
     }, [router]);
 
     // Fetch members

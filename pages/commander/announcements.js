@@ -34,14 +34,14 @@ export default function CommanderAnnouncementsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login');
+        router.push('/commander/login').catch(() => {});
         return;
       }
       setStaff(staffData);
@@ -50,7 +50,7 @@ export default function CommanderAnnouncementsPage() {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
       }
     } catch (err) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
     }
   }, [router]);
 

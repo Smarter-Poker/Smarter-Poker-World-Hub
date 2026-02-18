@@ -55,13 +55,13 @@ export default function DailyPresetsPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login'); return; }
+    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login'); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
       setStaff(s);
       setVenueName(s.venue_name || '');
-    } catch { router.push('/commander/login'); }
+    } catch { router.push('/commander/login').catch(() => {}); }
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);

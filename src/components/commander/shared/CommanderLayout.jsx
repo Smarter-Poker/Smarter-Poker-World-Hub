@@ -127,7 +127,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    router.push('/commander/login');
+    router.push('/commander/login').catch(() => {});
   };
 
   const handleNavClick = (item) => {

@@ -387,7 +387,7 @@ export default function PromotionsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
       return;
     }
     try {
@@ -395,7 +395,7 @@ export default function PromotionsPage() {
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch (err) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
     }
   }, [router]);
 

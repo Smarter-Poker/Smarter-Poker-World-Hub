@@ -407,20 +407,20 @@ export default function IncidentsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login');
+        router.push('/commander/login').catch(() => {});
         return;
       }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch {
-      router.push('/commander/login');
+      router.push('/commander/login').catch(() => {});
     }
   }, [router]);
 

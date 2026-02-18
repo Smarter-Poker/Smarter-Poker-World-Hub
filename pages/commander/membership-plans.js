@@ -48,13 +48,13 @@ export default function MembershipPlansPage() {
 
   useEffect(() => {
     const s = localStorage.getItem('commander_staff');
-    if (!s) return router.push('/commander/login');
+    if (!s) return router.push('/commander/login').catch(() => {});
     try {
       const sd = JSON.parse(s);
-      if (!sd.venue_id) return router.push('/commander/login');
+      if (!sd.venue_id) return router.push('/commander/login').catch(() => {});
       setStaff(sd);
       setVenueId(sd.venue_id);
-    } catch { router.push('/commander/login'); }
+    } catch { router.push('/commander/login').catch(() => {}); }
   }, [router]);
 
   useEffect(() => {
