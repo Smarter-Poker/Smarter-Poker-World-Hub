@@ -482,16 +482,16 @@ export default function SettingsPage() {
     };
 
     const sections = [
-        { id: 'account', label: 'Account', icon: '👤' },
+        { id: 'account', label: 'Account', icon: '' },
         { id: 'notifications', label: 'Notifications', icon: '' },
-        { id: 'privacy', label: 'Privacy', icon: '🔒' },
-        { id: 'appearance', label: 'Appearance', icon: '🎨' },
-        { id: 'display', label: 'Display & Sound', icon: '🎵' },
+        { id: 'privacy', label: 'Privacy', icon: '' },
+        { id: 'appearance', label: 'Appearance', icon: '' },
+        { id: 'display', label: 'Display & Sound', icon: '' },
         { id: 'gameplay', label: 'Gameplay', icon: '' },
-        { id: 'promos', label: 'Promo Codes', icon: '🎁' },
-        { id: 'billing', label: 'Billing & Payments', icon: '💳' },
-        { id: 'blocked', label: 'Blocked Users', icon: '🚫' },
-        { id: 'data', label: 'Data Export', icon: '📦' },
+        { id: 'promos', label: 'Promo Codes', icon: '' },
+        { id: 'billing', label: 'Billing & Payments', icon: '' },
+        { id: 'blocked', label: 'Blocked Users', icon: '' },
+        { id: 'data', label: 'Data Export', icon: '' },
         { id: 'delete', label: 'Delete Account', icon: '' },
     ];
 
@@ -612,7 +612,7 @@ export default function SettingsPage() {
                                                             src={defaultPlaceholder}
                                                             alt="Default Avatar"
                                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '👤'; }}
+                                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = ''; }}
                                                         />
                                                     )}
                                                 </div>
@@ -1144,7 +1144,7 @@ export default function SettingsPage() {
                         {/* Display & Sound Section */}
                         {activeSection === 'display' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>🎵 Display & Sound</h2>
+                                <h2 style={styles.sectionTitle}>Display & Sound</h2>
 
                                 <div style={styles.settingGroup}>
                                     <h3 style={styles.groupTitle}>Display</h3>
@@ -1206,7 +1206,7 @@ export default function SettingsPage() {
                         {/* Billing & Payments Section */}
                         {activeSection === 'billing' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>💳 Billing & Payments</h2>
+                                <h2 style={styles.sectionTitle}>Billing & Payments</h2>
 
                                 <div style={styles.settingGroup}>
                                     <h3 style={styles.groupTitle}>Payment Methods</h3>
@@ -1274,7 +1274,7 @@ export default function SettingsPage() {
                         {/* Promo Code Section */}
                         {activeSection === 'promos' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>🎁 Redeem Promo Code</h2>
+                                <h2 style={styles.sectionTitle}>Redeem Promo Code</h2>
 
                                 <div style={{
                                     ...styles.card,
@@ -1331,7 +1331,7 @@ export default function SettingsPage() {
                                                 whiteSpace: 'nowrap',
                                             }}
                                         >
-                                            {promoLoading ? '⏳ Checking...' : '🎁 Redeem'}
+                                            {promoLoading ? 'Checking...' : 'Redeem'}
                                         </button>
                                     </div>
 
@@ -1350,7 +1350,7 @@ export default function SettingsPage() {
                                             animation: 'fadeIn 0.3s ease',
                                         }}>
                                             <span style={{ fontSize: 24 }}>
-                                                {promoResult.success ? '🎉' : '❌'}
+                                                {promoResult.success ? '' : ''}
                                             </span>
                                             <div>
                                                 <div style={{
@@ -1435,7 +1435,7 @@ export default function SettingsPage() {
                         {/* Blocked Users Section */}
                         {activeSection === 'blocked' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>🚫 Blocked Users</h2>
+                                <h2 style={styles.sectionTitle}>Blocked Users</h2>
 
                                 <div style={styles.settingGroup}>
                                     <p style={styles.infoText}>
@@ -1464,7 +1464,7 @@ export default function SettingsPage() {
                         {/* Data Export Section */}
                         {activeSection === 'data' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>📦 Data Export</h2>
+                                <h2 style={styles.sectionTitle}>Data Export</h2>
 
                                 <div style={styles.settingGroup}>
                                     <p style={styles.infoText}>
@@ -1474,7 +1474,7 @@ export default function SettingsPage() {
                                         onClick={exportData}
                                         style={styles.exportButton}
                                     >
-                                        📥 Request Data Export
+                                        Request Data Export
                                     </button>
                                     <p style={styles.helperText}>
                                         You'll Receive An Email With A Download Link When Your Data Is Ready (Usually Within 24 Hours).
@@ -1486,7 +1486,7 @@ export default function SettingsPage() {
                         {/* Delete Account Section */}
                         {activeSection === 'delete' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}> Delete Account</h2>
+                                <h2 style={styles.sectionTitle}>Delete Account</h2>
 
                                 <div style={styles.dangerZone}>
                                     <div style={styles.warningBox}>
@@ -1846,7 +1846,7 @@ export default function SettingsPage() {
                                         textAlign: 'center',
                                         padding: '20px 0',
                                     }}>
-                                        <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                                        <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                         <h4 style={{ color: '#FFD700', fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
                                             50% Off For 3 Months!
                                         </h4>
@@ -1937,7 +1937,7 @@ export default function SettingsPage() {
                             {/* Step 3a: Cancellation Confirmed */}
                             {cancelStep === 'confirmed' && (
                                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>😔</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                     <h4 style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
                                         Your Membership Has Been Cancelled
                                     </h4>
@@ -1968,7 +1968,7 @@ export default function SettingsPage() {
                             {/* Step 3b: Retention Success */}
                             {cancelStep === 'retained' && (
                                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                     <h4 style={{ color: '#FFD700', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
                                         Discount Applied!
                                     </h4>
@@ -2059,7 +2059,7 @@ export default function SettingsPage() {
                         width: '100%',
                         border: '1px solid rgba(0, 212, 255, 0.2)'
                     }}>
-                        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>🔐 Enable Two-Factor Authentication</h2>
+                        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>Enable Two-Factor Authentication</h2>
                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
                             Add An Extra Layer Of Security To Your Account With 2FA.
                         </p>
@@ -2244,7 +2244,7 @@ export default function SettingsPage() {
                         overflow: 'auto',
                         border: '1px solid rgba(0, 212, 255, 0.2)'
                     }}>
-                        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>💻 Connected Devices</h2>
+                        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>Connected Devices</h2>
                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
                             Manage Devices That Have Access To Your Account
                         </p>
@@ -2256,7 +2256,7 @@ export default function SettingsPage() {
                                 padding: 40,
                                 textAlign: 'center'
                             }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}>📱</div>
+                                <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                 <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
                                     No Session Data Available. This Feature Tracks Active Login Sessions.
                                 </p>
