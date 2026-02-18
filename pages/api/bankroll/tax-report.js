@@ -61,8 +61,25 @@ export default async function handler(req, res) {
             .gte('start_date', startDate)
             .lte('end_date', endDate);
 
+        // Fetch uploaded W-2G forms for the year
+        const { data: uploadedW2g } = await supabase
+            .from('w2g_forms')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('tax_year', parseInt(year))
+            .order('upload_date', { ascending: true });
+
         // Calculate totals
         const report = calculateTaxReport(sessions || [], trips || [], year);
+
+        // Merge uploaded W-2G forms into report
+        report.uploadedW2gForms = (uploadedW2g || []).map(f => ({
+            date: f.upload_date || f.created_at?.split('T')[0],
+            type: f.form_type,
+            description: f.source_description || f.file_name,
+            amount: f.amount ? parseFloat(f.amount) : null,
+            fileUrl: f.file_url,
+        }));
 
         if (format === 'json') {
             return res.status(200).json(report);
@@ -244,6 +261,31 @@ function generateTaxPDF(report, user) {
             theme: 'grid',
             styles: { fontSize: 9 },
             headStyles: { fillColor: [180, 50, 50] },
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Uploaded W-2G Forms
+    if (report.uploadedW2gForms && report.uploadedW2gForms.length > 0) {
+        if (yPos > 240) { doc.addPage(); yPos = 20; }
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Uploaded W-2G Forms', 14, yPos);
+        yPos += 8;
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Date', 'Type', 'Description', 'Amount']],
+            body: report.uploadedW2gForms.map(f => [
+                f.date || '—',
+                f.type || '—',
+                (f.description || '—').substring(0, 30),
+                f.amount ? `$${f.amount.toLocaleString()}` : '—'
+            ]),
+            theme: 'grid',
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [35, 116, 225] },
         });
 
         yPos = doc.lastAutoTable.finalY + 15;
