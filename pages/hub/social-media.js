@@ -2631,7 +2631,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const openSeats = game.max_seats - occupiedCount;
 
                                 // Arc-length parameterized ellipse: equal visual spacing
-                                const rx = 44, ry = 22, cxE = 50, cyE = 50;
+                                const rx = 47, ry = 22, cxE = 50, cyE = 50;
                                 const STEPS = 360;
                                 const startAngle = Math.PI / 2; // dealer at bottom (90°)
                                 const cumArc = [0];
@@ -2658,7 +2658,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const dealerTop = allPos[0].top;
                                 const dealerLeft = allPos[0].left;
                                 const seatPositions = allPos.slice(1);
-
+                                // Clamp top seat to not float above rail
+                                seatPositions.forEach(p => { const t = parseFloat(p.top); if (t < 30) p.top = '30%'; });
 
 
 
@@ -2745,9 +2746,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 const isLeftSide = leftPct < 25;
                                                 const isRightSide = leftPct > 75;
                                                 const badgeTransform = isLeftSide
-                                                    ? 'translateY(-50%)'
+                                                    ? 'translate(-17px, -50%)'
                                                     : isRightSide
-                                                        ? 'translate(-100%, -50%)'
+                                                        ? 'translate(calc(-100% + 17px), -50%)'
                                                         : 'translate(-50%, -50%)';
                                                 const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
@@ -2782,10 +2783,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                         position: 'absolute', top: pos.top, left: pos.left,
                                                         transform: badgeTransform, zIndex: 2,
                                                         display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
-                                                        background: 'rgba(0,0,0,0.7)',
+                                                        background: 'rgba(36,37,38,0.9)',
                                                         borderRadius: 10,
                                                         padding: '4px 8px 4px 4px',
-                                                        border: `1.5px solid ${isOccupied ? 'rgba(96,165,250,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                                                        border: `1.5px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
                                                         backdropFilter: 'blur(6px)',
                                                         minWidth: 48,
                                                     }}>
@@ -2794,9 +2795,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                             width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
-                                                                ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)')
-                                                                : 'rgba(255,255,255,0.08)',
-                                                            border: `1.5px solid ${isOccupied ? '#60a5fa' : 'rgba(255,255,255,0.15)'}`,
+                                                                ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
+                                                                : 'rgba(255,255,255,0.06)',
+                                                            border: `1.5px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
                                                             overflow: 'hidden',
                                                         }}>
                                                             {isOccupied ? (
@@ -2806,14 +2807,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                                     <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                                 )
                                                             ) : (
-                                                                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{seat.number}</span>
+                                                                <span style={{ fontSize: 11, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
                                                             )}
                                                         </div>
                                                         {/* Name + Timer text */}
                                                         <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                             <div style={{
                                                                 fontSize: 10, fontWeight: 600, lineHeight: 1.2,
-                                                                color: isOccupied ? '#93c5fd' : 'rgba(255,255,255,0.3)',
+                                                                color: isOccupied ? '#E4E6EB' : '#B0B3B8',
                                                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                                                 maxWidth: 72,
                                                             }}>
@@ -3073,7 +3074,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
                         // Arc-length parameterized ellipse: equal visual spacing
-                        const rx = 44, ry = 22, cxE = 50, cyE = 50;
+                        const rx = 47, ry = 22, cxE = 50, cyE = 50;
                         const STEPS = 360;
                         const startAngle = Math.PI / 2; // dealer at bottom (90°)
                         const cumArc = [0];
@@ -3100,6 +3101,8 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const dealerTop = allPos[0].top;
                         const dealerLeft = allPos[0].left;
                         const seatPositions = allPos.slice(1);
+                        // Clamp top seat to not float above rail
+                        seatPositions.forEach(p => { const t = parseFloat(p.top); if (t < 30) p.top = '30%'; });
 
 
                         return (
@@ -3216,9 +3219,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         const isLeftSide = leftPct < 25;
                                         const isRightSide = leftPct > 75;
                                         const badgeTransform = isLeftSide
-                                            ? 'translateY(-50%)'
+                                            ? 'translate(-17px, -50%)'
                                             : isRightSide
-                                                ? 'translate(-100%, -50%)'
+                                                ? 'translate(calc(-100% + 17px), -50%)'
                                                 : 'translate(-50%, -50%)';
                                         const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
@@ -3248,21 +3251,21 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             }
                                         }
 
-                                        // Badge border color
+                                        // Badge border color (Facebook dark)
                                         const badgeBorder = isMe
                                             ? 'rgba(74,222,128,0.6)'
                                             : isOccupied
-                                                ? 'rgba(96,165,250,0.5)'
+                                                ? 'rgba(24,119,242,0.5)'
                                                 : canClick
                                                     ? 'rgba(34,197,94,0.3)'
-                                                    : 'rgba(255,255,255,0.12)';
+                                                    : 'rgba(62,64,66,0.6)';
 
                                         return (
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
                                                 transform: badgeTransform, zIndex: 2,
                                                 display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
-                                                background: 'rgba(0,0,0,0.7)',
+                                                background: 'rgba(36,37,38,0.9)',
                                                 borderRadius: 10,
                                                 padding: '4px 8px 4px 4px',
                                                 border: `1.5px solid ${badgeBorder}`,
@@ -3279,11 +3282,11 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                                                         : isOccupied
-                                                            ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)')
+                                                            ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
                                                             : canClick
                                                                 ? 'rgba(34,197,94,0.15)'
-                                                                : 'rgba(255,255,255,0.08)',
-                                                    border: `1.5px solid ${isMe ? '#4ade80' : isOccupied ? '#60a5fa' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`,
+                                                                : 'rgba(255,255,255,0.06)',
+                                                    border: `1.5px solid ${isMe ? '#4ade80' : isOccupied ? '#1877F2' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(62,64,66,0.5)'}`,
                                                     overflow: 'hidden',
                                                 }}>
                                                     {isOccupied ? (
@@ -3295,7 +3298,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                             <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                         )
                                                     ) : (
-                                                        <span style={{ fontSize: canClick ? 14 : 11, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                                                        <span style={{ fontSize: canClick ? 14 : 11, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
                                                             {canClick ? '+' : seat.number}
                                                         </span>
                                                     )}
@@ -3304,7 +3307,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                     <div style={{
                                                         fontSize: 10, fontWeight: 600, lineHeight: 1.2,
-                                                        color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.3)',
+                                                        color: isMe ? '#4ade80' : isOccupied ? '#E4E6EB' : canClick ? 'rgba(34,197,94,0.5)' : '#B0B3B8',
                                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                                         maxWidth: 72,
                                                     }}>
