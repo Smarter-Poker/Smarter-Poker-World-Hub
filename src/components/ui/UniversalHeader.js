@@ -642,24 +642,16 @@ export default function UniversalHeader({
                     <span className="brand-text">Smarter.Poker</span>
                 </div>
 
-                {/* CENTER: Diamond Wallet */}
+                {/* CENTER: Diamond Wallet Icon */}
                 <div className="header-center">
-                    {/* Diamond balance — click to open wallet modal */}
-                    <div className="diamond-wallet">
-                        <button
-                            onClick={() => setIsWalletOpen(true)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0 }}
-                            title="View Transaction History"
-                        >
-                            <img src="/images/diamond-icon.png" alt="💎" style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} />
-                            <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
-                                {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
-                            </span>
-                        </button>
-                        <span onClick={() => router.push('/hub/diamond-store')} style={{
-                            fontWeight: 700, cursor: 'pointer', color: 'white'
-                        }}>+</span>
-                    </div>
+                    <button
+                        onClick={() => setIsWalletOpen(true)}
+                        className="orb-btn"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        title="Diamond Wallet"
+                    >
+                        <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </button>
                 </div>
 
                 {/* RIGHT: Orb Icons */}

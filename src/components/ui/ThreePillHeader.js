@@ -16,6 +16,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useLiveHelp } from '../../world/components/Geeves';
+import DiamondWalletModal from '../store/DiamondWalletModal';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -35,6 +36,7 @@ export default function ThreePillHeader({
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
 
@@ -247,40 +249,23 @@ export default function ThreePillHeader({
                         }}>
                             Smarter.Poker
                         </span>
-                        <Link href="/hub/diamond-store" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            background: 'rgba(0, 212, 255, 0.12)',
-                            border: '1px solid rgba(0, 212, 255, 0.4)',
-                            padding: '10px 18px',
-                            borderRadius: 24,
-                            textDecoration: 'none',
-                            color: 'white',
-                            fontWeight: 700,
-                            fontSize: 16,
-                        }} onClick={(e) => {
-                            if (stats.diamonds >= 1000) {
-                                e.preventDefault();
-                                setShowFullDiamonds(!showFullDiamonds);
-                            }
-                        }}>
-                            <img src="/images/diamond-icon.png" alt="💎" style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} />
-                            <span title={stats.diamonds.toLocaleString() + ' diamonds'}>
-                                {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
-                            </span>
-                            <span style={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: '50%',
-                                background: 'rgba(0, 212, 255, 0.35)',
+                        <button
+                            onClick={() => setIsWalletOpen(true)}
+                            style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: 14,
-                                fontWeight: 700,
-                            }}>+</span>
-                        </Link>
+                                width: 40,
+                                height: 40,
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: 0,
+                            }}
+                            title="Diamond Wallet"
+                        >
+                            <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        </button>
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════════════
@@ -390,6 +375,12 @@ export default function ThreePillHeader({
 
             {/* Spacer to push content below fixed header */}
             <div style={{ height: headerHeight }} />
+
+            <DiamondWalletModal
+                isOpen={isWalletOpen}
+                onClose={() => setIsWalletOpen(false)}
+                onBuyClick={() => router.push('/hub/diamond-store')}
+            />
         </>
     );
 }
