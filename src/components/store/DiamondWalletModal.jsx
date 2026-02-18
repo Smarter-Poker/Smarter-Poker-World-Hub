@@ -13,34 +13,66 @@ import { getAuthUser } from '../../lib/authUtils';
 // Transaction type config — icons, labels, colors
 // ─────────────────────────────────────────────────────────────────────────────
 const TX_TYPES = {
-    purchase: { icon: '💎', label: 'Purchase', color: '#22c55e' },
-    refund: { icon: '🔄', label: 'Refund', color: '#f59e0b' },
+    // Purchases & Spending
+    purchase: { icon: '🛒', label: 'Purchase', color: '#ef4444' },
+    feature_unlock: { icon: '🔓', label: 'Feature Unlock', color: '#f97316' },
+    game_cost: { icon: '🎮', label: 'Game Entry', color: '#ef4444' },
+    arcade_entry: { icon: '🕹️', label: 'Arcade Entry', color: '#ef4444' },
+    // Bonuses & Rewards
+    bonus: { icon: '🎁', label: 'Bonus', color: '#a855f7' },
     signup_bonus: { icon: '🎉', label: 'Welcome Bonus', color: '#a855f7' },
     daily_bonus: { icon: '📅', label: 'Daily Bonus', color: '#3b82f6' },
+    daily_login: { icon: '📅', label: 'Daily Login', color: '#3b82f6' },
+    daily_trivia: { icon: '🧩', label: 'Daily Trivia', color: '#8b5cf6' },
     streak_reward: { icon: '🔥', label: 'Streak Reward', color: '#ff6600' },
+    vip_reward: { icon: '👑', label: 'VIP Reward', color: '#eab308' },
+    vip_stipend: { icon: '👑', label: 'VIP Stipend', color: '#eab308' },
+    // Achievements & Challenges
     achievement: { icon: '🏆', label: 'Achievement', color: '#f59e0b' },
     challenge: { icon: '⚡', label: 'Challenge', color: '#06b6d4' },
+    // Competition
     tournament_prize: { icon: '🥇', label: 'Tournament Prize', color: '#eab308' },
     tournament_refund: { icon: '🔄', label: 'Tournament Refund', color: '#94a3b8' },
     pvp_win: { icon: '⚔️', label: 'PvP Win', color: '#22c55e' },
     pvp_refund: { icon: '🔄', label: 'PvP Refund', color: '#94a3b8' },
-    arcade_entry: { icon: '🎮', label: 'Arcade Entry', color: '#ef4444' },
+    game_reward: { icon: '🎯', label: 'Game Reward', color: '#22c55e' },
     trivia_reward: { icon: '🧠', label: 'Trivia Reward', color: '#8b5cf6' },
-    vip_reward: { icon: '👑', label: 'VIP Reward', color: '#eab308' },
+    // Social & Community
+    social_post: { icon: '📝', label: 'Social Post', color: '#ec4899' },
+    follow: { icon: '👤', label: 'Follow Reward', color: '#06b6d4' },
+    reaction: { icon: '❤️', label: 'Reaction Reward', color: '#f43f5e' },
+    comment: { icon: '💬', label: 'Comment Reward', color: '#06b6d4' },
+    share: { icon: '🔗', label: 'Share Reward', color: '#3b82f6' },
+    referral: { icon: '🤝', label: 'Referral Bonus', color: '#10b981' },
+    // Profile & Content
+    profile_complete: { icon: '✅', label: 'Profile Bonus', color: '#22c55e' },
+    profile_pic: { icon: '📸', label: 'Profile Pic Bonus', color: '#06b6d4' },
+    video_watch: { icon: '🎬', label: 'Video Watch', color: '#8b5cf6' },
+    video_favorite: { icon: '⭐', label: 'Video Favorite', color: '#eab308' },
+    hendonmob_link: { icon: '🔗', label: 'HendonMob Link', color: '#10b981' },
+    venue_review: { icon: '📍', label: 'Venue Review', color: '#f59e0b' },
+    promo_code: { icon: '🎟️', label: 'Promo Code', color: '#a855f7' },
+    // Other
+    refund: { icon: '🔄', label: 'Refund', color: '#94a3b8' },
     adjustment: { icon: '⚙️', label: 'Adjustment', color: '#94a3b8' },
 };
 
 const FILTER_OPTIONS = [
     { value: 'all', label: 'All' },
     { value: 'purchase', label: 'Purchases' },
-    { value: 'earned', label: 'Earned' },  // groups: daily, streak, achievement, challenge, tournament, pvp, trivia, vip
-    { value: 'spent', label: 'Spent' },   // groups: arcade_entry
+    { value: 'earned', label: 'Earned' },
+    { value: 'spent', label: 'Spent' },
     { value: 'refund', label: 'Refunds' },
 ];
 
 const EARNED_TYPES = [
-    'signup_bonus', 'daily_bonus', 'streak_reward', 'achievement',
-    'challenge', 'tournament_prize', 'pvp_win', 'trivia_reward', 'vip_reward'
+    'bonus', 'signup_bonus', 'daily_bonus', 'daily_login', 'daily_trivia',
+    'streak_reward', 'achievement', 'challenge',
+    'tournament_prize', 'pvp_win', 'game_reward', 'trivia_reward',
+    'vip_reward', 'vip_stipend',
+    'social_post', 'follow', 'reaction', 'comment', 'share', 'referral',
+    'profile_complete', 'profile_pic', 'video_watch', 'video_favorite',
+    'hendonmob_link', 'venue_review', 'promo_code'
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,11 +122,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
     }, [isOpen, fetchTransactions]);
 
     // Client-side filter for earned/spent groups
+    // NOTE: DB uses 'transaction_type' column, normalize for backward compat
     const filteredTx = transactions.filter(tx => {
+        const txType = tx.transaction_type || tx.type;
         if (filter === 'all') return true;
-        if (filter === 'earned') return EARNED_TYPES.includes(tx.type);
-        if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(tx.type);
-        return tx.type === filter;
+        if (filter === 'earned') return EARNED_TYPES.includes(txType);
+        if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
+        return txType === filter;
     });
 
     if (!isOpen) return null;
@@ -273,7 +307,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                         </div>
                     ) : (
                         filteredTx.map(tx => {
-                            const config = TX_TYPES[tx.type] || TX_TYPES.adjustment;
+                            const txType = tx.transaction_type || tx.type;
+                            const config = TX_TYPES[txType] || TX_TYPES.adjustment;
                             const isPositive = tx.amount >= 0;
                             const dt = new Date(tx.created_at);
 

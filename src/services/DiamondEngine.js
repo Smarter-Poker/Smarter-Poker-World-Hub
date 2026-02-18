@@ -1,6 +1,7 @@
 /**
- * 💎 DIAMOND ENGINE - Supabase Edition
- * Real backend integration for Memory Matrix economy
+ * 💎 DIAMOND ENGINE - Supabase Production Edition
+ * Uses profiles.diamonds as the authoritative balance source
+ * Uses add_diamonds_to_balance / deduct_diamonds RPCs for atomic operations
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -28,49 +29,21 @@ class DiamondEngineSupabase {
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
             );
         }
-
-        // Initialize user diamonds if not exists
-        if (userId) {
-            await this._ensureUserDiamonds();
-        }
     }
 
     /**
-     * Ensure user has diamond record
-     */
-    async _ensureUserDiamonds() {
-        const { data, error } = await this.supabase
-            .from('user_diamonds')
-            .select('balance')
-            .eq('user_id', this.userId)
-            .single();
-
-        if (error && error.code === 'PGRST116') {
-            // User doesn't exist, create with 100 starting diamonds
-            await this.supabase
-                .from('user_diamonds')
-                .insert({
-                    user_id: this.userId,
-                    balance: 100,
-                    lifetime_earned: 100
-                });
-        }
-    }
-
-    /**
-     * Get current diamond balance
+     * Get current diamond balance from profiles table (authoritative source)
      */
     async getBalance() {
         if (!this.userId) {
-            // Guest user - use localStorage fallback
             return this._getLocalBalance();
         }
 
         try {
             const { data, error } = await this.supabase
-                .from('user_diamonds')
-                .select('balance')
-                .eq('user_id', this.userId)
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', this.userId)
                 .single();
 
             if (error) {
@@ -78,8 +51,9 @@ class DiamondEngineSupabase {
                 return this._getLocalBalance();
             }
 
-            this._cachedBalance = data.balance;
-            return data.balance;
+            const balance = data?.diamonds || 0;
+            this._cachedBalance = balance;
+            return balance;
         } catch (err) {
             console.error('Balance fetch failed:', err);
             return this._getLocalBalance();
@@ -117,6 +91,8 @@ class DiamondEngineSupabase {
 
     /**
      * Deduct diamonds for game cost
+     * Uses deduct_diamonds RPC which atomically updates profiles.diamonds
+     * and logs to diamond_transactions
      */
     async deduct(amount, source = 'game_cost', metadata = {}) {
         if (!this.userId) {
@@ -134,20 +110,22 @@ class DiamondEngineSupabase {
                 .rpc('deduct_diamonds', {
                     p_user_id: this.userId,
                     p_amount: amount,
-                    p_source: source,
-                    p_metadata: metadata
+                    p_description: metadata.description || source,
+                    p_transaction_type: source
                 });
 
             if (error) {
                 console.error('Error deducting diamonds:', error);
-                return { success: false, error: error.message };
+                // Fallback: try direct update
+                return await this._deductDirect(amount, source);
             }
 
-            if (data.success) {
-                this._cachedBalance = data.balance;
+            if (data?.success !== false) {
+                const newBalance = await this.getBalance();
+                return { success: true, charged: amount, balance: newBalance };
             }
 
-            return data;
+            return data || { success: false, error: 'Deduction failed' };
         } catch (err) {
             console.error('Deduct failed:', err);
             return this._deductLocal(amount);
@@ -156,6 +134,8 @@ class DiamondEngineSupabase {
 
     /**
      * Award diamonds for rewards
+     * Uses add_diamonds_to_balance RPC which atomically updates profiles.diamonds
+     * and logs to diamond_transactions
      */
     async award(amount, source = 'game_reward', metadata = {}) {
         if (!this.userId) {
@@ -164,28 +144,29 @@ class DiamondEngineSupabase {
 
         try {
             const { data, error } = await this.supabase
-                .rpc('award_diamonds', {
+                .rpc('add_diamonds_to_balance', {
                     p_user_id: this.userId,
                     p_amount: amount,
-                    p_source: source,
-                    p_metadata: metadata
+                    p_type: source,
+                    p_description: metadata.description || `${source} — ${amount}💎`,
+                    p_reference_id: metadata.reference_id || null
                 });
 
             if (error) {
                 console.error('Error awarding diamonds:', error);
-                return this._awardLocal(amount);
+                // Fallback: try direct update
+                return await this._awardDirect(amount, source);
             }
 
-            if (data.success) {
-                this._cachedBalance = data.balance;
+            const newBalance = await this.getBalance();
+            this._cachedBalance = newBalance;
 
-                // Play sound effect
-                if (typeof window !== 'undefined' && window.SoundEngine) {
-                    window.SoundEngine.play('diamond');
-                }
+            // Play sound effect
+            if (typeof window !== 'undefined' && window.SoundEngine) {
+                window.SoundEngine.play('diamond');
             }
 
-            return data.balance;
+            return newBalance;
         } catch (err) {
             console.error('Award failed:', err);
             return this._awardLocal(amount);
@@ -211,7 +192,7 @@ class DiamondEngineSupabase {
     }
 
     /**
-     * Get transaction history
+     * Get transaction history from diamond_transactions table
      */
     async getTransactions(limit = 10) {
         if (!this.userId) return [];
@@ -233,6 +214,86 @@ class DiamondEngineSupabase {
         } catch (err) {
             console.error('Transaction fetch failed:', err);
             return [];
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DIRECT FALLBACKS: Used when RPCs are unavailable
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async _deductDirect(amount, source) {
+        try {
+            const { data: profile } = await this.supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', this.userId)
+                .single();
+
+            const current = profile?.diamonds || 0;
+            if (current < amount) {
+                return { success: false, error: 'Insufficient diamonds', balance: current };
+            }
+
+            const newBalance = current - amount;
+            const { error } = await this.supabase
+                .from('profiles')
+                .update({ diamonds: newBalance })
+                .eq('id', this.userId)
+                .eq('diamonds', current); // Optimistic lock
+
+            if (error) {
+                return { success: false, error: error.message };
+            }
+
+            // Log transaction
+            await this.supabase.from('diamond_transactions').insert({
+                user_id: this.userId,
+                amount: -amount,
+                transaction_type: source,
+                description: `${source} deduction`,
+                balance_after: newBalance
+            }).catch(() => { });
+
+            this._cachedBalance = newBalance;
+            return { success: true, charged: amount, balance: newBalance };
+        } catch (err) {
+            return this._deductLocal(amount);
+        }
+    }
+
+    async _awardDirect(amount, source) {
+        try {
+            const { data: profile } = await this.supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', this.userId)
+                .single();
+
+            const current = profile?.diamonds || 0;
+            const newBalance = current + amount;
+
+            const { error } = await this.supabase
+                .from('profiles')
+                .update({ diamonds: newBalance })
+                .eq('id', this.userId);
+
+            if (error) {
+                return this._awardLocal(amount);
+            }
+
+            // Log transaction
+            await this.supabase.from('diamond_transactions').insert({
+                user_id: this.userId,
+                amount: amount,
+                transaction_type: source,
+                description: `${source} award`,
+                balance_after: newBalance
+            }).catch(() => { });
+
+            this._cachedBalance = newBalance;
+            return newBalance;
+        } catch (err) {
+            return this._awardLocal(amount);
         }
     }
 
