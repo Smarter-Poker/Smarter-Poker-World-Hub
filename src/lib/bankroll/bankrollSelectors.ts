@@ -1211,7 +1211,7 @@ export interface StakingArrangement {
   current_makeup: number;
   start_date: string;
   end_date: string | null;
-  status: string;
+  is_active: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -1220,16 +1220,13 @@ export interface StakingArrangement {
 export interface StakingSession {
   id: string;
   arrangement_id: string;
-  session_id: string | null;
   ledger_entry_id: string;
-  profit_loss: number;
-  markup_amount: number;
-  backer_share: number;
+  gross_result: number;
   player_share: number;
-  makeup_applied: number;
-  notes: string | null;
+  backer_share: number;
+  makeup_before: number;
+  makeup_after: number;
   created_at: string;
-  updated_at: string;
 }
 
 /** Fetch all staking arrangements for a user */
@@ -1262,7 +1259,7 @@ export async function createStakingArrangement(
       current_makeup: arrangement.starting_makeup || 0,
       start_date: arrangement.start_date || new Date().toISOString().split('T')[0],
       end_date: arrangement.end_date || null,
-      status: 'active',
+      is_active: true,
       notes: arrangement.notes || null,
     })
     .select()
@@ -1305,9 +1302,9 @@ export async function deleteStakingArrangement(id: string): Promise<void> {
 export async function deactivateAllArrangements(userId: string): Promise<void> {
   const { error } = await supabase
     .from('staking_arrangements')
-    .update({ status: 'inactive', updated_at: new Date().toISOString() })
+    .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq('user_id', userId)
-    .eq('status', 'active');
+    .eq('is_active', true);
 
   if (error) throw error;
 }
@@ -1329,13 +1326,12 @@ export async function createStakingSession(
   session: {
     arrangement_id: string;
     ledger_entry_id: string;
-    profit_loss: number;
+    gross_result: number;
     split_percentage: number;
-    markup_percentage?: number;
     current_makeup?: number;
   }
 ): Promise<StakingSession> {
-  const { arrangement_id, ledger_entry_id, profit_loss, split_percentage, markup_percentage = 0, current_makeup = 0 } = session;
+  const { arrangement_id, ledger_entry_id, gross_result, split_percentage, current_makeup = 0 } = session;
 
   // Calculate shares
   const playerPct = split_percentage / 100;
@@ -1343,25 +1339,27 @@ export async function createStakingSession(
 
   let playerShare: number;
   let backerShare: number;
-  let makeupApplied = 0;
+  const makeupBefore = current_makeup;
+  let makeupAfter = current_makeup;
 
-  if (profit_loss > 0) {
+  if (gross_result > 0) {
     // Winning session — pay off makeup first, then split profits
     if (current_makeup > 0) {
       // Player is in makeup — profits go to reduce it
-      makeupApplied = Math.min(profit_loss, current_makeup);
-      const remaining = profit_loss - makeupApplied;
+      const makeupPayoff = Math.min(gross_result, current_makeup);
+      const remaining = gross_result - makeupPayoff;
       playerShare = remaining * playerPct;
-      backerShare = remaining * backerPct + makeupApplied;
+      backerShare = remaining * backerPct + makeupPayoff;
+      makeupAfter = current_makeup - makeupPayoff;
     } else {
-      playerShare = profit_loss * playerPct;
-      backerShare = profit_loss * backerPct;
+      playerShare = gross_result * playerPct;
+      backerShare = gross_result * backerPct;
     }
   } else {
     // Losing session — backer covers it, adds to makeup
-    makeupApplied = profit_loss; // negative
     playerShare = 0;
-    backerShare = profit_loss; // backer absorbs the loss
+    backerShare = gross_result; // backer absorbs the loss
+    makeupAfter = current_makeup + Math.abs(gross_result);
   }
 
   const { data, error } = await supabase
@@ -1369,11 +1367,11 @@ export async function createStakingSession(
     .insert({
       arrangement_id,
       ledger_entry_id,
-      profit_loss,
-      markup_amount: (profit_loss > 0 ? profit_loss * (markup_percentage / 100) : 0),
-      backer_share: Math.round(backerShare * 100) / 100,
+      gross_result,
       player_share: Math.round(playerShare * 100) / 100,
-      makeup_applied: Math.round(makeupApplied * 100) / 100,
+      backer_share: Math.round(backerShare * 100) / 100,
+      makeup_before: Math.round(makeupBefore * 100) / 100,
+      makeup_after: Math.round(makeupAfter * 100) / 100,
     })
     .select()
     .single();
@@ -1381,13 +1379,9 @@ export async function createStakingSession(
   if (error) throw error;
 
   // Update the arrangement's current_makeup
-  const newMakeup = profit_loss > 0
-    ? Math.max(0, current_makeup - makeupApplied)
-    : current_makeup + Math.abs(profit_loss);
-
   await supabase
     .from('staking_arrangements')
-    .update({ current_makeup: Math.round(newMakeup * 100) / 100, updated_at: new Date().toISOString() })
+    .update({ current_makeup: Math.round(makeupAfter * 100) / 100, updated_at: new Date().toISOString() })
     .eq('id', arrangement_id);
 
   return data as StakingSession;
@@ -1395,21 +1389,21 @@ export async function createStakingSession(
 
 /** Get aggregated staking stats for an arrangement */
 export async function getStakingStats(arrangementId: string): Promise<{
-  totalProfitLoss: number;
+  totalGrossResult: number;
   playerShare: number;
   backerShare: number;
   sessionCount: number;
 }> {
   const { data, error } = await supabase
     .from('staking_sessions')
-    .select('profit_loss, player_share, backer_share')
+    .select('gross_result, player_share, backer_share')
     .eq('arrangement_id', arrangementId);
 
   if (error) throw error;
 
   const sessions = data || [];
   return {
-    totalProfitLoss: sessions.reduce((sum, s) => sum + (s.profit_loss || 0), 0),
+    totalGrossResult: sessions.reduce((sum, s) => sum + (s.gross_result || 0), 0),
     playerShare: sessions.reduce((sum, s) => sum + (s.player_share || 0), 0),
     backerShare: sessions.reduce((sum, s) => sum + (s.backer_share || 0), 0),
     sessionCount: sessions.length,

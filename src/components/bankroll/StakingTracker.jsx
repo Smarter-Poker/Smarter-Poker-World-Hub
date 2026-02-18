@@ -24,7 +24,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     const [arrangements, setArrangements] = useState([]);
     const [activeArrangement, setActiveArrangement] = useState(null);
     const [sessions, setSessions] = useState([]);
-    const [stats, setStats] = useState({ totalProfitLoss: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
+    const [stats, setStats] = useState({ totalGrossResult: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
     const [unlinkedEntries, setUnlinkedEntries] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -60,7 +60,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             const arr = await fetchStakingArrangements(userId);
             setArrangements(arr);
 
-            const active = arr.find(a => a.status === 'active') || null;
+            const active = arr.find(a => a.is_active) || null;
             setActiveArrangement(active);
 
             if (active) {
@@ -84,7 +84,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                 } catch { setUnlinkedEntries([]); }
             } else {
                 setSessions([]);
-                setStats({ totalProfitLoss: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
+                setStats({ totalGrossResult: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
                 setUnlinkedEntries([]);
             }
         } catch (err) {
@@ -173,7 +173,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
         if (!activeArrangement) return;
         try {
             await updateStakingArrangement(activeArrangement.id, {
-                status: 'completed',
+                is_active: false,
                 end_date: new Date().toISOString().split('T')[0],
             });
             toast.success('Arrangement completed');
@@ -204,9 +204,8 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             await createStakingSession({
                 arrangement_id: activeArrangement.id,
                 ledger_entry_id: entry.id,
-                profit_loss: net,
+                gross_result: net,
                 split_percentage: activeArrangement.split_percentage,
-                markup_percentage: activeArrangement.markup_percentage || 0,
                 current_makeup: activeArrangement.current_makeup || 0,
             });
             toast.success('Session linked to staking arrangement');
@@ -285,9 +284,9 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                             <div style={{ ...styles.statLabel }}>NET P/L</div>
                             <div style={{
                                 ...styles.statValue,
-                                color: stats.totalProfitLoss >= 0 ? '#22c55e' : '#ef4444'
+                                color: stats.totalGrossResult >= 0 ? '#22c55e' : '#ef4444'
                             }}>
-                                {formatCurrency(stats.totalProfitLoss)}
+                                {formatCurrency(stats.totalGrossResult)}
                             </div>
                         </div>
                         <div style={styles.statBox}>
@@ -329,9 +328,9 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                             </span>
                                             <span style={{
                                                 ...styles.sessionNet,
-                                                color: s.profit_loss >= 0 ? '#22c55e' : '#ef4444'
+                                                color: s.gross_result >= 0 ? '#22c55e' : '#ef4444'
                                             }}>
-                                                {formatCurrency(s.profit_loss)}
+                                                {formatCurrency(s.gross_result)}
                                             </span>
                                         </div>
                                         <div style={styles.sessionSplits}>
@@ -420,10 +419,10 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             )}
 
             {/* Past Arrangements */}
-            {arrangements.filter(a => a.status !== 'active').length > 0 && (
+            {arrangements.filter(a => !a.is_active).length > 0 && (
                 <div style={styles.historySection}>
                     <h3 style={styles.historyTitle}>Past Arrangements</h3>
-                    {arrangements.filter(a => a.status !== 'active').map(arr => (
+                    {arrangements.filter(a => !a.is_active).map(arr => (
                         <div key={arr.id} style={styles.pastCard}>
                             <div>
                                 <div style={styles.pastName}>{arr.backer_name}</div>
