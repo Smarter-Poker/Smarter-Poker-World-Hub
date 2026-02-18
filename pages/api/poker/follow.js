@@ -216,6 +216,16 @@ async function handlePost(req, res) {
             });
 
         if (error) {
+            // Handle race condition: concurrent requests can both pass the existing check,
+            // and one will hit the unique constraint. Return already_following instead of 500.
+            if (error.code === '23505') {
+                return res.status(200).json({
+                    success: true,
+                    action: 'already_following',
+                    page_type,
+                    page_id: pageIdStr,
+                });
+            }
             console.error('Error following page:', error);
             return res.status(500).json({ success: false, error: error.message });
         }
