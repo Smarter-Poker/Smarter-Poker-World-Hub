@@ -123,16 +123,8 @@ export default function WaitlistDisplay() {
           background: 'linear-gradient(135deg, #0052CC 0%, #1877F2 50%, #0052CC 100%)',
           borderBottom: '3px solid #FFD700'
         }} className="px-6 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            {venueName && (
-              <span className="text-lg font-bold text-white/80 uppercase tracking-wider">
-                {venueName}
-              </span>
-            )}
-          </div>
-
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-[0.15em] text-white uppercase">
-            POKER WAITING LIST
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-[0.12em] text-white uppercase">
+            {venueName ? `${venueName} Waiting List` : 'Club Commander Waiting List'}
           </h1>
 
           <div className="text-right">
@@ -226,6 +218,9 @@ export default function WaitlistDisplay() {
           }}>
           <span className="text-sm font-medium text-white/70">
             {activeTableCount} {activeTableCount === 1 ? 'Table' : 'Tables'} Running — {totalWaiting} {totalWaiting === 1 ? 'Player' : 'Players'} Waiting
+          </span>
+          <span className="text-xs font-medium text-white/40 uppercase tracking-wider">
+            Powered by Club Commander
           </span>
           <span className="text-sm font-medium text-white/70">
             Ask the front desk or scan QR code to join the waitlist

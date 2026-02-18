@@ -1205,7 +1205,7 @@ export default function VenueDetailPage() {
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
-                  Poker Waiting List
+                  {venue && venue.name ? venue.name + ' Waiting List' : 'Club Commander Waiting List'}
                   <span className="live-count-badge" style={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4CAF50', borderColor: '#4CAF5040' }}>LIVE</span>
                 </h2>
 
@@ -1251,6 +1251,7 @@ export default function VenueDetailPage() {
                     </svg>
                     Join The Waitlist
                   </a>
+                  <p className="waitlist-powered-by">Powered by Club Commander</p>
                 </div>
               </section>
             )}
@@ -2718,6 +2719,13 @@ export default function VenueDetailPage() {
         .waitlist-join-btn:hover {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        .waitlist-powered-by {
+          margin-top: 8px;
+          font-size: 11px;
+          color: rgba(255,255,255,0.3);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
         }
 
         /* ========================================= */

@@ -26,6 +26,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     { id: 'poker-near-me', color: '#ffffff', label: 'Poker Near Me', gradient: ['#e0e0e0', '#9e9e9e'], imageUrl: '/cards/poker-near-me.jpg', description: 'LIVE POKER FINDER — EVERY CASH GAME AND TOURNAMENT NEAR YOU' },
     { id: 'marketplace', color: '#ffd700', label: 'Marketplace', gradient: ['#ffe066', '#ccaa00'], imageUrl: '/cards/marketplace.jpg', description: 'PREMIUM POKER GEAR — CARDS, CHIPS, AND EXCLUSIVE MERCH' },
     { id: 'club-arena', color: '#ff9900', label: 'Club Arena', gradient: ['#ffb347', '#cc7722'], imageUrl: '/cards/club-arena.jpg', description: 'JOIN PRIVATE CLUBS — COMPETE WITH PLAYERS FROM AROUND THE WORLD' },
+    { id: 'my-clubs', color: '#00bfff', label: 'My Clubs', gradient: ['#4dd0e1', '#00838f'], imageUrl: '/cards/my-clubs.jpg', description: 'YOUR CLUBS & VENUES — QUICK ACCESS TO WAITLISTS, LIVE GAMES & MORE' },
     { id: 'video-library', color: '#ff4444', label: 'Video Library', gradient: ['#ff6666', '#cc3333'], imageUrl: '/cards/video-library.jpg', description: 'ENDLESS CONTENT — THOUSANDS OF HOURS OF CASH AND TOURNAMENT PLAY' },
 ];
 
