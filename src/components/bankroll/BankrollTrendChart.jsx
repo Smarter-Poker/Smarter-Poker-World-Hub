@@ -234,7 +234,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             border: '1px solid rgba(0,212,255,0.2)',
             borderRadius: 12,
             padding: '12px 16px',
-            fontSize: 12,
+            fontSize: 14,
             color: '#e5e7eb',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.08)',
             minWidth: 120,
@@ -267,17 +267,17 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                         </feMerge>
                     </filter>
                 </defs>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 11, letterSpacing: '0.3px' }}>{d.date}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 14, letterSpacing: '0.3px' }}>{d.date}</div>
                             <div style={{ color: d.value >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px' }}>{fmtVal(d.value)}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.45)', marginTop: 4, fontSize: 11, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
+                            <div style={{ color: 'rgba(255,255,255,0.45)', marginTop: 4, fontSize: 14, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
                                 {d.hasData ? `${d.sessions} session${d.sessions > 1 ? 's' : ''}: ${d.net >= 0 ? '+' : ''}$${d.net.toLocaleString()}` : 'No sessions'}
                             </div>
                         </TT>
@@ -301,19 +301,19 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                         <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
                     </linearGradient>
                 </defs>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 11 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 14 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
                             <div style={{ color: d.hasData ? (d.value >= 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 16 }}>
                                 {d.hasData ? fmtVal(d.value) : 'No sessions'}
                             </div>
-                            {d.hasData && d.sessions > 1 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>{d.sessions} sessions</div>}
+                            {d.hasData && d.sessions > 1 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 2 }}>{d.sessions} sessions</div>}
                         </TT>
                     );
                 }} />
@@ -337,17 +337,17 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                             </linearGradient>
                         ))}
                     </defs>
-                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const total = payload.reduce((s, p) => s + (p.value || 0), 0);
                         return (
                             <TT>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 6, fontSize: 11, letterSpacing: '0.3px' }}>{label}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 6, fontSize: 14, letterSpacing: '0.3px' }}>{label}</div>
                                 {payload.map((p, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 20, fontSize: 12, marginBottom: 3 }}>
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 20, fontSize: 14, marginBottom: 3 }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <span style={{ width: 8, height: 8, borderRadius: 2, background: CATEGORY_COLORS[p.dataKey] || '#ccc', display: 'inline-block' }} />
                                             {CATEGORY_LABELS[p.dataKey] || p.dataKey}
@@ -355,7 +355,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                                         <span style={{ color: (p.value || 0) >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>{fmtVal(p.value || 0)}</span>
                                     </div>
                                 ))}
-                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 6, paddingTop: 6, fontWeight: 700, fontSize: 13, color: total >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 6, paddingTop: 6, fontWeight: 700, fontSize: 14, color: total >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
                                     Total: {fmtVal(total)}
                                 </div>
                             </TT>
@@ -371,7 +371,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     const renderHistogram = () => {
         if (histogramData.length === 0) {
-            return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Not Enough Sessions For A Histogram</span></div>;
+            return <div style={S.emptyState}><span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>Not Enough Sessions For A Histogram</span></div>;
         }
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
@@ -390,15 +390,15 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                             <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.7} />
                         </linearGradient>
                     </defs>
-                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} interval={0} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={30} allowDecimals={false} />
+                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 14 }} interval={0} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 14 }} width={30} allowDecimals={false} />
                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
                         return (
                             <TT>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3, fontSize: 11 }}>{d.rangeLabel}</div>
-                                <div style={{ fontWeight: 700, fontSize: 16, color: '#e5e7eb' }}>{d.count} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.5)' }}>session{d.count !== 1 ? 's' : ''}</span></div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3, fontSize: 14 }}>{d.rangeLabel}</div>
+                                <div style={{ fontWeight: 700, fontSize: 16, color: '#e5e7eb' }}>{d.count} <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.5)' }}>session{d.count !== 1 ? 's' : ''}</span></div>
                             </TT>
                         );
                     }} />
@@ -414,7 +414,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     const renderHeatmap = () => {
         const days = Object.keys(heatmapData).sort();
-        if (days.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Data For Heatmap</span></div>;
+        if (days.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>No Data For Heatmap</span></div>;
         const values = Object.values(heatmapData);
         const maxAbs = Math.max(1, ...values.map(Math.abs));
 
@@ -475,21 +475,21 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         return (
             <div style={{ padding: '8px 0' }}>
                 {/* Mini stats row */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 10, fontSize: 11 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 10, fontSize: 14 }}>
                     <span style={{ color: '#4ade80', fontWeight: 600 }}>{winDays}W ({fmtVal(totalWin)})</span>
                     <span style={{ color: '#f87171', fontWeight: 600 }}>{lossDays}L ({fmtVal(totalLoss)})</span>
                     <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{winDays + lossDays > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0}% win rate</span>
                 </div>
                 {/* Month labels */}
                 {monthMarkers.length > 0 && (
-                    <div style={{ display: 'flex', gap: 0, fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.5px', position: 'relative', height: 14 }}>
+                    <div style={{ display: 'flex', gap: 0, fontSize: 14, color: 'rgba(255,255,255,0.45)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.5px', position: 'relative', height: 14 }}>
                         {monthMarkers.map((m, i) => (
                             <span key={i} style={{ position: 'absolute', left: `${(m.index / Math.ceil(cells.length / 7)) * 100}%`, textTransform: 'uppercase' }}>{m.label}</span>
                         ))}
                     </div>
                 )}
                 {/* Day labels */}
-                <div style={{ display: 'flex', gap: 3, fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, paddingLeft: 2, fontWeight: 500 }}>
+                <div style={{ display: 'flex', gap: 3, fontSize: 14, color: 'rgba(255,255,255,0.35)', marginBottom: 4, paddingLeft: 2, fontWeight: 500 }}>
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((l, i) => (
                         <div key={i} style={{ width: 'calc((100% - 18px) / 7)', textAlign: 'center' }}>{l}</div>
                     ))}
@@ -537,7 +537,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     })}
                 </div>
                 {/* Gradient legend */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ display: 'flex', gap: 2 }}>
                             {[0.15, 0.35, 0.55, 0.75].map((a, idx) => (
@@ -564,7 +564,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     };
 
     const renderDonut = () => {
-        if (donutData.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Category Data</span></div>;
+        if (donutData.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>No Category Data</span></div>;
         const total = donutData.reduce((s, d) => s + d.rawValue, 0);
         const totalAbs = donutData.reduce((s, d) => s + d.value, 0);
 
@@ -631,7 +631,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                                         <span style={{ color: d.color, fontWeight: 700, fontSize: 14 }}>{d.name}</span>
                                     </div>
                                     <div style={{ fontSize: 18, fontWeight: 800, color: d.rawValue >= 0 ? '#4ade80' : '#f87171', marginBottom: 2 }}>{fmtVal(d.rawValue)}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{pct}% of total volume</div>
+                                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{pct}% of total volume</div>
                                 </TT>
                             );
                         }} />
@@ -642,7 +642,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     position: 'absolute', top: '44%', left: '50%', transform: 'translate(-50%, -50%)',
                     textAlign: 'center', pointerEvents: 'none',
                 }}>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>Net P/L</div>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>Net P/L</div>
                     <div style={{
                         fontSize: 22, fontWeight: 800,
                         color: total >= 0 ? '#4ade80' : '#f87171',
@@ -651,14 +651,14 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     }}>{fmtVal(total)}</div>
                 </div>
                 {/* Legend */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16, fontSize: 12, marginTop: 6 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16, fontSize: 14, marginTop: 6 }}>
                     {donutData.map((d, i) => {
                         const pct = totalAbs > 0 ? Math.round(d.value / totalAbs * 100) : 0;
                         return (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.75)' }}>
                                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 6px ${d.color}` }} />
                                 <span style={{ fontWeight: 500 }}>{d.name}</span>
-                                <span style={{ color: d.rawValue >= 0 ? 'rgba(74,222,128,0.7)' : 'rgba(248,113,113,0.7)', fontWeight: 600, fontSize: 11 }}>{pct}%</span>
+                                <span style={{ color: d.rawValue >= 0 ? 'rgba(74,222,128,0.7)' : 'rgba(248,113,113,0.7)', fontWeight: 600, fontSize: 14 }}>{pct}%</span>
                             </div>
                         );
                     })}
@@ -687,8 +687,8 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             return (
                 <div style={S.emptyState}>
                     <span style={{ fontSize: 24, opacity: 0.3 }}></span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No Data For This Period</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Log Sessions To See Your Trend</span>
+                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>No Data For This Period</span>
+                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)' }}>Log Sessions To See Your Trend</span>
                 </div>
             );
         }
@@ -797,7 +797,7 @@ const S = {
         gap: 2,
     },
     statLabel: {
-        fontSize: 9,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.35)',
         textTransform: 'uppercase',
         letterSpacing: '0.8px',

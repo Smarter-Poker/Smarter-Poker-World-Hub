@@ -50,7 +50,7 @@ export default function VarianceCalculator({ entries = [] }) {
     if (!stats) {
         return (
             <div style={styles.empty}>
-                <p style={{ margin: 0, fontSize: 12 }}>Need 2+ Sessions For Variance Analysis</p>
+                <p style={{ margin: 0, fontSize: 14 }}>Need 2+ Sessions For Variance Analysis</p>
             </div>
         );
     }
@@ -127,7 +127,7 @@ const styles = {
         textAlign: 'center',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
         marginBottom: 4,
         textTransform: 'uppercase',
@@ -138,7 +138,7 @@ const styles = {
         color: '#fff',
     },
     statValueSmall: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#fff',
     },
@@ -156,16 +156,16 @@ const styles = {
         alignItems: 'center',
     },
     extremeLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.6)',
     },
     extremeValue: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
     },
     sampleNote: {
         marginTop: 10,
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.4)',
         textAlign: 'center',
     },

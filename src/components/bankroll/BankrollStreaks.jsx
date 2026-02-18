@@ -187,7 +187,7 @@ const styles = {
         fontWeight: 500,
     },
     streakMessage: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#888',
     },
     expandBtn: {
@@ -216,7 +216,7 @@ const styles = {
         color: '#fff',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 14,
         color: '#666',
         textTransform: 'uppercase',
     },
@@ -227,7 +227,7 @@ const styles = {
         overflow: 'hidden',
     },
     sectionTitle: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#ff6b35',
         marginBottom: 10,
@@ -250,22 +250,22 @@ const styles = {
     },
     achievementName: {
         flex: 1,
-        fontSize: 11,
+        fontSize: 14,
         color: '#fff',
     },
     achievementCheck: {
         color: '#22c55e',
-        fontSize: 12,
+        fontSize: 14,
     },
     diamondReward: {
-        fontSize: 10,
+        fontSize: 14,
         color: '#2374e1',
     },
     lockedSection: {
         marginTop: 12,
     },
     lockedTitle: {
-        fontSize: 10,
+        fontSize: 14,
         color: '#666',
         marginBottom: 6,
         textTransform: 'uppercase',
@@ -293,6 +293,6 @@ const styles = {
         justifyContent: 'center',
         padding: 20,
         color: '#666',
-        fontSize: 13,
+        fontSize: 14,
     },
 };

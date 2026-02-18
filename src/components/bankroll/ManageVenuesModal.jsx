@@ -183,15 +183,15 @@ const s = {
     },
     saveBtn: {
         padding: '8px 14px', borderRadius: 8, border: 'none',
-        background: '#2374e1', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+        background: '#2374e1', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
     },
     cancelBtn: {
         padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
-        background: 'transparent', color: '#aaa', fontSize: 13, cursor: 'pointer',
+        background: 'transparent', color: '#aaa', fontSize: 14, cursor: 'pointer',
     },
     deleteBtnConfirm: {
         padding: '8px 14px', borderRadius: 8, border: 'none',
-        background: '#d32f2f', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+        background: '#d32f2f', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
     },
-    confirmText: { color: '#ff6b6b', fontSize: 13, flex: 1 },
+    confirmText: { color: '#ff6b6b', fontSize: 14, flex: 1 },
 };

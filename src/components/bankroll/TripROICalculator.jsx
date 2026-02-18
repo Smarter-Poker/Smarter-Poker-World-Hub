@@ -242,14 +242,14 @@ const styles = {
         border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: 6,
         color: '#2374e1',
-        fontSize: 11,
+        fontSize: 14,
         cursor: 'pointer',
     },
     section: {
         marginBottom: 16,
     },
     sectionTitle: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
         color: 'rgba(255, 255, 255, 0.6)',
         textTransform: 'uppercase',
@@ -269,11 +269,11 @@ const styles = {
         borderRadius: 6,
     },
     expenseLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.7)',
     },
     expenseValue: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#fff',
     },
@@ -284,7 +284,7 @@ const styles = {
         border: '1px solid rgba(255, 255, 255, 0.2)',
         borderRadius: 4,
         color: '#fff',
-        fontSize: 12,
+        fontSize: 14,
         textAlign: 'right',
     },
     roiGrid: {
@@ -299,7 +299,7 @@ const styles = {
         textAlign: 'center',
     },
     roiLabel: {
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
         marginBottom: 4,
     },
@@ -324,12 +324,12 @@ const styles = {
         textAlign: 'center',
     },
     statLabel: {
-        fontSize: 9,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
         marginBottom: 2,
     },
     statValue: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#fff',
     },

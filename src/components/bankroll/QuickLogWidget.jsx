@@ -202,7 +202,7 @@ const styles = {
         background: 'transparent',
         border: 'none',
         color: '#888',
-        fontSize: 11,
+        fontSize: 14,
         cursor: 'pointer',
     },
     form: {},
@@ -290,7 +290,7 @@ const styles = {
         alignItems: 'center',
         gap: 8,
         marginTop: 10,
-        fontSize: 12,
+        fontSize: 14,
     },
     resultLabel: {
         color: '#666',
@@ -304,7 +304,7 @@ const styles = {
         color: '#fff',
         padding: '6px 16px',
         borderRadius: 20,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 500,
     },
     signInPrompt: {

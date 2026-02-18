@@ -331,8 +331,8 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                             </span>
                                         </div>
                                         <div style={styles.sessionSplits}>
-                                            <span style={{ color: '#22c55e', fontSize: 11 }}>You: {formatCurrency(s.player_share)}</span>
-                                            <span style={{ color: '#3b82f6', fontSize: 11 }}>Backer: {formatCurrency(s.backer_share)}</span>
+                                            <span style={{ color: '#22c55e', fontSize: 14 }}>You: {formatCurrency(s.player_share)}</span>
+                                            <span style={{ color: '#3b82f6', fontSize: 14 }}>Backer: {formatCurrency(s.backer_share)}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -398,7 +398,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     exit={{ opacity: 0 }}
                                     style={styles.confirmRow}
                                 >
-                                    <span style={{ color: '#94a3b8', fontSize: 13 }}>End This Arrangement?</span>
+                                    <span style={{ color: '#94a3b8', fontSize: 14 }}>End This Arrangement?</span>
                                     <button onClick={handleEndArrangement} style={styles.confirmYes}>Yes, End</button>
                                     <button onClick={() => setConfirmEnd(false)} style={styles.confirmNo}>Cancel</button>
                                 </motion.div>
@@ -614,7 +614,7 @@ const styles = {
         border: 'none',
         borderRadius: 8,
         padding: '8px 16px',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -628,7 +628,7 @@ const styles = {
     },
     liveBadge: {
         display: 'inline-block',
-        fontSize: 10,
+        fontSize: 14,
         fontWeight: 700,
         color: '#22c55e',
         letterSpacing: 1.2,
@@ -641,7 +641,7 @@ const styles = {
         margin: '0 0 4px',
     },
     activeMeta: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
     },
     splitRow: {
@@ -663,7 +663,7 @@ const styles = {
         color: '#e4e6eb',
     },
     splitLabel: {
-        fontSize: 9,
+        fontSize: 14,
         fontWeight: 600,
         color: '#64748b',
         letterSpacing: 0.8,
@@ -685,7 +685,7 @@ const styles = {
         textAlign: 'center',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 14,
         fontWeight: 600,
         color: '#64748b',
         letterSpacing: 0.5,
@@ -701,7 +701,7 @@ const styles = {
         marginBottom: 14,
     },
     sectionTitle: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         color: '#94a3b8',
         marginBottom: 8,
@@ -729,16 +729,16 @@ const styles = {
         flex: 1,
     },
     sessionDate: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
         fontWeight: 500,
     },
     sessionCat: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#cbd5e1',
     },
     sessionNet: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
     },
     sessionSplits: {
@@ -751,7 +751,7 @@ const styles = {
         border: '1px solid rgba(59,130,246,0.3)',
         borderRadius: 4,
         padding: '3px 10px',
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -805,7 +805,7 @@ const styles = {
         border: 'none',
         borderRadius: 6,
         padding: '8px 16px',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -815,7 +815,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: '8px 16px',
-        fontSize: 13,
+        fontSize: 14,
         cursor: 'pointer',
     },
 
@@ -831,7 +831,7 @@ const styles = {
         margin: '0 0 4px',
     },
     emptyHint: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
         margin: '0 0 16px',
     },
@@ -863,7 +863,7 @@ const styles = {
         color: '#e4e6eb',
     },
     pastMeta: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#64748b',
         marginTop: 2,
     },
@@ -877,7 +877,7 @@ const styles = {
         border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '4px 8px',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
     },
     confirmYesSmall: {
@@ -886,7 +886,7 @@ const styles = {
         border: 'none',
         borderRadius: 4,
         padding: '4px 10px',
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -896,7 +896,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: 4,
         padding: '4px 10px',
-        fontSize: 11,
+        fontSize: 14,
         cursor: 'pointer',
     },
 
@@ -929,7 +929,7 @@ const styles = {
     },
     formLabel: {
         display: 'block',
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
         color: '#94a3b8',
         marginBottom: 4,

@@ -313,7 +313,7 @@ const styles = {
     minWidth: 0,
   },
   entryDate: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   entryLabel: {
@@ -326,22 +326,22 @@ const styles = {
     fontWeight: 700,
   },
   entryDuration: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   entryLocation: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   entryDetails: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'capitalize',
   },
   emotionalTag: {
     padding: '4px 8px',
     borderRadius: 4,
-    fontSize: 11,
+    fontSize: 14,
     textTransform: 'capitalize',
     color: 'rgba(255, 255, 255, 0.7)',
     flexShrink: 0,
@@ -385,7 +385,7 @@ const styles = {
     border: 'none',
     borderRadius: 6,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     textAlign: 'left',
     transition: 'background 0.15s ease',

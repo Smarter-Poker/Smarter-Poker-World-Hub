@@ -561,7 +561,7 @@ const styles = {
     },
     hint: {
         fontFamily: 'Inter, -apple-system, sans-serif',
-        fontSize: 12,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
     },
     canvasWrap: {
@@ -586,7 +586,7 @@ const styles = {
         gap: 12,
         color: 'rgba(255, 255, 255, 0.6)',
         fontFamily: 'Inter, -apple-system, sans-serif',
-        fontSize: 13,
+        fontSize: 14,
     },
     spinner: {
         width: 24,

@@ -154,7 +154,7 @@ const styles = {
         borderRadius: 8,
         padding: '8px 16px',
         color: '#94a3b8',
-        fontSize: 13,
+        fontSize: 14,
         cursor: 'pointer',
         alignSelf: 'flex-start',
     },
@@ -194,7 +194,7 @@ const styles = {
         border: '1px solid rgba(59, 130, 246, 0.2)',
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#64748b',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -233,7 +233,7 @@ const styles = {
         padding: '10px 12px',
     },
     catName: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
         marginBottom: 4,
     },
@@ -242,7 +242,7 @@ const styles = {
         fontWeight: 700,
     },
     catMeta: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#64748b',
         marginTop: 2,
     },
@@ -262,7 +262,7 @@ const styles = {
         borderRadius: 6,
     },
     dailyDate: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
     },
     dailyNet: {
@@ -294,18 +294,18 @@ const styles = {
         minWidth: 0,
     },
     entryDate: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
         flexShrink: 0,
     },
     entryCat: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
         fontWeight: 500,
         flexShrink: 0,
     },
     entryNotes: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#475569',
         overflow: 'hidden',
         textOverflow: 'ellipsis',

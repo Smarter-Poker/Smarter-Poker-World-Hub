@@ -251,12 +251,12 @@ const styles = {
         flexDirection: 'column',
     },
     triggerTitle: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         color: '#fff',
     },
     triggerHint: {
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.4)',
         marginTop: 1,
     },
@@ -317,7 +317,7 @@ const styles = {
     },
     modalSubtitle: {
         margin: 0,
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.4)',
     },
     modalHeaderActions: {
@@ -332,7 +332,7 @@ const styles = {
         borderRadius: 8,
         color: '#8b5cf6',
         cursor: 'pointer',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
     },
     closeBtn: {
@@ -366,7 +366,7 @@ const styles = {
         marginBottom: 8,
     },
     loadingHint: {
-        fontSize: 13,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.4)',
         margin: 0,
     },
@@ -388,7 +388,7 @@ const styles = {
         borderRadius: 8,
         color: '#ef4444',
         cursor: 'pointer',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
     },
 
@@ -399,7 +399,7 @@ const styles = {
         gap: 6,
         padding: '6px 16px',
         borderRadius: 20,
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         marginBottom: 16,
         border: '1px solid',
@@ -412,7 +412,7 @@ const styles = {
         marginBottom: 20,
     },
     sectionLabel: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 700,
         color: 'rgba(255,255,255,0.5)',
         textTransform: 'uppercase',
@@ -445,7 +445,7 @@ const styles = {
         display: 'flex',
         alignItems: 'flex-start',
         gap: 8,
-        fontSize: 13,
+        fontSize: 14,
         color: '#ccc',
         padding: '6px 0',
         lineHeight: 1.4,
@@ -459,7 +459,7 @@ const styles = {
         display: 'flex',
         alignItems: 'flex-start',
         gap: 8,
-        fontSize: 13,
+        fontSize: 14,
         color: '#fff',
         padding: '8px 12px',
         background: 'rgba(139,92,246,0.08)',
@@ -473,7 +473,7 @@ const styles = {
         flexShrink: 0,
     },
     timestamp: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#555',
         textAlign: 'right',
         marginTop: 16,

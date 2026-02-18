@@ -700,10 +700,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               <button
                 type="button"
                 onClick={() => setShowSwaps(!showSwaps)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Swap Deductions</span>
-                <span style={{ fontSize: 10, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {showSwaps && (
                 <div style={{ padding: '0 12px 12px' }}>
@@ -769,10 +769,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               <button
                 type="button"
                 onClick={() => setShowStaking(!showStaking)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Staking Deductions</span>
-                <span style={{ fontSize: 10, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {showStaking && (
                 <div style={{ padding: '0 12px 12px' }}>
@@ -838,10 +838,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               <button
                 type="button"
                 onClick={() => setShowSoldAction(!showSoldAction)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Sold Action</span>
-                <span style={{ fontSize: 10, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {showSoldAction && (
                 <div style={{ padding: '0 12px 12px' }}>
@@ -1007,7 +1007,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               borderRadius: 8, padding: '10px 14px', marginBottom: 12, marginTop: 12
             }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: '#10b981', fontWeight: 500 }}>
+              <span style={{ fontSize: 14, color: '#10b981', fontWeight: 500 }}>
                 Adding to: <strong>{activeTrip.name}</strong>
               </span>
             </div>
@@ -1115,7 +1115,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         {/* Inline Expense — available on all non-expense categories */}
         {!isExpense && (
           <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>Session Expense (optional)</label>
+            <label style={{ ...styles.label, fontSize: 14, color: '#9ca3af', marginBottom: 8 }}>Session Expense (optional)</label>
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Type</label>
@@ -1171,7 +1171,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                   style={{
                     position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: 'white',
                     border: 'none', borderRadius: '50%', width: 20, height: 20, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14
                   }}
                 >
                   ×
@@ -1187,10 +1187,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 width: 80, height: 80, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.3)',
                 background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: 12
+                cursor: 'pointer', fontSize: 14
               }}
             >
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>SCAN</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>SCAN</span>
               {uploading ? '...' : 'Add'}
             </button>
           </div>
@@ -1216,7 +1216,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ruleWarnings.map((w, i) => (
                 <div key={i} style={styles.warningItem}>
-                  <span style={{ flex: 1, fontSize: 13, color: '#b0b3b8' }}>{w}</span>
+                  <span style={{ flex: 1, fontSize: 14, color: '#b0b3b8' }}>{w}</span>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button
                       type="button"
@@ -1231,7 +1231,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 11, color: '#65676b', margin: '10px 0 0', fontStyle: 'italic' }}>
+            <p style={{ fontSize: 14, color: '#65676b', margin: '10px 0 0', fontStyle: 'italic' }}>
               Manage rules from Bankroll Rules on your dashboard
             </p>
           </div>
@@ -1401,7 +1401,7 @@ const styles = {
     gap: 6,
   },
   label: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 500,
     color: 'rgba(255, 255, 255, 0.6)',
   },
@@ -1454,7 +1454,7 @@ const styles = {
     background: 'none',
     border: 'none',
     color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 12,
+    fontSize: 14,
     cursor: 'pointer',
     padding: '8px 0',
     textAlign: 'left',
@@ -1464,7 +1464,7 @@ const styles = {
     background: '#242526',
     border: '1px solid #3a3b3c',
     borderRadius: 10,
-    fontSize: 13,
+    fontSize: 14,
   },
   warningItem: {
     display: 'flex',
@@ -1481,7 +1481,7 @@ const styles = {
     border: '1px solid #4a4b4c',
     background: 'transparent',
     color: '#b0b3b8',
-    fontSize: 11,
+    fontSize: 14,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
   },

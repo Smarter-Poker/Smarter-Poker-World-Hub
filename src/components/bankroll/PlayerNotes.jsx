@@ -89,7 +89,7 @@ export default function PlayerNotes({ userId }) {
                 <div style={styles.empty}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Players Yet</span>
                     <p style={{ margin: 0 }}>No Players Yet</p>
-                    <p style={{ margin: '8px 0 0', fontSize: 12, opacity: 0.6 }}>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, opacity: 0.6 }}>
                         Add notes on opponents you've played against
                     </p>
                 </div>
@@ -564,7 +564,7 @@ const styles = {
         border: 'none',
         borderRadius: 8,
         color: '#fff',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -646,7 +646,7 @@ const styles = {
         textOverflow: 'ellipsis',
     },
     playerRealName: {
-        fontSize: 12,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
         marginBottom: 4,
     },
@@ -656,12 +656,12 @@ const styles = {
         alignItems: 'center',
     },
     playerType: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
         textTransform: 'uppercase',
     },
     playerStakes: {
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
     },
     playerArrow: {
@@ -729,7 +729,7 @@ const styles = {
     },
     label: {
         display: 'block',
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.6)',
         marginBottom: 6,
         textTransform: 'uppercase',
@@ -782,7 +782,7 @@ const styles = {
         border: '1px solid rgba(239, 68, 68, 0.3)',
         borderRadius: 8,
         color: '#ef4444',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -793,7 +793,7 @@ const styles = {
         border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: 8,
         color: '#888',
-        fontSize: 13,
+        fontSize: 14,
         cursor: 'pointer',
     },
     saveBtn: {
@@ -803,7 +803,7 @@ const styles = {
         border: 'none',
         borderRadius: 8,
         color: '#fff',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -837,7 +837,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.12)',
         borderRadius: 8,
         color: '#94a3b8',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 500,
         cursor: 'pointer',
     },
@@ -847,7 +847,7 @@ const styles = {
         border: '1px solid rgba(239, 68, 68, 0.2)',
         borderRadius: 8,
         color: '#ef4444',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 500,
         cursor: 'pointer',
     },

@@ -125,7 +125,7 @@ const styles = {
         marginBottom: 4,
     },
     weekday: {
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.4)',
         textAlign: 'center',
         padding: '4px 0',
@@ -149,11 +149,11 @@ const styles = {
         aspectRatio: '1',
     },
     dayNum: {
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.7)',
     },
     dayPL: {
-        fontSize: 8,
+        fontSize: 14,
         fontWeight: 600,
     },
     legend: {
@@ -165,7 +165,7 @@ const styles = {
         borderTop: '1px solid rgba(255, 255, 255, 0.06)',
     },
     legendItem: {
-        fontSize: 9,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.7)',
         padding: '3px 8px',
         borderRadius: 4,

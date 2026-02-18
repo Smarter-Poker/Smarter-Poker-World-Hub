@@ -90,9 +90,15 @@ export default function MembershipKiosk() {
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const venueId = staffData.venue_id;
 
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
+      const staffStr = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-staff-session': staffStr
+        },
         body: JSON.stringify({
           venue_id: venueId,
           player_name: selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`,

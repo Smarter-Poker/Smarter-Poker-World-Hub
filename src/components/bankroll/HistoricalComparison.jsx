@@ -140,7 +140,7 @@ const styles = {
         padding: 20,
         textAlign: 'center',
         color: 'rgba(255, 255, 255, 0.5)',
-        fontSize: 13,
+        fontSize: 14,
     },
     header: {
         display: 'flex',
@@ -165,7 +165,7 @@ const styles = {
         background: 'transparent',
         border: 'none',
         color: 'rgba(255,255,255,0.5)',
-        fontSize: 11,
+        fontSize: 14,
         padding: '4px 10px',
         borderRadius: 4,
         cursor: 'pointer',
@@ -188,7 +188,7 @@ const styles = {
         borderRadius: 8,
     },
     label: {
-        fontSize: 12,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.6)',
     },
     values: {
@@ -202,12 +202,12 @@ const styles = {
         color: '#fff',
     },
     delta: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 500,
     },
     periodLabel: {
         textAlign: 'center',
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.35)',
         marginTop: 10,
     },

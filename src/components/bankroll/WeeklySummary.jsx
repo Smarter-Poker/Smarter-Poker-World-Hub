@@ -202,7 +202,7 @@ export default function WeeklySummary({
                             <div style={styles.emptyWeek}>
                                 <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Data</span>
                                 <span>No Sessions Logged This Week</span>
-                                <span style={{ fontSize: 12, color: '#666' }}>
+                                <span style={{ fontSize: 14, color: '#666' }}>
                                     Keep tracking to see your weekly trends!
                                 </span>
                             </div>
@@ -258,7 +258,7 @@ const styles = {
         color: '#fff',
     },
     dateRange: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#888',
         marginTop: 4,
         display: 'block',
@@ -272,7 +272,7 @@ const styles = {
     },
     mainLabel: {
         display: 'block',
-        fontSize: 12,
+        fontSize: 14,
         color: '#888',
         textTransform: 'uppercase',
         marginBottom: 8,
@@ -301,7 +301,7 @@ const styles = {
         marginBottom: 4,
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#666',
         textTransform: 'uppercase',
     },
@@ -310,7 +310,7 @@ const styles = {
     },
     sectionTitle: {
         display: 'block',
-        fontSize: 11,
+        fontSize: 14,
         color: '#888',
         textTransform: 'uppercase',
         marginBottom: 10,
@@ -327,7 +327,7 @@ const styles = {
         padding: '8px 12px',
         background: 'rgba(255,255,255,0.03)',
         borderRadius: 6,
-        fontSize: 13,
+        fontSize: 14,
     },
     categoryName: {
         color: '#ccc',

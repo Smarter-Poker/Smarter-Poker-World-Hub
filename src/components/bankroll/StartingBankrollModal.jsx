@@ -198,7 +198,7 @@ const styles = {
         borderRadius: 8,
         padding: '8px 14px',
         color: '#94a3b8',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 500,
         cursor: 'pointer',
         transition: 'all 0.15s',
@@ -209,7 +209,7 @@ const styles = {
         color: '#3b82f6',
     },
     hint: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
         margin: 0,
     },

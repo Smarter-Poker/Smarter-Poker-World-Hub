@@ -252,7 +252,7 @@ const styles = {
         gap: 6,
     },
     statLabel: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 500,
         color: 'rgba(255,255,255,0.5)',
         textTransform: 'uppercase',

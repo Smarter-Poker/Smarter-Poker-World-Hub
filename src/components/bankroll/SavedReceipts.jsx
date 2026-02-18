@@ -188,7 +188,7 @@ const styles = {
         letterSpacing: '0.05em',
     },
     count: {
-        fontSize: 12,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.4)',
         fontFamily: "'Rajdhani', sans-serif",
     },
@@ -220,7 +220,7 @@ const styles = {
         padding: '8px 10px',
     },
     cardCategory: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#fff',
         fontFamily: "'Rajdhani', sans-serif",
@@ -236,11 +236,11 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 3,
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.5)',
     },
     cardLocation: {
-        fontSize: 10,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.3)',
         marginTop: 4,
         whiteSpace: 'nowrap',
@@ -270,7 +270,7 @@ const styles = {
         padding: '60px 0',
         gap: 12,
         color: 'rgba(255,255,255,0.5)',
-        fontSize: 13,
+        fontSize: 14,
     },
     spinner: {
         width: 24,
@@ -295,7 +295,7 @@ const styles = {
         margin: '0 0 8px',
     },
     emptyHint: {
-        fontSize: 13,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.3)',
         margin: 0,
         lineHeight: 1.5,

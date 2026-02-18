@@ -134,7 +134,8 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .update({
         last_called_at: new Date().toISOString(),
-        status: 'waiting'
+        status: 'waiting',
+        call_count: (entry.call_count || 0) + 1
       })
       .eq('id', id)
       .select()

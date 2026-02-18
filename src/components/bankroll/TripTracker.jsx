@@ -565,7 +565,7 @@ const styles = {
         animation: 'pulse 2s infinite',
     },
     activeLabel: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 700,
         letterSpacing: 1.5,
         color: '#10b981',
@@ -578,7 +578,7 @@ const styles = {
         margin: '4px 0',
     },
     activeTripMeta: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
         margin: '0 0 16px',
     },
@@ -599,7 +599,7 @@ const styles = {
         padding: '10px 8px',
     },
     runningStatLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#94a3b8',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -619,7 +619,7 @@ const styles = {
         marginBottom: 16,
     },
     breakdownTag: {
-        fontSize: 11,
+        fontSize: 14,
         background: 'rgba(255,255,255,0.06)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
@@ -632,7 +632,7 @@ const styles = {
         marginBottom: 16,
     },
     entriesSectionTitle: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         color: '#94a3b8',
         marginBottom: 8,
@@ -663,18 +663,18 @@ const styles = {
         flex: 1,
     },
     entryDate: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
         fontWeight: 500,
         whiteSpace: 'nowrap',
     },
     entryCat: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#cbd5e1',
         fontWeight: 500,
     },
     entryStakes: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#64748b',
         background: 'rgba(255,255,255,0.05)',
         borderRadius: 3,
@@ -687,7 +687,7 @@ const styles = {
         flexShrink: 0,
     },
     entryNet: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
         whiteSpace: 'nowrap',
     },
@@ -700,7 +700,7 @@ const styles = {
         border: '1px solid rgba(59,130,246,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
         color: '#3b82f6',
         lineHeight: 1,
@@ -710,7 +710,7 @@ const styles = {
         border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
         color: '#ef4444',
         lineHeight: 1,
@@ -809,7 +809,7 @@ const styles = {
         margin: '0 0 6px',
     },
     deletePopupSub: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
         margin: '0 0 20px',
     },
@@ -838,7 +838,7 @@ const styles = {
         gap: 8,
     },
     confirmText: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
     },
     confirmYes: {
@@ -847,7 +847,7 @@ const styles = {
         border: 'none',
         borderRadius: 6,
         padding: '6px 14px',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -857,7 +857,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: '6px 14px',
-        fontSize: 13,
+        fontSize: 14,
         cursor: 'pointer',
     },
 
@@ -880,7 +880,7 @@ const styles = {
         color: '#fff',
     },
     createTripSub: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
         marginTop: 2,
     },
@@ -901,7 +901,7 @@ const styles = {
     },
     formLabel: {
         display: 'block',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#94a3b8',
         textTransform: 'uppercase',
@@ -1003,7 +1003,7 @@ const styles = {
     tripCardMeta: {
         display: 'flex',
         gap: 8,
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
         marginBottom: 8,
     },
@@ -1011,7 +1011,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
     },
     viewReportLink: {

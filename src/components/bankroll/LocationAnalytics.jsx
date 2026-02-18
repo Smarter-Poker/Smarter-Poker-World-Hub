@@ -73,7 +73,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
                 </div>
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Venue Data Yet</span>
-                    <span style={{ fontSize: 11, color: '#666' }}>
+                    <span style={{ fontSize: 14, color: '#666' }}>
                         Add locations to your sessions to see analytics
                     </span>
                 </div>
@@ -206,7 +206,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
         color: '#666',
-        fontSize: 10,
+        fontSize: 14,
         cursor: 'pointer',
     },
     sortBtnActive: {
@@ -218,7 +218,7 @@ const styles = {
         padding: 20,
         textAlign: 'center',
         color: '#666',
-        fontSize: 13,
+        fontSize: 14,
     },
     emptyState: {
         display: 'flex',
@@ -227,7 +227,7 @@ const styles = {
         gap: 6,
         padding: 20,
         color: '#888',
-        fontSize: 13,
+        fontSize: 14,
     },
     chartContainer: {
         display: 'flex',
@@ -248,12 +248,12 @@ const styles = {
         alignItems: 'center',
     },
     venueName: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#fff',
         fontWeight: 500,
     },
     sessionCount: {
-        fontSize: 10,
+        fontSize: 14,
         color: '#666',
     },
     barContainer: {
@@ -271,16 +271,16 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        fontSize: 12,
+        fontSize: 14,
     },
     winRate: {
-        fontSize: 10,
+        fontSize: 14,
         color: '#888',
     },
     moreIndicator: {
         marginTop: 10,
         textAlign: 'center',
-        fontSize: 11,
+        fontSize: 14,
         color: '#666',
     },
 };

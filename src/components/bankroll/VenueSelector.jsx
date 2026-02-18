@@ -340,7 +340,7 @@ const styles = {
     typeBtn: {
         flex: 1,
         padding: '8px 4px',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 500,
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.1)',
@@ -381,7 +381,7 @@ const styles = {
         position: 'absolute',
         right: 10,
         color: '#22c55e',
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
     },
     homeRow: {
@@ -389,7 +389,7 @@ const styles = {
     },
     locationBtn: {
         padding: '8px 14px',
-        fontSize: 12,
+        fontSize: 14,
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
@@ -417,12 +417,12 @@ const styles = {
         gap: 2,
     },
     confirmedLabel: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#4ade80',
     },
     confirmedAddress: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#b0b3b8',
         lineHeight: 1.3,
         overflow: 'hidden',
@@ -433,7 +433,7 @@ const styles = {
     },
     editPinBtn: {
         padding: '6px 12px',
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 600,
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.15)',
@@ -470,12 +470,12 @@ const styles = {
         transition: 'background 0.1s',
     },
     suggestionName: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         color: '#e4e6eb',
     },
     suggestionMeta: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#b0b3b8',
         marginTop: 2,
     },
@@ -484,7 +484,7 @@ const styles = {
     },
     dropdownSectionLabel: {
         padding: '6px 14px 4px',
-        fontSize: 10,
+        fontSize: 14,
         fontWeight: 700,
         color: 'rgba(255,255,255,0.35)',
         textTransform: 'uppercase',
@@ -499,7 +499,7 @@ const styles = {
         flexWrap: 'wrap',
     },
     savedLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: 'rgba(255,255,255,0.4)',
         fontWeight: 500,
         flexShrink: 0,
@@ -511,7 +511,7 @@ const styles = {
     },
     savedChip: {
         padding: '5px 12px',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 500,
         background: 'rgba(35,116,225,0.15)',
         border: '1px solid rgba(35,116,225,0.3)',

@@ -4,7 +4,6 @@
  * Reference: API_REFERENCE.md - Waitlist section
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,12 +12,9 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    // Auth guard: require staff auth for write operations only
-    const _authResult = await guardWriteStaff(req, res);
-    if (!_authResult) return;
     return res.status(405).json({
       success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
     });
   }
 

@@ -27,11 +27,18 @@ export default function WaitlistDisplay() {
         const token = typeof window !== 'undefined'
           ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token')
           : null;
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const staffSession = typeof window !== 'undefined'
+          ? localStorage.getItem('commander_staff') || '' : '';
+        let vid = '';
+        try { vid = JSON.parse(staffSession || '{}').venue_id || ''; } catch { }
+        const headers = {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'x-staff-session': staffSession
+        };
 
         const [tabRes, wlRes] = await Promise.all([
-          fetch('/api/commander/tables', { headers }),
-          fetch('/api/commander/waitlist', { headers })
+          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }),
+          fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers })
         ]);
         const tabJson = await tabRes.json();
         const wlJson = await wlRes.json();

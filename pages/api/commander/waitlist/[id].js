@@ -1,10 +1,9 @@
 /**
  * Waitlist Entry API
  * GET /api/commander/waitlist/[id] - Get a single waitlist entry
- * DELETE /api/commander/waitlist/[id] - Remove player from waitlist
+ * DELETE /api/commander/waitlist/[id] - Remove player from waitlist (player or staff)
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,12 +11,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
-
   const { id } = req.query;
 
+  // ── GET: Return a single waitlist entry ──────────────────────────
   if (req.method === 'GET') {
     try {
       const { data, error } = await supabase
@@ -31,27 +27,81 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true, data });
-  } catch (err) {
-    console.error('Waitlist entry error:', err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
+    } catch (err) {
+      console.error('Waitlist entry error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
+  // ── DELETE: Remove player from waitlist (player or staff) ────────
   if (req.method === 'DELETE') {
     try {
-      const { error } = await supabase
-        .from('commander_waitlist')
-        .delete()
-        .eq('id', id);
+      // Authenticate: accept Bearer token (player) or x-staff-session (staff)
+      let authenticatedUserId = null;
+      let isStaff = false;
 
-      if (error) {
-        return res.status(500).json({ success: false, error: error.message });
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) authenticatedUserId = user.id;
       }
 
-      return res.status(200).json({ success: true, message: 'Player removed from waitlist' });
+      const staffSession = req.headers['x-staff-session'];
+      if (staffSession) {
+        try {
+          const sessionData = JSON.parse(staffSession);
+          const { data: staff } = await supabase
+            .from('commander_staff')
+            .select('id, venue_id, is_active')
+            .eq('id', sessionData.id)
+            .eq('is_active', true)
+            .single();
+          if (staff) isStaff = true;
+        } catch { /* invalid session format */ }
+      }
+
+      if (!authenticatedUserId && !isStaff) {
+        return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authentication required' } });
+      }
+
+      // Fetch entry
+      const { data: entry, error: fetchErr } = await supabase
+        .from('commander_waitlist')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr || !entry) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' } });
+      }
+
+      // Verify: player can only remove their own entry, staff can remove any
+      if (!isStaff && entry.player_id && entry.player_id !== authenticatedUserId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You can only remove your own waitlist entry' } });
+      }
+
+      // Log to history
+      await supabase.from('commander_waitlist_history').insert({
+        venue_id: entry.venue_id,
+        player_id: entry.player_id,
+        game_type: entry.game_type,
+        stakes: entry.stakes,
+        wait_time_minutes: Math.round((Date.now() - new Date(entry.created_at).getTime()) / (1000 * 60)),
+        was_seated: false,
+        signup_method: entry.signup_method
+      });
+
+      // Delete entry
+      const { error: delErr } = await supabase.from('commander_waitlist').delete().eq('id', id);
+      if (delErr) {
+        return res.status(500).json({ success: false, error: { code: 'DATABASE_ERROR', message: delErr.message } });
+      }
+
+      return res.status(200).json({ success: true, data: { removed: true } });
     } catch (err) {
       console.error('Waitlist delete error:', err);
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
     }
   }
 

@@ -337,7 +337,7 @@ export default function UniversalHeader({
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    border-bottom: 3px solid rgba(192, 192, 210, 0.7);
+                    border-bottom: 3px solid rgba(200, 200, 200, 0.5);
                     position: sticky;
                     top: 0;
                     z-index: 100;
@@ -663,7 +663,7 @@ export default function UniversalHeader({
                     {/* VIP Card Icon — only for VIP members */}
                     {isVip && (
                         <Link href="/hub/diamond-store" style={{ textDecoration: 'none' }}>
-                            <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(192, 192, 210, 0.6)', boxShadow: '0 0 6px rgba(192, 192, 210, 0.3)' }}>
+                            <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.5)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.25)' }}>
                                 <img
                                     src="/images/vip-card.png"
                                     alt="VIP Member"

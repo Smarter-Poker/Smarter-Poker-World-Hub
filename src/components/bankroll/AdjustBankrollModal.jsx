@@ -184,7 +184,7 @@ const styles = {
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
         margin: '0 0 20px',
         textAlign: 'center',

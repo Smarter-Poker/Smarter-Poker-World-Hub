@@ -425,14 +425,14 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     gap: 8,
   },
   dropdownArrow: {
-    fontSize: 10,
+    fontSize: 14,
     opacity: 0.6,
   },
   dropdownMenu: {
@@ -457,7 +457,7 @@ const styles = {
     border: 'none',
     borderRadius: 4,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     textAlign: 'left',
   },
@@ -515,7 +515,7 @@ const styles = {
   },
   statTitle: {
     display: 'block',
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 8,
   },
@@ -540,16 +540,16 @@ const styles = {
     gap: 4,
   },
   statSuffix: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     fontWeight: 400,
   },
   riskDot: {
     color: '#ef4444',
-    fontSize: 12,
+    fontSize: 14,
   },
   downArrow: {
-    fontSize: 10,
+    fontSize: 14,
   },
   activitySection: {
     background: 'rgba(255, 255, 255, 0.02)',
@@ -582,7 +582,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
+    fontSize: 14,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
   },
@@ -596,7 +596,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.6)',
     cursor: 'pointer',
   },
@@ -638,7 +638,7 @@ const styles = {
     fontWeight: 700,
   },
   tripExpenses: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   tripArrow: {

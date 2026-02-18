@@ -817,7 +817,7 @@ export default function BankrollManagerPage() {
                           <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
                             {activeTrip.name}
                           </div>
-                          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                          <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeTrip.location_name && `${activeTrip.location_name} · `}
                             Day {daysSinceStart} · {activeTrip.entryCount || 0} sessions
                           </div>
@@ -839,7 +839,7 @@ export default function BankrollManagerPage() {
                             border: 'none',
                             borderRadius: 8,
                             padding: '8px 14px',
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: 600,
                             cursor: 'pointer',
                             flexShrink: 0,
@@ -883,7 +883,7 @@ export default function BankrollManagerPage() {
                           <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
                             {activeSeries.name}
                           </div>
-                          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                          <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeSeries.location_name && `${activeSeries.location_name} · `}
                             Day {daysSinceStart} · {activeSeries.entryCount || 0} sessions
                           </div>
@@ -905,7 +905,7 @@ export default function BankrollManagerPage() {
                             border: 'none',
                             borderRadius: 8,
                             padding: '8px 14px',
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: 600,
                             cursor: 'pointer',
                             flexShrink: 0,
@@ -1049,7 +1049,7 @@ export default function BankrollManagerPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  fontSize: 11,
+                                  fontSize: 14,
                                   color: '#fff',
                                   flexShrink: 0,
                                 }}>
@@ -1114,7 +1114,7 @@ export default function BankrollManagerPage() {
                       }}>
                         <div style={{ fontSize: 32 }}>👑</div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only — Advanced Analytics</div>
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
                         <button
                           onClick={() => router.push('/hub/diamond-store')}
                           style={{
@@ -1161,7 +1161,7 @@ export default function BankrollManagerPage() {
                             borderRadius: 6,
                             padding: '6px 14px',
                             color: '#3b82f6',
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: 500,
                             cursor: 'pointer',
                           }}
@@ -1299,7 +1299,7 @@ export default function BankrollManagerPage() {
                         <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
                         <div>
                           <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
+                          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
                         </div>
                       </div>
                       {leakAnalysis.topLeaks?.map((leak, i) => (
@@ -1308,7 +1308,7 @@ export default function BankrollManagerPage() {
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
                             <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#eab308' : '#3b82f6' }}>{leak.value}</span>
                           </div>
-                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
+                          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
                         </div>
                       ))}
                     </div>
@@ -1409,7 +1409,7 @@ export default function BankrollManagerPage() {
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>CSV</span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To CSV</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
                           Download all sessions for spreadsheet analysis
                         </div>
                       </div>
@@ -1452,7 +1452,7 @@ export default function BankrollManagerPage() {
                       <span style={{ fontSize: 14, color: '#65676b' }}>JSON</span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To JSON</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
                           Full data export for backup or API use
                         </div>
                       </div>
@@ -1486,7 +1486,7 @@ export default function BankrollManagerPage() {
                       <span style={{ fontSize: 14, color: '#65676b' }}>PDF</span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To PDF</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
                           Formatted report for printing or sharing
                         </div>
                       </div>
@@ -1576,7 +1576,7 @@ export default function BankrollManagerPage() {
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
                       Pro Tools
                     </h2>
-                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Premium Bankroll Features For Serious Players</p>
+                    <p style={{ fontSize: 14, color: '#b0b3b8', margin: '4px 0 0' }}>Premium Bankroll Features For Serious Players</p>
                   </div>
 
                   <BankrollProGate userId={userId}>
@@ -1655,20 +1655,20 @@ export default function BankrollManagerPage() {
                       }}
                       style={styles.scannerChoiceBtn}
                     >
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>NEW</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#4ade80' }}>NEW</span>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log This As A New Expense Entry</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 2 }}>Log This As A New Expense Entry</div>
                       </div>
                     </button>
                     <button
                       onClick={() => setScannerStep('pick-entry')}
                       style={styles.scannerChoiceBtn}
                     >
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa' }}>ATTACH</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#60a5fa' }}>ATTACH</span>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach To Existing Entry</div>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add This Receipt To A Recent Session Or Expense</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 2 }}>Add This Receipt To A Recent Session Or Expense</div>
                       </div>
                     </button>
                   </div>
@@ -1680,7 +1680,7 @@ export default function BankrollManagerPage() {
                 <div style={{ padding: '0 16px 16px' }}>
                   <button
                     onClick={() => setScannerStep('post-capture')}
-                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 13, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
+                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
                   >
                     ← Back
                   </button>
@@ -1727,7 +1727,7 @@ export default function BankrollManagerPage() {
                                 <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {LABELS[entry.category] || entry.category}
                                 </div>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
                                   {dateStr}{entry.location_name ? ` · ${entry.location_name}` : ''}
                                 </div>
                               </div>
@@ -1893,7 +1893,7 @@ export default function BankrollManagerPage() {
                   <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff' }}>
                     {ruleViolations.some(v => v.severity === 'info') ? 'Goal Reached!' : 'Rule Violation Alert'}
                   </h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                  <p style={{ margin: '2px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
                     {ruleViolations.length} rule{ruleViolations.length > 1 ? 's' : ''} triggered
                   </p>
                 </div>
@@ -1911,7 +1911,7 @@ export default function BankrollManagerPage() {
                     <div style={{ fontSize: 14, fontWeight: 600, color: v.severity === 'high' ? '#f87171' : v.severity === 'info' ? '#4ade80' : '#fbbf24', marginBottom: 4 }}>
                       {v.rule}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
                       <span>Limit: {v.limit}</span>
                       <span style={{ fontWeight: 600, color: v.severity === 'high' ? '#ef4444' : v.severity === 'info' ? '#22c55e' : '#f59e0b' }}>
                         Actual: {v.actual}
@@ -2035,7 +2035,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     width: '100%',
     textAlign: 'left',
@@ -2044,7 +2044,7 @@ const styles = {
     gap: 8,
   },
   dropdownArrow: {
-    fontSize: 10,
+    fontSize: 14,
     opacity: 0.6,
   },
   dropdownMenu: {
@@ -2069,7 +2069,7 @@ const styles = {
     border: 'none',
     borderRadius: 4,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     textAlign: 'left',
   },
@@ -2100,7 +2100,7 @@ const styles = {
     border: 'none',
     borderRadius: 8,
     color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 500,
     cursor: 'pointer',
     marginBottom: 2,
@@ -2168,7 +2168,7 @@ const styles = {
   },
   statTitle: {
     display: 'block',
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 8,
   },
@@ -2193,16 +2193,16 @@ const styles = {
     gap: 4,
   },
   statSuffix: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     fontWeight: 400,
   },
   riskDot: {
     color: '#ef4444',
-    fontSize: 12,
+    fontSize: 14,
   },
   downArrow: {
-    fontSize: 10,
+    fontSize: 14,
   },
   activitySection: {
     background: 'rgba(255, 255, 255, 0.02)',
@@ -2235,7 +2235,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
+    fontSize: 14,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
   },
@@ -2249,7 +2249,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.6)',
     cursor: 'pointer',
   },
@@ -2291,7 +2291,7 @@ const styles = {
     fontWeight: 700,
   },
   tripExpenses: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   tripArrow: {
@@ -2384,7 +2384,7 @@ const styles = {
     gap: 6,
   },
   reportStatLabel: {
-    fontSize: 11,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
@@ -2441,7 +2441,7 @@ const styles = {
   },
   proToolsSubtitle: {
     fontFamily: "'Rajdhani', sans-serif",
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: '0.1em',
     margin: 0,

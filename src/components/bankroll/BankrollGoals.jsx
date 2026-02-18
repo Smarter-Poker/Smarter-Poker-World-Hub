@@ -294,7 +294,7 @@ const styles = {
         padding: 20,
         textAlign: 'center',
         color: '#666',
-        fontSize: 13,
+        fontSize: 14,
     },
     addForm: {
         overflow: 'hidden',
@@ -332,7 +332,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
         color: '#888',
-        fontSize: 11,
+        fontSize: 14,
         cursor: 'pointer',
     },
     periodBtnActive: {
@@ -376,7 +376,7 @@ const styles = {
         marginBottom: 10,
     },
     goalPeriod: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#888',
         textTransform: 'uppercase',
         display: 'block',
@@ -416,13 +416,13 @@ const styles = {
     progressStats: {
         display: 'flex',
         justifyContent: 'space-between',
-        fontSize: 13,
+        fontSize: 14,
     },
     progressPercent: {
         color: '#888',
     },
     daysRemaining: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#666',
         textAlign: 'center',
     },
@@ -433,7 +433,7 @@ const styles = {
         border: '1px solid rgba(34,197,94,0.4)',
         borderRadius: 6,
         color: '#22c55e',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         textAlign: 'center',
     },
@@ -444,7 +444,7 @@ const styles = {
         gap: 10,
         padding: 16,
         color: '#666',
-        fontSize: 13,
+        fontSize: 14,
     },
     setGoalBtn: {
         padding: '8px 16px',
@@ -452,7 +452,7 @@ const styles = {
         border: '1px solid rgba(0,212,255,0.3)',
         borderRadius: 6,
         color: '#2374e1',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
     },
     signInPrompt: {
@@ -462,6 +462,6 @@ const styles = {
         gap: 8,
         padding: 20,
         color: '#666',
-        fontSize: 13,
+        fontSize: 14,
     },
 };

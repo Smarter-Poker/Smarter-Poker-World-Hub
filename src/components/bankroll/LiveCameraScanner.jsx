@@ -455,7 +455,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             {phase === 'loading' && !cameraError && (
                 <div style={styles.centerView}>
                     <div style={styles.spinner} />
-                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 12 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 12 }}>
                         {cvStatus === 'loading' ? 'Loading scanner engine...' : 'Starting camera...'}
                     </span>
                 </div>
@@ -519,7 +519,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                         <div style={{ width: 60 }} />
                     </div>
                     <div style={styles.hint}>
-                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center' }}>
+                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center' }}>
                             Outline wraps around receipt · Auto-captures when stable
                         </p>
                     </div>
@@ -582,7 +582,7 @@ const styles = {
         borderRadius: 20, backdropFilter: 'blur(8px)',
     },
     statusDot: { width: 8, height: 8, borderRadius: '50%', transition: 'background 0.2s' },
-    statusText: { color: '#fff', fontSize: 13, fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif' },
+    statusText: { color: '#fff', fontSize: 14, fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif' },
     progressRing: { position: 'absolute', bottom: 16, right: 16 },
     spinner: {
         width: 28, height: 28,

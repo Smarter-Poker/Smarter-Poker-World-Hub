@@ -291,7 +291,7 @@ export default function BankrollRulesCard({ userId }) {
     return (
       <div style={styles.container}>
         <h3 style={styles.title}>Bankroll Rules</h3>
-        <div style={{ padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+        <div style={{ padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
           Loading rules...
         </div>
       </div>
@@ -366,7 +366,7 @@ export default function BankrollRulesCard({ userId }) {
         {customRules.length > 0 && (
           <>
             <div style={{ margin: '12px 0 4px', borderTop: '1px solid #4a4b4c', paddingTop: 12 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#b0b3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Custom Rules</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#b0b3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Custom Rules</span>
             </div>
             {customRules.map((cr) => {
               const isEditing = editingRule === cr.id;
@@ -446,7 +446,7 @@ export default function BankrollRulesCard({ userId }) {
       ) : (
         <div style={styles.addForm}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e6eb' }}>New Custom Rule</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#e4e6eb' }}>New Custom Rule</span>
             <button
               onClick={() => { setShowAddForm(false); setNewLabel(''); setNewDescription(''); setNewValue(''); setNewUnit('$'); }}
               style={{ background: 'none', border: 'none', color: '#b0b3b8', fontSize: 16, cursor: 'pointer' }}
@@ -492,7 +492,7 @@ export default function BankrollRulesCard({ userId }) {
               width: '100%',
               marginTop: 12,
               padding: '10px 16px',
-              fontSize: 13,
+              fontSize: 14,
               opacity: isSaving ? 0.6 : 1,
             }}
           >
@@ -519,7 +519,7 @@ const styles = {
     margin: '0 0 4px',
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 14,
     color: '#b0b3b8',
     margin: '0 0 14px',
   },
@@ -548,12 +548,12 @@ const styles = {
     marginRight: 12,
   },
   ruleLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     color: '#e4e6eb',
   },
   ruleDesc: {
-    fontSize: 10,
+    fontSize: 14,
     color: '#b0b3b8',
   },
   toggle: {
@@ -583,7 +583,7 @@ const styles = {
     background: 'none',
     border: 'none',
     color: '#2374e1',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
     padding: 0,
@@ -600,10 +600,10 @@ const styles = {
     border: '1px solid #4a4b4c',
     borderRadius: 4,
     color: '#e4e6eb',
-    fontSize: 13,
+    fontSize: 14,
   },
   editUnit: {
-    fontSize: 11,
+    fontSize: 14,
     color: '#b0b3b8',
   },
   saveBtn: {
@@ -612,7 +612,7 @@ const styles = {
     border: 'none',
     borderRadius: 4,
     color: '#fff',
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
   },
@@ -632,7 +632,7 @@ const styles = {
     border: '1px dashed #4a4b4c',
     borderRadius: 8,
     color: '#2374e1',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'background 0.15s, border-color 0.15s',
@@ -653,7 +653,7 @@ const styles = {
     border: '1px solid #4a4b4c',
     borderRadius: 6,
     color: '#e4e6eb',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
     boxSizing: 'border-box',
   },
@@ -663,7 +663,7 @@ const styles = {
     border: '1px solid #4a4b4c',
     borderRadius: 6,
     color: '#e4e6eb',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
     minWidth: 80,
   },

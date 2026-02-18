@@ -290,7 +290,7 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
                             />
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4, display: 'block' }}>End Date</label>
+                                    <label style={{ fontSize: 14, color: '#94a3b8', marginBottom: 4, display: 'block' }}>End Date</label>
                                     <input
                                         type="date"
                                         value={editForm.end_date}
@@ -500,21 +500,21 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
                                         {pastNames.length > 0 && filtered.some(n => pastNames.includes(n)) && (
-                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Series</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Series</div>
                                         )}
                                         {filtered.filter(n => pastNames.includes(n)).map((name, i) => (
                                             <button key={`p-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                         {dbSeriesNames.length > 0 && filtered.some(n => dbSeriesNames.includes(n) && !pastNames.includes(n)) && (
-                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Tournament Tours</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Tournament Tours</div>
                                         )}
                                         {filtered.filter(n => !pastNames.includes(n)).map((name, i) => (
                                             <button key={`d-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                     </div>
@@ -558,22 +558,22 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
                                         {savedFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Venues</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Venues</div>
                                         )}
                                         {savedFiltered.map(loc => (
                                             <button key={`s-${loc.id}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{loc.name}</button>
                                         ))}
                                         {dbFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Poker Venues</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Poker Venues</div>
                                         )}
                                         {dbFiltered.slice(0, 20).map((v, i) => (
                                             <button key={`db-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: '__new__', location_name: v.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
-                                            >{v.name} <span style={{ fontSize: 11, color: '#888' }}>{v.city}, {v.state}</span></button>
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                            >{v.name} <span style={{ fontSize: 14, color: '#888' }}>{v.city}, {v.state}</span></button>
                                         ))}
                                     </div>
                                 );
@@ -688,7 +688,7 @@ const styles = {
         animation: 'pulse 2s infinite',
     },
     activeLabel: {
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 700,
         letterSpacing: 1.5,
         color: '#2374e1',
@@ -701,7 +701,7 @@ const styles = {
         margin: '4px 0',
     },
     activeMeta: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
         margin: '0 0 16px',
     },
@@ -722,7 +722,7 @@ const styles = {
         padding: '10px 8px',
     },
     runningStatLabel: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#94a3b8',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -742,7 +742,7 @@ const styles = {
         marginBottom: 16,
     },
     breakdownTag: {
-        fontSize: 11,
+        fontSize: 14,
         background: 'rgba(255,255,255,0.06)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
@@ -755,7 +755,7 @@ const styles = {
         marginBottom: 16,
     },
     entriesSectionTitle: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         color: '#94a3b8',
         marginBottom: 8,
@@ -786,18 +786,18 @@ const styles = {
         flex: 1,
     },
     entryDate: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
         fontWeight: 500,
         whiteSpace: 'nowrap',
     },
     entryCat: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#cbd5e1',
         fontWeight: 500,
     },
     entryStakes: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#64748b',
         background: 'rgba(255,255,255,0.05)',
         borderRadius: 3,
@@ -810,7 +810,7 @@ const styles = {
         flexShrink: 0,
     },
     entryNet: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
         whiteSpace: 'nowrap',
     },
@@ -823,7 +823,7 @@ const styles = {
         border: '1px solid rgba(59,130,246,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
         color: '#3b82f6',
         lineHeight: 1,
@@ -833,7 +833,7 @@ const styles = {
         border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
         color: '#ef4444',
         lineHeight: 1,
@@ -922,7 +922,7 @@ const styles = {
         margin: '0 0 6px',
     },
     deletePopupSub: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
         margin: '0 0 20px',
     },
@@ -951,7 +951,7 @@ const styles = {
         gap: 8,
     },
     confirmText: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
     },
     confirmYes: {
@@ -960,7 +960,7 @@ const styles = {
         border: 'none',
         borderRadius: 6,
         padding: '6px 14px',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
     },
@@ -970,7 +970,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: '6px 14px',
-        fontSize: 13,
+        fontSize: 14,
         cursor: 'pointer',
     },
 
@@ -993,7 +993,7 @@ const styles = {
         color: '#fff',
     },
     createSub: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#94a3b8',
         marginTop: 2,
     },
@@ -1014,7 +1014,7 @@ const styles = {
     },
     formLabel: {
         display: 'block',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 600,
         color: '#94a3b8',
         textTransform: 'uppercase',
@@ -1116,7 +1116,7 @@ const styles = {
     seriesCardMeta: {
         display: 'flex',
         gap: 8,
-        fontSize: 12,
+        fontSize: 14,
         color: '#94a3b8',
         marginBottom: 8,
     },
@@ -1124,7 +1124,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
     },
     viewReportLink: {

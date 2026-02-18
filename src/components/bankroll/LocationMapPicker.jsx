@@ -347,7 +347,7 @@ const styles = {
         marginTop: 1,
     },
     addressText: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#b0b3b8',
         lineHeight: 1.4,
         wordBreak: 'break-word',
@@ -356,7 +356,7 @@ const styles = {
         padding: '0 16px 12px',
     },
     coordsText: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#666',
         fontFamily: 'monospace',
     },

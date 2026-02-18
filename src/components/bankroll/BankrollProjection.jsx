@@ -277,7 +277,7 @@ const styles = {
         cursor: 'pointer',
     },
     description: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#888',
         lineHeight: 1.5,
         marginBottom: 20,
@@ -294,7 +294,7 @@ const styles = {
         gap: 6,
     },
     label: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#888',
         textTransform: 'uppercase',
     },
@@ -323,7 +323,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
         color: '#888',
-        fontSize: 12,
+        fontSize: 14,
         cursor: 'pointer',
     },
     periodBtnActive: {
@@ -337,7 +337,7 @@ const styles = {
         border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 8,
         color: '#ef4444',
-        fontSize: 13,
+        fontSize: 14,
         marginBottom: 16,
     },
     runBtn: {
@@ -363,7 +363,7 @@ const styles = {
         color: '#2374e1',
     },
     simCount: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#666',
     },
     rangeContainer: {
@@ -384,7 +384,7 @@ const styles = {
     },
     rangeLabelTitle: {
         display: 'block',
-        fontSize: 10,
+        fontSize: 14,
         color: '#666',
         marginBottom: 4,
     },
@@ -398,7 +398,7 @@ const styles = {
     },
     gainLabel: {
         display: 'block',
-        fontSize: 11,
+        fontSize: 14,
         color: '#888',
         textTransform: 'uppercase',
         marginBottom: 8,
@@ -432,7 +432,7 @@ const styles = {
         marginBottom: 4,
     },
     probLabel: {
-        fontSize: 10,
+        fontSize: 14,
         color: '#666',
     },
     inputsUsed: {
@@ -443,7 +443,7 @@ const styles = {
         marginBottom: 16,
     },
     inputItem: {
-        fontSize: 11,
+        fontSize: 14,
         color: '#666',
     },
     rerunBtn: {
@@ -453,7 +453,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         color: '#888',
-        fontSize: 13,
+        fontSize: 14,
         cursor: 'pointer',
     },
 };

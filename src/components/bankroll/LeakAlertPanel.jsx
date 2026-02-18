@@ -141,7 +141,7 @@ const styles = {
     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
   },
   alertIcon: {
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 2,
     flexShrink: 0,
   },
@@ -157,15 +157,15 @@ const styles = {
     flexWrap: 'wrap',
   },
   alertTitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
   },
   alertValue: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 700,
   },
   alertMessage: {
-    fontSize: 11,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     display: 'block',
     marginTop: 2,
@@ -209,10 +209,10 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 12,
+    fontSize: 14,
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     margin: 0,
   },
@@ -224,7 +224,7 @@ const styles = {
     borderRadius: 8,
   },
   recTitle: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: 600,
     color: 'rgba(255, 255, 255, 0.6)',
     margin: '0 0 8px',
@@ -236,7 +236,7 @@ const styles = {
     paddingLeft: 16,
   },
   recItem: {
-    fontSize: 11,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 4,
   },

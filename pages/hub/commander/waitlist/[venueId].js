@@ -78,7 +78,17 @@ export default function PlayerWaitlistPage() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const myData = await myRes.json();
-        if (myData.success) setMyEntries(myData.data.entries || []);
+        if (myData.success) {
+          // Flatten: API wraps each entry in { waitlist_entry: {...}, venue, game, position }
+          const flat = (myData.data.entries || []).map(e => ({
+            ...e.waitlist_entry,
+            venue: e.venue,
+            game: e.game,
+            position: e.position,
+            estimated_wait: e.estimated_wait
+          }));
+          setMyEntries(flat);
+        }
       }
       setLastRefresh(Date.now());
     } catch (err) {
