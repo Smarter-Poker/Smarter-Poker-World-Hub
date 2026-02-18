@@ -111,11 +111,13 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         inline_expense_amount: '',
         inline_expense_type: '',
         tournament_name: e.tournament_name || '',
+        tournament_type: e.tournament_type || '',
         buy_in_amount: e.buy_in_amount?.toString() || '',
         finish_position: e.finish_position?.toString() || '',
         field_size: e.field_size?.toString() || '',
         reentry_count: e.reentry_count?.toString() || '0',
         add_on_amount: e.add_on_amount?.toString() || '',
+        bounties_collected: e.bounties_collected?.toString() || '',
         casino_game: e.casino_game || 'blackjack',
         slot_machine: e.slot_machine || '',
         sport: e.sport || '',
@@ -146,6 +148,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       stakes: '',
       game_type: 'nlhe',
       tournament_name: '',
+      tournament_type: '',
       buy_in_amount: '',
       finish_position: '',
       field_size: '',
@@ -169,6 +172,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       action_markup: '',
       action_amount: '',
       add_on_amount: '',
+      bounties_collected: '',
     };
   };
 
@@ -275,8 +279,16 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   };
 
   const calculateNetResult = () => {
-    const grossIn = parseFloat(formData.gross_in) || 0;
     const grossOut = parseFloat(formData.gross_out) || 0;
+    // For tournaments, compute total buy-in including rebuys + add-ons
+    if (category === 'poker_mtt') {
+      const buyIn = parseFloat(formData.buy_in_amount) || 0;
+      const rebuys = parseInt(formData.reentry_count) || 0;
+      const addOn = parseFloat(formData.add_on_amount) || 0;
+      const totalBuyIn = buyIn * (1 + rebuys) + addOn;
+      return grossOut - totalBuyIn;
+    }
+    const grossIn = parseFloat(formData.gross_in) || 0;
     return grossOut - grossIn;
   };
 
@@ -345,18 +357,30 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         entry.game_type = formData.game_type || null;
       } else if (category === 'poker_mtt') {
         entry.tournament_name = formData.tournament_name || null;
+        entry.tournament_type = formData.tournament_type || null;
         entry.buy_in_amount = parseFloat(formData.buy_in_amount) || null;
         entry.finish_position = parseInt(formData.finish_position) || null;
         entry.field_size = parseInt(formData.field_size) || null;
         entry.reentry_count = parseInt(formData.reentry_count) || 0;
         entry.add_on_amount = parseFloat(formData.add_on_amount) || null;
-        // Add rebuys and add-on to notes if present
+        entry.bounties_collected = parseFloat(formData.bounties_collected) || null;
+        // Calculate total buy-in: buyIn × (1 + rebuys) + addOn
+        const buyIn = parseFloat(formData.buy_in_amount) || 0;
         const rebuyCount = parseInt(formData.reentry_count) || 0;
         const addOnAmt = parseFloat(formData.add_on_amount) || 0;
-        if (rebuyCount > 0 || addOnAmt > 0) {
+        const totalBuyIn = buyIn * (1 + rebuyCount) + addOnAmt;
+        entry.gross_in = totalBuyIn;
+        // Add bounties to gross_out (bounties are money received)
+        const bounties = parseFloat(formData.bounties_collected) || 0;
+        if (bounties > 0) {
+          entry.gross_out = (entry.gross_out || 0) + bounties;
+        }
+        // Add rebuys, add-on, and bounties to notes if present
+        if (rebuyCount > 0 || addOnAmt > 0 || bounties > 0) {
           const reParts = [];
-          if (rebuyCount > 0) reParts.push(`Rebuys: ${rebuyCount}`);
+          if (rebuyCount > 0) reParts.push(`Rebuys: ${rebuyCount} (Total Buy-In: $${totalBuyIn.toLocaleString()})`);
           if (addOnAmt > 0) reParts.push(`Add-On: $${addOnAmt}`);
+          if (bounties > 0) reParts.push(`Bounties: $${bounties}`);
           const reExtra = reParts.join(' | ');
           entry.notes = entry.notes ? `${entry.notes}\n${reExtra}` : reExtra;
         }
@@ -654,6 +678,40 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 style={styles.input}
               />
             </div>
+
+            {/* Tournament Type Dropdown */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Tournament Type</label>
+              <select
+                value={formData.tournament_type}
+                onChange={(e) => handleInputChange('tournament_type', e.target.value)}
+                style={styles.select}
+              >
+                <option value="">Select Type...</option>
+                <option value="mtt">MTT</option>
+                <option value="satellite">Satellite</option>
+                <option value="bounty">Bounty</option>
+                <option value="mystery_bounty">Mystery Bounty</option>
+                <option value="pko">PKO</option>
+                <option value="sit_n_go">Sit N Go</option>
+              </select>
+            </div>
+
+            {/* Bounties Collected — only for bounty types */}
+            {['bounty', 'mystery_bounty', 'pko'].includes(formData.tournament_type) && (
+              <div style={styles.formGroup}>
+                <label style={{ ...styles.label, color: '#22c55e' }}>Bounties Collected ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.bounties_collected}
+                  onChange={(e) => handleInputChange('bounties_collected', e.target.value)}
+                  placeholder="Total bounty $ received"
+                  style={{ ...styles.input, borderColor: 'rgba(34,197,94,0.3)' }}
+                />
+              </div>
+            )}
+
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Finish Position</label>
@@ -718,6 +776,24 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 />
               </div>
             </div>
+
+            {/* Total Buy-In Display */}
+            {(() => {
+              const buyIn = parseFloat(formData.buy_in_amount) || 0;
+              const rebuys = parseInt(formData.reentry_count) || 0;
+              const addOn = parseFloat(formData.add_on_amount) || 0;
+              const totalBuyIn = buyIn * (1 + rebuys) + addOn;
+              if (buyIn > 0 && (rebuys > 0 || addOn > 0)) {
+                return (
+                  <div style={{ padding: '8px 12px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.3)', borderRadius: 8, fontSize: 13, color: '#ffa500', textAlign: 'center', marginBottom: 8 }}>
+                    Total Buy-In: <strong>${totalBuyIn.toLocaleString()}</strong>
+                    {rebuys > 0 && <span> ({1 + rebuys} bullets × ${buyIn.toLocaleString()}{addOn > 0 ? ` + $${addOn.toLocaleString()} add-on` : ''})</span>}
+                    {rebuys === 0 && addOn > 0 && <span> (${buyIn.toLocaleString()} + ${addOn.toLocaleString()} add-on)</span>}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* Swap Deductions — Collapsible */}
             <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
