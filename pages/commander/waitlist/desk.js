@@ -1,11 +1,11 @@
 /**
  * Waitlist Desk View — The Board
  * /commander/waitlist/desk
- * Professional Bravo Poker-style grid display.
- * Black background, white-bordered columns, cream headers, clean white player names.
- * Click a player name → action buttons. Real-time updates.
+ * Professional Bravo Poker-style grid: black background, colored column headers,
+ * table numbers sub-row, venue branding, scrolling ticker.
+ * Click a player name → action buttons. Real-time via Supabase + 15s polling.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
@@ -14,6 +14,13 @@ import {
   PhoneCall, Armchair, SkipForward, Trash2,
   MessageSquare, Phone, X
 } from 'lucide-react';
+
+// Professional column colors — muted, classy tones (Bravo-style)
+const COL_COLORS = [
+  '#1B5E20', '#0D47A1', '#B71C1C', '#4A148C',
+  '#E65100', '#006064', '#880E4F', '#1A237E',
+  '#33691E', '#4E342E'
+];
 
 export default function WaitlistDesk() {
   const router = useRouter();
@@ -25,9 +32,23 @@ export default function WaitlistDesk() {
   const [smsStatus, setSmsStatus] = useState(null);
   const [showAddWalkIn, setShowAddWalkIn] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [venueName, setVenueName] = useState('');
+  const [venueLogo, setVenueLogo] = useState(null);
+  const tickerRef = useRef(null);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+
+  // Load venue info from localStorage
+  useEffect(() => {
+    try {
+      const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      if (staff.venue_name) setVenueName(staff.venue_name);
+      const venue = JSON.parse(localStorage.getItem('commander_venue') || '{}');
+      if (venue.logo_url) setVenueLogo(venue.logo_url);
+      else if (venue.logo) setVenueLogo(venue.logo);
+    } catch { }
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -56,9 +77,9 @@ export default function WaitlistDesk() {
   });
   useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
 
+  // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
-    setCallLoading(entry.id);
-    setSmsStatus(null);
+    setCallLoading(entry.id); setSmsStatus(null);
     try {
       const token = getToken();
       const res = await fetch('/api/commander/waitlist/call', {
@@ -67,15 +88,10 @@ export default function WaitlistDesk() {
         body: JSON.stringify({ waitlist_id: entry.id })
       });
       const json = await res.json();
-      if (json.data?.sms_sent) {
-        setSmsStatus({ id: entry.id, type: 'sent', text: `SMS sent to ${entry.player_name}` });
-      } else if (json.data?.sms_status === 'no_phone') {
-        setSmsStatus({ id: entry.id, type: 'none', text: 'No Phone — Verbal Page Only' });
-      } else {
-        setSmsStatus({ id: entry.id, type: 'none', text: 'Called — SMS Unavailable' });
-      }
-      setSelectedPlayer(null);
-      await fetchData();
+      if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${entry.player_name}` });
+      else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
+      else setSmsStatus({ type: 'none', text: 'Called — SMS Unavailable' });
+      setSelectedPlayer(null); await fetchData();
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error(err); }
     finally { setCallLoading(null); }
@@ -89,9 +105,7 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
-      setSeatModal(null);
-      setSelectedPlayer(null);
-      await fetchData();
+      setSeatModal(null); setSelectedPlayer(null); await fetchData();
     } catch (err) { console.error(err); }
   };
 
@@ -99,11 +113,9 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
       });
-      setSelectedPlayer(null);
-      await fetchData();
+      setSelectedPlayer(null); await fetchData();
     } catch (err) { console.error(err); }
   };
 
@@ -111,11 +123,9 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       await fetch(`/api/commander/waitlist/${entry.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
       });
-      setSelectedPlayer(null);
-      await fetchData();
+      setSelectedPlayer(null); await fetchData();
     } catch (err) { console.error(err); }
   };
 
@@ -128,28 +138,20 @@ export default function WaitlistDesk() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          venue_id: staffData.venue_id,
-          player_name: playerData.player_name,
-          game_type: parts[parts.length - 1] || 'NLH',
-          stakes: parts.length > 1 ? parts.slice(0, -1).join(' ') : '1/3',
-          player_phone: playerData.phone || null,
-          signup_method: 'staff'
+          venue_id: staffData.venue_id, player_name: playerData.player_name,
+          game_type: parts[0] || 'NLH', stakes: parts.slice(1).join(' ') || '1/3',
+          player_phone: playerData.phone || null, signup_method: 'staff'
         })
       });
       const json = await res.json();
-      if (json.success) {
-        setShowAddWalkIn(false);
-        await fetchData();
-      }
+      if (json.success) { setShowAddWalkIn(false); await fetchData(); }
     } catch (err) { console.error(err); }
   };
 
-  // Group waitlists by game type + stakes
+  // ── GROUP & SORT ────────────────────────────────────────────────
   const waitlistByGame = {};
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
-    const key = w.stakes
-      ? `${(w.game_type || 'NLH').toUpperCase()} ${w.stakes}`
-      : (w.game_type || 'Unknown').toUpperCase();
+    const key = w.stakes ? `${(w.game_type || 'NLH').toUpperCase()} ${w.stakes}` : (w.game_type || 'Unknown').toUpperCase();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
     waitlistByGame[key].push(w);
   });
@@ -161,17 +163,40 @@ export default function WaitlistDesk() {
     });
   });
 
-  // Find matching table numbers for each game group
-  const getTableNumbers = (gameType) => {
+  const getTableNums = (gameLabel) => {
+    const parts = gameLabel.split(' ');
+    const gameType = parts[0];
+    const stakes = parts.slice(1).join(' ');
     return tables
-      .filter(t => t.is_active !== false && t.status !== 'maintenance' && t.game_type === gameType)
+      .filter(t => {
+        if (t.is_active === false || t.status === 'maintenance') return false;
+        const tGame = (t.game_type || '').toUpperCase();
+        const tStakes = (t.stakes || '').trim();
+        if (tGame === gameType && tStakes === stakes) return true;
+        if (tGame === gameType && !tStakes) return true;
+        const combined = `${tGame} ${tStakes}`.trim();
+        return combined === gameLabel;
+      })
       .map(t => t.table_number)
       .sort((a, b) => a - b);
   };
 
+  // Dealer break tables (tables on break)
+  const breakTables = tables
+    .filter(t => t.status === 'break' || t.status === 'dealer_break')
+    .map(t => t.table_number)
+    .sort((a, b) => a - b);
+
   const activeTables = tables.filter(t => t.is_active !== false && t.status !== 'maintenance');
   const totalWaiting = waitlists.filter(w => w.status === 'waiting').length;
   const gameEntries = Object.entries(waitlistByGame);
+
+  // Build ticker message
+  const tickerParts = [];
+  if (breakTables.length > 0) tickerParts.push(`BREAK ${breakTables.join('--')}`);
+  tickerParts.push('Download the Smarter Poker App for live waitlist updates');
+  tickerParts.push(`${totalWaiting} players currently waiting`);
+  const tickerMessage = tickerParts.join('   \u00A0\u00A0\u00A0-\u00A0\u00A0\u00A0   ');
 
   if (loading) {
     return <div style={S.loadingWrap}><Loader2 className="animate-spin" size={32} color="#D4AF37" /></div>;
@@ -180,49 +205,54 @@ export default function WaitlistDesk() {
   return (
     <>
       <SEOHead title="The Board — Poker Waiting List" noindex={true} />
-
       <div style={S.page}>
-        {/* ── HEADER BAR ── */}
-        <div style={S.header}>
-          <button onClick={() => router.back()} style={S.backBtn}>
-            <ArrowLeft size={18} color="#D4AF37" />
-          </button>
-          <div style={S.headerCenter}>
-            <span style={S.headerTitle}>POKER WAITING LIST</span>
+
+        {/* ═══ TOP BAR: Venue Name + Logo | POKER WAITING LIST | Count Boxes | Powered By ═══ */}
+        <div style={S.topBar}>
+          <div style={S.topLeft}>
+            <button onClick={() => router.back()} style={S.backBtn}>
+              <ArrowLeft size={16} color="#D4AF37" />
+            </button>
+            {venueLogo && (
+              <img src={venueLogo} alt="" style={S.venueLogo} />
+            )}
+            <span style={S.venueNameText}>{venueName || 'Poker Room'}</span>
           </div>
-          <div style={S.headerRight}>
-            {/* Count boxes — one per game */}
-            {gameEntries.map(([, entries], i) => (
-              <span key={i} style={S.countBox}>{entries.length}</span>
-            ))}
+
+          <div style={S.topCenter}>
+            <span style={S.titleText}>POKER WAITING LIST</span>
+          </div>
+
+          <div style={S.topRight}>
+            <div style={S.countBoxes}>
+              {gameEntries.map(([, entries], i) => (
+                <span key={i} style={{ ...S.countBox, background: COL_COLORS[i % COL_COLORS.length] }}>{entries.length}</span>
+              ))}
+            </div>
+            <span style={S.poweredBy}>Powered By<br /><strong>Club Commander</strong></span>
           </div>
         </div>
 
-        {/* ── CONTROLS BAR ── */}
+        {/* ═══ CONTROLS BAR ═══ */}
         <div style={S.controls}>
           <span style={S.controlInfo}>{totalWaiting} waiting &bull; {gameEntries.length} game{gameEntries.length !== 1 ? 's' : ''}</span>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '6px' }}>
             <button onClick={() => setShowAddWalkIn(true)} style={S.addBtn}>
-              <UserPlus size={14} /> Add Player
+              <UserPlus size={13} /> Add Player
             </button>
-            <button onClick={fetchData} style={S.refreshBtn}>
-              <RefreshCw size={14} />
-            </button>
+            <button onClick={fetchData} style={S.refreshBtn}><RefreshCw size={13} /></button>
           </div>
         </div>
 
-        {/* ── SMS TOAST ── */}
+        {/* ═══ SMS TOAST ═══ */}
         {smsStatus && (
-          <div style={{
-            ...S.toast,
-            borderColor: smsStatus.type === 'sent' ? '#4CAF50' : '#D4AF37'
-          }}>
+          <div style={S.toast}>
             {smsStatus.type === 'sent' ? <MessageSquare size={14} /> : <Phone size={14} />}
             {smsStatus.text}
           </div>
         )}
 
-        {/* ── GRID ── */}
+        {/* ═══ BRAVO GRID ═══ */}
         {gameEntries.length === 0 ? (
           <div style={S.emptyState}>
             <Users size={40} color="#333" />
@@ -231,20 +261,18 @@ export default function WaitlistDesk() {
         ) : (
           <div style={S.grid}>
             {gameEntries.map(([gameLabel, entries], colIdx) => {
-              // Parse game_type from label for table matching
-              const gameParts = gameLabel.split(' ');
-              const gameType = gameParts[gameParts.length - 1] || gameLabel;
-              const tableNums = getTableNumbers(gameType);
+              const color = COL_COLORS[colIdx % COL_COLORS.length];
+              const tableNums = getTableNums(gameLabel);
 
               return (
                 <div key={gameLabel} style={S.column}>
-                  {/* Column Header — Game Type */}
-                  <div style={S.colHeader}>
+                  {/* Colored Header */}
+                  <div style={{ ...S.colHeader, background: color }}>
                     {gameLabel}
                   </div>
 
-                  {/* Sub-header — Table Numbers */}
-                  <div style={S.colSubHeader}>
+                  {/* Table Numbers */}
+                  <div style={S.colTableNums}>
                     {tableNums.length > 0 ? tableNums.join('-') : '—'}
                   </div>
 
@@ -266,25 +294,19 @@ export default function WaitlistDesk() {
                           >
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               {hasApp && <span style={{ color: '#D4AF37', fontSize: '10px' }}>♦</span>}
-                              <span style={{
-                                ...S.playerName,
-                                color: isCalled ? '#D4AF37' : '#E0E0E0'
-                              }}>
+                              <span style={{ ...S.playerName, color: isCalled ? '#D4AF37' : '#E0E0E0' }}>
                                 {entry.player_name}
                               </span>
                             </span>
                             {isCalled && <span style={S.calledBadge}>CALLED</span>}
                           </div>
 
-                          {/* Action bar */}
                           {isSelected && (
                             <div style={S.actionBar}>
                               {entry.status !== 'called' && (
                                 <button onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
                                   disabled={callLoading === entry.id} style={S.actionBtn}>
-                                  {callLoading === entry.id
-                                    ? <Loader2 size={11} className="animate-spin" />
-                                    : <PhoneCall size={11} />}
+                                  {callLoading === entry.id ? <Loader2 size={11} className="animate-spin" /> : <PhoneCall size={11} />}
                                   Call
                                 </button>
                               )}
@@ -309,14 +331,15 @@ export default function WaitlistDesk() {
           </div>
         )}
 
-        {/* ── BOTTOM TICKER ── */}
+        {/* ═══ SCROLLING TICKER ═══ */}
         <div style={S.ticker}>
-          <div style={S.tickerText}>
-            ♦ Players with app notifications enabled &nbsp;&nbsp;|&nbsp;&nbsp; Auto-refresh every 15s &nbsp;&nbsp;|&nbsp;&nbsp; {totalWaiting} total waiting
+          <div ref={tickerRef} style={S.tickerTrack}>
+            <span style={S.tickerContent}>{tickerMessage}</span>
+            <span style={S.tickerContent}>{tickerMessage}</span>
           </div>
         </div>
 
-        {/* ── SEAT MODAL ── */}
+        {/* ═══ SEAT MODAL ═══ */}
         {seatModal && (
           <div style={S.overlay} onClick={() => setSeatModal(null)}>
             <div style={S.modal} onClick={e => e.stopPropagation()}>
@@ -359,7 +382,7 @@ export default function WaitlistDesk() {
           </div>
         )}
 
-        {/* ── ADD PLAYER MODAL ── */}
+        {/* ═══ ADD PLAYER MODAL ═══ */}
         {showAddWalkIn && (
           <div style={S.overlay} onClick={() => setShowAddWalkIn(false)}>
             <div style={S.modal} onClick={e => e.stopPropagation()}>
@@ -372,11 +395,18 @@ export default function WaitlistDesk() {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes tickerScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </>
   );
 }
 
-// ── WALK-IN FORM ──────────────────────────────────────────────────────
+// ── WALK-IN FORM ──────────────────────────────────────────────────
 function WalkInForm({ onSubmit, activeTables }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -416,9 +446,7 @@ function WalkInForm({ onSubmit, activeTables }) {
                 fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                 background: gameType === g ? '#D4AF37' : '#111',
                 color: gameType === g ? '#000' : '#aaa'
-              }}>
-              {g}
-            </button>
+              }}>{g}</button>
           ))}
         </div>
       </div>
@@ -429,91 +457,110 @@ function WalkInForm({ onSubmit, activeTables }) {
   );
 }
 
-// ── STYLES ────────────────────────────────────────────────────────────
+// ── STYLES ────────────────────────────────────────────────────────
 const S = {
   page: {
     minHeight: '100vh', background: '#000', color: '#E0E0E0',
-    fontFamily: "'Inter', 'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column'
+    fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    display: 'flex', flexDirection: 'column'
   },
   loadingWrap: {
-    minHeight: '100vh', background: '#000', display: 'flex',
-    alignItems: 'center', justifyContent: 'center'
+    minHeight: '100vh', background: '#000',
+    display: 'flex', alignItems: 'center', justifyContent: 'center'
   },
 
-  // Header
-  header: {
-    display: 'flex', alignItems: 'center', padding: '10px 16px',
-    borderBottom: '1px solid #333', background: '#0a0a0a'
+  // ── TOP BAR ──
+  topBar: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '8px 16px', borderBottom: '2px solid #333', background: '#050505'
+  },
+  topLeft: {
+    display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto'
   },
   backBtn: {
-    background: 'none', border: 'none', cursor: 'pointer', padding: '6px',
+    background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
     display: 'flex', alignItems: 'center'
   },
-  headerCenter: { flex: 1, textAlign: 'center' },
-  headerTitle: {
-    fontSize: '22px', fontWeight: 700, color: '#D4AF37',
-    letterSpacing: '2px', textTransform: 'uppercase'
+  venueLogo: {
+    height: '32px', width: 'auto', borderRadius: '4px', objectFit: 'contain'
   },
-  headerRight: { display: 'flex', gap: '4px', alignItems: 'center' },
+  venueNameText: {
+    fontSize: '14px', fontWeight: 700, color: '#D4AF37',
+    letterSpacing: '0.5px', textTransform: 'uppercase',
+    maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+  },
+  topCenter: { flex: 1, textAlign: 'center' },
+  titleText: {
+    fontSize: '22px', fontWeight: 800, color: '#D4AF37',
+    letterSpacing: '3px', textTransform: 'uppercase'
+  },
+  topRight: {
+    display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 auto'
+  },
+  countBoxes: { display: 'flex', gap: '3px', alignItems: 'center' },
   countBox: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: '28px', height: '24px', fontSize: '13px', fontWeight: 700,
-    color: '#fff', background: '#1a3a1a', border: '1px solid #2a5a2a',
-    borderRadius: '3px'
+    minWidth: '26px', height: '22px', fontSize: '12px', fontWeight: 700,
+    color: '#fff', borderRadius: '3px', padding: '0 4px'
+  },
+  poweredBy: {
+    fontSize: '9px', color: '#666', textAlign: 'right',
+    lineHeight: '1.3', letterSpacing: '0.3px', textTransform: 'uppercase'
   },
 
-  // Controls
+  // ── CONTROLS ──
   controls: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '6px 16px', borderBottom: '1px solid #222', background: '#050505'
+    padding: '4px 16px', borderBottom: '1px solid #222', background: '#050505'
   },
-  controlInfo: { fontSize: '12px', color: '#888' },
+  controlInfo: { fontSize: '11px', color: '#888' },
   addBtn: {
-    display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 12px',
-    background: '#1a1a1a', border: '1px solid #444', borderRadius: '4px',
-    color: '#D4AF37', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
+    display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px',
+    background: '#111', border: '1px solid #444', borderRadius: '3px',
+    color: '#D4AF37', fontSize: '11px', fontWeight: 600, cursor: 'pointer'
   },
   refreshBtn: {
-    display: 'flex', alignItems: 'center', padding: '5px 8px',
-    background: '#1a1a1a', border: '1px solid #333', borderRadius: '4px',
+    display: 'flex', alignItems: 'center', padding: '4px 6px',
+    background: '#111', border: '1px solid #333', borderRadius: '3px',
     color: '#888', cursor: 'pointer'
   },
 
-  // Toast
+  // ── TOAST ──
   toast: {
-    margin: '8px 16px 0', padding: '8px 14px', fontSize: '13px', fontWeight: 600,
+    margin: '6px 16px 0', padding: '6px 12px', fontSize: '12px', fontWeight: 600,
     color: '#D4AF37', background: '#0a0a0a', border: '1px solid #333',
-    borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px'
+    borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '6px'
   },
 
-  // Empty state
+  // ── EMPTY STATE ──
   emptyState: {
     flex: 1, display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: 'center', padding: '80px 20px'
   },
 
-  // Grid
+  // ── GRID ──
   grid: {
-    flex: 1, display: 'flex', overflowX: 'auto', padding: '12px',
+    flex: 1, display: 'flex', overflowX: 'auto', padding: '10px 12px',
     gap: '0', alignItems: 'flex-start'
   },
   column: {
-    flex: '1 1 0', minWidth: '150px', maxWidth: '260px',
-    border: '1px solid #444', borderRight: 'none', display: 'flex', flexDirection: 'column'
+    flex: '1 1 0', minWidth: '140px', maxWidth: '260px',
+    border: '1px solid #444', marginLeft: '-1px',
+    display: 'flex', flexDirection: 'column'
   },
   colHeader: {
     padding: '8px 10px', textAlign: 'center', fontWeight: 700,
-    fontSize: '13px', color: '#D4AF37', textTransform: 'uppercase',
-    letterSpacing: '0.5px', borderBottom: '1px solid #444',
-    background: '#0a0a0a'
+    fontSize: '13px', color: '#fff', textTransform: 'uppercase',
+    letterSpacing: '0.5px', borderBottom: '1px solid #444'
   },
-  colSubHeader: {
-    padding: '4px 10px', textAlign: 'center', fontSize: '11px',
-    color: '#888', borderBottom: '1px solid #333', background: '#050505'
+  colTableNums: {
+    padding: '3px 8px', textAlign: 'center', fontSize: '11px',
+    color: '#999', borderBottom: '1px solid #333', background: '#0a0a0a',
+    fontWeight: 600, letterSpacing: '0.5px'
   },
   colBody: { flex: 1, background: '#000' },
 
-  // Player rows
+  // ── PLAYER ROWS ──
   playerRow: {
     padding: '5px 10px', borderBottom: '1px solid #1a1a1a',
     cursor: 'pointer', display: 'flex', alignItems: 'center',
@@ -525,7 +572,7 @@ const S = {
     padding: '1px 4px', borderRadius: '2px', letterSpacing: '0.5px'
   },
 
-  // Action bar
+  // ── ACTIONS ──
   actionBar: {
     display: 'flex', padding: '4px 6px', gap: '3px',
     background: '#111', borderBottom: '1px solid #222', flexWrap: 'wrap'
@@ -546,14 +593,20 @@ const S = {
     fontWeight: 600, cursor: 'pointer', background: '#1a0a0a', color: '#E57373'
   },
 
-  // Ticker
+  // ── TICKER ──
   ticker: {
-    padding: '6px 16px', borderTop: '1px solid #333', background: '#050505',
-    overflow: 'hidden', whiteSpace: 'nowrap'
+    padding: '6px 0', borderTop: '2px solid #333', background: '#050505',
+    overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative'
   },
-  tickerText: { fontSize: '11px', color: '#666', letterSpacing: '0.3px' },
+  tickerTrack: {
+    display: 'inline-flex', animation: 'tickerScroll 30s linear infinite'
+  },
+  tickerContent: {
+    fontSize: '13px', color: '#D4AF37', fontWeight: 600,
+    letterSpacing: '0.5px', paddingRight: '100px', whiteSpace: 'nowrap'
+  },
 
-  // Modals
+  // ── MODALS ──
   overlay: {
     position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.85)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
@@ -563,8 +616,7 @@ const S = {
     width: '100%', maxWidth: '420px', padding: '20px'
   },
   modalHeader: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: '16px'
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'
   },
   modalTitle: { fontSize: '16px', fontWeight: 700, color: '#D4AF37', margin: 0 },
   modalSub: { fontSize: '13px', color: '#888', margin: '2px 0 0' },
@@ -581,11 +633,10 @@ const S = {
   seatBtn: {
     width: '36px', height: '36px', borderRadius: '4px', background: '#0a1a0a',
     border: '1px solid #2a5a2a', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', fontSize: '13px', fontWeight: 700,
-    color: '#4CAF50', cursor: 'pointer'
+    justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#4CAF50', cursor: 'pointer'
   },
 
-  // Form
+  // ── FORM ──
   formLabel: { display: 'block', fontSize: '13px', fontWeight: 600, color: '#ccc', marginBottom: '4px' },
   formInput: {
     width: '100%', height: '40px', padding: '0 10px', background: '#1a1a1a',
@@ -594,19 +645,6 @@ const S = {
   },
   formSubmit: {
     width: '100%', height: '40px', background: '#D4AF37', color: '#000',
-    borderRadius: '4px', border: 'none', fontWeight: 700, fontSize: '14px',
-    cursor: 'pointer', opacity: 1
+    borderRadius: '4px', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer'
   }
 };
-// Fix last column right border
-if (typeof window !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = `
-    [data-desk-grid] > div:last-child { border-right: 1px solid #444 !important; }
-    [data-desk-grid] > div:hover .player-row:hover { background: rgba(255,255,255,0.03); }
-  `;
-  if (!document.getElementById('desk-grid-fix')) {
-    style.id = 'desk-grid-fix';
-    document.head.appendChild(style);
-  }
-}
