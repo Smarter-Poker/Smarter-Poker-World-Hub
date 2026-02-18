@@ -16,22 +16,49 @@ function buildNameLookups() {
   });
   const tourNames = {};
   const seriesNames = {};
-  (Array.isArray(tourSeriesData) ? tourSeriesData : tourSeriesData.tours || tourSeriesData.data || []).forEach(t => {
-    if (t.type === 'tour' || t.tour_code) {
-      var key = t.id || t.tour_code || t.code;
-      if (key) tourNames[String(key)] = t.name || t.tour_name || 'Tour';
-    }
-    if (t.type === 'series' || t.series_id) {
-      var key2 = t.id || t.series_id;
-      if (key2) seriesNames[String(key2)] = t.name || t.series_name || t.short_name || 'Series';
-    }
-    // Handle nested series inside tours
-    if (t.series && Array.isArray(t.series)) {
-      t.series.forEach(s => {
-        if (s.id) seriesNames[String(s.id)] = s.name || s.short_name || 'Series';
-      });
-    }
-  });
+
+  // Handle tours — can be an object dictionary { WSOP: {...}, WPT: {...} } or an array
+  const toursRaw = tourSeriesData.tours;
+  if (toursRaw && typeof toursRaw === 'object' && !Array.isArray(toursRaw)) {
+    // Dictionary format: keys are tour codes
+    Object.entries(toursRaw).forEach(([code, t]) => {
+      tourNames[code] = t.name || t.tour_name || code;
+      // Handle nested series inside tours
+      if (t.series && Array.isArray(t.series)) {
+        t.series.forEach(s => {
+          if (s.id) seriesNames[String(s.id)] = s.name || s.short_name || 'Series';
+        });
+      }
+    });
+  } else {
+    // Array format (legacy)
+    const tourList = Array.isArray(tourSeriesData) ? tourSeriesData : (toursRaw || tourSeriesData.data || []);
+    (Array.isArray(tourList) ? tourList : []).forEach(t => {
+      if (t.type === 'tour' || t.tour_code) {
+        var key = t.id || t.tour_code || t.code;
+        if (key) tourNames[String(key)] = t.name || t.tour_name || 'Tour';
+      }
+      if (t.type === 'series' || t.series_id) {
+        var key2 = t.id || t.series_id;
+        if (key2) seriesNames[String(key2)] = t.name || t.series_name || t.short_name || 'Series';
+      }
+      if (t.series && Array.isArray(t.series)) {
+        t.series.forEach(s => {
+          if (s.id) seriesNames[String(s.id)] = s.name || s.short_name || 'Series';
+        });
+      }
+    });
+  }
+
+  // Handle series_2026 key (top-level series array)
+  const seriesArr = tourSeriesData.series_2026 || tourSeriesData.series || [];
+  if (Array.isArray(seriesArr)) {
+    seriesArr.forEach(s => {
+      var key = s.id || s.series_id;
+      if (key) seriesNames[String(key)] = s.name || s.series_name || s.short_name || 'Series';
+    });
+  }
+
   return { venueNames, tourNames, seriesNames };
 }
 

@@ -355,9 +355,9 @@ export default function UniversalHeader({
                 .header-center {
                     display: flex;
                     align-items: center;
-                    gap: 10px;
-                    flex-shrink: 1;
                     justify-content: center;
+                    flex: 1;
+                    min-width: 0;
                 }
                 
                 .header-right {
@@ -366,7 +366,6 @@ export default function UniversalHeader({
                     align-self: center;
                     gap: 6px;
                     flex-shrink: 0;
-                    flex-grow: 1;
                     justify-content: flex-end;
                     margin-top: 2px;
                 }
@@ -645,9 +644,12 @@ export default function UniversalHeader({
                             style={{ height: '100%', width: '100%', objectFit: 'contain' }}
                         />
                     </button>
-                    <img src="/images/brand-text.png" alt="Smarter.Poker" className="brand-text-img" style={{ height: 32, objectFit: 'contain' }} />
                 </div>
 
+                {/* CENTER: Brand Text — centered between nav and icons */}
+                <div className="header-center">
+                    <img src="/images/brand-text.png" alt="Smarter.Poker" className="brand-text-img" style={{ height: 32, objectFit: 'contain' }} />
+                </div>
 
                 {/* RIGHT: Orb Icons */}
                 <div className="header-right">

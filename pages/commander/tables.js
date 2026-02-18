@@ -26,14 +26,14 @@ export default function CommanderTablesPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
@@ -42,7 +42,7 @@ export default function CommanderTablesPage() {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
       }
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -76,9 +76,10 @@ export default function CommanderTablesPage() {
   // Add table
   async function handleAddTable(tableData) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/tables', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ ...tableData, venue_id: venueId })
       });
       const data = await res.json();
@@ -94,9 +95,10 @@ export default function CommanderTablesPage() {
   // Update table
   async function handleUpdateTable(tableId, tableData) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tables/${tableId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify(tableData)
       });
       const data = await res.json();
@@ -113,8 +115,10 @@ export default function CommanderTablesPage() {
   async function handleDeleteTable(tableId) {
     if (!window.confirm('Delete this table?')) return;
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tables/${tableId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'x-staff-session': staffSession }
       });
       const data = await res.json();
       if (data.success) {
@@ -129,9 +133,10 @@ export default function CommanderTablesPage() {
   async function handleCloseGame(gameId) {
     if (!window.confirm('Close this game? Players will be unseated.')) return;
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ status: 'closed' })
       });
       const data = await res.json();
@@ -155,10 +160,10 @@ export default function CommanderTablesPage() {
     <CommanderLayout title="Tables | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
       <>
         <SEOHead
-                title="Commander — Table Management"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Table Management"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <div className="cmd-page">
           {/* Header */}
@@ -229,10 +234,10 @@ export default function CommanderTablesPage() {
                         </p>
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${table.status === 'available'
-                          ? 'bg-[#D1FAE5] text-[#059669]'
-                          : table.status === 'in_use'
-                            ? 'bg-[#DBEAFE] text-[#2563EB]'
-                            : 'bg-[#FEF3C7] text-[#D97706]'
+                        ? 'bg-[#D1FAE5] text-[#059669]'
+                        : table.status === 'in_use'
+                          ? 'bg-[#DBEAFE] text-[#2563EB]'
+                          : 'bg-[#FEF3C7] text-[#D97706]'
                         }`}>
                         {table.status}
                       </span>
@@ -365,8 +370,8 @@ function TableModal({ table, onClose, onSubmit }) {
                   type="button"
                   onClick={() => setMaxSeats(num)}
                   className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${maxSeats === num
-                      ? 'cmd-btn cmd-btn-primary'
-                      : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
+                    ? 'cmd-btn cmd-btn-primary'
+                    : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
                     }`}
                 >
                   {num}
