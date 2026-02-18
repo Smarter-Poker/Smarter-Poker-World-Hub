@@ -241,9 +241,6 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             {/* Header */}
             <div style={styles.header}>
                 <h3 style={styles.headerTitle}>Staking Tracker</h3>
-                {!activeArrangement && (
-                    <button onClick={handleAddNew} style={styles.addBtn}>+ Add Backer</button>
-                )}
             </div>
 
             {/* Active Arrangement */}
@@ -411,10 +408,9 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                 </div>
             ) : (
                 <div style={styles.emptyState}>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>🤝</div>
                     <p style={styles.emptyTitle}>No Active Staking Deal</p>
                     <p style={styles.emptyHint}>Track Backer Relationships, Profit Splits & Makeup</p>
-                    <button onClick={handleAddNew} style={styles.addBtn}>+ Add Backer</button>
+                    <button onClick={handleAddNew} style={styles.addBtn}>+ New Deal</button>
                 </div>
             )}
 
@@ -591,9 +587,6 @@ export default function StakingTracker({ userId, refreshTrigger }) {
 
 const styles = {
     container: {
-        background: 'rgba(36,37,38,0.6)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
         overflow: 'hidden',
     },
     loadingState: {

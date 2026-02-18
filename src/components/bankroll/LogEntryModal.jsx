@@ -53,6 +53,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   const [savedStakerNames, setSavedStakerNames] = useState([]);
   const [customSwapName, setCustomSwapName] = useState(false);
   const [customStakerName, setCustomStakerName] = useState(false);
+  // Collapsible tournament deduction sections
+  const [showSwaps, setShowSwaps] = useState(false);
+  const [showStaking, setShowStaking] = useState(false);
+  const [showSoldAction, setShowSoldAction] = useState(false);
 
   // Helper: convert 24h "HH:MM" to { time: "H:MM", period }
   const to12h = (time24) => {
@@ -152,6 +156,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       swap_amount: '',
       staker_name: '',
       staker_amount: '',
+      action_buyer: '',
+      action_percentage: '',
+      action_markup: '',
+      action_amount: '',
     };
   };
 
@@ -330,15 +338,21 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         entry.finish_position = parseInt(formData.finish_position) || null;
         entry.field_size = parseInt(formData.field_size) || null;
         entry.reentry_count = parseInt(formData.reentry_count) || 0;
-        // Subtract swap and staking amounts from gross_out
+        // Subtract swap, staking, and sold action amounts from gross_out
         const swapAmt = parseFloat(formData.swap_amount) || 0;
         const stakerAmt = parseFloat(formData.staker_amount) || 0;
-        if (swapAmt > 0 || stakerAmt > 0) {
-          entry.gross_out = Math.max(0, (entry.gross_out || 0) - swapAmt - stakerAmt);
-          // Append swap/staking details to notes
+        const actionAmt = parseFloat(formData.action_amount) || 0;
+        if (swapAmt > 0 || stakerAmt > 0 || actionAmt > 0) {
+          entry.gross_out = Math.max(0, (entry.gross_out || 0) - swapAmt - stakerAmt - actionAmt);
+          // Append swap/staking/action details to notes
           const parts = [];
           if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} — $${swapAmt}`);
           if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} — $${stakerAmt}`);
+          if (actionAmt > 0) {
+            const pct = formData.action_percentage ? `${formData.action_percentage}%` : '';
+            const mkup = formData.action_markup ? ` @ ${formData.action_markup}% markup` : '';
+            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} — ${pct}${mkup} — $${actionAmt}`);
+          }
           const extra = parts.join(' | ');
           entry.notes = entry.notes ? `${entry.notes}\n${extra}` : extra;
         }
@@ -600,7 +614,6 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 type="text"
                 value={formData.tournament_name}
                 onChange={(e) => handleInputChange('tournament_name', e.target.value)}
-                placeholder="e.g., $200 Daily Deepstack"
                 style={styles.input}
               />
             </div>
@@ -611,7 +624,6 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                   type="number"
                   value={formData.finish_position}
                   onChange={(e) => handleInputChange('finish_position', e.target.value)}
-                  placeholder="e.g., 15"
                   style={styles.input}
                 />
               </div>
@@ -621,129 +633,208 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                   type="number"
                   value={formData.field_size}
                   onChange={(e) => handleInputChange('field_size', e.target.value)}
-                  placeholder="e.g., 150"
                   style={styles.input}
                 />
               </div>
             </div>
-            {/* Swap Section */}
-            <div style={{ ...styles.formGroup, marginTop: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>Swap Deductions</label>
-              <div style={styles.amountRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Player Name</label>
-                  {savedSwapNames.length > 0 && !customSwapName ? (
-                    <select
-                      value={formData.swap_player}
-                      onChange={(e) => {
-                        if (e.target.value === '__custom__') {
-                          setCustomSwapName(true);
-                          handleInputChange('swap_player', '');
-                        } else {
-                          handleInputChange('swap_player', e.target.value);
-                        }
-                      }}
-                      style={styles.select}
-                    >
-                      <option value="">Select Player...</option>
-                      {savedSwapNames.map(n => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                      <option value="__custom__">+ New Name</option>
-                    </select>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <input
-                        type="text"
-                        value={formData.swap_player}
-                        onChange={(e) => handleInputChange('swap_player', e.target.value)}
-                        placeholder="Player Name"
-                        style={{ ...styles.input, flex: 1 }}
-                      />
-                      {savedSwapNames.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCustomSwapName(false)}
-                          style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
-                        >↩</button>
+
+            {/* Swap Deductions — Collapsible */}
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                type="button"
+                onClick={() => setShowSwaps(!showSwaps)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, fontWeight: 500 }}
+              >
+                <span>Swap Deductions</span>
+                <span style={{ fontSize: 10, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              {showSwaps && (
+                <div style={{ padding: '0 12px 12px' }}>
+                  <div style={styles.amountRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Player Name</label>
+                      {savedSwapNames.length > 0 && !customSwapName ? (
+                        <select
+                          value={formData.swap_player}
+                          onChange={(e) => {
+                            if (e.target.value === '__custom__') {
+                              setCustomSwapName(true);
+                              handleInputChange('swap_player', '');
+                            } else {
+                              handleInputChange('swap_player', e.target.value);
+                            }
+                          }}
+                          style={styles.select}
+                        >
+                          <option value="">Select Player...</option>
+                          {savedSwapNames.map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                          <option value="__custom__">+ New Name</option>
+                        </select>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input
+                            type="text"
+                            value={formData.swap_player}
+                            onChange={(e) => handleInputChange('swap_player', e.target.value)}
+                            style={{ ...styles.input, flex: 1 }}
+                          />
+                          {savedSwapNames.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomSwapName(false)}
+                              style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                            >↩</button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Swap Amount ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.swap_amount}
+                        onChange={(e) => handleInputChange('swap_amount', e.target.value)}
+                        onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('swap_amount', ''); } }}
+                        onBlur={(e) => { if (!e.target.value) handleInputChange('swap_amount', ''); }}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Swap Amount ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.swap_amount}
-                    onChange={(e) => handleInputChange('swap_amount', e.target.value)}
-                    onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('swap_amount', ''); } }}
-                    onBlur={(e) => { if (!e.target.value) handleInputChange('swap_amount', ''); }}
-                    placeholder="0.00"
-                    style={styles.input}
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Staking Section */}
-            <div style={{ ...styles.formGroup, marginTop: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>Staking Deductions</label>
-              <div style={styles.amountRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Staker Name</label>
-                  {savedStakerNames.length > 0 && !customStakerName ? (
-                    <select
-                      value={formData.staker_name}
-                      onChange={(e) => {
-                        if (e.target.value === '__custom__') {
-                          setCustomStakerName(true);
-                          handleInputChange('staker_name', '');
-                        } else {
-                          handleInputChange('staker_name', e.target.value);
-                        }
-                      }}
-                      style={styles.select}
-                    >
-                      <option value="">Select Staker...</option>
-                      {savedStakerNames.map(n => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                      <option value="__custom__">+ New Name</option>
-                    </select>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <input
-                        type="text"
-                        value={formData.staker_name}
-                        onChange={(e) => handleInputChange('staker_name', e.target.value)}
-                        placeholder="Staker Name"
-                        style={{ ...styles.input, flex: 1 }}
-                      />
-                      {savedStakerNames.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCustomStakerName(false)}
-                          style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
-                        >↩</button>
+            {/* Staking Deductions — Collapsible */}
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                type="button"
+                onClick={() => setShowStaking(!showStaking)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, fontWeight: 500 }}
+              >
+                <span>Staking Deductions</span>
+                <span style={{ fontSize: 10, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              {showStaking && (
+                <div style={{ padding: '0 12px 12px' }}>
+                  <div style={styles.amountRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Staker Name</label>
+                      {savedStakerNames.length > 0 && !customStakerName ? (
+                        <select
+                          value={formData.staker_name}
+                          onChange={(e) => {
+                            if (e.target.value === '__custom__') {
+                              setCustomStakerName(true);
+                              handleInputChange('staker_name', '');
+                            } else {
+                              handleInputChange('staker_name', e.target.value);
+                            }
+                          }}
+                          style={styles.select}
+                        >
+                          <option value="">Select Staker...</option>
+                          {savedStakerNames.map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                          <option value="__custom__">+ New Name</option>
+                        </select>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input
+                            type="text"
+                            value={formData.staker_name}
+                            onChange={(e) => handleInputChange('staker_name', e.target.value)}
+                            style={{ ...styles.input, flex: 1 }}
+                          />
+                          {savedStakerNames.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomStakerName(false)}
+                              style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                            >↩</button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Amount Paid ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.staker_amount}
+                        onChange={(e) => handleInputChange('staker_amount', e.target.value)}
+                        onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('staker_amount', ''); } }}
+                        onBlur={(e) => { if (!e.target.value) handleInputChange('staker_amount', ''); }}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Amount Paid ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.staker_amount}
-                    onChange={(e) => handleInputChange('staker_amount', e.target.value)}
-                    onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('staker_amount', ''); } }}
-                    onBlur={(e) => { if (!e.target.value) handleInputChange('staker_amount', ''); }}
-                    placeholder="0.00"
-                    style={styles.input}
-                  />
+              )}
+            </div>
+
+            {/* Sold Action — Collapsible */}
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                type="button"
+                onClick={() => setShowSoldAction(!showSoldAction)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, fontWeight: 500 }}
+              >
+                <span>Sold Action</span>
+                <span style={{ fontSize: 10, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              {showSoldAction && (
+                <div style={{ padding: '0 12px 12px' }}>
+                  <div style={styles.amountRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Buyer Name</label>
+                      <input
+                        type="text"
+                        value={formData.action_buyer}
+                        onChange={(e) => handleInputChange('action_buyer', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>% Sold</label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={formData.action_percentage}
+                        onChange={(e) => handleInputChange('action_percentage', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ ...styles.amountRow, marginTop: 8 }}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Markup %</label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={formData.action_markup}
+                        onChange={(e) => handleInputChange('action_markup', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Amount Received ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.action_amount}
+                        onChange={(e) => handleInputChange('action_amount', e.target.value)}
+                        onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('action_amount', ''); } }}
+                        onBlur={(e) => { if (!e.target.value) handleInputChange('action_amount', ''); }}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </>
         )}
@@ -913,7 +1004,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 <select
                   value={formData.start_period}
                   onChange={(e) => handleInputChange('start_period', e.target.value)}
-                  style={{ ...styles.input, width: 62, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                  style={{ ...styles.input, width: 70, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
@@ -938,7 +1029,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 <select
                   value={formData.end_period}
                   onChange={(e) => handleInputChange('end_period', e.target.value)}
-                  style={{ ...styles.input, width: 62, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                  style={{ ...styles.input, width: 70, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
