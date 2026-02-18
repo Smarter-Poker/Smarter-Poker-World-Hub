@@ -22,7 +22,7 @@ export default class CommanderErrorBoundary extends Component {
     // Report to error monitoring if available
     if (typeof window !== 'undefined') {
       try {
-        const { captureException } = require('../../lib/commander/errorMonitoring');
+        const { captureException } = require('../../../lib/commander/errorMonitoring');
         captureException(error, {
           action: 'render_error',
           extra: { componentStack: errorInfo?.componentStack }
