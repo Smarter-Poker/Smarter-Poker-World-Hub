@@ -551,7 +551,8 @@ export default function MyClubsPage() {
                 path="/hub/my-clubs"
             />
 
-            <style jsx global>{`
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
@@ -559,7 +560,7 @@ export default function MyClubsPage() {
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
-            `}</style>
+            ` }} />
 
             <div style={{
                 minHeight: '100vh',
