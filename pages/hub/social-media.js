@@ -2631,8 +2631,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const openSeats = game.max_seats - occupiedCount;
 
                                 // 9-max player seat positions (excluding bottom-center which is dealer)
-                                // Angles: evenly around the ellipse, skipping the ~270° (bottom) position for dealer
-                                const seatAngles = [135, 180, 215, 245, 295, 325, 0, 45, 90];
+                                // Evenly spaced 40° apart, skipping 90° (bottom-center) for dealer
+                                const seatAngles = [110, 150, 190, 230, 270, 310, 350, 30, 70];
                                 const cx = 50, cy = 50, rx = 40, ry = 27;
                                 const seatPositions = seatAngles.map(deg => {
                                     const rad = deg * Math.PI / 180;
@@ -3040,7 +3040,8 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
                         // 9-max player seats (excluding bottom-center = dealer position)
-                        const seatAngles = [135, 180, 215, 245, 295, 325, 0, 45, 90];
+                        // Evenly spaced 40° apart, skipping 90° (bottom-center) for dealer
+                        const seatAngles = [110, 150, 190, 230, 270, 310, 350, 30, 70];
                         const cx = 50, cy = 50, rx = 40, ry = 27;
                         const seatPositions = seatAngles.map(deg => {
                             const rad = deg * Math.PI / 180;
