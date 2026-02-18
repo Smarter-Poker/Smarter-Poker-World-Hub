@@ -2722,14 +2722,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                             }}>
                                                 <div style={{
                                                     width: 56, height: 56, borderRadius: '50%', margin: '0 auto 3px',
-                                                    background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-                                                    border: '3px solid #fff',
+                                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                    border: '2.5px solid #E4E6EB',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(251,191,36,0.4)',
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
                                                     fontSize: 22, fontWeight: 900, color: '#fff',
                                                     letterSpacing: 1,
                                                 }}>D</div>
-                                                <div style={{ fontSize: 9, fontWeight: 700, color: '#fbbf24', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <div style={{ fontSize: 9, fontWeight: 700, color: '#1877F2', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {game.dealer_name || 'No Dealer'}
                                                 </div>
                                             </div>
@@ -3182,21 +3182,25 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         )}
                                     </div>
 
-                                    {/* Dealer seat — on the bottom rail of the table */}
+                                    {/* Dealer seat — on the bottom rail of the table (clickable → Dealer Tablet) */}
                                     <div style={{
                                         position: 'absolute', top: dealerTop, left: dealerLeft,
                                         transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
-                                    }}>
+                                        cursor: 'pointer',
+                                    }}
+                                        onClick={() => window.open(`/commander/dealer/${game.table_number || 1}`, '_blank')}
+                                    >
                                         <div style={{
                                             width: 56, height: 56, borderRadius: '50%', margin: '0 auto 3px',
-                                            background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-                                            border: '3px solid #fff',
+                                            background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                            border: '2.5px solid #E4E6EB',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(251,191,36,0.4)',
+                                            boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
                                             fontSize: 22, fontWeight: 900, color: '#fff',
                                             letterSpacing: 1,
+                                            transition: 'transform 0.15s',
                                         }}>D</div>
-                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#fbbf24', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#1877F2', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {game.dealer_name || 'No Dealer'}
                                         </div>
                                     </div>
@@ -3331,10 +3335,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 {/* Waitlist + Join Waitlist */}
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div style={{ fontSize: 11, color: '#a1a1aa' }}>
-                                        {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#fbbf24' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>}
+                                        {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>}
                                     </div>
                                     {canInteract && !myReservation && (
-                                        <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '5px 14px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
+                                        <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '5px 14px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
                                     )}
                                 </div>
                             </div>

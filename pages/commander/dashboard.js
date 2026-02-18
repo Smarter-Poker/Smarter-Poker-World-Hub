@@ -61,6 +61,7 @@ const CARDS = [
       { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-dealers.png' },
       { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/mg-dealer-rotation.png' },
       { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
+      { label: 'Dealer Tablet', href: '/commander/dealer/1', icon: '/images/commander/icons/mg-dealers.png' },
     ],
   },
   {
@@ -146,12 +147,12 @@ export default function CommanderDashboard() {
   // Auth guard
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const data = JSON.parse(stored);
-      if (!data.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!data.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(data);
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
@@ -200,7 +201,7 @@ export default function CommanderDashboard() {
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    router.push('/commander/login').catch(() => {});
+    router.push('/commander/login').catch(() => { });
   };
 
   const handleFeatureClick = (feat) => {
@@ -230,10 +231,10 @@ export default function CommanderDashboard() {
     <CommanderLayout title="Club Commander | Dashboard" backHref="/commander/dashboard" hideBack={true}>
       <>
         <SEOHead
-                title="Commander Dashboard — Room Overview"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander Dashboard — Room Overview"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
