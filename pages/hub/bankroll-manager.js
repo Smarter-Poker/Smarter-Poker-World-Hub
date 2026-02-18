@@ -680,7 +680,7 @@ export default function BankrollManagerPage() {
               padding: '8px 20px',
               background: 'rgba(255,255,255,0.2)',
               backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
+              border: '2px solid rgba(255,255,255,0.3)',
               borderRadius: 20,
               color: 'white',
               fontSize: 14,
@@ -793,7 +793,7 @@ export default function BankrollManagerPage() {
                       <div
                         style={{
                           background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)',
-                          border: '1px solid rgba(16,185,129,0.3)',
+                          border: '2px solid rgba(16,185,129,0.3)',
                           borderRadius: 12,
                           padding: '14px 16px',
                           marginBottom: 12,
@@ -859,7 +859,7 @@ export default function BankrollManagerPage() {
                       <div
                         style={{
                           background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(168,85,247,0.08) 100%)',
-                          border: '1px solid rgba(59,130,246,0.3)',
+                          border: '2px solid rgba(59,130,246,0.3)',
                           borderRadius: 12,
                           padding: '14px 16px',
                           marginBottom: 12,
@@ -921,7 +921,7 @@ export default function BankrollManagerPage() {
                   {/* === Unified Dashboard Frame === */}
                   <div style={{
                     background: '#1a1b1e',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '2px solid rgba(255,255,255,0.08)',
                     borderRadius: 14,
                     padding: '16px',
                     marginBottom: 16,
@@ -1157,7 +1157,7 @@ export default function BankrollManagerPage() {
                           onClick={() => setShowAllEntries(true)}
                           style={{
                             background: 'rgba(59, 130, 246, 0.15)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            border: '2px solid rgba(59, 130, 246, 0.3)',
                             borderRadius: 6,
                             padding: '6px 14px',
                             color: '#3b82f6',
@@ -1207,7 +1207,7 @@ export default function BankrollManagerPage() {
                           maxHeight: '80vh',
                           background: '#1a1b1e',
                           borderRadius: 16,
-                          border: '1px solid rgba(255,255,255,0.1)',
+                          border: '2px solid rgba(255,255,255,0.1)',
                           overflow: 'hidden',
                           display: 'flex',
                           flexDirection: 'column',
@@ -1295,7 +1295,7 @@ export default function BankrollManagerPage() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.08)' }}>
                         <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
                         <div>
                           <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
@@ -1303,7 +1303,7 @@ export default function BankrollManagerPage() {
                         </div>
                       </div>
                       {leakAnalysis.topLeaks?.map((leak, i) => (
-                        <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, marginBottom: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.1)', borderRadius: 10, marginBottom: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
                             <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#eab308' : '#3b82f6' }}>{leak.value}</span>
@@ -1500,9 +1500,9 @@ export default function BankrollManagerPage() {
               {activeSection === 'settings' && (
                 <div style={styles.activitySection}>
                   <h2 style={styles.sectionTitle}>Bankroll Settings</h2>
-                  <div style={{ padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}>
+                  <div style={{ padding: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
                       <span style={{ fontSize: 14, color: '#fff' }}>Auto-save Sessions</span>
                       <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
                     </label>
@@ -1513,14 +1513,14 @@ export default function BankrollManagerPage() {
                   </div>
                   <button
                     onClick={() => setShowVenueModal(true)}
-                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
+                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
                   >
                     Manage Venues
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                   </button>
                   <button
                     onClick={() => setActiveSection('reports')}
-                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
                     Export Data
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
@@ -1572,7 +1572,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'pro' && (
                 <div style={styles.proToolsContainer}>
                   {/* Pro Tools Header */}
-                  <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
                       Pro Tools
                     </h2>
@@ -1634,7 +1634,7 @@ export default function BankrollManagerPage() {
                     <img
                       src={scannerImageUrl}
                       alt="Receipt"
-                      style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}
+                      style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)' }}
                     />
                   </div>
 
@@ -1801,7 +1801,7 @@ export default function BankrollManagerPage() {
                   padding: '32px 40px',
                   textAlign: 'center',
                   maxWidth: 400,
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1831,7 +1831,7 @@ export default function BankrollManagerPage() {
                   style={{
                     padding: '14px 24px',
                     background: 'transparent',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
                     borderRadius: 10,
                     color: 'rgba(255, 255, 255, 0.7)',
                     fontSize: 16,
@@ -1871,7 +1871,7 @@ export default function BankrollManagerPage() {
               style={{
                 background: 'linear-gradient(160deg, rgba(15,15,30,0.98), rgba(20,10,35,0.98))',
                 borderRadius: 16,
-                border: '1px solid rgba(239,68,68,0.35)',
+                border: '2px solid rgba(239,68,68,0.35)',
                 padding: '24px 28px',
                 maxWidth: 420,
                 width: '100%',
@@ -1904,7 +1904,7 @@ export default function BankrollManagerPage() {
                 {ruleViolations.map((v, i) => (
                   <div key={i} style={{
                     background: v.severity === 'high' ? 'rgba(239,68,68,0.08)' : v.severity === 'info' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                    border: `1px solid ${v.severity === 'high' ? 'rgba(239,68,68,0.25)' : v.severity === 'info' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+                    border: `2px solid ${v.severity === 'high' ? 'rgba(239,68,68,0.25)' : v.severity === 'info' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
                     borderRadius: 10,
                     padding: '12px 14px',
                   }}>
@@ -1928,7 +1928,7 @@ export default function BankrollManagerPage() {
                   width: '100%',
                   padding: '12px',
                   background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  border: '2px solid rgba(255,255,255,0.15)',
                   borderRadius: 10,
                   color: '#fff',
                   fontSize: 14,
@@ -2032,7 +2032,7 @@ const styles = {
   dropdownButton: {
     padding: '8px 16px',
     background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: '#fff',
     fontSize: 14,
@@ -2053,7 +2053,7 @@ const styles = {
     left: 0,
     marginTop: 4,
     background: '#1a2a44',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     padding: 4,
     minWidth: 150,
@@ -2078,7 +2078,7 @@ const styles = {
     height: 36,
     borderRadius: '50%',
     background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     color: '#fff',
     fontSize: 16,
     cursor: 'pointer',
@@ -2162,7 +2162,7 @@ const styles = {
   },
   statCard: {
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    border: '2px solid rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     padding: '16px 18px',
   },
@@ -2206,7 +2206,7 @@ const styles = {
   },
   activitySection: {
     background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 12,
     padding: 20,
   },
@@ -2232,7 +2232,7 @@ const styles = {
   filterTab: {
     padding: '8px 14px',
     background: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 14,
@@ -2271,7 +2271,7 @@ const styles = {
     alignItems: 'center',
     padding: '14px 16px',
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 10,
     cursor: 'pointer',
     marginBottom: 8,
@@ -2316,7 +2316,7 @@ const styles = {
     width: '100%',
     maxHeight: '90vh',
     overflowY: 'auto',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
   },
   scannerModalHeader: {
     display: 'flex',
@@ -2339,7 +2339,7 @@ const styles = {
     gap: 14,
     padding: '16px 18px',
     background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.15s ease',
@@ -2351,7 +2351,7 @@ const styles = {
     justifyContent: 'space-between',
     padding: '10px 14px',
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 10,
     cursor: 'pointer',
     transition: 'all 0.15s ease',
@@ -2377,7 +2377,7 @@ const styles = {
   reportStatBox: {
     padding: 16,
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 10,
     display: 'flex',
     flexDirection: 'column',
@@ -2400,7 +2400,7 @@ const styles = {
     gap: 14,
     padding: '16px 18px',
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    border: '2px solid rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.2s ease',

@@ -149,8 +149,8 @@ const styles = {
         gap: 20,
     },
     backBtn: {
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         padding: '8px 16px',
         color: '#94a3b8',
@@ -181,7 +181,7 @@ const styles = {
     },
     statBox: {
         background: 'rgba(30, 58, 95, 0.3)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '12px 14px',
         display: 'flex',
@@ -191,7 +191,7 @@ const styles = {
     statBoxLarge: {
         gridColumn: 'span 2',
         background: 'rgba(30, 58, 95, 0.5)',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
+        border: '2px solid rgba(59, 130, 246, 0.2)',
     },
     statLabel: {
         fontSize: 14,
@@ -208,7 +208,7 @@ const styles = {
     // Sections
     section: {
         background: 'rgba(30, 58, 95, 0.2)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 10,
         padding: 16,
     },

@@ -221,7 +221,7 @@ const styles = {
     container: {
         padding: 16,
         background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        border: '2px solid rgba(255, 255, 255, 0.06)',
         borderRadius: 12,
     },
     header: {
@@ -239,7 +239,7 @@ const styles = {
     editBtn: {
         padding: '4px 12px',
         background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         borderRadius: 6,
         color: '#2374e1',
         fontSize: 14,
@@ -281,7 +281,7 @@ const styles = {
         width: 70,
         padding: '4px 8px',
         background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
         borderRadius: 4,
         color: '#fff',
         fontSize: 14,

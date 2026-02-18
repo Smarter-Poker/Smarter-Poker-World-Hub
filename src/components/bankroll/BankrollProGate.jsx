@@ -157,7 +157,7 @@ export default function BankrollProGate({ userId, children }) {
 
                 {/* VIP Promo */}
                 <div style={styles.vipPromo}>
-                    <Crown size={14} style={{ color: METAL.gold }} />
+                    <Crown size={14} style={{ color: METAL.primary }} />
                     <span>VIP = <strong>UNLIMITED ACCESS</strong></span>
                     <button
                         onClick={() => window.location.href = '/hub/diamond-store#vip'}
@@ -248,7 +248,7 @@ export default function BankrollProGate({ userId, children }) {
                                 </div>
 
                                 <div style={styles.modalVipNote}>
-                                    <Crown size={12} style={{ color: METAL.gold }} />
+                                    <Crown size={12} style={{ color: METAL.primary }} />
                                     VIP = UNLIMITED ACCESS
                                 </div>
                             </>
@@ -287,7 +287,7 @@ const styles = {
         padding: 80,
         background: METAL.base,
         borderRadius: 16,
-        border: `1px solid ${METAL.mid}`,
+        border: `2px solid ${METAL.mid}`,
     },
     loadingSpinner: {
         animation: 'spin 1s linear infinite',
@@ -323,15 +323,15 @@ const styles = {
     },
     badgeCyan: {
         background: METAL.cyanDim,
-        border: `1px solid ${METAL.cyan}`,
+        border: `2px solid ${METAL.cyan}`,
         color: METAL.cyan,
         boxShadow: GLOWS.cyanSubtle,
     },
     badgeGold: {
-        background: 'rgba(245, 158, 11, 0.15)',
-        border: `1px solid ${METAL.gold}`,
-        color: METAL.gold,
-        boxShadow: `0 0 10px ${METAL.goldGlow}`,
+        background: METAL.primaryDim,
+        border: `2px solid ${METAL.primary}`,
+        color: METAL.primary,
+        boxShadow: `0 0 10px ${METAL.primaryGlow}`,
     },
 
     // Locked container
@@ -371,7 +371,7 @@ const styles = {
         height: 8,
         background: `radial-gradient(circle, ${METAL.light} 30%, ${METAL.mid} 70%)`,
         borderRadius: '50%',
-        border: `1px solid ${METAL.highlight}`,
+        border: `2px solid ${METAL.highlight}`,
         boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)',
     },
 
@@ -432,7 +432,7 @@ const styles = {
         gap: 4,
         padding: '12px 8px',
         background: 'rgba(0,0,0,0.3)',
-        border: `1px solid ${METAL.mid}`,
+        border: `2px solid ${METAL.mid}`,
         borderRadius: 8,
     },
     featureIcon: {
@@ -531,7 +531,7 @@ const styles = {
     vipLink: {
         background: 'none',
         border: 'none',
-        color: METAL.gold,
+        color: METAL.primary,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
@@ -624,7 +624,7 @@ const styles = {
         alignItems: 'center',
         padding: '14px 18px',
         background: 'rgba(0,0,0,0.4)',
-        border: `1px solid ${METAL.mid}`,
+        border: `2px solid ${METAL.mid}`,
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
@@ -635,7 +635,7 @@ const styles = {
     errorBox: {
         padding: 14,
         background: 'rgba(239,68,68,0.1)',
-        border: `1px solid ${METAL.danger}`,
+        border: `2px solid ${METAL.danger}`,
         borderRadius: 10,
         color: METAL.danger,
         fontFamily: "'Rajdhani', sans-serif",
@@ -647,12 +647,12 @@ const styles = {
         flexDirection: 'column',
         gap: 12,
         padding: 16,
-        background: 'rgba(245,158,11,0.1)',
-        border: `1px solid ${METAL.warning}`,
+        background: METAL.primaryDim,
+        border: `2px solid ${METAL.primary}`,
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
-        color: METAL.warning,
+        color: METAL.primary,
         letterSpacing: '0.1em',
         marginBottom: 16,
     },
@@ -662,10 +662,10 @@ const styles = {
         justifyContent: 'center',
         gap: 6,
         padding: '10px',
-        background: 'rgba(245,158,11,0.2)',
-        border: `1px solid ${METAL.warning}`,
+        background: METAL.primaryDim,
+        border: `2px solid ${METAL.primary}`,
         borderRadius: 8,
-        color: METAL.warning,
+        color: METAL.primary,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
@@ -681,7 +681,7 @@ const styles = {
         flex: 1,
         padding: '14px',
         background: GRADIENTS.metalButton,
-        border: `1px solid ${METAL.mid}`,
+        border: `2px solid ${METAL.mid}`,
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,

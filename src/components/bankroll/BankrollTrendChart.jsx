@@ -129,7 +129,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                 sessions: dayEntries.length,
                 hasData: dayEntries.length > 0,
                 category: dayEntries.length > 0 ? dayEntries[0].category : null,
-                fill: dayEntries.length === 0 ? 'rgba(255,255,255,0.05)' : net >= 0 ? '#22c55e' : '#ef4444',
+                fill: dayEntries.length === 0 ? 'rgba(255,255,255,0.15)' : net >= 0 ? '#22c55e' : '#ef4444',
             };
         }), [allDays, entriesByDay]);
 
@@ -231,7 +231,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         <div style={{
             background: 'linear-gradient(135deg, rgba(8,16,36,0.97), rgba(12,24,52,0.95))',
             backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(0,212,255,0.2)',
+            border: '2px solid rgba(0,212,255,0.2)',
             borderRadius: 12,
             padding: '12px 16px',
             fontSize: 14,
@@ -318,7 +318,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     );
                 }} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={32}>
-                    {barData.map((e, i) => <Cell key={i} fill={!e.hasData ? 'rgba(255,255,255,0.03)' : e.value >= 0 ? 'url(#barGradGreen)' : 'url(#barGradRed)'} />)}
+                    {barData.map((e, i) => <Cell key={i} fill={!e.hasData ? 'rgba(255,255,255,0.1)' : e.value >= 0 ? 'url(#barGradGreen)' : 'url(#barGradRed)'} />)}
                 </Bar>
             </BarChart>
         </ResponsiveContainer>
@@ -340,7 +340,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={({ active, payload, label }) => {
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const total = payload.reduce((s, p) => s + (p.value || 0), 0);
                         return (
@@ -392,7 +392,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     </defs>
                     <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 14 }} interval={0} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 14 }} width={30} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={({ active, payload }) => {
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
                         return (
@@ -447,20 +447,20 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         });
 
         const getHeatColor = (value) => {
-            if (value === null) return { bg: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)', glow: 'none' };
+            if (value === null) return { bg: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.1)', glow: 'none' };
             const intensity = Math.min(1, Math.abs(value) / maxAbs);
             if (value > 0) {
                 const alpha = 0.15 + intensity * 0.65;
                 return {
                     bg: `rgba(34,197,94,${alpha})`,
-                    border: `1px solid rgba(34,197,94,${0.1 + intensity * 0.3})`,
+                    border: `2px solid rgba(34,197,94,${0.1 + intensity * 0.3})`,
                     glow: intensity > 0.5 ? `0 0 ${4 + intensity * 8}px rgba(34,197,94,${intensity * 0.3})` : 'none',
                 };
             } else {
                 const alpha = 0.15 + intensity * 0.65;
                 return {
                     bg: `rgba(239,68,68,${alpha})`,
-                    border: `1px solid rgba(239,68,68,${0.1 + intensity * 0.3})`,
+                    border: `2px solid rgba(239,68,68,${0.1 + intensity * 0.3})`,
                     glow: intensity > 0.5 ? `0 0 ${4 + intensity * 8}px rgba(239,68,68,${intensity * 0.3})` : 'none',
                 };
             }
@@ -547,7 +547,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                         Loss
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} />
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.08)' }} />
                         Off
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -744,10 +744,10 @@ const S = {
     container: {
         background: 'linear-gradient(160deg, rgba(8,16,32,0.95) 0%, rgba(12,24,48,0.92) 50%, rgba(8,20,40,0.90) 100%)',
         borderRadius: 16,
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '2px solid rgba(255,255,255,0.07)',
         padding: '18px 16px 14px',
         marginBottom: 16,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1)',
     },
     titleRow: {
         display: 'flex',
@@ -779,7 +779,7 @@ const S = {
     skeleton: {
         width: '100%',
         height: 130,
-        background: 'linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.07), rgba(255,255,255,0.03))',
+        background: 'linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.07), rgba(255,255,255,0.1))',
         borderRadius: 8,
         animation: 'pulse 1.5s infinite',
     },
@@ -787,7 +787,7 @@ const S = {
         display: 'flex',
         justifyContent: 'space-around',
         paddingTop: 12,
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.15)',
         marginTop: 10,
     },
     statItem: {

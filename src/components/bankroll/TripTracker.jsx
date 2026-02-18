@@ -545,7 +545,7 @@ const styles = {
     // Active Trip
     activeTripCard: {
         background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        border: '2px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 12,
         padding: 20,
         position: 'relative',
@@ -620,8 +620,8 @@ const styles = {
     },
     breakdownTag: {
         fontSize: 14,
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
         padding: '3px 8px',
         color: '#94a3b8',
@@ -652,7 +652,7 @@ const styles = {
         background: 'rgba(0,0,0,0.25)',
         borderRadius: 6,
         padding: '8px 10px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.15)',
     },
     entryInfo: {
         display: 'flex',
@@ -676,7 +676,7 @@ const styles = {
     entryStakes: {
         fontSize: 14,
         color: '#64748b',
-        background: 'rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.15)',
         borderRadius: 3,
         padding: '1px 5px',
     },
@@ -697,7 +697,7 @@ const styles = {
     },
     entryEditBtn: {
         background: 'rgba(59,130,246,0.15)',
-        border: '1px solid rgba(59,130,246,0.3)',
+        border: '2px solid rgba(59,130,246,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
         fontSize: 14,
@@ -707,7 +707,7 @@ const styles = {
     },
     entryDeleteBtn: {
         background: 'rgba(239,68,68,0.15)',
-        border: '1px solid rgba(239,68,68,0.3)',
+        border: '2px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
         fontSize: 14,
@@ -736,7 +736,7 @@ const styles = {
     completeBtn: {
         background: 'rgba(16, 185, 129, 0.15)',
         color: '#10b981',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        border: '2px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -746,7 +746,7 @@ const styles = {
     editBtn: {
         background: 'rgba(59, 130, 246, 0.15)',
         color: '#3b82f6',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -756,7 +756,7 @@ const styles = {
     addEntryBtn: {
         background: 'rgba(16, 185, 129, 0.15)',
         color: '#10b981',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        border: '2px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -766,7 +766,7 @@ const styles = {
     cancelEditBtn: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -781,10 +781,10 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -826,7 +826,7 @@ const styles = {
     deleteCancelBtn: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 20px',
         fontSize: 14,
@@ -854,7 +854,7 @@ const styles = {
     confirmNo: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: '6px 14px',
         fontSize: 14,
@@ -888,7 +888,7 @@ const styles = {
     // Create Form
     createForm: {
         background: 'rgba(30, 58, 95, 0.3)',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
+        border: '2px solid rgba(59, 130, 246, 0.2)',
         borderRadius: 12,
         padding: 20,
         overflow: 'hidden',
@@ -912,7 +912,7 @@ const styles = {
     formInput: {
         width: '100%',
         background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         padding: '10px 12px',
         color: '#fff',
@@ -938,7 +938,7 @@ const styles = {
     formCancelBtn: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 24px',
         fontSize: 14,
@@ -978,7 +978,7 @@ const styles = {
     },
     tripCard: {
         background: 'rgba(30, 58, 95, 0.3)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '2px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
         padding: 16,
         cursor: 'pointer',

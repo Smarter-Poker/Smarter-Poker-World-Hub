@@ -422,7 +422,7 @@ const styles = {
   dropdownButton: {
     padding: '8px 16px',
     background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: '#fff',
     fontSize: 14,
@@ -441,7 +441,7 @@ const styles = {
     left: 0,
     marginTop: 4,
     background: '#1a2a44',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     padding: 4,
     minWidth: 150,
@@ -509,7 +509,7 @@ const styles = {
   },
   statCard: {
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    border: '2px solid rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     padding: '16px 18px',
   },
@@ -553,7 +553,7 @@ const styles = {
   },
   activitySection: {
     background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 12,
     padding: 20,
   },
@@ -579,7 +579,7 @@ const styles = {
   filterTab: {
     padding: '8px 14px',
     background: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 6,
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 14,
@@ -618,7 +618,7 @@ const styles = {
     alignItems: 'center',
     padding: '14px 16px',
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    border: '2px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 10,
     cursor: 'pointer',
     marginBottom: 8,

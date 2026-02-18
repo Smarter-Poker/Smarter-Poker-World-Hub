@@ -240,7 +240,7 @@ const styles = {
     modal: {
         background: 'linear-gradient(135deg, #0a1929, #0d2137)',
         borderRadius: 20,
-        border: '1px solid rgba(0, 212, 255, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         padding: 24,
         maxWidth: 440,
         width: '100%',
@@ -272,7 +272,7 @@ const styles = {
         justifyContent: 'center',
         background: 'transparent',
         border: 'none',
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 24,
         cursor: 'pointer',
     },
@@ -300,8 +300,8 @@ const styles = {
     },
     input: {
         padding: '10px 14px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         color: '#fff',
         fontSize: 16,
@@ -319,8 +319,8 @@ const styles = {
     },
     periodBtn: {
         padding: '8px 12px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
         color: '#888',
         fontSize: 14,
@@ -334,7 +334,7 @@ const styles = {
     error: {
         padding: 12,
         background: 'rgba(239,68,68,0.1)',
-        border: '1px solid rgba(239,68,68,0.3)',
+        border: '2px solid rgba(239,68,68,0.3)',
         borderRadius: 8,
         color: '#ef4444',
         fontSize: 14,
@@ -364,7 +364,7 @@ const styles = {
     },
     simCount: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
     },
     rangeContainer: {
         marginBottom: 20,
@@ -385,12 +385,12 @@ const styles = {
     rangeLabelTitle: {
         display: 'block',
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
         marginBottom: 4,
     },
     gainBox: {
         background: 'rgba(0,212,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
+        border: '2px solid rgba(0,212,255,0.3)',
         borderRadius: 12,
         padding: 16,
         textAlign: 'center',
@@ -419,7 +419,7 @@ const styles = {
         marginBottom: 16,
     },
     probBox: {
-        background: 'rgba(255,255,255,0.03)',
+        background: 'rgba(255,255,255,0.1)',
         borderRadius: 8,
         padding: 12,
         textAlign: 'center',
@@ -433,7 +433,7 @@ const styles = {
     },
     probLabel: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
     },
     inputsUsed: {
         display: 'flex',
@@ -444,13 +444,13 @@ const styles = {
     },
     inputItem: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
     },
     rerunBtn: {
         width: '100%',
         padding: 12,
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         color: '#888',
         fontSize: 14,

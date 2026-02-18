@@ -95,7 +95,7 @@ const styles = {
     container: {
         padding: 16,
         background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
-        border: '1px solid rgba(0,212,255,0.2)',
+        border: '2px solid rgba(0,212,255,0.2)',
         borderRadius: 12,
         height: '100%',
         boxSizing: 'border-box',

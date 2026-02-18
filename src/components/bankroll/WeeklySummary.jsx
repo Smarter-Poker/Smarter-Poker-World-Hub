@@ -202,7 +202,7 @@ export default function WeeklySummary({
                             <div style={styles.emptyWeek}>
                                 <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Data</span>
                                 <span>No Sessions Logged This Week</span>
-                                <span style={{ fontSize: 14, color: '#666' }}>
+                                <span style={{ fontSize: 14, color: '#8a8d91' }}>
                                     Keep tracking to see your weekly trends!
                                 </span>
                             </div>
@@ -236,7 +236,7 @@ const styles = {
     modal: {
         background: 'linear-gradient(135deg, #0a1929, #0d2137)',
         borderRadius: 20,
-        border: '1px solid rgba(0, 212, 255, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         padding: 24,
         maxWidth: 400,
         width: '100%',
@@ -288,7 +288,7 @@ const styles = {
         marginBottom: 20,
     },
     statBox: {
-        background: 'rgba(255,255,255,0.03)',
+        background: 'rgba(255,255,255,0.1)',
         borderRadius: 10,
         padding: 14,
         textAlign: 'center',
@@ -302,7 +302,7 @@ const styles = {
     },
     statLabel: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
         textTransform: 'uppercase',
     },
     categorySection: {
@@ -325,12 +325,12 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '8px 12px',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'rgba(255,255,255,0.1)',
         borderRadius: 6,
         fontSize: 14,
     },
     categoryName: {
-        color: '#ccc',
+        color: '#e4e6eb',
     },
     emptyWeek: {
         display: 'flex',

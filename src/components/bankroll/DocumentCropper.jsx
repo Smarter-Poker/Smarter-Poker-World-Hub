@@ -544,7 +544,7 @@ const styles = {
         maxWidth: 640,
         width: '100%',
         overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        border: '2px solid rgba(255, 255, 255, 0.1)',
     },
     header: {
         padding: '16px 20px',
@@ -606,7 +606,7 @@ const styles = {
         flex: 1,
         padding: '12px 16px',
         background: 'rgba(255, 255, 255, 0.06)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
+        border: '2px solid rgba(255, 255, 255, 0.15)',
         borderRadius: 10,
         color: 'rgba(255, 255, 255, 0.7)',
         fontFamily: 'Inter, -apple-system, sans-serif',

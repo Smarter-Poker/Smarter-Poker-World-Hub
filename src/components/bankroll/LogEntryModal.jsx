@@ -696,11 +696,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             </div>
 
             {/* Swap Deductions — Collapsible */}
-            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
                 onClick={() => setShowSwaps(!showSwaps)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b0b3b8', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Swap Deductions</span>
                 <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
@@ -765,11 +765,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             </div>
 
             {/* Staking Deductions — Collapsible */}
-            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
                 onClick={() => setShowStaking(!showStaking)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b0b3b8', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Staking Deductions</span>
                 <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
@@ -834,11 +834,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             </div>
 
             {/* Sold Action — Collapsible */}
-            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: '0', background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
               <button
                 type="button"
                 onClick={() => setShowSoldAction(!showSoldAction)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b0b3b8', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Sold Action</span>
                 <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
@@ -1003,7 +1003,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10,
               background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
+              border: '2px solid rgba(16, 185, 129, 0.25)',
               borderRadius: 8, padding: '10px 14px', marginBottom: 12, marginTop: 12
             }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
@@ -1114,8 +1114,8 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
 
         {/* Inline Expense — available on all non-expense categories */}
         {!isExpense && (
-          <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <label style={{ ...styles.label, fontSize: 14, color: '#9ca3af', marginBottom: 8 }}>Session Expense (optional)</label>
+          <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
+            <label style={{ ...styles.label, fontSize: 14, color: '#b0b3b8', marginBottom: 8 }}>Session Expense (optional)</label>
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Type</label>
@@ -1163,7 +1163,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, justifyContent: 'center' }}>
             {mediaFiles.map((url, index) => (
-              <div key={index} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
+              <div key={index} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.2)' }}>
                 <img src={url} alt="Session" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 <button
                   type="button"
@@ -1185,7 +1185,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               disabled={uploading}
               style={{
                 width: 80, height: 80, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.3)',
-                background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)',
+                background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', fontSize: 14
               }}
@@ -1317,7 +1317,7 @@ const styles = {
     maxHeight: '90vh',
     background: '#1a2a44',
     borderRadius: 16,
-    border: '1px solid rgba(255, 255, 255, 0.12)',
+    border: '2px solid rgba(255, 255, 255, 0.12)',
     outline: '3px solid rgba(255, 255, 255, 0.3)',
     outlineOffset: '2px',
     overflow: 'hidden',
@@ -1368,7 +1368,7 @@ const styles = {
     justifyContent: 'center',
     padding: 24,
     background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: '2px solid rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -1408,7 +1408,7 @@ const styles = {
   input: {
     padding: '12px 14px',
     background: 'rgba(0, 0, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
     fontSize: 14,
@@ -1419,7 +1419,7 @@ const styles = {
   select: {
     padding: '12px 14px',
     background: 'rgba(0, 0, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
     fontSize: 14,
@@ -1431,7 +1431,7 @@ const styles = {
   textarea: {
     padding: '12px 14px',
     background: 'rgba(0, 0, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
     fontSize: 14,
@@ -1462,7 +1462,7 @@ const styles = {
   warningBox: {
     padding: 14,
     background: '#242526',
-    border: '1px solid #3a3b3c',
+    border: '2px solid #3a3b3c',
     borderRadius: 10,
     fontSize: 14,
   },
@@ -1478,7 +1478,7 @@ const styles = {
   warningDismissBtn: {
     padding: '4px 10px',
     borderRadius: 6,
-    border: '1px solid #4a4b4c',
+    border: '2px solid #4a4b4c',
     background: 'transparent',
     color: '#b0b3b8',
     fontSize: 14,
@@ -1498,7 +1498,7 @@ const styles = {
     flex: 1,
     padding: 14,
     background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    border: '2px solid rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     color: '#fff',
     fontSize: 14,

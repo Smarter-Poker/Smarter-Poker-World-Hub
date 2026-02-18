@@ -155,7 +155,7 @@ const styles = {
     container: {
         background: 'linear-gradient(135deg, rgba(40,20,20,0.9), rgba(60,30,30,0.8))',
         borderRadius: 12,
-        border: '1px solid rgba(255,107,53,0.3)',
+        border: '2px solid rgba(255,107,53,0.3)',
         padding: 14,
         marginBottom: 16,
     },
@@ -217,7 +217,7 @@ const styles = {
     },
     statLabel: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
         textTransform: 'uppercase',
     },
     achievementsSection: {
@@ -242,7 +242,7 @@ const styles = {
         alignItems: 'center',
         gap: 8,
         padding: '8px 10px',
-        background: 'rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.15)',
         borderRadius: 8,
     },
     achievementIcon: {
@@ -266,7 +266,7 @@ const styles = {
     },
     lockedTitle: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
         marginBottom: 6,
         textTransform: 'uppercase',
     },
@@ -292,7 +292,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'center',
         padding: 20,
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 14,
     },
 };

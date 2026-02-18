@@ -149,7 +149,7 @@ const s = {
     modal: {
         background: '#1a1d2e', borderRadius: 14, width: '100%', maxWidth: 480,
         maxHeight: '80vh', display: 'flex', flexDirection: 'column',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.1)',
         boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
     header: {
@@ -161,16 +161,16 @@ const s = {
         background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer',
     },
     content: { padding: '12px 16px', overflowY: 'auto', flex: 1 },
-    emptyText: { color: '#666', fontSize: 14, textAlign: 'center', padding: '40px 0' },
+    emptyText: { color: '#8a8d91', fontSize: 14, textAlign: 'center', padding: '40px 0' },
     venueRow: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)',
         minHeight: 48,
     },
     venueName: { color: '#fff', fontSize: 14, fontWeight: 500 },
     actions: { display: 'flex', gap: 4 },
     actionBtn: {
-        background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8,
+        background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
         padding: '6px 10px', cursor: 'pointer', fontSize: 14,
     },
     editRow: {
@@ -178,7 +178,7 @@ const s = {
     },
     editInput: {
         flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8,
-        border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.15)',
         color: '#fff', fontSize: 14, outline: 'none',
     },
     saveBtn: {
@@ -186,8 +186,8 @@ const s = {
         background: '#2374e1', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
     },
     cancelBtn: {
-        padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
-        background: 'transparent', color: '#aaa', fontSize: 14, cursor: 'pointer',
+        padding: '8px 14px', borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)',
+        background: 'transparent', color: '#b0b3b8', fontSize: 14, cursor: 'pointer',
     },
     deleteBtnConfirm: {
         padding: '8px 14px', borderRadius: 8, border: 'none',

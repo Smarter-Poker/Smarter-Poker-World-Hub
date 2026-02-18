@@ -126,7 +126,7 @@ const styles = {
     },
     modal: {
         background: 'linear-gradient(180deg, #0d1f3c 0%, #0a1628 100%)',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 16,
         padding: 32,
         maxWidth: 440,
@@ -193,8 +193,8 @@ const styles = {
         justifyContent: 'center',
     },
     presetBtn: {
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 8,
         padding: '8px 14px',
         color: '#94a3b8',

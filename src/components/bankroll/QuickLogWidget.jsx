@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Clean Facebook-style categories (no emojis)
 const QUICK_CATEGORIES = [
     { id: 'poker_cash', label: 'Cash Game', icon: '', color: '#31a24c' },
-    { id: 'poker_mtt', label: 'Tournament', icon: '', color: '#f7b928' },
+    { id: 'poker_mtt', label: 'Tournament', icon: '', color: '#2374e1' },
     { id: 'casino_table', label: 'Table Games', icon: '', color: '#9b59b6' },
     { id: 'sports', label: 'Sports Bet', icon: '', color: '#2374e1' },
     { id: 'expense', label: 'Expense', icon: '', color: '#f02849' },
@@ -180,7 +180,7 @@ const styles = {
     container: {
         background: 'linear-gradient(135deg, rgba(0,40,60,0.9), rgba(0,60,80,0.8))',
         borderRadius: 12,
-        border: '1px solid rgba(0,212,255,0.3)',
+        border: '2px solid rgba(0,212,255,0.3)',
         padding: 14,
         marginBottom: 16,
         position: 'relative',
@@ -214,8 +214,8 @@ const styles = {
     categoryBtn: {
         flex: 1,
         padding: '8px 4px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         cursor: 'pointer',
         transition: 'all 0.2s',
@@ -238,7 +238,7 @@ const styles = {
         padding: '8px 12px',
         background: 'transparent',
         border: 'none',
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 18,
         fontWeight: 700,
         cursor: 'pointer',
@@ -293,7 +293,7 @@ const styles = {
         fontSize: 14,
     },
     resultLabel: {
-        color: '#666',
+        color: '#8a8d91',
     },
     successBanner: {
         position: 'absolute',
@@ -313,7 +313,7 @@ const styles = {
         justifyContent: 'center',
         gap: 8,
         padding: 20,
-        color: '#666',
+        color: '#8a8d91',
     },
     lockIcon: {
         fontSize: 18,

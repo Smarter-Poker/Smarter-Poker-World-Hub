@@ -73,7 +73,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
                 </div>
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Venue Data Yet</span>
-                    <span style={{ fontSize: 14, color: '#666' }}>
+                    <span style={{ fontSize: 14, color: '#8a8d91' }}>
                         Add locations to your sessions to see analytics
                     </span>
                 </div>
@@ -168,7 +168,7 @@ const styles = {
     container: {
         background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
         borderRadius: 12,
-        border: '1px solid rgba(0,212,255,0.2)',
+        border: '2px solid rgba(0,212,255,0.2)',
         padding: 16,
         height: '100%',
         boxSizing: 'border-box',
@@ -203,9 +203,9 @@ const styles = {
     sortBtn: {
         padding: '4px 8px',
         background: 'transparent',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -217,7 +217,7 @@ const styles = {
     loading: {
         padding: 20,
         textAlign: 'center',
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 14,
     },
     emptyState: {
@@ -254,11 +254,11 @@ const styles = {
     },
     sessionCount: {
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
     },
     barContainer: {
         height: 20,
-        background: 'rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.15)',
         borderRadius: 4,
         overflow: 'hidden',
     },
@@ -281,6 +281,6 @@ const styles = {
         marginTop: 10,
         textAlign: 'center',
         fontSize: 14,
-        color: '#666',
+        color: '#8a8d91',
     },
 };

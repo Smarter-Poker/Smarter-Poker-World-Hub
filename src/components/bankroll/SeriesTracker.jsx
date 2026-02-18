@@ -495,26 +495,26 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
                                 return (
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
+                                        background: '#242526', border: '2px solid rgba(255,255,255,0.15)',
                                         borderRadius: 8, maxHeight: 200, overflowY: 'auto', zIndex: 50,
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
                                         {pastNames.length > 0 && filtered.some(n => pastNames.includes(n)) && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Series</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Your Series</div>
                                         )}
                                         {filtered.filter(n => pastNames.includes(n)).map((name, i) => (
                                             <button key={`p-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                         {dbSeriesNames.length > 0 && filtered.some(n => dbSeriesNames.includes(n) && !pastNames.includes(n)) && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Tournament Tours</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Tournament Tours</div>
                                         )}
                                         {filtered.filter(n => !pastNames.includes(n)).map((name, i) => (
                                             <button key={`d-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                     </div>
@@ -553,26 +553,26 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
                                 return (
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
+                                        background: '#242526', border: '2px solid rgba(255,255,255,0.15)',
                                         borderRadius: 8, maxHeight: 220, overflowY: 'auto', zIndex: 50,
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
                                         {savedFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Venues</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Your Venues</div>
                                         )}
                                         {savedFiltered.map(loc => (
                                             <button key={`s-${loc.id}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{loc.name}</button>
                                         ))}
                                         {dbFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Poker Venues</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Poker Venues</div>
                                         )}
                                         {dbFiltered.slice(0, 20).map((v, i) => (
                                             <button key={`db-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: '__new__', location_name: v.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{v.name} <span style={{ fontSize: 14, color: '#888' }}>{v.city}, {v.state}</span></button>
                                         ))}
                                     </div>
@@ -668,7 +668,7 @@ const styles = {
     // Active Series
     activeCard: {
         background: 'linear-gradient(135deg, rgba(35, 116, 225, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
-        border: '1px solid rgba(35, 116, 225, 0.3)',
+        border: '2px solid rgba(35, 116, 225, 0.3)',
         borderRadius: 12,
         padding: 20,
         position: 'relative',
@@ -743,8 +743,8 @@ const styles = {
     },
     breakdownTag: {
         fontSize: 14,
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
         padding: '3px 8px',
         color: '#94a3b8',
@@ -775,7 +775,7 @@ const styles = {
         background: 'rgba(0,0,0,0.25)',
         borderRadius: 6,
         padding: '8px 10px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.15)',
     },
     entryInfo: {
         display: 'flex',
@@ -799,7 +799,7 @@ const styles = {
     entryStakes: {
         fontSize: 14,
         color: '#64748b',
-        background: 'rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.15)',
         borderRadius: 3,
         padding: '1px 5px',
     },
@@ -820,7 +820,7 @@ const styles = {
     },
     entryEditBtn: {
         background: 'rgba(59,130,246,0.15)',
-        border: '1px solid rgba(59,130,246,0.3)',
+        border: '2px solid rgba(59,130,246,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
         fontSize: 14,
@@ -830,7 +830,7 @@ const styles = {
     },
     entryDeleteBtn: {
         background: 'rgba(239,68,68,0.15)',
-        border: '1px solid rgba(239,68,68,0.3)',
+        border: '2px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '2px 6px',
         fontSize: 14,
@@ -849,7 +849,7 @@ const styles = {
     completeBtn: {
         background: 'rgba(35, 116, 225, 0.15)',
         color: '#2374e1',
-        border: '1px solid rgba(35, 116, 225, 0.3)',
+        border: '2px solid rgba(35, 116, 225, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -859,7 +859,7 @@ const styles = {
     editBtn: {
         background: 'rgba(59, 130, 246, 0.15)',
         color: '#3b82f6',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -869,7 +869,7 @@ const styles = {
     addEntryBtn: {
         background: 'rgba(16, 185, 129, 0.15)',
         color: '#10b981',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        border: '2px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -879,7 +879,7 @@ const styles = {
     cancelEditBtn: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -894,10 +894,10 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
-        color: '#666',
+        color: '#8a8d91',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -939,7 +939,7 @@ const styles = {
     deleteCancelBtn: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 20px',
         fontSize: 14,
@@ -967,7 +967,7 @@ const styles = {
     confirmNo: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: '6px 14px',
         fontSize: 14,
@@ -1001,7 +1001,7 @@ const styles = {
     // Form
     createForm: {
         background: 'rgba(35, 116, 225, 0.08)',
-        border: '1px solid rgba(35, 116, 225, 0.2)',
+        border: '2px solid rgba(35, 116, 225, 0.2)',
         borderRadius: 12,
         padding: 20,
         overflow: 'hidden',
@@ -1025,7 +1025,7 @@ const styles = {
     formInput: {
         width: '100%',
         background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         padding: '10px 12px',
         color: '#fff',
@@ -1051,7 +1051,7 @@ const styles = {
     formCancelBtn: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 24px',
         fontSize: 14,
@@ -1091,7 +1091,7 @@ const styles = {
     },
     seriesCard: {
         background: 'rgba(35, 116, 225, 0.08)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '2px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
         padding: 16,
         cursor: 'pointer',

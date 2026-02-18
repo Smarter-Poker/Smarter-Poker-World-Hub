@@ -788,7 +788,7 @@ const styles = {
     formTypeBadge: {
         padding: '4px 12px',
         background: METAL.primaryDim,
-        border: `1px solid ${METAL.primary}`,
+        border: `2px solid ${METAL.primary}`,
         borderRadius: 6,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,

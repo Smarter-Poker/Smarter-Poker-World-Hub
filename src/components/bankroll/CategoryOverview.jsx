@@ -210,7 +210,7 @@ const styles = {
     },
     backButton: {
         background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         color: 'rgba(255,255,255,0.7)',
         padding: '8px 14px',
@@ -243,8 +243,8 @@ const styles = {
         marginBottom: 24,
     },
     statCard: {
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.08)',
         borderRadius: 12,
         padding: '16px 18px',
         display: 'flex',

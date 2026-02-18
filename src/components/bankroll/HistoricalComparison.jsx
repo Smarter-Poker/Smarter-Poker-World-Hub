@@ -131,7 +131,7 @@ const styles = {
     container: {
         padding: 16,
         background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
-        border: '1px solid rgba(0,212,255,0.2)',
+        border: '2px solid rgba(0,212,255,0.2)',
         borderRadius: 12,
         height: '100%',
         boxSizing: 'border-box',
@@ -157,7 +157,7 @@ const styles = {
     periodToggle: {
         display: 'flex',
         gap: 4,
-        background: 'rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: 2,
     },
@@ -184,7 +184,7 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '8px 10px',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'rgba(255,255,255,0.1)',
         borderRadius: 8,
     },
     label: {

@@ -600,7 +600,7 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '16px 18px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.15)',
     },
     headerTitle: {
         fontSize: 17,
@@ -648,7 +648,7 @@ const styles = {
         display: 'flex',
         background: 'rgba(0,0,0,0.25)',
         borderRadius: 8,
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '2px solid rgba(255,255,255,0.15)',
         marginBottom: 14,
         overflow: 'hidden',
     },
@@ -679,7 +679,7 @@ const styles = {
     },
     statBox: {
         background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 12px',
         textAlign: 'center',
@@ -720,7 +720,7 @@ const styles = {
         background: 'rgba(0,0,0,0.25)',
         borderRadius: 6,
         padding: '8px 10px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.15)',
     },
     sessionInfo: {
         display: 'flex',
@@ -748,7 +748,7 @@ const styles = {
     linkBtn: {
         background: 'rgba(59,130,246,0.15)',
         color: '#3b82f6',
-        border: '1px solid rgba(59,130,246,0.3)',
+        border: '2px solid rgba(59,130,246,0.3)',
         borderRadius: 4,
         padding: '3px 10px',
         fontSize: 14,
@@ -766,7 +766,7 @@ const styles = {
     editBtn: {
         background: 'rgba(59, 130, 246, 0.15)',
         color: '#3b82f6',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -776,7 +776,7 @@ const styles = {
     addEntryBtn: {
         background: 'rgba(16, 185, 129, 0.15)',
         color: '#10b981',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        border: '2px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -786,7 +786,7 @@ const styles = {
     completeBtn: {
         background: 'rgba(16, 185, 129, 0.15)',
         color: '#10b981',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        border: '2px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -812,7 +812,7 @@ const styles = {
     confirmNo: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 6,
         padding: '8px 16px',
         fontSize: 14,
@@ -839,7 +839,7 @@ const styles = {
     // History
     historySection: {
         padding: '14px 18px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.15)',
     },
     historyTitle: {
         fontSize: 15,
@@ -852,7 +852,7 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8,
         padding: '10px 14px',
         marginBottom: 6,
@@ -874,7 +874,7 @@ const styles = {
     deleteBtn: {
         background: 'rgba(239,68,68,0.15)',
         color: '#ef4444',
-        border: '1px solid rgba(239,68,68,0.3)',
+        border: '2px solid rgba(239,68,68,0.3)',
         borderRadius: 4,
         padding: '4px 8px',
         fontSize: 14,
@@ -893,7 +893,7 @@ const styles = {
     confirmNoSmall: {
         background: 'transparent',
         color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 4,
         padding: '4px 10px',
         fontSize: 14,
@@ -916,7 +916,7 @@ const styles = {
         width: '100%',
         maxWidth: 440,
         background: '#242526',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 16,
         padding: 24,
     },
@@ -939,7 +939,7 @@ const styles = {
         width: '100%',
         padding: '10px 12px',
         background: '#18191a',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         fontSize: 14,
         color: '#e4e6eb',
@@ -959,7 +959,7 @@ const styles = {
         flex: 1,
         padding: 12,
         background: 'transparent',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 10,
         fontSize: 14,
         color: '#94a3b8',

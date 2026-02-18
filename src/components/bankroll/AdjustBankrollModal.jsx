@@ -170,7 +170,7 @@ const styles = {
     },
     modal: {
         background: 'linear-gradient(180deg, #0d1f3c 0%, #0a1628 100%)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 16,
         padding: 28,
         maxWidth: 420,
@@ -198,7 +198,7 @@ const styles = {
     },
     toggleBtn: {
         flex: 1,
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgba(255,255,255,0.1)',
         border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 10,
         padding: '12px 16px',
@@ -221,7 +221,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         background: 'rgba(0,0,0,0.3)',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 12,
         padding: '4px 16px',
     },
@@ -247,7 +247,7 @@ const styles = {
     },
     reasonInput: {
         background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         padding: '10px 14px',
         color: '#fff',
@@ -274,7 +274,7 @@ const styles = {
     },
     cancelBtn: {
         background: 'transparent',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: '2px solid rgba(255,255,255,0.12)',
         borderRadius: 10,
         padding: '10px 24px',
         color: '#94a3b8',
