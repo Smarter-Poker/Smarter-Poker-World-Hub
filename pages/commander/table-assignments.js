@@ -59,8 +59,9 @@ export default function TableAssignments() {
 
   const fetchData = useCallback(async () => {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/table-assignments', {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) {
@@ -93,9 +94,10 @@ export default function TableAssignments() {
       if (assignMode === 'tournament') {
         body.tournament_id = selectedTournament;
       }
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/table-assignments', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify(body)
       });
       setSelectedTable(null);
@@ -107,9 +109,10 @@ export default function TableAssignments() {
   const closeTable = async (table) => {
     setClosing(table.id);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/table-assignments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ table_id: table.id })
       });
       await fetchData();
@@ -130,12 +133,12 @@ export default function TableAssignments() {
   );
 
   return (
-    <>
+    <CommanderLayout title="Table Assignments" backHref="/commander/tables">
       <SEOHead
-                title="Commander — Table Assignments"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Table Assignments"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -178,69 +181,67 @@ export default function TableAssignments() {
             const isClosing = closing === table.id;
 
             return (
-              <CommanderLayout title="Table Assignments" backHref="/commander/tables">
-                <div key={table.id}
-                  className="rounded-2xl border-2 overflow-hidden"
-                  style={{ borderColor: mc.border, background: '#242526' }}>
+              <div key={table.id}
+                className="rounded-2xl border-2 overflow-hidden"
+                style={{ borderColor: mc.border, background: '#242526' }}>
 
-                  {/* Mode badge bar */}
-                  <div className="px-3 py-2 flex items-center gap-2"
-                    style={{ background: mc.bg + (mode === 'inactive' ? '' : '30') }}>
-                    <Icon className="w-4 h-4" style={{ color: mc.text === '#fff' && mode !== 'inactive' ? mc.bg : mc.text }} />
-                    <span className="text-xs font-bold uppercase tracking-wider"
-                      style={{ color: mc.text === '#fff' && mode !== 'inactive' ? mc.bg : mc.text }}>
-                      {mode === 'inactive' ? 'Inactive' : mode === 'cash' ? 'Cash Game' : 'Tournament'}
-                    </span>
+                {/* Mode badge bar */}
+                <div className="px-3 py-2 flex items-center gap-2"
+                  style={{ background: mc.bg + (mode === 'inactive' ? '' : '30') }}>
+                  <Icon className="w-4 h-4" style={{ color: mc.text === '#fff' && mode !== 'inactive' ? mc.bg : mc.text }} />
+                  <span className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: mc.text === '#fff' && mode !== 'inactive' ? mc.bg : mc.text }}>
+                    {mode === 'inactive' ? 'Inactive' : mode === 'cash' ? 'Cash Game' : 'Tournament'}
+                  </span>
+                </div>
+
+                {/* Table info */}
+                <div className="px-3 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl font-bold text-white">T{table.table_number}</span>
+                    <span className="text-xs text-[#B0B3B8]">{table.max_seats} seats</span>
                   </div>
 
-                  {/* Table info */}
-                  <div className="px-3 py-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl font-bold text-white">T{table.table_number}</span>
-                      <span className="text-xs text-[#B0B3B8]">{table.max_seats} seats</span>
+                  {mode === 'cash' && (
+                    <div className="mb-2">
+                      <p className="text-sm font-semibold text-[#31A24C]">{table.game_type} {table.stakes}</p>
+                      <p className="text-xs text-[#B0B3B8]">
+                        {table.active_players || 0} player{(table.active_players || 0) !== 1 ? 's' : ''} seated
+                      </p>
                     </div>
+                  )}
 
-                    {mode === 'cash' && (
-                      <div className="mb-2">
-                        <p className="text-sm font-semibold text-[#31A24C]">{table.game_type} {table.stakes}</p>
-                        <p className="text-xs text-[#B0B3B8]">
-                          {table.active_players || 0} player{(table.active_players || 0) !== 1 ? 's' : ''} seated
-                        </p>
-                      </div>
-                    )}
+                  {mode === 'tournament' && (
+                    <div className="mb-2">
+                      <p className="text-sm font-semibold text-[#F59E0B] truncate">
+                        {tournaments.find(t => t.id === table.tournament_id)?.name || 'Tournament'}
+                      </p>
+                      <p className="text-xs text-[#B0B3B8]">
+                        {table.active_players || 0}/{table.max_seats} seated
+                      </p>
+                    </div>
+                  )}
 
-                    {mode === 'tournament' && (
-                      <div className="mb-2">
-                        <p className="text-sm font-semibold text-[#F59E0B] truncate">
-                          {tournaments.find(t => t.id === table.tournament_id)?.name || 'Tournament'}
-                        </p>
-                        <p className="text-xs text-[#B0B3B8]">
-                          {table.active_players || 0}/{table.max_seats} seated
-                        </p>
-                      </div>
-                    )}
+                  {mode === 'inactive' && (
+                    <p className="text-xs text-[#6A6B6D] mb-2">Not Assigned</p>
+                  )}
 
-                    {mode === 'inactive' && (
-                      <p className="text-xs text-[#6A6B6D] mb-2">Not Assigned</p>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2">
-                      <button onClick={() => openAssign(table)}
-                        className="flex-1 py-2 rounded-lg bg-[#1877F2] text-white text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1565D8]">
-                        <Table2 className="w-3.5 h-3.5" /> Assign
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <button onClick={() => openAssign(table)}
+                      className="flex-1 py-2 rounded-lg bg-[#1877F2] text-white text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1565D8]">
+                      <Table2 className="w-3.5 h-3.5" /> Assign
+                    </button>
+                    {mode !== 'inactive' && (table.active_players || 0) === 0 && (
+                      <button onClick={() => closeTable(table)} disabled={isClosing}
+                        className="py-2 px-3 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#EF4444]/20 disabled:opacity-50">
+                        {isClosing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
+                        Close
                       </button>
-                      {mode !== 'inactive' && (table.active_players || 0) === 0 && (
-                        <button onClick={() => closeTable(table)} disabled={isClosing}
-                          className="py-2 px-3 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#EF4444]/20 disabled:opacity-50">
-                          {isClosing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
-                          Close
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-              </CommanderLayout>
+              </div>
             );
           })}
 
@@ -292,8 +293,8 @@ export default function TableAssignments() {
                     ].map(opt => (
                       <button key={opt.mode} onClick={() => setAssignMode(opt.mode)}
                         className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 ${assignMode === opt.mode
-                            ? 'border-[' + opt.color + '] bg-[' + opt.color + ']/10'
-                            : 'border-[#3A3B3C] bg-[#3A3B3C]/30 active:bg-[#3A3B3C]'
+                          ? 'border-[' + opt.color + '] bg-[' + opt.color + ']/10'
+                          : 'border-[#3A3B3C] bg-[#3A3B3C]/30 active:bg-[#3A3B3C]'
                           }`}
                         style={assignMode === opt.mode ? { borderColor: opt.color, background: opt.color + '15' } : {}}>
                         <opt.icon className="w-6 h-6" style={{ color: assignMode === opt.mode ? opt.color : '#B0B3B8' }} />
@@ -351,8 +352,8 @@ export default function TableAssignments() {
                         {tournaments.map(t => (
                           <button key={t.id} onClick={() => setSelectedTournament(t.id)}
                             className={`w-full text-left px-4 py-3 rounded-xl border-2 ${selectedTournament === t.id
-                                ? 'border-[#F59E0B] bg-[#F59E0B]/10'
-                                : 'border-[#3A3B3C] bg-[#3A3B3C]/30 active:bg-[#3A3B3C]'
+                              ? 'border-[#F59E0B] bg-[#F59E0B]/10'
+                              : 'border-[#3A3B3C] bg-[#3A3B3C]/30 active:bg-[#3A3B3C]'
                               }`}>
                             <p className={`text-sm font-semibold ${selectedTournament === t.id ? 'text-[#F59E0B]' : 'text-white'}`}>
                               {t.name}
@@ -386,6 +387,6 @@ export default function TableAssignments() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }

@@ -109,7 +109,7 @@ export default function FloorCalls() {
   const pendingCount = calls.filter(c => c.status === 'pending').length;
 
   return (
-    <>
+    <CommanderLayout title={`Floor Calls${pendingCount > 0 ? ` (${pendingCount})` : ''}`} backHref="/commander/dashboard">
       <SEOHead
         title="Commander — Floor Calls"
         description="Club Commander Poker Room Management Tool."
@@ -161,52 +161,50 @@ export default function FloorCalls() {
                   const pConfig = PRIORITY_CONFIG[call.priority] || PRIORITY_CONFIG.normal;
                   const sConfig = STATUS_CONFIG[call.status] || STATUS_CONFIG.pending;
                   return (
-                    <CommanderLayout title="Floor Calls{pendingCount > 0 ? ` (${pendingCount})` : ''}" backHref="/commander/dashboard">
-                      <div key={call.id}
-                        className={`bg-[#242526] border rounded-xl overflow-hidden ${call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
-                          }`}>
-                        <div className="px-4 py-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg font-bold text-white">Table {call.table_number}</span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                                style={{ backgroundColor: `${pConfig.color}20`, color: pConfig.color }}>
-                                {pConfig.label}
-                              </span>
-                            </div>
-                            <span className="text-xs text-[#B0B3B8]">{timeAgo(call.created_at)} ago</span>
+                    <div key={call.id}
+                      className={`bg-[#242526] border rounded-xl overflow-hidden ${call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
+                        }`}>
+                      <div className="px-4 py-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold text-white">Table {call.table_number}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
+                              style={{ backgroundColor: `${pConfig.color}20`, color: pConfig.color }}>
+                              {pConfig.label}
+                            </span>
                           </div>
-                          <p className="text-sm text-white font-medium capitalize">{call.reason?.replace(/_/g, ' ')}</p>
-                          {call.description && <p className="text-xs text-[#B0B3B8] mt-1">{call.description}</p>}
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sConfig.color }} />
-                            <span className="text-[10px]" style={{ color: sConfig.color }}>{sConfig.label}</span>
-                          </div>
+                          <span className="text-xs text-[#B0B3B8]">{timeAgo(call.created_at)} ago</span>
                         </div>
-
-                        {/* Action buttons */}
-                        <div className="flex border-t border-[#3A3B3C]">
-                          {call.status === 'pending' && (
-                            <>
-                              <button onClick={() => updateCall(call.id, 'acknowledged')}
-                                className="flex-1 py-3 text-xs font-semibold text-[#F59E0B] border-r border-[#3A3B3C] active:bg-[#F59E0B]/10">
-                                Acknowledge
-                              </button>
-                              <button onClick={() => updateCall(call.id, 'en_route')}
-                                className="flex-1 py-3 text-xs font-semibold text-[#1877F2] active:bg-[#1877F2]/10">
-                                On My Way
-                              </button>
-                            </>
-                          )}
-                          {(call.status === 'acknowledged' || call.status === 'en_route') && (
-                            <button onClick={() => updateCall(call.id, 'resolved', 'Resolved by floor')}
-                              className="flex-1 py-3 text-xs font-semibold text-[#31A24C] active:bg-[#31A24C]/10">
-                              Mark Resolved
-                            </button>
-                          )}
+                        <p className="text-sm text-white font-medium capitalize">{call.reason?.replace(/_/g, ' ')}</p>
+                        {call.description && <p className="text-xs text-[#B0B3B8] mt-1">{call.description}</p>}
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sConfig.color }} />
+                          <span className="text-[10px]" style={{ color: sConfig.color }}>{sConfig.label}</span>
                         </div>
                       </div>
-                    </CommanderLayout>
+
+                      {/* Action buttons */}
+                      <div className="flex border-t border-[#3A3B3C]">
+                        {call.status === 'pending' && (
+                          <>
+                            <button onClick={() => updateCall(call.id, 'acknowledged')}
+                              className="flex-1 py-3 text-xs font-semibold text-[#F59E0B] border-r border-[#3A3B3C] active:bg-[#F59E0B]/10">
+                              Acknowledge
+                            </button>
+                            <button onClick={() => updateCall(call.id, 'en_route')}
+                              className="flex-1 py-3 text-xs font-semibold text-[#1877F2] active:bg-[#1877F2]/10">
+                              On My Way
+                            </button>
+                          </>
+                        )}
+                        {(call.status === 'acknowledged' || call.status === 'en_route') && (
+                          <button onClick={() => updateCall(call.id, 'resolved', 'Resolved by floor')}
+                            className="flex-1 py-3 text-xs font-semibold text-[#31A24C] active:bg-[#31A24C]/10">
+                            Mark Resolved
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   );
                 })
               )
@@ -234,6 +232,6 @@ export default function FloorCalls() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }

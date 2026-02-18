@@ -74,11 +74,13 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/high-hands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-staff-session': staffSession
         },
         body: JSON.stringify({
           venue_id: venueId,
@@ -387,7 +389,7 @@ export default function PromotionsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
     try {
@@ -395,7 +397,7 @@ export default function PromotionsPage() {
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -457,11 +459,13 @@ export default function PromotionsPage() {
   async function handleVerifyHighHand(highHand) {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/high-hands/${highHand.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-staff-session': staffSession
         },
         body: JSON.stringify({ action: 'verify' })
       });
@@ -473,9 +477,10 @@ export default function PromotionsPage() {
 
   async function handleToggle(promo) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !promo.is_active })
       });
       fetchPromotions();
@@ -487,7 +492,8 @@ export default function PromotionsPage() {
   async function handleDelete(promo) {
     if (!confirm(`Delete "${promo.name}"?`)) return;
     try {
-      await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE' });
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { 'x-staff-session': staffSession } });
       fetchPromotions();
     } catch (error) {
       console.error('Delete failed:', error);
@@ -517,10 +523,10 @@ export default function PromotionsPage() {
     <CommanderLayout title="Promotions | Commander" backHref="/commander/displays">
       <>
         <SEOHead
-                title="Commander — Promotions"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Promotions"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <div className="cmd-page">
           <header className="cmd-header-bar sticky top-0 z-40">
@@ -565,8 +571,8 @@ export default function PromotionsPage() {
               <button
                 onClick={() => setActiveTab('promotions')}
                 className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promotions'
-                    ? 'border-[#1877F2] text-[#1877F2]'
-                    : 'border-transparent text-[#B0B3B8] hover:text-white'
+                  ? 'border-[#1877F2] text-[#1877F2]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
                   }`}
               >
                 <Gift className="w-4 h-4 inline-block mr-2" />
@@ -575,8 +581,8 @@ export default function PromotionsPage() {
               <button
                 onClick={() => setActiveTab('high-hands')}
                 className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'high-hands'
-                    ? 'border-[#F59E0B] text-[#F59E0B]'
-                    : 'border-transparent text-[#B0B3B8] hover:text-white'
+                  ? 'border-[#F59E0B] text-[#F59E0B]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
                   }`}
               >
                 <Trophy className="w-4 h-4 inline-block mr-2" />
@@ -594,8 +600,8 @@ export default function PromotionsPage() {
                       key={f}
                       onClick={() => setFilter(f)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
-                          ? 'bg-[#1877F2] text-white'
-                          : 'cmd-btn cmd-btn-secondary'
+                        ? 'bg-[#1877F2] text-white'
+                        : 'cmd-btn cmd-btn-secondary'
                         }`}
                     >
                       {f}
@@ -641,11 +647,13 @@ export default function PromotionsPage() {
                   onSubmitHand={async (handData) => {
                     try {
                       const token = localStorage.getItem('smarter-poker-auth');
+                      const staffSession = localStorage.getItem('commander_staff') || '';
                       await fetch('/api/commander/high-hands', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`
+                          Authorization: `Bearer ${token}`,
+                          'x-staff-session': staffSession
                         },
                         body: JSON.stringify({
                           venue_id: venueId,
@@ -710,9 +718,10 @@ export default function PromotionsPage() {
                   venueId={venueId}
                   onSubmit={async (data) => {
                     try {
+                      const staffSession = localStorage.getItem('commander_staff') || '';
                       const res = await fetch('/api/commander/promotions', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
                         body: JSON.stringify(data)
                       });
                       const result = await res.json();
@@ -734,9 +743,10 @@ export default function PromotionsPage() {
               venueId={venueId}
               onSave={async (data) => {
                 try {
+                  const staffSession = localStorage.getItem('commander_staff') || '';
                   const res = await fetch('/api/commander/promotions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
                     body: JSON.stringify(data)
                   });
                   const result = await res.json();
@@ -759,9 +769,10 @@ export default function PromotionsPage() {
             venueId={venueId}
             onSave={async (data) => {
               try {
+                const staffSession = localStorage.getItem('commander_staff') || '';
                 const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
                   body: JSON.stringify(data)
                 });
                 const result = await res.json();
@@ -777,7 +788,8 @@ export default function PromotionsPage() {
             onDelete={async (id) => {
               if (!confirm('Delete this promotion?')) return;
               try {
-                await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE' });
+                const staffSession = localStorage.getItem('commander_staff') || '';
+                await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { 'x-staff-session': staffSession } });
                 fetchPromotions();
                 setShowEditModal(false);
                 setEditingPromo(null);
@@ -845,10 +857,10 @@ export default function PromotionsPage() {
                             </span>
                           </div>
                           <span className={`text-xs px-2 py-1 rounded-full font-medium ${award.status === 'approved'
-                              ? 'bg-[#31A24C]/10 text-[#31A24C]'
-                              : award.status === 'pending'
-                                ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                                : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
+                            ? 'bg-[#31A24C]/10 text-[#31A24C]'
+                            : award.status === 'pending'
+                              ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                              : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
                             }`}>
                             {award.status}
                           </span>

@@ -71,14 +71,17 @@ export default function ActivityFeed() {
   const fetchEvents = async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      let venueId = '';
+      try { venueId = JSON.parse(staffSession).venue_id || ''; } catch { }
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Aggregate from multiple sources for the activity feed
       const [incidents, checkins, sessions, waitlist] = await Promise.all([
-        fetch('/api/commander/incidents', { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/members?limit=20&sort=last_visit', { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/time-billing/sessions?limit=20', { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/waitlist', { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/incidents?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
 
       const allEvents = [];
@@ -147,12 +150,12 @@ export default function ActivityFeed() {
   });
 
   return (
-    <>
+    <CommanderLayout title="Activity" backHref="/commander/reports">
       <SEOHead
-                title="Commander — Activity Log"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Activity Log"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -198,19 +201,17 @@ export default function ActivityFeed() {
               const config = EVENT_TYPES[event.type] || EVENT_TYPES.check_in;
               const Icon = config.icon;
               return (
-                <CommanderLayout title="Activity" backHref="/commander/reports">
-                  <div key={event.id} className="flex items-start gap-3 py-2.5 border-b border-[#3A3B3C]/50">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${config.color}15` }}>
-                      <Icon className="w-4 h-4" style={{ color: config.color }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white">{event.message}</p>
-                      {event.detail && <p className="text-xs text-[#B0B3B8]">{event.detail}</p>}
-                    </div>
-                    <span className="text-[10px] text-[#B0B3B8] flex-shrink-0 pt-0.5">{timeAgo(event.timestamp)}</span>
+                <div key={event.id} className="flex items-start gap-3 py-2.5 border-b border-[#3A3B3C]/50">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${config.color}15` }}>
+                    <Icon className="w-4 h-4" style={{ color: config.color }} />
                   </div>
-                </CommanderLayout>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white">{event.message}</p>
+                    {event.detail && <p className="text-xs text-[#B0B3B8]">{event.detail}</p>}
+                  </div>
+                  <span className="text-[10px] text-[#B0B3B8] flex-shrink-0 pt-0.5">{timeAgo(event.timestamp)}</span>
+                </div>
               );
             })}
           </div>
@@ -218,6 +219,6 @@ export default function ActivityFeed() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }

@@ -118,7 +118,7 @@ export default function MustMoveManager() {
   const singles = data?.single_games || [];
 
   return (
-    <>
+    <CommanderLayout title="Must-Move Games" backHref="/commander/tables">
       <SEOHead
         title="Commander — Must-Move Tables"
         description="Club Commander Poker Room Management Tool."
@@ -195,57 +195,55 @@ export default function MustMoveManager() {
                       const canMove = isLinked && mainOpenSeats > 0 && game.player_count > 0;
 
                       return (
-                        <CommanderLayout title="Must-Move Games" backHref="/commander/tables">
-                          <div key={game.id} className={`rounded-xl p-3 ${isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
-                            }`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                {isLinked && <ArrowRightLeft className="w-4 h-4 text-[#F59E0B]" />}
-                                <div>
-                                  <p className="text-sm font-bold text-white">Table {game.table_number}</p>
-                                  {isLinked
-                                    ? <p className="text-xs text-[#F59E0B] font-medium">MUST-MOVE → T{mainGame?.table_number}</p>
-                                    : <p className="text-xs text-[#B0B3B8]">Not Linked</p>
-                                  }
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-bold text-white">{game.player_count}/{game.max_seats}</p>
-                                <p className="text-xs text-[#B0B3B8]">{game.player_count} players</p>
+                        <div key={game.id} className={`rounded-xl p-3 ${isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
+                          }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              {isLinked && <ArrowRightLeft className="w-4 h-4 text-[#F59E0B]" />}
+                              <div>
+                                <p className="text-sm font-bold text-white">Table {game.table_number}</p>
+                                {isLinked
+                                  ? <p className="text-xs text-[#F59E0B] font-medium">MUST-MOVE → T{mainGame?.table_number}</p>
+                                  : <p className="text-xs text-[#B0B3B8]">Not Linked</p>
+                                }
                               </div>
                             </div>
-
-                            <div className="flex gap-2">
-                              {isLinked ? (
-                                <>
-                                  {/* Move next player button */}
-                                  <button onClick={() => movePlayer(game.id, mainGame.id)} disabled={!canMove || moveLoading === game.id}
-                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${canMove ? 'bg-[#1877F2] text-white active:bg-[#1565D8]' : 'bg-[#3A3B3C] text-[#6A6B6D]'
-                                      }`}>
-                                    {moveLoading === game.id
-                                      ? <Loader2 className="w-3 h-3 animate-spin" />
-                                      : <ArrowRight className="w-3 h-3" />
-                                    }
-                                    {canMove ? 'Move Next Player' : mainOpenSeats === 0 ? 'Main Table Full' : 'No Players'}
-                                  </button>
-                                  {/* Unlink */}
-                                  <button onClick={() => unlinkMustMove(game.id)} disabled={actionLoading === game.id}
-                                    className="px-3 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-bold active:bg-[#4A4B4C] flex items-center gap-1">
-                                    {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
-                                    Remove
-                                  </button>
-                                </>
-                              ) : (
-                                /* Link as must-move */
-                                <button onClick={() => linkMustMove(game.id, mainGame.id)} disabled={actionLoading === game.id}
-                                  className="flex-1 py-2.5 rounded-lg bg-[#F59E0B] text-black text-xs font-bold flex items-center justify-center gap-1.5 active:bg-[#D97706]">
-                                  {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
-                                  Set as Must-Move → T{mainGame?.table_number}
-                                </button>
-                              )}
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-white">{game.player_count}/{game.max_seats}</p>
+                              <p className="text-xs text-[#B0B3B8]">{game.player_count} players</p>
                             </div>
                           </div>
-                        </CommanderLayout>
+
+                          <div className="flex gap-2">
+                            {isLinked ? (
+                              <>
+                                {/* Move next player button */}
+                                <button onClick={() => movePlayer(game.id, mainGame.id)} disabled={!canMove || moveLoading === game.id}
+                                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${canMove ? 'bg-[#1877F2] text-white active:bg-[#1565D8]' : 'bg-[#3A3B3C] text-[#6A6B6D]'
+                                    }`}>
+                                  {moveLoading === game.id
+                                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                                    : <ArrowRight className="w-3 h-3" />
+                                  }
+                                  {canMove ? 'Move Next Player' : mainOpenSeats === 0 ? 'Main Table Full' : 'No Players'}
+                                </button>
+                                {/* Unlink */}
+                                <button onClick={() => unlinkMustMove(game.id)} disabled={actionLoading === game.id}
+                                  className="px-3 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-bold active:bg-[#4A4B4C] flex items-center gap-1">
+                                  {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
+                                  Remove
+                                </button>
+                              </>
+                            ) : (
+                              /* Link as must-move */
+                              <button onClick={() => linkMustMove(game.id, mainGame.id)} disabled={actionLoading === game.id}
+                                className="flex-1 py-2.5 rounded-lg bg-[#F59E0B] text-black text-xs font-bold flex items-center justify-center gap-1.5 active:bg-[#D97706]">
+                                {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
+                                Set as Must-Move → T{mainGame?.table_number}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
@@ -281,6 +279,6 @@ export default function MustMoveManager() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }

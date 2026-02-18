@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Trophy, Plus, Users, Calendar, DollarSign,
+import {
+  Trophy, Plus, Users, Calendar, DollarSign,
   Loader2, ChevronDown, ChevronUp, Edit2, Star, BarChart3
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -33,12 +34,12 @@ export default function LeaguesManagement() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, []);
 
   useEffect(() => {
@@ -49,8 +50,9 @@ export default function LeaguesManagement() {
     setLoading(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/leagues?limit=50', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) setLeagues(json.data.leagues);
@@ -61,8 +63,9 @@ export default function LeaguesManagement() {
   const fetchStandings = async (leagueId) => {
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/leagues/${leagueId}/standings`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) {
@@ -103,7 +106,7 @@ export default function LeaguesManagement() {
       // Use direct supabase insert via a dedicated API or POST to leagues
       const res = await fetch('/api/commander/leagues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
         body: JSON.stringify(body)
       });
       const json = await res.json();
@@ -131,14 +134,14 @@ export default function LeaguesManagement() {
   return (
     <>
       <SEOHead
-                title="Commander — Leagues"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Leagues"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<Trophy size={22} />
+          <Trophy size={22} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Leagues</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Manage Inter-club Seasons And Standings</div>
@@ -225,74 +228,74 @@ export default function LeaguesManagement() {
                 const leagueStandings = standings[league.id] || [];
                 return (
                   <CommanderLayout title="Leagues" backHref="/commander/dashboard">
-                  <div key={league.id} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
-                    <button onClick={() => handleExpand(league.id)}
-                      style={{ width: '100%', padding: '14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 10, background: '#EBF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Trophy size={20} color="#1877F2" />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526' }}>{league.name}</div>
-                        <div style={{ fontSize: 12, color: '#65676B', display: 'flex', gap: 10, marginTop: 2 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Users size={11} /> {league.player_count} players</span>
-                          {league.prize_pool > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><DollarSign size={11} /> ${league.prize_pool}</span>}
+                    <div key={league.id} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
+                      <button onClick={() => handleExpand(league.id)}
+                        style={{ width: '100%', padding: '14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 10, background: '#EBF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Trophy size={20} color="#1877F2" />
                         </div>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, background: sc.bg, color: sc.text, textTransform: 'uppercase' }}>
-                        {league.status}
-                      </span>
-                      {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
-                    </button>
-
-                    {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '2px solid #E4E6EB' }}>
-                        {league.description && (
-                          <div style={{ fontSize: 13, color: '#444', marginTop: 10, lineHeight: 1.5 }}>{league.description}</div>
-                        )}
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 }}>
-                          <div style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
-                            <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>SCORING</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1C2526', textTransform: 'capitalize' }}>{league.scoring_system || 'Points'}</div>
-                          </div>
-                          <div style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
-                            <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>START</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1C2526' }}>
-                              {league.season_start ? new Date(league.season_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
-                            <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>END</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1C2526' }}>
-                              {league.season_end ? new Date(league.season_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
-                            </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526' }}>{league.name}</div>
+                          <div style={{ fontSize: 12, color: '#65676B', display: 'flex', gap: 10, marginTop: 2 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Users size={11} /> {league.player_count} players</span>
+                            {league.prize_pool > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><DollarSign size={11} /> ${league.prize_pool}</span>}
                           </div>
                         </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, background: sc.bg, color: sc.text, textTransform: 'uppercase' }}>
+                          {league.status}
+                        </span>
+                        {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
+                      </button>
 
-                        {/* Standings */}
-                        {leagueStandings.length > 0 ? (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>STANDINGS</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              {leagueStandings.slice(0, 10).map((s, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: i < 3 ? '#FFFBEB' : '#F9FAFB', borderRadius: 8, fontSize: 13 }}>
-                                  <span style={{ fontWeight: 800, fontSize: 16, color: i === 0 ? '#F59E0B' : i === 1 ? '#94A3B8' : i === 2 ? '#CD7F32' : '#65676B', minWidth: 24 }}>
-                                    {i + 1}
-                                  </span>
-                                  <span style={{ flex: 1, fontWeight: 600, color: '#1C2526' }}>{s.player_name || s.display_name || 'Player'}</span>
-                                  <span style={{ fontWeight: 800, color: '#1877F2' }}>{s.points || s.total_points || 0} pts</span>
-                                </div>
-                              ))}
+                      {isExpanded && (
+                        <div style={{ padding: '0 14px 14px', borderTop: '2px solid #E4E6EB' }}>
+                          {league.description && (
+                            <div style={{ fontSize: 13, color: '#444', marginTop: 10, lineHeight: 1.5 }}>{league.description}</div>
+                          )}
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 }}>
+                            <div style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
+                              <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>SCORING</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1C2526', textTransform: 'capitalize' }}>{league.scoring_system || 'Points'}</div>
+                            </div>
+                            <div style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
+                              <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>START</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1C2526' }}>
+                                {league.season_start ? new Date(league.season_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
+                              <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>END</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1C2526' }}>
+                                {league.season_end ? new Date(league.season_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
+                              </div>
                             </div>
                           </div>
-                        ) : (
-                          <div style={{ marginTop: 12, padding: 16, textAlign: 'center', color: '#65676B', fontSize: 13, background: '#F9FAFB', borderRadius: 8 }}>
-                            No standings yet — players join via the app
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+
+                          {/* Standings */}
+                          {leagueStandings.length > 0 ? (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>STANDINGS</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {leagueStandings.slice(0, 10).map((s, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: i < 3 ? '#FFFBEB' : '#F9FAFB', borderRadius: 8, fontSize: 13 }}>
+                                    <span style={{ fontWeight: 800, fontSize: 16, color: i === 0 ? '#F59E0B' : i === 1 ? '#94A3B8' : i === 2 ? '#CD7F32' : '#65676B', minWidth: 24 }}>
+                                      {i + 1}
+                                    </span>
+                                    <span style={{ flex: 1, fontWeight: 600, color: '#1C2526' }}>{s.player_name || s.display_name || 'Player'}</span>
+                                    <span style={{ fontWeight: 800, color: '#1877F2' }}>{s.points || s.total_points || 0} pts</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ marginTop: 12, padding: 16, textAlign: 'center', color: '#65676B', fontSize: 13, background: '#F9FAFB', borderRadius: 8 }}>
+                              No standings yet — players join via the app
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </CommanderLayout>
                 );
               })}

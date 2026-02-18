@@ -48,13 +48,13 @@ export default function MembershipPlansPage() {
 
   useEffect(() => {
     const s = localStorage.getItem('commander_staff');
-    if (!s) return router.push('/commander/login').catch(() => {});
+    if (!s) return router.push('/commander/login').catch(() => { });
     try {
       const sd = JSON.parse(s);
-      if (!sd.venue_id) return router.push('/commander/login').catch(() => {});
+      if (!sd.venue_id) return router.push('/commander/login').catch(() => { });
       setStaff(sd);
       setVenueId(sd.venue_id);
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, [router]);
 
   useEffect(() => {
@@ -65,7 +65,10 @@ export default function MembershipPlansPage() {
   async function fetchPlans() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`);
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
+        headers: { 'x-staff-session': staffSession }
+      });
       const data = await res.json();
       if (data.success) setPlans(data.data.plans || []);
     } catch (err) { setError('Failed to load plans'); }
@@ -115,7 +118,7 @@ export default function MembershipPlansPage() {
 
       const res = await fetch(url, {
         method: isNew ? 'POST' : 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': localStorage.getItem('commander_staff') || '' },
         body: JSON.stringify(body)
       });
       const data = await res.json();
@@ -135,7 +138,8 @@ export default function MembershipPlansPage() {
   async function handleDelete(plan) {
     if (!confirm(`Deactivate "${plan.name}"? Members won't lose their tier.`)) return;
     try {
-      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, { method: 'DELETE' });
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, { method: 'DELETE', headers: { 'x-staff-session': staffSession } });
       const data = await res.json();
       if (data.success) fetchPlans();
     } catch (err) { setError('Failed to deactivate'); }
@@ -145,7 +149,7 @@ export default function MembershipPlansPage() {
     try {
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': localStorage.getItem('commander_staff') || '' },
         body: JSON.stringify({ is_active: true })
       });
       const data = await res.json();
@@ -163,10 +167,10 @@ export default function MembershipPlansPage() {
   return (
     <>
       <SEOHead
-                title="Commander — Membership Plans"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Membership Plans"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-50">

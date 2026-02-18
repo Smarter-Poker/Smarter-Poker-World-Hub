@@ -37,7 +37,7 @@ const EXPENSE_TYPES = [
 ];
 
 const CASINO_GAMES = ['blackjack', 'roulette', 'craps', 'baccarat', 'other'];
-const SPORTS = ['nfl', 'nba', 'mlb', 'nhl', 'soccer', 'mma', 'golf', 'tennis', 'other'];
+const SPORTS = ['baseball', 'basketball', 'football', 'hockey', 'boxing_mma'];
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
@@ -53,6 +53,9 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   const [savedStakerNames, setSavedStakerNames] = useState([]);
   const [customSwapName, setCustomSwapName] = useState(false);
   const [customStakerName, setCustomStakerName] = useState(false);
+  const [savedSlotGames, setSavedSlotGames] = useState([]);
+  const [customSlotGame, setCustomSlotGame] = useState(false);
+  const [customSportName, setCustomSportName] = useState(false);
   // Collapsible tournament deduction sections
   const [showSwaps, setShowSwaps] = useState(false);
   const [showStaking, setShowStaking] = useState(false);
@@ -114,7 +117,9 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         reentry_count: e.reentry_count?.toString() || '0',
         add_on_amount: e.add_on_amount?.toString() || '',
         casino_game: e.casino_game || 'blackjack',
+        slot_machine: e.slot_machine || '',
         sport: e.sport || '',
+        sport_event: '',
         bet_type: e.bet_type || '',
         odds: e.odds || '',
         bet_result: e.bet_result || '',
@@ -146,7 +151,9 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       field_size: '',
       reentry_count: '0',
       casino_game: 'blackjack',
+      slot_machine: '',
       sport: '',
+      sport_event: '',
       bet_type: '',
       odds: '',
       bet_result: '',
@@ -210,13 +217,15 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       });
   }, [userId]);
 
-  // Load saved swap/staker names from localStorage
+  // Load saved swap/staker/slot names from localStorage
   useEffect(() => {
     try {
       const swapRaw = localStorage.getItem('bankroll_swap_names');
       if (swapRaw) setSavedSwapNames(JSON.parse(swapRaw));
       const stakerRaw = localStorage.getItem('bankroll_staker_names');
       if (stakerRaw) setSavedStakerNames(JSON.parse(stakerRaw));
+      const slotRaw = localStorage.getItem('bankroll_slot_games');
+      if (slotRaw) setSavedSlotGames(JSON.parse(slotRaw));
     } catch (_) { /* ignore */ }
   }, []);
 
@@ -389,13 +398,28 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       } else if (category === 'casino_table') {
         entry.casino_game = formData.casino_game || null;
       } else if (category === 'slots') {
-        entry.slot_machine = formData.notes || null;
+        entry.slot_machine = formData.slot_machine || null;
+        // Save slot game name to localStorage for future use
+        if (formData.slot_machine) {
+          try {
+            const prev = JSON.parse(localStorage.getItem('bankroll_slot_games') || '[]');
+            const updated = [...new Set([...prev, formData.slot_machine])].sort();
+            localStorage.setItem('bankroll_slot_games', JSON.stringify(updated));
+            setSavedSlotGames(updated);
+          } catch (_) { }
+        }
       } else if (category === 'sports') {
-        entry.sport = formData.sport || null;
+        // If custom sport, use the custom name; otherwise use the preset
+        entry.sport = formData.sport === '__custom__' ? (formData.custom_sport_name || null) : (formData.sport || null);
         entry.bet_type = formData.bet_type || null;
         entry.odds = formData.odds || null;
         entry.bet_result =
           netResult > 0 ? 'win' : netResult < 0 ? 'loss' : 'push';
+        // Append event/game name to notes for searchability
+        if (formData.sport_event) {
+          const eventNote = `Game: ${formData.sport_event}`;
+          entry.notes = entry.notes ? `${entry.notes}\n${eventNote}` : eventNote;
+        }
       } else if (category === 'expense') {
         entry.expense_type = formData.expense_type || null;
         // Expenses are always negative (money out)
@@ -913,39 +937,114 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
           </div>
         )}
 
-        {category === 'sports' && (
-          <div style={styles.amountRow}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Sport</label>
+        {category === 'slots' && (
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Game / Machine Name</label>
+            {savedSlotGames.length > 0 && !customSlotGame ? (
               <select
-                value={formData.sport}
-                onChange={(e) => handleInputChange('sport', e.target.value)}
+                value={formData.slot_machine}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCustomSlotGame(true);
+                    handleInputChange('slot_machine', '');
+                  } else {
+                    handleInputChange('slot_machine', e.target.value);
+                  }
+                }}
                 style={styles.select}
               >
-                <option value="">Select...</option>
-                {SPORTS.map((s) => (
-                  <option key={s} value={s}>
-                    {s.toUpperCase()}
-                  </option>
+                <option value="">Select Game...</option>
+                {savedSlotGames.map(g => (
+                  <option key={g} value={g}>{g}</option>
                 ))}
+                <option value="__custom__">+ New Game</option>
               </select>
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Bet Type</label>
-              <select
-                value={formData.bet_type}
-                onChange={(e) => handleInputChange('bet_type', e.target.value)}
-                style={styles.select}
-              >
-                <option value="">Select...</option>
-                {BET_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1).replace('_', '/')}
-                  </option>
-                ))}
-              </select>
-            </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  value={formData.slot_machine}
+                  onChange={(e) => handleInputChange('slot_machine', e.target.value)}
+                  placeholder="e.g., Piggy Banking, Huff N Puff, Bubble Craps"
+                  style={{ ...styles.input, flex: 1 }}
+                />
+                {savedSlotGames.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomSlotGame(false)}
+                    style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                  >↩</button>
+                )}
+              </div>
+            )}
           </div>
+        )}
+
+        {category === 'sports' && (
+          <>
+            <div style={styles.amountRow}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Sport</label>
+                <select
+                  value={formData.sport}
+                  onChange={(e) => {
+                    handleInputChange('sport', e.target.value);
+                    if (e.target.value !== '__custom__') {
+                      setCustomSportName(false);
+                    } else {
+                      setCustomSportName(true);
+                    }
+                  }}
+                  style={styles.select}
+                >
+                  <option value="">Select...</option>
+                  {SPORTS.map((s) => (
+                    <option key={s} value={s}>
+                      {s === 'boxing_mma' ? 'Boxing / MMA' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </option>
+                  ))}
+                  <option value="__custom__">+ Custom Sport</option>
+                </select>
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Bet Type</label>
+                <select
+                  value={formData.bet_type}
+                  onChange={(e) => handleInputChange('bet_type', e.target.value)}
+                  style={styles.select}
+                >
+                  <option value="">Select...</option>
+                  {BET_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1).replace('_', '/')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {customSportName && (
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Custom Sport Name</label>
+                <input
+                  type="text"
+                  value={formData.custom_sport_name || ''}
+                  onChange={(e) => handleInputChange('custom_sport_name', e.target.value)}
+                  placeholder="e.g., Soccer, Tennis, Golf"
+                  style={styles.input}
+                />
+              </div>
+            )}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Event / Game</label>
+              <input
+                type="text"
+                value={formData.sport_event}
+                onChange={(e) => handleInputChange('sport_event', e.target.value)}
+                placeholder="e.g., Chiefs vs Eagles, Lakers vs Celtics"
+                style={styles.input}
+              />
+            </div>
+          </>
         )}
 
         {category === 'expense' && (

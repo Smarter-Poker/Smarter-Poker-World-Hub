@@ -112,7 +112,7 @@ export default function FloorMap() {
   const totalWaiting = Object.values(waitlists).reduce((s, n) => s + n, 0);
 
   return (
-    <>
+    <CommanderLayout title="Floor Map" backHref="/commander/dashboard">
       <SEOHead
         title="Commander — Floor Management"
         description="Club Commander Poker Room Management Tool."
@@ -208,55 +208,53 @@ export default function FloorMap() {
                 : null;
 
               return (
-                <CommanderLayout title="Floor Map" backHref="/commander/dashboard">
-                  <button key={table.id || tNum}
-                    onClick={() => router.push(`/commander/dealer/${tNum}`)}
-                    className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${hasExpired ? 'border-[#EF4444]/50' :
-                        hasLowTime ? 'border-[#F59E0B]/50' :
-                          status === 'active' ? 'border-[#31A24C]/30' :
-                            'border-[#3A3B3C]'
-                      }`}>
+                <button key={table.id || tNum}
+                  onClick={() => router.push(`/commander/dealer/${tNum}`)}
+                  className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${hasExpired ? 'border-[#EF4444]/50' :
+                    hasLowTime ? 'border-[#F59E0B]/50' :
+                      status === 'active' ? 'border-[#31A24C]/30' :
+                        'border-[#3A3B3C]'
+                    }`}>
 
-                    {/* Table number + status dot */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold text-white">T{tNum}</span>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusConfig.bg }} />
-                        <span className="text-[10px] text-[#B0B3B8]">{statusConfig.label}</span>
-                      </div>
+                  {/* Table number + status dot */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-lg font-bold text-white">T{tNum}</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusConfig.bg }} />
+                      <span className="text-[10px] text-[#B0B3B8]">{statusConfig.label}</span>
                     </div>
+                  </div>
 
-                    {/* Game type */}
-                    {gameType && (
-                      <div className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold mb-2"
-                        style={{ backgroundColor: `${gameColor}15`, color: gameColor }}>
-                        {gameType} {table.stakes || ''}
-                      </div>
-                    )}
-
-                    {/* Seats */}
-                    <div className="flex items-center gap-1 mb-1">
-                      <Users className="w-3.5 h-3.5 text-[#B0B3B8]" />
-                      <span className="text-sm text-white font-medium">{occupied}/{maxSeats}</span>
-                      {occupied > 0 && occupied < maxSeats && (
-                        <span className="text-[10px] text-[#31A24C] ml-1">{maxSeats - occupied} open</span>
-                      )}
+                  {/* Game type */}
+                  {gameType && (
+                    <div className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold mb-2"
+                      style={{ backgroundColor: `${gameColor}15`, color: gameColor }}>
+                      {gameType} {table.stakes || ''}
                     </div>
+                  )}
 
-                    {/* Time info */}
-                    {occupied > 0 && lowestTime !== null && lowestTime !== Infinity && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }} />
-                        <span className="text-xs" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }}>
-                          {lowestTime <= 0 ? 'EXPIRED' : `${Math.floor(lowestTime / 60)}m low`}
-                        </span>
-                      </div>
+                  {/* Seats */}
+                  <div className="flex items-center gap-1 mb-1">
+                    <Users className="w-3.5 h-3.5 text-[#B0B3B8]" />
+                    <span className="text-sm text-white font-medium">{occupied}/{maxSeats}</span>
+                    {occupied > 0 && occupied < maxSeats && (
+                      <span className="text-[10px] text-[#31A24C] ml-1">{maxSeats - occupied} open</span>
                     )}
+                  </div>
 
-                    {/* Tap indicator */}
-                    <ChevronRight className="absolute bottom-2 right-2 w-4 h-4 text-white/10" />
-                  </button>
-                </CommanderLayout>
+                  {/* Time info */}
+                  {occupied > 0 && lowestTime !== null && lowestTime !== Infinity && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }} />
+                      <span className="text-xs" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }}>
+                        {lowestTime <= 0 ? 'EXPIRED' : `${Math.floor(lowestTime / 60)}m low`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Tap indicator */}
+                  <ChevronRight className="absolute bottom-2 right-2 w-4 h-4 text-white/10" />
+                </button>
               );
             })}
           </div>
@@ -264,6 +262,6 @@ export default function FloorMap() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }
