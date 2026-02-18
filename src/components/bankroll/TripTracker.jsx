@@ -362,6 +362,9 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                         ) : !confirmComplete ? (
                             <>
                                 <button onClick={startEditing} style={styles.editBtn}>✏ Edit Trip</button>
+                                {onOpenLog && (
+                                    <button onClick={onOpenLog} style={styles.addEntryBtn}>＋ Add Entry</button>
+                                )}
                                 <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>
                                     ✓ Complete Trip
                                 </button>
@@ -744,6 +747,16 @@ const styles = {
         background: 'rgba(59, 130, 246, 0.15)',
         color: '#3b82f6',
         border: '1px solid rgba(59, 130, 246, 0.3)',
+        borderRadius: 8,
+        padding: '10px 18px',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    addEntryBtn: {
+        background: 'rgba(16, 185, 129, 0.15)',
+        color: '#10b981',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
