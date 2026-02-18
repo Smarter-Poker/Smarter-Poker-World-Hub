@@ -12,11 +12,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
-
   if (req.method !== 'GET') {
+    // Auth guard: require staff auth for write operations only
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
     return res.status(405).json({
       success: false,
       error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }

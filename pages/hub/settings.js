@@ -114,6 +114,13 @@ export default function SettingsPage() {
     const [promoHistory, setPromoHistory] = useState([]);
     const [promoHistoryLoading, setPromoHistoryLoading] = useState(false);
 
+    // Billing State
+    const [billingOrders, setBillingOrders] = useState([]);
+    const [billingTransactions, setBillingTransactions] = useState([]);
+    const [billingVipSub, setBillingVipSub] = useState(null);
+    const [billingDiamonds, setBillingDiamonds] = useState(0);
+    const [billingLoading, setBillingLoading] = useState(false);
+
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
 
@@ -444,6 +451,49 @@ export default function SettingsPage() {
     useEffect(() => {
         if (activeSection === 'promos' && user?.id) {
             loadPromoHistory();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeSection, user?.id]);
+
+    // ── BILLING DATA LOADER ──
+    const loadBillingData = async () => {
+        if (!user?.id) return;
+        setBillingLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+
+            // Fetch orders, transactions, VIP sub, and profile in parallel
+            const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
+                supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+                session ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
+                supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+                supabase.from('profiles').select('diamonds').eq('id', user.id).single(),
+            ]);
+
+            if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {
+                setBillingOrders(ordersRes.value.data);
+            }
+            if (txRes.status === 'fulfilled') {
+                setBillingTransactions(txRes.value.transactions || txRes.value.data || []);
+            }
+            if (vipRes.status === 'fulfilled' && vipRes.value.data) {
+                setBillingVipSub(vipRes.value.data);
+            }
+            if (profileRes.status === 'fulfilled' && profileRes.value.data) {
+                setBillingDiamonds(profileRes.value.data.diamonds || 0);
+            }
+        } catch (err) {
+            console.error('[Settings] Error loading billing data:', err);
+        } finally {
+            setBillingLoading(false);
+        }
+    };
+
+    // Auto-load billing data when section is opened
+    useEffect(() => {
+        if (activeSection === 'billing' && user?.id) {
+            loadBillingData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeSection, user?.id]);
@@ -1208,65 +1258,261 @@ export default function SettingsPage() {
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>Billing & Payments</h2>
 
-                                <div style={styles.settingGroup}>
-                                    <h3 style={styles.groupTitle}>Payment Methods</h3>
-                                    <p style={styles.infoText}>
-                                        Manage Your Payment Methods In The Diamond Store Checkout.
-                                    </p>
-                                    <button
-                                        onClick={() => router.push('/hub/diamond-store')}
-                                        style={styles.linkButton}
-                                    >
-                                        Go To Diamond Store →
-                                    </button>
-                                </div>
-
-                                <div style={styles.settingGroup}>
-                                    <h3 style={styles.groupTitle}>Order History</h3>
-                                    <p style={styles.infoText}>
-                                        View Your Past Orders And Download Receipts.
-                                    </p>
-                                    <button
-                                        onClick={() => router.push('/hub/diamond-store/orders')}
-                                        style={styles.linkButton}
-                                    >
-                                        View Orders →
-                                    </button>
-                                </div>
-
-                                {isVip && (
-                                    <div style={styles.settingGroup}>
-                                        <h3 style={styles.groupTitle}>VIP Membership</h3>
-                                        <div style={styles.vipBadge}>
-                                            <span style={styles.vipIcon}></span>
-                                            <div>
-                                                <div style={styles.vipTitle}>Active VIP Member</div>
-                                                <div style={styles.vipSubtitle}>Enjoying Premium Benefits</div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                setShowCancelModal(true);
-                                                setCancelStep('reason');
-                                                setCancelReason('');
-                                                setCancelOtherText('');
-                                            }}
-                                            style={{
-                                                marginTop: 16,
-                                                padding: '10px 20px',
-                                                background: 'transparent',
-                                                border: '1px solid rgba(24, 119, 242, 0.3)',
-                                                borderRadius: 8,
-                                                color: '#1877F2',
-                                                fontSize: 13,
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease',
-                                            }}
-                                        >
-                                            Cancel Membership
-                                        </button>
+                                {billingLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                                        <div style={{ fontSize: 32, marginBottom: 12, animation: 'pulse 1.5s ease-in-out infinite' }}>Loading...</div>
+                                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Loading Billing Information...</p>
                                     </div>
+                                ) : (
+                                    <>
+                                        {/* ── VIP Membership Status ── */}
+                                        <div style={styles.card}>
+                                            <h3 style={styles.cardTitle}>VIP Membership</h3>
+                                            {isVip ? (
+                                                <>
+                                                    <div style={styles.billingStatCard}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                            <div style={{
+                                                                width: 48, height: 48, borderRadius: 12,
+                                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                fontSize: 24,
+                                                            }}>VIP</div>
+                                                            <div>
+                                                                <div style={{ fontSize: 18, fontWeight: 700, color: '#FFD700' }}>Active VIP Member</div>
+                                                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                                                                    {billingVipSub?.tier ? `${billingVipSub.tier.charAt(0).toUpperCase() + billingVipSub.tier.slice(1)} Plan` : 'Premium Plan'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {billingVipSub?.current_period_end && (
+                                                            <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                                                                        {billingVipSub.cancel_at_period_end ? 'Cancels On' : 'Next Billing Date'}
+                                                                    </span>
+                                                                    <span style={{ fontSize: 14, fontWeight: 600, color: billingVipSub.cancel_at_period_end ? '#ff4757' : '#fff' }}>
+                                                                        {new Date(billingVipSub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {billingVipSub?.cancel_at_period_end && (
+                                                            <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 8, fontSize: 13, color: '#ff4757' }}>
+                                                                Your membership will end at the current billing period. You can still enjoy benefits until then.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {!billingVipSub?.cancel_at_period_end && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setShowCancelModal(true);
+                                                                setCancelStep('reason');
+                                                                setCancelReason('');
+                                                                setCancelOtherText('');
+                                                            }}
+                                                            style={{
+                                                                marginTop: 16,
+                                                                padding: '10px 20px',
+                                                                background: 'transparent',
+                                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                                borderRadius: 8,
+                                                                color: 'rgba(255,255,255,0.5)',
+                                                                fontSize: 13,
+                                                                fontWeight: 500,
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s ease',
+                                                            }}
+                                                        >
+                                                            Cancel Membership
+                                                        </button>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div style={styles.billingStatCard}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                        <div style={{
+                                                            width: 48, height: 48, borderRadius: 12,
+                                                            background: 'rgba(255,255,255,0.08)',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 24, color: 'rgba(255,255,255,0.3)',
+                                                        }}>---</div>
+                                                        <div>
+                                                            <div style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>No Active Membership</div>
+                                                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                                                                Upgrade To VIP For Premium Benefits
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => router.push('/hub/diamond-store')}
+                                                        style={{
+                                                            marginTop: 16,
+                                                            width: '100%',
+                                                            padding: '12px 20px',
+                                                            background: 'linear-gradient(135deg, #1877F2, #0d5bbd)',
+                                                            border: 'none',
+                                                            borderRadius: 8,
+                                                            color: '#fff',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease',
+                                                        }}
+                                                    >
+                                                        Upgrade To VIP
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* ── Diamond Balance & Transactions ── */}
+                                        <div style={styles.card}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                                <h3 style={{ ...styles.cardTitle, margin: 0 }}>Diamond Balance</h3>
+                                                <div style={{ fontSize: 22, fontWeight: 700, color: '#00D4FF', fontFamily: 'Orbitron, monospace' }}>
+                                                    {billingDiamonds.toLocaleString()}
+                                                </div>
+                                            </div>
+
+                                            {billingTransactions.length > 0 ? (
+                                                <div>
+                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Recent Transactions</div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                        {billingTransactions.slice(0, 10).map((tx, i) => {
+                                                            const isCredit = (tx.amount || tx.diamonds || 0) > 0;
+                                                            return (
+                                                                <div key={tx.id || i} style={styles.transactionRow}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                                                                        <div style={{
+                                                                            width: 32, height: 32, borderRadius: 8,
+                                                                            background: isCredit ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                            fontSize: 14, flexShrink: 0,
+                                                                            color: isCredit ? '#22c55e' : '#ef4444',
+                                                                        }}>{isCredit ? '+' : '-'}</div>
+                                                                        <div style={{ minWidth: 0 }}>
+                                                                            <div style={{ fontSize: 13, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                                {tx.description || tx.transaction_type || tx.type || 'Transaction'}
+                                                                            </div>
+                                                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                                                                                {tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div style={{
+                                                                        fontSize: 14, fontWeight: 600,
+                                                                        color: isCredit ? '#22c55e' : '#ef4444',
+                                                                        flexShrink: 0,
+                                                                    }}>
+                                                                        {isCredit ? '+' : ''}{(tx.amount || tx.diamonds || 0).toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                                                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>No Transactions Yet</p>
+                                                </div>
+                                            )}
+
+                                            <button
+                                                onClick={() => router.push('/hub/diamond-store')}
+                                                style={{ ...styles.linkButton, width: '100%', textAlign: 'center', marginTop: 16 }}
+                                            >
+                                                Buy Diamonds
+                                            </button>
+                                        </div>
+
+                                        {/* ── Recent Orders ── */}
+                                        <div style={styles.card}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                                <h3 style={{ ...styles.cardTitle, margin: 0 }}>Recent Orders</h3>
+                                                <button
+                                                    onClick={() => router.push('/hub/diamond-store/orders')}
+                                                    style={{ background: 'none', border: 'none', color: '#00D4FF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                                >
+                                                    View All
+                                                </button>
+                                            </div>
+
+                                            {billingOrders.length > 0 ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                    {billingOrders.map(order => {
+                                                        const statusMap = {
+                                                            completed: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Completed' },
+                                                            pending: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending' },
+                                                            processing: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Processing' },
+                                                            failed: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Failed' },
+                                                            refunded: { bg: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', label: 'Refunded' }
+                                                        };
+                                                        const st = statusMap[order.status] || statusMap.pending;
+                                                        return (
+                                                            <div key={order.id} style={styles.billingOrderCard}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                    <div>
+                                                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>
+                                                                            Order #{order.id.slice(0, 8).toUpperCase()}
+                                                                        </div>
+                                                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                                                                            {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                                        <span style={{
+                                                                            padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                                                                            background: st.bg, color: st.color,
+                                                                        }}>{st.label}</span>
+                                                                        {order.total_cents != null && (
+                                                                            <span style={{ fontSize: 15, fontWeight: 700, color: '#00D4FF' }}>
+                                                                                ${(order.total_cents / 100).toFixed(2)}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                {order.stripe_receipt_url && (
+                                                                    <a
+                                                                        href={order.stripe_receipt_url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        style={{ display: 'block', marginTop: 10, color: '#00D4FF', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                                                                    >
+                                                                        View Receipt
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                                                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>No Orders Yet</p>
+                                                    <button
+                                                        onClick={() => router.push('/hub/diamond-store')}
+                                                        style={{ ...styles.linkButton, marginTop: 12 }}
+                                                    >
+                                                        Visit Diamond Store
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* ── Payment Methods ── */}
+                                        <div style={styles.card}>
+                                            <h3 style={styles.cardTitle}>Payment Methods</h3>
+                                            <p style={styles.infoText}>
+                                                Payment Methods Are Managed Securely Through Stripe During Checkout.
+                                            </p>
+                                            <button
+                                                onClick={() => router.push('/hub/diamond-store')}
+                                                style={styles.linkButton}
+                                            >
+                                                Go To Diamond Store
+                                            </button>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}
@@ -2764,5 +3010,27 @@ const styles = {
         cursor: 'pointer',
         marginTop: 24,
         transition: 'all 0.2s',
+    },
+    // ── Billing Styles ──
+    billingStatCard: {
+        padding: 20,
+        background: 'rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 12,
+    },
+    transactionRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 12px',
+        borderRadius: 8,
+        background: 'rgba(0, 0, 0, 0.15)',
+        marginBottom: 2,
+    },
+    billingOrderCard: {
+        padding: '16px 18px',
+        background: 'rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: 10,
     },
 };

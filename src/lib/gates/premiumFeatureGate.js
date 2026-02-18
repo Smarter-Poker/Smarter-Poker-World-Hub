@@ -4,12 +4,7 @@
  * Adapted from bankroll/premiumFeatureGate.js to support any feature_key and cost
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+import { supabase } from '../supabase';
 
 /**
  * Check if user has access to a premium feature

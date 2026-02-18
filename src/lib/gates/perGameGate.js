@@ -4,12 +4,7 @@
  * Used by trivia, training, memory games, and GTO trainer
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+import { supabase } from '../supabase';
 
 /** Default per-game diamond cost */
 export const GAME_COST = 10;

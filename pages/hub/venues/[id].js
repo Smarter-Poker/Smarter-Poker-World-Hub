@@ -252,6 +252,10 @@ export default function VenueDetailPage() {
   // Related tours/series state
   const [relatedSeries, setRelatedSeries] = useState([]);
 
+  // Waitlist board state
+  const [waitlistData, setWaitlistData] = useState([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+
   // Get or create anonymous user ID for tracking
   function getAnonymousUserId() {
     try {
@@ -339,6 +343,24 @@ export default function VenueDetailPage() {
   useEffect(function () {
     if (!id) return;
     fetchLiveGames();
+  }, [id]);
+
+  // Fetch waitlist data for Bravo-style board
+  var fetchWaitlist = async function () {
+    try {
+      var wlRes = await fetch('/api/commander/waitlist/venue/' + id);
+      var wlJson = await wlRes.json();
+      if (wlJson.success && wlJson.data && wlJson.data.waitlists) {
+        setWaitlistData(wlJson.data.waitlists);
+      }
+    } catch (e) { /* not a Commander venue, ignore */ }
+  };
+
+  useEffect(function () {
+    if (!id) return;
+    fetchWaitlist();
+    var wlInterval = setInterval(fetchWaitlist, 30000);
+    return function () { clearInterval(wlInterval); };
   }, [id]);
 
   // Fetch check-ins
@@ -818,14 +840,14 @@ export default function VenueDetailPage() {
   return (
     <>
       <SEOHead
-                title="Poker Venue Details"
-                description="View Detailed Information About This Poker Venue Including Games, Tournaments, And Hours."
-                noindex={true}
-            >
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            </SEOHead>
+        title="Poker Venue Details"
+        description="View Detailed Information About This Poker Venue Including Games, Tournaments, And Hours."
+        noindex={true}
+      >
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </SEOHead>
 
       <UniversalHeader pageDepth={2} />
 
@@ -1167,6 +1189,68 @@ export default function VenueDetailPage() {
                       Check PokerAtlas for current schedule
                     </a>
                   )}
+                </div>
+              </section>
+            )}
+
+            {/* ============================================ */}
+            {/* WAITLIST BOARD SECTION (Bravo column layout) */}
+            {/* ============================================ */}
+            {waitlistData.length > 0 && (
+              <section className="waitlist-board-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  Poker Waiting List
+                  <span className="live-count-badge" style={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4CAF50', borderColor: '#4CAF5040' }}>LIVE</span>
+                </h2>
+
+                <div className="waitlist-board">
+                  {waitlistData.map(function (wl, colIdx) {
+                    var tabColors = ['#FFD700', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+                    var tabColor = tabColors[colIdx % tabColors.length];
+                    var gameLabel = (wl.stakes || '') + ' ' + (wl.game_type || 'NLH').toUpperCase();
+
+                    return (
+                      <div key={gameLabel + '-' + colIdx} className="waitlist-column">
+                        <div className="waitlist-column-header" style={{ background: tabColor }}>
+                          <span className="waitlist-column-title">{gameLabel.trim()}</span>
+                        </div>
+                        <div className="waitlist-column-body">
+                          {(wl.players || []).slice(0, 15).map(function (player, idx) {
+                            return (
+                              <div key={player.id || idx}
+                                className={'waitlist-player-row' + (player.status === 'called' ? ' called' : '')}>
+                                <span className="waitlist-player-name">{(player.player_name || 'Player').toUpperCase()}</span>
+                              </div>
+                            );
+                          })}
+                          {(wl.players || []).length > 15 && (
+                            <div className="waitlist-overflow">+{wl.players.length - 15} more</div>
+                          )}
+                        </div>
+                        <div className="waitlist-column-footer">
+                          Total Count: {wl.count || (wl.players || []).length}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="waitlist-join-link">
+                  <a href={'/hub/commander/waitlist/' + id} className="waitlist-join-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="8.5" cy="7" r="4" />
+                      <line x1="20" y1="8" x2="20" y2="14" />
+                      <line x1="23" y1="11" x2="17" y2="11" />
+                    </svg>
+                    Join The Waitlist
+                  </a>
                 </div>
               </section>
             )}
@@ -2534,6 +2618,109 @@ export default function VenueDetailPage() {
         }
 
         /* ========================================= */
+        /* WAITLIST BOARD SECTION (Bravo columns)    */
+        /* ========================================= */
+        .waitlist-board-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .waitlist-board {
+          display: flex;
+          gap: 0;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
+          overflow: hidden;
+          background: rgba(10, 22, 40, 0.8);
+        }
+        .waitlist-column {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid rgba(255,255,255,0.08);
+        }
+        .waitlist-column:last-child {
+          border-right: none;
+        }
+        .waitlist-column-header {
+          padding: 10px 8px;
+          text-align: center;
+        }
+        .waitlist-column-title {
+          font-size: 13px;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .waitlist-column-body {
+          flex: 1;
+          padding: 4px 2px;
+          min-height: 80px;
+        }
+        .waitlist-player-row {
+          padding: 4px 8px;
+          text-align: center;
+          border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .waitlist-player-row.called {
+          animation: pulse-called 1.2s ease-in-out infinite;
+          color: #FFD700;
+          font-weight: 700;
+        }
+        @keyframes pulse-called {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .waitlist-player-name {
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+        .waitlist-overflow {
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255,255,255,0.3);
+          padding: 4px;
+        }
+        .waitlist-column-footer {
+          padding: 8px;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.5);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          border-top: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+        }
+        .waitlist-join-link {
+          text-align: center;
+          margin-top: 12px;
+        }
+        .waitlist-join-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 24px;
+          background: linear-gradient(135deg, #4CAF50, #388E3C);
+          color: #fff;
+          font-size: 14px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+        .waitlist-join-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        /* ========================================= */
         /* LIVE GAMES SECTION                        */
         /* ========================================= */
         .live-games-section {
@@ -3358,6 +3545,7 @@ export default function VenueDetailPage() {
           .info-section,
           .tournaments-section,
           .live-games-section,
+          .waitlist-board-section,
           .checkins-section,
           .reviews-section,
           .activity-section,
@@ -3369,6 +3557,12 @@ export default function VenueDetailPage() {
           .map-section {
             padding-left: 16px;
             padding-right: 16px;
+          }
+          .waitlist-board {
+            overflow-x: auto;
+          }
+          .waitlist-column {
+            min-width: 120px;
           }
           .action-buttons {
             flex-direction: column;
