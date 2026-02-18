@@ -193,11 +193,11 @@ export default function ThreePillHeader({
                                     justifyContent: 'center',
                                     cursor: 'pointer',
                                     position: 'relative',
-                                    overflow: 'hidden',
+                                    overflow: 'visible',
                                 }}
                                 aria-label="Open Menu"
                             >
-                                <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                                <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             </button>
                         )}
                         <button

@@ -411,11 +411,36 @@ export default function UniversalHeader({
 
                 .header-nav-btn {
                     width: auto;
-                    height: 32px;
+                    height: 26px;
                 }
 
                 .header-nav-btn img {
                     /* no filter - images are pre-processed */
+                }
+
+                .hamburger-btn {
+                    width: 44px;
+                    height: 44px;
+                    background: transparent;
+                    border: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    position: relative;
+                    flex-shrink: 0;
+                    overflow: visible;
+                    padding: 0;
+                    transition: transform 0.1s ease, opacity 0.15s ease;
+                }
+
+                .hamburger-btn:hover {
+                    opacity: 0.8;
+                    transform: scale(1.1);
+                }
+
+                .hamburger-btn:active {
+                    transform: scale(0.95);
                 }
                 
                 .brand-text {
@@ -542,6 +567,11 @@ export default function UniversalHeader({
                         max-width: 80px;
                     }
                     
+                    .hamburger-btn {
+                        width: 32px;
+                        height: 32px;
+                    }
+                    
                     /* Diamond wallet - mobile sizing */
                     .diamond-wallet {
                         width: auto;
@@ -593,11 +623,10 @@ export default function UniversalHeader({
                     {onMenuClick && (
                         <button
                             onClick={onMenuClick}
-                            className="orb-btn"
+                            className="hamburger-btn"
                             aria-label="Open Menu"
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                         >
-                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
                     <button
