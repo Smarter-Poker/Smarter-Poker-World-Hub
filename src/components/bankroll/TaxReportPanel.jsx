@@ -1,6 +1,6 @@
 /**
  * TAX REPORT PANEL
- * Futuristic Metal UI - Generate IRS-ready reports with W2-G tracking
+ * Facebook Dark UI - Generate IRS-ready reports with W2-G tracking
  * Includes W-2G Document Vault for uploading and managing W-2G forms
  */
 
@@ -102,7 +102,6 @@ export default function TaxReportPanel({ userId }) {
                 .from('images')
                 .getPublicUrl(filePath);
 
-            // Save metadata to w2g_forms table
             const { error: insertError } = await supabase
                 .from('w2g_forms')
                 .insert({
@@ -117,7 +116,6 @@ export default function TaxReportPanel({ userId }) {
 
             if (insertError) throw insertError;
 
-            // Reset form and refresh
             setUploadFile(null);
             setUploadMeta({ form_type: 'poker', source_description: '', amount: '' });
             setShowUploadForm(false);
@@ -133,13 +131,11 @@ export default function TaxReportPanel({ userId }) {
     const handleDeleteW2g = async (formId, fileUrl) => {
         if (!confirm('Delete this W-2G form?')) return;
         try {
-            // Delete from storage
             const pathMatch = fileUrl.match(/w2g\/[^?]+/);
             if (pathMatch) {
                 await supabase.storage.from('images').remove([pathMatch[0]]);
             }
 
-            // Delete from table
             const { error: delError } = await supabase
                 .from('w2g_forms')
                 .delete()
@@ -210,22 +206,22 @@ export default function TaxReportPanel({ userId }) {
 
     return (
         <div style={styles.container}>
-            {/* LED Strip */}
-            <div style={styles.ledStrip} />
+            {/* Top accent */}
+            <div style={styles.topAccent} />
 
             {/* Header */}
             <div style={styles.header}>
                 <div style={styles.headerTitle}>
-                    <FileText size={16} style={{ color: METAL.cyan }} />
+                    <FileText size={20} style={{ color: METAL.primary }} />
                     <span>TAX REPORT GENERATOR</span>
                 </div>
-                <span style={styles.headerHint}>IRS-ready Logs With W2-G Tracking</span>
+                <span style={styles.headerHint}>IRS-Ready Logs With W-2G Tracking</span>
             </div>
 
             {/* Year Selector */}
             <div style={styles.selectorRow}>
                 <label style={styles.selectorLabel}>
-                    <Calendar size={14} />
+                    <Calendar size={16} />
                     TAX YEAR
                 </label>
                 <div style={styles.yearBtnGroup}>
@@ -247,15 +243,15 @@ export default function TaxReportPanel({ userId }) {
             {/* ━━━ W-2G DOCUMENT VAULT ━━━ */}
             <div style={styles.vaultSection}>
                 <div style={styles.vaultHeader}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <AlertTriangle size={14} style={{ color: METAL.warning }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <FileText size={18} style={{ color: METAL.primary }} />
                         <span>W-2G DOCUMENT VAULT</span>
                     </div>
                     <button
                         onClick={() => setShowUploadForm(!showUploadForm)}
                         style={styles.addFormBtn}
                     >
-                        {showUploadForm ? <X size={14} /> : <Plus size={14} />}
+                        {showUploadForm ? <X size={16} /> : <Plus size={16} />}
                         {showUploadForm ? 'CANCEL' : 'UPLOAD W-2G'}
                     </button>
                 </div>
@@ -284,21 +280,21 @@ export default function TaxReportPanel({ userId }) {
                             />
                             {uploadFile ? (
                                 <div style={{ textAlign: 'center' }}>
-                                    <Check size={24} style={{ color: METAL.success, marginBottom: 4 }} />
-                                    <div style={{ color: '#fff', fontSize: 13, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                    <Check size={28} style={{ color: METAL.success, marginBottom: 6 }} />
+                                    <div style={{ color: '#fff', fontSize: 16, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
                                         {uploadFile.name}
                                     </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: "'Rajdhani', sans-serif" }}>
+                                    <div style={{ color: METAL.textSecondary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif" }}>
                                         {(uploadFile.size / 1024).toFixed(0)}KB — Tap to change
                                     </div>
                                 </div>
                             ) : (
                                 <div style={{ textAlign: 'center' }}>
-                                    <Upload size={24} style={{ color: METAL.warning, marginBottom: 4 }} />
-                                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                                    <Upload size={28} style={{ color: METAL.primary, marginBottom: 6 }} />
+                                    <div style={{ color: METAL.textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
                                         Drop W-2G form here or tap to browse
                                     </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Rajdhani', sans-serif" }}>
+                                    <div style={{ color: METAL.textMuted, fontSize: 14, fontFamily: "'Rajdhani', sans-serif" }}>
                                         JPG, PNG, WEBP, PDF — Max 10MB
                                     </div>
                                 </div>
@@ -332,7 +328,7 @@ export default function TaxReportPanel({ userId }) {
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: 12 }}>
+                        <div style={{ marginBottom: 14 }}>
                             <label style={styles.metaLabel}>DESCRIPTION (optional)</label>
                             <input
                                 type="text"
@@ -353,9 +349,9 @@ export default function TaxReportPanel({ userId }) {
                             }}
                         >
                             {uploading ? (
-                                <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> UPLOADING...</>
+                                <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> UPLOADING...</>
                             ) : (
-                                <><Upload size={14} /> SAVE W-2G FORM</>
+                                <><Upload size={18} /> SAVE W-2G FORM</>
                             )}
                         </button>
                     </div>
@@ -364,11 +360,11 @@ export default function TaxReportPanel({ userId }) {
                 {/* Uploaded Forms List */}
                 {w2gLoading ? (
                     <div style={styles.vaultEmpty}>
-                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: METAL.warning }} />
+                        <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: METAL.primary }} />
                     </div>
                 ) : w2gForms.length === 0 ? (
                     <div style={styles.vaultEmpty}>
-                        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, fontFamily: "'Rajdhani', sans-serif" }}>
+                        <span style={{ color: METAL.textMuted, fontSize: 15, fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
                             No W-2G forms uploaded for {selectedYear}
                         </span>
                     </div>
@@ -382,11 +378,11 @@ export default function TaxReportPanel({ userId }) {
                                     </div>
                                     <div style={styles.formCardMeta}>
                                         {form.source_description && (
-                                            <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>
+                                            <span style={{ color: METAL.textPrimary, fontSize: 15, fontWeight: 600 }}>
                                                 {form.source_description}
                                             </span>
                                         )}
-                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+                                        <span style={{ color: METAL.textSecondary, fontSize: 13 }}>
                                             {form.file_name || 'W-2G Form'} • {new Date(form.upload_date || form.created_at).toLocaleDateString()}
                                         </span>
                                     </div>
@@ -403,14 +399,14 @@ export default function TaxReportPanel({ userId }) {
                                             style={styles.formActionBtn}
                                             title="View"
                                         >
-                                            <Eye size={14} />
+                                            <Eye size={16} />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteW2g(form.id, form.file_url)}
                                             style={{ ...styles.formActionBtn, ...styles.formDeleteBtn }}
                                             title="Delete"
                                         >
-                                            <Trash2 size={14} />
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </div>
@@ -428,9 +424,9 @@ export default function TaxReportPanel({ userId }) {
                     style={styles.previewBtn}
                 >
                     {loading ? (
-                        <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING...</>
+                        <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING...</>
                     ) : (
-                        <><FileText size={14} /> PREVIEW REPORT</>
+                        <><FileText size={18} /> PREVIEW REPORT</>
                     )}
                 </button>
             </div>
@@ -438,7 +434,7 @@ export default function TaxReportPanel({ userId }) {
             {/* Error */}
             {error && (
                 <div style={styles.errorBox}>
-                    <AlertTriangle size={14} />
+                    <AlertTriangle size={18} />
                     {error}
                 </div>
             )}
@@ -450,7 +446,7 @@ export default function TaxReportPanel({ userId }) {
                     <div style={styles.statsGrid}>
                         <div style={styles.statBox}>
                             <div style={styles.statIcon}>
-                                <TrendingUp size={16} />
+                                <TrendingUp size={20} />
                             </div>
                             <span style={styles.statValue}>
                                 ${(report.summary?.totalWinnings || 0).toLocaleString()}
@@ -458,8 +454,8 @@ export default function TaxReportPanel({ userId }) {
                             <span style={styles.statLabel}>GROSS WINNINGS</span>
                         </div>
                         <div style={styles.statBox}>
-                            <div style={{ ...styles.statIcon, background: 'rgba(239,68,68,0.15)', borderColor: METAL.danger }}>
-                                <TrendingDown size={16} style={{ color: METAL.danger }} />
+                            <div style={{ ...styles.statIcon, background: 'rgba(240,40,73,0.15)', borderColor: METAL.danger }}>
+                                <TrendingDown size={20} style={{ color: METAL.danger }} />
                             </div>
                             <span style={{ ...styles.statValue, color: METAL.danger }}>
                                 ${(report.summary?.totalLosses || 0).toLocaleString()}
@@ -467,8 +463,8 @@ export default function TaxReportPanel({ userId }) {
                             <span style={styles.statLabel}>GROSS LOSSES</span>
                         </div>
                         <div style={styles.statBox}>
-                            <div style={{ ...styles.statIcon, background: 'rgba(168,85,247,0.15)', borderColor: METAL.purple }}>
-                                <DollarSign size={16} style={{ color: METAL.purple }} />
+                            <div style={{ ...styles.statIcon, background: 'rgba(155,89,182,0.15)', borderColor: METAL.purple }}>
+                                <DollarSign size={20} style={{ color: METAL.purple }} />
                             </div>
                             <span style={{
                                 ...styles.statValue,
@@ -508,9 +504,9 @@ export default function TaxReportPanel({ userId }) {
                     {/* W2-G Alerts (auto-detected) */}
                     {report.w2gEvents?.length > 0 && (
                         <div style={styles.w2gSection}>
-                            <div style={styles.w2gHeader}>
-                                <AlertTriangle size={14} style={{ color: METAL.warning }} />
-                                W2-G REPORTABLE ({report.w2gEvents.length})
+                            <div style={styles.w2gSectionHeader}>
+                                <AlertTriangle size={18} style={{ color: METAL.primary }} />
+                                W-2G REPORTABLE ({report.w2gEvents.length})
                             </div>
                             {report.w2gEvents.map((event, i) => (
                                 <div key={i} style={styles.w2gRow}>
@@ -528,12 +524,12 @@ export default function TaxReportPanel({ userId }) {
 
                     {/* Uploaded W-2G Forms in Report */}
                     {w2gForms.length > 0 && (
-                        <div style={{ ...styles.w2gSection, borderColor: METAL.cyan, background: 'rgba(35,116,225,0.08)' }}>
-                            <div style={{ ...styles.w2gHeader, color: METAL.cyan, borderColor: METAL.cyan, background: 'rgba(35,116,225,0.1)' }}>
-                                <FileText size={14} style={{ color: METAL.cyan }} />
+                        <div style={styles.w2gSection}>
+                            <div style={styles.w2gSectionHeader}>
+                                <FileText size={18} style={{ color: METAL.primary }} />
                                 UPLOADED W-2G FORMS ({w2gForms.length})
                             </div>
-                            {w2gForms.map((form, i) => (
+                            {w2gForms.map((form) => (
                                 <div key={form.id} style={styles.w2gRow}>
                                     <div>
                                         <span style={styles.w2gDate}>
@@ -543,7 +539,7 @@ export default function TaxReportPanel({ userId }) {
                                             {form.source_description || form.file_name}
                                         </span>
                                     </div>
-                                    <span style={{ ...styles.w2gAmount, color: METAL.cyan }}>
+                                    <span style={styles.w2gAmount}>
                                         {form.amount ? `$${parseFloat(form.amount).toLocaleString()}` : '—'}
                                     </span>
                                 </div>
@@ -558,9 +554,9 @@ export default function TaxReportPanel({ userId }) {
                         style={styles.downloadBtn}
                     >
                         {downloading ? (
-                            <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING PDF...</>
+                            <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING PDF...</>
                         ) : (
-                            <><Download size={16} /> DOWNLOAD PDF</>
+                            <><Download size={20} /> DOWNLOAD PDF</>
                         )}
                     </button>
                 </div>
@@ -571,58 +567,62 @@ export default function TaxReportPanel({ userId }) {
     );
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FACEBOOK DARK STYLES — Large fonts, defined borders
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const styles = {
     container: {
         position: 'relative',
-        background: GRADIENTS.darkPanel,
-        border: `1px solid ${METAL.mid}`,
+        background: METAL.base,
+        border: `2px solid ${METAL.highlight}`,
         borderRadius: 12,
         overflow: 'hidden',
     },
-    ledStrip: {
+    topAccent: {
         position: 'absolute',
         top: 0,
-        left: '10%',
-        right: '10%',
-        height: 2,
-        background: METAL.cyan,
-        boxShadow: GLOWS.cyanSubtle,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: METAL.primary,
     },
     header: {
-        padding: '16px 18px',
-        borderBottom: `1px solid ${METAL.mid}`,
+        padding: '20px 20px 16px',
+        borderBottom: `2px solid ${METAL.highlight}`,
     },
     headerTitle: {
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 12,
+        gap: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 18,
         fontWeight: 700,
-        letterSpacing: '0.15em',
-        color: '#fff',
+        letterSpacing: '0.08em',
+        color: METAL.textPrimary,
         marginBottom: 4,
     },
     headerHint: {
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.4)',
-        marginLeft: 24,
+        fontSize: 14,
+        color: METAL.textSecondary,
+        marginLeft: 30,
     },
+
+    // Year Selector
     selectorRow: {
-        padding: '16px 18px',
-        borderBottom: `1px solid ${METAL.mid}`,
+        padding: '18px 20px',
+        borderBottom: `2px solid ${METAL.highlight}`,
     },
     selectorLabel: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: '0.15em',
-        marginBottom: 10,
+        fontSize: 14,
+        fontWeight: 700,
+        color: METAL.textSecondary,
+        letterSpacing: '0.1em',
+        marginBottom: 12,
     },
     yearBtnGroup: {
         display: 'flex',
@@ -630,76 +630,75 @@ const styles = {
         flexWrap: 'wrap',
     },
     yearBtn: {
-        padding: '8px 16px',
-        background: GRADIENTS.metalButton,
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 6,
+        padding: '10px 20px',
+        background: METAL.mid,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 8,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.6)',
+        fontSize: 16,
+        fontWeight: 700,
+        color: METAL.textSecondary,
         cursor: 'pointer',
         transition: 'all 0.2s',
     },
     yearBtnActive: {
-        background: METAL.cyanDim,
-        borderColor: METAL.cyan,
-        color: METAL.cyan,
-        boxShadow: GLOWS.cyanSubtle,
+        background: METAL.primaryDim,
+        borderColor: METAL.primary,
+        color: METAL.primary,
     },
 
     // ━━━ W-2G VAULT ━━━
     vaultSection: {
-        margin: '0',
-        borderBottom: `1px solid ${METAL.mid}`,
+        borderBottom: `2px solid ${METAL.highlight}`,
     },
     vaultHeader: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '14px 18px',
-        background: 'rgba(245,158,11,0.06)',
+        padding: '16px 20px',
+        background: METAL.mid,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
+        fontSize: 16,
         fontWeight: 700,
-        color: METAL.warning,
-        letterSpacing: '0.12em',
+        color: METAL.textPrimary,
+        letterSpacing: '0.08em',
+        borderBottom: `2px solid ${METAL.highlight}`,
     },
     addFormBtn: {
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '6px 14px',
-        background: 'rgba(245,158,11,0.15)',
-        border: `1px solid ${METAL.warning}`,
-        borderRadius: 6,
+        gap: 8,
+        padding: '8px 18px',
+        background: METAL.primaryDim,
+        border: `2px solid ${METAL.primary}`,
+        borderRadius: 8,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 700,
-        color: METAL.warning,
+        color: METAL.primary,
         letterSpacing: '0.05em',
         cursor: 'pointer',
         transition: 'all 0.2s',
     },
     uploadForm: {
-        padding: '14px 18px',
-        background: 'rgba(0,0,0,0.2)',
-        borderTop: `1px solid rgba(245,158,11,0.15)`,
+        padding: '18px 20px',
+        background: 'rgba(0,0,0,0.15)',
+        borderBottom: `1px solid ${METAL.highlight}`,
     },
     dropZone: {
-        padding: '24px 16px',
-        border: '2px dashed rgba(245,158,11,0.3)',
-        borderRadius: 10,
+        padding: '32px 20px',
+        border: `2px dashed ${METAL.highlight}`,
+        borderRadius: 12,
         cursor: 'pointer',
         transition: 'all 0.2s',
-        marginBottom: 14,
+        marginBottom: 16,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
     },
     dropZoneActive: {
-        borderColor: METAL.warning,
-        background: 'rgba(245,158,11,0.08)',
+        borderColor: METAL.primary,
+        background: METAL.primaryDim,
     },
     dropZoneHasFile: {
         borderColor: METAL.success,
@@ -708,38 +707,40 @@ const styles = {
     },
     metaRow: {
         display: 'flex',
-        gap: 10,
-        marginBottom: 10,
+        gap: 12,
+        marginBottom: 12,
     },
     metaLabel: {
         display: 'block',
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: '0.1em',
-        marginBottom: 4,
+        fontSize: 13,
+        fontWeight: 700,
+        color: METAL.textSecondary,
+        letterSpacing: '0.08em',
+        marginBottom: 6,
     },
     metaSelect: {
         width: '100%',
-        padding: '10px 12px',
+        padding: '12px 14px',
         background: METAL.darkest,
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 6,
-        color: '#fff',
-        fontSize: 13,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 8,
+        color: METAL.textPrimary,
+        fontSize: 16,
         fontFamily: "'Rajdhani', sans-serif",
+        fontWeight: 600,
         outline: 'none',
     },
     metaInput: {
         width: '100%',
-        padding: '10px 12px',
+        padding: '12px 14px',
         background: METAL.darkest,
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 6,
-        color: '#fff',
-        fontSize: 13,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 8,
+        color: METAL.textPrimary,
+        fontSize: 16,
         fontFamily: "'Rajdhani', sans-serif",
+        fontWeight: 600,
         outline: 'none',
         boxSizing: 'border-box',
     },
@@ -747,52 +748,52 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
         width: '100%',
-        padding: '12px',
-        background: 'rgba(245,158,11,0.9)',
+        padding: '14px',
+        background: METAL.primary,
         border: 'none',
-        borderRadius: 8,
+        borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
+        fontSize: 16,
         fontWeight: 700,
-        color: '#000',
-        letterSpacing: '0.08em',
+        color: '#fff',
+        letterSpacing: '0.06em',
         cursor: 'pointer',
     },
     vaultEmpty: {
-        padding: '20px 18px',
+        padding: '24px 20px',
         textAlign: 'center',
     },
     formsList: {
-        padding: '8px 12px 12px',
+        padding: '10px 14px 14px',
     },
     formCard: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '10px 12px',
-        background: 'rgba(0,0,0,0.2)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 8,
-        marginBottom: 6,
+        padding: '12px 14px',
+        background: METAL.darkest,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 10,
+        marginBottom: 8,
     },
     formCardLeft: {
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
         flex: 1,
         minWidth: 0,
     },
     formTypeBadge: {
-        padding: '3px 8px',
-        background: 'rgba(245,158,11,0.15)',
-        border: `1px solid rgba(245,158,11,0.3)`,
-        borderRadius: 4,
+        padding: '4px 12px',
+        background: METAL.primaryDim,
+        border: `1px solid ${METAL.primary}`,
+        borderRadius: 6,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: 700,
-        color: METAL.warning,
+        color: METAL.primary,
         letterSpacing: '0.05em',
         whiteSpace: 'nowrap',
     },
@@ -807,213 +808,214 @@ const styles = {
     formCardRight: {
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
         flexShrink: 0,
     },
     formAmount: {
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 13,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 17,
         fontWeight: 700,
-        color: METAL.warning,
+        color: METAL.primary,
     },
     formActionBtn: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 30,
-        height: 30,
-        background: 'rgba(255,255,255,0.05)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 6,
-        color: 'rgba(255,255,255,0.5)',
+        width: 36,
+        height: 36,
+        background: METAL.mid,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 8,
+        color: METAL.textSecondary,
         cursor: 'pointer',
         transition: 'all 0.2s',
     },
     formDeleteBtn: {
         color: METAL.danger,
-        borderColor: 'rgba(240,40,73,0.3)',
+        borderColor: 'rgba(240,40,73,0.4)',
     },
 
-    // ━━━ EXISTING STYLES ━━━
+    // ━━━ ACTION / REPORT STYLES ━━━
     actionRow: {
-        padding: '16px 18px',
+        padding: '18px 20px',
     },
     previewBtn: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        width: '100%',
-        padding: '14px',
-        background: GRADIENTS.cyanAction,
-        border: 'none',
-        borderRadius: 8,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
-        fontWeight: 700,
-        color: '#000',
-        letterSpacing: '0.1em',
-        cursor: 'pointer',
-    },
-    errorBox: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        margin: '0 18px 16px',
-        padding: '14px',
-        background: 'rgba(239,68,68,0.1)',
-        border: `1px solid ${METAL.danger}`,
-        borderRadius: 8,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        fontWeight: 600,
-        color: METAL.danger,
-        letterSpacing: '0.1em',
-    },
-    reportContainer: {
-        padding: '0 18px 18px',
-    },
-    statsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 10,
-        marginBottom: 16,
-    },
-    statBox: {
-        padding: 14,
-        background: 'rgba(0,0,0,0.3)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 10,
-        textAlign: 'center',
-    },
-    statIcon: {
-        width: 32,
-        height: 32,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto 8px',
-        background: METAL.cyanDim,
-        border: `1px solid ${METAL.cyan}`,
-        borderRadius: '50%',
-        color: METAL.cyan,
-    },
-    statValue: {
-        display: 'block',
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 16,
-        fontWeight: 700,
-        color: METAL.cyan,
-        textShadow: `0 0 10px ${METAL.cyanGlow}`,
-    },
-    statLabel: {
-        display: 'block',
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 9,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: '0.1em',
-        marginTop: 4,
-    },
-    breakdownSection: {
-        marginBottom: 16,
-    },
-    sectionHeader: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
-        fontWeight: 700,
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: '0.15em',
-        marginBottom: 10,
-    },
-    breakdownGrid: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 10,
-    },
-    breakdownCard: {
-        padding: 14,
-        background: 'rgba(0,0,0,0.2)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 8,
-        textAlign: 'center',
-    },
-    breakdownLabel: {
-        display: 'block',
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: '0.1em',
-        marginBottom: 4,
-    },
-    breakdownValue: {
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 18,
-        fontWeight: 700,
-    },
-    w2gSection: {
-        background: 'rgba(245,158,11,0.08)',
-        border: `1px solid ${METAL.warning}`,
-        borderRadius: 10,
-        overflow: 'hidden',
-        marginBottom: 16,
-    },
-    w2gHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '12px 14px',
-        background: 'rgba(245,158,11,0.1)',
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
-        fontWeight: 700,
-        color: METAL.warning,
-        letterSpacing: '0.1em',
-        borderBottom: `1px solid ${METAL.warning}`,
-    },
-    w2gRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '10px 14px',
-        borderBottom: `1px solid rgba(245,158,11,0.2)`,
-    },
-    w2gDate: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#fff',
-        marginRight: 8,
-    },
-    w2gVenue: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
-    },
-    w2gAmount: {
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 14,
-        fontWeight: 700,
-        color: METAL.warning,
-    },
-    downloadBtn: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
         width: '100%',
         padding: '16px',
-        background: GRADIENTS.purplePro,
+        background: METAL.primary,
         border: 'none',
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 14,
+        fontSize: 17,
         fontWeight: 700,
         color: '#fff',
-        letterSpacing: '0.1em',
+        letterSpacing: '0.06em',
         cursor: 'pointer',
-        boxShadow: `0 4px 20px ${METAL.purpleGlow}`,
+    },
+    errorBox: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        margin: '0 20px 18px',
+        padding: '16px',
+        background: 'rgba(240,40,73,0.1)',
+        border: `2px solid ${METAL.danger}`,
+        borderRadius: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: METAL.danger,
+        letterSpacing: '0.06em',
+    },
+    reportContainer: {
+        padding: '0 20px 20px',
+    },
+    statsGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+        marginBottom: 18,
+    },
+    statBox: {
+        padding: 16,
+        background: METAL.darkest,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 12,
+        textAlign: 'center',
+    },
+    statIcon: {
+        width: 38,
+        height: 38,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: '0 auto 8px',
+        background: METAL.primaryDim,
+        border: `2px solid ${METAL.primary}`,
+        borderRadius: '50%',
+        color: METAL.primary,
+    },
+    statValue: {
+        display: 'block',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 22,
+        fontWeight: 800,
+        color: METAL.primary,
+    },
+    statLabel: {
+        display: 'block',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 700,
+        color: METAL.textMuted,
+        letterSpacing: '0.08em',
+        marginTop: 4,
+    },
+    breakdownSection: {
+        marginBottom: 18,
+    },
+    sectionHeader: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 14,
+        fontWeight: 700,
+        color: METAL.textSecondary,
+        letterSpacing: '0.1em',
+        marginBottom: 10,
+    },
+    breakdownGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 12,
+    },
+    breakdownCard: {
+        padding: 16,
+        background: METAL.darkest,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 10,
+        textAlign: 'center',
+    },
+    breakdownLabel: {
+        display: 'block',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        fontWeight: 700,
+        color: METAL.textSecondary,
+        letterSpacing: '0.08em',
+        marginBottom: 6,
+    },
+    breakdownValue: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 24,
+        fontWeight: 800,
+    },
+
+    // W-2G Report sections
+    w2gSection: {
+        background: METAL.darkest,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 18,
+    },
+    w2gSectionHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '14px 16px',
+        background: METAL.mid,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: METAL.textPrimary,
+        letterSpacing: '0.08em',
+        borderBottom: `2px solid ${METAL.highlight}`,
+    },
+    w2gRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 16px',
+        borderBottom: `1px solid ${METAL.mid}`,
+    },
+    w2gDate: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: METAL.textPrimary,
+        marginRight: 10,
+    },
+    w2gVenue: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 14,
+        color: METAL.textSecondary,
+    },
+    w2gAmount: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 18,
+        fontWeight: 700,
+        color: METAL.primary,
+    },
+
+    downloadBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        width: '100%',
+        padding: '18px',
+        background: METAL.primary,
+        border: 'none',
+        borderRadius: 12,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 18,
+        fontWeight: 700,
+        color: '#fff',
+        letterSpacing: '0.06em',
+        cursor: 'pointer',
     },
 };
