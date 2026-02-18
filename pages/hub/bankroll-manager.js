@@ -87,7 +87,7 @@ const SIDEBAR_SECTIONS = [
 ];
 
 // Accounting-only categories: NEVER count as sessions, never affect win rate, projections, or stats
-const ACCOUNTING_CATEGORIES = new Set(['expense', 'deposit', 'withdrawal', 'receipt']);
+const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal', 'receipt'];
 
 // Map URL ?type= values to database category IDs
 const TYPE_TO_CATEGORY = {
@@ -192,7 +192,7 @@ export default function BankrollManagerPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(null);
   const [timeFilter, setTimeFilter] = useState('All Time');
-  const [gameTypeFilter, setGameTypeFilter] = useState(new Set(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']));
+  const [gameTypeFilter, setGameTypeFilter] = useState(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']);
 
   // Dropdowns
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -215,9 +215,14 @@ export default function BankrollManagerPage() {
 
   const toggleGameType = (type) => {
     setGameTypeFilter(prev => {
-      const next = new Set(prev);
-      if (next.has(type)) { next.delete(type); } else { next.add(type); }
-      return next;
+      var idx = prev.indexOf(type);
+      if (idx !== -1) {
+        var next = prev.slice();
+        next.splice(idx, 1);
+        return next;
+      } else {
+        return prev.concat([type]);
+      }
     });
   };
 
@@ -265,9 +270,17 @@ export default function BankrollManagerPage() {
   const filteredAnalyticsEntries = useMemo(() => {
     if (!entries || entries.length === 0) return [];
     return entries.filter(e => {
-      const cat = e.category;
-      const isAccounting = cat === 'expense' || cat === 'deposit' || cat === 'withdrawal' || cat === 'receipt';
-      return !isAccounting && gameTypeFilter.has(cat);
+      var cat = e.category;
+      var isAccounting = ACCOUNTING_CATEGORIES.indexOf(cat) !== -1;
+      return !isAccounting && gameTypeFilter.indexOf(cat) !== -1;
+    });
+  }, [entries, gameTypeFilter]);
+
+  // Pre-compute chart entries (gaming sessions matching filter + always include expenses)
+  const chartEntries = useMemo(() => {
+    if (!entries || entries.length === 0) return [];
+    return entries.filter(e => {
+      return e.category === 'expense' || gameTypeFilter.indexOf(e.category) !== -1;
     });
   }, [entries, gameTypeFilter]);
 
@@ -861,7 +874,7 @@ export default function BankrollManagerPage() {
                     </div>
 
                     {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
-                    <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+                    <BankrollTrendChart entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
 
                     {/* Filters Row */}
                     <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -938,7 +951,7 @@ export default function BankrollManagerPage() {
                             setShowChartTypeDropdown(false);
                           }}
                         >
-                          Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
+                          Game Type ({gameTypeFilter.length}) <span style={styles.dropdownArrow}>▼</span>
                         </button>
                         {showGameTypeDropdown && (
                           <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
@@ -950,7 +963,7 @@ export default function BankrollManagerPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 8,
-                                  background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                                  background: gameTypeFilter.indexOf(cat) !== -1 ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
                                 }}
                                 onClick={() => toggleGameType(cat)}
                               >
@@ -958,8 +971,8 @@ export default function BankrollManagerPage() {
                                   width: 16,
                                   height: 16,
                                   borderRadius: 3,
-                                  border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
-                                  background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
+                                  border: gameTypeFilter.indexOf(cat) !== -1 ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
+                                  background: gameTypeFilter.indexOf(cat) !== -1 ? '#2374e1' : 'transparent',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -967,7 +980,7 @@ export default function BankrollManagerPage() {
                                   color: '#fff',
                                   flexShrink: 0,
                                 }}>
-                                  {gameTypeFilter.has(cat) ? '✓' : ''}
+                                  {gameTypeFilter.indexOf(cat) !== -1 ? '✓' : ''}
                                 </span>
                                 {CATEGORY_LABELS[cat]}
                               </button>

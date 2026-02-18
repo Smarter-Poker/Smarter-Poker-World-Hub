@@ -39,7 +39,7 @@ const CATEGORY_LABELS = {
 };
 
 // Non-gaming categories that should NOT count as "sessions"
-const NON_SESSION_CATEGORIES = new Set(['expense', 'withdrawal', 'deposit']);
+const NON_SESSION_CATEGORIES = ['expense', 'withdrawal', 'deposit'];
 
 /** Compute the start date for a given time-filter string */
 function getFilterStartDate(timeFilter) {
@@ -203,7 +203,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         if (lineData.length === 0) return { current: 0, high: 0, low: 0, sessions: 0 };
         const values = lineData.map(d => d.value);
         // Only count actual gaming sessions — exclude expense/withdrawal/deposit
-        const gamingSessions = filteredEntries.filter(e => !NON_SESSION_CATEGORIES.has(e.category));
+        const gamingSessions = filteredEntries.filter(e => NON_SESSION_CATEGORIES.indexOf(e.category) === -1);
         return {
             current: values[values.length - 1] || 0,
             high: Math.max(...values),
@@ -212,7 +212,14 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         };
     }, [lineData, filteredEntries]);
 
-    const categoriesPresent = useMemo(() => new Set(filteredEntries.map(e => e.category)), [filteredEntries]);
+    const categoriesPresent = useMemo(() => {
+        var cats = [];
+        for (var i = 0; i < filteredEntries.length; i++) {
+            var c = filteredEntries[i].category;
+            if (cats.indexOf(c) === -1) cats.push(c);
+        }
+        return cats;
+    }, [filteredEntries]);
 
     // ── Formatters ──────────────────────────────────────────────
     const fmtVal = (v) => v >= 0 ? `+$${v.toLocaleString()}` : `-$${Math.abs(v).toLocaleString()}`;
@@ -318,7 +325,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     );
 
     const renderStacked = () => {
-        const cats = [...categoriesPresent];
+        const cats = categoriesPresent;
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={stackedData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barCategoryGap="20%">
