@@ -2630,10 +2630,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const occupiedCount = seatArr.filter(s => s.taken).length;
                                 const openSeats = game.max_seats - occupiedCount;
 
-                                // 9-max player seat positions (excluding bottom-center which is dealer)
-                                // Evenly spaced 40° apart, skipping 90° (bottom-center) for dealer
-                                const seatAngles = [110, 150, 190, 230, 270, 310, 350, 30, 70];
-                                const cx = 50, cy = 50, rx = 40, ry = 27;
+                                // 10 positions around the table at 36° intervals, dealer at bottom (90°)
+                                // Seats: 126, 162, 198, 234, 270 (top), 306, 342, 18, 54
+                                const seatAngles = [126, 162, 198, 234, 270, 306, 342, 18, 54];
+                                const cx = 50, cy = 50, rx = 40, ry = 22;
                                 const seatPositions = seatAngles.map(deg => {
                                     const rad = deg * Math.PI / 180;
                                     return {
@@ -2641,6 +2641,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         left: `${cx + rx * Math.cos(rad)}%`,
                                     };
                                 });
+                                // Dealer position on the ellipse at 90° (bottom of rail)
+                                const dealerAngle = 90 * Math.PI / 180;
+                                const dealerTop = `${cy + ry * Math.sin(dealerAngle)}%`;
+                                const dealerLeft = `${cx + rx * Math.cos(dealerAngle)}%`;
 
 
 
@@ -2683,35 +2687,35 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
                                             {/* Game info in center of table */}
                                             <div style={{
-                                                position: 'absolute', top: '50%', left: '50%',
+                                                position: 'absolute', top: '48%', left: '50%',
                                                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                             }}>
-                                                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+                                                    {page.name || 'Club'}
+                                                </div>
+                                                <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
                                                     {game.table_number || game.game_name}
                                                 </div>
-                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                                                <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
                                                     ${game.stakes}
-                                                </div>
-                                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-                                                    TAP SEAT TO JOIN
                                                 </div>
                                             </div>
 
-                                            {/* Dealer seat at bottom-center — 10th position */}
+                                            {/* Dealer seat — on the bottom rail of the table */}
                                             <div style={{
-                                                position: 'absolute', bottom: '5%', left: '50%',
-                                                transform: 'translateX(-50%)', textAlign: 'center', width: 90, zIndex: 3,
+                                                position: 'absolute', top: dealerTop, left: dealerLeft,
+                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
                                             }}>
                                                 <div style={{
-                                                    width: 76, height: 76, borderRadius: '50%', margin: '0 auto 3px',
+                                                    width: 56, height: 56, borderRadius: '50%', margin: '0 auto 3px',
                                                     background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
                                                     border: '3px solid #fff',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(251,191,36,0.4)',
-                                                    fontSize: 28, fontWeight: 900, color: '#fff',
+                                                    fontSize: 22, fontWeight: 900, color: '#fff',
                                                     letterSpacing: 1,
                                                 }}>D</div>
-                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <div style={{ fontSize: 9, fontWeight: 700, color: '#fbbf24', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {game.dealer_name || 'No Dealer'}
                                                 </div>
                                             </div>
@@ -2730,7 +2734,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                     }}>
                                                         {/* Seat circle — profile pic or initial */}
                                                         <div style={{
-                                                            width: 76, height: 76, borderRadius: '50%', margin: '0 auto 3px',
+                                                            width: 60, height: 60, borderRadius: '50%', margin: '0 auto 3px',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
                                                                 ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)')
@@ -3039,10 +3043,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const openSeats = game.max_seats - occupiedCount;
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
-                        // 9-max player seats (excluding bottom-center = dealer position)
-                        // Evenly spaced 40° apart, skipping 90° (bottom-center) for dealer
-                        const seatAngles = [110, 150, 190, 230, 270, 310, 350, 30, 70];
-                        const cx = 50, cy = 50, rx = 40, ry = 27;
+                        // 10 positions around the table at 36° intervals, dealer at bottom (90°)
+                        // Seats: 126, 162, 198, 234, 270 (top), 306, 342, 18, 54
+                        const seatAngles = [126, 162, 198, 234, 270, 306, 342, 18, 54];
+                        const cx = 50, cy = 50, rx = 40, ry = 22;
                         const seatPositions = seatAngles.map(deg => {
                             const rad = deg * Math.PI / 180;
                             return {
@@ -3050,6 +3054,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 left: `${cx + rx * Math.cos(rad)}%`,
                             };
                         });
+                        // Dealer position on the ellipse at 90° (bottom of rail)
+                        const dealerAngle = 90 * Math.PI / 180;
+                        const dealerTop = `${cy + ry * Math.sin(dealerAngle)}%`;
+                        const dealerLeft = `${cx + rx * Math.cos(dealerAngle)}%`;
 
 
                         return (
@@ -3110,33 +3118,38 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                     {/* Game info in center of table */}
                                     <div style={{
-                                        position: 'absolute', top: '50%', left: '50%',
+                                        position: 'absolute', top: '48%', left: '50%',
                                         transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                     }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+                                            {pageName || 'Club'}
+                                        </div>
+                                        <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
                                             {game.table_number || game.game_name}
                                         </div>
-                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>${game.stakes}</div>
+                                        <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
+                                            ${game.stakes}
+                                        </div>
                                         {canInteract && !myReservation && openSeats > 0 && (
-                                            <div style={{ fontSize: 9, color: '#86efac', marginTop: 4, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
+                                            <div style={{ fontSize: 11, color: '#86efac', marginTop: 6, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
                                         )}
                                     </div>
 
-                                    {/* Dealer seat at bottom-center — 10th position */}
+                                    {/* Dealer seat — on the bottom rail of the table */}
                                     <div style={{
-                                        position: 'absolute', bottom: '5%', left: '50%',
-                                        transform: 'translateX(-50%)', textAlign: 'center', width: 90, zIndex: 3,
+                                        position: 'absolute', top: dealerTop, left: dealerLeft,
+                                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
                                     }}>
                                         <div style={{
-                                            width: 76, height: 76, borderRadius: '50%', margin: '0 auto 3px',
+                                            width: 56, height: 56, borderRadius: '50%', margin: '0 auto 3px',
                                             background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
                                             border: '3px solid #fff',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(251,191,36,0.4)',
-                                            fontSize: 28, fontWeight: 900, color: '#fff',
+                                            fontSize: 22, fontWeight: 900, color: '#fff',
                                             letterSpacing: 1,
                                         }}>D</div>
-                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#fbbf24', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {game.dealer_name || 'No Dealer'}
                                         </div>
                                     </div>
@@ -3161,7 +3174,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             >
                                                 {/* Seat circle — profile pic or initial */}
                                                 <div style={{
-                                                    width: 76, height: 76, borderRadius: '50%', margin: '0 auto 3px',
+                                                    width: 60, height: 60, borderRadius: '50%', margin: '0 auto 3px',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
