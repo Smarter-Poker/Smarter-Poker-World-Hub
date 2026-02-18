@@ -20,6 +20,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Staff auth: kiosk devices must have a valid staff session
+  const staffSession = req.headers['x-staff-session'];
+  if (staffSession) {
+    try {
+      const sessionData = JSON.parse(staffSession);
+      const { data: staff } = await supabase
+        .from('commander_staff')
+        .select('id, venue_id, is_active')
+        .eq('id', sessionData.id)
+        .eq('is_active', true)
+        .single();
+      if (!staff) {
+        return res.status(401).json({ success: false, error: 'Invalid staff session' });
+      }
+    } catch {
+      return res.status(401).json({ success: false, error: 'Invalid session format' });
+    }
+  } else {
+    return res.status(401).json({ success: false, error: 'Staff authentication required' });
+  }
+
   // Rate limit: 10 purchases per minute per IP (kiosk device)
   const fwd = req.headers['x-forwarded-for'];
   const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';

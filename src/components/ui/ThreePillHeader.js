@@ -239,7 +239,7 @@ export default function ThreePillHeader({
                         justifyContent: 'center',
                         gap: 20,
                     }}>
-                        <img src="/images/brand-text.png" alt="Smarter.Poker" style={{ height: 22, objectFit: 'contain' }} />
+                        <img src="/images/brand-text.png" alt="Smarter.Poker" style={{ height: 32, objectFit: 'contain' }} />
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════════════

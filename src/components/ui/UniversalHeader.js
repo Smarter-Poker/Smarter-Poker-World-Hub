@@ -337,7 +337,7 @@ export default function UniversalHeader({
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    border-bottom: 3px solid rgba(200, 200, 200, 0.5);
+                    border-bottom: 3px solid rgba(200, 200, 200, 0.8);
                     position: sticky;
                     top: 0;
                     z-index: 100;
@@ -644,7 +644,7 @@ export default function UniversalHeader({
                             style={{ height: '100%', width: '100%', objectFit: 'contain' }}
                         />
                     </button>
-                    <img src="/images/brand-text.png" alt="Smarter.Poker" className="brand-text-img" style={{ height: 22, objectFit: 'contain' }} />
+                    <img src="/images/brand-text.png" alt="Smarter.Poker" className="brand-text-img" style={{ height: 32, objectFit: 'contain' }} />
                 </div>
 
 
@@ -663,7 +663,7 @@ export default function UniversalHeader({
                     {/* VIP Card Icon — only for VIP members */}
                     {isVip && (
                         <Link href="/hub/diamond-store" style={{ textDecoration: 'none' }}>
-                            <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.5)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.25)' }}>
+                            <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.8)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.4)' }}>
                                 <img
                                     src="/images/vip-card.png"
                                     alt="VIP Member"
