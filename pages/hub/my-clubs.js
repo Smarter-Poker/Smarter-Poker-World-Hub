@@ -519,7 +519,7 @@ export default function MyClubsPage() {
                     if (memberships && memberships.length > 0) {
                         const clubs = memberships
                             .map(m => ({ ...m.clubs, userRole: m.role }))
-                            .filter(c => c && c.status === 'active');
+                            .filter(c => c && c.name);
                         setArenaClubs(clubs);
                     }
                 } catch (e) {
