@@ -680,7 +680,7 @@ export default function MyClubsPage() {
                                     </div>
 
                                     {/* Venue cards — sorted by live activity */}
-                                    {followedVenues
+                                    {[...followedVenues]
                                         .sort((a, b) => {
                                             const aLive = (liveGamesMap[String(a.id)] || 0) + (waitlistMap[String(a.id)] || 0);
                                             const bLive = (liveGamesMap[String(b.id)] || 0) + (waitlistMap[String(b.id)] || 0);
