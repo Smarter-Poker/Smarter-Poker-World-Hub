@@ -440,13 +440,22 @@ export default function ClubPage() {
     const uploaded = [];
     for (const file of toUpload) {
       const isVideo = file.type.startsWith('video/');
-      const path = `club-posts/${venue?.social_page_id || id}/${Date.now()}_${file.name}`;
-      const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
-      if (!upErr) {
-        const { data } = supabase.storage.from('social-media').getPublicUrl(path);
-        uploaded.push({ type: isVideo ? 'video' : 'photo', url: data.publicUrl });
-      } else {
-        console.error('Upload error:', upErr);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'club-posts');
+        formData.append('prefix', venue?.social_page_id || id);
+        const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+        const json = await res.json();
+        if (json.success && json.url) {
+          uploaded.push({ type: json.type || (isVideo ? 'video' : 'photo'), url: json.url });
+        } else {
+          console.error('[ClubPage] Upload failed:', json.error);
+          alert('Upload failed: ' + (json.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('[ClubPage] Upload error:', err);
+        alert('Upload failed: ' + err.message);
       }
     }
     setPostMedia(prev => [...prev, ...uploaded]);

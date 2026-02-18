@@ -17,7 +17,9 @@ import fs from 'fs';
 export const config = {
     api: {
         bodyParser: false, // Required for multipart/form-data
+        responseLimit: '50mb',
     },
+    maxDuration: 60, // Allow up to 60 seconds for large video uploads
 };
 
 const BUCKET = 'social-media';
