@@ -2630,21 +2630,22 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const occupiedCount = seatArr.filter(s => s.taken).length;
                                 const openSeats = game.max_seats - occupiedCount;
 
-                                // 10 positions around the table at 36° intervals, dealer at bottom (90°)
-                                // Seats: 126, 162, 198, 234, 270 (top), 306, 342, 18, 54
-                                const seatAngles = [126, 162, 198, 234, 270, 306, 342, 18, 54];
-                                const cx = 50, cy = 50, rx = 40, ry = 22;
-                                const seatPositions = seatAngles.map(deg => {
-                                    const rad = deg * Math.PI / 180;
-                                    return {
-                                        top: `${cy + ry * Math.sin(rad)}%`,
-                                        left: `${cx + rx * Math.cos(rad)}%`,
-                                    };
-                                });
-                                // Dealer position on the ellipse at 90° (bottom of rail)
-                                const dealerAngle = 90 * Math.PI / 180;
-                                const dealerTop = `${cy + ry * Math.sin(dealerAngle)}%`;
-                                const dealerLeft = `${cx + rx * Math.cos(dealerAngle)}%`;
+                                // Hardcoded positions on the table rail (rounded-rectangle, not ellipse)
+                                // David (top) and dealer (bottom) confirmed correct; others match the rail path
+                                const seatPositions = [
+                                    { top: '68%', left: '22%' },   // seat 1: bottom-left
+                                    { top: '57%', left: '10%' },   // seat 2: left-lower
+                                    { top: '43%', left: '10%' },   // seat 3: left-upper
+                                    { top: '32%', left: '22%' },   // seat 4: upper-left
+                                    { top: '28%', left: '50%' },   // seat 5: top-center
+                                    { top: '32%', left: '78%' },   // seat 6: upper-right
+                                    { top: '43%', left: '90%' },   // seat 7: right-upper
+                                    { top: '57%', left: '90%' },   // seat 8: right-lower
+                                    { top: '68%', left: '78%' },   // seat 9: bottom-right
+                                ];
+                                // Dealer on the bottom rail
+                                const dealerTop = '72%';
+                                const dealerLeft = '50%';
 
 
 
@@ -2730,7 +2731,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 return (
                                                     <div key={seat.number} style={{
                                                         position: 'absolute', top: pos.top, left: pos.left,
-                                                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 2,
+                                                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 2,
                                                     }}>
                                                         {/* Seat circle — profile pic or initial */}
                                                         <div style={{
@@ -3043,21 +3044,22 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const openSeats = game.max_seats - occupiedCount;
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
-                        // 10 positions around the table at 36° intervals, dealer at bottom (90°)
-                        // Seats: 126, 162, 198, 234, 270 (top), 306, 342, 18, 54
-                        const seatAngles = [126, 162, 198, 234, 270, 306, 342, 18, 54];
-                        const cx = 50, cy = 50, rx = 40, ry = 22;
-                        const seatPositions = seatAngles.map(deg => {
-                            const rad = deg * Math.PI / 180;
-                            return {
-                                top: `${cy + ry * Math.sin(rad)}%`,
-                                left: `${cx + rx * Math.cos(rad)}%`,
-                            };
-                        });
-                        // Dealer position on the ellipse at 90° (bottom of rail)
-                        const dealerAngle = 90 * Math.PI / 180;
-                        const dealerTop = `${cy + ry * Math.sin(dealerAngle)}%`;
-                        const dealerLeft = `${cx + rx * Math.cos(dealerAngle)}%`;
+                        // Hardcoded positions on the table rail (rounded-rectangle, not ellipse)
+                        // David (top) and dealer (bottom) confirmed correct; others match the rail path
+                        const seatPositions = [
+                            { top: '68%', left: '22%' },   // seat 1: bottom-left
+                            { top: '57%', left: '10%' },   // seat 2: left-lower
+                            { top: '43%', left: '10%' },   // seat 3: left-upper
+                            { top: '32%', left: '22%' },   // seat 4: upper-left
+                            { top: '28%', left: '50%' },   // seat 5: top-center
+                            { top: '32%', left: '78%' },   // seat 6: upper-right
+                            { top: '43%', left: '90%' },   // seat 7: right-upper
+                            { top: '57%', left: '90%' },   // seat 8: right-lower
+                            { top: '68%', left: '78%' },   // seat 9: bottom-right
+                        ];
+                        // Dealer on the bottom rail
+                        const dealerTop = '72%';
+                        const dealerLeft = '50%';
 
 
                         return (
@@ -3162,12 +3164,15 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         const firstName = seat.taken?.player_name?.split(' ')[0] || '';
                                         const fullName = seat.taken?.player_name || '';
                                         const avatarUrl = seat.taken?.avatar_url || null;
-                                        const canClick = canInteract && !isOccupied && !myReservation;
+                                        // Players can only click seats if game is NOT running (interest list / signup)
+                                        // Running games require joining the waitlist instead
+                                        const isRunning = game.status === 'running';
+                                        const canClick = canInteract && !isOccupied && !myReservation && !isRunning;
 
                                         return (
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
-                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 2,
+                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 2,
                                                 cursor: canClick ? 'pointer' : 'default',
                                             }}
                                                 onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
@@ -3210,7 +3215,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                     color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.25)',
                                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 90,
                                                 }}>
-                                                    {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Join' : 'Open'}
+                                                    {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
                                                 </div>
                                                 {/* Countdown timer */}
                                                 {isOccupied && (() => {
