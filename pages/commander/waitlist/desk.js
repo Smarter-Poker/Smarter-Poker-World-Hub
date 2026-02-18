@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 // Single uniform header color — professional, classy
-const HEADER_COLOR = '#D4AF37';
+const HEADER_COLOR = '#B8860B';
 const GAMES_PER_PAGE = 4;
 const ROTATE_INTERVAL = 10000; // 10 seconds
 
@@ -554,14 +554,17 @@ const S = {
   },
   controlInfo: { fontSize: '18px', color: '#888', fontWeight: 600 },
   addBtn: {
-    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
-    background: '#111', border: '1px solid #444', borderRadius: '4px',
-    color: '#D4AF37', fontSize: '16px', fontWeight: 600, cursor: 'pointer'
+    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+    background: 'linear-gradient(180deg, #1a1a1a, #0a0a0a)', border: '2px solid #B8860B',
+    borderRadius: '6px', color: '#D4AF37', fontSize: '16px', fontWeight: 700,
+    cursor: 'pointer', boxShadow: '0 2px 8px rgba(184,134,11,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+    textTransform: 'uppercase', letterSpacing: '0.5px'
   },
   refreshBtn: {
-    display: 'flex', alignItems: 'center', padding: '4px 6px',
-    background: '#111', border: '1px solid #333', borderRadius: '3px',
-    color: '#888', cursor: 'pointer'
+    display: 'flex', alignItems: 'center', padding: '8px 10px',
+    background: 'linear-gradient(180deg, #1a1a1a, #0a0a0a)', border: '2px solid #555',
+    borderRadius: '6px', color: '#999', cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
 
   // ── TOAST ──
@@ -588,9 +591,12 @@ const S = {
     display: 'flex', flexDirection: 'column', overflow: 'hidden'
   },
   colHeader: {
-    padding: '12px 10px', textAlign: 'center', fontWeight: 800,
+    padding: '14px 10px', textAlign: 'center', fontWeight: 800,
     fontSize: '26px', color: '#fff', textTransform: 'uppercase',
-    letterSpacing: '1px', background: HEADER_COLOR
+    letterSpacing: '1px',
+    background: `linear-gradient(180deg, #C5961F, ${HEADER_COLOR}, #8B6508)`,
+    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+    borderBottom: '2px solid #8B6508'
   },
   colTableNums: {
     padding: '4px 8px', textAlign: 'center', fontSize: '16px',
@@ -613,23 +619,32 @@ const S = {
 
   // ── ACTIONS ──
   actionBar: {
-    display: 'flex', padding: '6px 10px', gap: '6px',
-    background: '#111', borderBottom: '1px solid #222', flexWrap: 'wrap'
+    display: 'flex', padding: '8px 12px', gap: '8px',
+    background: 'linear-gradient(180deg, #151515, #0a0a0a)',
+    borderBottom: '2px solid #333', flexWrap: 'wrap'
   },
   actionBtn: {
-    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px',
-    borderRadius: '4px', border: '1px solid #333', fontSize: '18px',
-    fontWeight: 700, cursor: 'pointer', background: '#1a1a1a', color: '#aaa'
+    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+    borderRadius: '6px', border: '2px solid #555', fontSize: '18px',
+    fontWeight: 700, cursor: 'pointer',
+    background: 'linear-gradient(180deg, #2a2a2a, #1a1a1a)', color: '#ccc',
+    boxShadow: '0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+    textTransform: 'uppercase', letterSpacing: '0.5px'
   },
   actionBtnGreen: {
-    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px',
-    borderRadius: '4px', border: '1px solid #2a5a2a', fontSize: '18px',
-    fontWeight: 700, cursor: 'pointer', background: '#0a1a0a', color: '#4CAF50'
+    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+    borderRadius: '6px', border: '2px solid #2E7D32', fontSize: '18px',
+    fontWeight: 700, cursor: 'pointer',
+    background: 'linear-gradient(180deg, #1a2e1a, #0a1a0a)', color: '#4CAF50',
+    boxShadow: '0 3px 8px rgba(46,125,50,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+    textTransform: 'uppercase', letterSpacing: '0.5px'
   },
   actionBtnRed: {
-    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px',
-    borderRadius: '4px', border: '1px solid #5a2a2a', fontSize: '18px',
-    fontWeight: 700, cursor: 'pointer', background: '#1a0a0a', color: '#E57373'
+    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+    borderRadius: '6px', border: '2px solid #C62828', fontSize: '18px',
+    fontWeight: 700, cursor: 'pointer',
+    background: 'linear-gradient(180deg, #2a1a1a, #1a0a0a)', color: '#EF5350',
+    boxShadow: '0 3px 8px rgba(198,40,40,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
   },
 
   // ── PAGE DOTS ──
