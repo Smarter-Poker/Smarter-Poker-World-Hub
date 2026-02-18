@@ -8,8 +8,11 @@
  * - Available dealer count vs assigned
  * - Open table inventory
  * - Player interest signals
+ *
+ * Requires staff authentication.
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,6 +23,10 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
   }
+
+  // Require staff auth — exposes venue operational data
+  const staff = await guardStaff(req, res);
+  if (!staff) return;
 
   const { venue_id } = req.query;
   if (!venue_id) {

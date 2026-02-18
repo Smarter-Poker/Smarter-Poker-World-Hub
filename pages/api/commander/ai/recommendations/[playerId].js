@@ -3,8 +3,10 @@
  * GET /api/commander/ai/recommendations/[playerId]
  * Returns personalized game recommendations for player
  * Per API_REFERENCE.md
+ * Requires staff authentication.
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,6 +20,10 @@ export default async function handler(req, res) {
       error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
     });
   }
+
+  // Require staff auth — exposes player session history and preferences
+  const staff = await guardStaff(req, res);
+  if (!staff) return;
 
   const { playerId } = req.query;
 

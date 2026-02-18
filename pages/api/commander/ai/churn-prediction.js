@@ -7,8 +7,11 @@
  * - Session duration changes
  * - Time since last visit
  * - Comparison to personal baseline
+ *
+ * Requires staff authentication.
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,6 +22,10 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
   }
+
+  // Require staff auth — exposes player names and visit analytics
+  const staff = await guardStaff(req, res);
+  if (!staff) return;
 
   const { venue_id, limit = 50 } = req.query;
   if (!venue_id) {

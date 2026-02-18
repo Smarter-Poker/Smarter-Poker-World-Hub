@@ -2,8 +2,10 @@
  * Member Search API
  * GET /api/commander/members/search?q=query&limit=10
  * Search members by name or phone number
+ * Requires staff authentication (via x-staff-session header)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,6 +14,10 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  // Require staff auth to prevent unauthenticated member data access
+  const staff = await guardStaff(req, res);
+  if (!staff) return;
 
   try {
     const { q, limit = '10' } = req.query;

@@ -452,8 +452,9 @@ export default function UniversalHeader({
                 }
 
                 .brand-text-img {
-                    flex-shrink: 1;
-                    min-width: 0;
+                    flex-shrink: 0;
+                    height: 32px;
+                    object-fit: contain;
                 }
                 
                 .diamond-wallet {
