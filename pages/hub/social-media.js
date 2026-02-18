@@ -3133,7 +3133,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             ${game.stakes}
                                         </div>
                                         {canInteract && !myReservation && openSeats > 0 && (
-                                            <div style={{ fontSize: 11, color: '#86efac', marginTop: 6, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
+                                            <div style={{ fontSize: 11, color: game.status === 'running' ? '#93c5fd' : '#86efac', marginTop: 6, fontWeight: 600 }}>
+                                                {game.status === 'running' ? 'JOIN WAITLIST' : 'TAP TO RESERVE'}
+                                            </div>
                                         )}
                                     </div>
 
