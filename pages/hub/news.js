@@ -1023,12 +1023,16 @@ export default function NewsHub() {
     // Load persisted state
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const savedBookmarks = localStorage.getItem('news_bookmarks');
-            const savedRead = localStorage.getItem('news_read');
             const savedDarkMode = localStorage.getItem('news_dark_mode');
-            if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
-            if (savedRead) setReadArticles(JSON.parse(savedRead));
             if (savedDarkMode !== null) setDarkMode(savedDarkMode === 'true');
+            try {
+                const savedBookmarks = localStorage.getItem('news_bookmarks');
+                if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+            } catch (e) { /* corrupted localStorage */ }
+            try {
+                const savedRead = localStorage.getItem('news_read');
+                if (savedRead) setReadArticles(JSON.parse(savedRead));
+            } catch (e) { /* corrupted localStorage */ }
         }
     }, []);
 
@@ -1371,10 +1375,10 @@ export default function NewsHub() {
                     </div>
                 )}
                 <SEOHead
-                title="Poker News — Latest Headlines & Updates"
-                description="Stay Up To Date With The Latest Poker News, Tournament Results, Industry Updates, And Strategy Articles From Top Sources."
-                canonical="/hub/news"
-            />
+                    title="Poker News — Latest Headlines & Updates"
+                    description="Stay Up To Date With The Latest Poker News, Tournament Results, Industry Updates, And Strategy Articles From Top Sources."
+                    canonical="/hub/news"
+                />
 
                 <div className={`news-hub ${darkMode ? '' : 'light'}`}>
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />

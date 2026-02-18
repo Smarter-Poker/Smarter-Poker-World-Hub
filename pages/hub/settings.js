@@ -91,6 +91,7 @@ export default function SettingsPage() {
     const [cancelStep, setCancelStep] = useState('reason'); // 'reason' | 'offer' | 'confirmed' | 'retained'
     const [cancelReason, setCancelReason] = useState('');
     const [cancelOtherText, setCancelOtherText] = useState('');
+    const [cancelLoading, setCancelLoading] = useState(false);
     const [show2FAModal, setShow2FAModal] = useState(false);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -1873,8 +1874,10 @@ export default function SettingsPage() {
                                         <button
                                             onClick={() => {
                                                 // Accept the retention offer
+                                                // Note: actual Stripe coupon application would be done here
                                                 setCancelStep('retained');
                                             }}
+                                            disabled={cancelLoading}
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
@@ -1891,10 +1894,27 @@ export default function SettingsPage() {
                                             Claim 50% Off
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                // Proceed to final cancellation
-                                                setCancelStep('confirmed');
+                                            onClick={async () => {
+                                                setCancelLoading(true);
+                                                try {
+                                                    await fetch('/api/store/cancel-vip', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            userId: user?.id,
+                                                            reason: cancelReason,
+                                                            reasonText: cancelReason === 'other' ? cancelOtherText : '',
+                                                        }),
+                                                    });
+                                                    setCancelStep('confirmed');
+                                                } catch (err) {
+                                                    console.error('Cancel VIP error:', err);
+                                                    alert('Something went wrong. Please try again.');
+                                                } finally {
+                                                    setCancelLoading(false);
+                                                }
                                             }}
+                                            disabled={cancelLoading}
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
@@ -1904,10 +1924,11 @@ export default function SettingsPage() {
                                                 color: '#ff4757',
                                                 fontSize: 14,
                                                 fontWeight: 600,
-                                                cursor: 'pointer',
+                                                cursor: cancelLoading ? 'wait' : 'pointer',
+                                                opacity: cancelLoading ? 0.6 : 1,
                                             }}
                                         >
-                                            Cancel Anyway
+                                            {cancelLoading ? 'Cancelling...' : 'Cancel Anyway'}
                                         </button>
                                     </div>
                                 </>

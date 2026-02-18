@@ -1,0 +1,86 @@
+/**
+ * Cancel VIP Subscription
+ * POST /api/store/cancel-vip
+ * 
+ * Cancels the user's VIP subscription at end of billing period via Stripe.
+ * Also stores the cancellation reason for analytics.
+ */
+import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const stripe = process.env.STRIPE_SECRET_KEY
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16',
+        timeout: 15000,
+        maxNetworkRetries: 2,
+        telemetry: false
+    })
+    : null;
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { userId, reason, reasonText } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    try {
+        // 1. Get the user's active VIP subscription
+        const { data: sub, error: subErr } = await supabase
+            .from('vip_subscriptions')
+            .select('stripe_subscription_id, status')
+            .eq('user_id', userId)
+            .in('status', ['active', 'trialing'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (subErr || !sub) {
+            return res.status(404).json({ error: 'No active VIP subscription found' });
+        }
+
+        // 2. Cancel via Stripe (at end of billing period)
+        if (stripe && sub.stripe_subscription_id) {
+            await stripe.subscriptions.update(sub.stripe_subscription_id, {
+                cancel_at_period_end: true,
+                metadata: {
+                    cancel_reason: reason || 'unspecified',
+                    cancel_reason_text: reasonText || '',
+                }
+            });
+
+            console.log(`❌ VIP subscription ${sub.stripe_subscription_id} set to cancel at period end`);
+        }
+
+        // 3. Update local record
+        await supabase
+            .from('vip_subscriptions')
+            .update({
+                cancel_at_period_end: true,
+                cancel_reason: reason || 'unspecified',
+                cancel_reason_text: reasonText || '',
+                updated_at: new Date().toISOString()
+            })
+            .eq('stripe_subscription_id', sub.stripe_subscription_id);
+
+        // 4. Log the cancellation event
+        console.log(`📊 VIP cancellation — user: ${userId}, reason: ${reason}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Subscription will cancel at the end of your billing period'
+        });
+    } catch (err) {
+        console.error('Cancel VIP error:', err);
+        return res.status(500).json({ error: 'Failed to cancel subscription' });
+    }
+}
