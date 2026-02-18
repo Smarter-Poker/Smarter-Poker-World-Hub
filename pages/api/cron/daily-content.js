@@ -49,6 +49,10 @@ function getTodayContent() {
 }
 
 export default async function handler(req, res) {
+    // Verify cron secret
+    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     // Verify this is a cron request (optional: add auth header check)
     if (req.method !== 'POST' && req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });

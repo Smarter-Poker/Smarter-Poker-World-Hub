@@ -1862,8 +1862,8 @@ export default function SettingsPage() {
                                         }}>
                                             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>Your New Price</div>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$9.99/mo</span>
-                                                <span style={{ color: '#FFD700', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$4.99/mo</span>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$19.99/mo</span>
+                                                <span style={{ color: '#FFD700', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$9.99/mo</span>
                                             </div>
                                             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 months, then regular price resumes</div>
                                         </div>
@@ -1952,7 +1952,7 @@ export default function SettingsPage() {
                                         Discount Applied!
                                     </h4>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
-                                        Your VIP membership is now <strong style={{ color: '#FFD700' }}>$4.99/month</strong> for the next 3 months.
+                                        Your VIP membership is now <strong style={{ color: '#FFD700' }}>$9.99/month</strong> for the next 3 months.
                                     </p>
                                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
                                         Thank you for staying with us! Enjoy your premium benefits.

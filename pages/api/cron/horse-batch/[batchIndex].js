@@ -510,6 +510,10 @@ async function processHorse(horse, horseIndex, horses) {
 
 // MAIN HANDLER - Process 10 horses in batch
 export default async function handler(req, res) {
+    // Verify cron secret
+    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { batchIndex } = req.query;
     const batch = parseInt(batchIndex, 10);
 

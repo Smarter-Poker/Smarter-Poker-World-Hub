@@ -35,6 +35,10 @@ function convertToEmbedUrl(url) {
 }
 
 export default async function handler(req, res) {
+    // Verify cron secret
+    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     try {
         console.log(`\n🐴 BATCH HORSE CRON: Horses 91-99`);
 

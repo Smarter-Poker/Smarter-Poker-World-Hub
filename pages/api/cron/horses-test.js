@@ -1,5 +1,9 @@
 // Simple test endpoint for horse system diagnosis
 export default async function handler(req, res) {
+    // Verify cron secret
+    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     const env = {
         hasNextPublicSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         hasSupabaseUrl: !!process.env.SUPABASE_URL,
