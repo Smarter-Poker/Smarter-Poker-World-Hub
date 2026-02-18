@@ -2674,25 +2674,35 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 }}
                                             />
 
-                                            {/* Dealer in center of table */}
+                                            {/* Game info in center of table */}
                                             <div style={{
                                                 position: 'absolute', top: '50%', left: '50%',
                                                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                             }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                    {game.table_number || game.game_name}
+                                                </div>
+                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                                                    ${game.stakes}
+                                                </div>
+                                            </div>
+
+                                            {/* Dealer in bottom-right of table */}
+                                            <div style={{
+                                                position: 'absolute', bottom: '12%', right: '10%',
+                                                zIndex: 5, textAlign: 'center',
+                                            }}>
                                                 <div style={{
-                                                    width: 40, height: 40, borderRadius: '50%', margin: '0 auto 4px',
+                                                    width: 36, height: 36, borderRadius: '50%', margin: '0 auto 3px',
                                                     background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
                                                     border: '2px solid #fff',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     boxShadow: '0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(251,191,36,0.3)',
-                                                    fontSize: 16, fontWeight: 900, color: '#fff',
+                                                    fontSize: 14, fontWeight: 900, color: '#fff',
                                                     letterSpacing: 0.5,
                                                 }}>D</div>
-                                                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                    {game.table_number || game.game_name}
-                                                </div>
-                                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
-                                                    ${game.stakes}
+                                                <div style={{ fontSize: 8, fontWeight: 700, color: '#fbbf24', maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {game.dealer_name || 'No Dealer'}
                                                 </div>
                                             </div>
 
@@ -2734,6 +2744,35 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                         }}>
                                                             {isOccupied ? firstName : 'Open'}
                                                         </div>
+                                                        {/* Timer label */}
+                                                        {isOccupied && (() => {
+                                                            const session = (game.sessions || []).find(s => s.seat_number === seat.number);
+                                                            if (!session) return null;
+                                                            const isTexas = game.venue_type === 'texas';
+                                                            let timerText, timerColor;
+                                                            if (isTexas) {
+                                                                const rem = session.time_remaining || 0;
+                                                                const mins = Math.floor(rem / 60);
+                                                                const secs = rem % 60;
+                                                                timerText = `${mins}:${String(secs).padStart(2, '0')}`;
+                                                                timerColor = session.is_expired ? '#ef4444' : session.is_critical ? '#ef4444' : session.is_low ? '#f59e0b' : '#22c55e';
+                                                            } else {
+                                                                const elapsed = session.elapsed_seconds || 0;
+                                                                const hrs = Math.floor(elapsed / 3600);
+                                                                const mins = Math.floor((elapsed % 3600) / 60);
+                                                                timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                                                timerColor = '#a78bfa';
+                                                            }
+                                                            return (
+                                                                <div style={{
+                                                                    fontSize: 8, fontWeight: 700, color: timerColor,
+                                                                    marginTop: 1, fontFamily: 'monospace',
+                                                                    animation: session.is_critical ? 'pulse 1s infinite' : 'none',
+                                                                }}>
+                                                                    {session.is_expired ? 'EXPIRED' : timerText}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 );
                                             })}
@@ -3039,27 +3078,37 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         }}
                                     />
 
-                                    {/* Dealer in center of table */}
+                                    {/* Game info in center of table */}
                                     <div style={{
                                         position: 'absolute', top: '50%', left: '50%',
                                         transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                     }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                            {game.table_number || game.game_name}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>${game.stakes}</div>
+                                        {canInteract && !myReservation && openSeats > 0 && (
+                                            <div style={{ fontSize: 9, color: '#86efac', marginTop: 4, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
+                                        )}
+                                    </div>
+
+                                    {/* Dealer in bottom-right of table */}
+                                    <div style={{
+                                        position: 'absolute', bottom: '12%', right: '10%',
+                                        zIndex: 5, textAlign: 'center',
+                                    }}>
                                         <div style={{
-                                            width: 40, height: 40, borderRadius: '50%', margin: '0 auto 4px',
+                                            width: 36, height: 36, borderRadius: '50%', margin: '0 auto 3px',
                                             background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
                                             border: '2px solid #fff',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             boxShadow: '0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(251,191,36,0.3)',
-                                            fontSize: 16, fontWeight: 900, color: '#fff',
+                                            fontSize: 14, fontWeight: 900, color: '#fff',
                                             letterSpacing: 0.5,
                                         }}>D</div>
-                                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                            {game.table_number || game.game_name}
+                                        <div style={{ fontSize: 8, fontWeight: 700, color: '#fbbf24', maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {game.dealer_name || 'No Dealer'}
                                         </div>
-                                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>${game.stakes}</div>
-                                        {canInteract && !myReservation && openSeats > 0 && (
-                                            <div style={{ fontSize: 9, color: '#86efac', marginTop: 4, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
-                                        )}
                                     </div>
 
                                     {/* Seat chips on the table rail */}
@@ -3109,6 +3158,35 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 }}>
                                                     {isMe ? 'You' : isOccupied ? firstName : canClick ? 'Join' : 'Open'}
                                                 </div>
+                                                {/* Timer label */}
+                                                {isOccupied && (() => {
+                                                    const session = (game.sessions || []).find(s => s.seat_number === seat.number);
+                                                    if (!session) return null;
+                                                    const isTexas = game.venue_type === 'texas';
+                                                    let timerText, timerColor;
+                                                    if (isTexas) {
+                                                        const rem = session.time_remaining || 0;
+                                                        const mins = Math.floor(rem / 60);
+                                                        const secs = rem % 60;
+                                                        timerText = `${mins}:${String(secs).padStart(2, '0')}`;
+                                                        timerColor = session.is_expired ? '#ef4444' : session.is_critical ? '#ef4444' : session.is_low ? '#f59e0b' : '#22c55e';
+                                                    } else {
+                                                        const elapsed = session.elapsed_seconds || 0;
+                                                        const hrs = Math.floor(elapsed / 3600);
+                                                        const mins = Math.floor((elapsed % 3600) / 60);
+                                                        timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                                        timerColor = '#a78bfa';
+                                                    }
+                                                    return (
+                                                        <div style={{
+                                                            fontSize: 8, fontWeight: 700, color: timerColor,
+                                                            marginTop: 1, fontFamily: 'monospace',
+                                                            animation: session.is_critical ? 'pulse 1s infinite' : 'none',
+                                                        }}>
+                                                            {session.is_expired ? 'EXPIRED' : timerText}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         );
                                     })}

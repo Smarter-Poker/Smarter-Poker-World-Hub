@@ -105,11 +105,78 @@ export default async function handler(req, res) {
                             (tables || []).forEach(t => { tableMap[t.id] = t; });
                         }
 
+                        // Fetch venue type for timer mode
+                        let venueType = 'texas';
+                        try {
+                            const { data: venueSettings } = await supabase
+                                .from('commander_venue_settings')
+                                .select('venue_type')
+                                .eq('venue_id', venueId)
+                                .single();
+                            if (venueSettings?.venue_type) venueType = venueSettings.venue_type;
+                        } catch (e) { /* default to texas */ }
+
+                        // Fetch active dealer rotations for all tables in one batch
+                        const tableNumbers = Object.values(tableMap).map(t => t.table_number).filter(Boolean);
+                        let dealerRotationMap = {};
+                        if (tableIds.length > 0) {
+                            try {
+                                const { data: rotations } = await supabase
+                                    .from('commander_dealer_rotations')
+                                    .select('table_id, commander_dealers:dealer_id (id, name, display_name)')
+                                    .in('table_id', tableIds)
+                                    .is('ended_at', null);
+                                (rotations || []).forEach(r => {
+                                    dealerRotationMap[r.table_id] = r.commander_dealers?.display_name || r.commander_dealers?.name || null;
+                                });
+                            } catch (e) { /* no dealer data */ }
+                        }
+
+                        // Fetch active table sessions for time tracking
+                        let allSessions = [];
+                        if (tableNumbers.length > 0) {
+                            try {
+                                const { data: sessions } = await supabase
+                                    .from('commander_table_sessions')
+                                    .select('*')
+                                    .in('table_number', tableNumbers)
+                                    .eq('status', 'active')
+                                    .order('seat_number', { ascending: true });
+                                allSessions = sessions || [];
+                            } catch (e) { /* no session data */ }
+                        }
+
+                        const now = new Date();
+
                         const mapped = cmdGames.map(g => {
                             const gameSeats = allCmdSeats.filter(s => s.game_id === g.id);
                             const occupiedSeats = gameSeats.filter(s => s.status === 'occupied');
                             const table = g.table_id ? tableMap[g.table_id] : null;
                             const tableName = table ? (table.table_name || `Table ${table.table_number}`) : null;
+                            const tableNum = table?.table_number;
+
+                            // Dealer for this table
+                            const dealerName = g.table_id ? (dealerRotationMap[g.table_id] || null) : null;
+
+                            // Sessions for this table (time tracking)
+                            const tableSessions = tableNum ? allSessions.filter(s => s.table_number === tableNum) : [];
+                            const mappedSessions = tableSessions.map(s => {
+                                const totalAllocatedSeconds = ((s.time_allocated_minutes || 0) + (s.time_added_minutes || 0)) * 60;
+                                const elapsedSeconds = Math.floor((now - new Date(s.started_at)) / 1000);
+                                const timeRemaining = Math.max(0, totalAllocatedSeconds - elapsedSeconds);
+                                return {
+                                    seat_number: s.seat_number,
+                                    player_name: s.player_name,
+                                    started_at: s.started_at,
+                                    time_allocated_minutes: s.time_allocated_minutes || 0,
+                                    time_added_minutes: s.time_added_minutes || 0,
+                                    time_remaining: timeRemaining,
+                                    elapsed_seconds: elapsedSeconds,
+                                    is_low: timeRemaining <= 900 && timeRemaining > 0,
+                                    is_critical: timeRemaining <= 300 && timeRemaining > 0,
+                                    is_expired: totalAllocatedSeconds > 0 && timeRemaining <= 0,
+                                };
+                            });
 
                             // Map commander_seats to match club_game_seats shape
                             const mappedSeats = gameSeats.map(s => ({
@@ -134,6 +201,9 @@ export default async function handler(req, res) {
                                 seats: mappedSeats,
                                 seated_count: occupiedSeats.length,
                                 waitlist_count: 0,
+                                dealer_name: dealerName,
+                                venue_type: venueType,
+                                sessions: mappedSessions,
                             };
                         });
                         return res.status(200).json({ success: true, data: mapped, source: 'commander' });
