@@ -931,7 +931,7 @@ export default function MyClubsPage() {
                                         }}>
                                             <span style={{ fontSize: 12, color: C.textMuted }}>Following </span>
                                             <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                                {followedVenues.length + followedTours.length + followedSeries.length}
+                                                {followedVenues.length + followedTours.length + followedSeries.length + arenaClubs.length}
                                             </span>
                                         </div>
                                         {Object.values(liveGamesMap).some(v => v > 0) && (
