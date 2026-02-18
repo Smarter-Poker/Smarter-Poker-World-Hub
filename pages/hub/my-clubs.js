@@ -57,6 +57,14 @@ const VENUE_TYPE_COLORS = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAGE TYPE COLORS (for tours, series, etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+const PAGE_TYPE_STYLES = {
+    tour: { bg: 'rgba(0, 191, 255, 0.15)', border: '#00bfff', text: '#00bfff', label: 'Tour', icon: '🌐' },
+    series: { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#f59e0b', label: 'Series', icon: '📅' },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // VENUE TYPE BADGE
 // ─────────────────────────────────────────────────────────────────────────────
 function VenueTypeBadge({ type }) {
@@ -151,6 +159,120 @@ function ClubArenaCard({ club, onNavigate }) {
                 }}>
                     Open Lobby →
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOLLOWED PAGE CARD — Generic card for followed tours & series
+// ─────────────────────────────────────────────────────────────────────────────
+function FollowedPageCard({ page, onNavigate, onUnfollow }) {
+    const [hovering, setHovering] = useState(false);
+    const style = PAGE_TYPE_STYLES[page.page_type] || PAGE_TYPE_STYLES.tour;
+    const detailUrl = page.page_type === 'tour'
+        ? `/hub/tours/${page.page_id}`
+        : `/hub/series/${page.page_id}`;
+
+    return (
+        <div
+            onClick={() => onNavigate(detailUrl)}
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
+            style={{
+                background: hovering ? C.elevated : C.surface,
+                border: `1px solid ${hovering ? C.highlight : C.elevated}`,
+                borderRadius: 12,
+                padding: 20,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                        fontSize: 16, fontWeight: 700, color: C.text,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                        {page.name}
+                    </div>
+                    {page.subtitle && (
+                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 3 }}>
+                            {page.subtitle}
+                        </div>
+                    )}
+                </div>
+                <span style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    borderRadius: 16,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    background: style.bg,
+                    border: `1px solid ${style.border}`,
+                    color: style.text,
+                }}>
+                    {style.label}
+                </span>
+            </div>
+
+            {/* Series date range */}
+            {page.page_type === 'series' && page.start_date && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{
+                        padding: '4px 10px', borderRadius: 8,
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.2)',
+                        fontSize: 12, fontWeight: 600, color: '#f59e0b',
+                    }}>
+                        {new Date(page.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {page.end_date && ` – ${new Date(page.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                    </div>
+                    {page.total_events && (
+                        <div style={{
+                            padding: '4px 10px', borderRadius: 8,
+                            background: 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${C.elevated}`,
+                            fontSize: 12, color: C.textSec,
+                        }}>
+                            {page.total_events} Events
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Tour metadata */}
+            {page.page_type === 'tour' && page.category && (
+                <div style={{ fontSize: 12, color: C.textMuted }}>
+                    {page.category}{page.established ? ` · Est. ${page.established}` : ''}
+                </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 12, color: C.textMuted }}>
+                    {page.page_type === 'series' ? '📅 View Schedule' : '🌐 View Details'}
+                </div>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onUnfollow(page.page_type, page.page_id); }}
+                    style={{
+                        padding: '6px 14px',
+                        borderRadius: 8,
+                        border: `1px solid ${C.elevated}`,
+                        background: C.elevated,
+                        color: C.textSec,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                    }}
+                >
+                    ✓ Following
+                </button>
             </div>
         </div>
     );
@@ -384,8 +506,11 @@ export default function MyClubsPage() {
 
     // Followed clubs data
     const [followedVenues, setFollowedVenues] = useState([]);
+    const [followedTours, setFollowedTours] = useState([]);
+    const [followedSeries, setFollowedSeries] = useState([]);
     const [arenaClubs, setArenaClubs] = useState([]);
     const [followedIds, setFollowedIds] = useState(new Set());
+    const [followedPageKeys, setFollowedPageKeys] = useState(new Set());
 
     // Live data maps: venueId → count
     const [liveGamesMap, setLiveGamesMap] = useState({});
@@ -433,16 +558,22 @@ export default function MyClubsPage() {
                 } catch { return ''; }
             })();
 
-            // Get followed venue IDs from API
+            // Get all follows from API
             let venueIds = [];
+            let tourIds = [];
+            let seriesIds = [];
+            const allPageKeys = new Set();
             if (userId) {
                 try {
                     const res = await fetch(`/api/poker/follow?user_id=${userId}`);
                     const json = await res.json();
                     if (json.success && json.data) {
-                        venueIds = json.data
-                            .filter(f => f.page_type === 'venue')
-                            .map(f => f.page_id);
+                        json.data.forEach(f => {
+                            allPageKeys.add(`${f.page_type}:${f.page_id}`);
+                            if (f.page_type === 'venue') venueIds.push(f.page_id);
+                            else if (f.page_type === 'tour') tourIds.push(f.page_id);
+                            else if (f.page_type === 'series') seriesIds.push(f.page_id);
+                        });
                     }
                 } catch (e) {
                     console.warn('[MyClubs] Failed to fetch follows from API:', e);
@@ -461,6 +592,7 @@ export default function MyClubsPage() {
             } catch { }
 
             setFollowedIds(new Set(venueIds));
+            setFollowedPageKeys(allPageKeys);
 
             // Fetch venue details individually (API supports ?id=X single lookups)
             if (venueIds.length > 0) {
@@ -506,6 +638,32 @@ export default function MyClubsPage() {
                 }));
                 setLiveGamesMap(gameMap);
                 setWaitlistMap(wlMap);
+            }
+
+            // Fetch followed tour details
+            if (tourIds.length > 0) {
+                try {
+                    const res = await fetch('/api/poker/pages?category=tours&followed_only=true&user_id=' + userId);
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        setFollowedTours(json.data.filter(p => p.page_type === 'tour'));
+                    }
+                } catch (e) {
+                    console.warn('[MyClubs] Failed to fetch followed tours:', e);
+                }
+            }
+
+            // Fetch followed series details
+            if (seriesIds.length > 0) {
+                try {
+                    const res = await fetch('/api/poker/pages?category=series&followed_only=true&user_id=' + userId);
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        setFollowedSeries(json.data.filter(p => p.page_type === 'series'));
+                    }
+                } catch (e) {
+                    console.warn('[MyClubs] Failed to fetch followed series:', e);
+                }
             }
 
             // Fetch Club Arena memberships (uses Supabase directly)
@@ -616,6 +774,34 @@ export default function MyClubsPage() {
         } catch { }
     };
 
+    // Unfollow a tour or series
+    const handlePageUnfollow = async (pageType, pageId) => {
+        // Optimistic removal
+        if (pageType === 'tour') {
+            setFollowedTours(prev => prev.filter(t => t.page_id !== pageId));
+        } else if (pageType === 'series') {
+            setFollowedSeries(prev => prev.filter(s => s.page_id !== pageId));
+        }
+        setFollowedPageKeys(prev => {
+            const next = new Set(prev);
+            next.delete(`${pageType}:${pageId}`);
+            return next;
+        });
+        // Persist to API
+        try {
+            await fetch('/api/poker/follow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    page_type: pageType,
+                    page_id: String(pageId),
+                    action: 'unfollow',
+                    user_id: getUserId(),
+                }),
+            });
+        } catch { }
+    };
+
     // Navigate to venue detail
     const handleNavigate = (venueId) => {
         router.push(`/hub/venues/${venueId}`);
@@ -693,7 +879,7 @@ export default function MyClubsPage() {
                                 transition: 'all 0.2s ease',
                             }}
                         >
-                            My Clubs {(followedVenues.length + arenaClubs.length) > 0 && `(${followedVenues.length + arenaClubs.length})`}
+                            My Clubs {(followedVenues.length + followedTours.length + followedSeries.length + arenaClubs.length) > 0 && `(${followedVenues.length + followedTours.length + followedSeries.length + arenaClubs.length})`}
                         </button>
                         <button
                             onClick={() => setActiveTab('discover')}
@@ -729,7 +915,7 @@ export default function MyClubsPage() {
                                     <div style={{ fontSize: 14, color: C.textSec }}>Loading Your Clubs...</div>
 
                                 </div>
-                            ) : (followedVenues.length === 0 && arenaClubs.length === 0) ? (
+                            ) : (followedVenues.length === 0 && followedTours.length === 0 && followedSeries.length === 0 && arenaClubs.length === 0) ? (
                                 <EmptyState onSearchFocus={focusSearch} />
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -745,7 +931,7 @@ export default function MyClubsPage() {
                                         }}>
                                             <span style={{ fontSize: 12, color: C.textMuted }}>Following </span>
                                             <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                                {followedVenues.length}
+                                                {followedVenues.length + followedTours.length + followedSeries.length}
                                             </span>
                                         </div>
                                         {Object.values(liveGamesMap).some(v => v > 0) && (
@@ -795,14 +981,57 @@ export default function MyClubsPage() {
                                             />
                                         ))}
 
-                                    {/* ── Club Arena Section ── */}
-                                    {arenaClubs.length > 0 && (
+                                    {/* ── Tours & Series Section ── */}
+                                    {(followedTours.length > 0 || followedSeries.length > 0) && (
                                         <>
                                             <div style={{
                                                 display: 'flex', alignItems: 'center', gap: 12,
                                                 marginTop: followedVenues.length > 0 ? 24 : 0,
                                                 paddingTop: followedVenues.length > 0 ? 20 : 0,
                                                 borderTop: followedVenues.length > 0 ? `1px solid ${C.elevated}` : 'none',
+                                            }}>
+                                                <div style={{
+                                                    width: 28, height: 28, borderRadius: 8,
+                                                    background: 'linear-gradient(135deg, #00bfff, #f59e0b)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 13, color: '#fff', fontWeight: 700,
+                                                }}>🌐</div>
+                                                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
+                                                    Tours & Series
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 11, fontWeight: 600, color: '#00bfff',
+                                                    padding: '2px 8px', borderRadius: 12,
+                                                    background: 'rgba(0, 191, 255, 0.12)',
+                                                }}>{followedTours.length + followedSeries.length}</span>
+                                            </div>
+                                            {followedTours.map(tour => (
+                                                <FollowedPageCard
+                                                    key={`tour-${tour.page_id}`}
+                                                    page={tour}
+                                                    onNavigate={(url) => router.push(url)}
+                                                    onUnfollow={handlePageUnfollow}
+                                                />
+                                            ))}
+                                            {followedSeries.map(series => (
+                                                <FollowedPageCard
+                                                    key={`series-${series.page_id}`}
+                                                    page={series}
+                                                    onNavigate={(url) => router.push(url)}
+                                                    onUnfollow={handlePageUnfollow}
+                                                />
+                                            ))}
+                                        </>
+                                    )}
+
+                                    {/* ── Club Arena Section ── */}
+                                    {arenaClubs.length > 0 && (
+                                        <>
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 12,
+                                                marginTop: (followedVenues.length > 0 || followedTours.length > 0 || followedSeries.length > 0) ? 24 : 0,
+                                                paddingTop: (followedVenues.length > 0 || followedTours.length > 0 || followedSeries.length > 0) ? 20 : 0,
+                                                borderTop: (followedVenues.length > 0 || followedTours.length > 0 || followedSeries.length > 0) ? `1px solid ${C.elevated}` : 'none',
                                             }}>
                                                 <div style={{
                                                     width: 28, height: 28, borderRadius: 8,
@@ -955,7 +1184,7 @@ export default function MyClubsPage() {
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
         </>
     );
 }
