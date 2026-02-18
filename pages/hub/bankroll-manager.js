@@ -1563,7 +1563,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'staking' && (
                 <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
-                    <StakingTracker userId={userId} />
+                    <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
                   </BankrollProGate>
                 </div>
               )}
@@ -1582,7 +1582,7 @@ export default function BankrollManagerPage() {
                   <BankrollProGate userId={userId}>
                     {/* Pro Features Grid - Only visible after unlock or for VIP */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, padding: 16 }}>
-                      <StakingTracker userId={userId} />
+                      <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
                       <SeriesTracker userId={userId} />
                       <SessionHandReview userId={userId} />
                     </div>
