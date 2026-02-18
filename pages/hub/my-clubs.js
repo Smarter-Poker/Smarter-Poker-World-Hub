@@ -745,7 +745,7 @@ export default function MyClubsPage() {
                                         }}>
                                             <span style={{ fontSize: 12, color: C.textMuted }}>Following </span>
                                             <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                                {followedVenues.length + arenaClubs.length}
+                                                {followedVenues.length}
                                             </span>
                                         </div>
                                         {Object.values(liveGamesMap).some(v => v > 0) && (
@@ -776,15 +776,6 @@ export default function MyClubsPage() {
                                         )}
                                     </div>
 
-                                    {/* Club Arena clubs */}
-                                    {arenaClubs.map(club => (
-                                        <ClubArenaCard
-                                            key={`arena-${club.id}`}
-                                            club={club}
-                                            onNavigate={(clubId) => router.push(`/hub/club-arena/lobby?club=${clubId}`)}
-                                        />
-                                    ))}
-
                                     {/* Venue cards — sorted by live activity */}
                                     {[...followedVenues]
                                         .sort((a, b) => {
@@ -803,6 +794,40 @@ export default function MyClubsPage() {
                                                 onNavigate={handleNavigate}
                                             />
                                         ))}
+
+                                    {/* ── Club Arena Section ── */}
+                                    {arenaClubs.length > 0 && (
+                                        <>
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 12,
+                                                marginTop: followedVenues.length > 0 ? 24 : 0,
+                                                paddingTop: followedVenues.length > 0 ? 20 : 0,
+                                                borderTop: followedVenues.length > 0 ? `1px solid ${C.elevated}` : 'none',
+                                            }}>
+                                                <div style={{
+                                                    width: 28, height: 28, borderRadius: 8,
+                                                    background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 13, color: '#fff', fontWeight: 700,
+                                                }}>♠</div>
+                                                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
+                                                    Club Arena
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 11, fontWeight: 600, color: '#8b5cf6',
+                                                    padding: '2px 8px', borderRadius: 12,
+                                                    background: 'rgba(139, 92, 246, 0.12)',
+                                                }}>{arenaClubs.length}</span>
+                                            </div>
+                                            {arenaClubs.map(club => (
+                                                <ClubArenaCard
+                                                    key={`arena-${club.id}`}
+                                                    club={club}
+                                                    onNavigate={(clubId) => router.push(`/hub/club-arena/lobby?club=${clubId}`)}
+                                                />
+                                            ))}
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </>
