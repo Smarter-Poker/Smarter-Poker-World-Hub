@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // Get current waitlist entry
     const { data: entry } = await supabase
       .from('commander_waitlist')
-      .select('id, player_name, phone, game_type, stakes, venue_id, status')
+      .select('id, player_name, player_phone, game_type, stakes, venue_id, status')
       .eq('id', waitlist_id)
       .single();
 
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     // Send SMS notification if phone on file
     let smsResult = null;
-    if (entry.phone) {
+    if (entry.player_phone) {
       let venueName = 'Your poker room';
       try {
         const { data: venue } = await supabase
@@ -64,20 +64,20 @@ export default async function handler(req, res) {
           .eq('id', entry.venue_id)
           .single();
         if (venue?.name) venueName = venue.name;
-      } catch {}
+      } catch { }
 
       const gameLabel = `${entry.game_type || 'Cash Game'} ${entry.stakes || ''}`.trim();
       const tableInfo = table_number ? ` at Table ${table_number}` : '';
 
       if (isTwilioConfigured()) {
         smsResult = await sendSeatNotification(
-          entry.phone,
+          entry.player_phone,
           venueName,
           `${gameLabel}${tableInfo}`,
           { timeout: 5 }
         );
       } else {
-        console.log(`[SMS WOULD SEND] To: ${entry.phone} | ${venueName} | ${gameLabel}${tableInfo}`);
+        console.log(`[SMS WOULD SEND] To: ${entry.player_phone} | ${venueName} | ${gameLabel}${tableInfo}`);
         smsResult = { success: false, reason: 'Twilio not configured' };
       }
     }
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       data: {
         ...data,
         sms_sent: smsResult?.success || false,
-        sms_status: smsResult?.success ? 'sent' : (entry.phone ? (smsResult?.reason || 'no_config') : 'no_phone'),
+        sms_status: smsResult?.success ? 'sent' : (entry.player_phone ? (smsResult?.reason || 'no_config') : 'no_phone'),
       }
     });
   } catch (err) {

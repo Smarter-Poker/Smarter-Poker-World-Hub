@@ -117,10 +117,10 @@ export default function OpenGame() {
   return (
     <>
       <SEOHead
-                title="Commander — Open Game"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Open Game"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -148,8 +148,8 @@ export default function OpenGame() {
                   <button key={game.type}
                     onClick={() => { setSelectedGame(game); setSelectedStakes(null); }}
                     className={`w-full px-4 py-4 rounded-xl text-left flex items-center gap-3 border-2 ${selectedGame?.type === game.type
-                        ? `border-[${game.color}] bg-[${game.color}]/10`
-                        : 'border-[#3A3B3C] bg-[#242526]'
+                      ? `border-[${game.color}] bg-[${game.color}]/10`
+                      : 'border-[#3A3B3C] bg-[#242526]'
                       }`}
                     style={selectedGame?.type === game.type ? { borderColor: game.color, backgroundColor: `${game.color}10` } : {}}>
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: game.color }} />
@@ -286,8 +286,6 @@ export default function OpenGame() {
           )}
         </div>
       </div>
-      <style jsx>{`
-`}</style>
     </>
   );
 }
