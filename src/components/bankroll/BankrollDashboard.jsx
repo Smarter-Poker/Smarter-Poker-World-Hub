@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { getBankrollStats, calculateTravelROI } from '../../lib/bankroll/calculations';
 import { runLeakAnalysis } from '../../lib/bankroll/leakDetection';
 import { getLocationStats, getUserLocations } from '../../lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchTrips, getDateRangeFilter, updateLedgerEntry, deleteLedgerEntry, getActiveTrip, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
+import { fetchLedgerEntries, fetchTrips, getDateRangeFilter, updateLedgerEntry, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import toast from '../../stores/toastStore';
 import LedgerTimeline from './LedgerTimeline';
 import LeakAlertPanel from './LeakAlertPanel';
