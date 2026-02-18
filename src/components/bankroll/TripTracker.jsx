@@ -16,7 +16,6 @@ import {
     deleteTrip,
     getTripReport,
     fetchLedgerEntries,
-    deleteLedgerEntry,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
