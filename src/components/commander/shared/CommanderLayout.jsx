@@ -409,7 +409,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                   if (window.history.length > 1) {
                     router.back();
                   } else {
-                    router.push('/commander/dashboard');
+                    router.push('/commander/dashboard').catch(() => {});
                   }
                 }}
                 title="Go Back"

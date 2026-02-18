@@ -32,14 +32,14 @@ export default function CommanderLogin() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           // Session valid — go straight to dashboard
-          router.push('/commander/dashboard');
+          router.push('/commander/dashboard').catch(() => {});
           return;
         }
 
         // Session expired — try to refresh
         const { data: { session: refreshed } } = await supabase.auth.refreshSession();
         if (refreshed) {
-          router.push('/commander/dashboard');
+          router.push('/commander/dashboard').catch(() => {});
           return;
         }
 
@@ -120,7 +120,7 @@ export default function CommanderLogin() {
         localStorage.removeItem('commander_remember');
       }
 
-      router.push('/commander/dashboard');
+      router.push('/commander/dashboard').catch(() => {});
 
     } catch (err) {
       console.error('Login error:', err);

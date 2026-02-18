@@ -100,38 +100,46 @@ export default function BankrollDashboard({ userId }) {
       setLocations(locationsData);
       setLeakAnalysis(leakData);
 
-      // Process entries: hide active-trip entries, group completed-trip entries
+      // Fetch active series
+      var seriesData = null;
+      try {
+        seriesData = await getActiveSeries(userId);
+      } catch (e) {
+        console.warn('Could not load active series:', e);
+      }
+
+      // Process entries: hide active-trip AND active-series entries,
+      // group completed-trip/series entries into summary rows
       var activeIds = [];
       for (var t = 0; t < tripsData.length; t++) {
         if (tripsData[t].status === 'active') activeIds.push(tripsData[t].id);
       }
+      if (seriesData && seriesData.id) {
+        activeIds.push(seriesData.id);
+      }
 
-      // Filter out entries belonging to active trips
+      // Filter out entries belonging to active trips/series
       var visible = [];
+      var completedTripMap = {};
       for (var i = 0; i < entriesData.length; i++) {
         var entry = entriesData[i];
-        if (!entry.trip_id || activeIds.indexOf(entry.trip_id) === -1) {
+        if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
+          // Entry belongs to an active trip/series — HIDE
+          continue;
+        }
+        if (entry.trip_id) {
+          if (!completedTripMap[entry.trip_id]) completedTripMap[entry.trip_id] = [];
+          completedTripMap[entry.trip_id].push(entry);
+        } else {
           visible.push(entry);
         }
       }
 
-      // Group remaining trip entries into summaries
-      var tripMap = {};
-      var nonTrip = [];
-      for (var j = 0; j < visible.length; j++) {
-        var e = visible[j];
-        if (e.trip_id) {
-          if (!tripMap[e.trip_id]) tripMap[e.trip_id] = [];
-          tripMap[e.trip_id].push(e);
-        } else {
-          nonTrip.push(e);
-        }
-      }
-
-      var tripIds = Object.keys(tripMap);
+      // Group completed trip/series entries into summary rows
+      var tripIds = Object.keys(completedTripMap);
       for (var k = 0; k < tripIds.length; k++) {
         var tid = tripIds[k];
-        var items = tripMap[tid];
+        var items = completedTripMap[tid];
         var trip = null;
         for (var m = 0; m < tripsData.length; m++) {
           if (tripsData[m].id === tid) { trip = tripsData[m]; break; }
@@ -139,14 +147,16 @@ export default function BankrollDashboard({ userId }) {
         var net = 0;
         var latestDate = items[0].entry_date || '';
         for (var n = 0; n < items.length; n++) {
-          net += items[n].net_result || 0;
+          net += (items[n].gross_out || 0) - (items[n].gross_in || 0);
           if (items[n].entry_date > latestDate) latestDate = items[n].entry_date;
         }
-        nonTrip.push({
+        visible.push({
           id: 'trip-summary-' + tid,
           category: 'trip_summary',
           entry_date: latestDate,
           net_result: net,
+          gross_in: 0,
+          gross_out: 0,
           location_name: (trip ? trip.location_name : '') || (items[0] ? items[0].location_name : '') || '',
           _tripName: (trip ? trip.name : '') || 'Trip',
           _sessionCount: items.length,
@@ -154,8 +164,8 @@ export default function BankrollDashboard({ userId }) {
         });
       }
 
-      nonTrip.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
-      setEntries(nonTrip);
+      visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
+      setEntries(visible);
     } catch (error) {
       console.error('Error loading bankroll data:', error);
     } finally {
