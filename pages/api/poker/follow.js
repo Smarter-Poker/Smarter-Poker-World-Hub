@@ -19,6 +19,9 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// UUID v4 format check — page_followers.user_id is UUID type
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,6 +51,11 @@ async function handleGet(req, res) {
 
     // Get all follows for a user
     if (user_id) {
+        // Anonymous/non-UUID user IDs can't be in page_followers (UUID column)
+        if (!UUID_RE.test(user_id)) {
+            return res.status(200).json({ success: true, data: [], total: 0 });
+        }
+
         const { data, error } = await supabase
             .from('page_followers')
             .select('*')
@@ -89,6 +97,9 @@ async function handleGet(req, res) {
     // Check if specific user follows a specific page
     const checkUserId = req.query.check_user;
     if (checkUserId && page_type && page_id) {
+        if (!UUID_RE.test(checkUserId)) {
+            return res.status(200).json({ success: true, is_following: false });
+        }
         const { data, error } = await supabase
             .from('page_followers')
             .select('id')
@@ -168,6 +179,9 @@ async function handlePost(req, res) {
     }
     if (!userId) {
         return res.status(400).json({ error: 'user_id is required (body or x-user-id header)' });
+    }
+    if (!UUID_RE.test(userId)) {
+        return res.status(400).json({ error: 'user_id must be a valid UUID (anonymous users cannot persist follows)' });
     }
 
     // Normalize tour page_id to uppercase (tour registry uses uppercase codes like WPT, WSOP)

@@ -22,6 +22,9 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// UUID v4 format check — page_followers.user_id is UUID type
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function buildVenuePages() {
     const venues = allVenuesData.venues || [];
     return venues.map(v => ({
@@ -199,8 +202,8 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Get user's follows if user_id provided
-            if (user_id) {
+            // Get user's follows if user_id provided (must be valid UUID for Supabase)
+            if (user_id && UUID_RE.test(user_id)) {
                 const { data: follows } = await supabase
                     .from('page_followers')
                     .select('page_type, page_id')
