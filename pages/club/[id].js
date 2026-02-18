@@ -770,13 +770,17 @@ export default function ClubPage() {
                       <LiveGameCard key={game.id} game={game} />
                     ))}
                   </div>
-                  <Link
-                    href={`/hub/commander/waitlist/${venue.linked_venue_id || id}`}
-                    className="block mt-3 text-center text-sm font-medium text-[#1877F2] hover:underline"
-                  >
-                    Join Waitlist
-                  </Link>
                 </div>
+              )}
+
+              {/* Join Waitlist — always visible when Commander is enabled */}
+              {venue.commander_enabled && (
+                <Link
+                  href={`/hub/commander/waitlist/${venue.linked_venue_id || id}`}
+                  className="block w-full text-center py-3 px-4 bg-[#1877F2] text-white font-semibold rounded-xl hover:bg-[#1664d9] transition-colors shadow-sm"
+                >
+                  Join Waitlist
+                </Link>
               )}
 
               {/* Games Offered */}
