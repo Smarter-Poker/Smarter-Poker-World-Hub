@@ -108,7 +108,7 @@ export default function DailyTournaments() {
     });
     const afternoonTournaments = tournaments.filter(t => {
         const time = parseTimeToMinutes(t.start_time);
-        return time >= 720 && Time < 1020; // 12pm - 5pm
+        return time >= 720 && time < 1020; // 12pm - 5pm
     });
     const eveningTournaments = tournaments.filter(t => {
         const time = parseTimeToMinutes(t.start_time);
