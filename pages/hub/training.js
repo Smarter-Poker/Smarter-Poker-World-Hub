@@ -746,7 +746,7 @@ export default function TrainingPage() {
         const challenges = [];
         CATEGORIES.forEach((cat, index) => {
             const catGames = getGamesByCategory(cat.id).filter(g =>
-                g.difficulty >= 3 && G.difficulty <= 5 && !g.name.startsWith('Level 10:')
+                g.difficulty >= 3 && g.difficulty <= 5 && !g.name.startsWith('Level 10:')
             );
             if (catGames.length > 0) {
                 // Pseudo-random selection based on date + category
