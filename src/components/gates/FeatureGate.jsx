@@ -98,22 +98,13 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
         );
     }
 
-    // Has access — show badge + children
+    // Has access — show children directly
     if (access.hasAccess) {
         return (
-            <div style={{ position: 'relative' }}>
-                {!hideBadge && (
-                    <div style={{ ...s.badge, ...(access.isVip ? s.badgeGold : s.badgeCyan) }}>
-                        {access.isVip ? (
-                            <><Crown size={12} /> VIP ACCESS</>
-                        ) : (
-                            <><Timer size={12} /> {formatTimeRemaining(access.expiresAt)}</>
-                        )}
-                    </div>
-                )}
+            <>
                 {children}
                 <style>{ANIM}</style>
-            </div>
+            </>
         );
     }
 

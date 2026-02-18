@@ -80,24 +80,13 @@ export default function BankrollProGate({ userId, children }) {
         );
     }
 
-    // Has access - show content with Metal badge
+    // Has access - show content directly
     if (access.hasAccess) {
         return (
-            <div style={styles.accessWrapper}>
-                {/* Metal Access Badge */}
-                <div style={{
-                    ...styles.accessBadge,
-                    ...(access.isVip ? styles.badgeGold : styles.badgeCyan),
-                }}>
-                    {access.isVip ? (
-                        <><Crown size={12} /> VIP ACCESS</>
-                    ) : (
-                        <><Timer size={12} /> {formatTimeRemaining(access.expiresAt)}</>
-                    )}
-                </div>
+            <>
                 {children}
                 <style jsx global>{ANIMATIONS}</style>
-            </div>
+            </>
         );
     }
 

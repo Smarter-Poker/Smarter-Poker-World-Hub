@@ -19,7 +19,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
-import PushNotificationBell from '../notifications/PushNotificationBell';
+
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 
@@ -722,10 +722,7 @@ export default function UniversalHeader({
                         <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
-                    {/* Push Notification Bell - hidden on mobile to save space */}
-                    <div className="hide-mobile">
-                        <PushNotificationBell />
-                    </div>
+
 
                     {/* Search - HIDE on mobile */}
                     {showSearch && (
