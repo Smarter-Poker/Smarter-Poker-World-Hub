@@ -2721,15 +2721,15 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
                                             }}>
                                                 <div style={{
-                                                    width: 56, height: 56, borderRadius: '50%', margin: '0 auto 3px',
+                                                    width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
                                                     background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                    border: '2.5px solid #E4E6EB',
+                                                    border: '3px solid #E4E6EB',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                                    fontSize: 22, fontWeight: 900, color: '#fff',
+                                                    fontSize: 32, fontWeight: 900, color: '#fff',
                                                     letterSpacing: 1,
                                                 }}>D</div>
-                                                <div style={{ fontSize: 9, fontWeight: 700, color: '#1877F2', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {game.dealer_name || 'No Dealer'}
                                                 </div>
                                             </div>
@@ -2782,47 +2782,47 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                     <div key={seat.number} style={{
                                                         position: 'absolute', top: pos.top, left: pos.left,
                                                         transform: badgeTransform, zIndex: 2,
-                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
+                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
                                                         background: 'rgba(36,37,38,0.9)',
-                                                        borderRadius: 10,
-                                                        padding: '4px 8px 4px 4px',
-                                                        border: `1.5px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
+                                                        borderRadius: 14,
+                                                        padding: '6px 12px 6px 6px',
+                                                        border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
                                                         backdropFilter: 'blur(6px)',
-                                                        minWidth: 48,
+                                                        minWidth: 80,
                                                     }}>
                                                         {/* Avatar circle */}
                                                         <div style={{
-                                                            width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                                                            width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
                                                                 ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
                                                                 : 'rgba(255,255,255,0.06)',
-                                                            border: `1.5px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
+                                                            border: `2px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
                                                             overflow: 'hidden',
                                                         }}>
                                                             {isOccupied ? (
                                                                 avatarUrl ? (
                                                                     <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                                 ) : (
-                                                                    <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                                 )
                                                             ) : (
-                                                                <span style={{ fontSize: 11, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                                                <span style={{ fontSize: 18, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
                                                             )}
                                                         </div>
                                                         {/* Name + Timer text */}
                                                         <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                             <div style={{
-                                                                fontSize: 10, fontWeight: 600, lineHeight: 1.2,
+                                                                fontSize: 16, fontWeight: 600, lineHeight: 1.2,
                                                                 color: isOccupied ? '#E4E6EB' : '#B0B3B8',
                                                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                                maxWidth: 72,
+                                                                maxWidth: 140,
                                                             }}>
                                                                 {isOccupied ? fullName : 'Open'}
                                                             </div>
                                                             {timerText && (
                                                                 <div style={{
-                                                                    fontSize: 9, fontWeight: 700, color: timerColor,
+                                                                    fontSize: 14, fontWeight: 700, color: timerColor,
                                                                     fontFamily: 'monospace', lineHeight: 1.2,
                                                                     animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
                                                                 }}>
@@ -3191,16 +3191,16 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         onClick={() => window.open(`/commander/dealer/${game.table_number || 1}`, '_blank')}
                                     >
                                         <div style={{
-                                            width: 56, height: 56, borderRadius: '50%', margin: '0 auto 3px',
+                                            width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
                                             background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                            border: '2.5px solid #E4E6EB',
+                                            border: '3px solid #E4E6EB',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                            fontSize: 22, fontWeight: 900, color: '#fff',
+                                            fontSize: 32, fontWeight: 900, color: '#fff',
                                             letterSpacing: 1,
                                             transition: 'transform 0.15s',
                                         }}>D</div>
-                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#1877F2', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {game.dealer_name || 'No Dealer'}
                                         </div>
                                     </div>
@@ -3268,20 +3268,20 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
                                                 transform: badgeTransform, zIndex: 2,
-                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
+                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
                                                 background: 'rgba(36,37,38,0.9)',
-                                                borderRadius: 10,
-                                                padding: '4px 8px 4px 4px',
-                                                border: `1.5px solid ${badgeBorder}`,
+                                                borderRadius: 14,
+                                                padding: '6px 12px 6px 6px',
+                                                border: `2px solid ${badgeBorder}`,
                                                 backdropFilter: 'blur(6px)',
                                                 cursor: canClick ? 'pointer' : 'default',
-                                                minWidth: 48,
+                                                minWidth: 80,
                                             }}
                                                 onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
                                             >
                                                 {/* Avatar circle */}
                                                 <div style={{
-                                                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                                                    width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
@@ -3290,19 +3290,19 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                             : canClick
                                                                 ? 'rgba(34,197,94,0.15)'
                                                                 : 'rgba(255,255,255,0.06)',
-                                                    border: `1.5px solid ${isMe ? '#4ade80' : isOccupied ? '#1877F2' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(62,64,66,0.5)'}`,
+                                                    border: `2px solid ${isMe ? '#4ade80' : isOccupied ? '#1877F2' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(62,64,66,0.5)'}`,
                                                     overflow: 'hidden',
                                                 }}>
                                                     {isOccupied ? (
                                                         isMe ? (
-                                                            <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>YOU</span>
+                                                            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
                                                         ) : avatarUrl ? (
                                                             <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                         ) : (
-                                                            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                            <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                         )
                                                     ) : (
-                                                        <span style={{ fontSize: canClick ? 14 : 11, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
+                                                        <span style={{ fontSize: canClick ? 22 : 18, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
                                                             {canClick ? '+' : seat.number}
                                                         </span>
                                                     )}
@@ -3310,16 +3310,16 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 {/* Name + Timer text */}
                                                 <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                     <div style={{
-                                                        fontSize: 10, fontWeight: 600, lineHeight: 1.2,
+                                                        fontSize: 16, fontWeight: 600, lineHeight: 1.2,
                                                         color: isMe ? '#4ade80' : isOccupied ? '#E4E6EB' : canClick ? 'rgba(34,197,94,0.5)' : '#B0B3B8',
                                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                        maxWidth: 72,
+                                                        maxWidth: 140,
                                                     }}>
                                                         {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
                                                     </div>
                                                     {timerText && (
                                                         <div style={{
-                                                            fontSize: 9, fontWeight: 700, color: timerColor,
+                                                            fontSize: 14, fontWeight: 700, color: timerColor,
                                                             fontFamily: 'monospace', lineHeight: 1.2,
                                                             animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
                                                         }}>
