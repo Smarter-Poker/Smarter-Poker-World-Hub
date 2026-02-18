@@ -11,9 +11,9 @@ export default function MemoryGamesTutorial() {
     const router = useRouter();
 
     const steps = [
-        { title: 'How to Play', description: 'Match pairs of cards by remembering their positions' },
-        { title: 'Scoring', description: 'Faster matches and fewer mistakes earn more points' },
-        { title: 'Power-ups', description: 'Earn power-ups by completing challenges' },
+        { title: 'How to Play', description: 'Match Pairs of Cards by Remembering Their Positions' },
+        { title: 'Scoring', description: 'Faster Matches and Fewer Mistakes Earn More Points' },
+        { title: 'Power-ups', description: 'Earn Power-ups by Completing Challenges' },
     ];
 
     return (

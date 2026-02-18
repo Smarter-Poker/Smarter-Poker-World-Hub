@@ -10,15 +10,15 @@ import {
 } from 'lucide-react';
 
 const PROMOTION_TYPES = [
-  { value: 'high_hand', label: 'High Hand', description: 'Award best hand each period', color: '#22C55E', icon: Star },
-  { value: 'bad_beat', label: 'Bad Beat', description: 'Jackpot for qualifying bad beats', color: '#EF4444', icon: Zap },
-  { value: 'splash_pot', label: 'Splash Pot', description: 'Random pot bonuses', color: '#3B82F6', icon: DollarSign },
-  { value: 'happy_hour', label: 'Happy Hour', description: 'Time-based bonus rewards', color: '#F59E0B', icon: Clock },
-  { value: 'new_player', label: 'New Player', description: 'First-time player bonus', color: '#8B5CF6', icon: Gift },
-  { value: 'referral', label: 'Referral', description: 'Refer a friend rewards', color: '#EC4899', icon: Gift },
-  { value: 'loyalty', label: 'Loyalty', description: 'Reward returning players', color: '#22D3EE', icon: Star },
-  { value: 'drawing', label: 'Drawing', description: 'Raffle / drawing entry', color: '#F97316', icon: Gift },
-  { value: 'custom', label: 'Custom', description: 'Define your own promotion', color: '#6B7280', icon: Settings }
+  { value: 'high_hand', label: 'High Hand', description: 'Award Best Hand Each Period', color: '#22C55E', icon: Star },
+  { value: 'bad_beat', label: 'Bad Beat', description: 'Jackpot for Qualifying Bad Beats', color: '#EF4444', icon: Zap },
+  { value: 'splash_pot', label: 'Splash Pot', description: 'Random Pot Bonuses', color: '#3B82F6', icon: DollarSign },
+  { value: 'happy_hour', label: 'Happy Hour', description: 'Time-based Bonus Rewards', color: '#F59E0B', icon: Clock },
+  { value: 'new_player', label: 'New Player', description: 'First-time Player Bonus', color: '#8B5CF6', icon: Gift },
+  { value: 'referral', label: 'Referral', description: 'Refer a Friend Rewards', color: '#EC4899', icon: Gift },
+  { value: 'loyalty', label: 'Loyalty', description: 'Reward Returning Players', color: '#22D3EE', icon: Star },
+  { value: 'drawing', label: 'Drawing', description: 'Raffle / Drawing Entry', color: '#F97316', icon: Gift },
+  { value: 'custom', label: 'Custom', description: 'Define Your Own Promotion', color: '#6B7280', icon: Settings }
 ];
 
 const PRIZE_TYPES = [

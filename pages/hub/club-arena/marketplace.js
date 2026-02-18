@@ -25,12 +25,12 @@ const FB = {
 
 // Default shop items (used if no custom items in database)
 const DEFAULT_ITEMS = [
-    { id: 'custom_avatar', name: 'Custom Avatar Frame', description: 'Stand out with a premium avatar frame', price: 500, icon: '🖼️', category: 'cosmetic' },
-    { id: 'table_theme_gold', name: 'Gold Table Theme', description: 'Exclusive gold-themed table design', price: 1000, icon: '✨', category: 'theme' },
-    { id: 'card_back_premium', name: 'Premium Card Back', description: 'Custom card back design', price: 300, icon: '🃏', category: 'cosmetic' },
-    { id: 'seat_preference', name: 'Seat Preference', description: 'Always get your preferred seat', price: 750, icon: '💺', category: 'perk' },
-    { id: 'emoji_pack', name: 'Premium Emoji Pack', description: 'Unlock 50+ exclusive table emojis', price: 400, icon: '😎', category: 'cosmetic' },
-    { id: 'vip_badge', name: 'VIP Badge', description: 'Display a VIP badge on your profile', price: 2000, icon: '👑', category: 'badge' },
+    { id: 'custom_avatar', name: 'Custom Avatar Frame', description: 'Stand Out with a Premium Avatar Frame', price: 500, icon: '🖼️', category: 'cosmetic' },
+    { id: 'table_theme_gold', name: 'Gold Table Theme', description: 'Exclusive Gold-themed Table Design', price: 1000, icon: '✨', category: 'theme' },
+    { id: 'card_back_premium', name: 'Premium Card Back', description: 'Custom Card Back Design', price: 300, icon: '🃏', category: 'cosmetic' },
+    { id: 'seat_preference', name: 'Seat Preference', description: 'Always Get Your Preferred Seat', price: 750, icon: '💺', category: 'perk' },
+    { id: 'emoji_pack', name: 'Premium Emoji Pack', description: 'Unlock 50+ Exclusive Table Emojis', price: 400, icon: '😎', category: 'cosmetic' },
+    { id: 'vip_badge', name: 'VIP Badge', description: 'Display a VIP Badge on Your Profile', price: 2000, icon: '👑', category: 'badge' },
 ];
 
 const CATEGORIES = [

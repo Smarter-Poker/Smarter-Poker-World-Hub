@@ -96,22 +96,22 @@ const TYPING_PATTERNS = {
     single_poster: {
         doubleTextChance: 0.05,
         avgDelay: 0,
-        description: 'Always single posts'
+        description: 'Always Single Posts'
     },
     double_texter: {
         doubleTextChance: 0.35,
         avgDelay: 30000, // 30 seconds between
-        description: 'Frequently adds follow-up'
+        description: 'Frequently Adds Follow-up'
     },
     stream_of_consciousness: {
         doubleTextChance: 0.5,
         avgDelay: 10000, // 10 seconds
-        description: 'Often multi-posts rapidly'
+        description: 'Often Multi-posts Rapidly'
     },
     deliberate: {
         doubleTextChance: 0.15,
         avgDelay: 60000, // 1 minute
-        description: 'Occasional thoughtful follow-up'
+        description: 'Occasional Thoughtful Follow-up'
     }
 };
 

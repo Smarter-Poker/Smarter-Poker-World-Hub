@@ -11,7 +11,7 @@ const HINTS = [
     {
         id: 'fifty_fifty',
         name: '50/50',
-        description: 'Remove 2 wrong answers',
+        description: 'Remove 2 Wrong Answers',
         icon: Percent,
         cost: 5,
         color: '#f97316'
@@ -19,7 +19,7 @@ const HINTS = [
     {
         id: 'skip',
         name: 'Skip',
-        description: 'Skip this question',
+        description: 'Skip This Question',
         icon: SkipForward,
         cost: 10,
         color: '#8b5cf6'
@@ -27,7 +27,7 @@ const HINTS = [
     {
         id: 'extra_time',
         name: '+30s',
-        description: 'Add 30 seconds',
+        description: 'Add 30 Seconds',
         icon: Clock,
         cost: 15,
         color: '#22c55e'

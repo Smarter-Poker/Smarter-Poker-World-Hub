@@ -16,7 +16,7 @@ const CHALLENGE_TYPES = {
     preflop: {
         icon: '🃏',
         title: 'Preflop Precision',
-        description: 'Test your preflop decision making',
+        description: 'Test Your Preflop Decision Making',
         difficulty: 'Easy',
         xpReward: 50,
         color: '#00FFFF'
@@ -24,7 +24,7 @@ const CHALLENGE_TYPES = {
     range: {
         icon: '📊',
         title: 'Range Builder',
-        description: 'Construct the optimal range',
+        description: 'Construct the Optimal Range',
         difficulty: 'Medium',
         xpReward: 100,
         color: '#FFD700'
@@ -32,7 +32,7 @@ const CHALLENGE_TYPES = {
     gto: {
         icon: '🧠',
         title: 'GTO Showdown',
-        description: 'Find the game-theory optimal play',
+        description: 'Find the Game-theory Optimal Play',
         difficulty: 'Hard',
         xpReward: 200,
         color: '#FF00FF'
@@ -40,7 +40,7 @@ const CHALLENGE_TYPES = {
     blitz: {
         icon: '⚡',
         title: 'Speed Blitz',
-        description: '30 seconds to make 5 decisions',
+        description: '30 Seconds to Make 5 Decisions',
         difficulty: 'Expert',
         xpReward: 300,
         color: '#FF6B35'

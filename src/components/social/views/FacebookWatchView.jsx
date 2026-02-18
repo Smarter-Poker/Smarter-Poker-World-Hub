@@ -377,7 +377,7 @@ export const FacebookWatchView = ({ onNavigate }) => {
                         {
                             id: 1,
                             title: "Is this the SICKEST call in Poker History? 😱",
-                            description: "Tom Dwan faces a massive overbet on the river.",
+                            description: "Tom Dwan Faces a Massive Overbet on the River.",
                             channelName: "PokerGO",
                             channelAvatar: "",
                             views: "1.2M",

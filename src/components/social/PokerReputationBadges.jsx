@@ -18,35 +18,35 @@ const POKER_TIERS = {
         icon: '🐟',
         color: '#6B7280',
         bgColor: 'rgba(107, 114, 128, 0.2)',
-        description: 'Still learning the ropes'
+        description: 'Still Learning the Ropes'
     },
     reg: {
         name: 'Reg',
         icon: '♠️',
         color: '#3B82F6',
         bgColor: 'rgba(59, 130, 246, 0.2)',
-        description: 'Regular player'
+        description: 'Regular Player'
     },
     grinder: {
         name: 'Grinder',
         icon: '💪',
         color: '#8B5CF6',
         bgColor: 'rgba(139, 92, 246, 0.2)',
-        description: 'Puts in volume'
+        description: 'Puts in Volume'
     },
     shark: {
         name: 'Shark',
         icon: '🦈',
         color: '#EF4444',
         bgColor: 'rgba(239, 68, 68, 0.2)',
-        description: 'Watch out!'
+        description: 'Watch Out!'
     },
     whale: {
         name: 'Whale',
         icon: '🐋',
         color: '#F59E0B',
         bgColor: 'rgba(245, 158, 11, 0.2)',
-        description: 'High roller'
+        description: 'High Roller'
     },
     gto_master: {
         name: 'GTO Master',

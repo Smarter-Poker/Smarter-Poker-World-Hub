@@ -270,7 +270,7 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
     const [reels] = useState([
         { thumbnail: 'https://picsum.photos/200/350?10', description: 'Insane All-In Moment!', viewCount: '12K' },
         { thumbnail: 'https://picsum.photos/200/350?11', description: 'Poker Vlog #42', viewCount: '5K' },
-        { thumbnail: 'https://picsum.photos/200/350?12', description: 'How to play A-Ks', viewCount: '25K' },
+        { thumbnail: 'https://picsum.photos/200/350?12', description: 'How to Play A-Ks', viewCount: '25K' },
     ]);
 
     const onlineContacts = [

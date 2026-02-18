@@ -38,10 +38,10 @@ const SUCCESS_CRITERIA = {
 
 // Target pilot regions
 const TARGET_REGIONS = [
-  { id: 'tx-1', region: 'Texas', target: 2, description: 'Texas card rooms' },
-  { id: 'ca-1', region: 'California', target: 1, description: 'California card room' },
-  { id: 'nv-1', region: 'Nevada', target: 1, description: 'Las Vegas room' },
-  { id: 'fl-1', region: 'Florida', target: 1, description: 'Florida room' },
+  { id: 'tx-1', region: 'Texas', target: 2, description: 'Texas Card Rooms' },
+  { id: 'ca-1', region: 'California', target: 1, description: 'California Card Room' },
+  { id: 'nv-1', region: 'Nevada', target: 1, description: 'Las Vegas Room' },
+  { id: 'fl-1', region: 'Florida', target: 1, description: 'Florida Room' },
 ];
 
 export default function PilotVenuesPage() {

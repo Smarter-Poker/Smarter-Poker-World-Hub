@@ -20,9 +20,9 @@ const GAME_TYPES = [
 ];
 
 const VISIBILITY_OPTIONS = [
-  { value: 'public', label: 'Public', icon: Globe, description: 'Anyone can see and request to join' },
-  { value: 'friends', label: 'Friends Only', icon: Users, description: 'Only your friends can see this game' },
-  { value: 'private', label: 'Private', icon: Lock, description: 'Invite code required to join' }
+  { value: 'public', label: 'Public', icon: Globe, description: 'Anyone Can See and Request to Join' },
+  { value: 'friends', label: 'Friends Only', icon: Users, description: 'Only Your Friends Can See This Game' },
+  { value: 'private', label: 'Private', icon: Lock, description: 'Invite Code Required to Join' }
 ];
 
 export default function CreateGameForm({
@@ -137,7 +137,7 @@ export default function CreateGameForm({
         </h3>
         <div className="space-y-4">
           {renderField('Title', 'title', 'text', { placeholder: 'Friday Night Poker', required: true })}
-          {renderField('Description', 'description', 'textarea', { placeholder: 'Casual cash game, all levels welcome...' })}
+          {renderField('Description', 'description', 'textarea', { placeholder: 'Casual Cash Game, All Levels Welcome...' })}
           <div className="grid grid-cols-2 gap-4">
             {renderField('Game Type', 'game_type', 'select', { options: GAME_TYPES, required: true })}
             {renderField('Stakes', 'stakes', 'text', { placeholder: '1/2 NL', required: true })}
@@ -241,7 +241,7 @@ export default function CreateGameForm({
           Additional Notes
         </h3>
         {renderField('House Rules / Notes', 'notes', 'textarea', {
-          placeholder: 'BYOB, no smoking inside, etc.'
+          placeholder: 'BYOB, no Smoking Inside, etc.'
         })}
       </div>
 

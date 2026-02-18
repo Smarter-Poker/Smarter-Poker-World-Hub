@@ -154,7 +154,7 @@ export default function AuthCallback() {
                             user_id: user.id,
                             amount: 300,
                             transaction_type: 'bonus',
-                            description: 'Welcome Bonus — 300 Diamonds for joining Smarter.Poker!',
+                            description: 'Welcome Bonus — 300 Diamonds for Joining Smarter.Poker!',
                             metadata: { source: 'welcome_bonus', type: 'new_user' },
                             balance_after: 300,
                         });

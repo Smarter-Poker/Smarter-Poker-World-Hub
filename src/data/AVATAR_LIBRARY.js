@@ -40,7 +40,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-people-001',
         name: 'Retro Rockstar',
-        description: 'Wild hair, don\'t care',
+        description: 'Wild Hair, Don\'t care',
         category: 'people',
         tier: 'FREE',
         personality: 'wild',
@@ -50,7 +50,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-people-002',
         name: 'Master Chef',
-        description: 'Cooking up wins',
+        description: 'Cooking up Wins',
         category: 'people',
         tier: 'FREE',
         personality: 'friendly',
@@ -60,7 +60,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-people-003',
         name: 'Lab Scientist',
-        description: 'Calculated plays',
+        description: 'Calculated Plays',
         category: 'people',
         tier: 'FREE',
         personality: 'nit',
@@ -72,7 +72,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-people-007',
         name: 'Pop Star',
-        description: 'Center of attention',
+        description: 'Center of Attention',
         category: 'people',
         tier: 'FREE',
         personality: 'friendly',
@@ -82,7 +82,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-people-008',
         name: 'Space Explorer',
-        description: 'Reaching for the stars',
+        description: 'Reaching for the Stars',
         category: 'people',
         tier: 'FREE',
         personality: 'shark',
@@ -94,7 +94,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-animal-001',
         name: 'Poker Shark',
-        description: 'Apex predator',
+        description: 'Apex Predator',
         category: 'animals',
         tier: 'FREE',
         personality: 'shark',
@@ -104,7 +104,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-animal-002',
         name: 'Lucky Rabbit',
-        description: 'Hopping to victory',
+        description: 'Hopping to Victory',
         category: 'animals',
         tier: 'FREE',
         personality: 'fish',
@@ -114,7 +114,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-animal-003',
         name: 'King Lion',
-        description: 'Jungle ruler',
+        description: 'Jungle Ruler',
         category: 'animals',
         tier: 'FREE',
         personality: 'intimidating',
@@ -124,7 +124,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-animal-004',
         name: 'Wise Owl',
-        description: 'Sees all angles',
+        description: 'Sees All Angles',
         category: 'animals',
         tier: 'FREE',
         personality: 'nit',
@@ -134,7 +134,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-animal-005',
         name: 'Sly Fox',
-        description: 'Crafty player',
+        description: 'Crafty Player',
         category: 'animals',
         tier: 'FREE',
         personality: 'lag',
@@ -144,7 +144,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-animal-006',
         name: 'Cool Penguin',
-        description: 'Ice cold bluffs',
+        description: 'Ice Cold Bluffs',
         category: 'animals',
         tier: 'FREE',
         personality: 'mystery',
@@ -156,7 +156,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-arch-001',
         name: 'Wild West Cowboy',
-        description: 'Shootout specialist',
+        description: 'Shootout Specialist',
         category: 'archetypes',
         tier: 'FREE',
         personality: 'lag',
@@ -166,7 +166,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-arch-002',
         name: 'Shadow Ninja',
-        description: 'Silent and deadly',
+        description: 'Silent and Deadly',
         category: 'archetypes',
         tier: 'FREE',
         personality: 'mystery',
@@ -176,7 +176,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-arch-003',
         name: 'Detective',
-        description: 'Reading every tell',
+        description: 'Reading Every Tell',
         category: 'archetypes',
         tier: 'FREE',
         personality: 'nit',
@@ -186,7 +186,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-arch-004',
         name: 'Business Pro',
-        description: 'All about the profit',
+        description: 'All About the Profit',
         category: 'archetypes',
         tier: 'FREE',
         personality: 'shark',
@@ -196,7 +196,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-arch-005',
         name: 'Street Musician',
-        description: 'Playing for keeps',
+        description: 'Playing for Keeps',
         category: 'archetypes',
         tier: 'FREE',
         personality: 'friendly',
@@ -206,7 +206,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-arch-006',
         name: 'School Teacher',
-        description: 'Teaching lessons',
+        description: 'Teaching Lessons',
         category: 'archetypes',
         tier: 'FREE',
         personality: 'friendly',
@@ -218,7 +218,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-mix-001',
         name: 'Pirate Commander',
-        description: 'Plundering pots',
+        description: 'Plundering Pots',
         category: 'fantasy',
         tier: 'FREE',
         personality: 'lag',
@@ -228,7 +228,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-mix-002',
         name: 'Medieval Knight',
-        description: 'Honorable combat',
+        description: 'Honorable Combat',
         category: 'fantasy',
         tier: 'FREE',
         personality: 'nit',
@@ -238,7 +238,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-mix-003',
         name: 'Samurai Warrior',
-        description: 'Bushido poker',
+        description: 'Bushido Poker',
         category: 'culture',
         tier: 'FREE',
         personality: 'intimidating',
@@ -248,7 +248,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-mix-004',
         name: 'Shiba Inu',
-        description: 'Such chips, much wow',
+        description: 'Such Chips, Much Wow',
         category: 'animals',
         tier: 'FREE',
         personality: 'friendly',
@@ -258,7 +258,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'free-mix-005',
         name: 'Android Bot',
-        description: 'Pure logic, no emotion',
+        description: 'Pure Logic, no Emotion',
         category: 'fantasy',
         tier: 'FREE',
         personality: 'nit',
@@ -274,7 +274,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-001',
         name: 'Political Leader',
-        description: 'Power player',
+        description: 'Power Player',
         category: 'people',
         tier: 'VIP',
         personality: 'shark',
@@ -284,7 +284,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-002',
         name: 'Rock Legend',
-        description: 'Born to win',
+        description: 'Born to Win',
         category: 'people',
         tier: 'VIP',
         personality: ' wild',
@@ -294,7 +294,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-003',
         name: 'Tech Mogul',
-        description: 'Disrupting the game',
+        description: 'Disrupting the Game',
         category: 'people',
         tier: 'VIP',
         personality: 'shark',
@@ -304,7 +304,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-004',
         name: 'Aerospace Pioneer',
-        description: 'To Mars and beyond',
+        description: 'To Mars and Beyond',
         category: 'people',
         tier: 'VIP',
         personality: 'wild',
@@ -314,7 +314,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-005',
         name: 'Silent Film Actor',
-        description: 'Actions speak volumes',
+        description: 'Actions Speak Volumes',
         category: 'people',
         tier: 'VIP',
         personality: 'mystery',
@@ -324,7 +324,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-006',
         name: 'Liberty Statue',
-        description: 'Freedom to win',
+        description: 'Freedom to Win',
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
@@ -334,7 +334,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-007',
         name: 'Royal Monarch',
-        description: 'Royal flush master',
+        description: 'Royal Flush Master',
         category: 'culture',
         tier: 'VIP',
         personality: 'nit',
@@ -344,7 +344,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-008',
         name: 'Hollywood Star',
-        description: 'Glamour and glory',
+        description: 'Glamour and Glory',
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
@@ -354,7 +354,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-009',
         name: 'Pro Wrestler',
-        description: 'Smackdown specialist',
+        description: 'Smackdown Specialist',
         category: 'sports',
         tier: 'VIP',
         personality: 'intimidating',
@@ -364,7 +364,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-010',
         name: 'Football Pro',
-        description: 'Game-winning drive',
+        description: 'Game-winning Drive',
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
@@ -374,7 +374,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-011',
         name: 'Basketball Star',
-        description: 'Dunking on opponents',
+        description: 'Dunking on Opponents',
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
@@ -384,7 +384,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-012',
         name: 'Soccer Champion',
-        description: 'Scoring goals',
+        description: 'Scoring Goals',
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
@@ -394,7 +394,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-013',
         name: 'Boxing Champion',
-        description: 'Float and sting',
+        description: 'Float and Sting',
         category: 'sports',
         tier: 'VIP',
         personality: 'lag',
@@ -404,7 +404,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-014',
         name: 'Physics Professor',
-        description: 'Relative advantage',
+        description: 'Relative Advantage',
         category: 'people',
         tier: 'VIP',
         personality: 'nit',
@@ -414,7 +414,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-015',
         name: 'Renaissance Artist',
-        description: 'Masterpiece maker',
+        description: 'Masterpiece Maker',
         category: 'culture',
         tier: 'VIP',
         personality: 'mystery',
@@ -424,7 +424,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-016',
         name: 'Hip-Hop Artist',
-        description: 'Dropping bars and chips',
+        description: 'Dropping Bars and Chips',
         category: 'people',
         tier: 'VIP',
         personality: 'wild',
@@ -434,7 +434,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-017',
         name: 'Dance Icon',
-        description: 'Smooth moves only',
+        description: 'Smooth Moves Only',
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
@@ -444,7 +444,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-018',
         name: 'Country Singer',
-        description: 'Taking chances',
+        description: 'Taking Chances',
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
@@ -454,7 +454,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-019',
         name: 'Jazz Musician',
-        description: 'Improvising wins',
+        description: 'Improvising Wins',
         category: 'people',
         tier: 'VIP',
         personality: 'mystery',
@@ -464,7 +464,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-people-020',
         name: 'Horror Director',
-        description: 'Scaring opponents',
+        description: 'Scaring Opponents',
         category: 'people',
         tier: 'VIP',
         personality: 'intimidating',
@@ -476,7 +476,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-001',
         name: 'Secret Agent',
-        description: 'Licensed to win',
+        description: 'Licensed to Win',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'shark',
@@ -487,7 +487,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-004',
         name: 'Dragon Emperor',
-        description: 'Fire breathing bluffer',
+        description: 'Fire Breathing Bluffer',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'intimidating',
@@ -497,7 +497,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-005',
         name: 'Phoenix Rising',
-        description: 'Comeback specialist',
+        description: 'Comeback Specialist',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
@@ -507,7 +507,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-006',
         name: 'Unicorn Magic',
-        description: 'Pure enchantment',
+        description: 'Pure Enchantment',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
@@ -517,7 +517,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-007',
         name: 'Vampire Count',
-        description: 'Draining chip stacks',
+        description: 'Draining Chip Stacks',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
@@ -527,7 +527,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-008',
         name: 'Elite Cyborg',
-        description: 'Upgraded plays',
+        description: 'Upgraded Plays',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'shark',
@@ -537,7 +537,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-009',
         name: 'Plague Doctor',
-        description: 'Curing bad beats',
+        description: 'Curing Bad Beats',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
@@ -547,7 +547,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-010',
         name: 'Space Ranger',
-        description: 'To infinity!',
+        description: 'To Infinity!',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
@@ -557,7 +557,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-011',
         name: 'Ancient Mummy',
-        description: 'Timeless tactics',
+        description: 'Timeless Tactics',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
@@ -567,7 +567,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-012',
         name: 'Galactic Alien',
-        description: 'Out of this world',
+        description: 'Out of This World',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
@@ -577,7 +577,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-013',
         name: 'Ice Queen',
-        description: 'Cold as ice',
+        description: 'Cold as Ice',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'nit',
@@ -587,7 +587,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-014',
         name: 'Fire Demon',
-        description: 'Burning opponents',
+        description: 'Burning Opponents',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'wild',
@@ -597,7 +597,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-fantasy-015',
         name: 'Guardian Angel',
-        description: 'Divine protection',
+        description: 'Divine Protection',
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
@@ -609,7 +609,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-001',
         name: 'Grumpy Cat',
-        description: 'Not impressed',
+        description: 'Not Impressed',
         category: 'animals',
         tier: 'VIP',
         personality: 'nit',
@@ -619,7 +619,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-002',
         name: 'Business Cat',
-        description: 'CEO of chips',
+        description: 'CEO of Chips',
         category: 'animals',
         tier: 'VIP',
         personality: 'shark',
@@ -629,7 +629,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-003',
         name: 'Pug Life',
-        description: 'Living the dream',
+        description: 'Living the Dream',
         category: 'animals',
         tier: 'VIP',
         personality: 'friendly',
@@ -639,7 +639,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-004',
         name: 'Majestic Eagle',
-        description: 'Soaring above all',
+        description: 'Soaring Above All',
         category: 'animals',
         tier: 'VIP',
         personality: 'shark',
@@ -649,7 +649,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-005',
         name: 'Honey Badger',
-        description: 'Fearless fighter',
+        description: 'Fearless Fighter',
         category: 'animals',
         tier: 'VIP',
         personality: 'wild',
@@ -659,7 +659,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-006',
         name: 'Charging Bull',
-        description: 'Full steam ahead',
+        description: 'Full Steam Ahead',
         category: 'animals',
         tier: 'VIP',
         personality: 'intimidating',
@@ -669,7 +669,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-007',
         name: 'Alpha Wolf',
-        description: 'Pack leader',
+        description: 'Pack Leader',
         category: 'animals',
         tier: 'VIP',
         personality: 'lag',
@@ -679,7 +679,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-008',
         name: 'Wise Gorilla',
-        description: 'Jungle strategist',
+        description: 'Jungle Strategist',
         category: 'animals',
         tier: 'VIP',
         personality: 'nit',
@@ -689,7 +689,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-009',
         name: 'Sneaky Panther',
-        description: 'Shadow hunter',
+        description: 'Shadow Hunter',
         category: 'animals',
         tier: 'VIP',
         personality: 'mystery',
@@ -699,7 +699,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-animal-010',
         name: 'Grizzly Bear',
-        description: 'Raw power',
+        description: 'Raw Power',
         category: 'animals',
         tier: 'VIP',
         personality: 'intimidating',
@@ -711,7 +711,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-culture-001',
         name: 'Egyptian Pharaoh',
-        description: 'Ancient royalty',
+        description: 'Ancient Royalty',
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
@@ -721,7 +721,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-culture-002',
         name: 'Viking Warrior',
-        description: 'Nordic raider',
+        description: 'Nordic Raider',
         category: 'culture',
         tier: 'VIP',
         personality: 'wild',
@@ -731,7 +731,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-culture-003',
         name: 'Geisha Master',
-        description: 'Graceful artisan',
+        description: 'Graceful Artisan',
         category: 'culture',
         tier: 'VIP',
         personality: 'mystery',
@@ -741,7 +741,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-culture-004',
         name: 'Aztec Warrior',
-        description: 'Ancient champion',
+        description: 'Ancient Champion',
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
@@ -751,7 +751,7 @@ export const AVATAR_LIBRARY = [
     {
         id: 'vip-culture-005',
         name: 'Spartan Hero',
-        description: 'This is poker!',
+        description: 'This is Poker!',
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',

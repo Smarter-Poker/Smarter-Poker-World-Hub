@@ -40,7 +40,7 @@ export const LAYOUT_9MAX = {
 export const LAYOUT_6MAX = {
     name: '6-max',
     seats: 6,
-    description: 'Short-handed table',
+    description: 'Short-handed Table',
     positions: {
         "hero": {
             "left": "50%",

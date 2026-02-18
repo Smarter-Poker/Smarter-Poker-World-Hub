@@ -17,42 +17,42 @@ const FEATURES = [
   {
     icon: Users,
     title: 'Digital Waitlist',
-    description: 'Players join from their phone. Staff manage everything from one screen. No more paper lists.'
+    description: 'Players Join From Their Phone. Staff Manage Everything From One Screen. no More Paper Lists.'
   },
   {
     icon: Clock,
     title: 'Smart Wait Times',
-    description: 'AI-powered predictions tell players exactly when their seat will be ready.'
+    description: 'AI-powered Predictions Tell Players Exactly When Their Seat Will Be Ready.'
   },
   {
     icon: Bell,
     title: 'SMS & Push Notifications',
-    description: 'Automatic alerts when seats are ready. Players can shop, eat, or wait at the bar.'
+    description: 'Automatic Alerts When Seats Are Ready. Players Can Shop, Eat, or Wait at the Bar.'
   },
   {
     icon: Trophy,
     title: 'Tournament Management',
-    description: 'Full tournament system with clock, blind structures, registration, and Hendon Mob export.'
+    description: 'Full Tournament System with Clock, Blind Structures, Registration, and Hendon Mob Export.'
   },
   {
     icon: Gift,
     title: 'Promotions & Comps',
-    description: 'High hand jackpots, happy hours, and automated comp tracking based on play time.'
+    description: 'High Hand Jackpots, Happy Hours, and Automated Comp Tracking Based on Play Time.'
   },
   {
     icon: BarChart3,
     title: 'Analytics Dashboard',
-    description: 'Track player visits, table hours, revenue trends, and more in real-time.'
+    description: 'Track Player Visits, Table Hours, Revenue Trends, and More in Real-time.'
   },
   {
     icon: Home,
     title: 'Home Games',
-    description: 'Let players organize and discover home games. QR codes and invite codes make joining easy.'
+    description: 'Let Players Organize and Discover Home Games. QR Codes and Invite Codes Make Joining Easy.'
   },
   {
     icon: Shield,
     title: 'Enterprise Security',
-    description: 'Row-level security, audit logs, rate limiting, and API key management for integrations.'
+    description: 'Row-level Security, Audit Logs, Rate Limiting, and API Key Management for Integrations.'
   }
 ];
 
@@ -61,7 +61,7 @@ const PRICING = [
     name: 'Home Game',
     price: '$99',
     period: '/month',
-    description: 'Perfect for home games & small private events',
+    description: 'Perfect for Home Games & Small Private Events',
     features: [
       'Up to 5 tables',
       'Digital waitlist',
@@ -78,7 +78,7 @@ const PRICING = [
     name: 'Charity',
     price: '$199',
     period: '/month',
-    description: 'Full operations suite for charity poker rooms',
+    description: 'Full Operations Suite for Charity Poker Rooms',
     features: [
       'Everything in Home Game',
       'Up to 15 tables',
@@ -97,7 +97,7 @@ const PRICING = [
     name: 'Club',
     price: '$399',
     period: '/month',
-    description: 'Full Texas-style card room with revenue tools',
+    description: 'Full Texas-style Card Room with Revenue Tools',
     features: [
       'Everything in Charity',
       'Unlimited tables & staff',

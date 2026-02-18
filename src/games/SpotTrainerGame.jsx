@@ -24,7 +24,7 @@ const SPOT_SCENARIOS = [
         streets: [
             {
                 street: 'preflop',
-                description: 'Hero opens BTN to 2.5bb. BB calls.',
+                description: 'Hero Opens BTN to 2.5bb. BB Calls.',
                 pot: 5.5,
                 heroStack: 97.5,
                 villainStack: 97.5,
@@ -51,7 +51,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'turn',
-                description: 'BB calls. Turn (Pot: 9.2bb)',
+                description: 'BB Calls. Turn (Pot: 9.2bb)',
                 pot: 9.2,
                 heroStack: 95.7,
                 villainStack: 95.7,
@@ -66,7 +66,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'river',
-                description: 'Both check. River (Pot: 9.2bb)',
+                description: 'Both Check. River (Pot: 9.2bb)',
                 pot: 9.2,
                 heroStack: 95.7,
                 villainStack: 95.7,
@@ -88,7 +88,7 @@ const SPOT_SCENARIOS = [
         streets: [
             {
                 street: 'preflop',
-                description: 'UTG opens to 2.5bb. Hero in CO with KK. What is your action?',
+                description: 'UTG Opens to 2.5bb. Hero in CO with KK. What is Your Action?',
                 pot: 4,
                 heroStack: 100,
                 villainStack: 97.5,
@@ -104,7 +104,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'flop',
-                description: 'UTG calls. Flop (Pot: 17bb)',
+                description: 'UTG Calls. Flop (Pot: 17bb)',
                 pot: 17,
                 heroStack: 92,
                 villainStack: 89.5,
@@ -119,7 +119,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'turn',
-                description: 'UTG calls. Turn (Pot: 28.2bb)',
+                description: 'UTG Calls. Turn (Pot: 28.2bb)',
                 pot: 28.2,
                 heroStack: 86.4,
                 villainStack: 83.9,
@@ -134,7 +134,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'river',
-                description: 'UTG calls. River (Pot: 56.3bb)',
+                description: 'UTG Calls. River (Pot: 56.3bb)',
                 pot: 56.3,
                 heroStack: 72.3,
                 villainStack: 69.8,
@@ -186,7 +186,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'turn',
-                description: 'SB bets 9bb. Hero calls. Turn (Pot: 36bb)',
+                description: 'SB Bets 9bb. Hero Calls. Turn (Pot: 36bb)',
                 pot: 36,
                 heroStack: 82,
                 villainStack: 82,
@@ -201,7 +201,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'river',
-                description: 'SB bets 18bb. Hero calls. River (Pot: 72bb)',
+                description: 'SB Bets 18bb. Hero Calls. River (Pot: 72bb)',
                 pot: 72,
                 heroStack: 64,
                 villainStack: 64,
@@ -223,7 +223,7 @@ const SPOT_SCENARIOS = [
         streets: [
             {
                 street: 'preflop',
-                description: 'SB (Hero) opens to 2.5bb. BB 3-bets to 7bb. Hero with A5s.',
+                description: 'SB (Hero) Opens to 2.5bb. BB 3-bets to 7bb. Hero with A5s.',
                 pot: 9.5,
                 heroStack: 22.5,
                 villainStack: 18,
@@ -245,7 +245,7 @@ const SPOT_SCENARIOS = [
         streets: [
             {
                 street: 'preflop',
-                description: 'UTG opens, MP calls, Hero in CO with QQ 3-bets to 12bb. UTG calls, MP folds.',
+                description: 'UTG Opens, MP Calls, Hero in CO with QQ 3-bets to 12bb. UTG Calls, MP Folds.',
                 pot: 27.5,
                 heroStack: 88,
                 villainStack: 88,
@@ -273,7 +273,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'turn',
-                description: 'UTG calls. Turn (Pot: 45.9bb)',
+                description: 'UTG Calls. Turn (Pot: 45.9bb)',
                 pot: 45.9,
                 heroStack: 79,
                 villainStack: 79,
@@ -288,7 +288,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'river',
-                description: 'UTG calls. River (Pot: 91.8bb)',
+                description: 'UTG Calls. River (Pot: 91.8bb)',
                 pot: 91.8,
                 heroStack: 56,
                 villainStack: 56,
@@ -310,7 +310,7 @@ const SPOT_SCENARIOS = [
         streets: [
             {
                 street: 'preflop',
-                description: 'CO opens, Hero on BTN calls with suited connectors.',
+                description: 'CO Opens, Hero on BTN Calls with Suited Connectors.',
                 pot: 5.5,
                 heroStack: 97.5,
                 villainStack: 97.5,
@@ -338,7 +338,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'turn',
-                description: 'CO bets 2.7bb, Hero calls. Turn (Pot: 10.9bb)',
+                description: 'CO Bets 2.7bb, Hero Calls. Turn (Pot: 10.9bb)',
                 pot: 10.9,
                 heroStack: 94.8,
                 villainStack: 94.8,
@@ -353,7 +353,7 @@ const SPOT_SCENARIOS = [
             },
             {
                 street: 'river',
-                description: 'CO calls. River (Pot: 27.3bb)',
+                description: 'CO Calls. River (Pot: 27.3bb)',
                 pot: 27.3,
                 heroStack: 86.6,
                 villainStack: 86.6,

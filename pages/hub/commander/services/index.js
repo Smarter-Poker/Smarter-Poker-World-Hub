@@ -24,35 +24,35 @@ const SERVICE_TYPES = [
   {
     type: 'food',
     label: 'Food & Drinks',
-    description: 'Order from the menu',
+    description: 'Order From the Menu',
     icon: Coffee,
     color: '#F59E0B'
   },
   {
     type: 'chips',
     label: 'Chips',
-    description: 'Request a chip runner',
+    description: 'Request a Chip Runner',
     icon: Coins,
     color: '#22D3EE'
   },
   {
     type: 'table_change',
     label: 'Table Change',
-    description: 'Request to move tables',
+    description: 'Request to Move Tables',
     icon: ArrowRightLeft,
     color: '#8B5CF6'
   },
   {
     type: 'cashout',
     label: 'Cash Out',
-    description: 'Ready to leave the game',
+    description: 'Ready to Leave the Game',
     icon: DollarSign,
     color: '#10B981'
   },
   {
     type: 'floor',
     label: 'Floor Manager',
-    description: 'Need assistance or ruling',
+    description: 'Need Assistance or Ruling',
     icon: Hand,
     color: '#EF4444'
   }

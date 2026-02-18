@@ -55,7 +55,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'skin_classic',
         name: 'Classic Fade',
-        description: 'The timeless look. Elegant and understated.',
+        description: 'The Timeless Look. Elegant and Understated.',
         category: 'card_skins',
         price: 0, // Free default
         rarity: 'common',
@@ -65,7 +65,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'skin_cyberpunk',
         name: 'Cyberpunk Neon',
-        description: 'Neon edges and holographic finish. The future is now.',
+        description: 'Neon Edges and Holographic Finish. the Future is Now.',
         category: 'card_skins',
         price: 2500,
         rarity: 'epic',
@@ -75,7 +75,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'skin_golden_foil',
         name: 'Golden Foil',
-        description: 'Pure luxury. 24k gold-plated visual treatment.',
+        description: 'Pure Luxury. 24k Gold-plated Visual Treatment.',
         category: 'card_skins',
         price: 5000,
         rarity: 'legendary',
@@ -85,7 +85,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'skin_midnight',
         name: 'Midnight Obsidian',
-        description: 'Dark as the void. For the mysterious grinder.',
+        description: 'Dark as the Void. for the Mysterious Grinder.',
         category: 'card_skins',
         price: 1500,
         rarity: 'rare',
@@ -95,7 +95,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'skin_phoenix',
         name: 'Phoenix Fire',
-        description: 'Rise from the ashes. Burning edge effects.',
+        description: 'Rise From the Ashes. Burning Edge Effects.',
         category: 'card_skins',
         price: 3500,
         rarity: 'epic',
@@ -107,7 +107,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'felt_green',
         name: 'Tournament Green',
-        description: 'The classic tournament look.',
+        description: 'The Classic Tournament Look.',
         category: 'table_felts',
         price: 0,
         rarity: 'common',
@@ -117,7 +117,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'felt_midnight',
         name: 'Midnight Black',
-        description: 'Pure stealth. The pros choice.',
+        description: 'Pure Stealth. the Pros Choice.',
         category: 'table_felts',
         price: 1000,
         rarity: 'rare',
@@ -127,7 +127,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'felt_blue',
         name: 'Tournament Blue',
-        description: 'Cool and focused. High stakes energy.',
+        description: 'Cool and Focused. High Stakes Energy.',
         category: 'table_felts',
         price: 1000,
         rarity: 'rare',
@@ -137,7 +137,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'felt_orange',
         name: 'S.P. Orange',
-        description: 'Official Smarter Poker signature felt.',
+        description: 'Official Smarter Poker Signature Felt.',
         category: 'table_felts',
         price: 2000,
         rarity: 'epic',
@@ -147,7 +147,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'felt_void',
         name: 'The Void',
-        description: 'Pure darkness with floating particle effects.',
+        description: 'Pure Darkness with Floating Particle Effects.',
         category: 'table_felts',
         price: 4000,
         rarity: 'legendary',
@@ -159,7 +159,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'avatar_classic',
         name: 'Classic Pros',
-        description: 'Professional headshots. Clean and serious.',
+        description: 'Professional Headshots. Clean and Serious.',
         category: 'avatars',
         price: 0,
         rarity: 'common',
@@ -169,7 +169,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'avatar_animals',
         name: 'Wild Animals',
-        description: 'Lion, Eagle, Wolf, and more. Unleash your spirit animal.',
+        description: 'Lion, Eagle, Wolf, and More. Unleash Your Spirit Animal.',
         category: 'avatars',
         price: 1500,
         rarity: 'rare',
@@ -179,7 +179,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'avatar_mythical',
         name: 'Mythical Creatures',
-        description: 'Werewolf, Wizard, Dragon. Fantasy at the felt.',
+        description: 'Werewolf, Wizard, Dragon. Fantasy at the Felt.',
         category: 'avatars',
         price: 3000,
         rarity: 'epic',
@@ -189,7 +189,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'avatar_warriors',
         name: 'Battle Warriors',
-        description: 'Samurai, Viking, Gladiator. Fight for the pot.',
+        description: 'Samurai, Viking, Gladiator. Fight for the Pot.',
         category: 'avatars',
         price: 3000,
         rarity: 'epic',
@@ -199,7 +199,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'avatar_cyber',
         name: 'Cyber Hackers',
-        description: 'AI bots and hackers. Digital domination.',
+        description: 'AI Bots and Hackers. Digital Domination.',
         category: 'avatars',
         price: 2500,
         rarity: 'epic',
@@ -209,7 +209,7 @@ export const SHOP_INVENTORY: CosmeticItem[] = [
     {
         id: 'avatar_legends',
         name: 'Poker Legends',
-        description: 'Inspired by the greatest. VIP exclusive.',
+        description: 'Inspired by the Greatest. VIP Exclusive.',
         category: 'avatars',
         price: 10000,
         rarity: 'legendary',

@@ -195,7 +195,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'daily-deepstack',
         name: 'Daily Deepstack',
-        description: 'Standard daily tournament with deep starting stack and 20-minute levels. Great for regulars seeking solid play.',
+        description: 'Standard Daily Tournament with Deep Starting Stack and 20-minute Levels. Great for Regulars Seeking Solid Play.',
         tournament_type: 'freezeout',
         buyin_amount: 150,
         buyin_fee: 30,
@@ -212,7 +212,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'nightly-turbo',
         name: 'Nightly Turbo',
-        description: 'Fast-paced action with shorter levels. Perfect for weeknight play when players want quick results.',
+        description: 'Fast-paced Action with Shorter Levels. Perfect for Weeknight Play When Players Want Quick Results.',
         tournament_type: 'freezeout',
         buyin_amount: 80,
         buyin_fee: 15,
@@ -229,7 +229,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'weekend-major',
         name: 'Weekend Major',
-        description: 'Premium event with deep stack, long levels, and dinner break. The flagship weekend tournament.',
+        description: 'Premium Event with Deep Stack, Long Levels, and Dinner Break. the Flagship Weekend Tournament.',
         tournament_type: 'freezeout',
         buyin_amount: 300,
         buyin_fee: 50,
@@ -246,7 +246,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'bounty-hunter',
         name: 'Bounty Hunter',
-        description: 'Knockout format with $50 bounty per elimination. Rewards aggressive play and creates action.',
+        description: 'Knockout Format with $50 Bounty per Elimination. Rewards Aggressive Play and Creates Action.',
         tournament_type: 'bounty',
         buyin_amount: 100,
         buyin_fee: 20,
@@ -263,7 +263,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'rebuy-madness',
         name: 'Rebuy Madness',
-        description: 'Unlimited rebuys through level 6 with add-on at break. Builds big prize pools from smaller buy-ins.',
+        description: 'Unlimited Rebuys Through Level 6 with Add-on at Break. Builds Big Prize Pools From Smaller Buy-ins.',
         tournament_type: 'rebuy',
         buyin_amount: 60,
         buyin_fee: 10,
@@ -287,7 +287,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'satellite-qualifier',
         name: 'Satellite Qualifier',
-        description: 'Quick single-table satellite with hyper-turbo levels. Winners earn seats into larger events.',
+        description: 'Quick Single-table Satellite with Hyper-turbo Levels. Winners Earn Seats Into Larger Events.',
         tournament_type: 'satellite',
         buyin_amount: 50,
         buyin_fee: 10,
@@ -304,7 +304,7 @@ export const TOURNAMENT_TEMPLATES = [
     {
         id: 'progressive-knockout',
         name: 'Progressive Knockout',
-        description: 'Half the buy-in starts as your bounty. Eliminate a player and win half their bounty — the other half adds to yours. Bounties grow as the tournament progresses.',
+        description: 'Half the Buy-in Starts as Your Bounty. Eliminate a Player and Win Half Their Bounty — the Other Half Adds to Yours. Bounties Grow as the Tournament Progresses.',
         tournament_type: 'pko',
         buyin_amount: 200,
         buyin_fee: 30,
@@ -323,14 +323,14 @@ export const TOURNAMENT_TEMPLATES = [
 
 // All supported tournament types
 export const TOURNAMENT_TYPES = [
-    { value: 'freezeout', label: 'Freezeout', description: 'One buy-in, no rebuys' },
-    { value: 'rebuy', label: 'Rebuy', description: 'Rebuys allowed during rebuy period' },
-    { value: 'bounty', label: 'Bounty', description: 'Fixed cash bounty for each elimination' },
-    { value: 'pko', label: 'Progressive KO', description: 'Bounty grows — half on knock out, half added to yours' },
-    { value: 'satellite', label: 'Satellite', description: 'Win a seat to a larger event' },
-    { value: 'shootout', label: 'Shootout', description: 'Win your table to advance' },
-    { value: 'turbo', label: 'Turbo', description: 'Shorter blind levels (8-12 min)' },
-    { value: 'hyper', label: 'Hyper-Turbo', description: 'Very short levels (3-5 min)' },
+    { value: 'freezeout', label: 'Freezeout', description: 'One Buy-in, no Rebuys' },
+    { value: 'rebuy', label: 'Rebuy', description: 'Rebuys Allowed During Rebuy Period' },
+    { value: 'bounty', label: 'Bounty', description: 'Fixed Cash Bounty for Each Elimination' },
+    { value: 'pko', label: 'Progressive KO', description: 'Bounty Grows — Half on Knock Out, Half Added to Yours' },
+    { value: 'satellite', label: 'Satellite', description: 'Win a Seat to a Larger Event' },
+    { value: 'shootout', label: 'Shootout', description: 'Win Your Table to Advance' },
+    { value: 'turbo', label: 'Turbo', description: 'Shorter Blind Levels (8-12 Min)' },
+    { value: 'hyper', label: 'Hyper-Turbo', description: 'Very Short Levels (3-5 Min)' },
 ];
 
 // Common starting chip options

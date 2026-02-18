@@ -21,7 +21,7 @@ const MODE_CARDS = [
     {
         id: 'mtt',
         name: 'MTT Scenarios',
-        description: 'Multi-table tournament situations and decisions',
+        description: 'Multi-table Tournament Situations and Decisions',
         icon: Target,
         color: '#f97316',
         glowColor: '#f97316',
@@ -32,7 +32,7 @@ const MODE_CARDS = [
     {
         id: 'cash',
         name: 'Cash Game',
-        description: 'Deep stack scenarios, implied odds, table dynamics',
+        description: 'Deep Stack Scenarios, Implied Odds, Table Dynamics',
         icon: Banknote,
         color: '#22c55e',
         glowColor: '#22c55e',
@@ -43,7 +43,7 @@ const MODE_CARDS = [
     {
         id: 'icm',
         name: 'ICM & Chip EV',
-        description: 'Tournament equity, chip value vs $EV decisions',
+        description: 'Tournament Equity, Chip Value vs $EV Decisions',
         icon: Calculator,
         color: '#06b6d4',
         glowColor: '#06b6d4',
@@ -55,7 +55,7 @@ const MODE_CARDS = [
     {
         id: 'history',
         name: 'Poker History',
-        description: 'Iconic moments, famous hands, legendary players',
+        description: 'Iconic Moments, Famous Hands, Legendary Players',
         icon: Trophy,
         color: '#FFD700',
         glowColor: '#FFD700',
@@ -66,7 +66,7 @@ const MODE_CARDS = [
     {
         id: 'tournaments',
         name: 'Tournaments',
-        description: 'Weekly competitions with big prizes!',
+        description: 'Weekly Competitions with Big Prizes!',
         icon: Calendar,
         color: '#FFD700',
         glowColor: '#FFD700',
@@ -77,7 +77,7 @@ const MODE_CARDS = [
     {
         id: 'pro',
         name: 'Pro Knowledge',
-        description: 'Strategy concepts, GTO basics, advanced trivia',
+        description: 'Strategy Concepts, GTO Basics, Advanced Trivia',
         icon: GraduationCap,
         color: '#9D4EDD',
         glowColor: '#9D4EDD',
@@ -89,7 +89,7 @@ const MODE_CARDS = [
     {
         id: 'survival',
         name: 'Survival Mode',
-        description: '10 levels, 20 questions each. All categories combined!',
+        description: '10 Levels, 20 Questions Each. All Categories Combined!',
         icon: Heart,
         color: '#ef4444',
         glowColor: '#ef4444',
@@ -100,7 +100,7 @@ const MODE_CARDS = [
     {
         id: 'endless',
         name: 'Endless Mode',
-        description: 'All questions, random order. Answer until you miss!',
+        description: 'All Questions, Random Order. Answer Until You Miss!',
         icon: Infinity,
         color: '#8b5cf6',
         glowColor: '#8b5cf6',
@@ -111,7 +111,7 @@ const MODE_CARDS = [
     {
         id: 'mixed',
         name: 'Mixed Mode',
-        description: 'Rotating categories: History → Rules → Pro',
+        description: 'Rotating Categories: History → Rules → Pro',
         icon: Shuffle,
         color: '#00D4FF',
         glowColor: '#00D4FF',
@@ -123,7 +123,7 @@ const MODE_CARDS = [
     {
         id: 'pvp',
         name: '1v1 Battle',
-        description: 'Challenge real players for diamonds!',
+        description: 'Challenge Real Players for Diamonds!',
         icon: Swords,
         color: '#ef4444',
         glowColor: '#ef4444',
@@ -134,7 +134,7 @@ const MODE_CARDS = [
     {
         id: 'rules',
         name: 'Rules Quiz',
-        description: 'Test your understanding of official poker rules',
+        description: 'Test Your Understanding of Official Poker Rules',
         icon: BookOpen,
         color: '#4a90d9',
         glowColor: '#4a90d9',
@@ -145,7 +145,7 @@ const MODE_CARDS = [
     {
         id: 'gto',
         name: 'GTO Master',
-        description: 'Solver-based scenarios combining MTT, Cash, and ICM',
+        description: 'Solver-based Scenarios Combining MTT, Cash, and ICM',
         icon: Brain,
         color: '#a855f7',
         glowColor: '#a855f7',

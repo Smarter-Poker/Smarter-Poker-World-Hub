@@ -16,18 +16,18 @@ import { Target, BookOpen, Award, Trophy, Flame, Zap, Crown, CheckCircle, Gem, G
 
 // Achievement definitions with unlock conditions — using Lucide icons instead of emojis
 const ACHIEVEMENTS = [
-    { id: 'first_answer', name: 'First Steps', description: 'Answer your first trivia question', Icon: Target, requirement: (stats) => stats.totalQuestions >= 1 },
-    { id: 'ten_correct', name: 'Getting Started', description: 'Get 10 correct answers', Icon: BookOpen, requirement: (stats) => stats.correctAnswers >= 10 },
-    { id: 'fifty_correct', name: 'Trivia Apprentice', description: 'Get 50 correct answers', Icon: Award, requirement: (stats) => stats.correctAnswers >= 50 },
-    { id: 'hundred_correct', name: 'Trivia Expert', description: 'Get 100 correct answers', Icon: Trophy, requirement: (stats) => stats.correctAnswers >= 100 },
-    { id: 'streak_5', name: 'Hot Streak', description: 'Achieve a 5-day streak', Icon: Flame, requirement: (stats) => stats.bestStreak >= 5 },
-    { id: 'streak_10', name: 'Streak Master', description: 'Achieve a 10-day streak', Icon: Zap, requirement: (stats) => stats.bestStreak >= 10 },
-    { id: 'streak_30', name: 'Dedicated Player', description: 'Achieve a 30-day streak', Icon: Crown, requirement: (stats) => stats.bestStreak >= 30 },
-    { id: 'perfect_game', name: 'Perfect Score', description: 'Get 100% in a trivia session', Icon: CheckCircle, requirement: (stats) => stats.hasPerfectGame },
-    { id: 'diamond_winner', name: 'Diamond Winner', description: 'Earn 100 diamonds from trivia', Icon: Gem, requirement: (stats) => stats.diamondsEarned >= 100 },
-    { id: 'arcade_master', name: 'Arcade Master', description: 'Play 10 arcade games', Icon: Gamepad2, requirement: (stats) => stats.arcadeGames >= 10 },
-    { id: 'daily_player', name: 'Daily Devotee', description: 'Play daily trivia 7 days in a row', Icon: Calendar, requirement: (stats) => stats.dailyStreak >= 7 },
-    { id: 'thousand_questions', name: 'Knowledge Seeker', description: 'Answer 1,000 questions', Icon: Star, requirement: (stats) => stats.totalQuestions >= 1000 }
+    { id: 'first_answer', name: 'First Steps', description: 'Answer Your First Trivia Question', Icon: Target, requirement: (stats) => stats.totalQuestions >= 1 },
+    { id: 'ten_correct', name: 'Getting Started', description: 'Get 10 Correct Answers', Icon: BookOpen, requirement: (stats) => stats.correctAnswers >= 10 },
+    { id: 'fifty_correct', name: 'Trivia Apprentice', description: 'Get 50 Correct Answers', Icon: Award, requirement: (stats) => stats.correctAnswers >= 50 },
+    { id: 'hundred_correct', name: 'Trivia Expert', description: 'Get 100 Correct Answers', Icon: Trophy, requirement: (stats) => stats.correctAnswers >= 100 },
+    { id: 'streak_5', name: 'Hot Streak', description: 'Achieve a 5-day Streak', Icon: Flame, requirement: (stats) => stats.bestStreak >= 5 },
+    { id: 'streak_10', name: 'Streak Master', description: 'Achieve a 10-day Streak', Icon: Zap, requirement: (stats) => stats.bestStreak >= 10 },
+    { id: 'streak_30', name: 'Dedicated Player', description: 'Achieve a 30-day Streak', Icon: Crown, requirement: (stats) => stats.bestStreak >= 30 },
+    { id: 'perfect_game', name: 'Perfect Score', description: 'Get 100% in a Trivia Session', Icon: CheckCircle, requirement: (stats) => stats.hasPerfectGame },
+    { id: 'diamond_winner', name: 'Diamond Winner', description: 'Earn 100 Diamonds From Trivia', Icon: Gem, requirement: (stats) => stats.diamondsEarned >= 100 },
+    { id: 'arcade_master', name: 'Arcade Master', description: 'Play 10 Arcade Games', Icon: Gamepad2, requirement: (stats) => stats.arcadeGames >= 10 },
+    { id: 'daily_player', name: 'Daily Devotee', description: 'Play Daily Trivia 7 Days in a Row', Icon: Calendar, requirement: (stats) => stats.dailyStreak >= 7 },
+    { id: 'thousand_questions', name: 'Knowledge Seeker', description: 'Answer 1,000 Questions', Icon: Star, requirement: (stats) => stats.totalQuestions >= 1000 }
 ];
 
 export default function TriviaAchievements() {

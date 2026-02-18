@@ -21,7 +21,7 @@ const DOCUMENTATION = [
   {
     id: 'staff-guide',
     title: 'Staff Training Guide',
-    description: 'Learn how to manage waitlists, seat players, handle notifications, and support tournaments as floor staff.',
+    description: 'Learn How to Manage Waitlists, Seat Players, Handle Notifications, and Support Tournaments as Floor Staff.',
     icon: Users,
     href: '/commander/docs/staff-guide',
     audience: 'Floor Staff, Brush',
@@ -30,7 +30,7 @@ const DOCUMENTATION = [
   {
     id: 'manager-guide',
     title: 'Manager Admin Guide',
-    description: 'Configure your venue, manage staff, set up promotions, and access analytics and reports.',
+    description: 'Configure Your Venue, Manage Staff, Set up Promotions, and Access Analytics and Reports.',
     icon: Settings,
     href: '/commander/docs/manager-guide',
     audience: 'Managers, Owners',
@@ -39,7 +39,7 @@ const DOCUMENTATION = [
   {
     id: 'faq',
     title: 'Player FAQ',
-    description: 'Answers to common questions about using Club Commander as a player.',
+    description: 'Answers to Common Questions About Using Club Commander as a Player.',
     icon: HelpCircle,
     href: '/hub/commander/faq',
     audience: 'Players',
@@ -48,7 +48,7 @@ const DOCUMENTATION = [
   {
     id: 'troubleshooting',
     title: 'Troubleshooting Guide',
-    description: 'Diagnose and resolve common technical issues with step-by-step solutions.',
+    description: 'Diagnose and Resolve Common Technical Issues with Step-by-step Solutions.',
     icon: AlertTriangle,
     href: '/commander/docs/troubleshooting',
     audience: 'All Staff',

@@ -31,32 +31,32 @@ const FEATURES = [
   {
     icon: Users,
     title: 'Digital Waitlist',
-    description: 'Let players join from anywhere with real-time position updates'
+    description: 'Let Players Join From Anywhere with Real-time Position Updates'
   },
   {
     icon: Clock,
     title: 'AI Wait Predictions',
-    description: 'Smart predictions help players plan their visit'
+    description: 'Smart Predictions Help Players Plan Their Visit'
   },
   {
     icon: BarChart3,
     title: 'Analytics Dashboard',
-    description: 'Track player traffic, table utilization, and trends'
+    description: 'Track Player Traffic, Table Utilization, and Trends'
   },
   {
     icon: Shield,
     title: 'Responsible Gaming',
-    description: 'Built-in tools for player protection and compliance'
+    description: 'Built-in Tools for Player Protection and Compliance'
   },
   {
     icon: Smartphone,
     title: 'Mobile-First',
-    description: 'Works on any device - no app download required'
+    description: 'Works on Any Device - no App Download Required'
   },
   {
     icon: Zap,
     title: 'Real-Time Updates',
-    description: 'Instant notifications keep players informed'
+    description: 'Instant Notifications Keep Players Informed'
   }
 ];
 

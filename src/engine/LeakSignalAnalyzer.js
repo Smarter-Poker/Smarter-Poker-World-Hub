@@ -19,25 +19,25 @@ export const LEAK_TYPES = {
     PASSIVE_PLAY: {
         id: 'PASSIVE_PLAY',
         name: 'Passive Play',
-        description: 'You are calling when you should be raising. You are missing value and fold equity.',
+        description: 'You Are Calling When You Should Be Raising. You Are Missing Value and Fold Equity.',
         drill: 'aggression-basics'
     },
     OVER_FOLDING: {
         id: 'OVER_FOLDING',
         name: 'Over Folding',
-        description: 'You are folding too much. Opponents can exploit this with any two cards.',
+        description: 'You Are Folding Too Much. Opponents Can Exploit This with Any Two Cards.',
         drill: 'defense-frequency'
     },
     CALLING_STATION: {
         id: 'CALLING_STATION',
         name: 'Calling Station',
-        description: 'You are calling when you should fold. You are paying off value bets too lightly.',
+        description: 'You Are Calling When You Should Fold. You Are Paying Off Value Bets Too Lightly.',
         drill: 'discipline-folds'
     },
     MANIAC_AGGRESSION: {
         id: 'MANIAC_AGGRESSION',
         name: 'Unwarranted Aggression',
-        description: 'You are raising when you should be checking or calling. You are over-bluffing.',
+        description: 'You Are Raising When You Should Be Checking or Calling. You Are Over-bluffing.',
         drill: 'value-betting'
     }
 };

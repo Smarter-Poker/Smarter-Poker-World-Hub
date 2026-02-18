@@ -21,7 +21,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 const STRUCTURE_TEMPLATES = {
   turbo: {
     name: 'Turbo',
-    description: '10-min levels, fast action',
+    description: '10-min Levels, Fast Action',
     starting_chips: 10000,
     levels: [
       { small_blind: 25, big_blind: 50, ante: 0, duration: 10 },
@@ -42,7 +42,7 @@ const STRUCTURE_TEMPLATES = {
   },
   standard: {
     name: 'Standard',
-    description: '20-min levels, balanced pace',
+    description: '20-min Levels, Balanced Pace',
     starting_chips: 15000,
     levels: [
       { small_blind: 25, big_blind: 50, ante: 0, duration: 20 },
@@ -68,7 +68,7 @@ const STRUCTURE_TEMPLATES = {
   },
   deep_stack: {
     name: 'Deep Stack',
-    description: '30-min levels, lots of play',
+    description: '30-min Levels, Lots of Play',
     starting_chips: 25000,
     levels: [
       { small_blind: 25, big_blind: 50, ante: 0, duration: 30 },

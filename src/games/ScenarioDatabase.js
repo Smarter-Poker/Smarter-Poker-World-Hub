@@ -33,7 +33,7 @@ export const LEVEL_CONFIG = {
 export const LEVEL_1_SCENARIOS = [
     {
         id: 'l1-utg-100bb', level: 1, title: 'UTG Open (100bb)', position: 'UTG', stackDepth: 100,
-        description: 'The tightest opening range. Only premium hands.',
+        description: 'The Tightest Opening Range. Only Premium Hands.',
         tip: 'Focus On Pairs TT+, Broadway Suited, And Strong Offsuit Broadways.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -47,7 +47,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-mp-100bb', level: 1, title: 'MP Open (100bb)', position: 'MP', stackDepth: 100,
-        description: 'Slightly wider than UTG. Add some suited connectors.',
+        description: 'Slightly Wider Than UTG. Add Some Suited Connectors.',
         tip: 'Include 66, More Suited Ax, And K9s+.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -62,7 +62,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-hj-100bb', level: 1, title: 'HJ Open (100bb)', position: 'HJ', stackDepth: 100,
-        description: 'The widest early position. Transition to late position opens.',
+        description: 'The Widest Early Position. Transition to Late Position Opens.',
         tip: 'Add 55, 44, More Offsuit Broadways, And Suited Gappers.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -80,7 +80,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-utg-50bb', level: 1, title: 'UTG Open (50bb)', position: 'UTG', stackDepth: 50,
-        description: 'Shorter stack UTG range. Tighter than 100bb.',
+        description: 'Shorter Stack UTG Range. Tighter Than 100bb.',
         tip: 'Cut Some Suited Connectors, Focus On High Card Strength.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -94,7 +94,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-utg-200bb', level: 1, title: 'UTG Open (200bb)', position: 'UTG', stackDepth: 200,
-        description: 'Deep stack UTG. Can add more speculative hands.',
+        description: 'Deep Stack UTG. Can Add More Speculative Hands.',
         tip: 'Add Small Pairs And More Suited Connectors For Implied Odds.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -108,7 +108,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-mp-50bb', level: 1, title: 'MP Open (50bb)', position: 'MP', stackDepth: 50,
-        description: 'Middle position with shorter stack.',
+        description: 'Middle Position with Shorter Stack.',
         tip: 'Slightly Wider Than UTG 50bb, But Still Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -123,7 +123,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-mp-200bb', level: 1, title: 'MP Open (200bb)', position: 'MP', stackDepth: 200,
-        description: 'Deep stack middle position.',
+        description: 'Deep Stack Middle Position.',
         tip: 'Add More Suited Hands And Small Pairs.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -139,7 +139,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-hj-50bb', level: 1, title: 'HJ Open (50bb)', position: 'HJ', stackDepth: 50,
-        description: 'Hijack with shorter stack.',
+        description: 'Hijack with Shorter Stack.',
         tip: 'Wider Than MP, But Not As Wide As 100BB HJ.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -155,7 +155,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-hj-200bb', level: 1, title: 'HJ Open (200bb)', position: 'HJ', stackDepth: 200,
-        description: 'Deep stack hijack.',
+        description: 'Deep Stack Hijack.',
         tip: 'Very Wide Range With Deep Stacks.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -174,7 +174,7 @@ export const LEVEL_1_SCENARIOS = [
     // Additional UTG variations
     {
         id: 'l1-utg-30bb', level: 1, title: 'UTG Open (30bb)', position: 'UTG', stackDepth: 30,
-        description: 'Short stack UTG. Very tight range.',
+        description: 'Short Stack UTG. Very Tight Range.',
         tip: 'Premium Hands Only. No Speculative Plays.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -186,7 +186,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-mp-30bb', level: 1, title: 'MP Open (30bb)', position: 'MP', stackDepth: 30,
-        description: 'Short stack middle position.',
+        description: 'Short Stack Middle Position.',
         tip: 'Slightly Wider Than UTG 30bb.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -200,7 +200,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-hj-30bb', level: 1, title: 'HJ Open (30bb)', position: 'HJ', stackDepth: 30,
-        description: 'Short stack hijack.',
+        description: 'Short Stack Hijack.',
         tip: 'Wider Than MP 30bb, But Still Relatively Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -216,7 +216,7 @@ export const LEVEL_1_SCENARIOS = [
     // UTG+1 scenarios
     {
         id: 'l1-utg1-100bb', level: 1, title: 'UTG+1 Open (100bb)', position: 'UTG+1', stackDepth: 100,
-        description: 'One seat after UTG. Slightly wider.',
+        description: 'One Seat After UTG. Slightly Wider.',
         tip: 'Add A Few More Suited Hands Than UTG.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -231,7 +231,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-utg1-50bb', level: 1, title: 'UTG+1 Open (50bb)', position: 'UTG+1', stackDepth: 50,
-        description: 'UTG+1 with shorter stack.',
+        description: 'UTG+1 with Shorter Stack.',
         tip: 'Tighter Than 100bb, But Wider Than UTG 50bb.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -263,7 +263,7 @@ export const LEVEL_1_SCENARIOS = [
     // Ante vs No Ante scenarios
     {
         id: 'l1-utg-100bb-ante', level: 1, title: 'UTG Open (100bb, Ante)', position: 'UTG', stackDepth: 100,
-        description: 'UTG with big blind ante. Slightly wider.',
+        description: 'UTG with Big Blind Ante. Slightly Wider.',
         tip: 'Ante Makes Stealing More Profitable. Add A Few More Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -278,7 +278,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-mp-100bb-ante', level: 1, title: 'MP Open (100bb, Ante)', position: 'MP', stackDepth: 100,
-        description: 'Middle position with ante.',
+        description: 'Middle Position with Ante.',
         tip: 'Ante Increases Pot Odds. Open Wider.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -295,7 +295,7 @@ export const LEVEL_1_SCENARIOS = [
     // 6-max vs 9-max
     {
         id: 'l1-utg-6max', level: 1, title: 'UTG Open (6-Max)', position: 'UTG', stackDepth: 100,
-        description: 'UTG in 6-max. Wider than 9-max UTG.',
+        description: 'UTG in 6-max. Wider Than 9-max UTG.',
         tip: '6-max UTG Is Like 9-max MP. Open Wider.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -310,7 +310,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     {
         id: 'l1-mp-6max', level: 1, title: 'MP Open (6-Max)', position: 'MP', stackDepth: 100,
-        description: 'MP in 6-max. Very wide.',
+        description: 'MP in 6-max. Very Wide.',
         tip: '6-max MP Is Like 9-max HJ. Open Very Wide.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -329,7 +329,7 @@ export const LEVEL_1_SCENARIOS = [
     // Tournament vs Cash
     {
         id: 'l1-utg-mtt-20bb', level: 1, title: 'UTG Open (MTT, 20bb)', position: 'UTG', stackDepth: 20,
-        description: 'Tournament UTG with 20bb. Push/fold territory.',
+        description: 'Tournament UTG with 20bb. Push/fold Territory.',
         tip: 'Very Tight. Only Premium Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -372,7 +372,7 @@ export const LEVEL_1_SCENARIOS = [
 export const LEVEL_10_SCENARIOS = [
     {
         id: 'l10-mixed-btn', level: 10, title: 'BTN Mixed Strategy', position: 'BTN', stackDepth: 100,
-        description: 'Hands that mix raise/fold on the Button.',
+        description: 'Hands That Mix Raise/fold on the Button.',
         tip: 'These Borderline Hands Use Mixed Frequencies In GTO.',
         solution: {
             'K4o': 'raise', 'K3o': 'raise', 'K2o': 'raise',
@@ -417,7 +417,7 @@ export const SPOT_SCENARIOS = [
             street: 'flop',
             board: ['Ks', '7h', '2d'],
             villainAction: 'check',
-            description: 'You flop Top Pair Top Kicker on a dry board. BB checks.',
+            description: 'You Flop Top Pair Top Kicker on a Dry Board. BB Checks.',
             options: [
                 {
                     label: 'Check',
@@ -435,7 +435,7 @@ export const SPOT_SCENARIOS = [
                         card: '9s',
                         villainAction: 'call',
                         pot: 9.1,
-                        description: 'Villain calls. Turn is 9s. BB checks.',
+                        description: 'Villain Calls. Turn is 9s. BB Checks.',
                         options: [
                             {
                                 label: 'Check',
@@ -453,7 +453,7 @@ export const SPOT_SCENARIOS = [
                                     card: '3h',
                                     villainAction: 'call',
                                     pot: 22.1,
-                                    description: 'Villain calls. River is 3h (Brick). BB checks.',
+                                    description: 'Villain Calls. River is 3h (Brick). BB Checks.',
                                     options: [
                                         { label: 'Check', score: 50, feedback: 'Missed value. Villain has many worse Kings.' },
                                         { label: 'Bet 15BB (66%)', score: 100, feedback: 'Maximize value! Target KQ, KJ, KT.' },
@@ -488,7 +488,7 @@ export const SPOT_SCENARIOS = [
             street: 'flop',
             board: ['Jc', '8d', '4s'],
             villainAction: null, // Hero is first to act
-            description: '3-Bet pot. You have an overpair on a disconnected board.',
+            description: '3-Bet Pot. You Have an Overpair on a Disconnected Board.',
             options: [
                 {
                     label: 'Check',
@@ -506,7 +506,7 @@ export const SPOT_SCENARIOS = [
                         card: 'Ac',
                         villainAction: 'call',
                         pot: 32,
-                        description: 'Villain calls. Turn is the Ace of clubs. You act first.',
+                        description: 'Villain Calls. Turn is the Ace of Clubs. You Act First.',
                         options: [
                             {
                                 label: 'Check',
@@ -518,7 +518,7 @@ export const SPOT_SCENARIOS = [
                                     card: '2d',
                                     villainAction: 'check',
                                     pot: 32,
-                                    description: 'Villain checks back. River is 2d. You act first.',
+                                    description: 'Villain Checks Back. River is 2d. You Act First.',
                                     options: [
                                         { label: 'Check', score: 90, feedback: 'Good to check-call or check-fold depending on size.' },
                                         { label: 'Bet 10BB', score: 100, feedback: 'Thin value/blocker bet. Tries to get value from JJ/TT.' }

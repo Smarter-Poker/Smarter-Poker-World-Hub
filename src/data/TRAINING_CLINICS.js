@@ -33,7 +33,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #1: Defense',
         category: 'DEFENSE',
         targetLeak: 'FOLD_TO_AGGRESSION',
-        description: 'Stop folding bottom-of-range winners against aggressive opponents',
+        description: 'Stop Folding Bottom-of-range Winners Against Aggressive Opponents',
         icon: '🛡️',
         badge: 'Iron Wall Master',
         laws: [8, 9], // Stack Awareness, Bully Archetype
@@ -84,7 +84,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #2: Sizing',
         category: 'SIZING',
         targetLeak: 'THIN_VALUE',
-        description: 'Maximize EV with strong holdings through precise bet sizing',
+        description: 'Maximize EV with Strong Holdings Through Precise Bet Sizing',
         icon: '💎',
         badge: 'Value Assassin',
         laws: [6], // Physical Slider
@@ -133,7 +133,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #3: Defense Math',
         category: 'DEFENSE',
         targetLeak: 'BLUFF_FREQUENCY',
-        description: 'Master Minimum Defense Frequency (MDF) to prevent profitable villain bluffs',
+        description: 'Master Minimum Defense Frequency (MDF) to Prevent Profitable Villain Bluffs',
         icon: '⚖️',
         badge: 'MDF Master',
         laws: [9], // River Pressure
@@ -184,7 +184,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #4: Seat Mastery',
         category: 'POSITION',
         targetLeak: 'POSITION_AWARENESS',
-        description: 'Train seat-relative range mastery through rapid-fire drills',
+        description: 'Train Seat-relative Range Mastery Through Rapid-fire Drills',
         icon: '🔄',
         badge: 'Position Master',
         laws: [2, 3], // Table Re-orient, Button Motion
@@ -234,7 +234,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #5: Strategic Logic',
         category: 'STRATEGY',
         targetLeak: 'CBET_DEFENSE',
-        description: 'Master continuation betting logic by identifying Range vs Nut advantage',
+        description: 'Master Continuation Betting Logic by Identifying Range vs Nut Advantage',
         icon: '💥',
         badge: 'C-Bet Pro',
         laws: [10], // Concept Mastery
@@ -250,7 +250,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #6: Timing Discipline',
         category: 'PSYCHOLOGY',
         targetLeak: 'TIMING_TELLS',
-        description: 'Eliminate timing tells by enforcing consistent action-rhythm',
+        description: 'Eliminate Timing Tells by Enforcing Consistent Action-rhythm',
         icon: '⏱️',
         badge: 'Rhythm Master',
         laws: [9], // Visual Rhythm
@@ -267,7 +267,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #7: Tilt Resistance',
         category: 'PSYCHOLOGY',
         targetLeak: 'TILT_PLAY',
-        description: 'Test emotional discipline through deliberate bad-beat sequences',
+        description: 'Test Emotional Discipline Through Deliberate Bad-beat Sequences',
         icon: '🧊',
         badge: 'Ice Master',
         laws: [9], // Immersion
@@ -284,7 +284,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #8: Result Bias',
         category: 'PSYCHOLOGY',
         targetLeak: 'RESULT_BIAS',
-        description: 'Separate decision quality from outcome through self-assessment',
+        description: 'Separate Decision Quality From Outcome Through Self-assessment',
         icon: '🔍',
         badge: 'Clear Thinker',
         laws: [10], // Feedback
@@ -304,7 +304,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #9: Agility',
         category: 'ADVANCED',
         targetLeak: 'CONTEXT_ADAPTATION',
-        description: 'Adapt to switching table types and stack depths mid-session',
+        description: 'Adapt to Switching Table Types and Stack Depths Mid-session',
         icon: '⚡',
         badge: 'Agility Master',
         laws: [2], // Instant Orientation
@@ -321,7 +321,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #10: Exploit',
         category: 'ADVANCED',
         targetLeak: 'MISSED_EXPLOIT',
-        description: 'Punish non-GTO opponents by identifying villain leaks',
+        description: 'Punish Non-GTO Opponents by Identifying Villain Leaks',
         icon: '🎣',
         badge: 'Exploit Hunter',
         laws: [9], // Villain Immersion
@@ -338,7 +338,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #11: Capped',
         category: 'ADVANCED',
         targetLeak: 'CAPPED_FOLDING',
-        description: 'Stop folding when your range is condensed due to pre-flop calling',
+        description: 'Stop Folding When Your Range is Condensed Due to Pre-flop Calling',
         icon: '📦',
         badge: 'Range Defender',
         laws: [9], // Danger Immersion
@@ -354,7 +354,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #12: Stack Math',
         category: 'ADVANCED',
         targetLeak: 'EFFECTIVE_STACK',
-        description: 'Master effective stack math and price-commitment thresholds',
+        description: 'Master Effective Stack Math and Price-commitment Thresholds',
         icon: '📐',
         badge: 'Stack Mathematician',
         laws: [8], // Effective Stack Math
@@ -375,7 +375,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #13: MTT',
         category: 'MTT',
         targetLeak: 'ICM_AWARENESS',
-        description: 'Comprehensive 150-level tournament engine: Push/Fold, ICM, ChipEV',
+        description: 'Comprehensive 150-level Tournament Engine: Push/Fold, ICM, ChipEV',
         icon: '🏆',
         badge: 'Tournament Master',
         laws: [3, 8, 9], // Button Rotation, Adaptive Difficulty, Environmental Pulse
@@ -499,7 +499,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #14: PKO',
         category: 'MTT',
         targetLeak: 'BOUNTY_MATH',
-        description: 'Adjust calling ranges based on bounty chip equivalents',
+        description: 'Adjust Calling Ranges Based on Bounty Chip Equivalents',
         icon: '💰',
         badge: 'Bounty Hunter',
         laws: [8, 9], // Bounty Math, Bounty Visuals
@@ -515,7 +515,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #15: Satellites',
         category: 'MTT',
         targetLeak: 'SATELLITE_ICM',
-        description: 'Absolute survival GTO for tournament ticket bubbles',
+        description: 'Absolute Survival GTO for Tournament Ticket Bubbles',
         icon: '🎫',
         badge: 'Ticket Master',
         laws: [9, 10], // Survival Pressure, Survival Concepts
@@ -531,7 +531,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #16: Big Stack',
         category: 'MTT',
         targetLeak: 'BIG_STACK_PRESSURE',
-        description: 'Exploit ICM pressure when playing as a big stack',
+        description: 'Exploit ICM Pressure When Playing as a Big Stack',
         icon: '🦈',
         badge: 'Shark',
         laws: [8, 9], // Stack Awareness, Shark Mode
@@ -547,7 +547,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #17: Large Pot',
         category: 'MTT',
         targetLeak: 'ANTE_DEFENSE',
-        description: 'Correct defense frequencies for BB Ante formats (67% larger pots)',
+        description: 'Correct Defense Frequencies for BB Ante Formats (67% Larger Pots)',
         icon: '🎰',
         badge: 'Ante Master',
         laws: [9, 12], // Large Pot Visual, Format Consistency
@@ -563,7 +563,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #18: Discipline',
         category: 'MTT',
         targetLeak: 'PAY_JUMP_PATIENCE',
-        description: 'Extreme discipline for pay-jump maximization',
+        description: 'Extreme Discipline for Pay-jump Maximization',
         icon: '🪜',
         badge: 'Ladder Master',
         laws: [9, 10], // Patience Visual, ICM Survival
@@ -582,7 +582,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #19: Final Table',
         category: 'MTT',
         targetLeak: 'FINAL_TABLE_ICM',
-        description: 'Master pay-jump optimization at the final table',
+        description: 'Master Pay-jump Optimization at the Final Table',
         icon: '👑',
         badge: 'Final Table Champion',
         laws: [8, 9], // Stack Asymmetry, Pressure
@@ -598,7 +598,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #20: 1v1',
         category: 'MTT',
         targetLeak: 'HEADS_UP_PLAY',
-        description: 'Specialized training for heads-up tournament finales',
+        description: 'Specialized Training for Heads-up Tournament Finales',
         icon: '⚔️',
         badge: 'Duel Champion',
         laws: [2, 3], // Table Re-orient, Button Rotation
@@ -614,7 +614,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #21: 10-20BB',
         category: 'MTT',
         targetLeak: 'SHORT_STACK',
-        description: 'Master push/fold ranges with 10-20BB stacks',
+        description: 'Master Push/fold Ranges with 10-20BB Stacks',
         icon: '🥷',
         badge: 'Short Stack Ninja',
         laws: [8], // Stack Awareness
@@ -630,7 +630,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #22: 100BB+',
         category: 'CASH',
         targetLeak: 'DEEP_STACK',
-        description: 'Master deep-stack play with 100BB+ effective stacks',
+        description: 'Master Deep-stack Play with 100BB+ Effective Stacks',
         icon: '📚',
         badge: 'Deep Stack Pro',
         laws: [8], // Stack Awareness
@@ -646,7 +646,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #23: SB vs BB',
         category: 'CASH',
         targetLeak: 'BVB_RANGES',
-        description: 'Master blind vs blind battles with wide ranges',
+        description: 'Master Blind vs Blind Battles with Wide Ranges',
         icon: '🥊',
         badge: 'Blind Warrior',
         laws: [2, 3], // Position awareness
@@ -662,7 +662,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #24: 3+ Players',
         category: 'CASH',
         targetLeak: 'MULTI_WAY',
-        description: 'Adjust strategy for multi-way pot dynamics',
+        description: 'Adjust Strategy for Multi-way Pot Dynamics',
         icon: '👥',
         badge: 'Multi-Way Master',
         laws: [6, 8], // Dynamic Sizing, Stack Awareness
@@ -678,7 +678,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #25: Final Street',
         category: 'STRATEGY',
         targetLeak: 'RIVER_PLAY',
-        description: 'Master the final street where decisions are most critical',
+        description: 'Master the Final Street Where Decisions Are Most Critical',
         icon: '🌊',
         badge: 'River Pro',
         laws: [9, 10], // Pressure, Concepts
@@ -694,7 +694,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #26: Polarized Bets',
         category: 'ADVANCED',
         targetLeak: 'OVERBET_FREQUENCY',
-        description: 'Master polarized overbetting for maximum EV extraction',
+        description: 'Master Polarized Overbetting for Maximum EV Extraction',
         icon: '💣',
         badge: 'Overbet Master',
         laws: [6], // Dynamic Sizing
@@ -710,7 +710,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #27: Aggression',
         category: 'STRATEGY',
         targetLeak: 'CHECK_RAISE_FREQUENCY',
-        description: 'Master the check-raise for both value and bluffs',
+        description: 'Master the Check-raise for Both Value and Bluffs',
         icon: '📈',
         badge: 'Check-Raise Artist',
         laws: [9], // Pressure
@@ -726,7 +726,7 @@ export const TRAINING_CLINICS = [
         subtitle: 'Clinic #28: Mixed Strategy',
         category: 'ADVANCED',
         targetLeak: 'MIXED_FREQUENCY',
-        description: 'Execute mixed strategies with precise solver frequencies',
+        description: 'Execute Mixed Strategies with Precise Solver Frequencies',
         icon: '🎲',
         badge: 'Frequency Master',
         laws: [6], // Physical Slider

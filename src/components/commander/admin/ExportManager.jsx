@@ -11,13 +11,13 @@ import {
 } from 'lucide-react';
 
 const EXPORT_TYPES = [
-  { value: 'players', label: 'Player Stats', icon: Users, description: 'Player statistics and visit history' },
-  { value: 'sessions', label: 'Sessions', icon: Activity, description: 'Player session data' },
-  { value: 'tournaments', label: 'Tournaments', icon: Trophy, description: 'Tournament results and entries' },
-  { value: 'analytics', label: 'Analytics', icon: Table, description: 'Daily analytics data' },
-  { value: 'promotions', label: 'Promotions', icon: Gift, description: 'Promotion awards' },
-  { value: 'comps', label: 'Comps', icon: DollarSign, description: 'Comp transactions' },
-  { value: 'audit_logs', label: 'Audit Logs', icon: Shield, description: 'Activity audit trail' }
+  { value: 'players', label: 'Player Stats', icon: Users, description: 'Player Statistics and Visit History' },
+  { value: 'sessions', label: 'Sessions', icon: Activity, description: 'Player Session Data' },
+  { value: 'tournaments', label: 'Tournaments', icon: Trophy, description: 'Tournament Results and Entries' },
+  { value: 'analytics', label: 'Analytics', icon: Table, description: 'Daily Analytics Data' },
+  { value: 'promotions', label: 'Promotions', icon: Gift, description: 'Promotion Awards' },
+  { value: 'comps', label: 'Comps', icon: DollarSign, description: 'Comp Transactions' },
+  { value: 'audit_logs', label: 'Audit Logs', icon: Shield, description: 'Activity Audit Trail' }
 ];
 
 const FORMAT_OPTIONS = [

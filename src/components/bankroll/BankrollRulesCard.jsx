@@ -12,7 +12,7 @@ const PREMADE_RULES = [
   {
     rule_type: 'stop_loss_session',
     label: 'Session Stop-Loss',
-    description: 'Alert when session loss exceeds this amount',
+    description: 'Alert When Session Loss Exceeds This Amount',
     defaultValue: 500,
     format: (v) => `$${v.toLocaleString()}`,
     unit: '$',
@@ -20,7 +20,7 @@ const PREMADE_RULES = [
   {
     rule_type: 'stop_loss_day',
     label: 'Daily Stop-Loss',
-    description: 'Alert when total daily loss exceeds this amount',
+    description: 'Alert When Total Daily Loss Exceeds This Amount',
     defaultValue: 1000,
     format: (v) => `$${v.toLocaleString()}`,
     unit: '$',
@@ -28,7 +28,7 @@ const PREMADE_RULES = [
   {
     rule_type: 'max_buyin_percent',
     label: 'Max Buy-In %',
-    description: 'Alert when a single buy-in exceeds this % of bankroll',
+    description: 'Alert When a Single Buy-in Exceeds This % of Bankroll',
     defaultValue: 5,
     format: (v) => `${v}%`,
     unit: '%',
@@ -36,7 +36,7 @@ const PREMADE_RULES = [
   {
     rule_type: 'win_goal_session',
     label: 'Session Win Goal',
-    description: 'Notify when session profit reaches this amount',
+    description: 'Notify When Session Profit Reaches This Amount',
     defaultValue: 1000,
     format: (v) => `$${v.toLocaleString()}`,
     unit: '$',
@@ -44,7 +44,7 @@ const PREMADE_RULES = [
   {
     rule_type: 'stop_loss_month',
     label: 'Monthly Stop-Loss',
-    description: 'Alert when monthly loss exceeds this amount',
+    description: 'Alert When Monthly Loss Exceeds This Amount',
     defaultValue: 5000,
     format: (v) => `$${v.toLocaleString()}`,
     unit: '$',
@@ -52,7 +52,7 @@ const PREMADE_RULES = [
   {
     rule_type: 'time_limit_session',
     label: 'Session Time Limit',
-    description: 'Alert when session exceeds this many hours',
+    description: 'Alert When Session Exceeds This Many Hours',
     defaultValue: 8,
     format: (v) => `${v} hrs`,
     unit: 'hrs',

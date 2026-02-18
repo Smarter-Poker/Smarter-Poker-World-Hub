@@ -11,9 +11,9 @@ export default function DiamondArcadeAchievements() {
     const router = useRouter();
 
     const achievements = [
-        { id: 1, name: 'First Win', description: 'Win your first arcade game', unlocked: true, icon: '' },
+        { id: 1, name: 'First Win', description: 'Win Your First Arcade Game', unlocked: true, icon: '' },
         { id: 2, name: 'Speed Demon', description: 'Score 40+ in Hand Snap', unlocked: true, icon: '++' },
-        { id: 3, name: 'Perfect Game', description: 'Get all answers correct', unlocked: false, icon: '💯' },
+        { id: 3, name: 'Perfect Game', description: 'Get All Answers Correct', unlocked: false, icon: '💯' },
     ];
 
     return (

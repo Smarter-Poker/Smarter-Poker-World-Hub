@@ -9,7 +9,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'first_question',
         name: 'First Steps',
-        description: 'Answer your first trivia question',
+        description: 'Answer Your First Trivia Question',
         icon: '🎯',
         category: 'basics',
         rarity: 'common',
@@ -19,7 +19,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'ten_correct',
         name: 'Getting Warm',
-        description: 'Get 10 correct answers',
+        description: 'Get 10 Correct Answers',
         icon: '📚',
         category: 'basics',
         rarity: 'common',
@@ -29,7 +29,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'fifty_correct',
         name: 'Knowledge Seeker',
-        description: 'Get 50 correct answers',
+        description: 'Get 50 Correct Answers',
         icon: '🧠',
         category: 'basics',
         rarity: 'common',
@@ -39,7 +39,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'hundred_correct',
         name: 'Trivia Enthusiast',
-        description: 'Get 100 correct answers',
+        description: 'Get 100 Correct Answers',
         icon: '⭐',
         category: 'basics',
         rarity: 'rare',
@@ -49,7 +49,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'five_hundred_correct',
         name: 'Poker Scholar',
-        description: 'Get 500 correct answers',
+        description: 'Get 500 Correct Answers',
         icon: '🎓',
         category: 'basics',
         rarity: 'epic',
@@ -59,7 +59,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'thousand_correct',
         name: 'Walking Encyclopedia',
-        description: 'Get 1,000 correct answers',
+        description: 'Get 1,000 Correct Answers',
         icon: '📖',
         category: 'basics',
         rarity: 'legendary',
@@ -71,7 +71,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'perfect_game',
         name: 'Perfect Score',
-        description: 'Get a perfect score in any mode',
+        description: 'Get a Perfect Score in Any Mode',
         icon: '💯',
         category: 'mastery',
         rarity: 'rare',
@@ -81,7 +81,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'five_perfects',
         name: 'Precision Player',
-        description: 'Get 5 perfect scores',
+        description: 'Get 5 Perfect Scores',
         icon: '🎯',
         category: 'mastery',
         rarity: 'epic',
@@ -91,7 +91,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'ten_perfects',
         name: 'Perfectionist',
-        description: 'Get 10 perfect scores',
+        description: 'Get 10 Perfect Scores',
         icon: '👁️',
         category: 'mastery',
         rarity: 'legendary',
@@ -101,7 +101,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'history_master',
         name: 'Historian',
-        description: 'Get 50 correct in Poker History',
+        description: 'Get 50 Correct in Poker History',
         icon: '📜',
         category: 'mastery',
         rarity: 'rare',
@@ -111,7 +111,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'rules_master',
         name: 'Rules Expert',
-        description: 'Get 50 correct in Rules Quiz',
+        description: 'Get 50 Correct in Rules Quiz',
         icon: '⚖️',
         category: 'mastery',
         rarity: 'rare',
@@ -121,7 +121,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'pro_master',
         name: 'Strategy Sage',
-        description: 'Get 50 correct in Pro Knowledge',
+        description: 'Get 50 Correct in Pro Knowledge',
         icon: '🧙',
         category: 'mastery',
         rarity: 'rare',
@@ -133,7 +133,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'streak_3',
         name: 'Consistent',
-        description: 'Reach a 3-day streak',
+        description: 'Reach a 3-day Streak',
         icon: '🔥',
         category: 'streaks',
         rarity: 'common',
@@ -143,7 +143,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'streak_7',
         name: 'Weekly Warrior',
-        description: 'Reach a 7-day streak',
+        description: 'Reach a 7-day Streak',
         icon: '💪',
         category: 'streaks',
         rarity: 'rare',
@@ -153,7 +153,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'streak_14',
         name: 'Dedicated Mind',
-        description: 'Reach a 14-day streak',
+        description: 'Reach a 14-day Streak',
         icon: '🏆',
         category: 'streaks',
         rarity: 'epic',
@@ -163,7 +163,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'streak_30',
         name: 'Iron Mind',
-        description: 'Reach a 30-day streak',
+        description: 'Reach a 30-day Streak',
         icon: '🛡️',
         category: 'streaks',
         rarity: 'epic',
@@ -173,7 +173,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'streak_100',
         name: 'Legendary Mind',
-        description: 'Reach a 100-day streak',
+        description: 'Reach a 100-day Streak',
         icon: '👑',
         category: 'streaks',
         rarity: 'legendary',
@@ -183,7 +183,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'streak_365',
         name: 'Year of Knowledge',
-        description: 'Reach a 365-day streak',
+        description: 'Reach a 365-day Streak',
         icon: '🌟',
         category: 'streaks',
         rarity: 'legendary',
@@ -195,7 +195,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'quick_draw',
         name: 'Quick Draw',
-        description: 'Answer correctly in under 3 seconds',
+        description: 'Answer Correctly in Under 3 Seconds',
         icon: '⚡',
         category: 'speed',
         rarity: 'rare',
@@ -205,7 +205,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'lightning_fast',
         name: 'Lightning Fast',
-        description: 'Answer correctly in under 2 seconds',
+        description: 'Answer Correctly in Under 2 Seconds',
         icon: '⚡',
         category: 'speed',
         rarity: 'epic',
@@ -215,7 +215,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'speed_demon',
         name: 'Speed Demon',
-        description: 'Complete a game with avg time under 5 seconds',
+        description: 'Complete a Game with Avg Time Under 5 Seconds',
         icon: '🏎️',
         category: 'speed',
         rarity: 'epic',
@@ -225,7 +225,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'blitz_master',
         name: 'Blitz Master',
-        description: 'Win 10 games with avg time under 5 seconds',
+        description: 'Win 10 Games with Avg Time Under 5 Seconds',
         icon: '💨',
         category: 'speed',
         rarity: 'legendary',
@@ -237,7 +237,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'arcade_debut',
         name: 'High Roller',
-        description: 'Play your first Arcade game',
+        description: 'Play Your First Arcade Game',
         icon: '💎',
         category: 'arcade',
         rarity: 'common',
@@ -247,7 +247,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'arcade_veteran',
         name: 'Diamond Hunter',
-        description: 'Play 25 Arcade games',
+        description: 'Play 25 Arcade Games',
         icon: '💰',
         category: 'arcade',
         rarity: 'rare',
@@ -257,7 +257,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'arcade_profit',
         name: 'In The Black',
-        description: 'Earn 500 diamonds from Arcade',
+        description: 'Earn 500 Diamonds From Arcade',
         icon: '📈',
         category: 'arcade',
         rarity: 'epic',
@@ -267,7 +267,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'arcade_whale',
         name: 'Diamond Whale',
-        description: 'Earn 2000 diamonds from Arcade',
+        description: 'Earn 2000 Diamonds From Arcade',
         icon: '🐳',
         category: 'arcade',
         rarity: 'legendary',
@@ -279,7 +279,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'night_owl',
         name: 'Night Owl',
-        description: 'Play between 2am and 5am',
+        description: 'Play Between 2am and 5am',
         icon: '🦉',
         category: 'special',
         rarity: 'rare',
@@ -289,7 +289,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'early_bird',
         name: 'Early Bird',
-        description: 'Play before 6am',
+        description: 'Play Before 6am',
         icon: '🐦',
         category: 'special',
         rarity: 'rare',
@@ -299,7 +299,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'comeback_kid',
         name: 'Comeback Kid',
-        description: 'Win a game after missing 3+ questions',
+        description: 'Win a Game After Missing 3+ Questions',
         icon: '🔄',
         category: 'special',
         rarity: 'epic',
@@ -309,7 +309,7 @@ export const TRIVIA_ACHIEVEMENTS = [
     {
         id: 'marathon',
         name: 'Marathon',
-        description: 'Play 10 games in a single day',
+        description: 'Play 10 Games in a Single Day',
         icon: '🏃',
         category: 'special',
         rarity: 'epic',

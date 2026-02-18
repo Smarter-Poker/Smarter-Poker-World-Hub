@@ -96,7 +96,7 @@ export function PreflopCharts({ onAskJarvis, onClose }: PreflopChartsProps) {
                 {[
                     { key: 'rfi', label: 'RFI' },
                     { key: '3bet', label: '3-Bet' },
-                    { key: 'vs3bet', label: 'vs 3-Bet' },
+                    { key: 'vs3bet', label: 'Vs 3-Bet' },
                     { key: '4bet', label: '4-Bet' }
                 ].map(t => (
                     <button

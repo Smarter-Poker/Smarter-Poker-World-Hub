@@ -30,31 +30,31 @@ const CATEGORY_META = {
         title: 'MTT MASTERY',
         icon: 'Trophy',
         color: '#FF6B35',
-        description: 'Master tournament poker strategy from early stages to final tables'
+        description: 'Master Tournament Poker Strategy From Early Stages to Final Tables'
     },
     CASH: {
         title: 'CASH GAME GRIND',
         icon: '',
         color: '#4CAF50',
-        description: 'Dominate cash games with optimal strategy for every street'
+        description: 'Dominate Cash Games with Optimal Strategy for Every Street'
     },
     SPINS: {
         title: 'SPINS & SNGS',
         icon: '++',
         color: '#FFD700',
-        description: 'Fast-paced sit & go strategy for maximum ROI'
+        description: 'Fast-paced Sit & Go Strategy for Maximum ROI'
     },
     PSYCHOLOGY: {
         title: 'MENTAL GAME',
         icon: '',
         color: '#9C27B0',
-        description: 'Master the psychological aspects of poker excellence'
+        description: 'Master the Psychological Aspects of Poker Excellence'
     },
     ADVANCED: {
         title: 'ADVANCED THEORY',
         icon: '🤖',
         color: '#2196F3',
-        description: 'Deep dive into GTO, range construction, and solver work'
+        description: 'Deep Dive Into GTO, Range Construction, and Solver Work'
     },
 };
 

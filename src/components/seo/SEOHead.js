@@ -101,7 +101,7 @@ export const schemas = {
         url: 'https://smarter.poker',
         logo: 'https://smarter.poker/smarter-poker-logo.png',
         sameAs: [],
-        description: 'The ultimate poker platform for GTO training, live venue discovery, bankroll tracking, and community.',
+        description: 'The Ultimate Poker Platform for GTO Training, Live Venue Discovery, Bankroll Tracking, and Community.',
     },
 
     website: {

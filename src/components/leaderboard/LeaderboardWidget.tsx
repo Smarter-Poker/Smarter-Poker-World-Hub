@@ -58,21 +58,21 @@ const CATEGORY_CONFIG: Record<LeaderboardCategory, {
         emoji: '🔥',
         unit: 'hands',
         color: '#f59e0b',
-        description: 'Most hands played today'
+        description: 'Most Hands Played Today'
     },
     sharpshooter: {
         label: 'Sharpshooter',
         emoji: '🎯',
         unit: '%',
         color: '#22c55e',
-        description: 'Highest accuracy (min 50 hands)'
+        description: 'Highest Accuracy (min 50 Hands)'
     },
     whale_hunter: {
         label: 'Whale Hunter',
         emoji: '💎',
         unit: 'diamonds',
         color: '#00d4ff',
-        description: 'Most diamonds this week'
+        description: 'Most Diamonds This Week'
     }
 };
 

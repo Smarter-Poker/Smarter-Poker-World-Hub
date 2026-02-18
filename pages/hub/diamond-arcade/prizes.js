@@ -11,10 +11,10 @@ export default function DiamondArcadePrizes() {
     const router = useRouter();
 
     const prizes = [
-        { rank: '1st', diamonds: 5000, description: 'Daily champion' },
+        { rank: '1st', diamonds: 5000, description: 'Daily Champion' },
         { rank: '2nd', diamonds: 3000, description: 'Runner-up' },
-        { rank: '3rd', diamonds: 2000, description: 'Third place' },
-        { rank: 'Top 10', diamonds: 500, description: 'Participation reward' },
+        { rank: '3rd', diamonds: 2000, description: 'Third Place' },
+        { rank: 'Top 10', diamonds: 500, description: 'Participation Reward' },
     ];
 
     return (

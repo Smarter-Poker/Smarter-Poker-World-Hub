@@ -353,7 +353,7 @@ export function identifyLeak(opponentRead) {
         return {
             leak: 'overbluffs',
             counter: 'call_down_light',
-            description: 'Opponent bluffs too much - call down with marginal hands'
+            description: 'Opponent Bluffs Too Much - Call Down with Marginal Hands'
         };
     }
 
@@ -361,7 +361,7 @@ export function identifyLeak(opponentRead) {
         return {
             leak: 'overfolds',
             counter: 'bluff_more',
-            description: 'Opponent folds too much - increase bluff frequency'
+            description: 'Opponent Folds Too Much - Increase Bluff Frequency'
         };
     }
 
@@ -369,7 +369,7 @@ export function identifyLeak(opponentRead) {
         return {
             leak: 'too_value_heavy',
             counter: 'fold_more',
-            description: 'Opponent rarely bluffs - fold marginal hands'
+            description: 'Opponent Rarely Bluffs - Fold Marginal Hands'
         };
     }
 
@@ -571,7 +571,7 @@ export function getLeaderboardStrategy(profileId, leaderboardPosition, totalPlay
             vpipMod: 0.8,
             aggressionMod: 0.9,
             riskTolerance: 0.7,
-            description: 'Playing tight to protect leaderboard position'
+            description: 'Playing Tight to Protect Leaderboard Position'
         };
     }
 
@@ -582,7 +582,7 @@ export function getLeaderboardStrategy(profileId, leaderboardPosition, totalPlay
             vpipMod: 1.1,
             aggressionMod: 1.2,
             riskTolerance: 1.3,
-            description: 'Playing aggressive to climb leaderboard'
+            description: 'Playing Aggressive to Climb Leaderboard'
         };
     }
 
@@ -593,7 +593,7 @@ export function getLeaderboardStrategy(profileId, leaderboardPosition, totalPlay
             vpipMod: 1.0,
             aggressionMod: 1.1,
             riskTolerance: 1.0,
-            description: 'Standard grinding to improve position'
+            description: 'Standard Grinding to Improve Position'
         };
     }
 
@@ -602,7 +602,7 @@ export function getLeaderboardStrategy(profileId, leaderboardPosition, totalPlay
         vpipMod: 1.0,
         aggressionMod: 1.0,
         riskTolerance: 1.0,
-        description: 'Maintaining current strategy'
+        description: 'Maintaining Current Strategy'
     };
 }
 
@@ -624,7 +624,7 @@ export function getMonthlyGoal(profileId) {
         return {
             type: 'volume',
             target: 1000 + (hash % 4000), // 1000-5000 hands
-            description: 'Grinding for volume',
+            description: 'Grinding for Volume',
             strategyMod: { vpipMod: 1.1, sessionLengthMod: 1.3 }
         };
     }
@@ -633,7 +633,7 @@ export function getMonthlyGoal(profileId) {
         return {
             type: 'winrate',
             target: 3 + (hash % 7), // 3-10 bb/100 target
-            description: 'Optimizing winrate',
+            description: 'Optimizing Winrate',
             strategyMod: { vpipMod: 0.9, riskMod: 0.8 }
         };
     }
@@ -641,14 +641,14 @@ export function getMonthlyGoal(profileId) {
     if (goalSeed < 80) {
         return {
             type: 'move_up',
-            description: 'Taking shots at higher stakes',
+            description: 'Taking Shots at Higher Stakes',
             strategyMod: { riskMod: 1.2, sessionLengthMod: 0.8 }
         };
     }
 
     return {
         type: 'study',
-        description: 'Focus on improvement over results',
+        description: 'Focus on Improvement Over Results',
         strategyMod: { vpipMod: 0.95, experimentMod: 1.5 }
     };
 }

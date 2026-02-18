@@ -18,63 +18,63 @@ const REPORTS = [
     id: 'daily-summary',
     icon: BarChart3,
     title: 'Daily Summary',
-    description: 'Revenue, players, table hours, peak times',
+    description: 'Revenue, Players, Table Hours, Peak Times',
     color: '#1877F2'
   },
   {
     id: 'tournament-results',
     icon: Trophy,
     title: 'Tournament Results',
-    description: 'Entries, prize pools, payouts, player stats',
+    description: 'Entries, Prize Pools, Payouts, Player Stats',
     color: '#31A24C'
   },
   {
     id: 'waitlist-metrics',
     icon: Clock,
     title: 'Waitlist Metrics',
-    description: 'Wait times, call rates, no-show rates, demand',
+    description: 'Wait Times, Call Rates, No-show Rates, Demand',
     color: '#F59E0B'
   },
   {
     id: 'player-activity',
     icon: Users,
     title: 'Player Activity',
-    description: 'Visit frequency, session duration, game preferences',
+    description: 'Visit Frequency, Session Duration, Game Preferences',
     color: '#B0B3B8'
   },
   {
     id: 'revenue',
     icon: DollarSign,
     title: 'Revenue Report',
-    description: 'Rake, time charges, tournament fees, promotions',
+    description: 'Rake, Time Charges, Tournament Fees, Promotions',
     color: '#31A24C'
   },
   {
     id: 'table-utilization',
     icon: TrendingUp,
     title: 'Table Utilization',
-    description: 'Occupancy rates, game type popularity, peak hours',
+    description: 'Occupancy Rates, Game Type Popularity, Peak Hours',
     color: '#1877F2'
   },
   {
     id: 'staff-activity',
     icon: Activity,
     title: 'Staff Activity Log',
-    description: 'Actions, incidents, session management',
+    description: 'Actions, Incidents, Session Management',
     color: '#B0B3B8'
   },
   {
     id: 'analytics-daily',
     icon: TrendingUp,
     title: 'Analytics Daily',
-    description: 'Aggregated daily metrics, trends, session and revenue charts',
+    description: 'Aggregated Daily Metrics, Trends, Session and Revenue Charts',
     color: '#9333EA'
   },
   {
     id: 'tax-compliance',
     icon: FileText,
     title: 'Tax Compliance / W-2G',
-    description: 'Tournament wins reporting, W-2G generation, withholding',
+    description: 'Tournament Wins Reporting, W-2G Generation, Withholding',
     color: '#EF4444'
   },
 ];

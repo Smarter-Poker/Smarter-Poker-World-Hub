@@ -11,7 +11,7 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 // Pre-defined ranges for common spots
 export const PRESET_RANGES = {
     'UTG Open': {
-        description: 'UTG opening range (~15%)',
+        description: 'UTG Opening Range (~15%)',
         hands: {
             'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 0.7,
             'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 0.5, 'KQs': 1, 'KJs': 0.5,
@@ -20,7 +20,7 @@ export const PRESET_RANGES = {
         }
     },
     'CO Open': {
-        description: 'Cutoff opening range (~25%)',
+        description: 'Cutoff Opening Range (~25%)',
         hands: {
             'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 0.7, '66': 0.5,
             'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 0.7, 'A8s': 0.5, 'A5s': 1, 'A4s': 0.7,
@@ -29,7 +29,7 @@ export const PRESET_RANGES = {
         }
     },
     'BTN Open': {
-        description: 'Button opening range (~45%)',
+        description: 'Button Opening Range (~45%)',
         hands: {
             'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 1, '66': 1, '55': 0.7, '44': 0.5, '33': 0.5, '22': 0.5,
             'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 1, 'A8s': 1, 'A7s': 1, 'A6s': 1, 'A5s': 1, 'A4s': 1, 'A3s': 0.7, 'A2s': 0.7,
@@ -39,7 +39,7 @@ export const PRESET_RANGES = {
         }
     },
     'SB Open': {
-        description: 'Small Blind opening range (~35%)',
+        description: 'Small Blind Opening Range (~35%)',
         hands: {
             'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 1, '66': 0.7, '55': 0.5,
             'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 1, 'A8s': 0.7, 'A7s': 0.7, 'A6s': 0.5, 'A5s': 1, 'A4s': 0.7, 'A3s': 0.5, 'A2s': 0.5,
@@ -48,7 +48,7 @@ export const PRESET_RANGES = {
         }
     },
     '3-Bet vs UTG': {
-        description: 'Polarized 3-bet range from BTN vs UTG',
+        description: 'Polarized 3-bet Range From BTN vs UTG',
         hands: {
             'AA': 1, 'KK': 1, 'QQ': 0.5, 'AKs': 1, 'AKo': 0.7,
             'A5s': 0.5, 'A4s': 0.5, // Bluffs
@@ -56,7 +56,7 @@ export const PRESET_RANGES = {
         }
     },
     '3-Bet vs BTN': {
-        description: 'Linear 3-bet range from BB vs BTN',
+        description: 'Linear 3-bet Range From BB vs BTN',
         hands: {
             'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 0.5,
             'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 0.5, 'KQs': 1, 'KJs': 0.7,

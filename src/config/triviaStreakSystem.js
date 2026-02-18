@@ -121,7 +121,7 @@ export function getDaysUntilNextTier(streakDays) {
 export const STREAK_SHIELD = {
     id: 'streak_shield',
     name: 'Streak Shield',
-    description: 'Protects your streak if you miss one day',
+    description: 'Protects Your Streak if You Miss One Day',
     cost: 50, // diamonds
     icon: '🛡️',
     maxOwned: 3

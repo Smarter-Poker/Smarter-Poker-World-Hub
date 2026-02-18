@@ -13,7 +13,7 @@ export const POKER_LAWS = {
         name: 'Position is Power',
         shortName: 'Position Matters',
         category: 'POSITION',
-        description: 'Acting last provides informational advantage. Tighter ranges OOP, wider IP.',
+        description: 'Acting Last Provides Informational Advantage. Tighter Ranges OOP, Wider IP.',
         violation: 'Playing too loose out of position or too tight in position.',
         quickFix: 'Tighten up OOP, open wider on BTN/CO.',
         relatedClinics: ['clinic-04', 'clinic-23']
@@ -24,7 +24,7 @@ export const POKER_LAWS = {
         name: 'Stack Depth Dictates Strategy',
         shortName: 'Respect Stack Depth',
         category: 'SIZING',
-        description: 'Effective stack size determines optimal bet sizing and hand playability.',
+        description: 'Effective Stack Size Determines Optimal Bet Sizing and Hand Playability.',
         violation: 'Ignoring SPR (Stack-to-Pot Ratio) when making decisions.',
         quickFix: 'With <15BB, switch to push/fold. With 100BB+, play postflop.',
         relatedClinics: ['clinic-12', 'clinic-21', 'clinic-22']
@@ -35,7 +35,7 @@ export const POKER_LAWS = {
         name: 'Defend Your Blind',
         shortName: 'Blind Defense',
         category: 'DEFENSE',
-        description: 'The BB has odds to call with a wide range against single raises.',
+        description: 'The BB Has Odds to Call with a Wide Range Against Single Raises.',
         violation: 'Over-folding the big blind to steals.',
         quickFix: 'Defend ~60% of hands in BB vs BTN open.',
         relatedClinics: ['clinic-01', 'clinic-03', 'clinic-17']
@@ -47,7 +47,7 @@ export const POKER_LAWS = {
         name: "Don't Pay Nits",
         shortName: 'Nit Payoff',
         category: 'AGGRESSION',
-        description: 'Tight players rarely bluff. Fold marginal hands to their aggression.',
+        description: 'Tight Players Rarely Bluff. Fold Marginal Hands to Their Aggression.',
         violation: 'Calling raises from tight players with weak holdings.',
         quickFix: 'When a nit raises, they have it. Fold bottom of range.',
         relatedClinics: ['clinic-01', 'clinic-10']
@@ -58,7 +58,7 @@ export const POKER_LAWS = {
         name: 'Punish Passivity',
         shortName: 'Exploit Passive',
         category: 'AGGRESSION',
-        description: 'Passive players check too much. Attack their weakness with aggression.',
+        description: 'Passive Players Check Too Much. Attack Their Weakness with Aggression.',
         violation: 'Checking back value hands against passive opponents.',
         quickFix: 'Bet thin for value against calling stations.',
         relatedClinics: ['clinic-02', 'clinic-10']
@@ -69,7 +69,7 @@ export const POKER_LAWS = {
         name: 'Bet for Value',
         shortName: 'Thin Value',
         category: 'SIZING',
-        description: 'Extract maximum value with strong hands through optimal sizing.',
+        description: 'Extract Maximum Value with Strong Hands Through Optimal Sizing.',
         violation: 'Missing value bets or betting too small with strong hands.',
         quickFix: 'On safe boards, bet 66-75% pot with value hands.',
         relatedClinics: ['clinic-02', 'clinic-26']
@@ -81,7 +81,7 @@ export const POKER_LAWS = {
         name: 'ICM Pressure Matters',
         shortName: 'ICM Awareness',
         category: 'MTT',
-        description: 'Tournament chips ≠ cash value. Survival impacts calling ranges.',
+        description: 'Tournament Chips ≠ Cash Value. Survival Impacts Calling Ranges.',
         violation: 'Calling too wide on the bubble or near pay jumps.',
         quickFix: 'Tighten calling range on bubble, widen shoving range.',
         relatedClinics: ['clinic-13', 'clinic-15', 'clinic-16', 'clinic-18', 'clinic-19']
@@ -92,7 +92,7 @@ export const POKER_LAWS = {
         name: 'Push/Fold Zones',
         shortName: 'Short Stack',
         category: 'MTT',
-        description: 'With <10BB, the only plays are all-in or fold. No limping.',
+        description: 'With <10BB, the Only Plays Are All-in or Fold. no Limping.',
         violation: 'Min-raising or calling with a short stack.',
         quickFix: 'Under 10BB: shove or fold. No middle ground.',
         relatedClinics: ['clinic-21', 'clinic-13']
@@ -104,7 +104,7 @@ export const POKER_LAWS = {
         name: 'Control Your Emotions',
         shortName: 'Tilt Resistance',
         category: 'PSYCHOLOGY',
-        description: 'Emotional decisions are -EV. Maintain discipline after bad beats.',
+        description: 'Emotional Decisions Are -EV. Maintain Discipline After Bad Beats.',
         violation: 'Making revenge plays or spewy calls after losing a pot.',
         quickFix: 'Take a break after a bad beat. Reset mentally.',
         relatedClinics: ['clinic-07', 'clinic-06']
@@ -115,7 +115,7 @@ export const POKER_LAWS = {
         name: 'Results ≠ Decision Quality',
         shortName: 'Process Focus',
         category: 'PSYCHOLOGY',
-        description: 'A correct decision can lose. Judge plays by reasoning, not outcome.',
+        description: 'A Correct Decision Can Lose. Judge Plays by Reasoning, Not Outcome.',
         violation: 'Changing strategy based on short-term results.',
         quickFix: 'Review hands for decision quality, not just winnings.',
         relatedClinics: ['clinic-08']
@@ -127,7 +127,7 @@ export const POKER_LAWS = {
         name: 'Range Advantage Determines Aggression',
         shortName: 'Range Advantage',
         category: 'ADVANCED',
-        description: 'The player with stronger range on a given board should bet more.',
+        description: 'The Player with Stronger Range on a Given Board Should Bet More.',
         violation: 'C-betting flops that favor villain\'s range.',
         quickFix: 'Check more on low/coordinated boards as the preflop raiser.',
         relatedClinics: ['clinic-05', 'clinic-11']
@@ -138,7 +138,7 @@ export const POKER_LAWS = {
         name: 'Balance Your Frequencies',
         shortName: 'Mixed Strategy',
         category: 'ADVANCED',
-        description: 'GTO requires mixing actions at certain frequencies to remain unexploitable.',
+        description: 'GTO Requires Mixing Actions at Certain Frequencies to Remain Unexploitable.',
         violation: 'Always betting or always checking in spots that require mixing.',
         quickFix: 'Use a randomizer for borderline spots.',
         relatedClinics: ['clinic-28', 'clinic-27']

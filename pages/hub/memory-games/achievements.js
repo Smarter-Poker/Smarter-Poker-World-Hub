@@ -33,15 +33,15 @@ const CATEGORIES = [
 
 // Fallback achievements if database not ready
 const FALLBACK_ACHIEVEMENTS = [
-    { key: 'first_game', name: 'First Match', description: 'Complete your first memory game', icon: '⭐', category: 'basics', unlocked: false },
-    { key: 'perfect_memory', name: 'Perfect Memory', description: 'Complete a game with 100% accuracy', icon: '💯', category: 'mastery', unlocked: false },
-    { key: 'speed_demon', name: 'Speed Demon', description: 'Complete a game in under 60 seconds', icon: '⚡', category: 'speed', unlocked: false },
+    { key: 'first_game', name: 'First Match', description: 'Complete Your First Memory Game', icon: '⭐', category: 'basics', unlocked: false },
+    { key: 'perfect_memory', name: 'Perfect Memory', description: 'Complete a Game with 100% Accuracy', icon: '💯', category: 'mastery', unlocked: false },
+    { key: 'speed_demon', name: 'Speed Demon', description: 'Complete a Game in Under 60 Seconds', icon: '⚡', category: 'speed', unlocked: false },
     { key: 'level_5', name: 'Halfway There', description: 'Reach Level 5', icon: '📈', category: 'progress', unlocked: false },
     { key: 'level_10', name: 'Level Master', description: 'Complete Level 10', icon: '🎯', category: 'progress', unlocked: false },
-    { key: 'streak_7', name: 'Week Warrior', description: 'Play 7 days in a row', icon: '💪', category: 'consistency', unlocked: false },
-    { key: 'diamond_1000', name: 'Diamond Hunter', description: 'Earn 1,000 diamonds', icon: '💰', category: 'economy', unlocked: false },
-    { key: 'games_100', name: 'Memory Veteran', description: 'Complete 100 games', icon: '🏅', category: 'games', unlocked: false },
-    { key: 'grok_25', name: 'Grok Genius', description: 'Complete 25 AI-generated scenarios', icon: '🧠', category: 'ai', unlocked: false },
+    { key: 'streak_7', name: 'Week Warrior', description: 'Play 7 Days in a Row', icon: '💪', category: 'consistency', unlocked: false },
+    { key: 'diamond_1000', name: 'Diamond Hunter', description: 'Earn 1,000 Diamonds', icon: '💰', category: 'economy', unlocked: false },
+    { key: 'games_100', name: 'Memory Veteran', description: 'Complete 100 Games', icon: '🏅', category: 'games', unlocked: false },
+    { key: 'grok_25', name: 'Grok Genius', description: 'Complete 25 AI-generated Scenarios', icon: '🧠', category: 'ai', unlocked: false },
 ];
 
 export default function MemoryGamesAchievements() {

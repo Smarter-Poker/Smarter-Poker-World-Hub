@@ -27,7 +27,7 @@ const EXTENDED_FILTERS = {
     competitive: {
         label: 'Competitive',
         icon: '🏆',
-        description: 'Top players & high earners'
+        description: 'Top Players & High Earners'
     }
 };
 

@@ -213,9 +213,9 @@ export const INTERACTION_TYPES = {
  */
 
 export const FEED_FILTERS = {
-    recent: { label: 'Recent', icon: '🕐', description: 'Latest posts' },
-    trending: { label: 'Trending', icon: '🔥', description: 'Most popular' },
-    following: { label: 'Following', icon: '👥', description: 'From people you follow' }
+    recent: { label: 'Recent', icon: '🕐', description: 'Latest Posts' },
+    trending: { label: 'Trending', icon: '🔥', description: 'Most Popular' },
+    following: { label: 'Following', icon: '👥', description: 'From People You Follow' }
 };
 
 /**

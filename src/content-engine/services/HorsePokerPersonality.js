@@ -19,7 +19,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const PLAY_STYLES = {
     TAG: {
         name: 'Tight-Aggressive',
-        description: 'Plays few hands but bets/raises often',
+        description: 'Plays Few Hands but Bets/raises Often',
         vpipRange: [15, 22],
         pfrRange: [12, 18],
         threeBetRange: [5, 9],
@@ -28,7 +28,7 @@ const PLAY_STYLES = {
     },
     LAG: {
         name: 'Loose-Aggressive',
-        description: 'Plays many hands and applies pressure',
+        description: 'Plays Many Hands and Applies Pressure',
         vpipRange: [28, 38],
         pfrRange: [22, 32],
         threeBetRange: [8, 14],
@@ -37,7 +37,7 @@ const PLAY_STYLES = {
     },
     nit: {
         name: 'Nit',
-        description: 'Only plays premium hands',
+        description: 'Only Plays Premium Hands',
         vpipRange: [8, 14],
         pfrRange: [6, 12],
         threeBetRange: [3, 5],
@@ -46,7 +46,7 @@ const PLAY_STYLES = {
     },
     calling_station: {
         name: 'Calling Station',
-        description: 'Calls too much, rarely folds',
+        description: 'Calls Too Much, Rarely Folds',
         vpipRange: [35, 50],
         pfrRange: [8, 15],
         threeBetRange: [2, 5],
@@ -55,7 +55,7 @@ const PLAY_STYLES = {
     },
     maniac: {
         name: 'Maniac',
-        description: 'Extremely aggressive, bets/raises constantly',
+        description: 'Extremely Aggressive, Bets/raises Constantly',
         vpipRange: [45, 65],
         pfrRange: [35, 50],
         threeBetRange: [12, 20],

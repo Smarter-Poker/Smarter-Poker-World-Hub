@@ -101,13 +101,13 @@ export default function BankrollExport() {
         {
             id: 'json',
             label: 'JSON Format',
-            description: 'For developers and data analysis',
+            description: 'For Developers and Data Analysis',
             icon: '📄',
         },
         {
             id: 'pdf',
             label: 'PDF Report',
-            description: 'Formatted report with charts and graphs',
+            description: 'Formatted Report with Charts and Graphs',
             icon: '📑',
         },
     ];
