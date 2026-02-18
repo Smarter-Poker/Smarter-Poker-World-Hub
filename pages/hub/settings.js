@@ -488,7 +488,7 @@ export default function SettingsPage() {
         { id: 'appearance', label: 'Appearance', icon: '🎨' },
         { id: 'display', label: 'Display & Sound', icon: '🎵' },
         { id: 'gameplay', label: 'Gameplay', icon: '' },
-        { id: 'promos', label: 'Promo Code', icon: '🎁' },
+        { id: 'promos', label: 'Promo Codes', icon: '🎁' },
         { id: 'billing', label: 'Billing & Payments', icon: '💳' },
         { id: 'blocked', label: 'Blocked Users', icon: '🚫' },
         { id: 'data', label: 'Data Export', icon: '📦' },
@@ -623,7 +623,7 @@ export default function SettingsPage() {
                                                 {initializing ? 'Loading...' : (userProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest User')}
                                             </span>
                                             <span style={styles.profileEmail}>
-                                                {initializing ? '' : (user?.email || 'Not logged in')}
+                                                {initializing ? '' : (user?.email || 'Not Logged In')}
                                             </span>
                                             {isVip && (
                                                 <span style={{ color: '#FFD700', fontSize: 13, marginTop: 4 }}>
@@ -650,7 +650,7 @@ export default function SettingsPage() {
                                         Build Your Avatar
                                     </h3>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
-                                        Create a unique AI-generated avatar to use as your profile picture across Smarter.Poker
+                                        Create A Unique AI-Generated Avatar To Use As Your Profile Picture Across Smarter.Poker
                                     </p>
 
                                     {/* 5 Avatar Boxes */}
@@ -792,7 +792,7 @@ export default function SettingsPage() {
                                             border: '1px solid rgba(255, 215, 0, 0.2)',
                                         }}>
                                             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-                                                Diamonds Free users get 1 custom avatar.
+                                                Diamonds Free Users Get 1 Custom Avatar.
                                                 <a
                                                     href="/hub/diamond-store"
                                                     style={{
@@ -802,7 +802,7 @@ export default function SettingsPage() {
                                                         textDecoration: 'none',
                                                     }}
                                                 >
-                                                    Upgrade to VIP for 5 custom avatars!
+                                                    Upgrade To VIP For 5 Custom Avatars!
                                                 </a>
                                             </span>
                                         </div>
@@ -820,7 +820,7 @@ export default function SettingsPage() {
                                             Refer a Friend
                                         </h3>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
-                                            Share your referral code and earn <strong style={{ color: '#42B72A' }}>500 Diamonds</strong> for every friend who signs up!
+                                            Share Your Referral Code And Earn <strong style={{ color: '#42B72A' }}>500 Diamonds</strong> For Every Friend Who Signs Up!
                                         </p>
 
                                         {/* Player Number Display */}
@@ -918,10 +918,10 @@ export default function SettingsPage() {
                                                 marginTop: 10,
                                             }}
                                         >
-                                            Invite Friends — Share via Social, Email & SMS
+                                            Invite Friends — Share Via Social, Email & SMS
                                         </button>
                                         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
-                                            Friends enter your code during signup, you earn 500 diamonds each time!
+                                            Friends Enter Your Code During Signup, You Earn 500 Diamonds Each Time!
                                         </p>
                                     </div>
                                 )}
@@ -931,16 +931,16 @@ export default function SettingsPage() {
                                     <button
                                         onClick={async () => {
                                             if (!user?.email) {
-                                                alert('No email found. Please log in again.');
+                                                alert('No Email Found. Please Log In Again.');
                                                 return;
                                             }
                                             const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
                                                 redirectTo: `${window.location.origin}/hub/reset-auth`
                                             });
                                             if (error) {
-                                                alert('Error sending password reset email: ' + error.message);
+                                                alert('Error Sending Password Reset Email: ' + error.message);
                                             } else {
-                                                alert('Password reset email sent! Check your inbox.');
+                                                alert('Password Reset Email Sent! Check Your Inbox.');
                                             }
                                         }}
                                         style={styles.secondaryButton}
@@ -1003,7 +1003,7 @@ export default function SettingsPage() {
                                     />
                                     <Toggle
                                         label="Sound Effects"
-                                        description="In-app Sound Effects"
+                                        description="In-App Sound Effects"
                                         value={settings.soundEffects}
                                         onChange={(v) => updateSetting('soundEffects', v)}
                                     />
@@ -1038,7 +1038,7 @@ export default function SettingsPage() {
                                         ]}
                                     />
                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -8, marginBottom: 16, paddingLeft: 4 }}>
-                                        Choose how your name appears in posts and comments
+                                        Choose How Your Name Appears In Posts And Comments
                                     </div>
                                     <Select
                                         label="Profile Visibility"
@@ -1127,7 +1127,7 @@ export default function SettingsPage() {
                                         onChange={(v) => updateSetting('confirmAllIn', v)}
                                     />
                                     <Select
-                                        label="Time Bank (seconds)"
+                                        label="Time Bank (Seconds)"
                                         value={settings.timeBank}
                                         onChange={(v) => updateSetting('timeBank', parseInt(v))}
                                         options={[
@@ -1211,20 +1211,20 @@ export default function SettingsPage() {
                                 <div style={styles.settingGroup}>
                                     <h3 style={styles.groupTitle}>Payment Methods</h3>
                                     <p style={styles.infoText}>
-                                        Manage your payment methods in the Diamond Store checkout.
+                                        Manage Your Payment Methods In The Diamond Store Checkout.
                                     </p>
                                     <button
                                         onClick={() => router.push('/hub/diamond-store')}
                                         style={styles.linkButton}
                                     >
-                                        Go to Diamond Store →
+                                        Go To Diamond Store →
                                     </button>
                                 </div>
 
                                 <div style={styles.settingGroup}>
                                     <h3 style={styles.groupTitle}>Order History</h3>
                                     <p style={styles.infoText}>
-                                        View your past orders and download receipts.
+                                        View Your Past Orders And Download Receipts.
                                     </p>
                                     <button
                                         onClick={() => router.push('/hub/diamond-store/orders')}
@@ -1282,10 +1282,10 @@ export default function SettingsPage() {
                                     border: '1px solid rgba(138, 43, 226, 0.3)',
                                 }}>
                                     <h3 style={{ color: '#fff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                                        Have a promo code?
+                                        Have A Promo Code?
                                     </h3>
                                     <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 20 }}>
-                                        Enter your code below to unlock rewards like free diamonds, VIP access, and more.
+                                        Enter Your Code Below To Unlock Rewards Like Free Diamonds, VIP Access, And More.
                                     </p>
 
                                     {/* Input + Button Row */}
@@ -1390,7 +1390,7 @@ export default function SettingsPage() {
 
                                     {promoHistory.length === 0 ? (
                                         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
-                                            No promo codes redeemed yet.
+                                            No Promo Codes Redeemed Yet.
                                         </p>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1439,7 +1439,7 @@ export default function SettingsPage() {
 
                                 <div style={styles.settingGroup}>
                                     <p style={styles.infoText}>
-                                        Manage users you've blocked from messaging and interacting with you.
+                                        Manage Users You've Blocked From Messaging And Interacting With You.
                                     </p>
                                     <button
                                         onClick={() => router.push('/hub/messenger/blocked')}
@@ -1468,7 +1468,7 @@ export default function SettingsPage() {
 
                                 <div style={styles.settingGroup}>
                                     <p style={styles.infoText}>
-                                        Download a copy of your Smarter.Poker data including your profile, posts, messages, and training history.
+                                        Download A Copy Of Your Smarter.Poker Data Including Your Profile, Posts, Messages, And Training History.
                                     </p>
                                     <button
                                         onClick={exportData}
@@ -1477,7 +1477,7 @@ export default function SettingsPage() {
                                         📥 Request Data Export
                                     </button>
                                     <p style={styles.helperText}>
-                                        You'll receive an email with a download link when your data is ready (usually within 24 hours).
+                                        You'll Receive An Email With A Download Link When Your Data Is Ready (Usually Within 24 Hours).
                                     </p>
                                 </div>
                             </div>
@@ -1494,7 +1494,7 @@ export default function SettingsPage() {
                                         <div>
                                             <h3 style={styles.warningTitle}>Danger Zone</h3>
                                             <p style={styles.warningText}>
-                                                Once you delete your account, there is no going back. This action is permanent and cannot be undone.
+                                                Once You Delete Your Account, There Is No Going Back. This Action Is Permanent And Cannot Be Undone.
                                             </p>
                                         </div>
                                     </div>
@@ -1604,7 +1604,7 @@ export default function SettingsPage() {
                                     <div style={styles.dataRow}>
                                         <div>
                                             <h4 style={styles.dataTitle}>Export All Data</h4>
-                                            <p style={styles.dataDesc}>Full GDPR-compliant Data Export</p>
+                                            <p style={styles.dataDesc}>Full GDPR-Compliant Data Export</p>
                                         </div>
                                         <button
                                             style={styles.exportButton}
@@ -1636,7 +1636,7 @@ export default function SettingsPage() {
                                 <div style={styles.dangerCard}>
                                     <h3 style={styles.dangerTitle}> Danger Zone</h3>
                                     <p style={styles.dangerDesc}>
-                                        These actions are irreversible. Please proceed with caution.
+                                        These Actions Are Irreversible. Please Proceed With Caution.
                                     </p>
                                     <button
                                         style={styles.dangerButton}
@@ -1741,7 +1741,7 @@ export default function SettingsPage() {
                             {cancelStep === 'reason' && (
                                 <>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 20 }}>
-                                        We are sorry to see you go. Please let us know why you are cancelling so we can improve.
+                                        We Are Sorry To See You Go. Please Let Us Know Why You Are Cancelling So We Can Improve.
                                     </p>
                                     {[
                                         { id: 'too_expensive', label: 'Too Expensive' },
@@ -1781,7 +1781,7 @@ export default function SettingsPage() {
                                         <textarea
                                             value={cancelOtherText}
                                             onChange={(e) => setCancelOtherText(e.target.value)}
-                                            placeholder="Tell us more..."
+                                            placeholder="Tell Us More..."
                                             style={{
                                                 width: '100%',
                                                 padding: '12px 16px',
@@ -1851,7 +1851,7 @@ export default function SettingsPage() {
                                             50% Off For 3 Months!
                                         </h4>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
-                                            Before you go, we would love to offer you <strong style={{ color: '#FFD700' }}>50% off your VIP membership</strong> for the next 3 months. Keep all your premium benefits at half the price.
+                                            Before You Go, We Would Love To Offer You <strong style={{ color: '#FFD700' }}>50% Off Your VIP Membership</strong> For The Next 3 Months. Keep All Your Premium Benefits At Half The Price.
                                         </p>
 
                                         <div style={{
@@ -1866,7 +1866,7 @@ export default function SettingsPage() {
                                                 <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$19.99/mo</span>
                                                 <span style={{ color: '#FFD700', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$9.99/mo</span>
                                             </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 months, then regular price resumes</div>
+                                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 Months, Then Regular Price Resumes</div>
                                         </div>
                                     </div>
 
@@ -1942,10 +1942,10 @@ export default function SettingsPage() {
                                         Your Membership Has Been Cancelled
                                     </h4>
                                     <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
-                                        Your VIP benefits will remain active until the end of your current billing period.
+                                        Your VIP Benefits Will Remain Active Until The End Of Your Current Billing Period.
                                     </p>
                                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
-                                        You can re-subscribe anytime from the Diamond Store.
+                                        You Can Re-Subscribe Anytime From The Diamond Store.
                                     </p>
                                     <button
                                         onClick={() => setShowCancelModal(false)}
@@ -1973,10 +1973,10 @@ export default function SettingsPage() {
                                         Discount Applied!
                                     </h4>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
-                                        Your VIP membership is now <strong style={{ color: '#FFD700' }}>$9.99/month</strong> for the next 3 months.
+                                        Your VIP Membership Is Now <strong style={{ color: '#FFD700' }}>$9.99/Month</strong> For The Next 3 Months.
                                     </p>
                                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
-                                        Thank you for staying with us! Enjoy your premium benefits.
+                                        Thank You For Staying With Us! Enjoy Your Premium Benefits.
                                     </p>
                                     <button
                                         onClick={() => setShowCancelModal(false)}
@@ -2061,7 +2061,7 @@ export default function SettingsPage() {
                     }}>
                         <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>🔐 Enable Two-Factor Authentication</h2>
                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                            Add an extra layer of security to your account with 2FA.
+                            Add An Extra Layer Of Security To Your Account With 2FA.
                         </p>
 
                         {!twoFactorEnabled ? (
@@ -2095,7 +2095,7 @@ export default function SettingsPage() {
                                             <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan With Your Authenticator App</div>
                                             <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
                                             <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
-                                                Manual entry key: {manualEntryKey || 'Loading...'}
+                                                Manual Entry Key: {manualEntryKey || 'Loading...'}
                                             </p>
                                         </>
                                     ) : (
@@ -2174,7 +2174,7 @@ export default function SettingsPage() {
                                     <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                     <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA Is Active</h3>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
-                                        Your account is protected with two-factor authentication
+                                        Your Account Is Protected With Two-Factor Authentication
                                     </p>
                                 </div>
 
@@ -2246,7 +2246,7 @@ export default function SettingsPage() {
                     }}>
                         <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 24 }}>💻 Connected Devices</h2>
                         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24, fontSize: 14 }}>
-                            Manage devices that have access to your account
+                            Manage Devices That Have Access To Your Account
                         </p>
 
                         {connectedDevices.length === 0 ? (
@@ -2258,7 +2258,7 @@ export default function SettingsPage() {
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}>📱</div>
                                 <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-                                    No session data available. This feature tracks active login sessions.
+                                    No Session Data Available. This Feature Tracks Active Login Sessions.
                                 </p>
                             </div>
                         ) : (
@@ -2280,7 +2280,7 @@ export default function SettingsPage() {
                                                     {device.ip_address || 'IP not recorded'}
                                                 </div>
                                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                                    Last active: {device.last_active ? new Date(device.last_active).toLocaleString() : 'Unknown'}
+                                                    Last Active: {device.last_active ? new Date(device.last_active).toLocaleString() : 'Unknown'}
                                                 </div>
                                             </div>
                                             <button

@@ -375,16 +375,12 @@ export default function BankrollManagerPage() {
       }
 
       // 3. Separate entries: hide active trip/series, keep the rest
-      console.log('[BankrollFilter] Active trip/series IDs:', activeIds);
-      console.log('[BankrollFilter] Total entries from DB:', entriesData.length);
-      console.log('[BankrollFilter] Entries with trip_id:', entriesData.filter(e => e.trip_id).map(e => ({ id: e.id, trip_id: e.trip_id, category: e.category })));
       var visible = [];
       var completedTripMap = {};
       for (var i = 0; i < entriesData.length; i++) {
         var entry = entriesData[i];
         if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
           // Entry belongs to an active trip/series — HIDE it
-          console.log('[BankrollFilter] HIDING entry:', entry.id, 'trip_id:', entry.trip_id, 'category:', entry.category);
           continue;
         }
         if (entry.trip_id) {
@@ -396,7 +392,6 @@ export default function BankrollManagerPage() {
           visible.push(entry);
         }
       }
-      console.log('[BankrollFilter] Visible entries after filtering:', visible.length, 'Completed trip groups:', Object.keys(completedTripMap).length);
 
       // 4. Create ONE summary row per completed trip/series
       var completedTripIds = Object.keys(completedTripMap);

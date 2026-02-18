@@ -133,12 +133,12 @@ export default function TriviaSettings() {
                             Trivia Settings
                         </h1>
                         <p style={{ color: '#65676b', marginBottom: '40px' }}>
-                            Customize your trivia experience
+                            Customize Your Trivia Experience
                         </p>
 
                         {isLoading ? (
                             <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
-                                Loading settings...
+                                Loading Settings...
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gap: '20px' }}>
