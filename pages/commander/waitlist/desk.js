@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 // Single uniform header color — professional, classy
-const HEADER_COLOR = '#1B5E20';
+const HEADER_COLOR = '#D4AF37';
 const GAMES_PER_PAGE = 4;
 const ROTATE_INTERVAL = 10000; // 10 seconds
 
