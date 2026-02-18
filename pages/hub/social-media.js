@@ -2901,8 +2901,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
 // ===== PUBLIC GAME BOARD (Player Signup View) =====
 function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
+    const router = useRouter();
     const [games, setGames] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [gameSource, setGameSource] = useState(null); // 'commander' or null
+    const [commanderVenueId, setCommanderVenueId] = useState(null);
     const [playerName, setPlayerName] = useState(userName || '');
     // Sync playerName when userName prop updates (arrives async after auth)
     useEffect(() => { if (userName && !playerName) setPlayerName(userName); }, [userName]);
@@ -2933,7 +2936,14 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
         try {
             const res = await fetch(`/api/social/pages/games?page_id=${pageId}`);
             const json = await res.json();
-            if (json.success) { setGames(json.data || []); setTimerTick(0); }
+            if (json.success) {
+                setGames(json.data || []);
+                setTimerTick(0);
+                if (json.source === 'commander' && json.venue_id) {
+                    setGameSource('commander');
+                    setCommanderVenueId(json.venue_id);
+                }
+            }
         } catch (e) { console.error('Public games fetch error:', e); }
         setLoading(false);
     };
@@ -2981,6 +2991,11 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
     const handleJoinWaitlist = async (gameId) => {
         if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
+        // Commander games: navigate to the Commander waitlist page
+        if (gameSource === 'commander' && commanderVenueId) {
+            router.push(`/hub/commander/waitlist/${commanderVenueId}`);
+            return;
+        }
         try {
             const res = await fetch('/api/social/pages/games', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },

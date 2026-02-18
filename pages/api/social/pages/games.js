@@ -236,7 +236,7 @@ export default async function handler(req, res) {
                                 sessions: mappedSessions,
                             };
                         });
-                        return res.status(200).json({ success: true, data: mapped, source: 'commander' });
+                        return res.status(200).json({ success: true, data: mapped, source: 'commander', venue_id: venueId });
                     }
                 }
             }
