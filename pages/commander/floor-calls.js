@@ -96,9 +96,10 @@ export default function FloorCalls() {
   const updateCall = async (id, status, resolution) => {
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/floor-calls', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ id, status, resolution })
       });
       fetchCalls();
@@ -110,10 +111,10 @@ export default function FloorCalls() {
   return (
     <>
       <SEOHead
-                title="Commander — Floor Calls"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Floor Calls"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

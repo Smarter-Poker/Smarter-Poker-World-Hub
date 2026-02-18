@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Coffee,
@@ -189,11 +190,10 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                   <button
                     key={amt}
                     onClick={() => setChipAmount(amt)}
-                    className={`py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
-                      chipAmount === amt
+                    className={`py-3 rounded-lg border-2 text-sm font-medium transition-colors ${chipAmount === amt
                         ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
                         : 'border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE]'
-                    }`}
+                      }`}
                   >
                     ${amt}
                   </button>
@@ -382,10 +382,10 @@ export default function ServicesPage() {
     return (
       <>
         <SEOHead
-                title="Commander Services"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+          title="Commander Services"
+          description="Smarter.Poker — The Future Of The Game."
+          noindex={true}
+        />
         <div className="cmd-page flex items-center justify-center px-4">
           <div className="text-center">
             <div className="cmd-icon-box mx-auto mb-4">

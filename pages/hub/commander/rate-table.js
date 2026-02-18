@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   ArrowLeft, Flame, Smile, Zap, Star, Send, CheckCircle2, Loader2
@@ -88,10 +89,10 @@ export default function RateTable() {
     return (
       <>
         <SEOHead
-                title="Rate Table"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+          title="Rate Table"
+          description="Smarter.Poker — The Future Of The Game."
+          noindex={true}
+        />
         <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', padding: 32 }}>
             <CheckCircle2 size={56} color="#31A24C" style={{ marginBottom: 16 }} />

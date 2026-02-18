@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/TRAINING_CLINICS';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
@@ -242,10 +243,10 @@ export default function ClinicPlayPage() {
         return (
             <>
                 <SEOHead
-                title="Training Clinic"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+                    title="Training Clinic"
+                    description="Smarter.Poker — The Future Of The Game."
+                    noindex={true}
+                />
                 <style>{EFFECT_STYLES}</style>
                 <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
@@ -261,7 +262,7 @@ export default function ClinicPlayPage() {
                                 borderRadius: 20,
                                 marginBottom: 16
                             }}>
-                                 {clinic.badge}
+                                {clinic.badge}
                             </div>
                         )}
                         <div style={{ fontSize: 56, fontWeight: 800, color: passed ? '#4CAF50' : '#FF6B35' }}>{accuracy}%</div>

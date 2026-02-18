@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   CheckCircle,
@@ -127,10 +128,10 @@ export default function PlayerCheckInPage() {
     return (
       <>
         <SEOHead
-                title="Check In — Poker Venue"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+          title="Check In — Poker Venue"
+          description="Smarter.Poker — The Future Of The Game."
+          noindex={true}
+        />
 
         <div className="cmd-page flex items-center justify-center p-4">
           <div className="text-center text-white">

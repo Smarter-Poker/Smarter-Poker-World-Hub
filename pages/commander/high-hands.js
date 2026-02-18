@@ -64,9 +64,10 @@ export default function HighHands() {
     if (!form.player_name || !form.hand_rank) return;
     setSubmitting(true);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/high-hands', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           player_name: form.player_name,
@@ -92,9 +93,10 @@ export default function HighHands() {
 
   const handleVerify = async (id) => {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/high-hands/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ action: 'verify' })
       });
       fetchData();
@@ -104,9 +106,10 @@ export default function HighHands() {
   const handleDelete = async (id) => {
     if (!confirm('Delete this high hand?')) return;
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/high-hands/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
       fetchData();
     } catch (err) { console.error(err); }
@@ -123,10 +126,10 @@ export default function HighHands() {
     <CommanderLayout title="High Hands" backHref="/commander/dashboard">
       <>
         <SEOHead
-                title="Commander — High Hands"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — High Hands"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
             <div className="flex-1">

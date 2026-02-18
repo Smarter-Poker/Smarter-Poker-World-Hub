@@ -24,6 +24,9 @@ export default function LobbyDisplay() {
   const [tournaments, setTournaments] = useState([]);
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
 
   useEffect(() => {
     fetchData();
@@ -34,18 +37,21 @@ export default function LobbyDisplay() {
 
   // Wake lock
   useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {} };
+    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
     req();
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') req(); });
     return () => { wakeLockRef.current?.release(); };
   }, []);
 
   const fetchData = async () => {
+    if (!venueId) return;
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'x-staff-session': staffSession };
       const [tablesRes, waitlistRes, tournamentsRes] = await Promise.all([
-        fetch('/api/commander/tables').then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/waitlist').then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/tournaments').then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/tournaments?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
 
       if (tablesRes.data) setTables(tablesRes.data);
@@ -97,10 +103,10 @@ export default function LobbyDisplay() {
   return (
     <>
       <SEOHead
-                title="Commander — Player Lobby"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Player Lobby"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
@@ -175,9 +181,8 @@ export default function LobbyDisplay() {
                                 {/* Seat dots */}
                                 <div className="flex gap-1">
                                   {Array.from({ length: max }).map((_, i) => (
-                                    <div key={i} className={`w-3 h-3 rounded-full ${
-                                      i < occupied ? 'bg-white/60' : 'bg-white/10'
-                                    }`} />
+                                    <div key={i} className={`w-3 h-3 rounded-full ${i < occupied ? 'bg-white/60' : 'bg-white/10'
+                                      }`} />
                                   ))}
                                 </div>
                               </div>
@@ -233,20 +238,20 @@ export default function LobbyDisplay() {
                     const color = statusColors[t.status] || '#B0B3B8';
                     return (
                       <CommanderLayout title="Poker Room | Now Playing" backHref="/commander/dashboard">
-                      <div key={t.id} className="bg-white/3 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-white truncate">{t.name}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs" style={{ color }}>{statusLabels[t.status] || t.status}</span>
-                          {t.buyin_amount && (
-                            <span className="text-xs text-white/40">${t.buyin_amount}+${t.buyin_fee || 0}</span>
+                        <div key={t.id} className="bg-white/3 rounded-lg p-3">
+                          <p className="text-sm font-semibold text-white truncate">{t.name}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs" style={{ color }}>{statusLabels[t.status] || t.status}</span>
+                            {t.buyin_amount && (
+                              <span className="text-xs text-white/40">${t.buyin_amount}+${t.buyin_fee || 0}</span>
+                            )}
+                          </div>
+                          {t.scheduled_start && t.status === 'scheduled' && (
+                            <p className="text-[10px] text-white/30 mt-1">
+                              {new Date(t.scheduled_start).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+                            </p>
                           )}
                         </div>
-                        {t.scheduled_start && t.status === 'scheduled' && (
-                          <p className="text-[10px] text-white/30 mt-1">
-                            {new Date(t.scheduled_start).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
-                          </p>
-                        )}
-                      </div>
                       </CommanderLayout>
                     );
                   })}

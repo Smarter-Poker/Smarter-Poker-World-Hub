@@ -407,20 +407,20 @@ export default function IncidentsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -433,7 +433,10 @@ export default function IncidentsPage() {
   async function fetchIncidents() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`);
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`, {
+        headers: { 'x-staff-session': staffSession }
+      });
       const data = await res.json();
       if (data.success) {
         setIncidents(data.data?.incidents || []);
@@ -448,9 +451,10 @@ export default function IncidentsPage() {
 
   async function handleCreateIncident(data) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/incidents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           reported_by: staff.id,
@@ -470,9 +474,10 @@ export default function IncidentsPage() {
 
   async function handleResolveIncident(incidentId, resolution) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ resolution })
       });
       setSelectedIncident(null);

@@ -52,9 +52,10 @@ export default function MustMoveManager() {
   const linkMustMove = async (gameId, parentGameId) => {
     setActionLoading(gameId);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/games/${gameId}/must-move`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ parent_game_id: parentGameId })
       });
       const json = await res.json();
@@ -72,9 +73,10 @@ export default function MustMoveManager() {
   const unlinkMustMove = async (gameId) => {
     setActionLoading(gameId);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/games/${gameId}/must-move`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) {
@@ -91,9 +93,10 @@ export default function MustMoveManager() {
   const movePlayer = async (mustMoveGameId, mainGameId) => {
     setMoveLoading(mustMoveGameId);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/games/must-move-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ must_move_game_id: mustMoveGameId, main_game_id: mainGameId })
       });
       const json = await res.json();
@@ -117,10 +120,10 @@ export default function MustMoveManager() {
   return (
     <>
       <SEOHead
-                title="Commander — Must-Move Tables"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Must-Move Tables"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <div className="flex-1">

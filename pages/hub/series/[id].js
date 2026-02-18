@@ -5,6 +5,7 @@
  * and activity feed.
  */
 
+import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, Fragment } from 'react';
@@ -306,10 +307,10 @@ export default function SeriesDetailPage() {
     return (
       <>
         <SEOHead
-                title="Poker Series Details"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+          title="Poker Series Details"
+          description="Smarter.Poker — The Future Of The Game."
+          noindex={true}
+        />
         <UniversalHeader pageDepth={2} />
         <div className="series-page">
           <div className="loading-container">

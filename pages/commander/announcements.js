@@ -34,14 +34,14 @@ export default function CommanderAnnouncementsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
@@ -50,7 +50,7 @@ export default function CommanderAnnouncementsPage() {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
       }
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -62,9 +62,10 @@ export default function CommanderAnnouncementsPage() {
     setSuccess(null);
 
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/notifications/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           message: message.trim(),
@@ -113,151 +114,150 @@ export default function CommanderAnnouncementsPage() {
 
   return (
     <CommanderLayout title="Announcements | {venue?.name || 'Commander'}" backHref="/commander/displays">
-    <>
-      <SEOHead
-                title="Commander — Announcements"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+      <>
+        <SEOHead
+          title="Commander — Announcements"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
-      <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-50">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <div>
-              <h1 className="font-bold text-white text-lg">Announcements</h1>
-              <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-          {/* Alerts */}
-          {success && (
-            <div className="p-4 bg-[#31A24C]/10 rounded-xl flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-[#31A24C]" />
-              <p className="text-sm text-[#31A24C] font-medium">{success}</p>
-            </div>
-          )}
-          {error && (
-            <div className="p-4 bg-[#EF4444]/10 rounded-xl">
-              <p className="text-sm text-[#EF4444]">{error}</p>
-            </div>
-          )}
-
-          {/* Compose */}
-          <section className="cmd-panel p-4 space-y-4">
-            <h2 className="font-semibold text-white">Send Announcement</h2>
-
-            {/* Target Selection */}
-            <div>
-              <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
-                Send to
-              </label>
-              <div className="flex gap-2">
-                {[
-                  { value: 'all', label: 'All Players', icon: Users },
-                  { value: 'waitlist', label: 'Waitlist Only', icon: Clock },
-                  { value: 'seated', label: 'Seated Only', icon: Users }
-                ].map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setSendTo(value)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      sendTo === value
-                        ? 'bg-[#1877F2] text-white'
-                        : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
+        <div className="cmd-page">
+          {/* Header */}
+          <header className="cmd-header-bar sticky top-0 z-50">
+            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+              <div>
+                <h1 className="font-bold text-white text-lg">Announcements</h1>
+                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
               </div>
             </div>
+          </header>
 
-            {/* Quick Messages */}
-            <div>
-              <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
-                Quick Messages
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {QUICK_MESSAGES.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => handleQuickMessage(item.message)}
-                    className="px-3 py-1.5 bg-[#3A3B3C] text-white text-sm rounded-full hover:bg-[#3A3B3C] transition-colors"
-                  >
-                    {item.label}
-                  </button>
-                ))}
+          {/* Main Content */}
+          <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+            {/* Alerts */}
+            {success && (
+              <div className="p-4 bg-[#31A24C]/10 rounded-xl flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-[#31A24C]" />
+                <p className="text-sm text-[#31A24C] font-medium">{success}</p>
               </div>
-            </div>
-
-            {/* Message Input */}
-            <div>
-              <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
-                Message
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type Your Announcement..."
-                rows={3}
-                className="w-full px-3 py-2 cmd-input resize-none"
-              />
-              <p className="text-xs text-[#3A3B3C] mt-1">
-                {message.length}/160 characters
-              </p>
-            </div>
-
-            {/* Send Button */}
-            <button
-              onClick={handleSend}
-              disabled={!message.trim() || sending}
-              className="w-full h-12 cmd-btn cmd-btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Send Announcement
-                </>
-              )}
-            </button>
-          </section>
-
-          {/* Recent Announcements */}
-          {recentAnnouncements.length > 0 && (
-            <section>
-              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wide mb-3">
-                Recent Announcements
-              </h2>
-              <div className="cmd-panel divide-y divide-[#3A3B3C]">
-                {recentAnnouncements.map((ann) => (
-                  <div key={ann.id} className="p-4">
-                    <p className="text-white">{ann.message}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-[#B0B3B8]">
-                      <span>Sent to {ann.sent_count} players</span>
-                      <span>{new Date(ann.sent_at).toLocaleTimeString()}</span>
-                    </div>
-                  </div>
-                ))}
+            )}
+            {error && (
+              <div className="p-4 bg-[#EF4444]/10 rounded-xl">
+                <p className="text-sm text-[#EF4444]">{error}</p>
               </div>
+            )}
+
+            {/* Compose */}
+            <section className="cmd-panel p-4 space-y-4">
+              <h2 className="font-semibold text-white">Send Announcement</h2>
+
+              {/* Target Selection */}
+              <div>
+                <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
+                  Send to
+                </label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'all', label: 'All Players', icon: Users },
+                    { value: 'waitlist', label: 'Waitlist Only', icon: Clock },
+                    { value: 'seated', label: 'Seated Only', icon: Users }
+                  ].map(({ value, label, icon: Icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSendTo(value)}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sendTo === value
+                          ? 'bg-[#1877F2] text-white'
+                          : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
+                        }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Messages */}
+              <div>
+                <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
+                  Quick Messages
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {QUICK_MESSAGES.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => handleQuickMessage(item.message)}
+                      className="px-3 py-1.5 bg-[#3A3B3C] text-white text-sm rounded-full hover:bg-[#3A3B3C] transition-colors"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message Input */}
+              <div>
+                <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type Your Announcement..."
+                  rows={3}
+                  className="w-full px-3 py-2 cmd-input resize-none"
+                />
+                <p className="text-xs text-[#3A3B3C] mt-1">
+                  {message.length}/160 characters
+                </p>
+              </div>
+
+              {/* Send Button */}
+              <button
+                onClick={handleSend}
+                disabled={!message.trim() || sending}
+                className="w-full h-12 cmd-btn cmd-btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    Send Announcement
+                  </>
+                )}
+              </button>
             </section>
-          )}
-        </main>
-      </div>
-      <style jsx>{`
+
+            {/* Recent Announcements */}
+            {recentAnnouncements.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wide mb-3">
+                  Recent Announcements
+                </h2>
+                <div className="cmd-panel divide-y divide-[#3A3B3C]">
+                  {recentAnnouncements.map((ann) => (
+                    <div key={ann.id} className="p-4">
+                      <p className="text-white">{ann.message}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-[#B0B3B8]">
+                        <span>Sent to {ann.sent_count} players</span>
+                        <span>{new Date(ann.sent_at).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </main>
+        </div>
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }

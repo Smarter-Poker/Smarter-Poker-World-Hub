@@ -4,6 +4,7 @@
  * Uses Social messaging infrastructure with club member filtering
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -799,11 +800,11 @@ export default function ClubMessages() {
         return (
             <>
                 <SEOHead
-                title="Club Arena — Messages"
-                description="View Your Club Arena Messages."
-                canonical="/hub/club-arena/messages"
-                noindex={true}
-            />
+                    title="Club Arena — Messages"
+                    description="View Your Club Arena Messages."
+                    canonical="/hub/club-arena/messages"
+                    noindex={true}
+                />
                 <div style={S.page}>
                     <UniversalHeader pageDepth={2} />
                     <div style={S.emptyState}>Loading...</div>

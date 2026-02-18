@@ -70,9 +70,10 @@ export default function ExportsHub() {
   const createExport = async (exportType) => {
     setCreating(exportType);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/exports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           export_type: exportType,
@@ -131,10 +132,10 @@ export default function ExportsHub() {
   return (
     <>
       <SEOHead
-                title="Commander — Data Exports"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Data Exports"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <div className="flex-1">

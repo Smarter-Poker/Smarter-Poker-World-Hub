@@ -16,7 +16,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
-import { RefreshCw, Users, Clock, AlertTriangle,
+import {
+  RefreshCw, Users, Clock, AlertTriangle,
   ChevronRight, Loader2, Filter, Maximize2
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -65,10 +66,12 @@ export default function FloorMap() {
   const fetchAll = async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const vid = venueId || '';
       const [tablesRes, waitlistRes] = await Promise.all([
-        fetch('/api/commander/tables', { headers }).then(r => r.json()),
-        fetch('/api/commander/waitlist', { headers }).then(r => r.json())
+        fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json())
       ]);
       if (tablesRes.success) setTables(tablesRes.data || []);
       if (waitlistRes.success) {
@@ -87,10 +90,10 @@ export default function FloorMap() {
       await Promise.all(activeTables.map(async (t) => {
         try {
           const tNum = t.table_number || t.number;
-          const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`);
+          const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           const json = await res.json();
           if (json.success) sessionData[tNum] = json.data || [];
-        } catch {}
+        } catch { }
       }));
       setSessions(sessionData);
     } catch (err) { console.error(err); }
@@ -111,16 +114,16 @@ export default function FloorMap() {
   return (
     <>
       <SEOHead
-                title="Commander — Floor Management"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Floor Management"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-<div>
+            <div>
               <h1 className="text-lg font-bold text-white">Floor Map</h1>
               <p className="text-xs text-[#B0B3B8]">
                 {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -177,9 +180,8 @@ export default function FloorMap() {
         <div className="px-4 pb-3 flex gap-2">
           {['all', 'active', 'open', 'closed'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${
-                filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-              }`}>{f} {f === 'all' ? `(${tables.length})` : ''}</button>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                }`}>{f} {f === 'all' ? `(${tables.length})` : ''}</button>
           ))}
         </div>
 
@@ -207,61 +209,60 @@ export default function FloorMap() {
 
               return (
                 <CommanderLayout title="Floor Map" backHref="/commander/dashboard">
-                <button key={table.id || tNum}
-                  onClick={() => router.push(`/commander/dealer/${tNum}`)}
-                  className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${
-                    hasExpired ? 'border-[#EF4444]/50' :
-                    hasLowTime ? 'border-[#F59E0B]/50' :
-                    status === 'active' ? 'border-[#31A24C]/30' :
-                    'border-[#3A3B3C]'
-                  }`}>
+                  <button key={table.id || tNum}
+                    onClick={() => router.push(`/commander/dealer/${tNum}`)}
+                    className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${hasExpired ? 'border-[#EF4444]/50' :
+                        hasLowTime ? 'border-[#F59E0B]/50' :
+                          status === 'active' ? 'border-[#31A24C]/30' :
+                            'border-[#3A3B3C]'
+                      }`}>
 
-                  {/* Table number + status dot */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-lg font-bold text-white">T{tNum}</span>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusConfig.bg }} />
-                      <span className="text-[10px] text-[#B0B3B8]">{statusConfig.label}</span>
+                    {/* Table number + status dot */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-white">T{tNum}</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusConfig.bg }} />
+                        <span className="text-[10px] text-[#B0B3B8]">{statusConfig.label}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Game type */}
-                  {gameType && (
-                    <div className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold mb-2"
-                      style={{ backgroundColor: `${gameColor}15`, color: gameColor }}>
-                      {gameType} {table.stakes || ''}
-                    </div>
-                  )}
-
-                  {/* Seats */}
-                  <div className="flex items-center gap-1 mb-1">
-                    <Users className="w-3.5 h-3.5 text-[#B0B3B8]" />
-                    <span className="text-sm text-white font-medium">{occupied}/{maxSeats}</span>
-                    {occupied > 0 && Occupied < maxSeats && (
-                      <span className="text-[10px] text-[#31A24C] ml-1">{maxSeats - occupied} open</span>
+                    {/* Game type */}
+                    {gameType && (
+                      <div className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold mb-2"
+                        style={{ backgroundColor: `${gameColor}15`, color: gameColor }}>
+                        {gameType} {table.stakes || ''}
+                      </div>
                     )}
-                  </div>
 
-                  {/* Time info */}
-                  {occupied > 0 && lowestTime !== null && lowestTime !== Infinity && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }} />
-                      <span className="text-xs" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }}>
-                        {lowestTime <= 0 ? 'EXPIRED' : `${Math.floor(lowestTime / 60)}m low`}
-                      </span>
+                    {/* Seats */}
+                    <div className="flex items-center gap-1 mb-1">
+                      <Users className="w-3.5 h-3.5 text-[#B0B3B8]" />
+                      <span className="text-sm text-white font-medium">{occupied}/{maxSeats}</span>
+                      {occupied > 0 && occupied < maxSeats && (
+                        <span className="text-[10px] text-[#31A24C] ml-1">{maxSeats - occupied} open</span>
+                      )}
                     </div>
-                  )}
 
-                  {/* Tap indicator */}
-                  <ChevronRight className="absolute bottom-2 right-2 w-4 h-4 text-white/10" />
-                </button>
+                    {/* Time info */}
+                    {occupied > 0 && lowestTime !== null && lowestTime !== Infinity && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }} />
+                        <span className="text-xs" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }}>
+                          {lowestTime <= 0 ? 'EXPIRED' : `${Math.floor(lowestTime / 60)}m low`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Tap indicator */}
+                    <ChevronRight className="absolute bottom-2 right-2 w-4 h-4 text-white/10" />
+                  </button>
                 </CommanderLayout>
               );
             })}
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

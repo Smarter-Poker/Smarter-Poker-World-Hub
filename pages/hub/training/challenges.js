@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -79,10 +80,10 @@ export default function ChallengesPage() {
         return (
             <PageTransition>
                 <SEOHead
-                title="Daily Training Challenges"
-                description="Complete Daily GTO Training Challenges To Sharpen Your Poker Skills And Earn Rewards."
-                canonical="/hub/training/challenges"
-            />
+                    title="Daily Training Challenges"
+                    description="Complete Daily GTO Training Challenges To Sharpen Your Poker Skills And Earn Rewards."
+                    canonical="/hub/training/challenges"
+                />
                 <div style={styles.container}>
                     <UniversalHeader pageDepth={2} />
                     <div style={styles.content}>
