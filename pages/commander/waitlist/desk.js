@@ -1,38 +1,37 @@
 /**
- * Waitlist Desk View — The Board
+ * Waitlist Desk View — The Board (Bravo-Style)
  * /commander/waitlist/desk
- * The main operational view for the front desk staff
- * Combines: table grid with seat rings, active waitlists, call/seat actions
- * Real-time updates, designed for desktop/tablet at the podium
+ * Bravo Poker-inspired columnar waitlist display with staff action controls.
+ * Each game type gets its own vertical column with player names listed underneath.
+ * Click a player name to reveal action buttons (call, seat, pass, remove).
+ * Real-time updates via Supabase subscriptions + 15s polling fallback.
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
 import {
-  RefreshCw, Loader2, Users, Phone, UserPlus,
-  ChevronRight, Clock, CheckCircle2, X, AlertTriangle,
-  Armchair, PhoneCall, MessageSquare, ChevronDown, SkipForward, Trash2
+  RefreshCw, Loader2, Users, UserPlus, ArrowLeft,
+  PhoneCall, Armchair, SkipForward, Trash2,
+  MessageSquare, Phone, X
 } from 'lucide-react';
-import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
-function getSeatPositions(count) {
-  const positions = [];
-  for (let i = 0; i < count; i++) {
-    const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
-    positions.push({ x: 50 + Math.cos(angle) * 40, y: 50 + Math.sin(angle) * 30, seat: i + 1 });
-  }
-  return positions;
-}
+const COLUMN_COLORS = [
+  '#1565C0', '#7B1FA2', '#2E7D32', '#E65100',
+  '#00838F', '#C62828', '#283593', '#4E342E',
+  '#AD1457', '#00695C'
+];
 
 export default function WaitlistDesk() {
   const router = useRouter();
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTable, setSelectedTable] = useState(null);
   const [seatModal, setSeatModal] = useState(null);
   const [callLoading, setCallLoading] = useState(null);
+  const [smsStatus, setSmsStatus] = useState(null);
+  const [showAddWalkIn, setShowAddWalkIn] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -41,14 +40,12 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
-
       const [tabRes, wlRes] = await Promise.all([
         fetch('/api/commander/tables', { headers }),
         fetch('/api/commander/waitlist', { headers })
       ]);
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
-
       if (tabJson.success) setTables(tabJson.data || []);
       if (wlJson.success) setWaitlists(wlJson.data || []);
     } catch (err) { console.error(err); }
@@ -57,78 +54,75 @@ export default function WaitlistDesk() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000); // 15s fallback — Bravo-style fast refresh
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Realtime: instant updates when waitlist/tables change
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
   useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
 
-  const [smsStatus, setSmsStatus] = useState(null);
-  const [showAddWalkIn, setShowAddWalkIn] = useState(false);
-
-  const handleCall = async (waitlistEntry) => {
-    setCallLoading(waitlistEntry.id);
+  // ─── ACTION HANDLERS ───────────────────────────────────────────────
+  const handleCall = async (entry) => {
+    setCallLoading(entry.id);
     setSmsStatus(null);
     try {
       const token = getToken();
-      const res = await fetch(`/api/commander/waitlist/call`, {
+      const res = await fetch('/api/commander/waitlist/call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ waitlist_id: waitlistEntry.id })
+        body: JSON.stringify({ waitlist_id: entry.id })
       });
       const json = await res.json();
       if (json.data?.sms_sent) {
-        setSmsStatus({ id: waitlistEntry.id, type: 'sent', text: `SMS sent to ${waitlistEntry.player_name}` });
+        setSmsStatus({ id: entry.id, type: 'sent', text: `SMS sent to ${entry.player_name}` });
       } else if (json.data?.sms_status === 'no_phone') {
-        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'No Phone — Verbal Page Only' });
+        setSmsStatus({ id: entry.id, type: 'none', text: 'No Phone — Verbal Page Only' });
       } else {
-        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'Called — SMS Unavailable' });
+        setSmsStatus({ id: entry.id, type: 'none', text: 'Called — SMS Unavailable' });
       }
+      setSelectedPlayer(null);
       await fetchData();
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error(err); }
     finally { setCallLoading(null); }
   };
 
-  const handleSeat = async (waitlistEntry, tableNumber, seatNumber) => {
+  const handleSeat = async (entry, tableNumber, seatNumber) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/waitlist/seat`, {
+      await fetch('/api/commander/waitlist/seat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          waitlist_id: waitlistEntry.id,
-          table_number: tableNumber,
-          seat_number: seatNumber
-        })
+        body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
       setSeatModal(null);
+      setSelectedPlayer(null);
       await fetchData();
     } catch (err) { console.error(err); }
   };
 
-  const handlePass = async (waitlistEntry) => {
+  const handlePass = async (entry) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/waitlist/${waitlistEntry.id}/pass`, {
+      await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
       });
+      setSelectedPlayer(null);
       await fetchData();
     } catch (err) { console.error(err); }
   };
 
-  const handleRemove = async (waitlistEntry) => {
+  const handleRemove = async (entry) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/waitlist/${waitlistEntry.id}`, {
+      await fetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      setSelectedPlayer(null);
       await fetchData();
     } catch (err) { console.error(err); }
   };
@@ -137,16 +131,16 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const res = await fetch('/api/commander/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           venue_id: staffData.venue_id,
           player_name: playerData.player_name,
-          game_type: playerData.game_type?.split(' ')[0] || 'NLH',
-          stakes: playerData.game_type?.split(' ').slice(1).join(' ') || '1/3',
+          game_type: parts[parts.length - 1] || 'NLH',
+          stakes: parts.length > 1 ? parts.slice(0, -1).join(' ') : '1/3',
           player_phone: playerData.phone || null,
-          party_size: playerData.party_size || 1,
           signup_method: 'staff'
         })
       });
@@ -158,213 +152,238 @@ export default function WaitlistDesk() {
     } catch (err) { console.error(err); }
   };
 
-  // Group waitlists by game type + stakes (TC shows "NLH 1/2", not just "NLH")
+  // ─── GROUP WAITLISTS BY GAME TYPE ──────────────────────────────────
   const waitlistByGame = {};
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
-    const key = w.stakes ? `${w.game_type || 'Unknown'} ${w.stakes}` : (w.game_type || 'Unknown');
+    const key = w.stakes
+      ? `${(w.game_type || 'NLH').toUpperCase()} ${w.stakes}`
+      : (w.game_type || 'Unknown').toUpperCase();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
     waitlistByGame[key].push(w);
   });
+  Object.values(waitlistByGame).forEach(entries => {
+    entries.sort((a, b) => {
+      if (a.status === 'called' && b.status !== 'called') return -1;
+      if (b.status === 'called' && a.status !== 'called') return 1;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+  });
 
   const activeTables = tables.filter(t => t.is_active !== false && t.status !== 'maintenance');
+  const totalWaiting = waitlists.filter(w => w.status === 'waiting').length;
 
   if (loading) {
-    return <div className="min-h-screen bg-[#18191A] flex items-center justify-center"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>;
+    return <div className="min-h-screen bg-[#0D1B2A] flex items-center justify-center"><Loader2 className="w-8 h-8 text-[#1E88E5] animate-spin" /></div>;
   }
+
+  const gameEntries = Object.entries(waitlistByGame);
 
   return (
     <>
-      <SEOHead
-        title="Commander — Desk"
-        description="Club Commander Poker Room Management Tool."
-        noindex={true}
-      />
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <SEOHead title="The Board — Poker Waiting List" description="Bravo-style poker room waitlist management" noindex={true} />
 
-        {/* Header */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">The Board</h1>
-            <p className="text-xs text-[#B0B3B8]">
-              {activeTables.length} tables — {waitlists.filter(w => w.status === 'waiting').length} waiting
+      <div className="min-h-screen text-white" style={{ background: '#0D1B2A', fontFamily: "'Inter', sans-serif" }}>
+
+        {/* ─── HEADER ─── */}
+        <div style={{
+          background: 'linear-gradient(180deg, #162A3E 0%, #0D1B2A 100%)',
+          borderBottom: '3px solid #1E88E5',
+          padding: '10px 16px',
+          display: 'flex', alignItems: 'center', gap: '12px'
+        }}>
+          <button onClick={() => router.back()}
+            className="p-2 rounded-lg hover:bg-white/5 active:bg-white/10">
+            <ArrowLeft className="w-5 h-5 text-[#90CAF9]" />
+          </button>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', letterSpacing: '1px', margin: 0 }}>
+              POKER WAITING LIST
+            </h1>
+            <p style={{ fontSize: '12px', color: '#64B5F6', margin: '2px 0 0' }}>
+              {totalWaiting} waiting &bull; {gameEntries.length} games
             </p>
           </div>
           <button onClick={() => setShowAddWalkIn(true)}
-            className="px-3 py-2 rounded-lg bg-[#1877F2] text-white text-sm font-medium flex items-center gap-1.5 active:bg-[#1565D8]">
+            className="px-4 py-2 rounded-lg bg-[#1E88E5] text-white text-sm font-semibold flex items-center gap-1.5 hover:bg-[#1976D2] active:bg-[#1565C0]">
             <UserPlus className="w-4 h-4" /> Add Player
           </button>
-          <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
+          <button onClick={fetchData} className="p-2 rounded-lg hover:bg-white/5 active:bg-white/10">
+            <RefreshCw className="w-5 h-5 text-[#64B5F6]" />
           </button>
         </div>
 
-        {/* SMS notification toast */}
+        {/* ─── SMS TOAST ─── */}
         {smsStatus && (
-          <div className={`mx-4 mt-2 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all ${smsStatus.type === 'sent' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'
-            }`}>
-            {smsStatus.type === 'sent' ? <MessageSquare className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+          <div style={{
+            margin: '12px 16px 0', padding: '10px 16px', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            fontSize: '14px', fontWeight: 600,
+            background: smsStatus.type === 'sent' ? 'rgba(34,197,94,0.12)' : 'rgba(251,191,36,0.12)',
+            color: smsStatus.type === 'sent' ? '#4ADE80' : '#FBBF24',
+            border: `1px solid ${smsStatus.type === 'sent' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.3)'}`
+          }}>
+            {smsStatus.type === 'sent' ? <MessageSquare size={16} /> : <Phone size={16} />}
             {smsStatus.text}
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row">
-          {/* LEFT: Table Grid */}
-          <div className="flex-1 p-4">
-            <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-3">Tables</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-              {activeTables.map(table => {
-                const maxSeats = table.max_seats || 9;
-                const seats = table.seats || [];
-                const seatedCount = seats.filter(s => s.status === 'occupied').length;
-                const seatPositions = getSeatPositions(maxSeats);
-
-                return (
-                  <button key={table.id || table.table_number}
-                    onClick={() => setSelectedTable(table)}
-                    className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3 aspect-square flex flex-col items-center justify-center active:bg-[#3A3B3C] relative">
-                    {/* Seat ring */}
-                    <div className="relative w-full h-full">
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[10px] text-[#B0B3B8] uppercase">Table</span>
-                        <span className="text-2xl font-bold text-white">{table.table_number}</span>
-                        <span className="text-xs text-[#B0B3B8]">{seatedCount}/{maxSeats}</span>
-                        {table.game_type && (
-                          <span className="text-[9px] text-[#1877F2] mt-0.5">{table.game_type}</span>
-                        )}
-                      </div>
-                      {seatPositions.map(pos => {
-                        const seatData = seats.find(s => s.seat_number === pos.seat);
-                        const occupied = seatData?.status === 'occupied';
-                        return (
-                          <div key={pos.seat}
-                            className={`absolute w-3.5 h-3.5 rounded-full border-2 ${occupied ? 'bg-[#31A24C] border-[#31A24C]/50' : 'bg-transparent border-[#3A3B3C]'
-                              }`}
-                            style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        {/* ─── BRAVO-STYLE COLUMNS ─── */}
+        {gameEntries.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
+            <Users size={56} color="#1E3A5F" />
+            <p style={{ fontSize: '18px', fontWeight: 600, color: '#64B5F6', marginTop: '16px' }}>No Players Waiting</p>
+            <p style={{ fontSize: '14px', color: '#3A5A7C', marginTop: '4px' }}>Players will appear here when they join the waitlist</p>
           </div>
+        ) : (
+          <div style={{
+            display: 'flex', overflowX: 'auto', padding: '16px',
+            gap: '0', minHeight: 'calc(100vh - 80px)', alignItems: 'flex-start'
+          }}>
+            {gameEntries.map(([gameType, entries], colIdx) => {
+              const color = COLUMN_COLORS[colIdx % COLUMN_COLORS.length];
+              const isLast = colIdx === gameEntries.length - 1;
 
-          {/* RIGHT: Waitlists */}
-          <div className="lg:w-96 lg:border-l border-[#3A3B3C] p-4">
-            <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-3">Waitlists</h2>
+              return (
+                <div key={gameType} style={{ flex: '1 1 0', minWidth: '160px', maxWidth: '280px', display: 'flex', flexDirection: 'column' }}>
+                  {/* Column Header Tab */}
+                  <div style={{
+                    backgroundColor: color, padding: '10px 14px',
+                    textAlign: 'center', fontWeight: 700, fontSize: '14px',
+                    letterSpacing: '0.5px', textTransform: 'uppercase', color: '#fff',
+                    borderRight: isLast ? 'none' : '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    {gameType}
+                  </div>
 
-            {Object.keys(waitlistByGame).length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
-                <p className="text-sm text-[#B0B3B8]">No Players Waiting</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(waitlistByGame).map(([gameType, entries]) => {
-                  // Sort: called first, then by position/created_at
-                  const sorted = [...entries].sort((a, b) => {
-                    if (a.status === 'called' && b.status !== 'called') return -1;
-                    if (b.status === 'called' && a.status !== 'called') return 1;
-                    return new Date(a.created_at) - new Date(b.created_at);
-                  });
-                  return (
-                    <div key={gameType}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-white">{gameType}</h3>
-                        <span className="text-xs text-[#B0B3B8] bg-[#3A3B3C] px-2 py-0.5 rounded-full">{entries.length}</span>
-                      </div>
-                      <div className="space-y-1">
-                        {sorted.map((entry, idx) => {
-                          const waitMins = entry.created_at
-                            ? Math.round((Date.now() - new Date(entry.created_at).getTime()) / 60000)
-                            : 0;
-                          return (
-                            <div key={entry.id}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${entry.status === 'called'
-                                ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
-                                : 'bg-[#242526] border-[#3A3B3C]'
-                                }`}>
-                              <span className="w-6 h-6 rounded-full bg-[#3A3B3C] flex items-center justify-center text-xs font-bold text-[#B0B3B8]">
-                                {idx + 1}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-sm font-medium text-[#E4E6EB] truncate">{entry.player_name}</p>
-                                  {entry.status === 'called' && (
-                                    <span className="text-[9px] font-bold bg-[#F59E0B] text-white px-1.5 py-0.5 rounded">CALLED</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 text-[10px] text-[#B0B3B8]">
-                                  <span className="inline-flex items-center gap-0.5">
-                                    <Clock className="w-2.5 h-2.5" />{waitMins}m
-                                  </span>
-                                  {entry.signup_method && (
-                                    <span className={`px-1 py-0.5 rounded text-[9px] font-medium ${entry.signup_method === 'app' ? 'bg-[#1877F2]/15 text-[#1877F2]' : entry.signup_method === 'kiosk' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
-                                      {entry.signup_method === 'app' ? 'APP' : entry.signup_method === 'kiosk' ? 'KIOSK' : entry.signup_method === 'staff' ? 'STAFF' : entry.signup_method?.toUpperCase()}
-                                    </span>
-                                  )}
-                                  {entry.call_count > 0 && (
-                                    <span className="text-[#F59E0B]">Called {entry.call_count}x</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-1">
-                                {entry.status !== 'called' && (
-                                  <button onClick={() => handleCall(entry)}
-                                    disabled={callLoading === entry.id}
-                                    className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center active:bg-[#F59E0B]/20 disabled:opacity-50"
-                                    title="Call Player">
-                                    {callLoading === entry.id
-                                      ? <Loader2 className="w-4 h-4 text-[#F59E0B] animate-spin" />
-                                      : <PhoneCall className="w-4 h-4 text-[#F59E0B]" />
-                                    }
-                                  </button>
-                                )}
-                                <button onClick={() => setSeatModal(entry)}
-                                  className="w-9 h-9 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20"
-                                  title="Seat Player">
-                                  <Armchair className="w-4 h-4 text-[#31A24C]" />
+                  {/* Player List */}
+                  <div style={{
+                    flex: 1, backgroundColor: '#0F2640',
+                    borderRight: isLast ? 'none' : '1px solid #1A3050'
+                  }}>
+                    {entries.map((entry) => {
+                      const isCalled = entry.status === 'called';
+                      const isSelected = selectedPlayer?.id === entry.id;
+
+                      return (
+                        <div key={entry.id}>
+                          <div
+                            onClick={() => setSelectedPlayer(isSelected ? null : entry)}
+                            style={{
+                              padding: '8px 12px', borderBottom: '1px solid #162D47',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              backgroundColor: isCalled ? 'rgba(251,191,36,0.12)' : isSelected ? `${color}22` : 'transparent',
+                              transition: 'background-color 0.15s'
+                            }}
+                          >
+                            <span style={{
+                              fontSize: '14px', fontWeight: isCalled ? 700 : 500,
+                              color: isCalled ? '#FBBF24' : '#D4D4D8',
+                              textTransform: 'uppercase', letterSpacing: '0.3px'
+                            }}>
+                              {entry.player_name}
+                            </span>
+                            {isCalled && (
+                              <span style={{
+                                fontSize: '9px', fontWeight: 800, color: '#92400E',
+                                backgroundColor: '#FBBF24', padding: '1px 5px',
+                                borderRadius: '3px', letterSpacing: '0.5px'
+                              }}>CALLED</span>
+                            )}
+                          </div>
+
+                          {/* Action bar when selected */}
+                          {isSelected && (
+                            <div style={{
+                              display: 'flex', padding: '6px 8px', gap: '4px',
+                              backgroundColor: '#162D47', borderBottom: '1px solid #162D47',
+                              flexWrap: 'wrap'
+                            }}>
+                              {entry.status !== 'called' && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
+                                  disabled={callLoading === entry.id}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                    padding: '5px 10px', borderRadius: '4px', border: 'none',
+                                    fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                    background: 'rgba(251,191,36,0.15)', color: '#FBBF24'
+                                  }}>
+                                  {callLoading === entry.id
+                                    ? <Loader2 size={12} className="animate-spin" />
+                                    : <PhoneCall size={12} />}
+                                  Call
                                 </button>
-                                <button onClick={() => handlePass(entry)}
-                                  className="w-9 h-9 rounded-lg bg-[#6B7280]/10 flex items-center justify-center active:bg-[#6B7280]/20"
-                                  title="Pass">
-                                  <SkipForward className="w-4 h-4 text-[#6B7280]" />
-                                </button>
-                                <button onClick={() => handleRemove(entry)}
-                                  className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20"
-                                  title="Remove From List">
-                                  <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                                </button>
-                              </div>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSeatModal(entry); }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '4px',
+                                  padding: '5px 10px', borderRadius: '4px', border: 'none',
+                                  fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  background: 'rgba(34,197,94,0.15)', color: '#4ADE80'
+                                }}>
+                                <Armchair size={12} /> Seat
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handlePass(entry); }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '4px',
+                                  padding: '5px 10px', borderRadius: '4px', border: 'none',
+                                  fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  background: 'rgba(107,114,128,0.15)', color: '#9CA3AF'
+                                }}>
+                                <SkipForward size={12} /> Pass
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRemove(entry); }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '4px',
+                                  padding: '5px 10px', borderRadius: '4px', border: 'none',
+                                  fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                  background: 'rgba(239,68,68,0.15)', color: '#F87171'
+                                }}>
+                                <Trash2 size={12} />
+                              </button>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
 
-        {/* Seat Player Modal */}
+                  {/* Footer - Total Count */}
+                  <div style={{
+                    backgroundColor: '#0F2640', padding: '8px 12px',
+                    textAlign: 'center', fontSize: '12px', fontWeight: 700,
+                    color: '#64B5F6', borderTop: '2px solid #1A3050',
+                    borderRight: isLast ? 'none' : '1px solid #1A3050',
+                    letterSpacing: '0.5px', textTransform: 'uppercase'
+                  }}>
+                    Total Count: {entries.length}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ─── SEAT PLAYER MODAL ─── */}
         {seatModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-end lg:items-center justify-center p-4"
+          <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
             onClick={() => setSeatModal(null)}>
-            <div className="bg-[#242526] rounded-2xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
+            <div style={{ background: '#162A3E', borderRadius: '16px', width: '100%', maxWidth: '420px', padding: '20px', border: '1px solid #1E3A5F' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Seat Player</h3>
-                  <p className="text-sm text-[#B0B3B8]">{seatModal.player_name}</p>
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Seat Player</h3>
+                  <p style={{ fontSize: '14px', color: '#64B5F6', margin: '2px 0 0' }}>{seatModal.player_name}</p>
                 </div>
                 <button onClick={() => setSeatModal(null)}
-                  className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center">
-                  <X className="w-4 h-4 text-[#B0B3B8]" />
+                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#1E3A5F', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={16} color="#90CAF9" />
                 </button>
               </div>
-              <div className="space-y-2 max-h-80 overflow-y-auto">
+              <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {activeTables.filter(t => {
                   const seated = (t.seats || []).filter(s => s.status === 'occupied').length;
                   return seated < (t.max_seats || 9);
@@ -373,21 +392,24 @@ export default function WaitlistDesk() {
                   const seats = table.seats || [];
                   const openSeats = [];
                   for (let s = 1; s <= maxSeats; s++) {
-                    if (!seats.find(se => se.seat_number === s && se.status === 'occupied')) {
-                      openSeats.push(s);
-                    }
+                    if (!seats.find(se => se.seat_number === s && se.status === 'occupied')) openSeats.push(s);
                   }
                   return (
-                    <div key={table.table_number} className="bg-[#3A3B3C]/50 rounded-xl p-3">
-                      <p className="text-sm font-medium text-white mb-2">
+                    <div key={table.table_number} style={{ background: 'rgba(30,58,95,0.5)', borderRadius: '12px', padding: '12px' }}>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: '0 0 8px' }}>
                         Table {table.table_number}
-                        {table.game_type && <span className="text-[#B0B3B8]"> — {table.game_type}</span>}
+                        {table.game_type && <span style={{ color: '#64B5F6' }}> — {table.game_type}</span>}
                       </p>
-                      <div className="flex gap-1.5 flex-wrap">
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {openSeats.map(seat => (
                           <button key={seat}
                             onClick={() => handleSeat(seatModal, table.table_number, seat)}
-                            className="w-10 h-10 rounded-lg bg-[#31A24C]/10 border border-[#31A24C]/30 flex items-center justify-center text-sm font-bold text-[#31A24C] active:bg-[#31A24C]/20">
+                            style={{
+                              width: '40px', height: '40px', borderRadius: '8px',
+                              background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '14px', fontWeight: 700, color: '#4ADE80', cursor: 'pointer'
+                            }}>
                             {seat}
                           </button>
                         ))}
@@ -400,28 +422,24 @@ export default function WaitlistDesk() {
           </div>
         )}
 
-        {/* Add Walk-In Modal */}
+        {/* ─── ADD WALK-IN MODAL ─── */}
         {showAddWalkIn && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-end lg:items-center justify-center p-4"
+          <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
             onClick={() => setShowAddWalkIn(false)}>
-            <div className="bg-[#242526] rounded-2xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">Add Player To Waitlist</h3>
+            <div style={{ background: '#162A3E', borderRadius: '16px', width: '100%', maxWidth: '420px', padding: '20px', border: '1px solid #1E3A5F' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Add Player To Waitlist</h3>
                 <button onClick={() => setShowAddWalkIn(false)}
-                  className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center">
-                  <X className="w-4 h-4 text-[#B0B3B8]" />
+                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#1E3A5F', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={16} color="#90CAF9" />
                 </button>
               </div>
-              <WalkInForm
-                onSubmit={handleAddWalkIn}
-                activeTables={activeTables}
-              />
+              <WalkInForm onSubmit={handleAddWalkIn} activeTables={activeTables} />
             </div>
           </div>
         )}
       </div>
-      <style jsx>{`
-`}</style>
     </>
   );
 }
@@ -432,7 +450,6 @@ function WalkInForm({ onSubmit, activeTables }) {
   const [gameType, setGameType] = useState('NLH 1/3');
   const [submitting, setSubmitting] = useState(false);
 
-  // Derive game types from active tables
   const gameTypes = [...new Set(activeTables.map(t => t.game_type).filter(Boolean))];
   if (gameTypes.length === 0) gameTypes.push('NLH 1/3', 'NLH 2/5', 'PLO 1/3');
 
@@ -445,32 +462,51 @@ function WalkInForm({ onSubmit, activeTables }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
-        <label className="block text-sm font-medium text-white mb-1">Player Name *</label>
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>Player Name *</label>
         <input type="text" value={name} onChange={e => setName(e.target.value)}
           placeholder="e.g., Mike S." autoFocus required
-          className="w-full h-12 px-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-white placeholder-[#6A6B6D] focus:border-[#1877F2] outline-none" />
+          style={{
+            width: '100%', height: '48px', padding: '0 12px', background: '#1E3A5F',
+            border: '1px solid #2A4A6F', borderRadius: '12px', color: '#fff',
+            fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+          }} />
       </div>
       <div>
-        <label className="block text-sm font-medium text-white mb-1">Phone <span className="text-[#6A6B6D]">(for SMS)</span></label>
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
+          Phone <span style={{ color: '#4A6A8F' }}>(for SMS)</span>
+        </label>
         <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
           placeholder="(555) 123-4567"
-          className="w-full h-12 px-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-white placeholder-[#6A6B6D] focus:border-[#1877F2] outline-none" />
+          style={{
+            width: '100%', height: '48px', padding: '0 12px', background: '#1E3A5F',
+            border: '1px solid #2A4A6F', borderRadius: '12px', color: '#fff',
+            fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+          }} />
       </div>
       <div>
-        <label className="block text-sm font-medium text-white mb-1">Game</label>
-        <div className="flex flex-wrap gap-2">
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>Game</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {gameTypes.map(g => (
             <button key={g} type="button" onClick={() => setGameType(g)}
-              className={`px-4 py-2 rounded-full text-sm font-medium ${gameType === g ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+              style={{
+                padding: '8px 16px', borderRadius: '20px', border: 'none',
+                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                background: gameType === g ? '#1E88E5' : '#1E3A5F',
+                color: gameType === g ? '#fff' : '#90CAF9'
+              }}>
               {g}
             </button>
           ))}
         </div>
       </div>
       <button type="submit" disabled={!name.trim() || submitting}
-        className="w-full h-12 bg-[#1877F2] text-white rounded-xl font-semibold disabled:opacity-50">
+        style={{
+          width: '100%', height: '48px', background: '#1E88E5', color: '#fff',
+          borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px',
+          cursor: 'pointer', opacity: (!name.trim() || submitting) ? 0.5 : 1
+        }}>
         {submitting ? 'Adding...' : 'Add to Waitlist'}
       </button>
     </form>

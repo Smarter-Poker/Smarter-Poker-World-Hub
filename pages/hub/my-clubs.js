@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
+import { supabase } from '../../src/lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN TOKENS — Facebook Dark palette
@@ -76,6 +77,82 @@ function VenueTypeBadge({ type }) {
         }}>
             {label}
         </span>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLUB ARENA CARD — Club Arena membership card
+// ─────────────────────────────────────────────────────────────────────────────
+function ClubArenaCard({ club, onNavigate }) {
+    const [hovering, setHovering] = useState(false);
+    return (
+        <div
+            onClick={() => onNavigate(club.club_id)}
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
+            style={{
+                background: hovering ? C.elevated : C.surface,
+                border: `1px solid ${hovering ? 'rgba(139, 92, 246, 0.4)' : C.elevated}`,
+                borderRadius: 12,
+                padding: 20,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+            }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    <div style={{
+                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 18, color: '#fff', fontWeight: 700,
+                    }}>
+                        {club.name?.[0]?.toUpperCase() || '♠'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                            fontSize: 16, fontWeight: 700, color: C.text,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                            {club.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+                            Club Arena · {club.userRole === 'owner' ? 'Owner' : club.userRole === 'admin' ? 'Admin' : 'Member'}
+                        </div>
+                    </div>
+                </div>
+                <span style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    borderRadius: 16,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    background: 'rgba(139, 92, 246, 0.15)',
+                    border: '1px solid #8b5cf6',
+                    color: '#8b5cf6',
+                }}>
+                    Club Arena
+                </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 12, color: C.textMuted }}>
+                    Code: {club.club_id || '—'}
+                </div>
+                <div style={{
+                    padding: '6px 14px', borderRadius: 8,
+                    background: 'rgba(139, 92, 246, 0.12)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    color: '#8b5cf6', fontSize: 12, fontWeight: 600,
+                }}>
+                    Open Lobby →
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -307,6 +384,7 @@ export default function MyClubsPage() {
 
     // Followed clubs data
     const [followedVenues, setFollowedVenues] = useState([]);
+    const [arenaClubs, setArenaClubs] = useState([]);
     const [followedIds, setFollowedIds] = useState(new Set());
 
     // Live data maps: venueId → count
@@ -428,6 +506,25 @@ export default function MyClubsPage() {
                 }));
                 setLiveGamesMap(gameMap);
                 setWaitlistMap(wlMap);
+            }
+
+            // Fetch Club Arena memberships (uses Supabase directly)
+            if (authUser?.id) {
+                try {
+                    const { data: memberships } = await supabase
+                        .from('club_members')
+                        .select('club_id, role, clubs(*)')
+                        .eq('user_id', authUser.id)
+                        .eq('status', 'active');
+                    if (memberships && memberships.length > 0) {
+                        const clubs = memberships
+                            .map(m => ({ ...m.clubs, userRole: m.role }))
+                            .filter(c => c && c.status === 'active');
+                        setArenaClubs(clubs);
+                    }
+                } catch (e) {
+                    console.warn('[MyClubs] Failed to fetch Club Arena memberships:', e);
+                }
             }
 
             setLoading(false);
@@ -596,7 +693,7 @@ export default function MyClubsPage() {
                                 transition: 'all 0.2s ease',
                             }}
                         >
-                            My Clubs {followedVenues.length > 0 && `(${followedVenues.length})`}
+                            My Clubs {(followedVenues.length + arenaClubs.length) > 0 && `(${followedVenues.length + arenaClubs.length})`}
                         </button>
                         <button
                             onClick={() => setActiveTab('discover')}
@@ -632,7 +729,7 @@ export default function MyClubsPage() {
                                     <div style={{ fontSize: 14, color: C.textSec }}>Loading Your Clubs...</div>
 
                                 </div>
-                            ) : followedVenues.length === 0 ? (
+                            ) : (followedVenues.length === 0 && arenaClubs.length === 0) ? (
                                 <EmptyState onSearchFocus={focusSearch} />
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -648,7 +745,7 @@ export default function MyClubsPage() {
                                         }}>
                                             <span style={{ fontSize: 12, color: C.textMuted }}>Following </span>
                                             <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                                {followedVenues.length}
+                                                {followedVenues.length + arenaClubs.length}
                                             </span>
                                         </div>
                                         {Object.values(liveGamesMap).some(v => v > 0) && (
@@ -678,6 +775,15 @@ export default function MyClubsPage() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Club Arena clubs */}
+                                    {arenaClubs.map(club => (
+                                        <ClubArenaCard
+                                            key={`arena-${club.id}`}
+                                            club={club}
+                                            onNavigate={(clubId) => router.push(`/hub/club-arena/lobby?club=${clubId}`)}
+                                        />
+                                    ))}
 
                                     {/* Venue cards — sorted by live activity */}
                                     {[...followedVenues]

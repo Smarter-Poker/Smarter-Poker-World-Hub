@@ -1,28 +1,33 @@
 /**
  * NOTIFICATION PROMPT — Push subscription CTA
  * Shows a non-intrusive prompt to enable push notifications
- * Appears after user logs in and hasn't subscribed yet
+ * - Only appears ONCE per user (60s after first login)
+ * - Remembers the choice permanently via localStorage
+ * - Never reappears after Yes or No is clicked
  */
 import { useState, useEffect } from 'react';
 import { useOneSignal } from '../../contexts/OneSignalContext';
+
+const PROMPT_KEY = 'push_prompt_responded'; // universal key, no user suffix needed
 
 export default function NotificationPrompt({ userId, onDismiss }) {
     const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = useOneSignal();
     const [visible, setVisible] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [dismissed, setDismissed] = useState(false);
 
-    // Check if user has already dismissed or subscribed
+    // Check if user has already responded (Yes or No)
     useEffect(() => {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || !userId) return;
 
-        const dismissedKey = `push_prompt_dismissed_${userId}`;
-        const wasDismissed = localStorage.getItem(dismissedKey);
+        const alreadyResponded = localStorage.getItem(PROMPT_KEY);
 
-        // Only show if: initialized, not subscribed, not denied, not dismissed
-        if (isInitialized && !isSubscribed && permission !== 'denied' && !wasDismissed) {
-            // Delay showing prompt for better UX
-            const timer = setTimeout(() => setVisible(true), 3000);
+        // Never show again if user already responded, is already subscribed, or permission denied
+        if (alreadyResponded || isSubscribed || permission === 'denied') return;
+
+        // Only show if OneSignal is initialized and user hasn't responded
+        if (isInitialized && !isSubscribed && permission !== 'denied') {
+            // 60 second delay after page load (first login experience)
+            const timer = setTimeout(() => setVisible(true), 60000);
             return () => clearTimeout(timer);
         }
     }, [isInitialized, isSubscribed, permission, userId]);
@@ -30,11 +35,14 @@ export default function NotificationPrompt({ userId, onDismiss }) {
     // Link user ID when initialized AND we have a playerId - ALWAYS try to link if subscribed
     useEffect(() => {
         if (isInitialized && userId && playerId && isSubscribed) {
-            // Always try to link, even if already subscribed (fixes users who subscribed before linking was added)
             if (process.env.NODE_ENV === 'development') console.log('[NotificationPrompt] Attempting to link user:', userId, 'playerId:', playerId);
             setExternalUserId(userId);
         }
     }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);
+
+    const markResponded = () => {
+        localStorage.setItem(PROMPT_KEY, Date.now().toString());
+    };
 
     const handleEnable = async () => {
         setLoading(true);
@@ -43,22 +51,21 @@ export default function NotificationPrompt({ userId, onDismiss }) {
             if (success && userId) {
                 await setExternalUserId(userId);
             }
-            setVisible(false);
         } catch (error) {
             console.error('Failed to enable notifications:', error);
         }
+        markResponded();
+        setVisible(false);
         setLoading(false);
     };
 
     const handleDismiss = () => {
-        const dismissedKey = `push_prompt_dismissed_${userId}`;
-        localStorage.setItem(dismissedKey, 'true');
-        setDismissed(true);
+        markResponded();
         setVisible(false);
         onDismiss?.();
     };
 
-    if (!visible || dismissed) return null;
+    if (!visible) return null;
 
     return (
         <div style={{
