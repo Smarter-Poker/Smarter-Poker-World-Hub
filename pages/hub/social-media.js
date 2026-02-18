@@ -696,11 +696,23 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         const uploaded = [];
         for (const file of filesToUpload) {
             const isVideo = file.type.startsWith('video/');
-            const path = `${isVideo ? 'videos' : 'photos'}/${user.id}/${Date.now()}_${file.name}`;
-            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
-            if (!upErr) {
-                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
-                uploaded.push({ type: isVideo ? 'video' : 'photo', url: data.publicUrl });
+            const folder = isVideo ? 'videos' : 'photos';
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('folder', folder);
+                formData.append('prefix', user.id);
+                const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+                const json = await res.json();
+                if (json.success && json.url) {
+                    uploaded.push({ type: json.type || (isVideo ? 'video' : 'photo'), url: json.url });
+                } else {
+                    console.error('[PostCreator] Upload failed:', json.error);
+                    setError('Upload failed: ' + (json.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('[PostCreator] Upload error:', err);
+                setError('Upload failed: ' + err.message);
             }
         }
         setMedia(prev => [...prev, ...uploaded]);
@@ -1884,11 +1896,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         if (!file) return;
         setCoverUploading(true);
         try {
-            const path = `covers/${page.id}/${Date.now()}_${file.name}`;
-            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
-            if (!upErr) {
-                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
-                const url = data.publicUrl;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'covers');
+            formData.append('prefix', page.id);
+            const uploadRes = await fetch('/api/social/upload', { method: 'POST', body: formData });
+            const uploadJson = await uploadRes.json();
+            if (uploadJson.success && uploadJson.url) {
+                const url = uploadJson.url;
                 setCoverPhoto(url);
                 // Save to both metadata.cover_photo_url AND cover_url column so public page stays in sync
                 const merged = { ...page.metadata, cover_photo_url: url };
@@ -1906,8 +1921,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     }
                 } catch (saveErr) { console.error('Cover save error:', saveErr); }
                 setMetaSaving(false);
+            } else {
+                alert('Cover upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Cover upload error:', err); }
+        } catch (err) { console.error('Cover upload error:', err); alert('Cover upload error: ' + err.message); }
         setCoverUploading(false);
     };
 
@@ -1916,11 +1933,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         if (!file) return;
         setLogoUploading(true);
         try {
-            const path = `logos/${page.id}/${Date.now()}_${file.name}`;
-            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
-            if (!upErr) {
-                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
-                const url = data.publicUrl;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'logos');
+            formData.append('prefix', page.id);
+            const uploadRes = await fetch('/api/social/upload', { method: 'POST', body: formData });
+            const uploadJson = await uploadRes.json();
+            if (uploadJson.success && uploadJson.url) {
+                const url = uploadJson.url;
                 setLogoUrl(url);
                 // Save to both metadata.logo_url AND avatar_url column so public page stays in sync
                 const merged = { ...page.metadata, logo_url: url };
@@ -1939,7 +1959,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 } catch (saveErr) { console.error('Logo save error:', saveErr); }
                 setMetaSaving(false);
             } else {
-                alert('Logo upload failed: ' + upErr.message);
+                alert('Logo upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
         } catch (err) { console.error('Logo upload error:', err); alert('Logo upload error: ' + err.message); }
         setLogoUploading(false);
@@ -1956,11 +1976,22 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         const uploaded = [];
         for (const file of toUpload) {
             const isVideo = file.type.startsWith('video/');
-            const path = `club-posts/${page.id}/${Date.now()}_${file.name}`;
-            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
-            if (!upErr) {
-                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
-                uploaded.push({ type: isVideo ? 'video' : 'photo', url: data.publicUrl });
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('folder', 'club-posts');
+                formData.append('prefix', page.id);
+                const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+                const json = await res.json();
+                if (json.success && json.url) {
+                    uploaded.push({ type: json.type || (isVideo ? 'video' : 'photo'), url: json.url });
+                } else {
+                    console.error('[ClubPage] Upload failed:', json.error);
+                    alert('Upload failed: ' + (json.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('[ClubPage] Upload error:', err);
+                alert('Upload failed: ' + err.message);
             }
         }
         setPostMedia(prev => [...prev, ...uploaded]);
