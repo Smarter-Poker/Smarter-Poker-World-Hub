@@ -17,6 +17,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+    // Block debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     const { user1, user2 } = req.query;
 
     if (!user1 || !user2) {

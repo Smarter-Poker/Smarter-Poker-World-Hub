@@ -7,6 +7,10 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 export default async function handler(req, res) {
+    // Block debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     try {
         const user = await getAuthUser(req);
 

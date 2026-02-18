@@ -19,6 +19,10 @@ const SYNTHETIC_TITLES = [
 ];
 
 export default async function handler(req, res) {
+    // Block debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     try {
         console.log('[Cleanup] Starting synthetic news cleanup...');
 

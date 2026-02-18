@@ -7,6 +7,10 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbk
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
+    // Block debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     if (!SUPABASE_SERVICE_KEY) {
         return res.status(500).json({ error: 'Service key not configured' });
     }

@@ -8,6 +8,10 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
+    // Block debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     // Use service role key to bypass RLS
     const adminSupabase = createClient(
         SUPABASE_URL.trim(),

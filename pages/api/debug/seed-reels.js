@@ -28,6 +28,10 @@ const SAMPLE_REELS = [
 const SYSTEM_UUID = '00000000-0000-0000-0000-000000000001';
 
 export default async function handler(req, res) {
+    // Block debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     try {
         // Check env vars
         if (!SUPABASE_URL || !SUPABASE_KEY) {
