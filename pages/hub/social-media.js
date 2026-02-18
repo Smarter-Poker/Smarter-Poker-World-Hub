@@ -2630,22 +2630,34 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const occupiedCount = seatArr.filter(s => s.taken).length;
                                 const openSeats = game.max_seats - occupiedCount;
 
-                                // Hardcoded positions on the table rail (rounded-rectangle, not ellipse)
-                                // David (top) and dealer (bottom) confirmed correct; others match the rail path
-                                const seatPositions = [
-                                    { top: '68%', left: '22%' },   // seat 1: bottom-left
-                                    { top: '57%', left: '10%' },   // seat 2: left-lower
-                                    { top: '43%', left: '10%' },   // seat 3: left-upper
-                                    { top: '32%', left: '22%' },   // seat 4: upper-left
-                                    { top: '28%', left: '50%' },   // seat 5: top-center
-                                    { top: '32%', left: '78%' },   // seat 6: upper-right
-                                    { top: '43%', left: '90%' },   // seat 7: right-upper
-                                    { top: '57%', left: '90%' },   // seat 8: right-lower
-                                    { top: '68%', left: '78%' },   // seat 9: bottom-right
-                                ];
-                                // Dealer on the bottom rail
-                                const dealerTop = '72%';
-                                const dealerLeft = '50%';
+                                // Arc-length parameterized ellipse: equal visual spacing
+                                const rx = 44, ry = 22, cxE = 50, cyE = 50;
+                                const STEPS = 360;
+                                const startAngle = Math.PI / 2; // dealer at bottom (90°)
+                                const cumArc = [0];
+                                for (let i = 1; i <= STEPS; i++) {
+                                    const t0 = startAngle + ((i - 1) / STEPS) * 2 * Math.PI;
+                                    const t1 = startAngle + (i / STEPS) * 2 * Math.PI;
+                                    const dx = rx * (Math.cos(t1) - Math.cos(t0));
+                                    const dy = ry * (Math.sin(t1) - Math.sin(t0));
+                                    cumArc.push(cumArc[i - 1] + Math.sqrt(dx * dx + dy * dy));
+                                }
+                                const totalArc = cumArc[STEPS];
+                                const allPos = [];
+                                for (let p = 0; p < 10; p++) {
+                                    const target = (p / 10) * totalArc;
+                                    let idx = 1;
+                                    while (idx <= STEPS && cumArc[idx] < target) idx++;
+                                    const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
+                                    allPos.push({
+                                        top: `${cyE + ry * Math.sin(angle)}%`,
+                                        left: `${cxE + rx * Math.cos(angle)}%`,
+                                    });
+                                }
+                                // pos[0]=dealer(bottom), pos[1-9]=seats going counter-clockwise
+                                const dealerTop = allPos[0].top;
+                                const dealerLeft = allPos[0].left;
+                                const seatPositions = allPos.slice(1);
 
 
 
@@ -3044,22 +3056,34 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const openSeats = game.max_seats - occupiedCount;
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
-                        // Hardcoded positions on the table rail (rounded-rectangle, not ellipse)
-                        // David (top) and dealer (bottom) confirmed correct; others match the rail path
-                        const seatPositions = [
-                            { top: '68%', left: '22%' },   // seat 1: bottom-left
-                            { top: '57%', left: '10%' },   // seat 2: left-lower
-                            { top: '43%', left: '10%' },   // seat 3: left-upper
-                            { top: '32%', left: '22%' },   // seat 4: upper-left
-                            { top: '28%', left: '50%' },   // seat 5: top-center
-                            { top: '32%', left: '78%' },   // seat 6: upper-right
-                            { top: '43%', left: '90%' },   // seat 7: right-upper
-                            { top: '57%', left: '90%' },   // seat 8: right-lower
-                            { top: '68%', left: '78%' },   // seat 9: bottom-right
-                        ];
-                        // Dealer on the bottom rail
-                        const dealerTop = '72%';
-                        const dealerLeft = '50%';
+                        // Arc-length parameterized ellipse: equal visual spacing
+                        const rx = 44, ry = 22, cxE = 50, cyE = 50;
+                        const STEPS = 360;
+                        const startAngle = Math.PI / 2; // dealer at bottom (90°)
+                        const cumArc = [0];
+                        for (let i = 1; i <= STEPS; i++) {
+                            const t0 = startAngle + ((i - 1) / STEPS) * 2 * Math.PI;
+                            const t1 = startAngle + (i / STEPS) * 2 * Math.PI;
+                            const dx = rx * (Math.cos(t1) - Math.cos(t0));
+                            const dy = ry * (Math.sin(t1) - Math.sin(t0));
+                            cumArc.push(cumArc[i - 1] + Math.sqrt(dx * dx + dy * dy));
+                        }
+                        const totalArc = cumArc[STEPS];
+                        const allPos = [];
+                        for (let p = 0; p < 10; p++) {
+                            const target = (p / 10) * totalArc;
+                            let idx = 1;
+                            while (idx <= STEPS && cumArc[idx] < target) idx++;
+                            const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
+                            allPos.push({
+                                top: `${cyE + ry * Math.sin(angle)}%`,
+                                left: `${cxE + rx * Math.cos(angle)}%`,
+                            });
+                        }
+                        // pos[0]=dealer(bottom), pos[1-9]=seats going counter-clockwise
+                        const dealerTop = allPos[0].top;
+                        const dealerLeft = allPos[0].left;
+                        const seatPositions = allPos.slice(1);
 
 
                         return (
