@@ -6,7 +6,7 @@
 
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
@@ -237,6 +237,39 @@ export default function BankrollManagerPage() {
   const [defaultReceiptMedia, setDefaultReceiptMedia] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
   const [isVip, setIsVip] = useState(false);
+
+  // Pre-compute report stats to avoid inline IIFEs (Terser mangles Set refs inside IIFEs)
+  const gamingSessions = useMemo(() => {
+    if (!entries || entries.length === 0) return [];
+    return entries.filter(e => {
+      const cat = e.category;
+      return cat !== 'expense' && cat !== 'deposit' && cat !== 'withdrawal' && cat !== 'receipt';
+    });
+  }, [entries]);
+
+  const reportTotalSessions = gamingSessions.length;
+
+  const reportWinRate = useMemo(() => {
+    if (gamingSessions.length === 0) return 0;
+    const wins = gamingSessions.filter(e => (e.gross_out - e.gross_in) > 0).length;
+    return Math.round((wins / gamingSessions.length) * 100);
+  }, [gamingSessions]);
+
+  const reportAvgSession = useMemo(() => {
+    if (gamingSessions.length === 0) return 0;
+    const total = gamingSessions.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0);
+    return Math.round(total / gamingSessions.length);
+  }, [gamingSessions]);
+
+  // Pre-compute filtered analytics entries (gaming sessions only, matching game type filter)
+  const filteredAnalyticsEntries = useMemo(() => {
+    if (!entries || entries.length === 0) return [];
+    return entries.filter(e => {
+      const cat = e.category;
+      const isAccounting = cat === 'expense' || cat === 'deposit' || cat === 'withdrawal' || cat === 'receipt';
+      return !isAccounting && gameTypeFilter.has(cat);
+    });
+  }, [entries, gameTypeFilter]);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
@@ -1016,13 +1049,13 @@ export default function BankrollManagerPage() {
                     )}
                     <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px', filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
                       <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                        <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                        <LocationAnalytics entries={filteredAnalyticsEntries} isLoading={isLoading} />
                       </div>
                       <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                        <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                        <VarianceCalculator entries={filteredAnalyticsEntries} />
                       </div>
                       <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                        <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                        <HistoricalComparison entries={filteredAnalyticsEntries} />
                       </div>
                     </div>
                   </div>
@@ -1222,12 +1255,12 @@ export default function BankrollManagerPage() {
                   }}>
                     <div style={styles.reportStatBox}>
                       <span style={styles.reportStatLabel}>Total Sessions</span>
-                      <span style={styles.reportStatValue}>{(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length; })()}</span>
+                      <span style={styles.reportStatValue}>{reportTotalSessions}</span>
                     </div>
                     <div style={styles.reportStatBox}>
                       <span style={styles.reportStatLabel}>Win Rate</span>
                       <span style={styles.reportStatValue}>
-                        {(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round((s.filter(e => (e.gross_out - e.gross_in) > 0).length / s.length) * 100) : 0; })()}%
+                        {reportWinRate}%
                       </span>
                     </div>
                     <div style={styles.reportStatBox}>
@@ -1242,7 +1275,7 @@ export default function BankrollManagerPage() {
                     <div style={styles.reportStatBox}>
                       <span style={styles.reportStatLabel}>Avg Session</span>
                       <span style={styles.reportStatValue}>
-                        ${(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round(s.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0) / s.length) : 0; })()}
+                        ${reportAvgSession}
                       </span>
                     </div>
                   </div>
