@@ -112,6 +112,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         finish_position: e.finish_position?.toString() || '',
         field_size: e.field_size?.toString() || '',
         reentry_count: e.reentry_count?.toString() || '0',
+        add_on_amount: e.add_on_amount?.toString() || '',
         casino_game: e.casino_game || 'blackjack',
         sport: e.sport || '',
         bet_type: e.bet_type || '',
@@ -160,6 +161,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       action_percentage: '',
       action_markup: '',
       action_amount: '',
+      add_on_amount: '',
     };
   };
 
@@ -338,6 +340,17 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         entry.finish_position = parseInt(formData.finish_position) || null;
         entry.field_size = parseInt(formData.field_size) || null;
         entry.reentry_count = parseInt(formData.reentry_count) || 0;
+        entry.add_on_amount = parseFloat(formData.add_on_amount) || null;
+        // Add rebuys and add-on to notes if present
+        const rebuyCount = parseInt(formData.reentry_count) || 0;
+        const addOnAmt = parseFloat(formData.add_on_amount) || 0;
+        if (rebuyCount > 0 || addOnAmt > 0) {
+          const reParts = [];
+          if (rebuyCount > 0) reParts.push(`Rebuys: ${rebuyCount}`);
+          if (addOnAmt > 0) reParts.push(`Add-On: $${addOnAmt}`);
+          const reExtra = reParts.join(' | ');
+          entry.notes = entry.notes ? `${entry.notes}\n${reExtra}` : reExtra;
+        }
         // Subtract swap, staking, and sold action amounts from gross_out
         const swapAmt = parseFloat(formData.swap_amount) || 0;
         const stakerAmt = parseFloat(formData.staker_amount) || 0;
@@ -633,6 +646,50 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                   type="number"
                   value={formData.field_size}
                   onChange={(e) => handleInputChange('field_size', e.target.value)}
+                  style={styles.input}
+                />
+              </div>
+            </div>
+
+            {/* Rebuys & Add-On Row */}
+            <div style={styles.amountRow}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Rebuys</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = parseInt(formData.reentry_count) || 0;
+                      if (cur > 0) handleInputChange('reentry_count', (cur - 1).toString());
+                    }}
+                    style={{ ...styles.input, flex: 'none', width: 40, textAlign: 'center', cursor: 'pointer', padding: '12px 0', borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none', fontSize: 18, fontWeight: 700 }}
+                  >–</button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.reentry_count}
+                    onChange={(e) => handleInputChange('reentry_count', e.target.value)}
+                    style={{ ...styles.input, flex: 1, textAlign: 'center', borderRadius: 0, borderLeft: 'none', borderRight: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = parseInt(formData.reentry_count) || 0;
+                      handleInputChange('reentry_count', (cur + 1).toString());
+                    }}
+                    style={{ ...styles.input, flex: 'none', width: 40, textAlign: 'center', cursor: 'pointer', padding: '12px 0', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none', fontSize: 18, fontWeight: 700 }}
+                  >+</button>
+                </div>
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Add-On ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.add_on_amount}
+                  onChange={(e) => handleInputChange('add_on_amount', e.target.value)}
+                  onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('add_on_amount', ''); } }}
+                  onBlur={(e) => { if (!e.target.value) handleInputChange('add_on_amount', ''); }}
                   style={styles.input}
                 />
               </div>

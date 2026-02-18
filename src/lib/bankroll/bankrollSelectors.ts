@@ -27,9 +27,14 @@ export interface LedgerEntry {
   buy_in_amount: number | null;
   finish_position: number | null;
   field_size: number | null;
+  reentry_count: number | null;
+  add_on_amount: number | null;
   casino_game: string | null;
+  slot_machine: string | null;
   sport: string | null;
   bet_type: string | null;
+  odds: string | null;
+  bet_result: string | null;
   expense_type: string | null;
   created_at: string;
 }
@@ -295,9 +300,14 @@ export async function createLedgerEntry(
       buy_in_amount: entry.buy_in_amount,
       finish_position: entry.finish_position,
       field_size: entry.field_size,
+      reentry_count: entry.reentry_count,
+      add_on_amount: entry.add_on_amount,
       casino_game: entry.casino_game,
+      slot_machine: entry.slot_machine,
       sport: entry.sport,
       bet_type: entry.bet_type,
+      odds: entry.odds,
+      bet_result: entry.bet_result,
       expense_type: entry.expense_type,
     })
     .select()
