@@ -261,11 +261,14 @@ export default function WaitlistDesk() {
             {totalWaiting} waiting &bull; {gameEntries.length} game{gameEntries.length !== 1 ? 's' : ''}
             {totalPages > 1 && <span style={{ marginLeft: '8px', color: '#D4AF37' }}>Page {currentPage + 1}/{totalPages}</span>}
           </span>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => setShowAddWalkIn(true)} style={S.addBtn}>
-              <UserPlus size={13} /> Add Player
+              <UserPlus size={18} /> Add Player
             </button>
-            <button onClick={fetchData} style={S.refreshBtn}><RefreshCw size={13} /></button>
+            <button onClick={() => { /* phone call-in modal placeholder */ }} style={S.addBtn}>
+              <Phone size={18} /> Call-In
+            </button>
+            <button onClick={fetchData} style={S.refreshBtn}><RefreshCw size={18} /></button>
           </div>
         </div>
 
@@ -316,8 +319,8 @@ export default function WaitlistDesk() {
                               backgroundColor: isCalled ? 'rgba(212,175,55,0.08)' : isSelected ? 'rgba(255,255,255,0.04)' : 'transparent'
                             }}
                           >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              {hasApp && <span style={{ color: '#D4AF37', fontSize: '10px' }}>♦</span>}
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {hasApp && <span style={{ color: '#D4AF37', fontSize: '16px' }}>♦</span>}
                               <span style={{ ...S.playerName, color: isCalled ? '#D4AF37' : '#E0E0E0' }}>
                                 {entry.player_name}
                               </span>
@@ -330,18 +333,18 @@ export default function WaitlistDesk() {
                               {entry.status !== 'called' && (
                                 <button onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
                                   disabled={callLoading === entry.id} style={S.actionBtn}>
-                                  {callLoading === entry.id ? <Loader2 size={11} className="animate-spin" /> : <PhoneCall size={11} />}
+                                  {callLoading === entry.id ? <Loader2 size={18} className="animate-spin" /> : <PhoneCall size={18} />}
                                   Call
                                 </button>
                               )}
                               <button onClick={(e) => { e.stopPropagation(); setSeatModal(entry); }} style={S.actionBtnGreen}>
-                                <Armchair size={11} /> Seat
+                                <Armchair size={18} /> Seat
                               </button>
                               <button onClick={(e) => { e.stopPropagation(); handlePass(entry); }} style={S.actionBtn}>
-                                <SkipForward size={11} /> Pass
+                                <SkipForward size={18} /> Pass
                               </button>
                               <button onClick={(e) => { e.stopPropagation(); handleRemove(entry); }} style={S.actionBtnRed}>
-                                <Trash2 size={11} />
+                                <Trash2 size={18} />
                               </button>
                             </div>
                           )}
@@ -526,21 +529,21 @@ const S = {
     height: '32px', width: 'auto', borderRadius: '4px', objectFit: 'contain'
   },
   venueNameText: {
-    fontSize: '14px', fontWeight: 700, color: '#D4AF37',
+    fontSize: '22px', fontWeight: 700, color: '#D4AF37',
     letterSpacing: '0.5px', textTransform: 'uppercase',
-    maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+    maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
   },
   topCenter: { flex: 1, textAlign: 'center' },
   titleText: {
-    fontSize: '22px', fontWeight: 800, color: '#D4AF37',
-    letterSpacing: '3px', textTransform: 'uppercase',
+    fontSize: '36px', fontWeight: 800, color: '#D4AF37',
+    letterSpacing: '4px', textTransform: 'uppercase',
     whiteSpace: 'nowrap'
   },
   topRight: {
     display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 auto'
   },
   poweredBy: {
-    fontSize: '9px', color: '#666', textAlign: 'right',
+    fontSize: '13px', color: '#666', textAlign: 'right',
     lineHeight: '1.3', letterSpacing: '0.3px', textTransform: 'uppercase'
   },
 
@@ -549,11 +552,11 @@ const S = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '4px 16px', borderBottom: '1px solid #222', background: '#050505'
   },
-  controlInfo: { fontSize: '11px', color: '#888' },
+  controlInfo: { fontSize: '18px', color: '#888', fontWeight: 600 },
   addBtn: {
-    display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px',
-    background: '#111', border: '1px solid #444', borderRadius: '3px',
-    color: '#D4AF37', fontSize: '11px', fontWeight: 600, cursor: 'pointer'
+    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
+    background: '#111', border: '1px solid #444', borderRadius: '4px',
+    color: '#D4AF37', fontSize: '16px', fontWeight: 600, cursor: 'pointer'
   },
   refreshBtn: {
     display: 'flex', alignItems: 'center', padding: '4px 6px',
@@ -577,20 +580,20 @@ const S = {
   // ── GRID — columns with gaps ──
   grid: {
     flex: 1, display: 'flex', padding: '12px 16px',
-    gap: '12px', alignItems: 'flex-start'
+    gap: '2px', alignItems: 'flex-start'
   },
   column: {
     flex: '1 1 0', minWidth: '140px',
-    border: '1px solid #444', borderRadius: '4px',
+    border: '3px solid #666', borderRadius: '4px',
     display: 'flex', flexDirection: 'column', overflow: 'hidden'
   },
   colHeader: {
-    padding: '8px 10px', textAlign: 'center', fontWeight: 700,
-    fontSize: '13px', color: '#fff', textTransform: 'uppercase',
-    letterSpacing: '0.5px', background: HEADER_COLOR
+    padding: '12px 10px', textAlign: 'center', fontWeight: 800,
+    fontSize: '26px', color: '#fff', textTransform: 'uppercase',
+    letterSpacing: '1px', background: HEADER_COLOR
   },
   colTableNums: {
-    padding: '3px 8px', textAlign: 'center', fontSize: '11px',
+    padding: '4px 8px', textAlign: 'center', fontSize: '16px',
     color: '#999', borderBottom: '1px solid #333', background: '#0a0a0a',
     fontWeight: 600, letterSpacing: '0.5px'
   },
@@ -598,35 +601,35 @@ const S = {
 
   // ── PLAYER ROWS ──
   playerRow: {
-    padding: '5px 10px', borderBottom: '1px solid #1a1a1a',
+    padding: '8px 12px', borderBottom: '1px solid #1a1a1a',
     cursor: 'pointer', display: 'flex', alignItems: 'center',
     justifyContent: 'space-between', transition: 'background-color 0.1s'
   },
-  playerName: { fontSize: '14px', fontWeight: 500, letterSpacing: '0.2px' },
+  playerName: { fontSize: '28px', fontWeight: 700, letterSpacing: '0.3px' },
   calledBadge: {
-    fontSize: '8px', fontWeight: 800, color: '#000', background: '#D4AF37',
-    padding: '1px 4px', borderRadius: '2px', letterSpacing: '0.5px'
+    fontSize: '14px', fontWeight: 800, color: '#000', background: '#D4AF37',
+    padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px'
   },
 
   // ── ACTIONS ──
   actionBar: {
-    display: 'flex', padding: '4px 6px', gap: '3px',
+    display: 'flex', padding: '6px 10px', gap: '6px',
     background: '#111', borderBottom: '1px solid #222', flexWrap: 'wrap'
   },
   actionBtn: {
-    display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px',
-    borderRadius: '3px', border: '1px solid #333', fontSize: '10px',
-    fontWeight: 600, cursor: 'pointer', background: '#1a1a1a', color: '#aaa'
+    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px',
+    borderRadius: '4px', border: '1px solid #333', fontSize: '18px',
+    fontWeight: 700, cursor: 'pointer', background: '#1a1a1a', color: '#aaa'
   },
   actionBtnGreen: {
-    display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px',
-    borderRadius: '3px', border: '1px solid #2a5a2a', fontSize: '10px',
-    fontWeight: 600, cursor: 'pointer', background: '#0a1a0a', color: '#4CAF50'
+    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px',
+    borderRadius: '4px', border: '1px solid #2a5a2a', fontSize: '18px',
+    fontWeight: 700, cursor: 'pointer', background: '#0a1a0a', color: '#4CAF50'
   },
   actionBtnRed: {
-    display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px',
-    borderRadius: '3px', border: '1px solid #5a2a2a', fontSize: '10px',
-    fontWeight: 600, cursor: 'pointer', background: '#1a0a0a', color: '#E57373'
+    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px',
+    borderRadius: '4px', border: '1px solid #5a2a2a', fontSize: '18px',
+    fontWeight: 700, cursor: 'pointer', background: '#1a0a0a', color: '#E57373'
   },
 
   // ── PAGE DOTS ──
