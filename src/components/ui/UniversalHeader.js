@@ -411,7 +411,7 @@ export default function UniversalHeader({
 
                 .header-nav-btn {
                     width: auto;
-                    height: 26px;
+                    height: 22px;
                 }
 
                 .header-nav-btn img {
@@ -419,8 +419,8 @@ export default function UniversalHeader({
                 }
 
                 .hamburger-btn {
-                    width: 44px;
-                    height: 44px;
+                    width: 56px;
+                    height: 56px;
                     background: transparent;
                     border: none;
                     display: flex;
@@ -568,8 +568,8 @@ export default function UniversalHeader({
                     }
                     
                     .hamburger-btn {
-                        width: 32px;
-                        height: 32px;
+                        width: 40px;
+                        height: 40px;
                     }
                     
                     /* Diamond wallet - mobile sizing */
