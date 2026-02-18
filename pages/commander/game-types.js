@@ -46,14 +46,14 @@ export default function GameTypesPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
       setVenueId(s.venue_id);
       setVenueName(s.venue_name || '');
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, [router]);
 
   const fetchGameTypes = useCallback(async () => {
@@ -108,12 +108,13 @@ export default function GameTypesPage() {
     setError(null);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const url = editingId
         ? `/api/commander/game-types?id=${editingId}`
         : '/api/commander/game-types';
       const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(form)
       });
       const json = await res.json();
@@ -132,9 +133,10 @@ export default function GameTypesPage() {
   async function handleToggleActive(gt) {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/game-types?id=${gt.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !gt.is_active })
       });
       fetchGameTypes();
@@ -145,9 +147,10 @@ export default function GameTypesPage() {
     if (!confirm(`Remove "${gt.name} ${gt.stakes}" permanently?`)) return;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/game-types?id=${gt.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       fetchGameTypes();
     } catch (err) { console.error(err); }
@@ -159,10 +162,10 @@ export default function GameTypesPage() {
     <CommanderLayout title="Game Types | {venueName || 'Commander'}" backHref="/commander/dashboard">
       <>
         <SEOHead
-                title="Commander — Game Types"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Game Types"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           {/* Header */}
           <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
@@ -267,8 +270,8 @@ export default function GameTypesPage() {
                         <button key={opt.v}
                           onClick={() => setForm(p => ({ ...p, rake_type: opt.v }))}
                           className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors flex items-center justify-center gap-2 ${form.rake_type === opt.v
-                              ? 'bg-[#1877F2]/10 border-[#1877F2] text-[#1877F2]'
-                              : 'border-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
+                            ? 'bg-[#1877F2]/10 border-[#1877F2] text-[#1877F2]'
+                            : 'border-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
                             }`}>
                           <opt.icon className="w-4 h-4" /> {opt.l}
                         </button>

@@ -410,7 +410,8 @@ export default function UniversalHeader({
 
                 .header-nav-btn {
                     width: auto;
-                    height: 22px;
+                    height: 28px;
+                    overflow: visible;
                 }
 
                 .header-nav-btn img {

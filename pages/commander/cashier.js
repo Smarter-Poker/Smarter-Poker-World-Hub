@@ -50,7 +50,8 @@ export default function Cashier() {
     setLoading(true);
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Get active sessions
       const sessRes = await fetch(`/api/commander/dealer/sessions?venue_id=${venueId}&status=active`, { headers });
@@ -86,9 +87,10 @@ export default function Cashier() {
     }
     setActionLoading(true);
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/cashier', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           session_id: selectedPlayer?.id,
@@ -184,10 +186,10 @@ export default function Cashier() {
   return (
     <>
       <SEOHead
-                title="Commander — Cashier Operations"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Cashier Operations"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
@@ -396,8 +398,8 @@ export default function Cashier() {
               {/* Submit */}
               <button onClick={submitTransaction} disabled={actionLoading || !amount}
                 className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
-                    ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
-                    : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
+                  ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
+                  : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
                   } disabled:opacity-50`}>
                 {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />
