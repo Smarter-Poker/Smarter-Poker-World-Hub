@@ -3,7 +3,12 @@
    POST /api/auth/sessions/track
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { supabase } from '../../../../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // Helper to parse user agent for device name
 function getDeviceName(userAgent) {

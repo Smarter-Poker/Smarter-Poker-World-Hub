@@ -3,18 +3,9 @@
  * Uses Supabase real-time subscriptions
  */
 import { useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-// Create Supabase client for real-time
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-let supabase = null;
+import { supabase } from '../supabase';
 
 function getSupabase() {
-  if (!supabase && supabaseUrl && supabaseAnonKey) {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  }
   return supabase;
 }
 

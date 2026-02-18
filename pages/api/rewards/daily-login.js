@@ -31,6 +31,11 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('[DailyLogin] Missing env vars:', { url: !!supabaseUrl, key: !!supabaseKey });
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { userId } = req.body;
@@ -107,15 +112,30 @@ export default async function handler(req, res) {
         const diamondsAwarded = calculateLoginDiamonds(streak);
 
         // ── Record claim (unique index prevents double-claims) ──
-        const { error: insertError } = await supabase
+        // Try with metadata column first, fall back without if column doesn't exist
+        let insertError;
+        const claimRow = {
+            user_id: userId,
+            reward_type: 'daily_login',
+            diamonds_awarded: diamondsAwarded,
+            claim_date: today,
+        };
+
+        // Attempt insert with metadata
+        const result1 = await supabase
             .from('diamond_reward_claims')
-            .insert({
-                user_id: userId,
-                reward_type: 'daily_login',
-                diamonds_awarded: diamondsAwarded,
-                claim_date: today,
-                metadata: { streak, base: LOGIN_REWARD.MIN }
-            });
+            .insert({ ...claimRow, metadata: { streak, base: LOGIN_REWARD.MIN } });
+
+        if (result1.error && result1.error.message?.includes('metadata')) {
+            // metadata column doesn't exist — retry without it
+            console.warn('[DailyLogin] metadata column missing, inserting without it');
+            const result2 = await supabase
+                .from('diamond_reward_claims')
+                .insert(claimRow);
+            insertError = result2.error;
+        } else {
+            insertError = result1.error;
+        }
 
         if (insertError) {
             // Unique constraint violation = already claimed (race condition safe)

@@ -54,6 +54,12 @@ export default function PushNotificationProvider({ children }) {
     // Load OneSignal SDK v16+
     const loadOneSignal = async () => {
       try {
+        // Guard: prevent double-initialization if another provider already init'd
+        if (window.__oneSignalInitialized) {
+          setSdkReady(true);
+          return;
+        }
+
         // Add OneSignal script if not already loaded
         if (!window.OneSignalDeferred) {
           window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -73,6 +79,11 @@ export default function PushNotificationProvider({ children }) {
         // Initialize OneSignal with v16 API
         window.OneSignalDeferred.push(async function (OneSignal) {
           try {
+            if (window.__oneSignalInitialized) {
+              setSdkReady(true);
+              return;
+            }
+
             await OneSignal.init({
               appId: appId,
               safari_web_id: process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID,
@@ -81,6 +92,8 @@ export default function PushNotificationProvider({ children }) {
               },
               allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
             });
+
+            window.__oneSignalInitialized = true;
 
             // Check subscription status using v16 API
             const isPushEnabled = await OneSignal.Notifications.permission;
@@ -100,7 +113,13 @@ export default function PushNotificationProvider({ children }) {
 
             setSdkReady(true);
           } catch (initError) {
-            console.error('OneSignal init error:', initError);
+            // Suppress "already initialized" errors
+            if (initError?.message?.includes('already initialized')) {
+              window.__oneSignalInitialized = true;
+              setSdkReady(true);
+            } else {
+              console.error('OneSignal init error:', initError);
+            }
           }
         });
       } catch (err) {

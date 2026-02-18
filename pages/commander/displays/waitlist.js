@@ -1,10 +1,11 @@
 /**
- * Waitlist TV Display
+ * Waitlist TV Display — Bravo Poker Live Column Layout
  * /commander/displays/waitlist
  * Full-screen display designed for TV via wireless HDMI transmitter
  * No touch/interaction — auto-refreshes every 5 seconds
- * Shows: active games with open seats, waitlist by game type, player names + position
- * Large text readable from across the poker room
+ * 
+ * Layout: game type tabs across top, player names in vertical columns below
+ * Matches standard poker room TV board (Bravo Poker Live style)
  * 
  * Setup: Open this URL in a browser on the device connected to HDMI transmitter
  * Auto-hides cursor, prevents screen sleep via wake lock API
@@ -12,27 +13,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 
-import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
-
-function formatTime(date) {
-  if (!date) return '';
-  return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
 export default function WaitlistDisplay() {
   const router = useRouter();
-  const { venue } = router.query;
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
+  const [venueName, setVenueName] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = typeof window !== 'undefined'
+          ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token')
+          : null;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
         const [tabRes, wlRes] = await Promise.all([
-          fetch('/api/commander/tables'),
-          fetch('/api/commander/waitlist')
+          fetch('/api/commander/tables', { headers }),
+          fetch('/api/commander/waitlist', { headers })
         ]);
         const tabJson = await tabRes.json();
         const wlJson = await wlRes.json();
@@ -42,8 +41,14 @@ export default function WaitlistDisplay() {
       setNow(new Date());
     };
 
+    // Get venue name
+    try {
+      const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      if (staff.venue_name) setVenueName(staff.venue_name);
+    } catch { }
+
     fetchData();
-    const poll = setInterval(fetchData, 10000); // 10s refresh for TV display
+    const poll = setInterval(fetchData, 5000); // 5s refresh for TV display
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);
@@ -58,163 +63,175 @@ export default function WaitlistDisplay() {
       } catch (err) { console.log('Wake lock not available'); }
     };
     requestWakeLock();
-    document.addEventListener('visibilitychange', () => {
+    const handleVisChange = () => {
       if (document.visibilityState === 'visible') requestWakeLock();
-    });
-    return () => { wakeLockRef.current?.release(); };
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
   }, []);
 
   // Auto-fullscreen on click
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 
-  // Group waitlists by game type
+  // Group waitlists by game type + stakes (e.g. "1/2 NLH", "2/5 PLO")
   const waitlistByGame = {};
   waitlists.filter(w => ['waiting', 'called'].includes(w.status)).forEach(w => {
-    const key = w.game_type || 'Open';
+    const key = w.stakes
+      ? `${w.stakes} ${(w.game_type || 'NLH').toUpperCase()}`
+      : (w.game_type || 'Open').toUpperCase();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
     waitlistByGame[key].push(w);
   });
 
-  // Active tables with open seats grouped by game
-  const tablesByGame = {};
-  tables.filter(t => t.is_active !== false).forEach(t => {
-    const key = t.game_type || 'Open';
-    if (!tablesByGame[key]) tablesByGame[key] = { tables: 0, seated: 0, open: 0 };
-    tablesByGame[key].tables++;
-    const seated = (t.seats || []).filter(s => s.status === 'occupied').length;
-    tablesByGame[key].seated += seated;
-    tablesByGame[key].open += (t.max_seats || 9) - seated;
+  // Sort entries: called first, then by created_at
+  Object.values(waitlistByGame).forEach(entries => {
+    entries.sort((a, b) => {
+      if (a.status === 'called' && b.status !== 'called') return -1;
+      if (b.status === 'called' && a.status !== 'called') return 1;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
   });
 
-  const gameTypes = [...new Set([...Object.keys(waitlistByGame), ...Object.keys(tablesByGame)])].sort();
+  const gameTypes = Object.keys(waitlistByGame);
+  const totalWaiting = waitlists.filter(w => w.status === 'waiting' || w.status === 'called').length;
+
+  // Calculate max names visible per column based on screen
+  const maxNamesPerColumn = 20;
+
+  // Table stats
+  const activeTableCount = tables.filter(t => t.is_active !== false).length;
 
   return (
-    <CommanderLayout title="Waitlist Display">
+    <>
       <style jsx global>{`
-        @keyframes pulse-called { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        .called-pulse { animation: pulse-called 1.5s ease-in-out infinite; }
+        @keyframes pulse-called {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .tv-called { animation: pulse-called 1.2s ease-in-out infinite; }
+        body, html { overflow: hidden; cursor: none; }
       `}</style>
 
       <div onClick={goFullscreen}
-        className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden">
+        className="h-screen w-screen bg-[#0A1628] text-white font-['Inter'] select-none overflow-hidden flex flex-col">
 
-        {/* Header Bar */}
-        <div className="bg-[#1877F2] px-8 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-wide">WAITLIST</h1>
-          </div>
-          <div className="text-right">
-            <p className="text-4xl font-mono font-bold tabular-nums">
-              {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
-            </p>
-            <p className="text-sm opacity-80">
-              {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex h-[calc(100vh-80px)]">
-
-          {/* LEFT: Game Status */}
-          <div className="w-1/3 border-r border-white/10 p-6">
-            <h2 className="text-lg text-white/50 uppercase tracking-[0.2em] mb-4">Games Running</h2>
-            <div className="space-y-4">
-              {gameTypes.map(game => {
-                const info = tablesByGame[game] || { tables: 0, seated: 0, open: 0 };
-                return (
-                  <div key={game} className="bg-white/5 rounded-2xl p-5">
-                    <h3 className="text-2xl font-bold text-white mb-2">{game}</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <p className="text-3xl font-bold text-[#1877F2]">{info.tables}</p>
-                        <p className="text-xs text-white/40 uppercase">Tables</p>
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold text-white">{info.seated}</p>
-                        <p className="text-xs text-white/40 uppercase">Playing</p>
-                      </div>
-                      <div>
-                        <p className={`text-3xl font-bold ${info.open > 0 ? 'text-[#31A24C]' : 'text-white/30'}`}>
-                          {info.open}
-                        </p>
-                        <p className="text-xs text-white/40 uppercase">Open</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {gameTypes.length === 0 && (
-                <p className="text-xl text-white/30 text-center py-8">No Games Running</p>
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT: Waitlist Names */}
-          <div className="flex-1 p-6 overflow-hidden">
-            <h2 className="text-lg text-white/50 uppercase tracking-[0.2em] mb-4">Waiting Players</h2>
-
-            {gameTypes.length === 0 || Object.keys(waitlistByGame).length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <p className="text-4xl text-white/20 font-bold mb-2">No Wait</p>
-                  <p className="text-xl text-white/10">Seats Available — See The Front Desk</p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-6 h-full overflow-hidden">
-                {Object.entries(waitlistByGame).map(([gameType, entries]) => (
-                  <div key={gameType} className="overflow-hidden">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-white">{gameType}</h3>
-                      <span className="px-3 py-1 rounded-full bg-[#1877F2]/20 text-[#1877F2] text-sm font-bold">
-                        {entries.length}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {entries.slice(0, 15).map((entry, idx) => (
-                        <div key={entry.id}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl ${entry.status === 'called'
-                            ? 'bg-[#31A24C]/20 border-2 border-[#31A24C]/50 called-pulse'
-                            : 'bg-white/5'
-                            }`}>
-                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${entry.status === 'called'
-                            ? 'bg-[#31A24C] text-white'
-                            : 'bg-white/10 text-white/60'
-                            }`}>
-                            {idx + 1}
-                          </span>
-                          <span className={`text-xl font-medium ${entry.status === 'called' ? 'text-[#31A24C]' : 'text-white'
-                            }`}>
-                            {entry.player_name}
-                          </span>
-                          {entry.status === 'called' && (
-                            <span className="ml-auto text-sm font-bold text-[#31A24C] uppercase tracking-wider">
-                              SEAT OPEN
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                      {entries.length > 15 && (
-                        <p className="text-center text-white/30 text-sm py-2">
-                          +{entries.length - 15} more
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* ========== TOP HEADER BAR — Blue stripe ========== */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0052CC 0%, #1877F2 50%, #0052CC 100%)',
+          borderBottom: '3px solid #FFD700'
+        }} className="px-6 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            {venueName && (
+              <span className="text-lg font-bold text-white/80 uppercase tracking-wider">
+                {venueName}
+              </span>
             )}
           </div>
+
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-[0.15em] text-white uppercase">
+            POKER WAITING LIST
+          </h1>
+
+          <div className="text-right">
+            <p className="text-2xl font-mono font-bold tabular-nums text-white">
+              {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </p>
+            <p className="text-xs text-white/60 uppercase tracking-wider">
+              {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </p>
+          </div>
         </div>
 
-        {/* Bottom ticker */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[#1877F2]/10 border-t border-[#1877F2]/20 px-8 py-2">
-          <p className="text-sm text-[#1877F2]/60 text-center">
-            Ask the front desk to be added to the waitlist — Text or call notifications available
-          </p>
+        {/* ========== GAME COLUMN TABS — Yellow/green tab headers ========== */}
+        {gameTypes.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-5xl font-bold text-white/20 mb-3">NO WAIT</p>
+              <p className="text-2xl text-white/10">SEATS AVAILABLE — SEE THE FRONT DESK</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden">
+            {gameTypes.map((game, colIdx) => {
+              const entries = waitlistByGame[game];
+              // Alternate tab colors like Bravo
+              const tabColors = [
+                'linear-gradient(180deg, #FFD700 0%, #E6B800 100%)',  // Gold
+                'linear-gradient(180deg, #4CAF50 0%, #388E3C 100%)',  // Green
+                'linear-gradient(180deg, #2196F3 0%, #1565C0 100%)',  // Blue
+                'linear-gradient(180deg, #FF9800 0%, #E65100 100%)',  // Orange
+                'linear-gradient(180deg, #9C27B0 0%, #6A1B9A 100%)',  // Purple
+                'linear-gradient(180deg, #F44336 0%, #C62828 100%)',  // Red
+                'linear-gradient(180deg, #00BCD4 0%, #00838F 100%)',  // Teal
+              ];
+              const tabBg = tabColors[colIdx % tabColors.length];
+
+              return (
+                <div key={game}
+                  className="flex-1 flex flex-col border-r border-white/10 last:border-r-0"
+                  style={{ minWidth: 0 }}>
+
+                  {/* Tab Header */}
+                  <div className="shrink-0 py-2.5 px-3 text-center"
+                    style={{ background: tabBg }}>
+                    <h2 className="text-lg md:text-xl font-extrabold text-white uppercase tracking-wider truncate"
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                      {game}
+                    </h2>
+                  </div>
+
+                  {/* Player Names Column */}
+                  <div className="flex-1 overflow-hidden px-2 py-2">
+                    {entries.slice(0, maxNamesPerColumn).map((entry, idx) => (
+                      <div key={entry.id}
+                        className={`py-1.5 px-2 text-center truncate ${entry.status === 'called' ? 'tv-called text-[#FFD700] font-bold' : 'text-white'
+                          }`}
+                        style={{
+                          fontSize: entries.length > 12 ? '14px' : entries.length > 8 ? '16px' : '18px',
+                          fontWeight: 600,
+                          letterSpacing: '0.02em',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)'
+                        }}>
+                        {entry.player_name?.toUpperCase() || `PLAYER ${idx + 1}`}
+                      </div>
+                    ))}
+                    {entries.length > maxNamesPerColumn && (
+                      <div className="text-center text-white/30 text-sm py-1">
+                        +{entries.length - maxNamesPerColumn} more
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Total Count Footer */}
+                  <div className="shrink-0 py-2 text-center border-t border-white/10"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <span className="text-sm font-bold text-white/60 uppercase tracking-wider">
+                      Total Count: {entries.length}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ========== BOTTOM TICKER BAR ========== */}
+        <div className="shrink-0 px-6 py-2 flex items-center justify-between"
+          style={{
+            background: 'linear-gradient(135deg, #0052CC 0%, #1877F2 50%, #0052CC 100%)',
+            borderTop: '2px solid #FFD700'
+          }}>
+          <span className="text-sm font-medium text-white/70">
+            {activeTableCount} {activeTableCount === 1 ? 'Table' : 'Tables'} Running — {totalWaiting} {totalWaiting === 1 ? 'Player' : 'Players'} Waiting
+          </span>
+          <span className="text-sm font-medium text-white/70">
+            Ask the front desk or scan QR code to join the waitlist
+          </span>
         </div>
       </div>
-    </CommanderLayout>
+    </>
   );
 }

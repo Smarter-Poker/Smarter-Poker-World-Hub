@@ -19,6 +19,12 @@ export function OneSignalProvider({ children }) {
 
         const initOneSignal = async () => {
             try {
+                // Guard: prevent double-initialization if another provider already init'd
+                if (window.__oneSignalInitialized) {
+                    setIsInitialized(true);
+                    return;
+                }
+
                 // Dynamically import OneSignal
                 const OneSignal = (await import('react-onesignal')).default;
 
@@ -51,6 +57,8 @@ export function OneSignalProvider({ children }) {
                         },
                     },
                 });
+
+                window.__oneSignalInitialized = true;
 
                 // Handle notification clicks - redirect to /hub if no URL specified
                 OneSignal.Notifications.addEventListener('click', (event) => {
@@ -85,7 +93,13 @@ export function OneSignalProvider({ children }) {
                 setPermission(perm ? 'granted' : 'default');
 
             } catch (error) {
-                console.error('OneSignal initialization error:', error);
+                // Suppress "already initialized" errors, log everything else
+                if (error?.message?.includes('already initialized')) {
+                    window.__oneSignalInitialized = true;
+                    setIsInitialized(true);
+                } else {
+                    console.error('OneSignal initialization error:', error);
+                }
             }
         };
 
