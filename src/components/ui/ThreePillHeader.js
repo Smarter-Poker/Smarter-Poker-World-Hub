@@ -265,7 +265,7 @@ export default function ThreePillHeader({
                                 setShowFullDiamonds(!showFullDiamonds);
                             }
                         }}>
-                            <span style={{ fontSize: 18 }}>💎</span>
+                            <img src="/images/diamond-icon.png" alt="💎" style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} />
                             <span title={stats.diamonds.toLocaleString() + ' diamonds'}>
                                 {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                             </span>
