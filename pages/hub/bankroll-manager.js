@@ -1545,11 +1545,11 @@ export default function BankrollManagerPage() {
               {/* Tax Reports — dedicated view showing only Tax Report Generator */}
               {activeSection === 'tax' && (
                 <div style={styles.proToolsContainer}>
-                  <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
+                  <div style={{ padding: '20px 16px 14px', borderBottom: '2px solid #4e4f50' }}>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#e4e6eb', margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>
                       Tax Reports
                     </h2>
-                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Generate Tax Documents For Your Poker Income</p>
+                    <p style={{ fontSize: 15, color: '#b0b3b8', margin: '4px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>Generate Tax Documents For Your Poker Income</p>
                   </div>
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>

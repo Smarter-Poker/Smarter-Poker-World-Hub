@@ -382,7 +382,7 @@ export default function TaxReportPanel({ userId }) {
                                                 {form.source_description}
                                             </span>
                                         )}
-                                        <span style={{ color: METAL.textSecondary, fontSize: 13 }}>
+                                        <span style={{ color: METAL.textSecondary, fontSize: 14 }}>
                                             {form.file_name || 'W-2G Form'} • {new Date(form.upload_date || form.created_at).toLocaleDateString()}
                                         </span>
                                     </div>
@@ -713,7 +713,7 @@ const styles = {
     metaLabel: {
         display: 'block',
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
         color: METAL.textSecondary,
         letterSpacing: '0.08em',
@@ -791,7 +791,7 @@ const styles = {
         border: `1px solid ${METAL.primary}`,
         borderRadius: 6,
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
         color: METAL.primary,
         letterSpacing: '0.05em',
@@ -910,7 +910,7 @@ const styles = {
     statLabel: {
         display: 'block',
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 700,
         color: METAL.textMuted,
         letterSpacing: '0.08em',
@@ -942,7 +942,7 @@ const styles = {
     breakdownLabel: {
         display: 'block',
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
         color: METAL.textSecondary,
         letterSpacing: '0.08em',
