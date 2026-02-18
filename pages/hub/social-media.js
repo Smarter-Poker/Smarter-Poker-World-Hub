@@ -2641,8 +2641,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         left: `${cx + rx * Math.cos(rad)}%`,
                                     };
                                 });
-                                // Dealer position at bottom-center
-                                const dealerPos = { top: `${cy + ry * Math.sin(270 * Math.PI / 180) + 55}%`, left: '50%' };
+
+
 
 
                                 return (

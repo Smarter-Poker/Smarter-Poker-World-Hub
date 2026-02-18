@@ -59,9 +59,25 @@ export default async function handler(req, res) {
                 allSeats = seatData || [];
             }
 
+            // Enrich social seats with profile pictures
+            const socialPlayerIds = allSeats.map(s => s.player_id).filter(Boolean);
+            let socialProfilePicMap = {};
+            if (socialPlayerIds.length > 0) {
+                try {
+                    const { data: profiles } = await supabase
+                        .from('profiles')
+                        .select('id, avatar_url')
+                        .in('id', socialPlayerIds);
+                    (profiles || []).forEach(p => { socialProfilePicMap[p.id] = p.avatar_url; });
+                } catch (e) { /* no profile pics */ }
+            }
+
             const enriched = (games || []).map(g => ({
                 ...g,
-                seats: allSeats.filter(s => s.game_id === g.id),
+                seats: allSeats.filter(s => s.game_id === g.id).map(s => ({
+                    ...s,
+                    avatar_url: s.player_id ? (socialProfilePicMap[s.player_id] || null) : null,
+                })),
                 seated_count: allSeats.filter(s => s.game_id === g.id && s.status !== 'waitlist').length,
                 waitlist_count: allSeats.filter(s => s.game_id === g.id && s.status === 'waitlist').length,
             }));
