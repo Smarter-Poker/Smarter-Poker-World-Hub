@@ -2740,79 +2740,95 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 const firstName = seat.taken?.player_name?.split(' ')[0] || '';
                                                 const fullName = seat.taken?.player_name || '';
                                                 const avatarUrl = seat.taken?.avatar_url || null;
+                                                // Direction-aware badge: left-side extends right, right-side extends left
+                                                const leftPct = parseFloat(pos.left);
+                                                const isLeftSide = leftPct < 25;
+                                                const isRightSide = leftPct > 75;
+                                                const badgeTransform = isLeftSide
+                                                    ? 'translateY(-50%)'
+                                                    : isRightSide
+                                                        ? 'translate(-100%, -50%)'
+                                                        : 'translate(-50%, -50%)';
+                                                const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                                                // Timer computation
+                                                let timerText = null, timerColor = null;
+                                                if (isOccupied) {
+                                                    const session = (game.sessions || []).find(s => s.seat_number === seat.number);
+                                                    if (session) {
+                                                        const isTexas = game.venue_type === 'texas';
+                                                        if (isTexas) {
+                                                            const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
+                                                            const mins = Math.floor(rem / 60);
+                                                            const secs = rem % 60;
+                                                            timerText = `${mins}:${String(secs).padStart(2, '0')}`;
+                                                            const isExpired = rem <= 0;
+                                                            const isCritical = rem <= 300 && rem > 0;
+                                                            const isLow = rem <= 900 && rem > 0;
+                                                            timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
+                                                            if (isExpired) timerText = 'EXPIRED';
+                                                        } else {
+                                                            const elapsed = (session.elapsed_seconds || 0) + timerTick;
+                                                            const hrs = Math.floor(elapsed / 3600);
+                                                            const mins = Math.floor((elapsed % 3600) / 60);
+                                                            timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                                            timerColor = '#a78bfa';
+                                                        }
+                                                    }
+                                                }
+
                                                 return (
                                                     <div key={seat.number} style={{
                                                         position: 'absolute', top: pos.top, left: pos.left,
-                                                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 2,
+                                                        transform: badgeTransform, zIndex: 2,
+                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
+                                                        background: 'rgba(0,0,0,0.7)',
+                                                        borderRadius: 10,
+                                                        padding: '4px 8px 4px 4px',
+                                                        border: `1.5px solid ${isOccupied ? 'rgba(96,165,250,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                                                        backdropFilter: 'blur(6px)',
+                                                        minWidth: 48,
                                                     }}>
-                                                        {/* Seat circle — profile pic or initial */}
+                                                        {/* Avatar circle */}
                                                         <div style={{
-                                                            width: 60, height: 60, borderRadius: '50%', margin: '0 auto 3px',
+                                                            width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
                                                                 ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)')
                                                                 : 'rgba(255,255,255,0.08)',
-                                                            border: `2px solid ${isOccupied ? '#60a5fa' : 'rgba(255,255,255,0.15)'}`,
-                                                            boxShadow: isOccupied ? '0 0 10px rgba(59,130,246,0.5)' : 'none',
-                                                            transition: 'all 0.2s',
+                                                            border: `1.5px solid ${isOccupied ? '#60a5fa' : 'rgba(255,255,255,0.15)'}`,
                                                             overflow: 'hidden',
                                                         }}>
                                                             {isOccupied ? (
                                                                 avatarUrl ? (
                                                                     <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                                 ) : (
-                                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>
-                                                                        {firstName.charAt(0).toUpperCase()}
-                                                                    </span>
+                                                                    <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                                 )
                                                             ) : (
-                                                                <span style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{seat.number}</span>
+                                                                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{seat.number}</span>
                                                             )}
                                                         </div>
-                                                        {/* Name label */}
-                                                        <div style={{
-                                                            fontSize: 10, fontWeight: 600, lineHeight: 1.2,
-                                                            color: isOccupied ? '#93c5fd' : 'rgba(255,255,255,0.25)',
-                                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                            maxWidth: 90,
-                                                        }}>
-                                                            {isOccupied ? fullName : 'Open'}
-                                                        </div>
-                                                        {/* Countdown timer */}
-                                                        {isOccupied && (() => {
-                                                            const session = (game.sessions || []).find(s => s.seat_number === seat.number);
-                                                            if (!session) return null;
-                                                            const isTexas = game.venue_type === 'texas';
-                                                            let timerText, timerColor;
-                                                            if (isTexas) {
-                                                                // Live countdown: subtract ticks since API fetch
-                                                                const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
-                                                                const mins = Math.floor(rem / 60);
-                                                                const secs = rem % 60;
-                                                                timerText = `${mins}:${String(secs).padStart(2, '0')}`;
-                                                                const isExpired = rem <= 0;
-                                                                const isCritical = rem <= 300 && rem > 0;
-                                                                const isLow = rem <= 900 && rem > 0;
-                                                                timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
-                                                                if (isExpired) timerText = 'EXPIRED';
-                                                            } else {
-                                                                // Elapsed: add ticks since API fetch
-                                                                const elapsed = (session.elapsed_seconds || 0) + timerTick;
-                                                                const hrs = Math.floor(elapsed / 3600);
-                                                                const mins = Math.floor((elapsed % 3600) / 60);
-                                                                timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
-                                                                timerColor = '#a78bfa';
-                                                            }
-                                                            return (
+                                                        {/* Name + Timer text */}
+                                                        <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                                                            <div style={{
+                                                                fontSize: 10, fontWeight: 600, lineHeight: 1.2,
+                                                                color: isOccupied ? '#93c5fd' : 'rgba(255,255,255,0.3)',
+                                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                                maxWidth: 72,
+                                                            }}>
+                                                                {isOccupied ? fullName : 'Open'}
+                                                            </div>
+                                                            {timerText && (
                                                                 <div style={{
                                                                     fontSize: 9, fontWeight: 700, color: timerColor,
-                                                                    marginTop: 1, fontFamily: 'monospace',
+                                                                    fontFamily: 'monospace', lineHeight: 1.2,
                                                                     animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
                                                                 }}>
                                                                     {timerText}
                                                                 </div>
-                                                            );
-                                                        })()}
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
@@ -3195,17 +3211,70 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         const isRunning = game.status === 'running';
                                         const canClick = canInteract && !isOccupied && !myReservation && !isRunning;
 
+                                        // Direction-aware badge: left-side extends right, right-side extends left
+                                        const leftPct = parseFloat(pos.left);
+                                        const isLeftSide = leftPct < 25;
+                                        const isRightSide = leftPct > 75;
+                                        const badgeTransform = isLeftSide
+                                            ? 'translateY(-50%)'
+                                            : isRightSide
+                                                ? 'translate(-100%, -50%)'
+                                                : 'translate(-50%, -50%)';
+                                        const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                                        // Timer computation
+                                        let timerText = null, timerColor = null;
+                                        if (isOccupied) {
+                                            const session = (game.sessions || []).find(s => s.seat_number === seat.number);
+                                            if (session) {
+                                                const isTexas = game.venue_type === 'texas';
+                                                if (isTexas) {
+                                                    const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
+                                                    const mins = Math.floor(rem / 60);
+                                                    const secs = rem % 60;
+                                                    timerText = `${mins}:${String(secs).padStart(2, '0')}`;
+                                                    const isExpired = rem <= 0;
+                                                    const isCritical = rem <= 300 && rem > 0;
+                                                    const isLow = rem <= 900 && rem > 0;
+                                                    timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
+                                                    if (isExpired) timerText = 'EXPIRED';
+                                                } else {
+                                                    const elapsed = (session.elapsed_seconds || 0) + timerTick;
+                                                    const hrs = Math.floor(elapsed / 3600);
+                                                    const mins = Math.floor((elapsed % 3600) / 60);
+                                                    timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                                    timerColor = '#a78bfa';
+                                                }
+                                            }
+                                        }
+
+                                        // Badge border color
+                                        const badgeBorder = isMe
+                                            ? 'rgba(74,222,128,0.6)'
+                                            : isOccupied
+                                                ? 'rgba(96,165,250,0.5)'
+                                                : canClick
+                                                    ? 'rgba(34,197,94,0.3)'
+                                                    : 'rgba(255,255,255,0.12)';
+
                                         return (
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
-                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 2,
+                                                transform: badgeTransform, zIndex: 2,
+                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
+                                                background: 'rgba(0,0,0,0.7)',
+                                                borderRadius: 10,
+                                                padding: '4px 8px 4px 4px',
+                                                border: `1.5px solid ${badgeBorder}`,
+                                                backdropFilter: 'blur(6px)',
                                                 cursor: canClick ? 'pointer' : 'default',
+                                                minWidth: 48,
                                             }}
                                                 onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
                                             >
-                                                {/* Seat circle — profile pic or initial */}
+                                                {/* Avatar circle */}
                                                 <div style={{
-                                                    width: 60, height: 60, borderRadius: '50%', margin: '0 auto 3px',
+                                                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
@@ -3214,68 +3283,43 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                             : canClick
                                                                 ? 'rgba(34,197,94,0.15)'
                                                                 : 'rgba(255,255,255,0.08)',
-                                                    border: `2px solid ${isMe ? '#4ade80' : isOccupied ? '#60a5fa' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`,
-                                                    boxShadow: isMe ? '0 0 10px rgba(34,197,94,0.5)' : isOccupied ? '0 0 10px rgba(59,130,246,0.5)' : 'none',
-                                                    transition: 'all 0.2s',
+                                                    border: `1.5px solid ${isMe ? '#4ade80' : isOccupied ? '#60a5fa' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`,
                                                     overflow: 'hidden',
                                                 }}>
                                                     {isOccupied ? (
                                                         isMe ? (
-                                                            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
+                                                            <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>YOU</span>
                                                         ) : avatarUrl ? (
                                                             <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                         ) : (
-                                                            <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>
-                                                                {firstName.charAt(0).toUpperCase()}
-                                                            </span>
+                                                            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                         )
                                                     ) : (
-                                                        <span style={{ fontSize: canClick ? 18 : 16, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                                                        <span style={{ fontSize: canClick ? 14 : 11, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.3)' }}>
                                                             {canClick ? '+' : seat.number}
                                                         </span>
                                                     )}
                                                 </div>
-                                                {/* Name label */}
-                                                <div style={{
-                                                    fontSize: 10, fontWeight: 600, lineHeight: 1.2,
-                                                    color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.25)',
-                                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 90,
-                                                }}>
-                                                    {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
-                                                </div>
-                                                {/* Countdown timer */}
-                                                {isOccupied && (() => {
-                                                    const session = (game.sessions || []).find(s => s.seat_number === seat.number);
-                                                    if (!session) return null;
-                                                    const isTexas = game.venue_type === 'texas';
-                                                    let timerText, timerColor;
-                                                    if (isTexas) {
-                                                        const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
-                                                        const mins = Math.floor(rem / 60);
-                                                        const secs = rem % 60;
-                                                        timerText = `${mins}:${String(secs).padStart(2, '0')}`;
-                                                        const isExpired = rem <= 0;
-                                                        const isCritical = rem <= 300 && rem > 0;
-                                                        const isLow = rem <= 900 && rem > 0;
-                                                        timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
-                                                        if (isExpired) timerText = 'EXPIRED';
-                                                    } else {
-                                                        const elapsed = (session.elapsed_seconds || 0) + timerTick;
-                                                        const hrs = Math.floor(elapsed / 3600);
-                                                        const mins = Math.floor((elapsed % 3600) / 60);
-                                                        timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
-                                                        timerColor = '#a78bfa';
-                                                    }
-                                                    return (
+                                                {/* Name + Timer text */}
+                                                <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                                                    <div style={{
+                                                        fontSize: 10, fontWeight: 600, lineHeight: 1.2,
+                                                        color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.3)',
+                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                        maxWidth: 72,
+                                                    }}>
+                                                        {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
+                                                    </div>
+                                                    {timerText && (
                                                         <div style={{
                                                             fontSize: 9, fontWeight: 700, color: timerColor,
-                                                            marginTop: 1, fontFamily: 'monospace',
+                                                            fontFamily: 'monospace', lineHeight: 1.2,
                                                             animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
                                                         }}>
                                                             {timerText}
                                                         </div>
-                                                    );
-                                                })()}
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
