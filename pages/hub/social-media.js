@@ -2687,9 +2687,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 </div>
                                             </div>
 
-                                            {/* Dealer in bottom-right of table */}
+                                            {/* Dealer in bottom-center of table */}
                                             <div style={{
-                                                position: 'absolute', bottom: '12%', right: '10%',
+                                                position: 'absolute', bottom: '8%', left: '50%',
+                                                transform: 'translateX(-50%)',
                                                 zIndex: 5, textAlign: 'center',
                                             }}>
                                                 <div style={{
@@ -2711,14 +2712,15 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 const pos = seatPositions[idx];
                                                 const isOccupied = !!seat.taken;
                                                 const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                                const fullName = seat.taken?.player_name || '';
                                                 return (
                                                     <div key={seat.number} style={{
                                                         position: 'absolute', top: pos.top, left: pos.left,
-                                                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 60, zIndex: 2,
+                                                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 2,
                                                     }}>
                                                         {/* Seat circle */}
                                                         <div style={{
-                                                            width: 38, height: 38, borderRadius: '50%', margin: '0 auto 3px',
+                                                            width: 76, height: 76, borderRadius: '50%', margin: '0 auto 3px',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
                                                                 ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
@@ -2728,21 +2730,21 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                             transition: 'all 0.2s',
                                                         }}>
                                                             {isOccupied ? (
-                                                                <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>
+                                                                <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>
                                                                     {firstName.charAt(0).toUpperCase()}
                                                                 </span>
                                                             ) : (
-                                                                <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{seat.number}</span>
+                                                                <span style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{seat.number}</span>
                                                             )}
                                                         </div>
                                                         {/* Name label */}
                                                         <div style={{
-                                                            fontSize: 9, fontWeight: 600, lineHeight: 1.1,
+                                                            fontSize: 10, fontWeight: 600, lineHeight: 1.2,
                                                             color: isOccupied ? '#93c5fd' : 'rgba(255,255,255,0.25)',
                                                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                            maxWidth: 60,
+                                                            maxWidth: 90,
                                                         }}>
-                                                            {isOccupied ? firstName : 'Open'}
+                                                            {isOccupied ? fullName : 'Open'}
                                                         </div>
                                                         {/* Timer label */}
                                                         {isOccupied && (() => {
@@ -3092,9 +3094,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         )}
                                     </div>
 
-                                    {/* Dealer in bottom-right of table */}
+                                    {/* Dealer in bottom-center of table */}
                                     <div style={{
-                                        position: 'absolute', bottom: '12%', right: '10%',
+                                        position: 'absolute', bottom: '8%', left: '50%',
+                                        transform: 'translateX(-50%)',
                                         zIndex: 5, textAlign: 'center',
                                     }}>
                                         <div style={{
@@ -3117,18 +3120,19 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         const isOccupied = !!seat.taken;
                                         const isMe = seat.taken?.player_name === playerName.trim();
                                         const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                        const fullName = seat.taken?.player_name || '';
                                         const canClick = canInteract && !isOccupied && !myReservation;
 
                                         return (
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
-                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 60, zIndex: 2,
+                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 2,
                                                 cursor: canClick ? 'pointer' : 'default',
                                             }}
                                                 onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
                                             >
                                                 <div style={{
-                                                    width: 38, height: 38, borderRadius: '50%', margin: '0 auto 3px',
+                                                    width: 76, height: 76, borderRadius: '50%', margin: '0 auto 3px',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
@@ -3142,21 +3146,21 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                     transition: 'all 0.2s',
                                                 }}>
                                                     {isOccupied ? (
-                                                        <span style={{ fontSize: isMe ? 11 : 14, fontWeight: 800, color: '#fff' }}>
+                                                        <span style={{ fontSize: isMe ? 18 : 24, fontWeight: 800, color: '#fff' }}>
                                                             {isMe ? 'YOU' : firstName.charAt(0).toUpperCase()}
                                                         </span>
                                                     ) : (
-                                                        <span style={{ fontSize: canClick ? 11 : 10, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                                                        <span style={{ fontSize: canClick ? 18 : 16, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.3)' }}>
                                                             {canClick ? '+' : seat.number}
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div style={{
-                                                    fontSize: 9, fontWeight: 600, lineHeight: 1.1,
+                                                    fontSize: 10, fontWeight: 600, lineHeight: 1.2,
                                                     color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.25)',
-                                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 60,
+                                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 90,
                                                 }}>
-                                                    {isMe ? 'You' : isOccupied ? firstName : canClick ? 'Join' : 'Open'}
+                                                    {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Join' : 'Open'}
                                                 </div>
                                                 {/* Timer label */}
                                                 {isOccupied && (() => {
