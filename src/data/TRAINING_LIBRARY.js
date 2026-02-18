@@ -206,7 +206,7 @@ export const getBossGames = () =>
     TRAINING_LIBRARY.filter(g => g.name.toLowerCase().includes('boss'));
 
 export const getGamesByDifficulty = (min, max) =>
-    TRAINING_LIBRARY.filter(g => g.difficulty >= Min && G.difficulty <= max);
+    TRAINING_LIBRARY.filter(g => g.difficulty >= min && g.difficulty <= max);
 
 // VIP-only games
 export const getVIPGames = () =>
