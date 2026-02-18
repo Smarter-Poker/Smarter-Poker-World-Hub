@@ -91,7 +91,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                 fontSize: 14,
                 fontWeight: 500,
             }}>
-                🔔 Allow Notifications?
+                Allow Notifications?
             </div>
 
             {/* Yes/No Buttons */}
