@@ -384,31 +384,23 @@ export default function MyClubsPage() {
 
             setFollowedIds(new Set(venueIds));
 
-            // Batch-fetch venue details
+            // Fetch venue details individually (API supports ?id=X single lookups)
             if (venueIds.length > 0) {
-                try {
-                    // Fetch all venues in one call using comma-separated IDs
-                    const idsParam = venueIds.join(',');
-                    const res = await fetch(`/api/poker/venues?ids=${idsParam}`);
-                    const json = await res.json();
-                    if (json.success && json.data) {
-                        const venues = Array.isArray(json.data) ? json.data : [json.data];
-                        setFollowedVenues(venues);
-                    }
-                } catch (e) {
-                    console.warn('[MyClubs] Failed to batch-fetch venues:', e);
-                    // Try individual fetches as fallback
+                {
                     const venues = [];
-                    for (const vid of venueIds.slice(0, 20)) {
-                        try {
+                    const results = await Promise.allSettled(
+                        venueIds.slice(0, 30).map(async (vid) => {
                             const res = await fetch(`/api/poker/venues?id=${vid}`);
                             const json = await res.json();
                             if (json.success && json.data) {
-                                const venue = Array.isArray(json.data) ? json.data[0] : json.data;
-                                if (venue) venues.push(venue);
+                                return Array.isArray(json.data) ? json.data[0] : json.data;
                             }
-                        } catch { }
-                    }
+                            return null;
+                        })
+                    );
+                    results.forEach(r => {
+                        if (r.status === 'fulfilled' && r.value) venues.push(r.value);
+                    });
                     setFollowedVenues(venues);
                 }
 

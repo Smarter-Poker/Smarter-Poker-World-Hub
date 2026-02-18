@@ -116,7 +116,7 @@ export default function PlayerWaitlistPage() {
             venue_id: parseInt(venueId),
             game_type: gameType,
             stakes: stakes,
-            source: 'app',
+            signup_method: 'app',
             seat_preferences: seatPrefs.preferred_seats || seatPrefs.left_handed || seatPrefs.notes ? {
               preferred_seats: seatPrefs.preferred_seats ? seatPrefs.preferred_seats.split(',').map(s => parseInt(s.trim())).filter(Boolean) : [],
               left_handed: seatPrefs.left_handed,

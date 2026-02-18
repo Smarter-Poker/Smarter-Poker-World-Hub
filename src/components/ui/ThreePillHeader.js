@@ -183,6 +183,9 @@ export default function ThreePillHeader({
                             <button
                                 onClick={onMenuClick}
                                 style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    padding: 0,
                                     width: 44,
                                     height: 44,
                                     display: 'flex',
@@ -190,6 +193,7 @@ export default function ThreePillHeader({
                                     justifyContent: 'center',
                                     cursor: 'pointer',
                                     position: 'relative',
+                                    overflow: 'hidden',
                                 }}
                                 aria-label="Open Menu"
                             >

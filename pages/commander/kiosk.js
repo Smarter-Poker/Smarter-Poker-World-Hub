@@ -81,14 +81,25 @@ export default function MembershipKiosk() {
     if (!selectedMember || !gameType) return;
     setSubmitting(true);
     try {
+      // Parse gameType label (e.g. "$1/$2 NLH") into game_type + stakes
+      const parts = gameType.split(' ');
+      const parsedStakes = parts.length > 1 ? parts.slice(0, -1).join(' ') : gameType;
+      const parsedGameType = parts.length > 1 ? parts[parts.length - 1] : 'NLH';
+
+      // Get venue_id from staff localStorage
+      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const venueId = staffData.venue_id;
+
       await fetch('/api/commander/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          venue_id: venueId,
           player_name: selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`,
-          phone: selectedMember.phone,
-          game_type: gameType,
-          member_id: selectedMember.id
+          player_phone: selectedMember.phone,
+          game_type: parsedGameType,
+          stakes: parsedStakes,
+          signup_method: 'kiosk'
         })
       });
       setSuccessMsg(`Added to ${gameType} waitlist! We'll text you when a seat opens.`);
@@ -124,10 +135,10 @@ export default function MembershipKiosk() {
     <CommanderLayout title="Check In" backHref="/commander/dashboard">
       <>
         <SEOHead
-                title="Commander — Player Kiosk"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Player Kiosk"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
 
           {/* ===== HOME ===== */}
@@ -304,8 +315,8 @@ export default function MembershipKiosk() {
                   <button key={pkg.minutes}
                     onClick={() => setSelectedTimePackage(pkg)}
                     className={`py-5 rounded-2xl text-center space-y-1 border-2 ${selectedTimePackage?.minutes === pkg.minutes
-                        ? 'bg-[#F59E0B]/20 border-[#F59E0B] text-[#F59E0B]'
-                        : 'bg-[#242526] border-[#3A3B3C] text-[#E4E6EB] active:border-[#F59E0B]'
+                      ? 'bg-[#F59E0B]/20 border-[#F59E0B] text-[#F59E0B]'
+                      : 'bg-[#242526] border-[#3A3B3C] text-[#E4E6EB] active:border-[#F59E0B]'
                       }`}>
                     <p className="text-2xl font-bold">{pkg.label}</p>
                     <p className="text-lg font-semibold">${pkg.price}</p>
@@ -410,8 +421,7 @@ export default function MembershipKiosk() {
             <p className="text-white/10 text-xs">Powered By Smarter.Poker</p>
           </div>
         </div>
-        <style jsx>{`
-`}</style>
+
       </>
     </CommanderLayout>
   );

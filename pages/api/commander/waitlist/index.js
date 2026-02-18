@@ -20,6 +20,39 @@ export default async function handler(req, res) {
   const _authResult = await guardWriteStaff(req, res);
   if (!_authResult) return;
 
+  // ── GET: Return all active waitlist entries for the venue ──────────────
+  if (req.method === 'GET') {
+    try {
+      // Determine venue_id from staff token or query param
+      let venue_id = req.query.venue_id;
+      if (!venue_id && typeof _authResult === 'object' && _authResult.venue_id) {
+        venue_id = _authResult.venue_id;
+      }
+
+      const query = supabase
+        .from('commander_waitlist')
+        .select('*')
+        .in('status', ['waiting', 'called'])
+        .order('position', { ascending: true });
+
+      if (venue_id) {
+        query.eq('venue_id', venue_id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Commander waitlist GET error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+
+      return res.status(200).json({ success: true, data: data || [] });
+    } catch (error) {
+      captureException(error, { action: 'waitlist_get', endpoint: '/api/commander/waitlist' });
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
