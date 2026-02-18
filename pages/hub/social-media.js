@@ -2628,7 +2628,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 // 9-max seat positions on the gold rail of the full-width table image
                                 // Angles distributed for natural poker seating (0=right, 90=bottom)
                                 const seatAngles = [90, 135, 180, 215, 245, 295, 325, 0, 45];
-                                const cx = 50, cy = 50, rx = 42, ry = 38;
+                                const cx = 50, cy = 50, rx = 40, ry = 27;
                                 const seatPositions = seatAngles.map(deg => {
                                     const rad = deg * Math.PI / 180;
                                     return {
@@ -2663,7 +2663,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         </div>
 
                                         {/* Poker Table Visualization — Full Width */}
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '1.8 / 1' }}>
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
                                             {/* Table image fills entire container */}
                                             <img
                                                 src="/images/poker-table-black-gold.png"
@@ -2973,7 +2973,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                         // 9-max seat positions on the gold rail of the full-width table image
                         const seatAngles = [90, 135, 180, 215, 245, 295, 325, 0, 45];
-                        const cx = 50, cy = 50, rx = 42, ry = 38;
+                        const cx = 50, cy = 50, rx = 40, ry = 27;
                         const seatPositions = seatAngles.map(deg => {
                             const rad = deg * Math.PI / 180;
                             return {
@@ -3028,7 +3028,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Poker Table Visualization — Full Width */}
-                                <div style={{ position: 'relative', width: '100%', aspectRatio: '1.8 / 1' }}>
+                                <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
                                     {/* Table image fills entire container */}
                                     <img
                                         src="/images/poker-table-black-gold.png"
