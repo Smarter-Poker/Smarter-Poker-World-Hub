@@ -613,7 +613,6 @@ export default function SettingsPage() {
                         <div style={styles.sidebarDivider} />
 
                         <button onClick={handleLogout} style={styles.logoutButton}>
-                            <span>🚪</span>
                             <span>Log Out</span>
                         </button>
                     </nav>
@@ -1259,50 +1258,65 @@ export default function SettingsPage() {
                                 <h2 style={styles.sectionTitle}>Billing & Payments</h2>
 
                                 {billingLoading ? (
-                                    <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                                        <div style={{ fontSize: 32, marginBottom: 12, animation: 'pulse 1.5s ease-in-out infinite' }}>Loading...</div>
-                                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Loading Billing Information...</p>
+                                    <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                                        <div style={{ fontSize: 14, color: '#65676b' }}>Loading Billing Information...</div>
                                     </div>
                                 ) : (
-                                    <>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
                                         {/* ── VIP Membership Status ── */}
-                                        <div style={styles.card}>
-                                            <h3 style={styles.cardTitle}>VIP Membership</h3>
+                                        <div style={{
+                                            background: '#242526',
+                                            border: '1px solid #3a3b3c',
+                                            borderRadius: 12,
+                                            padding: 28,
+                                        }}>
+                                            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', margin: '0 0 20px 0' }}>VIP Membership</h3>
                                             {isVip ? (
                                                 <>
-                                                    <div style={styles.billingStatCard}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                                            <div style={{
-                                                                width: 48, height: 48, borderRadius: 12,
-                                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                fontSize: 24,
-                                                            }}>VIP</div>
-                                                            <div>
-                                                                <div style={{ fontSize: 18, fontWeight: 700, color: '#FFD700' }}>Active VIP Member</div>
-                                                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
-                                                                    {billingVipSub?.tier ? `${billingVipSub.tier.charAt(0).toUpperCase() + billingVipSub.tier.slice(1)} Plan` : 'Premium Plan'}
-                                                                </div>
+                                                    <div style={{
+                                                        display: 'flex', alignItems: 'center', gap: 16,
+                                                        padding: 20, background: '#3a3b3c', borderRadius: 10,
+                                                    }}>
+                                                        <div style={{
+                                                            width: 52, height: 52, borderRadius: 12,
+                                                            background: 'linear-gradient(135deg, #2374e1, #1a5cc7)',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1,
+                                                        }}>VIP</div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: 17, fontWeight: 700, color: '#e4e6eb' }}>Active VIP Member</div>
+                                                            <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>
+                                                                {billingVipSub?.tier ? `${billingVipSub.tier.charAt(0).toUpperCase() + billingVipSub.tier.slice(1)} Plan` : 'Premium Plan'}
                                                             </div>
                                                         </div>
-                                                        {billingVipSub?.current_period_end && (
-                                                            <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
-                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                                                                        {billingVipSub.cancel_at_period_end ? 'Cancels On' : 'Next Billing Date'}
-                                                                    </span>
-                                                                    <span style={{ fontSize: 14, fontWeight: 600, color: billingVipSub.cancel_at_period_end ? '#ff4757' : '#fff' }}>
-                                                                        {new Date(billingVipSub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {billingVipSub?.cancel_at_period_end && (
-                                                            <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 8, fontSize: 13, color: '#ff4757' }}>
-                                                                Your membership will end at the current billing period. You can still enjoy benefits until then.
-                                                            </div>
-                                                        )}
                                                     </div>
+
+                                                    {billingVipSub?.current_period_end && (
+                                                        <div style={{
+                                                            marginTop: 16, padding: '14px 18px',
+                                                            background: '#18191a', borderRadius: 8,
+                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        }}>
+                                                            <span style={{ fontSize: 13, color: '#65676b' }}>
+                                                                {billingVipSub.cancel_at_period_end ? 'Cancels On' : 'Next Billing Date'}
+                                                            </span>
+                                                            <span style={{ fontSize: 14, fontWeight: 600, color: billingVipSub.cancel_at_period_end ? '#f02849' : '#e4e6eb' }}>
+                                                                {new Date(billingVipSub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {billingVipSub?.cancel_at_period_end && (
+                                                        <div style={{
+                                                            marginTop: 14, padding: '12px 16px',
+                                                            background: 'rgba(240, 40, 73, 0.08)', border: '1px solid rgba(240, 40, 73, 0.25)',
+                                                            borderRadius: 8, fontSize: 13, color: '#f02849', lineHeight: 1.5,
+                                                        }}>
+                                                            Your membership will end at the current billing period. You can still enjoy benefits until then.
+                                                        </div>
+                                                    )}
+
                                                     {!billingVipSub?.cancel_at_period_end && (
                                                         <button
                                                             onClick={() => {
@@ -1312,16 +1326,12 @@ export default function SettingsPage() {
                                                                 setCancelOtherText('');
                                                             }}
                                                             style={{
-                                                                marginTop: 16,
-                                                                padding: '10px 20px',
+                                                                marginTop: 20, padding: '10px 20px',
                                                                 background: 'transparent',
-                                                                border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                                borderRadius: 8,
-                                                                color: 'rgba(255,255,255,0.5)',
-                                                                fontSize: 13,
-                                                                fontWeight: 500,
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s ease',
+                                                                border: '1px solid #4e4f50',
+                                                                borderRadius: 8, color: '#65676b',
+                                                                fontSize: 13, fontWeight: 500,
+                                                                cursor: 'pointer', transition: 'all 0.2s ease',
                                                             }}
                                                         >
                                                             Cancel Membership
@@ -1329,17 +1339,20 @@ export default function SettingsPage() {
                                                     )}
                                                 </>
                                             ) : (
-                                                <div style={styles.billingStatCard}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                <>
+                                                    <div style={{
+                                                        display: 'flex', alignItems: 'center', gap: 16,
+                                                        padding: 20, background: '#3a3b3c', borderRadius: 10,
+                                                    }}>
                                                         <div style={{
-                                                            width: 48, height: 48, borderRadius: 12,
-                                                            background: 'rgba(255,255,255,0.08)',
+                                                            width: 52, height: 52, borderRadius: 12,
+                                                            background: '#4e4f50',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: 24, color: 'rgba(255,255,255,0.3)',
-                                                        }}>---</div>
-                                                        <div>
-                                                            <div style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>No Active Membership</div>
-                                                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                                                            fontSize: 22, color: '#65676b',
+                                                        }}>—</div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb' }}>No Active Membership</div>
+                                                            <div style={{ fontSize: 13, color: '#65676b', marginTop: 4 }}>
                                                                 Upgrade To VIP For Premium Benefits
                                                             </div>
                                                         </div>
@@ -1347,63 +1360,65 @@ export default function SettingsPage() {
                                                     <button
                                                         onClick={() => router.push('/hub/diamond-store')}
                                                         style={{
-                                                            marginTop: 16,
-                                                            width: '100%',
+                                                            marginTop: 20, width: '100%',
                                                             padding: '12px 20px',
-                                                            background: 'linear-gradient(135deg, #1877F2, #0d5bbd)',
-                                                            border: 'none',
-                                                            borderRadius: 8,
-                                                            color: '#fff',
-                                                            fontSize: 14,
-                                                            fontWeight: 600,
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.3s ease',
+                                                            background: '#2374e1',
+                                                            border: 'none', borderRadius: 8,
+                                                            color: '#fff', fontSize: 14, fontWeight: 600,
+                                                            cursor: 'pointer', transition: 'all 0.2s ease',
                                                         }}
                                                     >
                                                         Upgrade To VIP
                                                     </button>
-                                                </div>
+                                                </>
                                             )}
                                         </div>
 
                                         {/* ── Diamond Balance & Transactions ── */}
-                                        <div style={styles.card}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                                <h3 style={{ ...styles.cardTitle, margin: 0 }}>Diamond Balance</h3>
-                                                <div style={{ fontSize: 22, fontWeight: 700, color: '#00D4FF', fontFamily: 'Orbitron, monospace' }}>
+                                        <div style={{
+                                            background: '#242526',
+                                            border: '1px solid #3a3b3c',
+                                            borderRadius: 12,
+                                            padding: 28,
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                                <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', margin: 0 }}>Diamond Balance</h3>
+                                                <div style={{ fontSize: 24, fontWeight: 700, color: '#2374e1', fontFamily: 'Orbitron, monospace' }}>
                                                     {billingDiamonds.toLocaleString()}
                                                 </div>
                                             </div>
 
                                             {billingTransactions.length > 0 ? (
                                                 <div>
-                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Recent Transactions</div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 600, color: '#65676b', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Recent Transactions</div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                                         {billingTransactions.slice(0, 10).map((tx, i) => {
                                                             const isCredit = (tx.amount || tx.diamonds || 0) > 0;
                                                             return (
-                                                                <div key={tx.id || i} style={styles.transactionRow}>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                                                                <div key={tx.id || i} style={{
+                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                    padding: '12px 14px', borderRadius: 8, background: '#3a3b3c',
+                                                                }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                                                                         <div style={{
-                                                                            width: 32, height: 32, borderRadius: 8,
-                                                                            background: isCredit ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                                                            width: 34, height: 34, borderRadius: 8,
+                                                                            background: isCredit ? 'rgba(49, 162, 76, 0.15)' : 'rgba(240, 40, 73, 0.15)',
                                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                            fontSize: 14, flexShrink: 0,
-                                                                            color: isCredit ? '#22c55e' : '#ef4444',
-                                                                        }}>{isCredit ? '+' : '-'}</div>
+                                                                            fontSize: 15, fontWeight: 700, flexShrink: 0,
+                                                                            color: isCredit ? '#31a24c' : '#f02849',
+                                                                        }}>{isCredit ? '↑' : '↓'}</div>
                                                                         <div style={{ minWidth: 0 }}>
-                                                                            <div style={{ fontSize: 13, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                            <div style={{ fontSize: 13, fontWeight: 500, color: '#e4e6eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                                 {tx.description || tx.transaction_type || tx.type || 'Transaction'}
                                                                             </div>
-                                                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                                                                            <div style={{ fontSize: 11, color: '#65676b', marginTop: 2 }}>
                                                                                 {tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                     <div style={{
-                                                                        fontSize: 14, fontWeight: 600,
-                                                                        color: isCredit ? '#22c55e' : '#ef4444',
-                                                                        flexShrink: 0,
+                                                                        fontSize: 14, fontWeight: 600, flexShrink: 0, marginLeft: 12,
+                                                                        color: isCredit ? '#31a24c' : '#f02849',
                                                                     }}>
                                                                         {isCredit ? '+' : ''}{(tx.amount || tx.diamonds || 0).toLocaleString()}
                                                                     </div>
@@ -1413,60 +1428,76 @@ export default function SettingsPage() {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                                                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>No Transactions Yet</p>
+                                                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                                                    <p style={{ color: '#65676b', fontSize: 13, margin: 0 }}>No Transactions Yet</p>
                                                 </div>
                                             )}
 
                                             <button
                                                 onClick={() => router.push('/hub/diamond-store')}
-                                                style={{ ...styles.linkButton, width: '100%', textAlign: 'center', marginTop: 16 }}
+                                                style={{
+                                                    width: '100%', textAlign: 'center', marginTop: 20,
+                                                    padding: '12px 24px',
+                                                    background: 'rgba(35, 116, 225, 0.12)',
+                                                    border: '1px solid rgba(35, 116, 225, 0.3)',
+                                                    borderRadius: 8, color: '#2374e1',
+                                                    fontSize: 14, fontWeight: 600,
+                                                    cursor: 'pointer', transition: 'all 0.2s',
+                                                }}
                                             >
                                                 Buy Diamonds
                                             </button>
                                         </div>
 
                                         {/* ── Recent Orders ── */}
-                                        <div style={styles.card}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                                <h3 style={{ ...styles.cardTitle, margin: 0 }}>Recent Orders</h3>
+                                        <div style={{
+                                            background: '#242526',
+                                            border: '1px solid #3a3b3c',
+                                            borderRadius: 12,
+                                            padding: 28,
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                                <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', margin: 0 }}>Recent Orders</h3>
                                                 <button
                                                     onClick={() => router.push('/hub/diamond-store/orders')}
-                                                    style={{ background: 'none', border: 'none', color: '#00D4FF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                                    style={{ background: 'none', border: 'none', color: '#2374e1', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                                                 >
-                                                    View All
+                                                    View All →
                                                 </button>
                                             </div>
 
                                             {billingOrders.length > 0 ? (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                                     {billingOrders.map(order => {
                                                         const statusMap = {
-                                                            completed: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Completed' },
-                                                            pending: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', label: 'Pending' },
-                                                            processing: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Processing' },
-                                                            failed: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Failed' },
-                                                            refunded: { bg: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', label: 'Refunded' }
+                                                            completed: { bg: 'rgba(49, 162, 76, 0.12)', color: '#31a24c', label: 'Completed' },
+                                                            pending: { bg: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', label: 'Pending' },
+                                                            processing: { bg: 'rgba(35, 116, 225, 0.12)', color: '#2374e1', label: 'Processing' },
+                                                            failed: { bg: 'rgba(240, 40, 73, 0.12)', color: '#f02849', label: 'Failed' },
+                                                            refunded: { bg: 'rgba(156, 163, 175, 0.12)', color: '#9ca3af', label: 'Refunded' }
                                                         };
                                                         const st = statusMap[order.status] || statusMap.pending;
                                                         return (
-                                                            <div key={order.id} style={styles.billingOrderCard}>
+                                                            <div key={order.id} style={{
+                                                                padding: '16px 18px', background: '#3a3b3c',
+                                                                border: '1px solid #4e4f50', borderRadius: 10,
+                                                            }}>
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                                     <div>
-                                                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>
+                                                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#e4e6eb', marginBottom: 4 }}>
                                                                             Order #{order.id.slice(0, 8).toUpperCase()}
                                                                         </div>
-                                                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                                                                        <div style={{ fontSize: 12, color: '#65676b' }}>
                                                                             {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                                         </div>
                                                                     </div>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                                                         <span style={{
-                                                                            padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                                                                            padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                                                                             background: st.bg, color: st.color,
                                                                         }}>{st.label}</span>
                                                                         {order.total_cents != null && (
-                                                                            <span style={{ fontSize: 15, fontWeight: 700, color: '#00D4FF' }}>
+                                                                            <span style={{ fontSize: 15, fontWeight: 700, color: '#e4e6eb' }}>
                                                                                 ${(order.total_cents / 100).toFixed(2)}
                                                                             </span>
                                                                         )}
@@ -1477,9 +1508,9 @@ export default function SettingsPage() {
                                                                         href={order.stripe_receipt_url}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        style={{ display: 'block', marginTop: 10, color: '#00D4FF', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                                                                        style={{ display: 'inline-block', marginTop: 12, color: '#2374e1', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
                                                                     >
-                                                                        View Receipt
+                                                                        View Receipt →
                                                                     </a>
                                                                 )}
                                                             </div>
@@ -1487,11 +1518,18 @@ export default function SettingsPage() {
                                                     })}
                                                 </div>
                                             ) : (
-                                                <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                                                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>No Orders Yet</p>
+                                                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                                                    <p style={{ color: '#65676b', fontSize: 13, margin: '0 0 16px 0' }}>No Orders Yet</p>
                                                     <button
                                                         onClick={() => router.push('/hub/diamond-store')}
-                                                        style={{ ...styles.linkButton, marginTop: 12 }}
+                                                        style={{
+                                                            padding: '10px 24px',
+                                                            background: 'rgba(35, 116, 225, 0.12)',
+                                                            border: '1px solid rgba(35, 116, 225, 0.3)',
+                                                            borderRadius: 8, color: '#2374e1',
+                                                            fontSize: 13, fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                        }}
                                                     >
                                                         Visit Diamond Store
                                                     </button>
@@ -1500,19 +1538,32 @@ export default function SettingsPage() {
                                         </div>
 
                                         {/* ── Payment Methods ── */}
-                                        <div style={styles.card}>
-                                            <h3 style={styles.cardTitle}>Payment Methods</h3>
-                                            <p style={styles.infoText}>
+                                        <div style={{
+                                            background: '#242526',
+                                            border: '1px solid #3a3b3c',
+                                            borderRadius: 12,
+                                            padding: 28,
+                                        }}>
+                                            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', margin: '0 0 12px 0' }}>Payment Methods</h3>
+                                            <p style={{ fontSize: 14, color: '#65676b', lineHeight: 1.6, margin: '0 0 20px 0' }}>
                                                 Payment Methods Are Managed Securely Through Stripe During Checkout.
                                             </p>
                                             <button
                                                 onClick={() => router.push('/hub/diamond-store')}
-                                                style={styles.linkButton}
+                                                style={{
+                                                    padding: '12px 24px',
+                                                    background: 'rgba(35, 116, 225, 0.12)',
+                                                    border: '1px solid rgba(35, 116, 225, 0.3)',
+                                                    borderRadius: 8, color: '#2374e1',
+                                                    fontSize: 14, fontWeight: 600,
+                                                    cursor: 'pointer', transition: 'all 0.2s',
+                                                }}
                                             >
                                                 Go To Diamond Store
                                             </button>
                                         </div>
-                                    </>
+
+                                    </div>
                                 )}
                             </div>
                         )}
