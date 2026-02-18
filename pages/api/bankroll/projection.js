@@ -130,7 +130,7 @@ export default async function handler(req, res) {
                 // Risk metrics
                 avgMaxDrawdown,
                 expectedGain: Math.round(p50 - currentBankroll),
-                expectedGainPercent: Math.round(((p50 - currentBankroll) / currentBankroll) * 100),
+                expectedGainPercent: currentBankroll > 0 ? Math.round(((p50 - currentBankroll) / currentBankroll) * 100) : 0,
             },
             inputs: {
                 currentBankroll,

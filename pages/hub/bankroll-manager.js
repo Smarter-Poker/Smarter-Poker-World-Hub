@@ -272,7 +272,7 @@ export default function BankrollManagerPage() {
     return entries.filter(e => {
       const cat = e.category;
       const isAccounting = cat === 'expense' || cat === 'deposit' || cat === 'withdrawal' || cat === 'receipt';
-      return !isAccounting && gameTypeFilter.has(cat);
+      return !isAccounting && gameTypeFilter.includes(cat);
     });
   }, [entries, gameTypeFilter]);
 
@@ -280,7 +280,7 @@ export default function BankrollManagerPage() {
   const chartEntries = useMemo(() => {
     if (!entries || entries.length === 0) return [];
     return entries.filter(e => {
-      return e.category === 'expense' || gameTypeFilter.has(e.category);
+      return e.category === 'expense' || gameTypeFilter.includes(e.category);
     });
   }, [entries, gameTypeFilter]);
 
@@ -344,18 +344,88 @@ export default function BankrollManagerPage() {
       ]);
 
       setStats(statsData);
-      setEntries(entriesData);
       setTrips(tripsData);
       setLocations(locationsData);
       setLeakAnalysis(leakData);
 
       // Fetch active series for dashboard banner
+      var seriesData = null;
       try {
-        const seriesData = await getActiveSeries(userId);
+        seriesData = await getActiveSeries(userId);
         setActiveSeries(seriesData);
       } catch (e) {
         console.warn('Could not load active series:', e);
       }
+
+      // ── Filter out active trip/series entries ──
+      // Entries belonging to an active trip or series stay hidden
+      // until the user completes the trip/series. Then they appear
+      // as ONE summary row in Recent Activity.
+
+      // 1. Collect active trip IDs
+      var activeIds = [];
+      for (var t = 0; t < tripsData.length; t++) {
+        if (tripsData[t].status === 'active') {
+          activeIds.push(tripsData[t].id);
+        }
+      }
+      // 2. Collect active series ID (if any)
+      if (seriesData && seriesData.id) {
+        activeIds.push(seriesData.id);
+      }
+
+      // 3. Separate entries: hide active trip/series, keep the rest
+      var visible = [];
+      var completedTripMap = {};
+      for (var i = 0; i < entriesData.length; i++) {
+        var entry = entriesData[i];
+        if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
+          // Entry belongs to an active trip/series — HIDE it
+          continue;
+        }
+        if (entry.trip_id) {
+          // Entry belongs to a completed trip/series — group for summary
+          if (!completedTripMap[entry.trip_id]) completedTripMap[entry.trip_id] = [];
+          completedTripMap[entry.trip_id].push(entry);
+        } else {
+          // Standalone entry — show directly
+          visible.push(entry);
+        }
+      }
+
+      // 4. Create ONE summary row per completed trip/series
+      var completedTripIds = Object.keys(completedTripMap);
+      for (var k = 0; k < completedTripIds.length; k++) {
+        var tid = completedTripIds[k];
+        var items = completedTripMap[tid];
+        // Find the trip/series metadata
+        var tripMeta = null;
+        for (var m = 0; m < tripsData.length; m++) {
+          if (tripsData[m].id === tid) { tripMeta = tripsData[m]; break; }
+        }
+        var net = 0;
+        var latestDate = items[0].entry_date || '';
+        for (var n = 0; n < items.length; n++) {
+          net += (items[n].gross_out || 0) - (items[n].gross_in || 0);
+          if (items[n].entry_date > latestDate) latestDate = items[n].entry_date;
+        }
+        visible.push({
+          id: 'trip-summary-' + tid,
+          category: 'trip_summary',
+          entry_date: latestDate,
+          net_result: net,
+          gross_in: 0,
+          gross_out: 0,
+          location_name: (tripMeta ? tripMeta.location_name : '') || (items[0] ? items[0].location_name : '') || '',
+          _tripName: (tripMeta ? tripMeta.name : '') || 'Trip',
+          _sessionCount: items.length,
+          _isTripSummary: true,
+        });
+      }
+
+      // 5. Sort by date descending
+      visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
+      setEntries(visible);
     } catch (error) {
       console.error('Error loading bankroll data:', error);
     } finally {
@@ -963,7 +1033,7 @@ export default function BankrollManagerPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 8,
-                                  background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                                  background: gameTypeFilter.includes(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
                                 }}
                                 onClick={() => toggleGameType(cat)}
                               >
@@ -971,8 +1041,8 @@ export default function BankrollManagerPage() {
                                   width: 16,
                                   height: 16,
                                   borderRadius: 3,
-                                  border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
-                                  background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
+                                  border: gameTypeFilter.includes(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
+                                  background: gameTypeFilter.includes(cat) ? '#2374e1' : 'transparent',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -980,7 +1050,7 @@ export default function BankrollManagerPage() {
                                   color: '#fff',
                                   flexShrink: 0,
                                 }}>
-                                  {gameTypeFilter.has(cat) ? '✓' : ''}
+                                  {gameTypeFilter.includes(cat) ? '✓' : ''}
                                 </span>
                                 {CATEGORY_LABELS[cat]}
                               </button>
