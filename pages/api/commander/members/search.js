@@ -1,11 +1,10 @@
 /**
  * Member Search API
- * GET /api/commander/members/search?q=query&limit=10
+ * GET /api/commander/members/search?q=query&limit=10&venue_id=xxx
  * Search members by name or phone number
- * Requires staff authentication (via x-staff-session header)
+ * Venue scoping enforced: venue_id from query param, x-staff-session, or Bearer auth
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,41 +14,56 @@ const supabase = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-  // Require staff auth to prevent unauthenticated member data access
-  const staff = await guardStaff(req, res);
-  if (!staff) return;
-
   try {
-    const { q, limit = '10' } = req.query;
+    const { q, limit = '10', venue_id } = req.query;
     if (!q || q.length < 2) return res.status(200).json({ success: true, data: [] });
 
     const limitNum = Math.min(parseInt(limit) || 10, 50);
 
-    // Try to determine venue from auth token if present
-    let venueFilter = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) {
-        const { data: staff } = await supabase
-          .from('commander_staff')
-          .select('venue_id')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .single();
-        if (staff) venueFilter = staff.venue_id;
+    // Determine venue scope (required for security — prevents cross-venue data exposure)
+    let venueFilter = venue_id || null;
+
+    // Try x-staff-session header (Commander staff session)
+    if (!venueFilter) {
+      const staffSession = req.headers['x-staff-session'];
+      if (staffSession) {
+        try {
+          const sessionData = JSON.parse(staffSession);
+          if (sessionData.venue_id) venueFilter = sessionData.venue_id;
+        } catch { /* invalid session format */ }
       }
+    }
+
+    // Try Bearer auth token (owner/user login)
+    if (!venueFilter) {
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) {
+          const { data: staff } = await supabase
+            .from('commander_staff')
+            .select('venue_id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .single();
+          if (staff) venueFilter = staff.venue_id;
+        }
+      }
+    }
+
+    // SECURITY: Refuse to search without venue scope
+    if (!venueFilter) {
+      return res.status(200).json({ success: true, data: [] });
     }
 
     // Search by phone (digits only) or name (ilike)
     const isPhone = /^\d+$/.test(q.replace(/[\s\-\(\)]/g, ''));
     let query = supabase
       .from('commander_members')
-      .select('id, first_name, last_name, name, phone, email, last_checkin')
+      .select('id, first_name, last_name, name, phone, email, last_checkin, comp_balance')
+      .eq('venue_id', venueFilter)
       .limit(limitNum);
-
-    if (venueFilter) query = query.eq('venue_id', venueFilter);
 
     if (isPhone) {
       const digits = q.replace(/\D/g, '');

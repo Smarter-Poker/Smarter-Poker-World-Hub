@@ -223,6 +223,11 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     // ── Formatters ──────────────────────────────────────────────
     const fmtVal = (v) => v >= 0 ? `+$${v.toLocaleString()}` : `-$${Math.abs(v).toLocaleString()}`;
+    const fmtAxis = (v) => {
+        const abs = Math.abs(v);
+        if (abs >= 1000) return `$${(v / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`;
+        return `$${v.toLocaleString()}`;
+    };
     const isPositive = stats.current >= 0;
     const chartHeight = 220;
 
@@ -247,7 +252,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     const renderLine = () => (
         <ResponsiveContainer width="100%" height={chartHeight}>
-            <AreaChart data={lineData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <AreaChart data={lineData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                     <linearGradient id="gradPos" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
@@ -268,7 +273,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     </filter>
                 </defs>
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={fmtAxis} width={70} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
@@ -290,7 +295,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
 
     const renderBar = () => (
         <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart data={barData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={barData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                     <linearGradient id="barGradGreen" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={1} />
@@ -302,7 +307,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     </linearGradient>
                 </defs>
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={fmtAxis} width={70} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
@@ -328,7 +333,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         const cats = categoriesPresent;
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
-                <BarChart data={stackedData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barCategoryGap="20%">
+                <BarChart data={stackedData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }} barCategoryGap="20%">
                     <defs>
                         {Object.entries(CATEGORY_COLORS).map(([key, color]) => (
                             <linearGradient key={key} id={`stackGrad_${key}`} x1="0" y1="0" x2="0" y2="1">
@@ -338,7 +343,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                         ))}
                     </defs>
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 14 }} tickFormatter={fmtAxis} width={70} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
@@ -375,7 +380,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         }
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
-                <BarChart data={histogramData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barCategoryGap="15%">
+                <BarChart data={histogramData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }} barCategoryGap="15%">
                     <defs>
                         <linearGradient id="histGreen" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#4ade80" stopOpacity={0.95} />

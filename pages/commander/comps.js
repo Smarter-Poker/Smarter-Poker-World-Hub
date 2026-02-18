@@ -87,7 +87,11 @@ export default function CompSystem() {
     if (!searchQuery || searchQuery.length < 2) return;
     setSearching(true);
     try {
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+      const venueId = getVenueId();
+      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
+      const headers = {};
+      if (staffSession) headers['x-staff-session'] = staffSession;
+      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(searchQuery)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
       const json = await res.json();
       if (json.success) setSearchResults(json.data || []);
     } catch (err) { console.error(err); }
@@ -173,10 +177,10 @@ export default function CompSystem() {
     <CommanderLayout title="Comp System" backHref="/commander/dashboard">
       <>
         <SEOHead
-                title="Commander — Comps & Rewards"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Comps & Rewards"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
           {/* PIN Authorization Modal */}

@@ -56,7 +56,14 @@ export default function MembershipKiosk() {
     if (!query || query.length < 2) return;
     setSearching(true);
     try {
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&limit=10`);
+      let venueId = null;
+      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
+      if (staffSession) {
+        try { venueId = JSON.parse(staffSession).venue_id; } catch { /* */ }
+      }
+      const headers = {};
+      if (staffSession) headers['x-staff-session'] = staffSession;
+      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
       const json = await res.json();
       if (json.success) setSearchResults(json.data || []);
     } catch (err) { console.error(err); }
