@@ -272,27 +272,20 @@ export default function CommanderDashboard() {
         /* ── 6-CARD GRID ── */
         .cmd-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 14px;
-          padding: 16px;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+          padding: 20px;
           max-width: 1100px;
           margin: 0 auto;
           height: calc(100vh - 65px);
-          grid-template-rows: 1fr 1fr;
-        }
-        @media (max-width: 900px) {
-          .cmd-grid {
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(3, 1fr);
-            gap: 12px;
-          }
+          grid-template-rows: 1fr 1fr 1fr;
         }
         @media (max-width: 640px) {
           .cmd-grid {
             grid-template-columns: 1fr;
-            grid-template-rows: repeat(6, minmax(120px, 1fr));
-            gap: 10px;
-            padding: 12px;
+            grid-template-rows: repeat(6, minmax(160px, 1fr));
+            gap: 14px;
+            padding: 14px;
             height: auto;
             min-height: calc(100vh - 65px);
           }
