@@ -85,6 +85,12 @@ export default function SettingsPage() {
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
     const [customAvatars, setCustomAvatars] = useState([]);
     const [loadingAvatars, setLoadingAvatars] = useState(true);
+
+    // VIP Cancellation State
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelStep, setCancelStep] = useState('reason'); // 'reason' | 'offer' | 'confirmed' | 'retained'
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelOtherText, setCancelOtherText] = useState('');
     const [show2FAModal, setShow2FAModal] = useState(false);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -636,11 +642,11 @@ export default function SettingsPage() {
                                 {/* Build Your Avatar Card */}
                                 <div style={{
                                     ...styles.card,
-                                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(0, 212, 255, 0.15))',
-                                    border: '1px solid rgba(138, 43, 226, 0.4)',
+                                    background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.15), rgba(66, 183, 42, 0.08))',
+                                    border: '1px solid rgba(24, 119, 242, 0.3)',
                                 }}>
-                                    <h3 style={{ ...styles.cardTitle, color: '#00D4FF', marginBottom: 8 }}>
-                                        🎨 Build Your Avatar
+                                    <h3 style={{ ...styles.cardTitle, color: '#1877F2', marginBottom: 8 }}>
+                                        Build Your Avatar
                                     </h3>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
                                         Create a unique AI-generated avatar to use as your profile picture across Smarter.Poker
@@ -671,9 +677,9 @@ export default function SettingsPage() {
                                                             ? 'transparent'
                                                             : 'rgba(255, 255, 255, 0.05)',
                                                         border: isActive
-                                                            ? '3px solid #00D4FF'
+                                                            ? '3px solid #1877F2'
                                                             : avatarData
-                                                                ? '2px solid rgba(138, 43, 226, 0.5)'
+                                                                ? '2px solid rgba(24, 119, 242, 0.4)'
                                                                 : '2px dashed rgba(255, 255, 255, 0.2)',
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -702,7 +708,7 @@ export default function SettingsPage() {
                                                                     width: 16,
                                                                     height: 16,
                                                                     borderRadius: '50%',
-                                                                    background: '#00D4FF',
+                                                                    background: '#1877F2',
                                                                     display: 'flex',
                                                                     alignItems: 'center',
                                                                     justifyContent: 'center',
@@ -715,7 +721,7 @@ export default function SettingsPage() {
                                                         </>
                                                     ) : (
                                                         <span style={{
-                                                            color: canCreate ? '#8a2be2' : 'rgba(255,255,255,0.2)',
+                                                            color: canCreate ? '#1877F2' : 'rgba(255,255,255,0.2)',
                                                             fontSize: 24,
                                                             fontWeight: 300,
                                                         }}>
@@ -734,7 +740,7 @@ export default function SettingsPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #8a2be2, #00D4FF)',
+                                                background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                                 border: 'none',
                                                 borderRadius: 10,
                                                 color: '#fff',
@@ -745,7 +751,7 @@ export default function SettingsPage() {
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: 8,
-                                                boxShadow: '0 4px 20px rgba(138, 43, 226, 0.3)',
+                                                boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
                                                 transition: 'all 0.3s ease',
                                             }}
                                         >
@@ -756,10 +762,10 @@ export default function SettingsPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
-                                                background: 'rgba(0, 212, 255, 0.15)',
-                                                border: '1px solid rgba(0, 212, 255, 0.3)',
+                                                background: 'rgba(24, 119, 242, 0.12)',
+                                                border: '1px solid rgba(24, 119, 242, 0.3)',
                                                 borderRadius: 10,
-                                                color: '#00D4FF',
+                                                color: '#1877F2',
                                                 fontSize: 14,
                                                 fontWeight: 600,
                                                 cursor: 'pointer',
@@ -768,9 +774,10 @@ export default function SettingsPage() {
                                                 justifyContent: 'center',
                                                 gap: 8,
                                                 transition: 'all 0.3s ease',
+                                                whiteSpace: 'nowrap',
                                             }}
                                         >
-                                            📚 Browse Avatar Library
+                                            Browse Avatar Library
                                         </button>
                                     </div>
 
@@ -1236,6 +1243,28 @@ export default function SettingsPage() {
                                                 <div style={styles.vipSubtitle}>Enjoying Premium Benefits</div>
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={() => {
+                                                setShowCancelModal(true);
+                                                setCancelStep('reason');
+                                                setCancelReason('');
+                                                setCancelOtherText('');
+                                            }}
+                                            style={{
+                                                marginTop: 16,
+                                                padding: '10px 20px',
+                                                background: 'transparent',
+                                                border: '1px solid rgba(255, 71, 87, 0.3)',
+                                                borderRadius: 8,
+                                                color: '#ff4757',
+                                                fontSize: 13,
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                            }}
+                                        >
+                                            Cancel Membership
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -1650,6 +1679,306 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* VIP Cancellation Modal */}
+            {showCancelModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 20,
+                }}>
+                    <div style={{
+                        background: '#1c2333',
+                        borderRadius: 16,
+                        width: '100%',
+                        maxWidth: 480,
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                        overflow: 'hidden',
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '20px 24px',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                        }}>
+                            <h3 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: 0 }}>
+                                {cancelStep === 'reason' && 'Cancel VIP Membership'}
+                                {cancelStep === 'offer' && 'Wait — Special Offer!'}
+                                {cancelStep === 'confirmed' && 'Membership Cancelled'}
+                                {cancelStep === 'retained' && 'Welcome Back!'}
+                            </h3>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'rgba(255,255,255,0.5)',
+                                    fontSize: 24,
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    lineHeight: 1,
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div style={{ padding: '24px' }}>
+                            {/* Step 1: Reason Survey */}
+                            {cancelStep === 'reason' && (
+                                <>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 20 }}>
+                                        We are sorry to see you go. Please let us know why you are cancelling so we can improve.
+                                    </p>
+                                    {[
+                                        { id: 'too_expensive', label: 'Too Expensive' },
+                                        { id: 'not_using', label: 'Not Using Enough' },
+                                        { id: 'found_alternative', label: 'Found An Alternative' },
+                                        { id: 'missing_features', label: 'Missing Features I Need' },
+                                        { id: 'technical_issues', label: 'Technical Issues' },
+                                        { id: 'other', label: 'Other' },
+                                    ].map(reason => (
+                                        <button
+                                            key={reason.id}
+                                            onClick={() => setCancelReason(reason.id)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '14px 16px',
+                                                marginBottom: 8,
+                                                background: cancelReason === reason.id
+                                                    ? 'rgba(24, 119, 242, 0.15)'
+                                                    : 'rgba(255, 255, 255, 0.05)',
+                                                border: cancelReason === reason.id
+                                                    ? '1px solid rgba(24, 119, 242, 0.4)'
+                                                    : '1px solid rgba(255, 255, 255, 0.1)',
+                                                borderRadius: 10,
+                                                color: cancelReason === reason.id ? '#1877F2' : '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                textAlign: 'left',
+                                                transition: 'all 0.2s ease',
+                                            }}
+                                        >
+                                            {reason.label}
+                                        </button>
+                                    ))}
+
+                                    {cancelReason === 'other' && (
+                                        <textarea
+                                            value={cancelOtherText}
+                                            onChange={(e) => setCancelOtherText(e.target.value)}
+                                            placeholder="Tell us more..."
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px 16px',
+                                                marginTop: 4,
+                                                marginBottom: 8,
+                                                background: 'rgba(0, 0, 0, 0.3)',
+                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                minHeight: 80,
+                                                resize: 'vertical',
+                                                outline: 'none',
+                                                fontFamily: 'Inter, sans-serif',
+                                            }}
+                                        />
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                                        <button
+                                            onClick={() => setShowCancelModal(false)}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 20px',
+                                                background: 'rgba(255, 255, 255, 0.08)',
+                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            Keep Membership
+                                        </button>
+                                        <button
+                                            onClick={() => cancelReason && setCancelStep('offer')}
+                                            disabled={!cancelReason}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 20px',
+                                                background: cancelReason ? '#ff4757' : 'rgba(255, 71, 87, 0.3)',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: cancelReason ? 'pointer' : 'not-allowed',
+                                                opacity: cancelReason ? 1 : 0.5,
+                                            }}
+                                        >
+                                            Continue
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Step 2: Retention Offer */}
+                            {cancelStep === 'offer' && (
+                                <>
+                                    <div style={{
+                                        textAlign: 'center',
+                                        padding: '20px 0',
+                                    }}>
+                                        <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                                        <h4 style={{ color: '#FFD700', fontSize: 20, fontWeight: 700, marginBottom: 12 }}>
+                                            50% Off For 3 Months!
+                                        </h4>
+                                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
+                                            Before you go, we would love to offer you <strong style={{ color: '#FFD700' }}>50% off your VIP membership</strong> for the next 3 months. Keep all your premium benefits at half the price.
+                                        </p>
+
+                                        <div style={{
+                                            background: 'rgba(255, 215, 0, 0.08)',
+                                            border: '1px solid rgba(255, 215, 0, 0.25)',
+                                            borderRadius: 12,
+                                            padding: '16px 20px',
+                                            marginBottom: 24,
+                                        }}>
+                                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>Your New Price</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontSize: 18 }}>$9.99/mo</span>
+                                                <span style={{ color: '#FFD700', fontSize: 28, fontWeight: 700, fontFamily: 'Orbitron, sans-serif' }}>$4.99/mo</span>
+                                            </div>
+                                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>For 3 months, then regular price resumes</div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <button
+                                            onClick={() => {
+                                                // Accept the retention offer
+                                                setCancelStep('retained');
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 20px',
+                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                color: '#000',
+                                                fontSize: 14,
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                                boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+                                            }}
+                                        >
+                                            Claim 50% Off
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                // Proceed to final cancellation
+                                                setCancelStep('confirmed');
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 20px',
+                                                background: 'rgba(255, 71, 87, 0.15)',
+                                                border: '1px solid rgba(255, 71, 87, 0.3)',
+                                                borderRadius: 10,
+                                                color: '#ff4757',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            Cancel Anyway
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Step 3a: Cancellation Confirmed */}
+                            {cancelStep === 'confirmed' && (
+                                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>😔</div>
+                                    <h4 style={{ color: '#fff', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+                                        Your Membership Has Been Cancelled
+                                    </h4>
+                                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
+                                        Your VIP benefits will remain active until the end of your current billing period.
+                                    </p>
+                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
+                                        You can re-subscribe anytime from the Diamond Store.
+                                    </p>
+                                    <button
+                                        onClick={() => setShowCancelModal(false)}
+                                        style={{
+                                            padding: '14px 40px',
+                                            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
+                                            border: 'none',
+                                            borderRadius: 10,
+                                            color: '#fff',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Done
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Step 3b: Retention Success */}
+                            {cancelStep === 'retained' && (
+                                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+                                    <h4 style={{ color: '#FFD700', fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+                                        Discount Applied!
+                                    </h4>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 8 }}>
+                                        Your VIP membership is now <strong style={{ color: '#FFD700' }}>$4.99/month</strong> for the next 3 months.
+                                    </p>
+                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24 }}>
+                                        Thank you for staying with us! Enjoy your premium benefits.
+                                    </p>
+                                    <button
+                                        onClick={() => setShowCancelModal(false)}
+                                        style={{
+                                            padding: '14px 40px',
+                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                            border: 'none',
+                                            borderRadius: 10,
+                                            color: '#000',
+                                            fontSize: 14,
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+                                        }}
+                                    >
+                                        Awesome!
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Custom Avatar Builder Modal */}
             {showAvatarBuilder && (
