@@ -38,6 +38,9 @@ export default function WaitlistDesk() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
+  const getStaffSession = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_staff') || '' : '';
+
   // Load venue info
   useEffect(() => {
     try {
@@ -52,14 +55,17 @@ export default function WaitlistDesk() {
   const fetchData = useCallback(async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const staffSession = getStaffSession();
+      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const vid = staffData.venue_id || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [tabRes, wlRes] = await Promise.all([
-        fetch('/api/commander/tables', { headers }),
-        fetch('/api/commander/waitlist', { headers })
+        fetch(`/api/commander/tables?venue_id=${vid}`, { headers }),
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers })
       ]);
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
-      if (tabJson.success) setTables(tabJson.data || []);
+      if (tabJson.success) setTables(tabJson.data?.tables || tabJson.data || []);
       if (wlJson.success) setWaitlists(wlJson.data || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -81,9 +87,10 @@ export default function WaitlistDesk() {
     setCallLoading(entry.id); setSmsStatus(null);
     try {
       const token = getToken();
+      const staffSession = getStaffSession();
       const res = await fetch('/api/commander/waitlist/call', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ waitlist_id: entry.id })
       });
       const json = await res.json();
@@ -99,9 +106,10 @@ export default function WaitlistDesk() {
   const handleSeat = async (entry, tableNumber, seatNumber) => {
     try {
       const token = getToken();
+      const staffSession = getStaffSession();
       await fetch('/api/commander/waitlist/seat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
       setSeatModal(null); setSelectedPlayer(null); await fetchData();
@@ -111,8 +119,9 @@ export default function WaitlistDesk() {
   const handlePass = async (entry) => {
     try {
       const token = getToken();
+      const staffSession = getStaffSession();
       await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       setSelectedPlayer(null); await fetchData();
     } catch (err) { console.error(err); }
@@ -121,8 +130,9 @@ export default function WaitlistDesk() {
   const handleRemove = async (entry) => {
     try {
       const token = getToken();
+      const staffSession = getStaffSession();
       await fetch(`/api/commander/waitlist/${entry.id}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       setSelectedPlayer(null); await fetchData();
     } catch (err) { console.error(err); }
@@ -131,11 +141,12 @@ export default function WaitlistDesk() {
   const handleAddWalkIn = async (playerData) => {
     try {
       const token = getToken();
+      const staffSession = getStaffSession();
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const res = await fetch('/api/commander/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: staffData.venue_id, player_name: playerData.player_name,
           game_type: parts[0] || 'NLH', stakes: parts.slice(1).join(' ') || '1/3',
