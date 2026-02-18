@@ -270,9 +270,9 @@ export default function BankrollManagerPage() {
   const filteredAnalyticsEntries = useMemo(() => {
     if (!entries || entries.length === 0) return [];
     return entries.filter(e => {
-      var cat = e.category;
-      var isAccounting = ACCOUNTING_CATEGORIES.indexOf(cat) !== -1;
-      return !isAccounting && gameTypeFilter.indexOf(cat) !== -1;
+      const cat = e.category;
+      const isAccounting = cat === 'expense' || cat === 'deposit' || cat === 'withdrawal' || cat === 'receipt';
+      return !isAccounting && gameTypeFilter.has(cat);
     });
   }, [entries, gameTypeFilter]);
 
@@ -280,7 +280,7 @@ export default function BankrollManagerPage() {
   const chartEntries = useMemo(() => {
     if (!entries || entries.length === 0) return [];
     return entries.filter(e => {
-      return e.category === 'expense' || gameTypeFilter.indexOf(e.category) !== -1;
+      return e.category === 'expense' || gameTypeFilter.has(e.category);
     });
   }, [entries, gameTypeFilter]);
 
@@ -963,7 +963,7 @@ export default function BankrollManagerPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 8,
-                                  background: gameTypeFilter.indexOf(cat) !== -1 ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                                  background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
                                 }}
                                 onClick={() => toggleGameType(cat)}
                               >
@@ -971,8 +971,8 @@ export default function BankrollManagerPage() {
                                   width: 16,
                                   height: 16,
                                   borderRadius: 3,
-                                  border: gameTypeFilter.indexOf(cat) !== -1 ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
-                                  background: gameTypeFilter.indexOf(cat) !== -1 ? '#2374e1' : 'transparent',
+                                  border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
+                                  background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -980,7 +980,7 @@ export default function BankrollManagerPage() {
                                   color: '#fff',
                                   flexShrink: 0,
                                 }}>
-                                  {gameTypeFilter.indexOf(cat) !== -1 ? '✓' : ''}
+                                  {gameTypeFilter.has(cat) ? '✓' : ''}
                                 </span>
                                 {CATEGORY_LABELS[cat]}
                               </button>

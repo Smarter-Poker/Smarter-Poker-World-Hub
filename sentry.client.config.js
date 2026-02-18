@@ -55,6 +55,10 @@ if (SENTRY_DSN) {
       'Internal error',
       // Minified Supabase/library internal errors (not actionable)
       'r.error is not a function',
+      // Next.js router invariant — same-URL push (Commander login redirects)
+      'Invariant: attempted to hard navigate to the same URL',
+      // Terser minifier mangling — pre-fixed but belt-and-suspenders
+      'D is not defined',
     ],
 
     // Before sending, scrub sensitive data and filter noise
