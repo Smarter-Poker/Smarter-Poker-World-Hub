@@ -338,7 +338,6 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                                             onClick={async () => {
                                                                 if (confirm('Delete this entry?')) {
                                                                     await onDeleteEntry(entry.id);
-                                                                    loadData();
                                                                 }
                                                             }}
                                                             style={styles.entryDeleteBtn}

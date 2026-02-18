@@ -379,7 +379,6 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
                                                             onClick={async () => {
                                                                 if (confirm('Delete this entry?')) {
                                                                     await onDeleteEntry(entry.id);
-                                                                    loadData();
                                                                 }
                                                             }}
                                                             style={styles.entryDeleteBtn}
