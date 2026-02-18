@@ -33,7 +33,7 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry }) {
+export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger }) {
     const [activeSeries, setActiveSeries] = useState(null);
     const [completedSeries, setCompletedSeries] = useState([]);
     const [seriesEntries, setSeriesEntries] = useState([]);
@@ -94,7 +94,7 @@ export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDelete
         }
     }, [userId]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
 
     // Fetch DB series + venues on mount (independent of userId)
     useEffect(() => {

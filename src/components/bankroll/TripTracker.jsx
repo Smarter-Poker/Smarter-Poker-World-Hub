@@ -33,7 +33,7 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry }) {
+export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger }) {
     const [activeTrip, setActiveTrip] = useState(null);
     const [completedTrips, setCompletedTrips] = useState([]);
     const [tripEntries, setTripEntries] = useState([]);
@@ -92,7 +92,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
         }
     }, [userId]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
 
 
 

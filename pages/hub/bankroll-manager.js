@@ -173,6 +173,7 @@ export default function BankrollManagerPage() {
     }
   }, [router.asPath, router.isReady]);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showProjection, setShowProjection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -469,6 +470,7 @@ export default function BankrollManagerPage() {
   const handleLogSubmit = async () => {
     setShowLogModal(false);
     setEditEntry(null);
+    setRefreshTrigger(prev => prev + 1);
     await loadData();
 
     // Check rules for violations after logging
@@ -560,6 +562,7 @@ export default function BankrollManagerPage() {
     try {
       await deleteLedgerEntry(userId, entryId);
       toast.success('Entry deleted');
+      setRefreshTrigger(prev => prev + 1);
       await loadData(); // Full refresh to sync stats
     } catch (err) {
       console.error('Delete failed:', err);
@@ -1265,6 +1268,7 @@ export default function BankrollManagerPage() {
                   onOpenLog={handleLogClick}
                   onEditEntry={handleEditEntry}
                   onDeleteEntry={handleDeleteEntry}
+                  refreshTrigger={refreshTrigger}
                 />
               )}
 
@@ -1275,6 +1279,7 @@ export default function BankrollManagerPage() {
                   onOpenLog={handleLogClick}
                   onEditEntry={handleEditEntry}
                   onDeleteEntry={handleDeleteEntry}
+                  refreshTrigger={refreshTrigger}
                 />
               )}
 
