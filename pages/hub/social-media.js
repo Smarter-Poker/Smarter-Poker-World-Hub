@@ -5490,113 +5490,115 @@ export default function SocialMediaPage() {
 
                     {/* ===== NORMAL FEED ===== */}
                     {!showClubPages && <>
-                        {/* Stories Bar */}
-                        {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
+                        <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                            <div style={{ flex: 1, maxWidth: 680, minWidth: 0 }}>
+                                {/* Stories Bar */}
+                                {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
-                        {/* Post Creator */}
-                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => { setShowClubPages(true); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} />}
+                                {/* Post Creator */}
+                                {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => { setShowClubPages(true); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} />}
 
-                        {/* Login prompt */}
-                        {!user && (
-                            <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
-                                <p style={{ color: C.textSec, marginBottom: 12 }}>Log In To Post And Interact!</p>
-                                <Link href="/auth/login" style={{
-                                    display: 'inline-block', padding: '10px 24px', background: C.blue,
-                                    color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
-                                }}>Log In</Link>
-                            </div>
-                        )}
+                                {/* Login prompt */}
+                                {!user && (
+                                    <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
+                                        <p style={{ color: C.textSec, marginBottom: 12 }}>Log In To Post And Interact!</p>
+                                        <Link href="/auth/login" style={{
+                                            display: 'inline-block', padding: '10px 24px', background: C.blue,
+                                            color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
+                                        }}>Log In</Link>
+                                    </div>
+                                )}
 
-                        {/* LIVE STREAMS SECTION */}
-                        {liveStreams.length > 0 && (
-                            <div style={{ marginBottom: 12 }}>
-                                <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    🔴 Live Now
-                                </h4>
-                                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
-                                    {liveStreams.map(stream => (
-                                        <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
-                                            <LiveStreamCard
-                                                stream={stream}
-                                                onClick={() => setWatchingStream(stream)}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Posts Feed */}
-                        {posts.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                <div style={{ fontSize: 48 }}></div>
-                                <h3 style={{ color: C.text }}>No Posts Yet</h3>
-                                <p>Be The First To Share Something!</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Render posts with Reels carousel inserted after every 3 posts */}
-                                {posts.map((p, index) => (
-                                    <>
-                                        <PostCard
-                                            key={p.id}
-                                            post={{ ...p, isGodMode }}
-                                            currentUserId={user?.id}
-                                            currentUserName={user?.name}
-                                            currentUserAvatar={user?.avatar}
-                                            onLike={handleLike}
-                                            onDelete={handleDelete}
-                                            onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
-                                        />
-                                        {/* Insert Reels carousel after 3rd post */}
-                                        {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
-                                    </>
-                                ))}
-
-                                {/* ♾️ INFINITE SCROLL: Load more trigger */}
-                                <div ref={loadMoreCallbackRef} style={{
-                                    padding: '20px',
-                                    textAlign: 'center',
-                                    minHeight: 60
-                                }}>
-                                    {loadingMore && (
-                                        <>
-                                            {/* Skeleton Post Placeholders */}
-                                            {[1, 2].map(i => (
-                                                <div key={`skeleton-${i}`} style={{
-                                                    background: C.card,
-                                                    borderRadius: 8,
-                                                    padding: 16,
-                                                    marginBottom: 12,
-                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                                }}>
-                                                    {/* Skeleton header */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                                                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'pulse 1.5s infinite' }} />
-                                                        <div style={{ flex: 1 }}>
-                                                            <div style={{ width: 120, height: 12, background: '#E4E6EB', borderRadius: 6, marginBottom: 6, animation: 'pulse 1.5s infinite' }} />
-                                                            <div style={{ width: 80, height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
-                                                        </div>
-                                                    </div>
-                                                    {/* Skeleton content */}
-                                                    <div style={{ marginBottom: 12 }}>
-                                                        <div style={{ width: '100%', height: 10, background: '#E4E6EB', borderRadius: 5, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
-                                                        <div style={{ width: '80%', height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
-                                                    </div>
-                                                    {/* Skeleton image placeholder */}
-                                                    <div style={{ width: '100%', height: 200, background: '#E4E6EB', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />
+                                {/* LIVE STREAMS SECTION */}
+                                {liveStreams.length > 0 && (
+                                    <div style={{ marginBottom: 12 }}>
+                                        <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            🔴 Live Now
+                                        </h4>
+                                        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                                            {liveStreams.map(stream => (
+                                                <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
+                                                    <LiveStreamCard
+                                                        stream={stream}
+                                                        onClick={() => setWatchingStream(stream)}
+                                                    />
                                                 </div>
                                             ))}
-                                        </>
-                                    )}
-                                    {!hasMorePosts && posts.length > 0 && (
-                                        <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
-                                            You're all caught up! Check back later for new content.
-                                        </p>
-                                    )}
-                                </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                                <style jsx>{`
+                                {/* Posts Feed */}
+                                {posts.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                        <div style={{ fontSize: 48 }}></div>
+                                        <h3 style={{ color: C.text }}>No Posts Yet</h3>
+                                        <p>Be The First To Share Something!</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Render posts with Reels carousel inserted after every 3 posts */}
+                                        {posts.map((p, index) => (
+                                            <>
+                                                <PostCard
+                                                    key={p.id}
+                                                    post={{ ...p, isGodMode }}
+                                                    currentUserId={user?.id}
+                                                    currentUserName={user?.name}
+                                                    currentUserAvatar={user?.avatar}
+                                                    onLike={handleLike}
+                                                    onDelete={handleDelete}
+                                                    onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                                />
+                                                {/* Insert Reels carousel after 3rd post */}
+                                                {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
+                                            </>
+                                        ))}
+
+                                        {/* ♾️ INFINITE SCROLL: Load more trigger */}
+                                        <div ref={loadMoreCallbackRef} style={{
+                                            padding: '20px',
+                                            textAlign: 'center',
+                                            minHeight: 60
+                                        }}>
+                                            {loadingMore && (
+                                                <>
+                                                    {/* Skeleton Post Placeholders */}
+                                                    {[1, 2].map(i => (
+                                                        <div key={`skeleton-${i}`} style={{
+                                                            background: C.card,
+                                                            borderRadius: 8,
+                                                            padding: 16,
+                                                            marginBottom: 12,
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                        }}>
+                                                            {/* Skeleton header */}
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'pulse 1.5s infinite' }} />
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div style={{ width: 120, height: 12, background: '#E4E6EB', borderRadius: 6, marginBottom: 6, animation: 'pulse 1.5s infinite' }} />
+                                                                    <div style={{ width: 80, height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                                </div>
+                                                            </div>
+                                                            {/* Skeleton content */}
+                                                            <div style={{ marginBottom: 12 }}>
+                                                                <div style={{ width: '100%', height: 10, background: '#E4E6EB', borderRadius: 5, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
+                                                                <div style={{ width: '80%', height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                            </div>
+                                                            {/* Skeleton image placeholder */}
+                                                            <div style={{ width: '100%', height: 200, background: '#E4E6EB', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            )}
+                                            {!hasMorePosts && posts.length > 0 && (
+                                                <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
+                                                    You're all caught up! Check back later for new content.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <style jsx>{`
                                 @keyframes spin {
                                     to { transform: rotate(360deg); }
                                 }
@@ -5604,9 +5606,29 @@ export default function SocialMediaPage() {
                                     0%, 100% { opacity: 1; }
                                     50% { opacity: 0.5; }
                                 }
+                                .social-contacts-sidebar {
+                                    width: 220px;
+                                    flex-shrink: 0;
+                                }
+                                @media (max-width: 900px) {
+                                    .social-contacts-sidebar { display: none; }
+                                }
                             `}</style>
-                            </>
-                        )}
+                                    </>
+                                )}
+                            </div>
+                            {/* Contacts Sidebar — desktop only */}
+                            {user && (
+                                <div className="social-contacts-sidebar">
+                                    <ContactsSidebar
+                                        contacts={contacts}
+                                        onOpenChat={handleOpenChat}
+                                        onSearch={handleSearch}
+                                        searchResults={searchResults}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </>}
                 </main>
 
