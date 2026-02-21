@@ -1119,10 +1119,7 @@ export default function StrategyTrivia({ mode }) {
                 }
 
                 .question-card {
-                    background: linear-gradient(145deg, rgba(20, 30, 50, 0.6), rgba(10, 18, 35, 0.8));
-                    border: 1px solid rgba(255, 255, 255, 0.07);
-                    border-radius: 16px;
-                    padding: 24px 20px;
+                    padding: 0;
                     flex: 1;
                 }
 
@@ -1267,18 +1264,25 @@ export default function StrategyTrivia({ mode }) {
                     width: 100%;
                     margin-top: 20px;
                     padding: 16px;
-                    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-                    border: none;
+                    background: linear-gradient(145deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.9));
+                    border: 1px solid rgba(6, 182, 212, 0.3);
                     border-radius: 10px;
                     color: white;
                     font-size: 16px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: transform 0.2s;
+                    transition: all 0.2s;
+                    box-shadow:
+                        0 0 20px rgba(0, 0, 0, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
                 }
 
                 .next-btn:hover {
                     transform: translateY(-2px);
+                    border-color: rgba(6, 182, 212, 0.5);
+                    box-shadow:
+                        0 4px 20px rgba(6, 182, 212, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.08);
                 }
 
                 /* RESULTS */
