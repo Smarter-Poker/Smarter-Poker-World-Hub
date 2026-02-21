@@ -748,7 +748,7 @@ export default function UniversalHeader({
                             overflow: 'hidden'
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '56%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '57%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
 
