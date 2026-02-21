@@ -14,6 +14,26 @@ import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/l
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { Zap, SkipForward, Shield, Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
+
+/** Format poker text: enforce BB/SB spacing and capitalization rules */
+function formatPokerText(text) {
+    if (!text) return text;
+    return text
+        // Add space before BB when preceded by a number (e.g., "31BB" → "31 BB")
+        .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1 BB')
+        // Capitalize poker position abbreviations
+        .replace(/\b(btn|Btn)\b/gi, 'BTN')
+        .replace(/\b(sb|Sb|sB)\b/g, 'SB')
+        .replace(/\b(utg|Utg)\b/gi, 'UTG')
+        .replace(/\b(hj|Hj)\b/gi, 'HJ')
+        .replace(/\b(co|Co)\b/g, 'CO')
+        .replace(/\b(mp|Mp)\b/g, 'MP')
+        .replace(/\bip\b/gi, 'IP')
+        .replace(/\boop\b/gi, 'OOP')
+        // Hyphenated blind terms
+        .replace(/\bbig[- ]blind\b/gi, 'Big-Blind')
+        .replace(/\bsmall[- ]blind\b/gi, 'Small-Blind');
+}
 import GameCostPopup from '../gates/GameCostPopup';
 import DiamondEngine from '../../services/DiamondEngine';
 
@@ -664,192 +684,199 @@ export default function StrategyTrivia({ mode }) {
                     {/* PLAYING STATE */}
                     {gameState === 'playing' && currentQuestion && (
                         <div className="game-area">
-                            {/* Header */}
-                            <div className="game-header">
-                                <div className="progress">
-                                    Question {currentQuestionIndex + 1} of {questions.length}
-                                </div>
-                                <div className="timer-display" style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    color: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88',
-                                    fontWeight: 700,
-                                    fontSize: '18px',
-                                    fontVariantNumeric: 'tabular-nums',
-                                }}>
-                                    <Clock size={18} />
-                                    <span>{timeLeft}s</span>
-                                </div>
-                            </div>
-
-                            {/* Question Card */}
-                            <div className="question-card">
-                                <div className="category-badge" style={{ borderColor: config.color }}>
-                                    {getCategoryName(currentQuestion.category)}
-                                </div>
-
-                                <h2 className="question-text">
-                                    {toTitleCase(currentQuestion.question)}
-                                </h2>
-
-                                <div className="options">
-                                    {currentQuestion.options.map((option, index) => {
-                                        const isEliminated = eliminatedOptions.includes(index);
-                                        let optionClass = 'option';
-                                        if (isEliminated) optionClass += ' eliminated';
-                                        if (showResult) {
-                                            if (index === currentQuestion.correct_index) {
-                                                optionClass += ' correct';
-                                            } else if (index === selectedAnswer) {
-                                                optionClass += ' incorrect';
-                                            }
-                                        }
-
-                                        return (
-                                            <button
-                                                key={index}
-                                                className={optionClass}
-                                                onClick={() => selectAnswer(index)}
-                                                disabled={showResult || isEliminated}
-                                            >
-                                                <span className="option-letter">
-                                                    {isEliminated ? '✗' : String.fromCharCode(65 + index)}
-                                                </span>
-                                                <span className="option-text">
-                                                    {isEliminated ? '---' : toTitleCase(option)}
-                                                </span>
-                                                {showResult && index === currentQuestion.correct_index && (
-                                                    <CheckCircle size={20} className="icon correct" />
-                                                )}
-                                                {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
-                                                    <XCircle size={20} className="icon incorrect" />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Lifelines */}
-                                {!showResult && (
-                                    <div className="lifelines" style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
-                                        <button
-                                            className="lifeline-btn"
-                                            onClick={useFiftyFifty}
-                                            disabled={fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                padding: 0,
-                                                cursor: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 'not-allowed' : 'pointer',
-                                                opacity: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
-                                                transition: 'opacity 0.3s, transform 0.2s',
-                                                flex: 1,
-                                                maxWidth: '200px',
-                                            }}
-                                        >
-                                            <img
-                                                src="/images/trivia/lifeline-5050.jpg"
-                                                alt="50/50 Lifeline"
-                                                style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
-                                            />
-                                        </button>
-                                        <button
-                                            className="lifeline-btn"
-                                            onClick={useSkip}
-                                            disabled={skipUsed || lifelinesUsedCount >= MAX_LIFELINES}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                padding: 0,
-                                                cursor: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 'not-allowed' : 'pointer',
-                                                opacity: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
-                                                transition: 'opacity 0.3s, transform 0.2s',
-                                                flex: 1,
-                                                maxWidth: '200px',
-                                            }}
-                                        >
-                                            <img
-                                                src="/images/trivia/lifeline-skip.jpg"
-                                                alt="Skip Lifeline"
-                                                style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
-                                            />
-                                        </button>
+                            <div className="game-frame">
+                                {/* Header */}
+                                <div className="game-header">
+                                    <div className="progress">
+                                        Question {currentQuestionIndex + 1} of {questions.length}
                                     </div>
-                                )}
-
-                                {/* GTO Scenario Display — Full-Screen Overlay */}
-                                {showResult && (() => {
-                                    const altLines = generateAlternateLines(currentQuestion);
-                                    const altSum = altLines.reduce((sum, l) => sum + l.frequency, 0);
-                                    const computedConfidence = 100 - altSum;
-
-                                    return (
-                                        <div style={{
-                                            position: 'fixed',
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            zIndex: 9999,
-                                            background: '#0f1923',
-                                            overflowY: 'auto',
-                                            padding: '16px',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                        }}>
-                                            {/* Result badge at top */}
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                marginBottom: '12px',
-                                                padding: '8px 16px',
-                                                borderRadius: '8px',
-                                                background: selectedAnswer === currentQuestion.correct_index
-                                                    ? 'rgba(0, 255, 136, 0.15)'
-                                                    : 'rgba(239, 68, 68, 0.15)',
-                                                border: `1px solid ${selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444'}`,
-                                                color: selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444',
-                                                fontWeight: 700,
-                                                fontSize: '14px',
-                                            }}>
-                                                {selectedAnswer === currentQuestion.correct_index ? '✓ CORRECT' : '✗ INCORRECT'}
-                                            </div>
-
-                                            <div style={{ width: '100%', maxWidth: '500px' }}>
-                                                <GTOScenarioDisplay
-                                                    action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
-                                                    confidence={computedConfidence}
-                                                    explanation={currentQuestion.explanation}
-                                                    gtoApproach={generateGTOApproach(currentQuestion)}
-                                                    evAnalysis={generateEVAnalysis(currentQuestion)}
-                                                    alternateLines={altLines}
-                                                    isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
-                                                    showDetails={true}
-                                                />
-                                            </div>
-
-                                            {/* Next button at bottom of overlay */}
-                                            <button
-                                                className="next-btn"
-                                                onClick={nextQuestion}
+                                    <div className="timer-ring-container">
+                                        <svg className="timer-ring" width="48" height="48" viewBox="0 0 48 48">
+                                            <circle className="timer-ring-bg" cx="24" cy="24" r="20" />
+                                            <circle
+                                                className="timer-ring-progress"
+                                                cx="24" cy="24" r="20"
                                                 style={{
-                                                    marginTop: '16px',
-                                                    width: '100%',
-                                                    maxWidth: '500px',
+                                                    strokeDasharray: `${2 * Math.PI * 20}`,
+                                                    strokeDashoffset: `${2 * Math.PI * 20 * (1 - timeLeft / 60)}`,
+                                                    stroke: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88',
+                                                }}
+                                            />
+                                        </svg>
+                                        <span className="timer-text" style={{ color: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88' }}>
+                                            {timeLeft}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Question Card */}
+                                <div className="question-card">
+                                    <div className="category-badge" style={{ borderColor: config.color }}>
+                                        {getCategoryName(currentQuestion.category)}
+                                    </div>
+
+                                    <h2 className="question-text">
+                                        {formatPokerText(toTitleCase(currentQuestion.question))}
+                                    </h2>
+
+                                    <div className="options">
+                                        {currentQuestion.options.map((option, index) => {
+                                            const isEliminated = eliminatedOptions.includes(index);
+                                            let optionClass = 'option';
+                                            if (isEliminated) optionClass += ' eliminated';
+                                            if (showResult) {
+                                                if (index === currentQuestion.correct_index) {
+                                                    optionClass += ' correct';
+                                                } else if (index === selectedAnswer) {
+                                                    optionClass += ' incorrect';
+                                                }
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    className={optionClass}
+                                                    onClick={() => selectAnswer(index)}
+                                                    disabled={showResult || isEliminated}
+                                                >
+                                                    <span className="option-letter">
+                                                        {isEliminated ? '✗' : String.fromCharCode(65 + index)}
+                                                    </span>
+                                                    <span className="option-text">
+                                                        {isEliminated ? '---' : formatPokerText(toTitleCase(option))}
+                                                    </span>
+                                                    {showResult && index === currentQuestion.correct_index && (
+                                                        <CheckCircle size={20} className="icon correct" />
+                                                    )}
+                                                    {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
+                                                        <XCircle size={20} className="icon incorrect" />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Lifelines */}
+                                    {!showResult && (
+                                        <div className="lifelines" style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+                                            <button
+                                                className="lifeline-btn"
+                                                onClick={useFiftyFifty}
+                                                disabled={fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    padding: 0,
+                                                    cursor: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 'not-allowed' : 'pointer',
+                                                    opacity: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
+                                                    transition: 'opacity 0.3s, transform 0.2s',
+                                                    flex: 1,
+                                                    maxWidth: '200px',
                                                 }}
                                             >
-                                                {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
-                                                <ArrowRight size={18} />
+                                                <img
+                                                    src="/images/trivia/lifeline-5050.jpg"
+                                                    alt="50/50 Lifeline"
+                                                    style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                                                />
+                                            </button>
+                                            <button
+                                                className="lifeline-btn"
+                                                onClick={useSkip}
+                                                disabled={skipUsed || lifelinesUsedCount >= MAX_LIFELINES}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    padding: 0,
+                                                    cursor: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 'not-allowed' : 'pointer',
+                                                    opacity: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
+                                                    transition: 'opacity 0.3s, transform 0.2s',
+                                                    flex: 1,
+                                                    maxWidth: '200px',
+                                                }}
+                                            >
+                                                <img
+                                                    src="/images/trivia/lifeline-skip.jpg"
+                                                    alt="Skip Lifeline"
+                                                    style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                                                />
                                             </button>
                                         </div>
-                                    );
-                                })()}
+                                    )}
 
-
+                                </div>
                             </div>
+
+                            {/* GTO Scenario Display — Full-Screen Overlay */}
+                            {showResult && (() => {
+                                const altLines = generateAlternateLines(currentQuestion);
+                                const altSum = altLines.reduce((sum, l) => sum + l.frequency, 0);
+                                const computedConfidence = 100 - altSum;
+
+                                return (
+                                    <div style={{
+                                        position: 'fixed',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        zIndex: 9999,
+                                        background: '#0f1923',
+                                        overflowY: 'auto',
+                                        padding: '16px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                    }}>
+                                        {/* Result badge at top */}
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            marginBottom: '12px',
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            background: selectedAnswer === currentQuestion.correct_index
+                                                ? 'rgba(0, 255, 136, 0.15)'
+                                                : 'rgba(239, 68, 68, 0.15)',
+                                            border: `1px solid ${selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444'}`,
+                                            color: selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444',
+                                            fontWeight: 700,
+                                            fontSize: '14px',
+                                        }}>
+                                            {selectedAnswer === currentQuestion.correct_index ? '✓ CORRECT' : '✗ INCORRECT'}
+                                        </div>
+
+                                        <div style={{ width: '100%', maxWidth: '500px' }}>
+                                            <GTOScenarioDisplay
+                                                action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
+                                                confidence={computedConfidence}
+                                                explanation={currentQuestion.explanation}
+                                                gtoApproach={generateGTOApproach(currentQuestion)}
+                                                evAnalysis={generateEVAnalysis(currentQuestion)}
+                                                alternateLines={altLines}
+                                                isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
+                                                showDetails={true}
+                                            />
+                                        </div>
+
+                                        {/* Next button at bottom of overlay */}
+                                        <button
+                                            className="next-btn"
+                                            onClick={nextQuestion}
+                                            style={{
+                                                marginTop: '16px',
+                                                width: '100%',
+                                                maxWidth: '500px',
+                                            }}
+                                        >
+                                            {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
+                                            <ArrowRight size={18} />
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
                         </div>
                     )}
 
@@ -892,7 +919,7 @@ export default function StrategyTrivia({ mode }) {
             <style jsx>{`
                 .strategy-trivia {
                     min-height: 100vh;
-                    background: #000000;
+                    background: linear-gradient(135deg, #0a0e1a 0%, #0d1525 40%, #0a1628 70%, #060b14 100%);
                     font-family: 'Inter', -apple-system, sans-serif;
                 }
 
@@ -1015,28 +1042,72 @@ export default function StrategyTrivia({ mode }) {
                     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 }
 
-                /* GAME AREA */
+                /* GAME AREA — FULL SCREEN FRAME */
+                .game-frame {
+                    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 17, 35, 0.98));
+                    border: 1px solid rgba(0, 212, 255, 0.15);
+                    border-radius: 20px;
+                    padding: 20px 16px;
+                    box-shadow:
+                        0 0 30px rgba(0, 212, 255, 0.05),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                    min-height: calc(100vh - 140px);
+                    display: flex;
+                    flex-direction: column;
+                }
+
                 .game-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 24px;
-                    padding: 12px 16px;
-                    background: rgba(0,0,0,0.3);
-                    border-radius: 12px;
+                    margin-bottom: 20px;
+                    padding: 14px 20px;
+                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.06), rgba(0, 150, 200, 0.03));
+                    border: 1px solid rgba(0, 212, 255, 0.1);
+                    border-radius: 14px;
+                    backdrop-filter: blur(8px);
                 }
 
                 .progress {
-                    color: rgba(255,255,255,0.7);
+                    color: rgba(255, 255, 255, 0.85);
                     font-weight: 600;
+                    font-size: 14px;
+                    letter-spacing: 0.5px;
                 }
 
-                .timer {
+                .timer-ring-container {
+                    position: relative;
                     display: flex;
                     align-items: center;
-                    gap: 6px;
+                    justify-content: center;
+                    width: 48px;
+                    height: 48px;
+                }
+
+                .timer-ring {
+                    transform: rotate(-90deg);
+                    position: absolute;
+                }
+
+                .timer-ring-bg {
+                    fill: none;
+                    stroke: rgba(255, 255, 255, 0.08);
+                    stroke-width: 3;
+                }
+
+                .timer-ring-progress {
+                    fill: none;
+                    stroke-width: 3;
+                    stroke-linecap: round;
+                    transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
+                }
+
+                .timer-text {
+                    font-size: 14px;
                     font-weight: 700;
-                    font-size: 18px;
+                    font-variant-numeric: tabular-nums;
+                    position: relative;
+                    z-index: 1;
                 }
 
                 .diamonds {
@@ -1048,30 +1119,33 @@ export default function StrategyTrivia({ mode }) {
                 }
 
                 .question-card {
-                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-                    border: 1px solid rgba(255,255,255,0.1);
+                    background: linear-gradient(145deg, rgba(20, 30, 50, 0.6), rgba(10, 18, 35, 0.8));
+                    border: 1px solid rgba(255, 255, 255, 0.07);
                     border-radius: 16px;
-                    padding: 28px;
+                    padding: 24px 20px;
+                    flex: 1;
                 }
 
                 .category-badge {
                     display: inline-block;
-                    font-size: 12px;
-                    color: rgba(255,255,255,0.6);
+                    font-size: 11px;
+                    color: rgba(255, 255, 255, 0.7);
                     text-transform: uppercase;
-                    letter-spacing: 1px;
-                    padding: 6px 12px;
+                    letter-spacing: 1.5px;
+                    padding: 5px 14px;
                     border: 1px solid;
-                    border-radius: 6px;
+                    border-radius: 20px;
                     margin-bottom: 16px;
+                    font-weight: 500;
                 }
 
                 .question-text {
-                    font-size: 20px;
+                    font-size: 19px;
                     font-weight: 600;
                     color: white;
-                    line-height: 1.5;
+                    line-height: 1.55;
                     margin: 0 0 24px 0;
+                    letter-spacing: 0.2px;
                 }
 
                 .options {
@@ -1299,6 +1373,6 @@ export default function StrategyTrivia({ mode }) {
                     cursor: pointer;
                 }
             `}</style>
-        </PageTransition>
+        </PageTransition >
     );
 }

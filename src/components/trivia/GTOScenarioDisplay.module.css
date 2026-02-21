@@ -10,7 +10,7 @@
 .container {
     position: relative;
     width: 100%;
-    max-width: 420px;
+    max-width: 500px;
     margin: 0 auto;
     background: linear-gradient(145deg,
             rgba(20, 30, 48, 0.95) 0%,
@@ -205,16 +205,21 @@
     background: linear-gradient(180deg,
             rgba(15, 23, 42, 0.6) 0%,
             rgba(15, 23, 42, 0.8) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-left: 3px solid var(--accent-color, #06b6d4);
-    border-radius: 8px;
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    border-radius: 10px;
     overflow: hidden;
     transition: all 0.2s ease;
+    box-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .section:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    border-left-color: var(--accent-color);
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow:
+        0 4px 20px rgba(6, 182, 212, 0.1),
+        0 2px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .sectionHeader {
@@ -312,8 +317,10 @@
 }
 
 .alternateLine {
-    padding-left: 8px;
-    border-left: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .lineAction {
@@ -424,6 +431,7 @@
 @media (max-width: 480px) {
     .container {
         padding: 16px;
+        max-width: 500px;
     }
 
     .actionText {

@@ -16,17 +16,35 @@ import styles from './GTOScenarioDisplay.module.css';
 // Jarvis avatar - using the official persona
 const JARVIS_AVATAR = '/images/jarvis-avatar.png';
 
+// Format poker text: enforce BB/SB spacing and capitalization rules
+const formatPokerText = (text) => {
+    if (!text) return text;
+    return text
+        .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1 BB')
+        .replace(/\b(btn|Btn)\b/gi, 'BTN')
+        .replace(/\b(sb|Sb|sB)\b/g, 'SB')
+        .replace(/\b(utg|Utg)\b/gi, 'UTG')
+        .replace(/\b(hj|Hj)\b/gi, 'HJ')
+        .replace(/\b(co|Co)\b/g, 'CO')
+        .replace(/\b(mp|Mp)\b/g, 'MP')
+        .replace(/\bip\b/gi, 'IP')
+        .replace(/\boop\b/gi, 'OOP')
+        .replace(/\bbig[- ]blind(s?)\b/gi, 'Big-Blind$1')
+        .replace(/\bsmall[- ]blind(s?)\b/gi, 'Small-Blind$1');
+};
+
 // Highlight GTO keywords in text
 const highlightKeywords = (text) => {
     const keywords = [
         'GTO', 'EV', 'Expected Value', 'fold equity', 'pot equity', 'range',
         'balanced range', 'value', 'bluff', 'polarized', 'linear', 'solver',
         'frequency', 'optimal', 'equity realization', 'ICM', 'chip EV', 'SPR',
-        'stack-to-pot ratio', 'big blinds', 'bb', 'aggression', 'check-raise',
+        'stack-to-pot ratio', 'Big-Blind', 'Small-Blind', 'BB', 'aggression', 'check-raise',
         'continuation bet', 'c-bet', 'float', 'probe', '3-bet', '4-bet'
     ];
 
-    let result = text;
+    // Apply poker formatting first
+    let result = formatPokerText(text);
     keywords.forEach(keyword => {
         const regex = new RegExp(`\\b(${keyword})\\b`, 'gi');
         result = result.replace(regex, '<span class="gto-highlight">$1</span>');
