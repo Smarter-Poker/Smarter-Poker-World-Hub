@@ -723,24 +723,48 @@ export default function StrategyTrivia({ mode }) {
 
                                 {/* Lifelines */}
                                 {!showResult && (
-                                    <div className="lifelines">
+                                    <div className="lifelines" style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
                                         <button
                                             className="lifeline-btn"
                                             onClick={useFiftyFifty}
                                             disabled={fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                padding: 0,
+                                                cursor: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 'not-allowed' : 'pointer',
+                                                opacity: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
+                                                transition: 'opacity 0.3s, transform 0.2s',
+                                                flex: 1,
+                                                maxWidth: '200px',
+                                            }}
                                         >
-                                            <Zap size={18} />
-                                            <span>50/50</span>
-                                            <span className="cost">{LIFELINE_COST}<Gem size={14} /></span>
+                                            <img
+                                                src="/images/trivia/lifeline-5050.jpg"
+                                                alt="50/50 Lifeline"
+                                                style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                                            />
                                         </button>
                                         <button
                                             className="lifeline-btn"
                                             onClick={useSkip}
                                             disabled={skipUsed || lifelinesUsedCount >= MAX_LIFELINES}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                padding: 0,
+                                                cursor: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 'not-allowed' : 'pointer',
+                                                opacity: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
+                                                transition: 'opacity 0.3s, transform 0.2s',
+                                                flex: 1,
+                                                maxWidth: '200px',
+                                            }}
                                         >
-                                            <SkipForward size={18} />
-                                            <span>Skip</span>
-                                            <span className="cost">{LIFELINE_COST}<Gem size={14} /></span>
+                                            <img
+                                                src="/images/trivia/lifeline-skip.jpg"
+                                                alt="Skip Lifeline"
+                                                style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                                            />
                                         </button>
                                     </div>
                                 )}
