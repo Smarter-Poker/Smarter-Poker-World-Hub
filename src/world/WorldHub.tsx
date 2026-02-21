@@ -561,6 +561,7 @@ export default function WorldHub() {
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
             'diamond-arena': '/videos/diamond-arena-intro.mp4',
+            'my-clubs': '/videos/my-clubs-intro.mp4',
         };
 
         const targetRoute = `/hub/${cardId}`;
@@ -587,6 +588,7 @@ export default function WorldHub() {
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
             'diamond-arena': '/videos/diamond-arena-intro.mp4',
+            'my-clubs': '/videos/my-clubs-intro.mp4',
         };
 
         const targetRoute = `/hub/${orbId}`;
