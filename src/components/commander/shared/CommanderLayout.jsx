@@ -127,7 +127,9 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    router.push('/commander/login').catch(() => {});
+    if (router.asPath !== '/commander/login') {
+      router.push('/commander/login').catch(() => { });
+    }
   };
 
   const handleNavClick = (item) => {
@@ -409,7 +411,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                   if (window.history.length > 1) {
                     router.back();
                   } else {
-                    router.push('/commander/dashboard').catch(() => {});
+                    router.push('/commander/dashboard').catch(() => { });
                   }
                 }}
                 title="Go Back"

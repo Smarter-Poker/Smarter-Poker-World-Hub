@@ -72,6 +72,7 @@ if (SENTRY_DSN) {
           const msg = String(error.message);
           if (msg.includes('signal is aborted') || msg.includes('aborted')) return null;
           if (msg.includes('Internal error')) return null;
+          if (msg.includes('Invariant: attempted to hard navigate')) return null;
         }
         // Filter extension errors
         if ('stack' in error) {

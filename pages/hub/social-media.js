@@ -369,6 +369,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 
 // Module-level cache to deduplicate link preview fetches across all cards in a session
 const linkPreviewCache = new Map();
+const linkPreviewInflight = new Map();
 
 function LinkPreviewCard({ url }) {
     const { openExternal } = useExternalLink();
@@ -387,12 +388,22 @@ function LinkPreviewCard({ url }) {
 
         const fetchMetadata = async () => {
             try {
-                const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-                const data = await response.json();
+                let data;
+                // Deduplicate: if a request for this URL is already in-flight, await it
+                if (linkPreviewInflight.has(url)) {
+                    data = await linkPreviewInflight.get(url);
+                } else {
+                    const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
+                        .then(r => r.json());
+                    linkPreviewInflight.set(url, promise);
+                    data = await promise;
+                    linkPreviewInflight.delete(url);
+                }
                 linkPreviewCache.set(url, data);
                 setMetadata(data);
             } catch (error) {
                 console.error('Failed to fetch link metadata:', error);
+                linkPreviewInflight.delete(url);
                 // Fallback to basic info
                 try {
                     const urlObj = new URL(url);
@@ -4704,14 +4715,50 @@ export default function SocialMediaPage() {
 
     const loadContacts = async (userId) => {
         try {
-            const { data } = await supabase.from('social_conversation_participants').select('conversation_id, social_conversations(last_message_preview)').eq('user_id', userId);
-            if (!data) return;
-            const list = await Promise.all(data.map(async c => {
-                const { data: parts } = await supabase.from('social_conversation_participants').select('user_id').eq('conversation_id', c.conversation_id).neq('user_id', userId);
-                if (!parts?.[0]) return null;
-                const { data: prof } = await supabase.from('profiles').select('username').eq('id', parts[0].user_id).maybeSingle();
-                return { id: parts[0].user_id, name: prof?.username || 'Player', avatar: null, conversationId: c.conversation_id, lastMessage: c.social_conversations?.last_message_preview, online: false };
-            }));
+            // Step 1: Fetch all conversations the user is in (single query)
+            const { data: myConvos } = await supabase
+                .from('social_conversation_participants')
+                .select('conversation_id, social_conversations(last_message_preview)')
+                .eq('user_id', userId);
+            if (!myConvos || myConvos.length === 0) return;
+
+            // Step 2: Fetch ALL participants for those conversations in one query
+            const conversationIds = myConvos.map(c => c.conversation_id);
+            const { data: allParts } = await supabase
+                .from('social_conversation_participants')
+                .select('conversation_id, user_id')
+                .in('conversation_id', conversationIds)
+                .neq('user_id', userId);
+            if (!allParts || allParts.length === 0) return;
+
+            // Build a map: conversation_id -> other user_id
+            const convToUser = {};
+            for (const p of allParts) {
+                if (!convToUser[p.conversation_id]) convToUser[p.conversation_id] = p.user_id;
+            }
+
+            // Step 3: Batch-fetch all profiles in one query
+            const uniqueUserIds = [...new Set(Object.values(convToUser))];
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .in('id', uniqueUserIds);
+            const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+
+            // Assemble contacts in-memory
+            const list = myConvos.map(c => {
+                const otherUserId = convToUser[c.conversation_id];
+                if (!otherUserId) return null;
+                const prof = profileMap[otherUserId];
+                return {
+                    id: otherUserId,
+                    name: prof?.username || 'Player',
+                    avatar: null,
+                    conversationId: c.conversation_id,
+                    lastMessage: c.social_conversations?.last_message_preview,
+                    online: false
+                };
+            });
             setContacts(list.filter(Boolean));
         } catch (e) { console.error(e); }
     };
@@ -5370,7 +5417,7 @@ export default function SocialMediaPage() {
                 )}
 
                 {/* Main Feed - 800px Design Canvas */}
-                <main className="social-page-container" style={{ padding: '8px' }}>
+                <main className="social-page-container" style={{ padding: 0 }}>
 
                     {/* ===== CLUB PAGES: CREATE MODAL ===== */}
                     {showCreatePage && isCommander && (
@@ -5490,8 +5537,8 @@ export default function SocialMediaPage() {
 
                     {/* ===== NORMAL FEED ===== */}
                     {!showClubPages && <>
-                        <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-                            <div style={{ flex: 1, maxWidth: 680, minWidth: 0 }}>
+                        <div className="social-feed-layout" style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                            <div className="social-feed-column" style={{ flex: 1, minWidth: 0 }}>
                                 {/* Stories Bar */}
                                 {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
@@ -5606,9 +5653,21 @@ export default function SocialMediaPage() {
                                     0%, 100% { opacity: 1; }
                                     50% { opacity: 0.5; }
                                 }
+                                .social-feed-column {
+                                    max-width: 680px;
+                                    overflow-x: hidden;
+                                }
                                 .social-contacts-sidebar {
                                     width: 220px;
                                     flex-shrink: 0;
+                                }
+                                @media (max-width: 768px) {
+                                    .social-feed-column {
+                                        max-width: 100% !important;
+                                    }
+                                    .social-feed-layout {
+                                        gap: 0 !important;
+                                    }
                                 }
                                 @media (max-width: 900px) {
                                     .social-contacts-sidebar { display: none; }
