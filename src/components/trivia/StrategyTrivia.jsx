@@ -667,10 +667,19 @@ export default function StrategyTrivia({ mode }) {
                             {/* Header */}
                             <div className="game-header">
                                 <div className="progress">
-                                    Q{currentQuestionIndex + 1} / {questions.length}
+                                    Question {currentQuestionIndex + 1} of {questions.length}
                                 </div>
-                                <div className="diamonds">
-                                    <Gem size={16} /> {userDiamonds}
+                                <div className="timer-display" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    color: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88',
+                                    fontWeight: 700,
+                                    fontSize: '18px',
+                                    fontVariantNumeric: 'tabular-nums',
+                                }}>
+                                    <Clock size={18} />
+                                    <span>{timeLeft}s</span>
                                 </div>
                             </div>
 
