@@ -155,8 +155,9 @@ export default function StrategyTrivia({ mode }) {
             setUserId(user.id);
             loadUserDiamonds(user.id);
             // Check VIP status
-            const engine = DiamondEngine.getInstance(null, user.id);
-            engine.isVIP().then(vip => setIsVip(vip));
+            DiamondEngine.init(user.id).then(() => {
+                DiamondEngine.isVIP().then(vip => setIsVip(vip));
+            });
         }
         setIsLoading(false);
         // Preload questions in background
@@ -396,8 +397,8 @@ export default function StrategyTrivia({ mode }) {
     async function startGame() {
         // Per-game diamond cost for non-VIP users
         if (!isVip && userId) {
-            const engine = DiamondEngine.getInstance(null, userId);
-            const result = await engine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
+            await DiamondEngine.init(userId);
+            const result = await DiamondEngine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
             if (!result.success) {
                 alert(`Not enough diamonds! You need ${GAME_DIAMOND_COST}💎 to play. Visit the Diamond Store to get more.`);
                 return;
