@@ -144,8 +144,6 @@ export default function GTOScenarioDisplay({
 
     return (
         <div className={styles.container}>
-            {/* Corner Badge */}
-            <div className={styles.cornerBadge}>Smarter Poker Data</div>
 
             {/* Header Section */}
             <div className={styles.header}>
@@ -246,7 +244,7 @@ export default function GTOScenarioDisplay({
                             icon={GitBranch}
                             title={`${alternateLines.length} Alternate Lines`}
                             accentColor="#a855f7"
-                            defaultOpen={false}
+                            defaultOpen={true}
                         >
                             <div className={styles.alternateLines}>
                                 {alternateLines.map((line, idx) => (
