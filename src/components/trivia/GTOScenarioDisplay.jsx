@@ -244,7 +244,7 @@ export default function GTOScenarioDisplay({
                         >
                             <div className={styles.evContainer}>
                                 <div className={styles.evValue}>
-                                    {evAnalysis.value >= 0 ? '+' : ''}{evAnalysis.value}bb
+                                    {evAnalysis.value >= 0 ? '+' : ''}{evAnalysis.value} BB
                                 </div>
                                 <p
                                     className={styles.evDescription}
