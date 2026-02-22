@@ -159,7 +159,7 @@ export default function GameTypesPage() {
   const canManage = staff?.role === 'owner' || staff?.role === 'manager';
 
   return (
-    <CommanderLayout title="Game Types | {venueName || 'Commander'}" backHref="/commander/dashboard">
+    <CommanderLayout title={`Game Types | ${venueName || 'Commander'}`} backHref="/commander/dashboard">
       <>
         <SEOHead
           title="Commander — Game Types"

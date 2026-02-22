@@ -158,7 +158,7 @@ export async function queryDiamondBalance(userId) {
  */
 export async function querySocialPosts(offset = 0, limit = 10) {
     const params = new URLSearchParams({
-        select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id',
+        select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
         or: '(visibility.eq.public,visibility.is.null)',
         order: 'created_at.desc',
         offset: offset.toString(),

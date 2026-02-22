@@ -47,6 +47,9 @@ export default function OpenGame() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
 
   // Fetch available tables when on step 2
   useEffect(() => {
@@ -55,7 +58,9 @@ export default function OpenGame() {
       setLoading(true);
       try {
         const token = getToken();
-        const res = await fetch('/api/commander/tables', { headers: { Authorization: `Bearer ${token}` } });
+        const venueId = getVenueId();
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
         const json = await res.json();
         if (json.success) {
           setTables((json.data || []).filter(t => t.status === 'closed' || t.status === 'open' || !t.status));
@@ -72,7 +77,9 @@ export default function OpenGame() {
     const fetchWaitlist = async () => {
       try {
         const token = getToken();
-        const res = await fetch('/api/commander/waitlist', { headers: { Authorization: `Bearer ${token}` } });
+        const venueId = getVenueId();
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
         const json = await res.json();
         if (json.success) {
           const matching = (json.data || []).filter(w =>
@@ -92,12 +99,12 @@ export default function OpenGame() {
     setOpening(true);
     try {
       const token = getToken();
-      const tNum = selectedTable.table_number || selectedTable.number;
+      const staffSession = localStorage.getItem('commander_staff') || '';
 
       // Update table status to active
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           status: 'active',
           game_type: selectedGame.type,
@@ -107,6 +114,7 @@ export default function OpenGame() {
 
       const json = await res.json();
       if (json.success) {
+        const tNum = selectedTable.table_number || selectedTable.number;
         // Navigate to dealer view for this table
         router.push(`/commander/dealer/${tNum}`);
       }
@@ -210,17 +218,15 @@ export default function OpenGame() {
                     const tNum = t.table_number || t.number;
                     const isSelected = selectedTable?.id === t.id;
                     return (
-                      <CommanderLayout title="Open Game" backHref="/commander/tables">
-                        <button key={t.id || tNum} onClick={() => setSelectedTable(t)}
-                          className={`w-full px-4 py-4 rounded-xl text-left flex items-center justify-between border-2 ${isSelected ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#242526]'
-                            }`}>
-                          <div>
-                            <p className="text-lg font-bold text-white">Table {tNum}</p>
-                            <p className="text-xs text-[#B0B3B8]">{t.max_seats || t.seats || 9} seats</p>
-                          </div>
-                          {isSelected && <Check className="w-6 h-6 text-[#1877F2]" />}
-                        </button>
-                      </CommanderLayout>
+                      <button key={t.id || tNum} onClick={() => setSelectedTable(t)}
+                        className={`w-full px-4 py-4 rounded-xl text-left flex items-center justify-between border-2 ${isSelected ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#242526]'
+                          }`}>
+                        <div>
+                          <p className="text-lg font-bold text-white">Table {tNum}</p>
+                          <p className="text-xs text-[#B0B3B8]">{t.max_seats || t.seats || 9} seats</p>
+                        </div>
+                        {isSelected && <Check className="w-6 h-6 text-[#1877F2]" />}
+                      </button>
                     );
                   })}
                 </div>

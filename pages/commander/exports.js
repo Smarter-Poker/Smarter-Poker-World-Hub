@@ -206,25 +206,23 @@ export default function ExportsHub() {
                   {exports.map(exp => {
                     const st = STATUS_STYLES[exp.status] || STATUS_STYLES.pending;
                     return (
-                      <CommanderLayout title="Data Exports" backHref="/commander/reports">
-                        <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
-                          <FileText className="w-5 h-5 text-[#B0B3B8] shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white capitalize">{exp.export_type?.replace(/_/g, ' ')}</p>
-                            <p className="text-xs text-[#6A6B6D]">
-                              {exp.format?.toUpperCase()} • {exp.row_count != null ? `${exp.row_count} rows` : ''}
-                              {exp.created_at && ` • ${new Date(exp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
-                            </p>
-                          </div>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${st.bg} ${st.text}`}>{st.label}</span>
-                          {exp.status === 'completed' && exp.file_url && (
-                            <button onClick={() => downloadExport(exp)}
-                              className="w-8 h-8 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20">
-                              <Download className="w-4 h-4 text-[#31A24C]" />
-                            </button>
-                          )}
+                      <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-[#B0B3B8] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white capitalize">{exp.export_type?.replace(/_/g, ' ')}</p>
+                          <p className="text-xs text-[#6A6B6D]">
+                            {exp.format?.toUpperCase()} • {exp.row_count != null ? `${exp.row_count} rows` : ''}
+                            {exp.created_at && ` • ${new Date(exp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
+                          </p>
                         </div>
-                      </CommanderLayout>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${st.bg} ${st.text}`}>{st.label}</span>
+                        {exp.status === 'completed' && exp.file_url && (
+                          <button onClick={() => downloadExport(exp)}
+                            className="w-8 h-8 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20">
+                            <Download className="w-4 h-4 text-[#31A24C]" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

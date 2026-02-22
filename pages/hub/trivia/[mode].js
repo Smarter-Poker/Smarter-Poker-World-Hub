@@ -642,7 +642,9 @@ export default function TriviaModePage() {
                 <div className="bg-overlay" />
 
                 <UniversalHeader pageDepth={2} />
-                <GameCostPopup userId={userId} featureKey="trivia_mode" isVip={isVIP} cost={10} />
+                {modeConfig && modeConfig.diamondCost > 0 && (
+                    <GameCostPopup userId={userId} featureKey={`trivia_${mode}`} isVip={isVIP} cost={modeConfig.diamondCost} />
+                )}
 
                 {/* Out of Diamonds Modal */}
                 {showOutOfDiamonds && (

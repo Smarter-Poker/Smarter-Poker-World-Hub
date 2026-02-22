@@ -39,8 +39,12 @@ async function runTest() {
     };
 
     try {
-        // Step 1: Navigate to social-media page
+        // Step 1: Navigate to social-media page and bypass intro video
         console.log('1. Navigating to social-media page...');
+        await page.goto(CONFIG.URL, { waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT });
+        await page.evaluate(() => {
+            sessionStorage.setItem('social-intro-seen', 'true');
+        });
         await page.goto(CONFIG.URL, { waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT });
         results.pageLoaded = true;
         console.log('   ✅ Page loaded');
@@ -49,12 +53,12 @@ async function runTest() {
         console.log('2. Waiting for posts to load...');
         await new Promise(r => setTimeout(r, 5000));
 
-        // Step 3: Find article card
-        console.log('3. Looking for article card...');
+        // Step 3 & 4: Find and click article card
+        console.log('3. Looking for and clicking article card...');
         await page.evaluate(() => window.scrollBy(0, 500));
         await new Promise(r => setTimeout(r, 1000));
 
-        const articleCard = await page.evaluate(() => {
+        let cardPos = await page.evaluate(() => {
             // Look for article card by text content
             const cards = Array.from(document.querySelectorAll('div'));
             for (const card of cards) {
@@ -64,8 +68,10 @@ async function runTest() {
                     text.includes('POKERFUSE.COM')) {
                     // Find the clickable container
                     const clickable = card.closest('[style*="cursor: pointer"]') || card;
-                    const rect = clickable.getBoundingClientRect();
-                    if (rect.width > 100 && rect.height > 100) {
+                    // Ensure it has some size
+                    if (clickable.offsetHeight > 50) {
+                        clickable.scrollIntoView({ behavior: 'instant', block: 'center' });
+                        const rect = clickable.getBoundingClientRect();
                         return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
                     }
                 }
@@ -73,44 +79,49 @@ async function runTest() {
             return null;
         });
 
-        if (articleCard) {
+        if (cardPos) {
             results.articleCardFound = true;
-            console.log('   ✅ Article card found at', articleCard);
+            console.log('   ✅ Article card found at', cardPos);
+            await page.mouse.click(cardPos.x, cardPos.y);
+            console.log('   ✅ Article card clicked using mouse');
         } else {
             console.log('   ⚠️  No article card found, scrolling more...');
             await page.evaluate(() => window.scrollBy(0, 1000));
             await new Promise(r => setTimeout(r, 2000));
-        }
 
-        // Step 4: Click article card
-        console.log('4. Clicking article card...');
-        if (articleCard) {
-            await page.mouse.click(articleCard.x, articleCard.y);
-        } else {
-            // Fallback: try to click any element with "article" text
-            await page.evaluate(() => {
+            // Try one more time
+            cardPos = await page.evaluate(() => {
                 const elements = document.querySelectorAll('div');
                 for (const el of elements) {
                     if (el.innerText?.includes('Click to read full article')) {
-                        el.click();
-                        return true;
+                        const clickable = el.closest('[style*="cursor: pointer"]') || el;
+                        clickable.scrollIntoView({ behavior: 'instant', block: 'center' });
+                        const rect = clickable.getBoundingClientRect();
+                        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
                     }
                 }
+                return null;
             });
+
+            if (cardPos) {
+                results.articleCardFound = true;
+                console.log('   ✅ Article card found at', cardPos);
+                await page.mouse.click(cardPos.x, cardPos.y);
+                console.log('   ✅ Article card clicked using mouse');
+            }
         }
         await new Promise(r => setTimeout(r, 3000));
 
         // Step 5: Check if modal opened
         console.log('5. Checking for modal...');
         const modalOpen = await page.evaluate(() => {
-            // Check for modal by looking for fixed overlay
-            const modal = document.querySelector('div[style*="position: fixed"][style*="z-index: 9999"]');
-            if (modal) {
-                // Check for Back button
+            // Check for modal by looking for fixed overlay covering the screen
+            const modal = document.querySelector('div[style*="position: fixed"][style*="bottom: 0px"], div[style*="position: fixed"][style*="inset: 0px"], div[style*="position: fixed"][style*="top: 0px"]');
+            if (modal && modal.style.zIndex >= 9999 && modal.innerText.includes('Back')) {
                 const backBtn = Array.from(modal.querySelectorAll('button')).find(b => b.innerText.includes('Back'));
-                return { hasModal: true, hasBackButton: !!backBtn };
+                return { hasModal: true, hasBackButton: !!backBtn, html: modal.outerHTML.substring(0, 200) };
             }
-            return { hasModal: false };
+            return { hasModal: !!modal };
         });
 
         if (modalOpen.hasModal) {
@@ -123,7 +134,7 @@ async function runTest() {
         // Step 6: Check for content in iframe
         console.log('6. Checking for proxied content...');
         const hasContent = await page.evaluate(() => {
-            const iframe = document.querySelector('iframe[src*="/api/proxy"]');
+            const iframe = document.querySelector('iframe[src*="/api/proxy"], iframe[src*="youtube.com/embed"]');
             if (iframe) {
                 try {
                     // We can't access cross-origin iframe content, but we can check it loaded
@@ -133,32 +144,49 @@ async function runTest() {
                     return true;
                 }
             }
-            return false;
+            // Dump the modal HTML if iframe not found
+            const modal = document.querySelector('div[style*="position: fixed"][style*="z-index: 9999"]');
+            return modal ? 'HTML: ' + modal.outerHTML.substring(0, 500) : 'No modal found';
         });
 
-        if (hasContent) {
+        if (hasContent === true) {
             results.contentVisible = true;
             console.log('   ✅ Proxied content detected');
+        } else {
+            console.log('   ❌ No iframe found. Debug:', hasContent);
         }
 
         // Step 7: Click Back button
         console.log('7. Clicking Back button...');
-        await page.evaluate(() => {
+        const backBtnPos = await page.evaluate(() => {
             const buttons = document.querySelectorAll('button');
             for (const btn of buttons) {
                 if (btn.innerText.includes('Back')) {
-                    btn.click();
-                    return;
+                    const rect = btn.getBoundingClientRect();
+                    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
                 }
             }
+            return null;
         });
+
+        if (backBtnPos) {
+            await page.mouse.click(backBtnPos.x, backBtnPos.y);
+            console.log('   ✅ Back button clicked using mouse');
+        } else {
+            console.log('   ❌ Back button not found for clicking');
+        }
         await new Promise(r => setTimeout(r, 1000));
 
         // Step 8: Verify modal closed
         console.log('8. Verifying modal closed...');
         const modalClosed = await page.evaluate(() => {
-            const modal = document.querySelector('div[style*="position: fixed"][style*="z-index: 9999"]');
-            return !modal;
+            const modals = document.querySelectorAll('div[style*="position: fixed"][style*="bottom: 0px"], div[style*="position: fixed"][style*="inset: 0px"], div[style*="position: fixed"][style*="top: 0px"]');
+            for (const modal of modals) {
+                if (modal.style.zIndex >= 9999 && modal.innerText.includes('Back')) {
+                    return false;
+                }
+            }
+            return true;
         });
 
         if (modalClosed) {

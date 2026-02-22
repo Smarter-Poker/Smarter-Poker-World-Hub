@@ -13,7 +13,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { Clock, Users, Plus, Minus, Loader2,
+import {
+  Clock, Users, Plus, Minus, Loader2,
   RefreshCw, Timer, UserPlus, ChevronDown
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
@@ -36,6 +37,10 @@ export default function TableSeating() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -47,11 +52,13 @@ export default function TableSeating() {
   const fetchData = async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const venueId = getVenueId();
+      const staffSession = getStaffSession();
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [tableRes, sessionsRes, waitlistRes] = await Promise.all([
         fetch(`/api/commander/tables/${id}`, { headers }).then(r => r.json()),
         fetch(`/api/commander/dealer/sessions?table_id=${id}&status=active`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/waitlist', { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (tableRes.data || tableRes.success) setTable(tableRes.data || tableRes);
       if (sessionsRes.data) setSessions(sessionsRes.data.filter(s => s.status === 'active'));
@@ -65,7 +72,7 @@ export default function TableSeating() {
       const token = getToken();
       await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ reason: 'removed' })
       });
       fetchData();
@@ -112,10 +119,10 @@ export default function TableSeating() {
   return (
     <>
       <SEOHead
-                title="Commander — Details"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Details"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -129,11 +136,10 @@ export default function TableSeating() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-bold px-2 py-1 rounded ${
-              table.status === 'active' ? 'bg-[#31A24C]/20 text-[#31A24C]' :
-              table.status === 'open' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-              'bg-[#3A3B3C] text-[#B0B3B8]'
-            }`}>{table.status}</span>
+            <span className={`text-xs font-bold px-2 py-1 rounded ${table.status === 'active' ? 'bg-[#31A24C]/20 text-[#31A24C]' :
+                table.status === 'open' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
+                  'bg-[#3A3B3C] text-[#B0B3B8]'
+              }`}>{table.status}</span>
             <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
               <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
             </button>
@@ -159,11 +165,10 @@ export default function TableSeating() {
               const timeLeft = getTimeRemaining(session);
               const timeColor = timeLeft === null ? '#B0B3B8'
                 : timeLeft <= 0 ? '#EF4444'
-                : timeLeft <= 15 ? '#F59E0B'
-                : '#31A24C';
+                  : timeLeft <= 15 ? '#F59E0B'
+                    : '#31A24C';
 
               return (
-                <CommanderLayout title="Table {tableNum}" backHref="/commander/tables">
                 <div key={seatNum}
                   className="absolute -translate-x-1/2 -translate-y-1/2"
                   style={{ left: pos.left, top: pos.top, width: 72, height: 72 }}>
@@ -189,7 +194,6 @@ export default function TableSeating() {
                     </button>
                   )}
                 </div>
-                </CommanderLayout>
               );
             })}
           </div>

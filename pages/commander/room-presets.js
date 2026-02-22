@@ -55,13 +55,13 @@ export default function DailyPresetsPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
       setVenueName(s.venue_name || '');
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
@@ -74,7 +74,8 @@ export default function DailyPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
-      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
         .then(r => r.json())
         .then(data => {
           if (data?.data) {
@@ -92,9 +93,10 @@ export default function DailyPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ hard_stop_enabled: hardStopEnabled, hard_stop_time: hardStopTime })
       });
       const data = await res.json();
@@ -111,9 +113,10 @@ export default function DailyPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ auto_comp_rate: autoCompRate })
       });
       const data = await res.json();
@@ -128,12 +131,12 @@ export default function DailyPresetsPage() {
   const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
       const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const venueId = stored.venue_id;
       const [presetsRes, typesRes, promosRes] = await Promise.all([
-        fetch('/api/commander/room-presets', { headers }),
-        fetch('/api/commander/game-types', { headers }),
+        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }),
+        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }),
         fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers })
       ]);
       const [presetsJson, typesJson, promosJson] = await Promise.all([
@@ -162,9 +165,10 @@ export default function DailyPresetsPage() {
     setError(null);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) {
@@ -271,10 +275,11 @@ export default function DailyPresetsPage() {
     setError(null);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const url = editingId ? `/api/commander/room-presets?id=${editingId}` : '/api/commander/room-presets';
       const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(form)
       });
       const json = await res.json();
@@ -295,9 +300,10 @@ export default function DailyPresetsPage() {
     if (!confirm(`Delete "${preset.name}"? This cannot be undone.`)) return;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       fetchData();
     } catch (err) { console.error(err); }
@@ -337,10 +343,10 @@ export default function DailyPresetsPage() {
     <CommanderLayout title={`Daily Presets | ${venueName || 'Commander'}`} backHref="/commander/dashboard">
       <>
         <SEOHead
-                title="Commander — Room Presets"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Room Presets"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
             <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">

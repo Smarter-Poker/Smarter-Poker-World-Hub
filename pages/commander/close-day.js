@@ -33,6 +33,9 @@ export default function CloseDay() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
 
   useEffect(() => {
     fetchStatus();
@@ -42,12 +45,14 @@ export default function CloseDay() {
     setLoading(true);
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const venueId = getVenueId();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
-        fetch('/api/commander/tables', { headers }).then(r => r.json()),
-        fetch('/api/commander/waitlist', { headers }).then(r => r.json()),
-        fetch('/api/commander/time-billing/sessions?status=active', { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch('/api/commander/reports/daily', { headers }).then(r => r.json()).catch(() => ({ data: {} }))
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/time-billing/sessions?status=active&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/reports/daily?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: {} }))
       ]);
 
       if (tablesRes.data) setTables(tablesRes.data);
@@ -65,7 +70,8 @@ export default function CloseDay() {
     setClosing(true);
     try {
       const token = getToken();
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Close all open tables
       for (const table of openTables) {
@@ -92,9 +98,10 @@ export default function CloseDay() {
     setVerifying(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ pin })
       });
       const json = await res.json();
@@ -115,10 +122,10 @@ export default function CloseDay() {
   return (
     <>
       <SEOHead
-                title="Commander — Close Day"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Close Day"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -238,16 +245,14 @@ export default function CloseDay() {
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, i) => {
                   if (key === null) return <div key={i} />;
                   return (
-                    <CommanderLayout title="Close Day" backHref="/commander/reports">
-                      <button key={i}
-                        onClick={() => {
-                          if (key === 'del') setPin(pin.slice(0, -1));
-                          else if (pin.length < 4) setPin(pin + key);
-                        }}
-                        className="py-4 rounded-xl bg-[#3A3B3C] text-white text-xl font-semibold active:bg-[#4A4B4C]">
-                        {key === 'del' ? 'DEL' : key}
-                      </button>
-                    </CommanderLayout>
+                    <button key={i}
+                      onClick={() => {
+                        if (key === 'del') setPin(pin.slice(0, -1));
+                        else if (pin.length < 4) setPin(pin + key);
+                      }}
+                      className="py-4 rounded-xl bg-[#3A3B3C] text-white text-xl font-semibold active:bg-[#4A4B4C]">
+                      {key === 'del' ? 'DEL' : key}
+                    </button>
                   );
                 })}
               </div>

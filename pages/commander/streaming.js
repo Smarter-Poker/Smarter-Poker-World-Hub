@@ -287,20 +287,20 @@ export default function StreamingPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -328,9 +328,10 @@ export default function StreamingPage() {
 
   async function handleStartStream(tableId) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/streaming/${tableId}/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId })
       });
       fetchStreams();
@@ -341,9 +342,10 @@ export default function StreamingPage() {
 
   async function handleStopStream(tableId) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/streaming/${tableId}/stop`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId })
       });
       fetchStreams();
@@ -354,9 +356,10 @@ export default function StreamingPage() {
 
   async function handleSaveConfig(tableId, config) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/streaming/${tableId}/config`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, ...config })
       });
       setConfiguring(null);

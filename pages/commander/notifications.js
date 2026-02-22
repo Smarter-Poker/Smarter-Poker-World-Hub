@@ -6,7 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2,
+import {
+  Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2,
   Trophy, Users, Clock, DollarSign, AlertTriangle, MessageSquare, Star
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -19,7 +20,8 @@ const TYPE_CONFIG = {
   comp_earned: { icon: DollarSign, color: '#31A24C', label: 'Comp Earned' },
   announcement: { icon: MessageSquare, color: '#1877F2', label: 'Announcement' },
   alert: { icon: AlertTriangle, color: '#EF4444', label: 'Alert' },
-  custom: { icon: Bell, color: '#B0B3B8', label: 'Notification' } };
+  custom: { icon: Bell, color: '#B0B3B8', label: 'Notification' }
+};
 
 export default function NotificationCenter() {
   const router = useRouter();
@@ -30,13 +32,14 @@ export default function NotificationCenter() {
   const [markingAll, setMarkingAll] = useState(false);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const params = filter === 'unread' ? '&unread_only=true' : '';
       const res = await fetch(`/api/commander/notifications/my?limit=100${params}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) {
@@ -53,7 +56,7 @@ export default function NotificationCenter() {
     try {
       await fetch(`/api/commander/notifications/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ read_at: new Date().toISOString() })
       });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
@@ -66,7 +69,7 @@ export default function NotificationCenter() {
     try {
       await fetch('/api/commander/notifications/mark-all-read', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
       setUnreadCount(0);
@@ -78,7 +81,7 @@ export default function NotificationCenter() {
     try {
       await fetch(`/api/commander/notifications/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) { console.error(err); }
@@ -98,13 +101,13 @@ export default function NotificationCenter() {
   return (
     <>
       <SEOHead
-                title="Commander — Notifications"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Notifications"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Notifications</h1>
             <p className="text-xs text-[#B0B3B8]">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
           </div>
@@ -122,9 +125,8 @@ export default function NotificationCenter() {
         <div className="px-4 py-3 flex gap-2">
           {['all', 'unread'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold capitalize ${
-                filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-              }`}>{f}{f === 'unread' && unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
+              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold capitalize ${filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                }`}>{f}{f === 'unread' && unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
           ))}
         </div>
 
@@ -143,7 +145,6 @@ export default function NotificationCenter() {
                 const Icon = cfg.icon;
                 const isUnread = !n.read_at;
                 return (
-                  <CommanderLayout title="Notifications" backHref="/commander/displays">
                   <div key={n.id}
                     onClick={() => isUnread && markAsRead(n.id)}
                     className={`px-4 py-3 flex items-start gap-3 ${isUnread ? 'bg-[#1877F2]/5 cursor-pointer' : ''}`}>
@@ -167,14 +168,13 @@ export default function NotificationCenter() {
                       <Trash2 className="w-3.5 h-3.5 text-[#B0B3B8]" />
                     </button>
                   </div>
-                  </CommanderLayout>
                 );
               })}
             </div>
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

@@ -10,7 +10,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Clock, DollarSign, Play, Square, Users, Search,
+import {
+  Clock, DollarSign, Play, Square, Users, Search,
   Plus, Minus, ChevronDown, Loader2, RefreshCw, CheckCircle2,
   AlertTriangle, X, Timer, Receipt
 } from 'lucide-react';
@@ -53,14 +54,19 @@ export default function TimeBilling() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
 
   const fetchData = useCallback(async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const venueId = getVenueId();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [sessRes, tabRes] = await Promise.all([
-        fetch('/api/commander/time-billing/sessions', { headers }),
-        fetch('/api/commander/tables', { headers })
+        fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers }),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers })
       ]);
       const sessJson = await sessRes.json();
       const tabJson = await tabRes.json();
@@ -78,9 +84,10 @@ export default function TimeBilling() {
     setCreating(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/time-billing/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           player_name: newPlayer.trim(),
           table_number: newTable ? parseInt(newTable) : null,
@@ -98,9 +105,10 @@ export default function TimeBilling() {
     setStopping(sessionId);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/time-billing/sessions/${sessionId}/stop`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       // Print time billing receipt
@@ -155,9 +163,10 @@ export default function TimeBilling() {
     if (!payModal || !payAmount) return;
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ amount: parseFloat(payAmount) })
       });
       setPayModal(null); setPayAmount('');
@@ -181,10 +190,10 @@ export default function TimeBilling() {
   return (
     <>
       <SEOHead
-                title="Commander — Time Billing"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Time Billing"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -228,9 +237,8 @@ export default function TimeBilling() {
               placeholder="Search Players..." className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg pl-9 pr-3 py-2.5 text-sm text-[#E4E6EB] placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
           </div>
           <button onClick={() => setFilter(filter === 'active' ? 'completed' : 'active')}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium ${
-              filter === 'active' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-            }`}>
+            className={`px-4 py-2.5 rounded-lg text-sm font-medium ${filter === 'active' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+              }`}>
             {filter === 'active' ? 'Active' : 'History'}
           </button>
         </div>
@@ -245,7 +253,6 @@ export default function TimeBilling() {
             const balance = charge - paid;
 
             return (
-              <CommanderLayout title="Receipt" backHref="/commander/dashboard">
               <div key={session.id} className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4">
                 <div className="flex items-center gap-3">
                   {session.status === 'active' ? (
@@ -292,7 +299,6 @@ export default function TimeBilling() {
                   </div>
                 )}
               </div>
-              </CommanderLayout>
             );
           })}
           {filtered.length === 0 && (

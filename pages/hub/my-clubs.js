@@ -35,6 +35,8 @@ const C = {
     green: '#31a24c',
     red: '#f02849',
     cyan: '#00bfff',
+    border: '#3E4042',        // Facebook Dark border color
+    borderLight: '#333536',   // Subtle inner border
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,7 +102,7 @@ function ClubArenaCard({ club, onNavigate }) {
             onMouseLeave={() => setHovering(false)}
             style={{
                 background: hovering ? C.elevated : C.surface,
-                border: `1px solid ${hovering ? 'rgba(139, 92, 246, 0.4)' : C.elevated}`,
+                border: `2px solid ${hovering ? 'rgba(139, 92, 246, 0.4)' : C.border}`,
                 borderRadius: 12,
                 padding: 20,
                 cursor: 'pointer',
@@ -147,7 +149,7 @@ function ClubArenaCard({ club, onNavigate }) {
                     Club Arena
                 </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.borderLight}`, paddingTop: 12 }}>
                 <div style={{ fontSize: 12, color: C.textMuted }}>
                     Code: {club.club_id || '—'}
                 </div>
@@ -181,7 +183,7 @@ function FollowedPageCard({ page, onNavigate, onUnfollow }) {
             onMouseLeave={() => setHovering(false)}
             style={{
                 background: hovering ? C.elevated : C.surface,
-                border: `1px solid ${hovering ? C.highlight : C.elevated}`,
+                border: `2px solid ${hovering ? C.highlight : C.border}`,
                 borderRadius: 12,
                 padding: 20,
                 cursor: 'pointer',
@@ -253,9 +255,9 @@ function FollowedPageCard({ page, onNavigate, onUnfollow }) {
                 </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.borderLight}`, paddingTop: 10 }}>
                 <div style={{ fontSize: 12, color: C.textMuted }}>
-                    {page.page_type === 'series' ? '📅 View Schedule' : '🌐 View Details'}
+                    {page.page_type === 'series' ? 'View Schedule' : 'View Details'}
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onUnfollow(page.page_type, page.page_id); }}
@@ -271,7 +273,7 @@ function FollowedPageCard({ page, onNavigate, onUnfollow }) {
                         transition: 'all 0.2s ease',
                     }}
                 >
-                    ✓ Following
+                    Following
                 </button>
             </div>
         </div>
@@ -294,7 +296,7 @@ function ClubCard({ venue, liveGameCount, waitlistCount, isFollowed, onToggleFol
             onMouseLeave={() => setHovering(false)}
             style={{
                 background: hovering ? C.elevated : C.surface,
-                border: `1px solid ${hovering ? C.highlight : C.elevated}`,
+                border: `2px solid ${hovering ? C.highlight : C.border}`,
                 borderRadius: 12,
                 padding: 20,
                 cursor: 'pointer',
@@ -304,20 +306,44 @@ function ClubCard({ venue, liveGameCount, waitlistCount, isFollowed, onToggleFol
                 gap: 14,
             }}
         >
-            {/* Top row: Name + Type */}
+            {/* Top row: Logo + Name + Type */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    {venue.profile_photo_url ? (
+                        <img
+                            src={venue.profile_photo_url}
+                            alt={venue.name}
+                            style={{
+                                width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                                objectFit: 'cover',
+                                border: `1px solid ${C.borderLight}`,
+                            }}
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                    ) : null}
                     <div style={{
-                        fontSize: 16, fontWeight: 700, color: C.text,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                        background: `linear-gradient(135deg, ${C.blue}, #1a5cc7)`,
+                        display: venue.profile_photo_url ? 'none' : 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                        fontSize: 18, color: '#fff', fontWeight: 700,
+                        border: `1px solid ${C.borderLight}`,
                     }}>
-                        {venue.name}
+                        {venue.name?.[0]?.toUpperCase() || '♠'}
                     </div>
-                    {locationStr && (
-                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 3 }}>
-                            {locationStr}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                            fontSize: 16, fontWeight: 700, color: C.text,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                            {venue.name}
                         </div>
-                    )}
+                        {locationStr && (
+                            <div style={{ fontSize: 13, color: C.textSec, marginTop: 3 }}>
+                                {locationStr}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <VenueTypeBadge type={venue.venue_type} />
             </div>
@@ -359,9 +385,9 @@ function ClubCard({ venue, liveGameCount, waitlistCount, isFollowed, onToggleFol
             )}
 
             {/* Bottom row: Follow button */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.borderLight}`, paddingTop: 12 }}>
                 <div style={{ fontSize: 12, color: C.textMuted }}>
-                    {venue.phone || venue.website ? '📍 Tap To View Details' : '📍 View Details'}
+                    View Details
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onToggleFollow(venue.id); }}
@@ -381,7 +407,7 @@ function ClubCard({ venue, liveGameCount, waitlistCount, isFollowed, onToggleFol
                         transition: 'all 0.2s ease',
                     }}
                 >
-                    {isFollowed ? '✓ Following' : '+ Follow'}
+                    {isFollowed ? 'Following' : '+ Follow'}
                 </button>
             </div>
         </div>
@@ -397,7 +423,7 @@ function SearchResultCard({ venue, isFollowed, onToggleFollow, onNavigate }) {
             onClick={() => onNavigate(venue.id)}
             style={{
                 background: C.surface,
-                border: `1px solid ${C.elevated}`,
+                border: `2px solid ${C.border}`,
                 borderRadius: 10,
                 padding: 16,
                 cursor: 'pointer',
@@ -407,16 +433,28 @@ function SearchResultCard({ venue, isFollowed, onToggleFollow, onNavigate }) {
                 gap: 14,
             }}
         >
+            {venue.profile_photo_url ? (
+                <img
+                    src={venue.profile_photo_url}
+                    alt={venue.name}
+                    style={{
+                        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                        objectFit: 'cover',
+                        border: `1px solid ${C.borderLight}`,
+                    }}
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                />
+            ) : null}
             <div style={{
                 width: 44, height: 44, borderRadius: 10,
                 background: `linear-gradient(135deg, ${C.blue}, #1a5cc7)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: venue.profile_photo_url ? 'none' : 'flex',
+                alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
-                fontSize: 18,
+                fontSize: 18, color: '#fff', fontWeight: 700,
+                border: `1px solid ${C.borderLight}`,
             }}>
-                {venue.venue_type === 'casino' ? '🏛️' :
-                    venue.venue_type === 'home_game' ? '🏠' :
-                        venue.venue_type === 'poker_club' ? '♠️' : '🃏'}
+                {venue.name?.[0]?.toUpperCase() || '♠'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -449,7 +487,7 @@ function SearchResultCard({ venue, isFollowed, onToggleFollow, onNavigate }) {
                     flexShrink: 0,
                 }}
             >
-                {isFollowed ? '✓ Following' : '+ Follow'}
+                {isFollowed ? 'Following' : '+ Follow'}
             </button>
         </div>
     );
@@ -463,7 +501,7 @@ function EmptyState({ onSearchFocus }) {
         <div style={{
             textAlign: 'center', padding: '60px 20px',
             background: C.surface,
-            border: `1px solid ${C.elevated}`,
+            border: `2px solid ${C.border}`,
             borderRadius: 12,
         }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🃏</div>
@@ -865,6 +903,7 @@ export default function MyClubsPage() {
                         background: C.surface,
                         borderRadius: 12,
                         padding: 4,
+                        border: `2px solid ${C.border}`,
                     }}>
                         <button
                             onClick={() => setActiveTab('my-clubs')}
@@ -921,48 +960,7 @@ export default function MyClubsPage() {
                                 <EmptyState onSearchFocus={focusSearch} />
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                    {/* Quick stats bar */}
-                                    <div style={{
-                                        display: 'flex', gap: 12, marginBottom: 8,
-                                        overflowX: 'auto', paddingBottom: 4,
-                                    }}>
-                                        <div style={{
-                                            padding: '8px 16px', borderRadius: 10,
-                                            background: C.surface, border: `1px solid ${C.elevated}`,
-                                            whiteSpace: 'nowrap',
-                                        }}>
-                                            <span style={{ fontSize: 12, color: C.textMuted }}>Following </span>
-                                            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                                {followedVenues.length + followedTours.length + followedSeries.length + arenaClubs.length}
-                                            </span>
-                                        </div>
-                                        {Object.values(liveGamesMap).some(v => v > 0) && (
-                                            <div style={{
-                                                padding: '8px 16px', borderRadius: 10,
-                                                background: 'rgba(49, 162, 76, 0.08)',
-                                                border: '1px solid rgba(49, 162, 76, 0.2)',
-                                                whiteSpace: 'nowrap',
-                                            }}>
-                                                <span style={{ fontSize: 12, color: C.textMuted }}>Live Games </span>
-                                                <span style={{ fontSize: 14, fontWeight: 700, color: C.green }}>
-                                                    {Object.values(liveGamesMap).reduce((s, v) => s + v, 0)}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {Object.values(waitlistMap).some(v => v > 0) && (
-                                            <div style={{
-                                                padding: '8px 16px', borderRadius: 10,
-                                                background: C.blueDim,
-                                                border: `1px solid ${C.blueBorder}`,
-                                                whiteSpace: 'nowrap',
-                                            }}>
-                                                <span style={{ fontSize: 12, color: C.textMuted }}>On Waitlists </span>
-                                                <span style={{ fontSize: 14, fontWeight: 700, color: C.blue }}>
-                                                    {Object.values(waitlistMap).reduce((s, v) => s + v, 0)}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
+
 
                                     {/* Venue cards — sorted by live activity */}
                                     {[...followedVenues]
@@ -1071,7 +1069,7 @@ export default function MyClubsPage() {
                             <div style={{
                                 position: 'relative',
                                 background: C.surface,
-                                border: `1px solid ${C.elevated}`,
+                                border: `2px solid ${C.border}`,
                                 borderRadius: 12,
                                 overflow: 'hidden',
                             }}>
@@ -1136,7 +1134,7 @@ export default function MyClubsPage() {
                                 <div style={{
                                     textAlign: 'center', padding: '40px 20px',
                                     background: C.surface, borderRadius: 12,
-                                    border: `1px solid ${C.elevated}`,
+                                    border: `2px solid ${C.border}`,
                                 }}>
                                     <div style={{ fontSize: 32, marginBottom: 12 }}>🔎</div>
                                     <div style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>
@@ -1172,7 +1170,7 @@ export default function MyClubsPage() {
                                 <div style={{
                                     textAlign: 'center', padding: '48px 20px',
                                     background: C.surface, borderRadius: 12,
-                                    border: `1px solid ${C.elevated}`,
+                                    border: `2px solid ${C.border}`,
                                 }}>
                                     <div style={{ fontSize: 48, marginBottom: 16 }}>🌎</div>
                                     <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>

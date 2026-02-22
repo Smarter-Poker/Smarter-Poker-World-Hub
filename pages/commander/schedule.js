@@ -51,6 +51,9 @@ export default function StaffSchedule() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
 
   useEffect(() => {
     fetchAll();
@@ -62,14 +65,16 @@ export default function StaffSchedule() {
   const fetchAll = async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const venueId = getVenueId();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [staffRes, dealersRes, tablesRes, rotationsRes] = await Promise.all([
-        fetch('/api/commander/staff', { headers }).then(r => r.json()),
-        fetch('/api/commander/dealers', { headers }).then(r => r.json()),
-        fetch('/api/commander/tables', { headers }).then(r => r.json()),
-        fetch(`/api/commander/dealers/rotations?date=${date}`, { headers }).then(r => r.json()).catch(() => ({ success: true, data: [] }))
+        fetch(`/api/commander/staff?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/dealers/rotations?date=${date}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: true, data: [] }))
       ]);
-      if (staffRes.success) setStaff(staffRes.data || []);
+      if (staffRes.success) setStaff(Array.isArray(staffRes.data) ? staffRes.data : staffRes.data?.staff || []);
       if (dealersRes.success) setDealers(dealersRes.data || []);
       if (tablesRes.success) setTables(tablesRes.data || []);
       if (rotationsRes.success) setRotations(rotationsRes.data || []);
@@ -99,9 +104,10 @@ export default function StaffSchedule() {
   const clockIn = async (staffId) => {
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/staff/' + staffId, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ clocked_in: true, clock_in_time: new Date().toISOString() })
       });
       fetchAll();
@@ -111,9 +117,10 @@ export default function StaffSchedule() {
   const clockOut = async (staffId) => {
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/staff/' + staffId, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ clocked_in: false, clock_out_time: new Date().toISOString() })
       });
       fetchAll();
@@ -130,7 +137,7 @@ export default function StaffSchedule() {
         }`}>
         {/* Status dot */}
         <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isOnBreak ? 'bg-[#F59E0B]' :
-            isClockedIn ? 'bg-[#31A24C]' : 'bg-[#3A3B3C]'
+          isClockedIn ? 'bg-[#31A24C]' : 'bg-[#3A3B3C]'
           }`} />
 
         {/* Name + info */}
@@ -168,112 +175,110 @@ export default function StaffSchedule() {
 
   return (
     <CommanderLayout title="Schedule" backHref="/commander/dashboard">
-      <>
-        <SEOHead
-                title="Commander — Game Schedule"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
-        <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <SEOHead
+        title="Commander — Game Schedule"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-          {/* Header */}
-          <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-white">Staff Schedule</h1>
-            </div>
-            <button onClick={fetchAll} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-              <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
-            </button>
+        {/* Header */}
+        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold text-white">Staff Schedule</h1>
           </div>
-
-          {/* Date selector */}
-          <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-            <button onClick={() => changeDate(-1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-              <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
-            </button>
-            <div className="text-center">
-              <p className="text-base font-semibold text-white">{displayDate}</p>
-              {isToday && <p className="text-xs text-[#1877F2]">Today</p>}
-            </div>
-            <button onClick={() => changeDate(1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-              <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="px-4 py-3 flex gap-2">
-            <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#31A24C]">{allStaff.filter(s => s.clocked_in || s.status === 'active').length}</p>
-              <p className="text-[10px] text-[#B0B3B8]">Clocked In</p>
-            </div>
-            <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#1877F2]">{dealerList.length}</p>
-              <p className="text-[10px] text-[#B0B3B8]">Dealers</p>
-            </div>
-            <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#F59E0B]">{allStaff.filter(s => s.status === 'break').length}</p>
-              <p className="text-[10px] text-[#B0B3B8]">On Break</p>
-            </div>
-            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-white">{floorList.length}</p>
-              <p className="text-[10px] text-[#B0B3B8]">Floor</p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="py-20 flex justify-center">
-              <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
-            </div>
-          ) : (
-            <div className="pb-20">
-              {/* Dealers */}
-              <div className="px-4 pt-3 pb-1">
-                <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Dealers ({dealerList.length})</h2>
-              </div>
-              <div className="bg-[#242526] border-y border-[#3A3B3C]">
-                {dealerList.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No Dealers Registered</p>
-                ) : dealerList.map(d => <StaffRow key={d.id} person={d} />)}
-              </div>
-
-              {/* Floor Staff */}
-              <div className="px-4 pt-5 pb-1">
-                <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Floor & Staff ({floorList.length})</h2>
-              </div>
-              <div className="bg-[#242526] border-y border-[#3A3B3C]">
-                {floorList.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No Floor Staff Registered</p>
-                ) : floorList.map(s => <StaffRow key={s.id} person={s} />)}
-              </div>
-
-              {/* Current Rotation - dealers at tables */}
-              {rotations.filter(r => !r.ended_at).length > 0 && (
-                <>
-                  <div className="px-4 pt-5 pb-1">
-                    <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Current Table Assignments</h2>
-                  </div>
-                  <div className="px-4 space-y-2 pt-1">
-                    {rotations.filter(r => !r.ended_at).map(r => (
-                      <div key={r.id} className="bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-white">Table {r.table_number}</p>
-                          <p className="text-xs text-[#B0B3B8]">{r.dealer_name}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-[#B0B3B8]">Since {formatTime(r.started_at)}</p>
-                          <p className="text-xs text-[#31A24C]">{formatDuration(r.started_at)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+          <button onClick={fetchAll} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+            <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
+          </button>
         </div>
-        <style jsx>{`
+
+        {/* Date selector */}
+        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
+          <button onClick={() => changeDate(-1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+            <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
+          </button>
+          <div className="text-center">
+            <p className="text-base font-semibold text-white">{displayDate}</p>
+            {isToday && <p className="text-xs text-[#1877F2]">Today</p>}
+          </div>
+          <button onClick={() => changeDate(1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+            <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="px-4 py-3 flex gap-2">
+          <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center">
+            <p className="text-lg font-bold text-[#31A24C]">{allStaff.filter(s => s.clocked_in || s.status === 'active').length}</p>
+            <p className="text-[10px] text-[#B0B3B8]">Clocked In</p>
+          </div>
+          <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center">
+            <p className="text-lg font-bold text-[#1877F2]">{dealerList.length}</p>
+            <p className="text-[10px] text-[#B0B3B8]">Dealers</p>
+          </div>
+          <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center">
+            <p className="text-lg font-bold text-[#F59E0B]">{allStaff.filter(s => s.status === 'break').length}</p>
+            <p className="text-[10px] text-[#B0B3B8]">On Break</p>
+          </div>
+          <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center">
+            <p className="text-lg font-bold text-white">{floorList.length}</p>
+            <p className="text-[10px] text-[#B0B3B8]">Floor</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="py-20 flex justify-center">
+            <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+          </div>
+        ) : (
+          <div className="pb-20">
+            {/* Dealers */}
+            <div className="px-4 pt-3 pb-1">
+              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Dealers ({dealerList.length})</h2>
+            </div>
+            <div className="bg-[#242526] border-y border-[#3A3B3C]">
+              {dealerList.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No Dealers Registered</p>
+              ) : dealerList.map(d => <StaffRow key={d.id} person={d} />)}
+            </div>
+
+            {/* Floor Staff */}
+            <div className="px-4 pt-5 pb-1">
+              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Floor & Staff ({floorList.length})</h2>
+            </div>
+            <div className="bg-[#242526] border-y border-[#3A3B3C]">
+              {floorList.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No Floor Staff Registered</p>
+              ) : floorList.map(s => <StaffRow key={s.id} person={s} />)}
+            </div>
+
+            {/* Current Rotation - dealers at tables */}
+            {rotations.filter(r => !r.ended_at).length > 0 && (
+              <>
+                <div className="px-4 pt-5 pb-1">
+                  <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Current Table Assignments</h2>
+                </div>
+                <div className="px-4 space-y-2 pt-1">
+                  {rotations.filter(r => !r.ended_at).map(r => (
+                    <div key={r.id} className="bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-white">Table {r.table_number}</p>
+                        <p className="text-xs text-[#B0B3B8]">{r.dealer_name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-[#B0B3B8]">Since {formatTime(r.started_at)}</p>
+                        <p className="text-xs text-[#31A24C]">{formatDuration(r.started_at)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <style jsx>{`
 `}</style>
-      </>
     </CommanderLayout>
   );
 }

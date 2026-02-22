@@ -143,6 +143,13 @@ export default async function handler(req, res) {
                         content_type: data.content_type || 'text',
                         media_urls: data.media_urls || [],
                         visibility: 'public',
+                        // Copy link preview data to flat columns for global feed rendering
+                        ...(data.link_preview ? {
+                            link_url: data.link_preview.url || null,
+                            link_title: data.link_preview.title || null,
+                            link_description: data.link_preview.description || null,
+                            link_image: data.link_preview.image || null,
+                        } : {}),
                         metadata: {
                             ...(data.metadata || {}),
                             source: 'social_page_post',

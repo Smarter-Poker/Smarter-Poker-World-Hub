@@ -32,14 +32,14 @@ export default function CommanderStaffPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setCurrentStaff(staffData);
@@ -48,7 +48,7 @@ export default function CommanderStaffPage() {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
       }
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -56,7 +56,11 @@ export default function CommanderStaffPage() {
   const fetchStaff = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/staff/venue/${venueId}`);
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/staff/venue/${venueId}`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       const data = await res.json();
       if (data.success) {
         setStaffList(data.data.staff || []);
@@ -75,9 +79,11 @@ export default function CommanderStaffPage() {
   // Add staff
   async function handleAddStaff(staffData) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/staff', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ ...staffData, venue_id: venueId })
       });
       const data = await res.json();
@@ -93,9 +99,11 @@ export default function CommanderStaffPage() {
   // Update staff
   async function handleUpdateStaff(staffId, staffData) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/staff/${staffId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(staffData)
       });
       const data = await res.json();
@@ -112,8 +120,11 @@ export default function CommanderStaffPage() {
   async function handleDeleteStaff(staffId) {
     if (!window.confirm('Remove this staff member?')) return;
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/staff/${staffId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const data = await res.json();
       if (data.success) {
@@ -138,10 +149,10 @@ export default function CommanderStaffPage() {
   return (
     <>
       <SEOHead
-                title="Commander — Staff Management"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Staff Management"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}
@@ -217,24 +228,22 @@ export default function CommanderStaffPage() {
                             const canReveal = isAdmin || isSelf;
                             const isRevealed = revealedPinId === staff.id;
                             return (
-                              <CommanderLayout title="Staff | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
-                                <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
-                                  PIN: {isRevealed ? staff.pin_code : '****'}
-                                  {canReveal && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
-                                      className="p-0.5 hover:text-[#1877F2] transition-colors"
-                                      title={isRevealed ? 'Hide PIN' : 'Show PIN'}
-                                    >
-                                      {isRevealed
-                                        ? <EyeOff className="w-3.5 h-3.5" />
-                                        : <Eye className="w-3.5 h-3.5" />
-                                      }
-                                    </button>
-                                  )}
-                                </span>
-                              </CommanderLayout>
+                              <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
+                                PIN: {isRevealed ? staff.pin_code : '****'}
+                                {canReveal && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
+                                    className="p-0.5 hover:text-[#1877F2] transition-colors"
+                                    title={isRevealed ? 'Hide PIN' : 'Show PIN'}
+                                  >
+                                    {isRevealed
+                                      ? <EyeOff className="w-3.5 h-3.5" />
+                                      : <Eye className="w-3.5 h-3.5" />
+                                    }
+                                  </button>
+                                )}
+                              </span>
                             );
                           })()}
                         </div>
@@ -395,8 +404,8 @@ function StaffModal({ staff, onClose, onSubmit }) {
                   type="button"
                   onClick={() => setRole(r.value)}
                   className={`p-3 rounded-lg text-sm font-medium transition-colors ${role === r.value
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#3A3B3C] text-white hover:bg-[#4A4B4C]'
+                    ? 'bg-[#1877F2] text-white'
+                    : 'bg-[#3A3B3C] text-white hover:bg-[#4A4B4C]'
                     }`}
                 >
                   {r.label}

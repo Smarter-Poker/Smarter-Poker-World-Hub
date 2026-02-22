@@ -34,6 +34,9 @@ export default function DealerRotation() {
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  };
 
   useEffect(() => {
     fetchData();
@@ -45,11 +48,13 @@ export default function DealerRotation() {
   const fetchData = async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const venueId = getVenueId();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [dealersRes, tablesRes, rotationsRes] = await Promise.all([
-        fetch('/api/commander/dealers', { headers }).then(r => r.json()),
-        fetch('/api/commander/tables', { headers }).then(r => r.json()),
-        fetch('/api/commander/dealers/rotations', { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (dealersRes.data) setDealers(dealersRes.data);
       if (tablesRes.data) setTables(tablesRes.data);
@@ -71,7 +76,8 @@ export default function DealerRotation() {
   const pushDealer = async (dealerId, newTableNumber) => {
     try {
       const token = getToken();
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // End current rotation
       const current = getAssignment(dealerId);
@@ -104,9 +110,10 @@ export default function DealerRotation() {
     if (current) {
       try {
         const token = getToken();
+        const staffSession = localStorage.getItem('commander_staff') || '';
         await fetch('/api/commander/dealers/rotations', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ id: current.id, ended_at: new Date().toISOString(), break_after: true })
         }).catch(() => { });
         fetchData();
@@ -129,10 +136,10 @@ export default function DealerRotation() {
   return (
     <CommanderLayout title="Dealer Rotation" backHref="/commander/dealers">
       <SEOHead
-                title="Commander — Dealer Rotation"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Dealer Rotation"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

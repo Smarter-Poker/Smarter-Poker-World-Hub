@@ -42,7 +42,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
@@ -4536,10 +4536,12 @@ export default function SocialMediaPage() {
                         content_type: type,
                         media_urls: urls,
                         ...(linkPreview ? {
-                            link_url: linkPreview.url || urls[0],
-                            link_title: linkPreview.title || null,
-                            link_description: linkPreview.description || null,
-                            link_image: linkPreview.image || null,
+                            link_preview: {
+                                url: linkPreview.url || urls[0],
+                                title: linkPreview.title || null,
+                                description: linkPreview.description || null,
+                                image: linkPreview.image || null,
+                            }
                         } : {})
                     }),
                 });
@@ -4553,6 +4555,11 @@ export default function SocialMediaPage() {
                     id: json.data?.id || Date.now(), authorId: user.id, content, contentType: type,
                     mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
                     timeAgo: 'Just now', isLiked: false, justPosted: true,
+                    // Link metadata for ArticleCard rendering
+                    link_url: linkPreview?.url || null,
+                    link_title: linkPreview?.title || null,
+                    link_description: linkPreview?.description || null,
+                    link_image: linkPreview?.image || null,
                     author: {
                         name: identityStored.clubPage.name,
                         username: null,
@@ -5586,9 +5593,8 @@ export default function SocialMediaPage() {
                                     <>
                                         {/* Render posts with Reels carousel inserted after every 3 posts */}
                                         {posts.map((p, index) => (
-                                            <>
+                                            <React.Fragment key={p.id}>
                                                 <PostCard
-                                                    key={p.id}
                                                     post={{ ...p, isGodMode }}
                                                     currentUserId={user?.id}
                                                     currentUserName={user?.name}
@@ -5599,7 +5605,7 @@ export default function SocialMediaPage() {
                                                 />
                                                 {/* Insert Reels carousel after 3rd post */}
                                                 {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
-                                            </>
+                                            </React.Fragment>
                                         ))}
 
                                         {/* ♾️ INFINITE SCROLL: Load more trigger */}
@@ -5645,36 +5651,41 @@ export default function SocialMediaPage() {
                                             )}
                                         </div>
 
-                                        <style jsx>{`
-                                @keyframes spin {
-                                    to { transform: rotate(360deg); }
-                                }
-                                @keyframes pulse {
-                                    0%, 100% { opacity: 1; }
-                                    50% { opacity: 0.5; }
-                                }
-                                .social-feed-column {
-                                    max-width: 680px;
-                                    overflow-x: hidden;
-                                }
-                                .social-contacts-sidebar {
-                                    width: 220px;
-                                    flex-shrink: 0;
-                                }
-                                @media (max-width: 768px) {
-                                    .social-feed-column {
-                                        max-width: 100% !important;
-                                    }
-                                    .social-feed-layout {
-                                        gap: 0 !important;
-                                    }
-                                }
-                                @media (max-width: 900px) {
-                                    .social-contacts-sidebar { display: none; }
-                                }
-                            `}</style>
                                     </>
                                 )}
+
+                                {/* Layout CSS — rendered outside of posts conditional so it always applies */}
+                                <style jsx global>{`
+                                    @keyframes spin {
+                                        to { transform: rotate(360deg); }
+                                    }
+                                    @keyframes pulse {
+                                        0%, 100% { opacity: 1; }
+                                        50% { opacity: 0.5; }
+                                    }
+                                    .social-feed-column {
+                                        max-width: 680px;
+                                        overflow-x: hidden;
+                                    }
+                                    .social-contacts-sidebar {
+                                        width: 220px;
+                                        flex-shrink: 0;
+                                    }
+                                    @media (max-width: 768px) {
+                                        .social-feed-column {
+                                            max-width: 100% !important;
+                                        }
+                                        .social-feed-layout {
+                                            gap: 0 !important;
+                                        }
+                                        .social-page-container {
+                                            padding: 0 !important;
+                                        }
+                                    }
+                                    @media (max-width: 900px) {
+                                        .social-contacts-sidebar { display: none; }
+                                    }
+                                `}</style>
                             </div>
                             {/* Contacts Sidebar — desktop only */}
                             {user && (

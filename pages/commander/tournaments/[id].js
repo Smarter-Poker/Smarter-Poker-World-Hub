@@ -60,7 +60,7 @@ export default function TournamentDetailPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
@@ -68,7 +68,7 @@ export default function TournamentDetailPage() {
       const staffData = JSON.parse(storedStaff);
       setStaff(staffData);
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -127,9 +127,10 @@ export default function TournamentDetailPage() {
   // Clock actions
   async function handleClockAction(action) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ action })
       });
 
@@ -145,9 +146,10 @@ export default function TournamentDetailPage() {
   // Tournament status update
   async function handleStatusChange(newStatus) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ status: newStatus })
       });
 
@@ -197,13 +199,12 @@ export default function TournamentDetailPage() {
   }
 
   return (
-    <CommanderLayout title="{tournament.name} | Commander" backHref="/commander/tournaments">
-    <>
+    <CommanderLayout title={`${tournament.name} | Commander`} backHref="/commander/tournaments">
       <SEOHead
-                title="Commander — Details"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Details"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}
@@ -269,11 +270,10 @@ export default function TournamentDetailPage() {
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => handleClockAction(clockRunning ? 'pause' : 'resume')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium ${
-                    clockRunning
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium ${clockRunning
                       ? 'bg-[#F59E0B] hover:bg-[#D97706]'
                       : 'bg-[#10B981] hover:bg-[#059669]'
-                  }`}
+                    }`}
                 >
                   {clockRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   {clockRunning ? 'Pause' : 'Resume'}
@@ -464,7 +464,6 @@ export default function TournamentDetailPage() {
       />
       <style jsx>{`
 `}</style>
-    </>
     </CommanderLayout>
   );
 }
