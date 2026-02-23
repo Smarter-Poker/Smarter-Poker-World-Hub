@@ -79,7 +79,7 @@ function CreateClubModal({ onClose, onCreated, user }) {
         <div style={modalOverlay}>
             <div style={modalBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h2 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '20px', color: '#00d4ff', margin: 0 }}>
+                    <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: '#1877F2', margin: 0 }}>
                         Create a Club
                     </h2>
                     <button onClick={onClose} style={closeBtn}>×</button>
@@ -164,7 +164,7 @@ function JoinClubModal({ onClose, onJoined, user }) {
         <div style={modalOverlay}>
             <div style={modalBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h2 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '20px', color: '#00d4ff', margin: 0 }}>
+                    <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: '#1877F2', margin: 0 }}>
                         Join a Club
                     </h2>
                     <button onClick={onClose} style={closeBtn}>×</button>
@@ -217,7 +217,7 @@ function FindPlayerModal({ onClose }) {
         <div style={modalOverlay}>
             <div style={modalBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h2 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '20px', color: '#00d4ff', margin: 0 }}>
+                    <h2 style={{ fontFamily: 'Inter, sans-serif', fontSize: '20px', color: '#1877F2', margin: 0 }}>
                         Find a Player
                     </h2>
                     <button onClick={onClose} style={closeBtn}>×</button>
@@ -231,7 +231,7 @@ function FindPlayerModal({ onClose }) {
                         style={{ ...inputStyle, flex: 1 }}
                     />
                     <button onClick={handleSearch} disabled={isSearching} style={{ ...actionBtnPrimary, padding: '12px 20px' }}>
-                        {isSearching ? '...' : '🔍'}
+                        {isSearching ? '...' : 'Search'}
                     </button>
                 </div>
                 <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
@@ -248,7 +248,7 @@ function FindPlayerModal({ onClose }) {
                             }}>
                                 <div style={{
                                     width: '40px', height: '40px', borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #0066FF, #00d4ff)',
+                                    background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: '#fff', fontSize: '16px', fontWeight: 700,
                                     overflow: 'hidden',
@@ -415,7 +415,7 @@ export default function ClubArenaPage() {
     if (isLoading) {
         return (
             <div style={{ minHeight: '100vh', background: '#020812', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '16px', color: '#00D4FF' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '16px', color: '#1877F2' }}>
                     Loading Club Arena...
                 </div>
             </div>
@@ -589,9 +589,9 @@ const modalOverlay = {
 
 const modalBox = {
     width: '90%', maxWidth: '400px',
-    background: 'linear-gradient(180deg, #0a1a2e 0%, #050f1e 100%)',
-    borderRadius: '20px', border: '1px solid rgba(0,212,255,0.3)',
-    boxShadow: '0 0 40px rgba(0,212,255,0.15)', padding: '28px',
+    background: 'linear-gradient(180deg, #0a0a1a 0%, #0d0d24 100%)',
+    borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)',
+    boxShadow: '0 0 40px rgba(0,0,0,0.5)', padding: '28px',
 };
 
 const closeBtn = {
@@ -600,22 +600,22 @@ const closeBtn = {
 };
 
 const labelStyle = {
-    display: 'block', fontFamily: 'Orbitron, sans-serif', fontSize: '11px',
+    display: 'block', fontFamily: 'Inter, sans-serif', fontSize: '11px',
     fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: '6px',
     letterSpacing: '1px', textTransform: 'uppercase',
 };
 
 const inputStyle = {
-    width: '100%', padding: '12px 16px', background: 'rgba(0,212,255,0.05)',
-    border: '1px solid rgba(0,212,255,0.2)', borderRadius: '10px',
+    width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
     color: '#fff', fontSize: '14px', fontFamily: 'Inter, sans-serif',
     outline: 'none', boxSizing: 'border-box',
 };
 
 const actionBtnPrimary = {
-    padding: '14px 28px', background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
-    border: 'none', borderRadius: '12px', fontFamily: 'Orbitron, sans-serif',
-    fontSize: '13px', fontWeight: 700, color: '#000', cursor: 'pointer',
+    padding: '14px 28px', background: '#1877F2',
+    border: 'none', borderRadius: '12px', fontFamily: 'Inter, sans-serif',
+    fontSize: '13px', fontWeight: 700, color: '#fff', cursor: 'pointer',
     width: '100%',
 };
 
@@ -634,7 +634,7 @@ const S = {
     },
     bgOverlay: {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'linear-gradient(180deg, rgba(0,212,255,0.03) 0%, transparent 30%, rgba(0,212,255,0.02) 100%)',
+        background: 'linear-gradient(180deg, rgba(24,119,242,0.03) 0%, transparent 30%, rgba(24,119,242,0.02) 100%)',
         zIndex: -2,
     },
     mainContent: {
@@ -767,7 +767,7 @@ const S = {
         right: 0,
         zIndex: 1000,
         background: 'linear-gradient(180deg, rgba(15, 25, 40, 0.98) 0%, rgba(8, 15, 25, 0.99) 100%)',
-        borderTop: '1px solid rgba(0, 180, 255, 0.2)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(10px)',
     },
