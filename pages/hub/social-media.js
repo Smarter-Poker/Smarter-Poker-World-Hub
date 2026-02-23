@@ -3406,25 +3406,38 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
         } catch { return 'anon-fallback'; }
     }
 
-    // Fetch pages data
+    // Fetch pages data — only home_games, charity, clubs (no venues/tours/series)
     useEffect(() => {
         const fetchClubPages = async () => {
             setLoading(true);
             try {
-                const params = new URLSearchParams({ category, sort: 'popular', limit: '80' });
-                if (search) params.set('search', search);
                 const uid = getAnonUserId();
-                if (uid) params.set('user_id', uid);
-                if (showFollowedOnly) params.set('followed_only', 'true');
+                const baseParams = { sort: 'popular', limit: '80' };
+                if (search) baseParams.search = search;
+                if (uid) baseParams.user_id = uid;
+                if (showFollowedOnly) baseParams.followed_only = 'true';
 
-                const res = await fetch(`/api/poker/pages?${params}`);
-                const json = await res.json();
-                if (json.success) {
-                    setPages(json.data || []);
-                    const fSet = new Set();
-                    (json.data || []).forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
-                    setFollowingIds(fSet);
+                let allPages = [];
+                if (category === 'all') {
+                    // Fetch home_games, charity, clubs in parallel
+                    const [hgRes, charRes, clubRes] = await Promise.all(
+                        ['home_games', 'charity', 'clubs'].map(cat =>
+                            fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category: cat })}`).then(r => r.json())
+                        )
+                    );
+                    if (hgRes.success) allPages.push(...(hgRes.data || []));
+                    if (charRes.success) allPages.push(...(charRes.data || []));
+                    if (clubRes.success) allPages.push(...(clubRes.data || []));
+                } else {
+                    const res = await fetch(`/api/poker/pages?${new URLSearchParams({ ...baseParams, category })}`);
+                    const json = await res.json();
+                    if (json.success) allPages = json.data || [];
                 }
+
+                setPages(allPages);
+                const fSet = new Set();
+                allPages.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
+                setFollowingIds(fSet);
             } catch (e) { console.error('Club pages fetch error:', e); }
             setLoading(false);
         };
