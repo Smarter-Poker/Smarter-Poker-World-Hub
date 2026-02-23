@@ -58,13 +58,8 @@ const VENUE_TYPE_COLORS = {
     charity: { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#ec4899' },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE TYPE COLORS (for tours, series, etc.)
-// ─────────────────────────────────────────────────────────────────────────────
-const PAGE_TYPE_STYLES = {
-    tour: { bg: 'rgba(0, 191, 255, 0.15)', border: '#00bfff', text: '#00bfff', label: 'Tour', icon: '🌐' },
-    series: { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', text: '#f59e0b', label: 'Series', icon: '📅' },
-};
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VENUE TYPE BADGE
@@ -166,119 +161,8 @@ function ClubArenaCard({ club, onNavigate }) {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FOLLOWED PAGE CARD — Generic card for followed tours & series
-// ─────────────────────────────────────────────────────────────────────────────
-function FollowedPageCard({ page, onNavigate, onUnfollow }) {
-    const [hovering, setHovering] = useState(false);
-    const style = PAGE_TYPE_STYLES[page.page_type] || PAGE_TYPE_STYLES.tour;
-    const detailUrl = page.page_type === 'tour'
-        ? `/hub/tours/${page.page_id}`
-        : `/hub/series/${page.page_id}`;
 
-    return (
-        <div
-            onClick={() => onNavigate(detailUrl)}
-            onMouseEnter={() => setHovering(true)}
-            onMouseLeave={() => setHovering(false)}
-            style={{
-                background: hovering ? C.elevated : C.surface,
-                border: `2px solid ${hovering ? C.highlight : C.border}`,
-                borderRadius: 12,
-                padding: 20,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-            }}
-        >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                        fontSize: 16, fontWeight: 700, color: C.text,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                        {page.name}
-                    </div>
-                    {page.subtitle && (
-                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 3 }}>
-                            {page.subtitle}
-                        </div>
-                    )}
-                </div>
-                <span style={{
-                    display: 'inline-block',
-                    padding: '3px 10px',
-                    borderRadius: 16,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: 0.5,
-                    textTransform: 'uppercase',
-                    background: style.bg,
-                    border: `1px solid ${style.border}`,
-                    color: style.text,
-                }}>
-                    {style.label}
-                </span>
-            </div>
 
-            {/* Series date range */}
-            {page.page_type === 'series' && page.start_date && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <div style={{
-                        padding: '4px 10px', borderRadius: 8,
-                        background: 'rgba(245, 158, 11, 0.08)',
-                        border: '1px solid rgba(245, 158, 11, 0.2)',
-                        fontSize: 12, fontWeight: 600, color: '#f59e0b',
-                    }}>
-                        {new Date(page.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        {page.end_date && ` – ${new Date(page.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-                    </div>
-                    {page.total_events && (
-                        <div style={{
-                            padding: '4px 10px', borderRadius: 8,
-                            background: 'rgba(255,255,255,0.04)',
-                            border: `1px solid ${C.elevated}`,
-                            fontSize: 12, color: C.textSec,
-                        }}>
-                            {page.total_events} Events
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Tour metadata */}
-            {page.page_type === 'tour' && page.category && (
-                <div style={{ fontSize: 12, color: C.textMuted }}>
-                    {page.category}{page.established ? ` · Est. ${page.established}` : ''}
-                </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.borderLight}`, paddingTop: 10 }}>
-                <div style={{ fontSize: 12, color: C.textMuted }}>
-                    {page.page_type === 'series' ? 'View Schedule' : 'View Details'}
-                </div>
-                <button
-                    onClick={(e) => { e.stopPropagation(); onUnfollow(page.page_type, page.page_id); }}
-                    style={{
-                        padding: '6px 14px',
-                        borderRadius: 8,
-                        border: `1px solid ${C.elevated}`,
-                        background: C.elevated,
-                        color: C.textSec,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                    }}
-                >
-                    Following
-                </button>
-            </div>
-        </div>
-    );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLUB CARD — Individual followed venue/club card
