@@ -545,34 +545,20 @@ export default function ProfilePage() {
         setMessage('Uploading cover photo...');
 
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `cover-${Date.now()}.${fileExt}`;
-            const filePath = `${user.id}/${fileName}`;
-
-            // Use FormData for upload to avoid abort signal issues
+            // Use the server-side upload proxy (service role key) to bypass storage RLS
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('folder', 'covers');
+            formData.append('prefix', user.id);
 
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+            const uploadRes = await fetch('/api/social/upload', { method: 'POST', body: formData });
+            const uploadJson = await uploadRes.json();
 
-            // Upload using fetch to avoid abort signal issues
-            const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/avatars/${filePath}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'apikey': supabaseKey,
-                },
-                body: formData
-            });
-
-            if (!uploadResponse.ok) {
-                const errorData = await uploadResponse.json();
-                throw new Error(errorData.message || 'Upload failed');
+            if (!uploadJson.success || !uploadJson.url) {
+                throw new Error(uploadJson.error || 'Upload failed');
             }
 
-            // Get public URL
-            const publicUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${filePath}`;
+            const publicUrl = uploadJson.url;
 
             // Update database
             const { error: updateError } = await supabase
@@ -587,7 +573,7 @@ export default function ProfilePage() {
             }
 
             setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
-            setMessage(' Cover photo saved!');
+            setMessage('Cover photo saved!');
         } catch (error) {
             setMessage('Error uploading cover photo: ' + error.message);
             console.error('Upload error:', error);
