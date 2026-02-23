@@ -1478,8 +1478,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <div style={{ width: '100%', maxHeight: 500, backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain', display: 'block' }} />
+                            <div style={{ width: '100%', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', maxHeight: 500, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }} />
                             </div>
                         )
                     ) : post.mediaUrls.length === 2 ? (

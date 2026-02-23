@@ -362,7 +362,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                             <video src={post.media_urls[0]} controls style={{ width: '100%', maxHeight: 400, objectFit: 'cover' }} />
                         ) : (
                             <div style={{ width: '100%', maxHeight: 500, backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={post.media_urls[0]} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain', display: 'block' }} />
+                                <img src={post.media_urls[0]} style={{ maxWidth: '100%', maxHeight: 500, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }} />
                             </div>
                         )
                     ) : (
@@ -496,15 +496,20 @@ export default function UserProfilePage() {
 
                 // Check friendship status
                 if (user) {
-                    const { data: friendship } = await supabase
-                        .from('friendships')
-                        .select('status')
-                        .or(`and(user_id.eq.${user.id},friend_id.eq.${data.id}),and(user_id.eq.${data.id},friend_id.eq.${user.id})`)
-                        .maybeSingle();
+                    // Check all possible friendship records between the two users
+                    const { data: f1 } = await supabase.from('friendships').select('status').eq('user_id', user.id).eq('friend_id', data.id);
+                    const { data: f2 } = await supabase.from('friendships').select('status').eq('user_id', data.id).eq('friend_id', user.id);
 
-                    if (friendship) {
-                        setIsFriend(friendship.status === 'accepted');
-                        setFriendRequestSent(friendship.status === 'pending');
+                    const allFriendships = [...(f1 || []), ...(f2 || [])];
+                    if (allFriendships.some(f => f.status === 'accepted')) {
+                        setIsFriend(true);
+                        setFriendRequestSent(false);
+                    } else if (allFriendships.some(f => f.status === 'pending')) {
+                        setIsFriend(false);
+                        setFriendRequestSent(true);
+                    } else {
+                        setIsFriend(false);
+                        setFriendRequestSent(false);
                     }
 
                     // Get current user's friends for mutual calculation
@@ -648,6 +653,25 @@ export default function UserProfilePage() {
 
     const handleMessage = () => {
         router.push(`/hub/messenger?user=${profile.username}`);
+    };
+
+    const handleRemoveFriend = async () => {
+        if (!currentUser || !profile) return;
+        if (!confirm(`Are you sure you want to unfriend ${profile.full_name || profile.username}?`)) return;
+        try {
+            await supabase.from('friendships').delete()
+                .eq('user_id', currentUser.id)
+                .eq('friend_id', profile.id);
+            await supabase.from('friendships').delete()
+                .eq('user_id', profile.id)
+                .eq('friend_id', currentUser.id);
+
+            setIsFriend(false);
+            setFriendRequestSent(false);
+            setStats(prev => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
+        } catch (e) {
+            console.error('Error unfriending:', e);
+        }
     };
 
     const handleDeletePost = async (postId) => {
@@ -867,10 +891,10 @@ export default function UserProfilePage() {
                         ) : (
                             <>
                                 {isFriend ? (
-                                    <button style={{
+                                    <button onClick={handleRemoveFriend} title="Unfriend" style={{
                                         padding: '10px 20px', background: '#e4e6eb', color: C.text,
                                         borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
-                                    }}> Friends</button>
+                                    }}> ✓ Friends</button>
                                 ) : friendRequestSent ? (
                                     <button style={{
                                         padding: '10px 20px', background: '#e4e6eb', color: C.textSec,
