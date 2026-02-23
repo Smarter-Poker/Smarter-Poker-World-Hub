@@ -52,15 +52,20 @@ export default function ClubLobby() {
         setCreatingTable(true);
         try {
             const { data, error } = await supabase
-                .from('poker_tables')
+                .from('tables')
                 .insert({
                     club_id: club.id,
                     name: newTable.name || `New ${newTable.variant.toUpperCase()} Table`,
+                    game_type: 'cash',
                     game_variant: newTable.variant,
+                    stakes: `${parseFloat(newTable.smallBlind)}/${parseFloat(newTable.bigBlind)}`,
                     max_players: parseInt(newTable.maxPlayers),
                     small_blind: parseFloat(newTable.smallBlind),
                     big_blind: parseFloat(newTable.bigBlind),
-                    status: 'active',
+                    min_buy_in: parseFloat(newTable.bigBlind) * 40,
+                    max_buy_in: parseFloat(newTable.bigBlind) * 200,
+                    current_players: 0,
+                    status: 'waiting',
                     settings: {
                         straddle_enabled: newTable.straddle,
                         run_it_twice: newTable.runItTwice,
@@ -127,10 +132,10 @@ export default function ClubLobby() {
 
                 // Load club tables
                 const { data: tableData } = await supabase
-                    .from('poker_tables')
+                    .from('tables')
                     .select('*')
                     .eq('club_id', clubData.id)
-                    .eq('status', 'active');
+                    .neq('status', 'deleted');
                 setTables(tableData || []);
             }
         } catch (e) {
@@ -163,7 +168,7 @@ export default function ClubLobby() {
                         <div style={styles.loading}>Loading Club...</div>
                     ) : !club ? (
                         <div style={styles.error}>
-                            <h2 style={{ color: '#ff4d4d', marginBottom: '16px', fontFamily: 'Orbitron, sans-serif' }}>Club Not Found</h2>
+                            <h2 style={{ color: '#ff4d4d', marginBottom: '16px' }}>Club Not Found</h2>
                             <p style={{ color: 'rgba(255,255,255,0.6)' }}>The club with ID {clubIdParam} could not be found.</p>
                             <button onClick={() => router.push('/hub/club-arena')} style={styles.primaryBtn}>
                                 Return to Club Arena
@@ -180,12 +185,11 @@ export default function ClubLobby() {
                                     <h2 style={styles.clubName}>{club.name}</h2>
                                     <div style={styles.clubMeta}>
                                         <span style={styles.clubId}>ID: {club.club_id}</span>
-                                        <span style={styles.memberCount}>👥 {club.member_count || 0}</span>
+                                        <span style={styles.memberCount}>{club.member_count || 0} Members</span>
                                     </div>
                                 </div>
                                 <div style={styles.clubBalance}>
                                     <div style={styles.balanceRow}>
-                                        <span style={styles.chipIcon}>💎</span>
                                         <span style={styles.balanceAmount}>0.00</span>
                                         <button style={styles.addBtn}>+</button>
                                     </div>
@@ -227,14 +231,12 @@ export default function ClubLobby() {
                                     style={styles.heroActionBtn}
                                     onClick={() => router.push('/hub/club-arena')}
                                 >
-                                    <span style={styles.heroActionIcon}>🏛️</span>
                                     <span style={styles.heroActionLabel}>My Clubs</span>
                                 </button>
                                 <button
                                     style={{ ...styles.heroActionBtn, ...styles.heroActionPrimary }}
                                     onClick={() => setShowCreateTable(true)}
                                 >
-                                    <span style={styles.heroActionIcon}>➕</span>
                                     <span style={styles.heroActionLabel}>Create Table</span>
                                 </button>
                                 <button
@@ -248,7 +250,6 @@ export default function ClubLobby() {
                                         }
                                     }}
                                 >
-                                    <span style={styles.heroActionIcon}>⚡</span>
                                     <span style={styles.heroActionLabel}>Quick Seat</span>
                                 </button>
                             </div>
@@ -260,7 +261,6 @@ export default function ClubLobby() {
                                     {filteredTables.map(table => (
                                         <div key={table.id} style={styles.tableCard}>
                                             <div style={styles.tableHeader}>
-                                                <span style={styles.tableIcon}>🎰</span>
                                                 <span style={styles.seatsBadge}>{table.max_players || 9} Max</span>
                                             </div>
                                             <div style={styles.tableBody}>
@@ -276,7 +276,6 @@ export default function ClubLobby() {
                                 </div>
                             ) : (
                                 <div style={styles.emptyState}>
-                                    <span style={{ fontSize: '40px', marginBottom: '12px' }}>🃏</span>
                                     <p>No Active Tables</p>
                                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
                                     <button
@@ -291,13 +290,13 @@ export default function ClubLobby() {
                             {/* Quick Actions */}
                             <div style={styles.quickActions}>
                                 <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/cashier?club=${club.club_id}`)}>
-                                    💰 Cashier
+                                    Cashier
                                 </button>
                                 <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/leaderboard?club=${club.club_id}`)}>
-                                    🏆 Leaderboard
+                                    Leaderboard
                                 </button>
                                 <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club.club_id}`)}>
-                                    📋 Hands
+                                    Hands
                                 </button>
                             </div>
                         </>

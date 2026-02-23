@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CLUB ARENA — Players | FULLY WIRED
-   Facebook Dark Theme | Member List with Search, Roles & Actions
-   ═══════════════════════════════════════════════════════════════════════════════ */
+ CLUB ARENA — Players | FULLY WIRED
+ Facebook Dark Theme | Member List with Search, Roles & Actions
+ ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -26,15 +26,15 @@ const FB = {
 const ROLE_COLORS = {
     owner: '#F7C52A',
     admin: '#E74C3C',
-    agent: '#9B59B6',
+    agent: '#1877F2',
     player: '#3498DB',
 };
 
 const ROLE_BADGES = {
-    owner: '👑',
-    admin: '⚙️',
-    agent: '🎯',
-    player: '🃏',
+    owner: 'Owner',
+    admin: 'Admin',
+    agent: 'Agent',
+    player: '',
 };
 
 export default function Players() {
@@ -279,12 +279,12 @@ export default function Players() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>👥 Players</h1>
+                    <h1 style={S.pageTitle}>Players</h1>
                     <p style={S.memberCount}>{members.length} members in this club</p>
 
                     {/* Search */}
                     <div style={S.searchBox}>
-                        <span style={S.searchIcon}>🔍</span>
+                        <span style={S.searchIcon}></span>
                         <input
                             type="text"
                             style={S.searchInput}
@@ -324,7 +324,7 @@ export default function Players() {
                         <div style={S.loading}>Loading Players...</div>
                     ) : filteredMembers.length === 0 ? (
                         <div style={S.emptyState}>
-                            <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>👥</span>
+                            <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}></span>
                             <p>{searchQuery ? 'No players found' : 'No members yet'}</p>
                         </div>
                     ) : (
@@ -343,7 +343,7 @@ export default function Players() {
                                         <div style={{ ...S.avatar, background: ROLE_COLORS[member.role] || FB.primary }}>
                                             {member.profiles?.avatar_url ? (
                                                 <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : ROLE_BADGES[member.role] || '👤'}
+                                            ) : ROLE_BADGES[member.role] || ''}
                                         </div>
                                         <div style={{ ...S.onlineIndicator, background: online ? FB.success : FB.textSecondary }} />
                                     </div>
@@ -360,11 +360,11 @@ export default function Players() {
                                             }}>
                                                 {ROLE_BADGES[member.role]} {member.role}
                                             </span>
-                                            <span style={S.chipCount}>{(member.chip_balance || 0).toLocaleString()} 💰</span>
+                                            <span style={S.chipCount}>{(member.chip_balance || 0).toLocaleString()} </span>
                                         </div>
                                     </div>
                                     <div style={S.lastSeen}>
-                                        {online ? '🟢' : formatLastSeen(member.profiles?.last_seen_at)}
+                                        {online ? '' : formatLastSeen(member.profiles?.last_seen_at)}
                                     </div>
                                 </div>
                             );
@@ -376,8 +376,8 @@ export default function Players() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════
-                PLAYER DETAIL MODAL
-                ═══════════════════════════════════════════════════════════════════════ */}
+ PLAYER DETAIL MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
             {selectedPlayer && (
                 <div style={S.modalOverlay} onClick={() => setSelectedPlayer(null)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
@@ -389,7 +389,7 @@ export default function Players() {
                             <div style={{ ...S.modalAvatar, background: ROLE_COLORS[selectedPlayer.role] || FB.primary }}>
                                 {selectedPlayer.profiles?.avatar_url ? (
                                     <img src={selectedPlayer.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : ROLE_BADGES[selectedPlayer.role] || '👤'}
+                                ) : ROLE_BADGES[selectedPlayer.role] || ''}
                             </div>
                             <div style={S.modalName}>
                                 {selectedPlayer.profiles?.alias || selectedPlayer.profiles?.username || 'Player'}
@@ -429,13 +429,13 @@ export default function Players() {
                                         style={{ ...S.modalBtn, background: FB.primary, color: '#fff' }}
                                         onClick={() => sendMessage(selectedPlayer.user_id)}
                                     >
-                                        💬 Message
+                                        Message
                                     </button>
                                     <button
                                         style={{ ...S.modalBtn, background: FB.hover, color: FB.textPrimary }}
                                         onClick={() => viewProfile(selectedPlayer.user_id)}
                                     >
-                                        👤 Profile
+                                        Profile
                                     </button>
                                 </div>
                             )}
