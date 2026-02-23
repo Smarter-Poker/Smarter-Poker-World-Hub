@@ -3420,12 +3420,9 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 const res = await fetch(`/api/poker/pages?${params}`);
                 const json = await res.json();
                 if (json.success) {
-                    // Only show home_game, charity, and club types
-                    const ALLOWED_TYPES = ['home_game', 'charity', 'club'];
-                    const filtered = (json.data || []).filter(p => ALLOWED_TYPES.includes(p.page_type));
-                    setPages(filtered);
+                    setPages(json.data || []);
                     const fSet = new Set();
-                    filtered.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
+                    (json.data || []).forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
                     setFollowingIds(fSet);
                 }
             } catch (e) { console.error('Club pages fetch error:', e); }
