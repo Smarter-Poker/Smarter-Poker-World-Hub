@@ -19,11 +19,20 @@ const supabase = createClient(
 const SHARE_MESSAGE = "Join me on Smarter.Poker — the ultimate poker training platform! Use my referral link to get 500 free diamonds on signup!";
 const SHARE_TITLE = "Join Smarter.Poker — Get 500 Free Diamonds!";
 
-export default function InviteFriendsModal({ isOpen, onClose, user }) {
+export default function InviteFriendsModal({
+    isOpen,
+    onClose,
+    user,
+    contacts = [],
+    onOpenChat = () => { },
+    onSearch = () => { },
+    searchResults = []
+}) {
     const [playerNumber, setPlayerNumber] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [canNativeShare, setCanNativeShare] = useState(false);
+    const [q, setQ] = useState('');
 
     // Check native share support
     useEffect(() => {
@@ -456,6 +465,64 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                                 </span>
                             </a>
                         ))}
+                    </div>
+                </div>
+
+                {/* Contacts Search Bar Integration */}
+                <div style={{ padding: '0 24px 16px' }}>
+                    <div style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,0.35)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                        marginBottom: 12,
+                    }}>
+                        Search Contacts to Message
+                    </div>
+                    <div style={{
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        background: '#18191A',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        padding: 12
+                    }}>
+                        <input
+                            value={q}
+                            onChange={e => { setQ(e.target.value); onSearch(e.target.value); }}
+                            placeholder=" Search..."
+                            style={{
+                                width: '100%',
+                                padding: '8px 10px',
+                                borderRadius: 20,
+                                border: 'none',
+                                background: 'rgba(255,255,255,0.1)',
+                                color: 'white',
+                                fontSize: 13,
+                                outline: 'none',
+                                marginBottom: 12,
+                                boxSizing: 'border-box'
+                            }}
+                        />
+                        <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                            {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
+                                <div key={u.id} onClick={() => { onOpenChat(u); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', cursor: 'pointer', borderRadius: 6, transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.05)' } }}>
+                                    <img src={u.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                                    <span style={{ fontSize: 13, color: 'white' }}>{u.username}</span>
+                                </div>
+                            ))}
+                            {q.length < 2 && (
+                                contacts.length === 0 ? <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'left', margin: 0 }}>No Contacts Yet</p> : contacts.map(c => (
+                                    <div key={c.id} onClick={() => { onOpenChat(c); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', cursor: 'pointer', borderRadius: 6, transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.05)' } }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <img src={c.avatar || '/default-avatar.png'} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                            {c.online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: '#42B72A', border: '2px solid #18191A' }} />}
+                                        </div>
+                                        <span style={{ fontSize: 13, fontWeight: 500, color: 'white' }}>{c.name}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
 
