@@ -18,7 +18,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 // ═══════════════════════════════════════════════════════════════════════════
 const IMAGES = {
     actionBar: '/hub/club-arena/images/icons/action-bar-horizontal.png',
-    sharkClub: '/hub/club-arena/images/shark-club-card.jpg',
+    sharkClub: '/hub/club-arena/images/shark-club-card-v25.jpg',
     tiles: {
         playerStats: '/hub/club-arena/images/tiles/player-stats.jpg',
         leaderboards: '/hub/club-arena/images/tiles/leaderboards.jpg',
@@ -285,9 +285,52 @@ export default function ClubArenaPage() {
     const [showFindPlayer, setShowFindPlayer] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Live Supabase stats for Shark Club card
+    const [sharkClubStats, setSharkClubStats] = useState({ totalMembers: 0, clubLevel: 1, activePlayers: 0 });
+
     useEffect(() => {
         loadUserData();
+        fetchSharkClubStats();
     }, []);
+
+    // Fetch real stats from Supabase for the Shark Club card
+    async function fetchSharkClubStats() {
+        try {
+            const { data: club } = await supabase
+                .from('clubs')
+                .select('id')
+                .eq('club_id', 25450)
+                .maybeSingle();
+            if (!club) return;
+
+            const { count: memberCount } = await supabase
+                .from('club_members')
+                .select('*', { count: 'exact', head: true })
+                .eq('club_id', club.id);
+
+            let activePlayers = 0;
+            const { data: clubTables } = await supabase
+                .from('tables')
+                .select('id')
+                .eq('club_id', club.id);
+            if (clubTables && clubTables.length > 0) {
+                const tableIds = clubTables.map(t => t.id);
+                const { count: seatCount } = await supabase
+                    .from('table_seats')
+                    .select('*', { count: 'exact', head: true })
+                    .in('table_id', tableIds);
+                activePlayers = seatCount || 0;
+            }
+
+            setSharkClubStats({
+                totalMembers: memberCount || 0,
+                clubLevel: 1,
+                activePlayers,
+            });
+        } catch (err) {
+            console.error('[ClubArena] Failed to fetch Shark Club stats:', err);
+        }
+    }
 
     async function loadUserData() {
         setIsLoading(true);
@@ -440,18 +483,18 @@ export default function ClubArenaPage() {
                             alt="SHARK CLUB"
                             style={S.sharkClubImage}
                         />
-                        {/* Dynamic stats overlay */}
+                        {/* Dynamic stats overlay — live Supabase data */}
                         <div style={S.statsOverlay}>
                             <div style={S.statItem}>
-                                <div style={S.statValue}>72,850</div>
+                                <div style={S.statValue}>{Math.max(1, sharkClubStats.totalMembers).toLocaleString()}</div>
                                 <div style={S.statLabel}>TOTAL MEMBERS</div>
                             </div>
                             <div style={S.statItem}>
-                                <div style={S.statValueLarge}>50</div>
+                                <div style={S.statValueLarge}>{Math.max(1, sharkClubStats.clubLevel)}</div>
                                 <div style={S.statLabel}>CLUB LEVEL</div>
                             </div>
                             <div style={S.statItem}>
-                                <div style={S.statValue}>18,211</div>
+                                <div style={S.statValue}>{(sharkClubStats.activePlayers || 0).toLocaleString()}</div>
                                 <div style={S.statLabel}>ACTIVE PLAYERS</div>
                             </div>
                         </div>
