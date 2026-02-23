@@ -363,11 +363,9 @@ export default function UniversalHeader({
                 .header-right {
                     display: flex;
                     align-items: center;
-                    align-self: center;
                     gap: 6px;
                     flex-shrink: 0;
                     justify-content: flex-end;
-                    margin-top: 6px;
                 }
                 
                 .nav-btn {
@@ -554,7 +552,6 @@ export default function UniversalHeader({
                         flex-shrink: 0;
                         flex-grow: 0;
                         justify-content: flex-end;
-                        margin-top: 4px;
                     }
                     
                     .brand-text {
@@ -708,7 +705,7 @@ export default function UniversalHeader({
                     {/* Messages - Custom Metallic Messenger icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
                             )}
@@ -718,7 +715,7 @@ export default function UniversalHeader({
                     {/* Notifications - Custom Metallic Bell icon */}
                     <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
@@ -728,7 +725,7 @@ export default function UniversalHeader({
                     {/* Settings - Custom Metallic Gear icon */}
                     <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                         </div>
                     </Link>
 
@@ -749,7 +746,7 @@ export default function UniversalHeader({
                             overflow: 'hidden'
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '57%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
 
