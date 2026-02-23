@@ -123,7 +123,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Get player's display name from profile
+        // Get player's display name and phone from profile
         const { data: profile } = await supabase
             .from('profiles')
             .select('display_name, full_name, phone')
@@ -131,7 +131,8 @@ export default async function handler(req, res) {
             .single();
 
         const playerName = player_name || profile?.display_name || profile?.full_name || user.email?.split('@')[0] || 'Web Player';
-        const playerPhone = player_phone || profile?.phone || null;
+        // Phone priority: request body > profiles table > Supabase auth user.phone
+        const playerPhone = player_phone || profile?.phone || user.phone || null;
 
         // Get next position
         const { data: positionResult, error: positionError } = await supabase
@@ -179,6 +180,68 @@ export default async function handler(req, res) {
                 success: false,
                 error: { code: 'DATABASE_ERROR', message: 'Failed to join waitlist' }
             });
+        }
+
+        // ═══ Upsert into commander_members for kiosk lookup ═══
+        // The kiosk searches commander_members by name/phone, not commander_waitlist.
+        // This ensures web sign-ups are findable at the kiosk check-in terminal.
+        try {
+            const nameParts = playerName.trim().split(/\s+/);
+            const firstName = nameParts[0] || playerName;
+            const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+            // Check if member already exists for this player+venue
+            const { data: existingMember } = await supabase
+                .from('commander_members')
+                .select('id')
+                .eq('venue_id', venue_id)
+                .eq('email', user.email)
+                .maybeSingle();
+
+            if (!existingMember) {
+                // Also try phone match
+                let memberByPhone = null;
+                if (playerPhone) {
+                    const { data: mByPhone } = await supabase
+                        .from('commander_members')
+                        .select('id')
+                        .eq('venue_id', venue_id)
+                        .eq('phone', playerPhone)
+                        .maybeSingle();
+                    memberByPhone = mByPhone;
+                }
+
+                if (!memberByPhone) {
+                    // Create new member record
+                    await supabase.from('commander_members').insert({
+                        venue_id,
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone: playerPhone,
+                        email: user.email,
+                        membership_status: 'active',
+                        member_type: 'player',
+                        notes: 'Auto-registered via web waitlist sign-up'
+                    });
+                } else {
+                    // Update existing member's name if missing
+                    await supabase.from('commander_members')
+                        .update({ first_name: firstName, last_name: lastName })
+                        .eq('id', memberByPhone.id)
+                        .is('first_name', null);
+                }
+            } else {
+                // Update phone if member exists but phone is missing
+                if (playerPhone) {
+                    await supabase.from('commander_members')
+                        .update({ phone: playerPhone })
+                        .eq('id', existingMember.id)
+                        .is('phone', null);
+                }
+            }
+        } catch (memberErr) {
+            // Non-critical — waitlist entry already created successfully
+            console.warn('Member upsert warning (non-critical):', memberErr);
         }
 
         return res.status(201).json({
