@@ -367,6 +367,7 @@ export default function UniversalHeader({
                     gap: 6px;
                     flex-shrink: 0;
                     justify-content: flex-end;
+                    margin-top: 6px;
                 }
                 
                 .nav-btn {
