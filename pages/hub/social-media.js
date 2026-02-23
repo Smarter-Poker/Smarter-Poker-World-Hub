@@ -3475,6 +3475,9 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
     ];
 
     const typeColors = {
+        venue: { bg: '#1877F2', light: '#E7F3FF' },
+        tour: { bg: '#E74C3C', light: '#FDEDEC' },
+        series: { bg: '#F39C12', light: '#FEF5E7' },
         home_game: { bg: '#22C55E', light: '#F0FDF4' },
         charity: { bg: '#A855F7', light: '#FAF5FF' },
         club: { bg: '#0EA5E9', light: '#F0F9FF' },
