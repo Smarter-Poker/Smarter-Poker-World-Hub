@@ -374,6 +374,7 @@ export default function UniversalHeader({
                     align-items: center;
                     justify-content: center;
                     flex-shrink: 0;
+                    height: 40px;
                 }
                 
                 .nav-btn {
@@ -566,6 +567,7 @@ export default function UniversalHeader({
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        height: 26px;
                     }
                     
                     .brand-text {
