@@ -16,7 +16,8 @@ import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdate
 import {
   RefreshCw, Loader2, Users, UserPlus, ArrowLeft,
   PhoneCall, Armchair, SkipForward, Trash2,
-  MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical
+  MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical,
+  Globe, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
 const GAMES_PER_PAGE = 4;
@@ -174,6 +175,19 @@ export default function WaitlistDesk() {
       const staffSession = getStaffSession();
       await fetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
+      setSelectedPlayer(null); await fetchData();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleCheckIn = async (entry) => {
+    try {
+      const token = getToken();
+      const staffSession = getStaffSession();
+      await fetch(`/api/commander/waitlist/${entry.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({ checked_in_at: new Date().toISOString() })
       });
       setSelectedPlayer(null); await fetchData();
     } catch (err) { console.error(err); }
@@ -362,6 +376,13 @@ export default function WaitlistDesk() {
                       const isCalled = entry.status === 'called';
                       const isSelected = selectedPlayer?.id === entry.id;
                       const hasApp = entry.signup_method === 'app';
+                      const isWeb = entry.signup_method === 'web';
+                      const isCheckedIn = !!entry.checked_in_at;
+                      // Calculate web check-in countdown (1 hour from creation)
+                      const webMinutesLeft = isWeb && !isCheckedIn && entry.created_at
+                        ? Math.max(0, Math.ceil((new Date(entry.created_at).getTime() + 60 * 60 * 1000 - Date.now()) / 60000))
+                        : null;
+                      const isExpired = webMinutesLeft !== null && webMinutesLeft <= 0;
                       return (
                         <div key={entry.id}>
                           <div
@@ -370,20 +391,38 @@ export default function WaitlistDesk() {
                               padding: '8px 12px', borderBottom: `1px solid ${c.bgColor === '#000000' ? '#1a1a1a' : c.borderColor + '22'}`,
                               cursor: 'pointer', display: 'flex', alignItems: 'center',
                               justifyContent: 'space-between', transition: 'background-color 0.1s',
-                              backgroundColor: isCalled ? `${c.accentColor}14` : isSelected ? 'rgba(255,255,255,0.04)' : 'transparent'
+                              backgroundColor: isCalled ? `${c.accentColor}14` : isExpired ? 'rgba(239,68,68,0.08)' : isSelected ? 'rgba(255,255,255,0.04)' : 'transparent'
                             }}
                           >
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               {hasApp && <span style={{ color: c.accentColor, fontSize: '16px' }}>♦</span>}
-                              <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : c.textColor }}>
+                              {isWeb && !isCheckedIn && (
+                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#fff', background: isExpired ? '#EF4444' : '#3B82F6', padding: '1px 5px', borderRadius: '3px', letterSpacing: '0.5px', lineHeight: '16px' }}>
+                                  {isExpired ? '⚠ EXPIRED' : 'WEB'}
+                                </span>
+                              )}
+                              {isWeb && isCheckedIn && (
+                                <CheckCircle size={14} style={{ color: '#10B981' }} />
+                              )}
+                              <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : isExpired ? '#EF4444' : c.textColor }}>
                                 {entry.player_name}
                               </span>
+                              {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (
+                                <span style={{ fontSize: '12px', color: webMinutesLeft <= 10 ? '#F59E0B' : '#64748B', fontWeight: 600 }}>
+                                  {webMinutesLeft}m
+                                </span>
+                              )}
                             </span>
                             {isCalled && <span style={{ fontSize: '14px', fontWeight: 800, color: c.bgColor, background: c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px' }}>CALLED</span>}
                           </div>
 
                           {isSelected && (
                             <div style={{ display: 'flex', padding: '8px 12px', gap: '8px', background: `linear-gradient(180deg, ${lighten(c.cardBgColor, 5)}, ${c.cardBgColor})`, borderBottom: `2px solid ${c.borderColor}55`, flexWrap: 'wrap' }}>
+                              {isWeb && !isCheckedIn && (
+                                <button onClick={(e) => { e.stopPropagation(); handleCheckIn(entry); }} style={makeActionBtnGreen(c)}>
+                                  <CheckCircle size={18} /> Check In
+                                </button>
+                              )}
                               {entry.status !== 'called' && (
                                 <button onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
                                   disabled={callLoading === entry.id} style={makeActionBtn(c)}>
@@ -431,10 +470,10 @@ export default function WaitlistDesk() {
         )}
 
         {/* ═══ SCROLLING TICKER ═══ */}
-        <div style={{ padding: '6px 0', borderTop: `2px solid ${c.borderColor}55`, background: c.cardBgColor, overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative' }}>
+        <div style={{ padding: '18px 0', borderTop: `2px solid ${c.borderColor}55`, background: c.cardBgColor, overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative' }}>
           <div style={{ display: 'inline-flex', animation: 'tickerScroll 30s linear infinite' }}>
-            <span style={{ fontSize: '13px', color: c.accentColor, fontWeight: 600, letterSpacing: '0.5px', paddingRight: '100px', whiteSpace: 'nowrap' }}>{tickerMessage}</span>
-            <span style={{ fontSize: '13px', color: c.accentColor, fontWeight: 600, letterSpacing: '0.5px', paddingRight: '100px', whiteSpace: 'nowrap' }}>{tickerMessage}</span>
+            <span style={{ fontSize: '39px', color: c.accentColor, fontWeight: 700, letterSpacing: '1px', paddingRight: '150px', whiteSpace: 'nowrap' }}>{tickerMessage}</span>
+            <span style={{ fontSize: '39px', color: c.accentColor, fontWeight: 700, letterSpacing: '1px', paddingRight: '150px', whiteSpace: 'nowrap' }}>{tickerMessage}</span>
           </div>
         </div>
 
@@ -582,6 +621,32 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
   const [draft, setDraft] = useState({ ...DEFAULT_CUSTOM, ...custom });
   const [activeTab, setActiveTab] = useState('colors');
   const [newGame, setNewGame] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const logoInputRef = useRef(null);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'logos');
+      formData.append('prefix', 'waitlist-desk');
+      const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.success && json.url) {
+        update('logoUrl', json.url);
+      } else {
+        alert('Upload failed: ' + (json.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      alert('Upload failed');
+    }
+    setUploading(false);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
 
   const update = (field, value) => {
     const next = { ...draft, [field]: value };
@@ -593,7 +658,6 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
     { id: 'colors', label: 'Colors' },
     { id: 'branding', label: 'Logo & Branding' },
     { id: 'games', label: 'Game Types' },
-    { id: 'layout', label: 'Layout' },
   ];
 
   const colorFields = [
@@ -670,17 +734,33 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
           {activeTab === 'branding' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#ccc', marginBottom: '8px' }}>Club Logo URL</label>
-                <input
-                  type="text"
-                  value={draft.logoUrl}
-                  onChange={e => update('logoUrl', e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                  style={{ width: '100%', padding: '10px 12px', background: '#1a1a1a', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
-                />
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#ccc', marginBottom: '8px' }}>Club Logo</label>
+                <input type="file" ref={logoInputRef} accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploading}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+                      background: 'linear-gradient(180deg, #1a1a1a, #0a0a0a)', border: '2px solid #D4AF37',
+                      borderRadius: '8px', color: '#D4AF37', fontSize: '14px', fontWeight: 700,
+                      cursor: uploading ? 'wait' : 'pointer',
+                      boxShadow: '0 2px 8px rgba(212,175,55,0.2)',
+                      opacity: uploading ? 0.6 : 1
+                    }}
+                  >
+                    {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                    {uploading ? 'Uploading...' : 'Upload Logo'}
+                  </button>
+                  {draft.logoUrl && (
+                    <button onClick={() => update('logoUrl', '')} style={{ padding: '8px 12px', background: '#1a0a0a', border: '1px solid #C62828', borderRadius: '6px', color: '#EF5350', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                      Remove
+                    </button>
+                  )}
+                </div>
                 {draft.logoUrl && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: '#0a0a0a', borderRadius: '8px', border: '1px solid #333', textAlign: 'center' }}>
-                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '60px', maxWidth: '200px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                  <div style={{ marginTop: '12px', padding: '16px', background: '#0a0a0a', borderRadius: '8px', border: '1px solid #333', textAlign: 'center' }}>
+                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                   </div>
                 )}
               </div>
@@ -740,27 +820,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
             </div>
           )}
 
-          {activeTab === 'layout' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#ccc', marginBottom: '8px' }}>
-                  Player Name Font Size: {draft.playerFontSize}px
-                </label>
-                <input
-                  type="range"
-                  min="16"
-                  max="48"
-                  value={draft.playerFontSize}
-                  onChange={e => update('playerFontSize', parseInt(e.target.value))}
-                  style={{ width: '100%', accentColor: '#D4AF37' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                  <span>16px Small</span>
-                  <span>48px Large</span>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
 
         {/* Footer */}
