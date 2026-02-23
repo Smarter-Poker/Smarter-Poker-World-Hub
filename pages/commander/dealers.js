@@ -331,20 +331,20 @@ export default function DealersPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -463,7 +463,7 @@ export default function DealersPage() {
   }
 
   return (
-    <CommanderLayout title="Dealer Management">
+    <CommanderLayout title="Dealer Management" backHref="/commander/dashboard?card=floor">
       <div className="cmd-page">
         {/* Action Bar + Tabs */}
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">

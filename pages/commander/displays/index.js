@@ -67,7 +67,7 @@ export default function DisplayManagement() {
   );
 
   return (
-    <CommanderLayout title="Display Management">
+    <CommanderLayout title="Display Management" backHref="/commander/dashboard?card=displays">
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Subtitle */}

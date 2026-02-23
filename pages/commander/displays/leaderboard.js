@@ -75,7 +75,7 @@ export default function LeaderboardDisplay() {
   const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <CommanderLayout title="Leaderboard Display">
+    <CommanderLayout title="Leaderboard Display" backHref="/commander/dashboard?card=displays">
       <style jsx global>{`
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .lb-row { animation: slideIn 0.3s ease-out forwards; }

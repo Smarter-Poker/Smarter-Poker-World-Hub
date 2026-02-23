@@ -101,7 +101,7 @@ export default function CombinedDisplay() {
       : 'grid-cols-2 grid-rows-2';
 
   return (
-    <CommanderLayout title="Combined Display">
+    <CommanderLayout title="Combined Display" backHref="/commander/dashboard?card=displays">
       <style jsx global>{`
         @keyframes pulse-called { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .called { animation: pulse-called 1.5s ease-in-out infinite; }

@@ -63,7 +63,7 @@ export default function DealerRotationDisplay() {
   const minutesUntil = nextRotationTime ? Math.max(0, Math.floor((nextRotationTime - now) / 60000)) : null;
 
   return (
-    <CommanderLayout title="Dealer Rotation Display">
+    <CommanderLayout title="Dealer Rotation Display" backHref="/commander/dashboard?card=displays">
       <style jsx global>{`
         @keyframes pulse-break { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .break-pulse { animation: pulse-break 2s ease-in-out infinite; }

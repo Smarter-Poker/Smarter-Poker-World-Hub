@@ -70,7 +70,7 @@ export default function PromotionsDisplay() {
   };
 
   return (
-    <CommanderLayout title="Promotions Display">
+    <CommanderLayout title="Promotions Display" backHref="/commander/dashboard?card=displays">
       <style jsx global>{`
         @keyframes shimmer { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
         .shimmer { animation: shimmer 3s ease-in-out infinite; }

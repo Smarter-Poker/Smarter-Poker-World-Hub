@@ -36,13 +36,13 @@ export default function TournamentSettingsPage() {
 
     useEffect(() => {
         const storedStaff = localStorage.getItem('commander_staff');
-        if (!storedStaff) { router.push('/commander/login').catch(() => {}); return; }
+        if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
         try {
             const staffData = JSON.parse(storedStaff);
-            if (!staffData.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+            if (!staffData.venue_id) { router.push('/commander/login').catch(() => { }); return; }
             setStaff(staffData);
             setVenue({ id: staffData.venue_id, name: staffData.venue_name });
-        } catch { router.push('/commander/login').catch(() => {}); }
+        } catch { router.push('/commander/login').catch(() => { }); }
     }, [router]);
 
     async function useTemplate(template) {
@@ -133,7 +133,7 @@ export default function TournamentSettingsPage() {
     }
 
     return (
-        <CommanderLayout title={`Tournament Settings | ${venue?.name || 'Commander'}`}>
+        <CommanderLayout title={`Tournament Settings | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=tournaments">
             <SEOHead
                 title="Commander — Tournament Settings"
                 description="Club Commander Poker Room Management Tool."

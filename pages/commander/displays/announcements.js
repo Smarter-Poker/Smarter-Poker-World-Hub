@@ -68,7 +68,7 @@ export default function AnnouncementsDisplay() {
   };
 
   return (
-    <CommanderLayout title="Announcements Display">
+    <CommanderLayout title="Announcements Display" backHref="/commander/dashboard?card=displays">
       <style jsx global>{`
         @keyframes pulse-urgent { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .urgent-pulse { animation: pulse-urgent 2s ease-in-out infinite; }

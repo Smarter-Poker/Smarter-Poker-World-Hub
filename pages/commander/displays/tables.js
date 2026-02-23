@@ -67,7 +67,7 @@ export default function TablesDisplay() {
   }, 0);
 
   return (
-    <CommanderLayout title="Table Status Display">
+    <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
 
       <div onClick={goFullscreen}
         className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden flex flex-col">
