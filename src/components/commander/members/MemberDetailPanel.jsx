@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { X, User, Mail, Phone, MapPin, Calendar, CreditCard, Clock, Star, FileText, Edit2, Shield, Printer } from 'lucide-react';
 import MemberCard from './MemberCard';
 
-const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
+const TIER_COLORS = { daily: '#3B82F6', weekly: '#F59E0B', monthly: '#10B981', yearly: '#A855F7' };
+const TIER_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const STATUS_COLORS = { active: '#31A24C', suspended: '#EF4444', expired: '#8A8D91', banned: '#DC2626' };
 
 export default function MemberDetailPanel({ member, venueName, onClose, onUpdate }) {
@@ -68,7 +69,7 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                         <h3 className="text-xl font-bold text-[#E4E6EB]">{member.first_name} {member.last_name}</h3>
                         <p className="text-sm font-mono text-[#1877F2]">{member.member_number}</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
-                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (TIER_COLORS[member.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[member.membership_tier] }}>{member.membership_tier?.toUpperCase()}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (TIER_COLORS[member.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[member.membership_tier] || '#B0B3B8' }}>{(TIER_LABELS[member.membership_tier] || member.membership_tier || '—').toUpperCase()}</span>
                             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (STATUS_COLORS[member.membership_status] || '#8A8D91') + '20', color: STATUS_COLORS[member.membership_status] }}>{member.membership_status?.toUpperCase()}</span>
                         </div>
                     </div>
@@ -95,7 +96,7 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                             <div>
                                 <label className="block text-xs text-[#B0B3B8] mb-1">Tier</label>
                                 <select value={editForm.membership_tier} onChange={e => setEditForm(p => ({ ...p, membership_tier: e.target.value }))} className="w-full px-3 py-2 bg-[#3A3B3C] border border-[#4E4F50] rounded-lg text-[#E4E6EB] text-sm">
-                                    <option value="standard">Standard</option><option value="gold">Gold</option><option value="platinum">Platinum</option><option value="vip">VIP</option>
+                                    <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option>
                                 </select>
                             </div>
                             <div>

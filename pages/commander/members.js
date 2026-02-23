@@ -15,7 +15,8 @@ import ScanMemberModal from '../../src/components/commander/members/ScanMemberMo
 import MemberDetailPanel from '../../src/components/commander/members/MemberDetailPanel';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
-const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
+const TIER_COLORS = { daily: '#3B82F6', weekly: '#F59E0B', monthly: '#10B981', yearly: '#A855F7' };
+const TIER_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const STATUS_COLORS = { active: '#31A24C', suspended: '#EF4444', expired: '#8A8D91', banned: '#DC2626' };
 
 export default function MembersPage() {
@@ -44,13 +45,13 @@ export default function MembersPage() {
     // Auth
     useEffect(() => {
         const stored = localStorage.getItem('commander_staff');
-        if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+        if (!stored) { router.push('/commander/login').catch(() => { }); return; }
         try {
             const data = JSON.parse(stored);
             setStaff(data);
             setVenueId(data.venue_id);
             setVenueName(data.venue_name || '');
-        } catch { router.push('/commander/login').catch(() => {}); }
+        } catch { router.push('/commander/login').catch(() => { }); }
     }, [router]);
 
     // Fetch members
@@ -102,10 +103,10 @@ export default function MembersPage() {
         <CommanderLayout title="Members" backHref="/commander/dashboard">
             <>
                 <SEOHead
-                title="Commander — Member Management"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+                    title="Commander — Member Management"
+                    description="Club Commander Poker Room Management Tool."
+                    noindex={true}
+                />
 
                 <div className="min-h-screen bg-[#18191A]">
                     {/* Header */}
@@ -162,10 +163,10 @@ export default function MembersPage() {
                                 <select value={tierFilter} onChange={e => { setTierFilter(e.target.value); setPage(1); }}
                                     className="px-3 py-2 bg-[#242526] border border-[#3A3B3C] rounded-lg text-[#E4E6EB] text-sm">
                                     <option value="">All Tiers</option>
-                                    <option value="standard">Standard</option>
-                                    <option value="gold">Gold</option>
-                                    <option value="platinum">Platinum</option>
-                                    <option value="vip">VIP</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="yearly">Yearly</option>
                                 </select>
                                 {(statusFilter || tierFilter) && (
                                     <button onClick={() => { setStatusFilter(''); setTierFilter(''); setPage(1); }}
@@ -223,8 +224,8 @@ export default function MembersPage() {
                                                     <td className="px-4 py-3 text-sm font-mono text-[#1877F2]">{m.member_number}</td>
                                                     <td className="px-4 py-3">
                                                         <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                                            style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] }}>
-                                                            {m.membership_tier}
+                                                            style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] || '#B0B3B8' }}>
+                                                            {TIER_LABELS[m.membership_tier] || m.membership_tier || '—'}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3">
@@ -257,8 +258,8 @@ export default function MembersPage() {
                                                     <div className="text-xs font-mono text-[#1877F2]">{m.member_number}</div>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                                                            style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] }}>
-                                                            {m.membership_tier}
+                                                            style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] || '#B0B3B8' }}>
+                                                            {TIER_LABELS[m.membership_tier] || m.membership_tier || '—'}
                                                         </span>
                                                         <span className="text-xs text-[#8A8D91] flex items-center gap-1"><Clock className="w-3 h-3" />{m.total_visits || 0} visits</span>
                                                     </div>

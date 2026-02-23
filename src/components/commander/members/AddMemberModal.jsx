@@ -29,10 +29,10 @@ const US_STATES = [
 ];
 
 const TIERS = [
-    { value: 'standard', label: 'Standard', desc: 'Basic club membership', color: '#B0B3B8' },
-    { value: 'gold', label: 'Gold', desc: 'Priority seating, comp rates', color: '#F59E0B' },
-    { value: 'platinum', label: 'Platinum', desc: 'VIP lounge, enhanced comps', color: '#94A3B8' },
-    { value: 'vip', label: 'VIP', desc: 'Full benefits, dedicated host', color: '#A855F7' },
+    { value: 'daily', label: 'Daily', desc: 'Single-day access pass', color: '#3B82F6' },
+    { value: 'weekly', label: 'Weekly', desc: '7-day membership', color: '#F59E0B' },
+    { value: 'monthly', label: 'Monthly', desc: '30-day membership', color: '#10B981' },
+    { value: 'yearly', label: 'Yearly', desc: 'Full year membership', color: '#A855F7' },
 ];
 
 export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
@@ -57,7 +57,7 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
         address_city: '',
         address_state: '',
         address_zip: '',
-        membership_tier: 'standard',
+        membership_tier: 'daily',
         notes: '',
         photo_url: '',
     });
@@ -178,7 +178,7 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
             first_name: '', last_name: '', date_of_birth: '', id_type: 'drivers_license',
             id_number: '', id_state: '', id_expiry: '', email: '', phone: '',
             address_street: '', address_city: '', address_state: '', address_zip: '',
-            membership_tier: 'standard', notes: '', photo_url: '',
+            membership_tier: 'daily', notes: '', photo_url: '',
         });
         setError('');
         onClose();
@@ -401,8 +401,8 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
                                 {TIERS.map(tier => (
                                     <button key={tier.value} onClick={() => updateForm('membership_tier', tier.value)}
                                         className={`w-full p-4 rounded-xl border-2 text-left transition-all ${form.membership_tier === tier.value
-                                                ? 'border-[#1877F2] bg-[#1877F2]/5'
-                                                : 'border-[#3A3B3C] bg-[#18191A] hover:border-[#4E4F50]'
+                                            ? 'border-[#1877F2] bg-[#1877F2]/5'
+                                            : 'border-[#3A3B3C] bg-[#18191A] hover:border-[#4E4F50]'
                                             }`}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
