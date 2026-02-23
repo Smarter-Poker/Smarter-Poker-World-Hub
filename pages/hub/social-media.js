@@ -5196,7 +5196,7 @@ export default function SocialMediaPage() {
                 </div>
             </div>
 
-            <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
+            <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
                 {/* Standard Hub Header with Hamburger Menu */}
                 <UniversalHeader
                     pageDepth={showClubPages ? 2 : 1}
@@ -5404,7 +5404,7 @@ export default function SocialMediaPage() {
                 )}
 
                 {/* Main Feed - 800px Design Canvas */}
-                <main className="social-page-container" style={{ padding: 0 }}>
+                <main className="social-page-container" style={{ padding: 0, width: '100%', maxWidth: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
 
                     {/* ===== CLUB PAGES: CREATE MODAL ===== */}
                     {showCreatePage && isCommander && (
@@ -5524,7 +5524,7 @@ export default function SocialMediaPage() {
 
                     {/* ===== NORMAL FEED ===== */}
                     {!showClubPages && <>
-                        <div className="social-feed-layout" style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                        <div className="social-feed-layout" style={{ display: 'flex', gap: 16, justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
                             <div className="social-feed-column" style={{ flex: 1, minWidth: 0 }}>
                                 {/* Stories Bar */}
                                 {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
@@ -5654,12 +5654,18 @@ export default function SocialMediaPage() {
                                     @media (max-width: 768px) {
                                         .social-feed-column {
                                             max-width: 100% !important;
+                                            width: 100% !important;
                                         }
                                         .social-feed-layout {
                                             gap: 0 !important;
+                                            width: 100% !important;
+                                            padding: 0 !important;
                                         }
                                         .social-page-container {
                                             padding: 0 !important;
+                                            width: 100% !important;
+                                            max-width: 100vw !important;
+                                            overflow-x: hidden !important;
                                         }
                                     }
                                     @media (max-width: 900px) {
