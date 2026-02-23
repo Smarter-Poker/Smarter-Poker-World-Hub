@@ -1,8 +1,8 @@
 /**
- * Player Waitlist Join Page - Bravo Poker Live inspired redesign
+ * Player Waitlist Join Page - Gold/Black Commander Desk Style
  * URL: /hub/commander/waitlist/[venueId]
- * Compact tabular layout, multi-game selection, sticky green JOIN button
- * Hybrid: Bravo's proven UX patterns + Futuristic Metal aesthetic
+ * Compact tabular layout, multi-game selection, sticky JOIN button
+ * Matches the Commander POKER WAITING LIST desk aesthetic
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -98,7 +98,7 @@ export default function PlayerWaitlistPage() {
     }
   }
 
-  // Multi-game join — sequential API calls
+  // Multi-game join — sequential API calls via public endpoint
   async function handleJoinSelected() {
     const token = getAuthToken();
     if (!token) {
@@ -116,7 +116,7 @@ export default function PlayerWaitlistPage() {
     for (const key of selectedGames) {
       const [gameType, stakes] = key.split('::');
       try {
-        const res = await fetch('/api/commander/waitlist', {
+        const res = await fetch('/api/commander/waitlist/public-join', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -126,26 +126,24 @@ export default function PlayerWaitlistPage() {
             venue_id: parseInt(venueId),
             game_type: gameType,
             stakes: stakes,
-            signup_method: 'app',
-            seat_preferences: seatPrefs.preferred_seats || seatPrefs.left_handed || seatPrefs.notes ? {
-              preferred_seats: seatPrefs.preferred_seats ? seatPrefs.preferred_seats.split(',').map(s => parseInt(s.trim())).filter(Boolean) : [],
-              left_handed: seatPrefs.left_handed,
-              notes: seatPrefs.notes || null
-            } : undefined
           })
         });
         const data = await res.json();
         if (data.success) results.push(key);
+        else if (data.error?.code === 'ALREADY_ON_WAITLIST') {
+          // Skip silently — they're already on this one
+          results.push(key);
+        }
       } catch (err) {
         // Continue with remaining games
       }
     }
 
     if (results.length > 0) {
-      setSuccess(`Added to ${results.length} waitlist${results.length > 1 ? 's' : ''}`);
+      setSuccess(`Added to ${results.length} waitlist${results.length > 1 ? 's' : ''}! You have 1 hour to check in at the venue.`);
       setSelectedGames(new Set());
       fetchData();
-      setTimeout(() => setSuccess(null), 4000);
+      setTimeout(() => setSuccess(null), 6000);
     } else {
       setError('Failed to join waitlist. Please try again.');
     }
@@ -248,8 +246,8 @@ export default function PlayerWaitlistPage() {
     return (
       <div style={styles.page}>
         <div style={styles.loadingContainer}>
-          <Loader2 style={{ width: 32, height: 32, color: '#22D3EE', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: '#64748B', marginTop: 12 }}>Loading Waitlist...</p>
+          <Loader2 style={{ width: 32, height: 32, color: '#D4AF37', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: '#888', marginTop: 12 }}>Loading Waitlist...</p>
         </div>
       </div>
     );
@@ -259,9 +257,9 @@ export default function PlayerWaitlistPage() {
     return (
       <div style={styles.page}>
         <div style={styles.loadingContainer}>
-          <MapPin style={{ width: 32, height: 32, color: '#64748B' }} />
-          <h1 style={{ color: '#fff', fontSize: 20, marginTop: 12 }}>Venue Not Found</h1>
-          <p style={{ color: '#64748B', fontSize: 14 }}>This Venue Doesn't Exist Or Isn't Using Commander.</p>
+          <MapPin style={{ width: 32, height: 32, color: '#888' }} />
+          <h1 style={{ color: '#E0E0E0', fontSize: 20, marginTop: 12 }}>Venue Not Found</h1>
+          <p style={{ color: '#888', fontSize: 14 }}>This Venue Doesn't Exist Or Isn't Using Commander.</p>
         </div>
       </div>
     );
@@ -281,7 +279,7 @@ export default function PlayerWaitlistPage() {
           <div style={styles.headerInner}>
             <div style={styles.headerLeft}>
               <div style={styles.venueIcon}>
-                <Zap style={{ width: 20, height: 20, color: '#22D3EE' }} />
+                <Zap style={{ width: 20, height: 20, color: '#D4AF37' }} />
               </div>
               <div>
                 <h1 style={styles.venueName}>{venue.name}</h1>
@@ -426,13 +424,13 @@ export default function PlayerWaitlistPage() {
                 <div key={entry.id} style={styles.myEntry}>
                   <div>
                     <span style={styles.myGameText}>
-                      {entry.stakes} <span style={{ color: '#22D3EE' }}>{gameLabel(entry.game_type)}</span>
+                      {entry.stakes} <span style={{ color: '#D4AF37' }}>{gameLabel(entry.game_type)}</span>
                     </span>
                     <div style={styles.myMeta}>
                       {entry.status === 'called' ? (
                         <span style={{ color: '#10B981', fontWeight: 700 }}>SEAT READY</span>
                       ) : (
-                        <span>Position <span style={{ color: '#22D3EE', fontWeight: 700 }}>#{entry.position}</span></span>
+                        <span>Position <span style={{ color: '#D4AF37', fontWeight: 700 }}>#{entry.position}</span></span>
                       )}
                       {entry.created_at && (
                         <span style={{ marginLeft: 12 }}>
@@ -587,14 +585,14 @@ export default function PlayerWaitlistPage() {
 }
 
 // ═══════════════════════════════════════════════
-// STYLES — Bravo layout + Futuristic Metal skin
+// STYLES — Gold/Black Commander Desk theme
 // ═══════════════════════════════════════════════
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #0A0E1A 0%, #0D1320 50%, #0A0E1A 100%)',
+    background: '#000000',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-    paddingBottom: 100, // space for sticky footer
+    paddingBottom: 100,
   },
   loadingContainer: {
     display: 'flex',
@@ -609,9 +607,9 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 10,
-    background: 'linear-gradient(180deg, #0F1A2E 0%, #0A1225 100%)',
-    borderBottom: '1px solid #1A2E4A',
-    boxShadow: '0 2px 20px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(34, 211, 238, 0.15)',
+    background: 'linear-gradient(180deg, #0A0A0A 0%, #050505 100%)',
+    borderBottom: '1px solid #333',
+    boxShadow: '0 2px 20px rgba(0,0,0,0.8), inset 0 -1px 0 rgba(212, 175, 55, 0.2)',
     padding: '12px 16px 0',
   },
   headerInner: {
@@ -630,23 +628,23 @@ const styles = {
     width: 40,
     height: 40,
     borderRadius: 10,
-    background: 'linear-gradient(135deg, #132240, #1A2E4A)',
-    border: '1px solid #22D3EE',
+    background: 'linear-gradient(135deg, #1a1a0a, #2a2510)',
+    border: '1px solid #D4AF37',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 0 12px rgba(34, 211, 238, 0.3)',
+    boxShadow: '0 0 12px rgba(212, 175, 55, 0.3)',
   },
   venueName: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#fff',
+    color: '#E0E0E0',
     letterSpacing: '0.5px',
     margin: 0,
   },
   venueLocation: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#888',
     display: 'flex',
     alignItems: 'center',
     gap: 4,
@@ -683,7 +681,7 @@ const styles = {
     justifyContent: 'center',
     gap: 8,
     padding: '10px 0',
-    borderTop: '1px solid rgba(34, 211, 238, 0.1)',
+    borderTop: '1px solid rgba(212, 175, 55, 0.15)',
     marginTop: 10,
   },
   summaryItem: {
@@ -691,11 +689,11 @@ const styles = {
     alignItems: 'center',
     gap: 5,
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#B0B0B0',
     fontWeight: 600,
   },
   summarySep: {
-    color: '#4A5E78',
+    color: '#555',
     fontSize: 16,
   },
 
@@ -726,7 +724,7 @@ const styles = {
     margin: 0,
   },
   calledSub: {
-    color: '#94A3B8',
+    color: '#B0B0B0',
     fontSize: 13,
     margin: 0,
     marginTop: 2,
@@ -755,21 +753,21 @@ const styles = {
   tableContainer: {
     borderRadius: 12,
     overflow: 'hidden',
-    border: '1px solid #1A2E4A',
-    background: 'linear-gradient(180deg, #0F1A2E, #0D1525)',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(34, 211, 238, 0.08)',
+    border: '1px solid #333',
+    background: '#050505',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(212, 175, 55, 0.08)',
   },
   tableHeader: {
     display: 'flex',
     alignItems: 'center',
     padding: '10px 16px',
-    background: 'rgba(34, 211, 238, 0.06)',
-    borderBottom: '1px solid #1A2E4A',
+    background: 'rgba(212, 175, 55, 0.06)',
+    borderBottom: '1px solid #333',
   },
   tableHeaderCell: {
     fontSize: 10,
     fontWeight: 800,
-    color: '#64748B',
+    color: '#888',
     textTransform: 'uppercase',
     letterSpacing: '1.5px',
   },
@@ -777,13 +775,13 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     padding: '14px 16px',
-    borderBottom: '1px solid rgba(26, 46, 74, 0.5)',
+    borderBottom: '1px solid #1a1a1a',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
   },
   tableRowSelected: {
-    background: 'rgba(34, 211, 238, 0.08)',
-    borderLeft: '3px solid #22D3EE',
+    background: 'rgba(212, 175, 55, 0.08)',
+    borderLeft: '3px solid #D4AF37',
     paddingLeft: 13,
   },
   tableRowCalled: {
@@ -792,18 +790,18 @@ const styles = {
     paddingLeft: 13,
   },
   tableRowOnList: {
-    background: 'rgba(34, 211, 238, 0.04)',
+    background: 'rgba(212, 175, 55, 0.04)',
     cursor: 'default',
   },
   gameStakes: {
     fontSize: 16,
     fontWeight: 700,
-    color: '#fff',
+    color: '#E0E0E0',
   },
   gameType: {
     fontSize: 14,
     fontWeight: 700,
-    color: '#22D3EE',
+    color: '#D4AF37',
   },
   countBadge: {
     display: 'inline-block',
@@ -812,28 +810,28 @@ const styles = {
     borderRadius: 6,
     fontSize: 14,
     fontWeight: 700,
-    color: '#CBD5E1',
-    background: 'rgba(100, 116, 139, 0.15)',
+    color: '#B0B0B0',
+    background: 'rgba(100, 100, 100, 0.15)',
     textAlign: 'center',
   },
   countBadgeWaiting: {
-    color: '#F59E0B',
-    background: 'rgba(245, 158, 11, 0.12)',
+    color: '#D4AF37',
+    background: 'rgba(212, 175, 55, 0.12)',
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 6,
-    border: '2px solid #4A5E78',
+    border: '2px solid #555',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.15s ease',
   },
   checkboxChecked: {
-    background: '#22D3EE',
-    borderColor: '#22D3EE',
-    boxShadow: '0 0 10px rgba(34, 211, 238, 0.4)',
+    background: '#D4AF37',
+    borderColor: '#D4AF37',
+    boxShadow: '0 0 10px rgba(212, 175, 55, 0.4)',
   },
   positionBadge: {
     display: 'flex',
@@ -842,14 +840,14 @@ const styles = {
   },
   positionHash: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#888',
     fontWeight: 600,
   },
   positionNum: {
     fontSize: 18,
-    color: '#22D3EE',
+    color: '#D4AF37',
     fontWeight: 800,
-    textShadow: '0 0 10px rgba(34, 211, 238, 0.5)',
+    textShadow: '0 0 10px rgba(212, 175, 55, 0.5)',
   },
   calledBadge: {
     fontSize: 14,
@@ -870,34 +868,34 @@ const styles = {
     marginTop: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    border: '1px solid #1A2E4A',
-    background: 'linear-gradient(180deg, #0F1A2E, #0D1525)',
+    border: '1px solid #333',
+    background: '#050505',
   },
   sectionTitle: {
     fontSize: 10,
     fontWeight: 800,
-    color: '#22D3EE',
+    color: '#D4AF37',
     letterSpacing: '2px',
     padding: '10px 16px',
     margin: 0,
-    background: 'rgba(34, 211, 238, 0.06)',
-    borderBottom: '1px solid #1A2E4A',
+    background: 'rgba(212, 175, 55, 0.06)',
+    borderBottom: '1px solid #333',
   },
   myEntry: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '12px 16px',
-    borderBottom: '1px solid rgba(26, 46, 74, 0.5)',
+    borderBottom: '1px solid #1a1a1a',
   },
   myGameText: {
     fontSize: 15,
     fontWeight: 700,
-    color: '#fff',
+    color: '#E0E0E0',
   },
   myMeta: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#888',
     marginTop: 4,
   },
   leaveBtn: {
@@ -926,7 +924,7 @@ const styles = {
     marginTop: 16,
     background: 'none',
     border: 'none',
-    color: '#4A5E78',
+    color: '#666',
     fontSize: 12,
     fontWeight: 700,
     letterSpacing: '1px',
@@ -935,8 +933,8 @@ const styles = {
   },
   howItWorksContent: {
     borderRadius: 10,
-    border: '1px solid #1A2E4A',
-    background: 'rgba(15, 26, 46, 0.5)',
+    border: '1px solid #333',
+    background: 'rgba(10, 10, 10, 0.8)',
     padding: '12px 16px',
     marginTop: 4,
   },
@@ -950,9 +948,9 @@ const styles = {
     width: 24,
     height: 24,
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #1E3A5F, #132240)',
-    border: '1.5px solid #22D3EE',
-    color: '#22D3EE',
+    background: 'linear-gradient(135deg, #1a1a0a, #2a2510)',
+    border: '1.5px solid #D4AF37',
+    color: '#D4AF37',
     fontSize: 11,
     fontWeight: 800,
     display: 'flex',
@@ -961,7 +959,7 @@ const styles = {
     flexShrink: 0,
   },
   stepText: {
-    color: '#94A3B8',
+    color: '#B0B0B0',
     fontSize: 13,
     margin: 0,
   },
@@ -974,7 +972,7 @@ const styles = {
   },
   footerLabel: {
     fontSize: 10,
-    color: '#4A5E78',
+    color: '#555',
     letterSpacing: '3px',
     textTransform: 'uppercase',
     margin: '0 0 4px 0',
@@ -982,7 +980,7 @@ const styles = {
   footerBrand: {
     fontSize: 18,
     fontWeight: 800,
-    background: 'linear-gradient(180deg, #CBD5E1, #64748B)',
+    background: 'linear-gradient(180deg, #D4AF37, #B8860B)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     letterSpacing: '3px',
@@ -1007,9 +1005,9 @@ const styles = {
   prefsButton: {
     padding: '6px 14px',
     borderRadius: 8,
-    border: '1px solid #1A2E4A',
-    background: 'rgba(15, 26, 46, 0.95)',
-    color: '#94A3B8',
+    border: '1px solid #333',
+    background: 'rgba(10, 10, 10, 0.95)',
+    color: '#B0B0B0',
     fontSize: 12,
     fontWeight: 600,
     cursor: 'pointer',
@@ -1020,8 +1018,8 @@ const styles = {
     padding: '16px 24px',
     borderRadius: 12,
     border: 'none',
-    background: 'linear-gradient(180deg, #10B981, #059669)',
-    color: '#fff',
+    background: 'linear-gradient(180deg, #D4AF37, #B8860B)',
+    color: '#000',
     fontSize: 18,
     fontWeight: 800,
     letterSpacing: '1.5px',
@@ -1030,12 +1028,12 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.15)',
+    boxShadow: '0 4px 20px rgba(212, 175, 55, 0.4), 0 0 40px rgba(212, 175, 55, 0.15)',
     transition: 'all 0.2s ease',
   },
   joinButtonDisabled: {
-    background: 'linear-gradient(180deg, #1E293B, #0F172A)',
-    color: '#4A5E78',
+    background: 'linear-gradient(180deg, #1a1a1a, #0a0a0a)',
+    color: '#555',
     boxShadow: 'none',
     cursor: 'default',
   },
@@ -1050,7 +1048,7 @@ const styles = {
     position: 'fixed',
     inset: 0,
     zIndex: 100,
-    background: 'rgba(0, 0, 0, 0.7)',
+    background: 'rgba(0, 0, 0, 0.8)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1061,27 +1059,27 @@ const styles = {
     width: '100%',
     maxWidth: 400,
     borderRadius: 16,
-    background: 'linear-gradient(180deg, #0F1A2E, #0A1225)',
-    border: '1px solid #1A2E4A',
+    background: '#0a0a0a',
+    border: '1px solid #333',
     padding: 24,
-    boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#fff',
+    color: '#E0E0E0',
     margin: '0 0 4px 0',
   },
   modalSub: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#888',
     margin: '0 0 20px 0',
   },
   inputLabel: {
     display: 'block',
     fontSize: 12,
     fontWeight: 700,
-    color: '#94A3B8',
+    color: '#B0B0B0',
     marginBottom: 6,
     marginTop: 12,
     letterSpacing: '0.5px',
@@ -1090,9 +1088,9 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     borderRadius: 8,
-    border: '1px solid #1A2E4A',
-    background: '#0D1320',
-    color: '#fff',
+    border: '1px solid #333',
+    background: '#111',
+    color: '#E0E0E0',
     fontSize: 14,
     outline: 'none',
     boxSizing: 'border-box',
@@ -1102,7 +1100,7 @@ const styles = {
     alignItems: 'center',
     gap: 8,
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#B0B0B0',
     marginTop: 12,
     cursor: 'pointer',
   },
@@ -1115,9 +1113,9 @@ const styles = {
     flex: 1,
     padding: '12px 16px',
     borderRadius: 8,
-    border: '1px solid #1A2E4A',
+    border: '1px solid #333',
     background: 'transparent',
-    color: '#94A3B8',
+    color: '#B0B0B0',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
@@ -1127,8 +1125,8 @@ const styles = {
     padding: '12px 16px',
     borderRadius: 8,
     border: 'none',
-    background: 'linear-gradient(180deg, #10B981, #059669)',
-    color: '#fff',
+    background: 'linear-gradient(180deg, #D4AF37, #B8860B)',
+    color: '#000',
     fontSize: 14,
     fontWeight: 700,
     cursor: 'pointer',

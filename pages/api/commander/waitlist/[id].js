@@ -105,5 +105,81 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── PATCH: Update waitlist entry fields (e.g. check-in) ─────────
+  if (req.method === 'PATCH') {
+    try {
+      // Require staff auth
+      const staffSession = req.headers['x-staff-session'];
+      if (!staffSession) {
+        return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' } });
+      }
+
+      let isStaff = false;
+      try {
+        const sessionData = JSON.parse(staffSession);
+        if (sessionData.id) {
+          const { data: staff } = await supabase
+            .from('commander_staff')
+            .select('id, venue_id, is_active')
+            .eq('id', sessionData.id)
+            .eq('is_active', true)
+            .single();
+          if (staff) isStaff = true;
+        } else if (sessionData.user_id && sessionData.venue_id) {
+          const { data: staff } = await supabase
+            .from('commander_staff')
+            .select('id, venue_id, is_active')
+            .eq('user_id', sessionData.user_id)
+            .eq('venue_id', sessionData.venue_id)
+            .eq('is_active', true)
+            .single();
+          if (staff) isStaff = true;
+          // Owner fallback
+          if (!isStaff && sessionData.role === 'owner') {
+            const { data: sub } = await supabase
+              .from('commander_subscriptions')
+              .select('id')
+              .eq('owner_id', sessionData.user_id)
+              .eq('venue_id', sessionData.venue_id)
+              .in('status', ['active', 'trialing'])
+              .single();
+            if (sub) isStaff = true;
+          }
+        }
+      } catch { /* invalid session */ }
+
+      if (!isStaff) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Staff access required' } });
+      }
+
+      // Only allow specific fields to be updated
+      const allowedFields = ['checked_in_at', 'notes', 'player_phone'];
+      const updates = {};
+      for (const key of allowedFields) {
+        if (req.body[key] !== undefined) updates[key] = req.body[key];
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ success: false, error: { code: 'NO_UPDATES', message: 'No valid fields to update' } });
+      }
+
+      const { data, error } = await supabase
+        .from('commander_waitlist')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ success: false, error: { code: 'DATABASE_ERROR', message: error.message } });
+      }
+
+      return res.status(200).json({ success: true, data });
+    } catch (err) {
+      console.error('Waitlist patch error:', err);
+      return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+    }
+  }
+
   return res.status(405).json({ error: 'Method not allowed' });
 }
