@@ -51,6 +51,7 @@ export default function WaitlistDesk() {
   const [currentPage, setCurrentPage] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
+  const [addGameType, setAddGameType] = useState('');
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -449,9 +450,8 @@ export default function WaitlistDesk() {
                   <div style={{ padding: '8px', background: c.cardBgColor, borderTop: `1px solid ${c.borderColor}44`, marginTop: 'auto' }}>
                     <button
                       onClick={() => {
-                        const staffData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('commander_staff') || '{}') : {};
-                        const vid = staffData.venue_id;
-                        if (vid) window.open(`/hub/commander/waitlist/${vid}?game=${encodeURIComponent(gameLabel)}`, '_blank');
+                        setAddGameType(gameLabel);
+                        setShowAddWalkIn(true);
                       }}
                       style={{
                         width: '100%', padding: '12px 8px', fontSize: '16px', fontWeight: 800,
@@ -552,7 +552,7 @@ export default function WaitlistDesk() {
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: c.accentColor, margin: 0 }}>Add Player To Waitlist</h3>
                 <button onClick={() => setShowAddWalkIn(false)} style={modalCloseStyle(c)}><X size={14} /></button>
               </div>
-              <WalkInForm onSubmit={handleAddWalkIn} activeTables={activeTables} custom={c} />
+              <WalkInForm onSubmit={handleAddWalkIn} activeTables={activeTables} custom={custom} defaultGame={addGameType} />
             </div>
           </div>
         )}
@@ -579,10 +579,10 @@ export default function WaitlistDesk() {
 }
 
 // ── WALK-IN FORM ──────────────────────────────────────────────────
-function WalkInForm({ onSubmit, activeTables, custom: c }) {
+function WalkInForm({ onSubmit, activeTables, custom: c, defaultGame }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [gameType, setGameType] = useState('NLH 1/3');
+  const [gameType, setGameType] = useState(defaultGame || 'NLH 1/3');
   const [submitting, setSubmitting] = useState(false);
 
   let gameTypes = [...new Set(activeTables.map(t => t.game_type).filter(Boolean))];
