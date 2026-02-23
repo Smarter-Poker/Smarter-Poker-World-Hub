@@ -589,18 +589,24 @@ export default function ProfilePage() {
 
         setMessage('Removing cover photo...');
 
-        // Extract file path from URL
-        const urlParts = profile.cover_photo_url.split('/');
-        const fileName = urlParts[urlParts.length - 1];
-        const filePath = `${user.id}/${fileName}`;
-
-        // Delete from storage
-        const { error: deleteError } = await supabase.storage
-            .from('avatars')
-            .remove([filePath]);
-
-        if (deleteError) {
-            console.warn('Storage delete error (may not exist):', deleteError);
+        // Try to delete from storage — detect bucket from URL
+        try {
+            const url = profile.cover_photo_url;
+            if (url.includes('/social-media/')) {
+                // New uploads via /api/social/upload go to social-media bucket
+                const pathMatch = url.split('/social-media/')[1];
+                if (pathMatch) {
+                    await supabase.storage.from('social-media').remove([pathMatch]);
+                }
+            } else if (url.includes('/avatars/')) {
+                // Legacy uploads went to avatars bucket
+                const pathMatch = url.split('/avatars/')[1];
+                if (pathMatch) {
+                    await supabase.storage.from('avatars').remove([pathMatch]);
+                }
+            }
+        } catch (deleteErr) {
+            console.warn('Storage delete error (may not exist):', deleteErr);
             // Continue anyway - file might already be deleted
         }
 
@@ -617,7 +623,7 @@ export default function ProfilePage() {
         }
 
         setProfile(prev => ({ ...prev, cover_photo_url: null }));
-        setMessage(' Cover photo removed!');
+        setMessage('Cover photo removed!');
     };
 
     const handleSave = async () => {
