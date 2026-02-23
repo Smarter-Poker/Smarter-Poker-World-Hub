@@ -2,6 +2,7 @@
  * Upload Reel Modal Component
  * ═══════════════════════════════════════════════════════════════════════════
  * Modal for uploading video reels to Supabase storage
+ * Uses direct-to-Supabase signed URL uploads — NO file size limit
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -10,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 
 export default function UploadReelModal({ user, onClose, onSuccess }) {
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [caption, setCaption] = useState('');
     const [videoFile, setVideoFile] = useState(null);
     const [error, setError] = useState('');
@@ -24,12 +26,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             return;
         }
 
-        // Validate file size (max 100MB)
-        if (file.size > 100 * 1024 * 1024) {
-            setError('Video must be less than 100MB');
-            return;
-        }
-
+        // No file size limit — direct-to-Supabase handles any size
         setVideoFile(file);
         setError('');
     };
@@ -38,28 +35,55 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         if (!videoFile || !user) return;
 
         setUploading(true);
+        setUploadProgress(0);
         setError('');
 
         try {
-            // Upload video to Supabase storage
-            const fileExt = videoFile.name.split('.').pop();
-            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+            // 1. Get signed upload URL from our API (metadata only, no file body)
+            const metaRes = await fetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName: videoFile.name,
+                    fileSize: videoFile.size,
+                    mimeType: videoFile.type,
+                    folder: 'reels',
+                    prefix: user.id,
+                }),
+            });
+            const meta = await metaRes.json();
+            if (!meta.success) {
+                throw new Error(meta.error || 'Failed to create upload URL');
+            }
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('reels')
-                .upload(fileName, videoFile, {
-                    cacheControl: '3600',
-                    upsert: false
+            setUploadProgress(5);
+
+            // 2. Upload directly to Supabase Storage via signed URL (bypasses Vercel body limit)
+            const xhr = new XMLHttpRequest();
+            const publicUrl = await new Promise((resolve, reject) => {
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 85) + 5;
+                        setUploadProgress(Math.min(pct, 90));
+                    }
                 });
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(meta.publicUrl);
+                    } else {
+                        reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+                    }
+                });
+                xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+                xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+                xhr.open('PUT', meta.signedUrl);
+                xhr.setRequestHeader('Content-Type', videoFile.type);
+                xhr.send(videoFile);
+            });
 
-            if (uploadError) throw uploadError;
+            setUploadProgress(92);
 
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('reels')
-                .getPublicUrl(fileName);
-
-            // Create social_reels entry
+            // 3. Create social_reels entry
             const { error: insertError } = await supabase
                 .from('social_reels')
                 .insert({
@@ -73,7 +97,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
             if (insertError) throw insertError;
 
-            // Also create a social_posts entry for feed integration
+            setUploadProgress(96);
+
+            // 4. Also create a social_posts entry for feed integration
             await supabase
                 .from('social_posts')
                 .insert({
@@ -86,6 +112,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                     comment_count: 0
                 });
 
+            setUploadProgress(100);
             onSuccess();
         } catch (err) {
             console.error('Upload error:', err);
@@ -94,6 +121,8 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             setUploading(false);
         }
     };
+
+    const fileSizeMB = videoFile ? (videoFile.size / (1024 * 1024)).toFixed(1) : 0;
 
     return (
         <div style={styles.overlay}>
@@ -114,7 +143,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                             id="video-upload"
                         />
                         <label htmlFor="video-upload" style={styles.fileLabel}>
-                            {videoFile ? videoFile.name : '📹 Choose Video'}
+                            {videoFile ? `📹 ${videoFile.name} (${fileSizeMB}MB)` : '📹 Choose Video'}
                         </label>
                     </div>
 
@@ -126,6 +155,14 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         style={styles.textarea}
                         maxLength={500}
                     />
+
+                    {/* Upload Progress Bar */}
+                    {uploading && (
+                        <div style={styles.progressContainer}>
+                            <div style={{ ...styles.progressBar, width: `${uploadProgress}%` }} />
+                            <span style={styles.progressLabel}>{uploadProgress}%</span>
+                        </div>
+                    )}
 
                     {/* Error Message */}
                     {error && <div style={styles.error}>{error}</div>}
@@ -140,7 +177,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                             cursor: !videoFile || uploading ? 'not-allowed' : 'pointer'
                         }}
                     >
-                        {uploading ? 'Uploading...' : 'Upload Reel'}
+                        {uploading ? `Uploading… ${uploadProgress}%` : 'Upload Reel'}
                     </button>
                 </div>
             </div>
@@ -225,6 +262,31 @@ const styles = {
         fontFamily: 'inherit',
         resize: 'vertical',
         marginBottom: '16px'
+    },
+    progressContainer: {
+        position: 'relative',
+        height: '24px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        marginBottom: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+    },
+    progressBar: {
+        height: '100%',
+        background: 'linear-gradient(90deg, #00E0FF, #0099FF)',
+        borderRadius: '12px',
+        transition: 'width 0.3s ease'
+    },
+    progressLabel: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        fontSize: '12px',
+        fontWeight: 700,
+        color: '#fff',
+        textShadow: '0 1px 2px rgba(0,0,0,0.5)'
     },
     error: {
         padding: '12px',
