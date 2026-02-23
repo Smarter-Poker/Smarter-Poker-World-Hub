@@ -12,9 +12,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
+    // Auth guard: require staff auth for write operations
+    const _authResult = await guardWriteStaff(req, res);
+    if (!_authResult) return;
 
     if (req.method === 'GET') {
         return handleList(req, res);
@@ -87,7 +87,7 @@ async function handleCreate(req, res) {
         id_expiry,
         photo_url,
         address,
-        membership_tier = 'standard',
+        membership_tier = 'daily',
         notes,
         created_by,
     } = req.body;
