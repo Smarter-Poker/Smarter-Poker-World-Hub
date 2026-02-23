@@ -52,7 +52,7 @@ function PostCard({ post, user, onLike, onComment }) {
             const res = await fetch(`/api/social/pages/engage?post_id=${post.id}`);
             const json = await res.json();
             if (json.success) setComments(json.data || []);
-        } catch {}
+        } catch { }
         setLoadingComments(false);
         setShowComments(true);
     };
@@ -74,7 +74,7 @@ function PostCard({ post, user, onLike, onComment }) {
                 setCommentText('');
                 onComment(post.id);
             }
-        } catch {}
+        } catch { }
     };
 
     return (
@@ -107,9 +107,16 @@ function PostCard({ post, user, onLike, onComment }) {
             {post.media_urls && post.media_urls.length > 0 && (
                 <div style={{ padding: '0 0 0' }}>
                     {post.media_urls.slice(0, 4).map((url, i) => (
-                        <img key={i} src={url} alt="" style={{
-                            width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block',
-                        }}/>
+                        post.media_urls.length === 1 ? (
+                            <div key={i} style={{ width: '100%', maxHeight: 400, backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <img src={url} alt="" style={{ maxWidth: '100%', maxHeight: 400, objectFit: 'contain', display: 'block' }} />
+                            </div>
+                        ) : (
+                            <img key={i} src={url} alt="" style={{
+                                width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block',
+                                marginBottom: 2
+                            }} />
+                        )
                     ))}
                 </div>
             )}
@@ -131,14 +138,16 @@ function PostCard({ post, user, onLike, onComment }) {
                 {[
                     { label: post.user_liked ? 'Liked' : 'Like', action: () => onLike(post.id), active: post.user_liked },
                     { label: 'Comment', action: fetchComments },
-                    { label: 'Share', action: () => {
-                        const url = window.location.href;
-                        if (navigator.share) {
-                            navigator.share({ title: post.content?.slice(0, 60) || 'Post', url }).catch(() => {});
-                        } else {
-                            navigator.clipboard.writeText(url).then(() => alert('Link copied!')).catch(() => {});
+                    {
+                        label: 'Share', action: () => {
+                            const url = window.location.href;
+                            if (navigator.share) {
+                                navigator.share({ title: post.content?.slice(0, 60) || 'Post', url }).catch(() => { });
+                            } else {
+                                navigator.clipboard.writeText(url).then(() => alert('Link copied!')).catch(() => { });
+                            }
                         }
-                    } },
+                    },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action} style={{
                         flex: 1, padding: '10px 0', border: 'none', background: 'none',
@@ -261,7 +270,7 @@ export default function SocialPageDetail() {
             const res = await fetch(`/api/social/pages/posts?${params}`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch {}
+        } catch { }
     }, [page, user]);
 
     const fetchFollowers = useCallback(async () => {
@@ -270,7 +279,7 @@ export default function SocialPageDetail() {
             const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
-        } catch {}
+        } catch { }
     }, [page]);
 
     useEffect(() => { fetchPage(); }, [fetchPage]);
@@ -295,7 +304,7 @@ export default function SocialPageDetail() {
                     action: newState ? 'follow' : 'unfollow',
                 }),
             });
-        } catch {}
+        } catch { }
     };
 
     const handlePost = async () => {
@@ -315,7 +324,7 @@ export default function SocialPageDetail() {
                 setNewPost('');
                 fetchPosts();
             }
-        } catch {}
+        } catch { }
         setPosting(false);
     };
 
@@ -335,7 +344,7 @@ export default function SocialPageDetail() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
-        } catch {}
+        } catch { }
     };
 
     const handleCommentAdded = (postId) => {
@@ -358,7 +367,7 @@ export default function SocialPageDetail() {
                             width: 32, height: 32, border: `3px solid #E4E6EB`,
                             borderTopColor: C.blue, borderRadius: '50%',
                             animation: 'spin 0.8s linear infinite', margin: '0 auto',
-                        }}/>
+                        }} />
                         <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading Page...</p>
                     </div>
                 </div>
@@ -412,7 +421,7 @@ export default function SocialPageDetail() {
                     height: 200, background: page.cover_url
                         ? `url(${page.cover_url}) center/cover` : `linear-gradient(135deg, ${pageColor}, #8b5cf6)`,
                     paddingTop: 56,
-                }}/>
+                }} />
 
                 {/* Page Info Header */}
                 <div style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}>
@@ -432,7 +441,7 @@ export default function SocialPageDetail() {
                                     {page.name}
                                     {page.is_verified && (
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill={C.blue}>
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                                         </svg>
                                     )}
                                 </h1>
@@ -572,7 +581,7 @@ export default function SocialPageDetail() {
                                         {page.location_city && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
-                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
                                                 </svg>
                                                 <span style={{ fontSize: 14, color: C.text }}>{page.location_city}, {page.location_state}</span>
                                             </div>
@@ -580,7 +589,7 @@ export default function SocialPageDetail() {
                                         {page.website && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
-                                                    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                                                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
                                                 </svg>
                                                 <a href={page.website} target="_blank" rel="noopener noreferrer"
                                                     style={{ fontSize: 14, color: C.blue, textDecoration: 'none' }}>
@@ -591,15 +600,15 @@ export default function SocialPageDetail() {
                                         {page.contact_email && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
-                                                    <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,7 12,13 2,7"/>
+                                                    <rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,7 12,13 2,7" />
                                                 </svg>
                                                 <span style={{ fontSize: 14, color: C.text }}>{page.contact_email}</span>
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
-                                                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-                                                <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                                             </svg>
                                             <span style={{ fontSize: 14, color: C.textSec }}>
                                                 Created {new Date(page.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}

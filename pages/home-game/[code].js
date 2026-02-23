@@ -152,8 +152,13 @@ function PostCard({ post }) {
       {post.image_urls?.length > 0 && (
         <div className={`grid gap-1 ${post.image_urls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {post.image_urls.slice(0, 4).map((url, idx) => (
-            <div key={idx} className="relative aspect-video bg-[#F3F4F6]">
-              <img src={url} alt="" className="w-full h-full object-cover" />
+            <div key={idx} className={`relative flex items-center justify-center bg-[#F3F4F6] overflow-hidden ${post.image_urls.length === 1 ? 'max-h-[500px]' : 'aspect-video'}`}>
+              <img src={url} alt="" className={`${post.image_urls.length === 1 ? 'max-w-full max-h-[500px] object-contain' : 'w-full h-full object-cover'}`} />
+              {idx === 3 && post.image_urls.length > 4 && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white font-semibold text-lg">+{post.image_urls.length - 4}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -406,8 +411,8 @@ export default function HomeGamePage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                      ? 'border-[#10B981] text-[#10B981]'
-                      : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+                    ? 'border-[#10B981] text-[#10B981]'
+                    : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
                     }`}
                 >
                   {tab.label}
