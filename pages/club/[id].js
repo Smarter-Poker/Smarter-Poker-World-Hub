@@ -106,7 +106,7 @@ function PostCard({ post, onLike, onComment }) {
         <div className={`grid gap-1 ${post.image_urls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {post.image_urls.slice(0, 4).map((url, idx) => (
             <div key={idx} className={`relative ${post.image_urls.length > 1 ? 'aspect-video overflow-hidden' : ''}`}>
-              <img src={url} alt="" className={`w-full ${post.image_urls.length > 1 ? 'h-full object-cover' : ''}`} />
+              <img src={url} alt="" className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
               {idx === 3 && post.image_urls.length > 4 && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <span className="text-white font-semibold text-lg">+{post.image_urls.length - 4}</span>

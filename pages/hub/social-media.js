@@ -1478,7 +1478,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', display: 'block' }} />
+                            <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
