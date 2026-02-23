@@ -327,8 +327,8 @@ export default function InviteFriendsModal({
                         style={{
                             flex: 1,
                             padding: '14px 16px',
-                            background: copied ? '#31A24C' : '#1877F2',
-                            border: 'none',
+                            background: copied ? '#31A24C' : 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.1)',
                             borderRadius: 12,
                             color: '#fff',
                             fontSize: 14,
@@ -341,7 +341,7 @@ export default function InviteFriendsModal({
                             transition: 'all 0.3s',
                             boxShadow: copied
                                 ? '0 4px 16px rgba(49, 162, 76, 0.4)'
-                                : '0 4px 16px rgba(24, 119, 242, 0.3)',
+                                : 'none',
                         }}
                     >
                         {copied ? 'Copied!' : 'Copy Link'}
@@ -355,8 +355,8 @@ export default function InviteFriendsModal({
                             style={{
                                 flex: 1,
                                 padding: '14px 16px',
-                                background: '#1877F2',
-                                border: 'none',
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '1px solid rgba(255,255,255,0.1)',
                                 borderRadius: 12,
                                 color: '#fff',
                                 fontSize: 14,
@@ -367,7 +367,7 @@ export default function InviteFriendsModal({
                                 justifyContent: 'center',
                                 gap: 8,
                                 transition: 'all 0.3s',
-                                boxShadow: '0 4px 16px rgba(24, 119, 242, 0.3)',
+                                boxShadow: 'none',
                             }}
                         >
                             Share
