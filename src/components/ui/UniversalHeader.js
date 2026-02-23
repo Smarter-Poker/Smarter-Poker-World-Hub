@@ -367,6 +367,14 @@ export default function UniversalHeader({
                     flex-shrink: 0;
                     justify-content: flex-end;
                 }
+
+                /* Force all children (Links render as inline <a>) to be flex items */
+                .header-right > * {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
                 
                 .nav-btn {
                     display: flex;
@@ -553,6 +561,12 @@ export default function UniversalHeader({
                         flex-grow: 0;
                         justify-content: flex-end;
                     }
+
+                    .header-right > * {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
                     
                     .brand-text {
                         display: none; /* Hide brand text on mobile */
@@ -659,7 +673,7 @@ export default function UniversalHeader({
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         title="Diamond Wallet"
                     >
-                        <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img src="/images/diamond-icon.png" alt="Diamond Wallet" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
                     {/* VIP Card Icon — only for VIP members */}
