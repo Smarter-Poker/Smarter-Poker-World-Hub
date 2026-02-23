@@ -36,12 +36,20 @@ export default function PlayerWaitlistPage() {
   }, [venueId]);
 
   function getAuthToken() {
-    let token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
+    // Try direct key first
+    let raw = localStorage.getItem('smarter-poker-auth');
+    if (!raw) {
       const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+      if (sbKeys.length > 0) raw = localStorage.getItem(sbKeys[0]);
     }
-    return token;
+    if (!raw) return null;
+    // Parse JSON if needed to get access_token
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed.access_token || raw;
+    } catch {
+      return raw;
+    }
   }
 
   async function fetchData() {

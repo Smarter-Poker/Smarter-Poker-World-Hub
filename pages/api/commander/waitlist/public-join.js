@@ -2,10 +2,13 @@
  * Public Waitlist Join API — POST /api/commander/waitlist/public-join
  * Allows authenticated players to add themselves to a venue waitlist via web.
  * Sets signup_method = 'web' automatically.
- * Does NOT require staff auth — only Supabase user auth.
+ *
+ * Auth: Verifies Supabase JWT from Authorization header (Bearer token).
+ * Does NOT require staff auth — only a valid logged-in user.
+ *
+ * Also: cleans up expired web entries (>1 hour, not checked in) on each call.
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardUser } from '../../../../src/lib/commander/auth';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 
 const supabase = createClient(
@@ -13,19 +16,50 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Anon client for JWT verification
+const supabaseAnon = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
 const AVERAGE_WAIT_PER_POSITION = 15;
+const WEB_EXPIRY_MINUTES = 60; // Auto-delete after 1 hour
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // Require logged-in user (not staff)
-    const user = await guardUser(req, res);
-    if (!user) return;
+    // ═══ Auth: Extract and verify JWT from Authorization header ═══
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+            success: false,
+            error: { code: 'AUTH_REQUIRED', message: 'Please sign in to join the waitlist' }
+        });
+    }
+
+    const token = authHeader.replace('Bearer ', '').trim();
+
+    // Try to parse the token — it might be a raw JWT or a JSON object with access_token
+    let accessToken = token;
+    try {
+        const parsed = JSON.parse(token);
+        if (parsed.access_token) accessToken = parsed.access_token;
+    } catch { /* token is already a raw JWT */ }
+
+    // Verify the user with Supabase
+    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(accessToken);
+
+    if (authError || !user) {
+        return res.status(401).json({
+            success: false,
+            error: { code: 'AUTH_REQUIRED', message: 'Please sign in to join the waitlist' }
+        });
+    }
 
     try {
-        const { venue_id, game_type, stakes, player_phone } = req.body;
+        const { venue_id, game_type, stakes, player_phone, player_name } = req.body;
 
         // Validation
         if (!venue_id || !game_type || !stakes) {
@@ -56,6 +90,21 @@ export default async function handler(req, res) {
             });
         }
 
+        // ═══ Auto-delete expired web entries (>1 hour, not checked in) ═══
+        try {
+            const expiryTime = new Date(Date.now() - WEB_EXPIRY_MINUTES * 60 * 1000).toISOString();
+            await supabase
+                .from('commander_waitlist')
+                .delete()
+                .eq('venue_id', venue_id)
+                .eq('signup_method', 'web')
+                .eq('status', 'waiting')
+                .is('checked_in_at', null)
+                .lt('created_at', expiryTime);
+        } catch (cleanupErr) {
+            console.warn('Waitlist cleanup warning:', cleanupErr);
+        }
+
         // Check if player already on this waitlist
         const { data: existing } = await supabase
             .from('commander_waitlist')
@@ -74,29 +123,6 @@ export default async function handler(req, res) {
             });
         }
 
-        // Check self-exclusions
-        const { data: exclusion } = await supabase
-            .from('commander_self_exclusions')
-            .select('id, exclusion_type, expires_at')
-            .eq('player_id', user.id)
-            .or(`venue_id.eq.${venue_id},scope.eq.network`)
-            .is('lifted_at', null)
-            .or('expires_at.is.null,expires_at.gt.now()')
-            .limit(1)
-            .maybeSingle();
-
-        if (exclusion) {
-            return res.status(403).json({
-                success: false,
-                error: {
-                    code: 'SELF_EXCLUDED',
-                    message: 'You have an active self-exclusion and cannot join at this time.',
-                    exclusion_type: exclusion.exclusion_type,
-                    expires_at: exclusion.expires_at
-                }
-            });
-        }
-
         // Get player's display name from profile
         const { data: profile } = await supabase
             .from('profiles')
@@ -104,7 +130,7 @@ export default async function handler(req, res) {
             .eq('id', user.id)
             .single();
 
-        const playerName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || 'Web Player';
+        const playerName = player_name || profile?.display_name || profile?.full_name || user.email?.split('@')[0] || 'Web Player';
         const playerPhone = player_phone || profile?.phone || null;
 
         // Get next position
@@ -126,7 +152,7 @@ export default async function handler(req, res) {
             .eq('game_type', game_type)
             .eq('stakes', stakes)
             .in('status', ['waiting', 'running'])
-            .single();
+            .maybeSingle();
 
         // Insert waitlist entry
         const { data: entry, error: insertError } = await supabase
@@ -161,7 +187,7 @@ export default async function handler(req, res) {
                 entry,
                 position,
                 estimated_wait: estimated_wait_minutes,
-                check_in_deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+                check_in_deadline: new Date(Date.now() + WEB_EXPIRY_MINUTES * 60 * 1000).toISOString()
             }
         });
     } catch (error) {

@@ -28,6 +28,19 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ═══ Auto-cleanup: delete expired web entries (>1 hour, not checked in) ═══
+    try {
+      const expiryTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      await supabase
+        .from('commander_waitlist')
+        .delete()
+        .eq('venue_id', venueId)
+        .eq('signup_method', 'web')
+        .eq('status', 'waiting')
+        .is('checked_in_at', null)
+        .lt('created_at', expiryTime);
+    } catch (cleanupErr) { /* non-critical */ }
+
     // Get all waiting entries at venue
     const { data: entries, error } = await supabase
       .from('commander_waitlist')
