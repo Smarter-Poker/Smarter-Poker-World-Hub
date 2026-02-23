@@ -441,17 +441,48 @@ export default function ClubPage() {
     for (const file of toUpload) {
       const isVideo = file.type.startsWith('video/');
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('folder', 'club-posts');
-        formData.append('prefix', venue?.social_page_id || id);
-        const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
-        const json = await res.json();
-        if (json.success && json.url) {
-          uploaded.push({ type: json.type || (isVideo ? 'video' : 'photo'), url: json.url });
+        if (isVideo) {
+          // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
+          const metaRes = await fetch('/api/social/upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: file.size,
+              mimeType: file.type,
+              folder: 'club-posts',
+              prefix: venue?.social_page_id || id,
+            }),
+          });
+          const meta = await metaRes.json();
+          if (!meta.success) {
+            alert('Upload failed: ' + (meta.error || 'Unknown error'));
+            continue;
+          }
+          const uploadRes = await fetch(meta.signedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+          if (!uploadRes.ok) {
+            alert('Video upload failed — please try again');
+            continue;
+          }
+          uploaded.push({ type: 'video', url: meta.publicUrl });
         } else {
-          console.error('[ClubPage] Upload failed:', json.error);
-          alert('Upload failed: ' + (json.error || 'Unknown error'));
+          // Keep existing API for images (small files)
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('folder', 'club-posts');
+          formData.append('prefix', venue?.social_page_id || id);
+          const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json.success && json.url) {
+            uploaded.push({ type: json.type || 'photo', url: json.url });
+          } else {
+            console.error('[ClubPage] Upload failed:', json.error);
+            alert('Upload failed: ' + (json.error || 'Unknown error'));
+          }
         }
       } catch (err) {
         console.error('[ClubPage] Upload error:', err);
