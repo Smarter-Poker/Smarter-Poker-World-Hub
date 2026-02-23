@@ -445,6 +445,27 @@ export default function WaitlistDesk() {
                       );
                     })}
                   </div>
+                  {/* Join Wait List Button */}
+                  <div style={{ padding: '8px', background: c.cardBgColor, borderTop: `1px solid ${c.borderColor}44`, marginTop: 'auto' }}>
+                    <button
+                      onClick={() => {
+                        const staffData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('commander_staff') || '{}') : {};
+                        const vid = staffData.venue_id;
+                        if (vid) window.open(`/hub/commander/waitlist/${vid}?game=${encodeURIComponent(gameLabel)}`, '_blank');
+                      }}
+                      style={{
+                        width: '100%', padding: '12px 8px', fontSize: '16px', fontWeight: 800,
+                        letterSpacing: '1px', textTransform: 'uppercase',
+                        background: `linear-gradient(180deg, ${lighten(c.headerColor, 15)}, ${c.headerColor})`,
+                        border: `2px solid ${c.accentColor}`,
+                        borderRadius: '6px', color: '#fff', cursor: 'pointer',
+                        boxShadow: `0 2px 8px ${c.accentColor}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                      }}
+                    >
+                      Join Wait List
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -469,28 +490,6 @@ export default function WaitlistDesk() {
           </div>
         )}
 
-        {/* ═══ JOIN WAIT LIST BUTTON (for mobile/kiosk users) ═══ */}
-        <div style={{ padding: '10px 16px', background: c.cardBgColor, borderTop: `1px solid ${c.borderColor}33` }}>
-          <button
-            onClick={() => {
-              // Navigate to the public waitlist kiosk page
-              const staffData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('commander_staff') || '{}') : {};
-              const vid = staffData.venue_id;
-              if (vid) window.open(`/hub/commander/waitlist/${vid}`, '_blank');
-            }}
-            style={{
-              width: '100%', padding: '16px 24px', fontSize: '22px', fontWeight: 800,
-              letterSpacing: '1px', textTransform: 'uppercase',
-              background: `linear-gradient(180deg, ${lighten(c.headerColor, 15)}, ${c.headerColor})`,
-              border: `3px solid ${c.accentColor}`,
-              borderRadius: '8px', color: '#fff', cursor: 'pointer',
-              boxShadow: `0 4px 12px ${c.accentColor}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-            }}
-          >
-            Join Wait List
-          </button>
-        </div>
 
         {/* ═══ SCROLLING TICKER ═══ */}
         <div style={{ padding: '18px 0', borderTop: `2px solid ${c.borderColor}55`, background: c.cardBgColor, overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative' }}>
