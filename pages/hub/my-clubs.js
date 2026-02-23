@@ -544,8 +544,6 @@ export default function MyClubsPage() {
 
     // Followed clubs data
     const [followedVenues, setFollowedVenues] = useState([]);
-    const [followedTours, setFollowedTours] = useState([]);
-    const [followedSeries, setFollowedSeries] = useState([]);
     const [arenaClubs, setArenaClubs] = useState([]);
     const [followedIds, setFollowedIds] = useState(new Set());
     const [followedPageKeys, setFollowedPageKeys] = useState(new Set());
@@ -598,8 +596,6 @@ export default function MyClubsPage() {
 
             // Get all follows from API
             let venueIds = [];
-            let tourIds = [];
-            let seriesIds = [];
             const allPageKeys = new Set();
             if (userId) {
                 try {
@@ -609,8 +605,6 @@ export default function MyClubsPage() {
                         json.data.forEach(f => {
                             allPageKeys.add(`${f.page_type}:${f.page_id}`);
                             if (f.page_type === 'venue') venueIds.push(f.page_id);
-                            else if (f.page_type === 'tour') tourIds.push(f.page_id);
-                            else if (f.page_type === 'series') seriesIds.push(f.page_id);
                         });
                     }
                 } catch (e) {
@@ -651,7 +645,9 @@ export default function MyClubsPage() {
                     results.forEach(r => {
                         if (r.status === 'fulfilled' && r.value) venues.push(r.value);
                     });
-                    setFollowedVenues(venues);
+                    // Only show home_game, club, and charity venue types
+                    const ALLOWED_TYPES = ['home_game', 'club', 'charity'];
+                    setFollowedVenues(venues.filter(v => ALLOWED_TYPES.includes(v.venue_type)));
                 }
 
                 // Fetch live game counts for each venue (fire-and-forget)
@@ -680,31 +676,7 @@ export default function MyClubsPage() {
                 setWaitlistMap(wlMap);
             }
 
-            // Fetch followed tour details
-            if (tourIds.length > 0) {
-                try {
-                    const res = await fetch('/api/poker/pages?category=tours&followed_only=true&user_id=' + userId);
-                    const json = await res.json();
-                    if (json.success && json.data) {
-                        setFollowedTours(json.data.filter(p => p.page_type === 'tour'));
-                    }
-                } catch (e) {
-                    console.warn('[MyClubs] Failed to fetch followed tours:', e);
-                }
-            }
 
-            // Fetch followed series details
-            if (seriesIds.length > 0) {
-                try {
-                    const res = await fetch('/api/poker/pages?category=series&followed_only=true&user_id=' + userId);
-                    const json = await res.json();
-                    if (json.success && json.data) {
-                        setFollowedSeries(json.data.filter(p => p.page_type === 'series'));
-                    }
-                } catch (e) {
-                    console.warn('[MyClubs] Failed to fetch followed series:', e);
-                }
-            }
 
             // Fetch Club Arena memberships (uses Supabase directly)
             if (authUser?.id) {
@@ -814,33 +786,7 @@ export default function MyClubsPage() {
         } catch { }
     };
 
-    // Unfollow a tour or series
-    const handlePageUnfollow = async (pageType, pageId) => {
-        // Optimistic removal
-        if (pageType === 'tour') {
-            setFollowedTours(prev => prev.filter(t => t.page_id !== pageId));
-        } else if (pageType === 'series') {
-            setFollowedSeries(prev => prev.filter(s => s.page_id !== pageId));
-        }
-        setFollowedPageKeys(prev => {
-            const next = new Set(prev);
-            next.delete(`${pageType}:${pageId}`);
-            return next;
-        });
-        // Persist to API
-        try {
-            await fetch('/api/poker/follow', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    page_type: pageType,
-                    page_id: String(pageId),
-                    action: 'unfollow',
-                    user_id: getUserId(),
-                }),
-            });
-        } catch { }
-    };
+
 
     // Navigate to venue detail
     const handleNavigate = (venueId) => {
@@ -920,7 +866,7 @@ export default function MyClubsPage() {
                                 transition: 'all 0.2s ease',
                             }}
                         >
-                            My Clubs {(followedVenues.length + followedTours.length + followedSeries.length + arenaClubs.length) > 0 && `(${followedVenues.length + followedTours.length + followedSeries.length + arenaClubs.length})`}
+                            My Clubs {(followedVenues.length + arenaClubs.length) > 0 && `(${followedVenues.length + arenaClubs.length})`}
                         </button>
                         <button
                             onClick={() => setActiveTab('discover')}
@@ -956,7 +902,7 @@ export default function MyClubsPage() {
                                     <div style={{ fontSize: 14, color: C.textSec }}>Loading Your Clubs...</div>
 
                                 </div>
-                            ) : (followedVenues.length === 0 && followedTours.length === 0 && followedSeries.length === 0 && arenaClubs.length === 0) ? (
+                            ) : (followedVenues.length === 0 && arenaClubs.length === 0) ? (
                                 <EmptyState onSearchFocus={focusSearch} />
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -981,57 +927,16 @@ export default function MyClubsPage() {
                                             />
                                         ))}
 
-                                    {/* ── Tours & Series Section ── */}
-                                    {(followedTours.length > 0 || followedSeries.length > 0) && (
-                                        <>
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: 12,
-                                                marginTop: followedVenues.length > 0 ? 24 : 0,
-                                                paddingTop: followedVenues.length > 0 ? 20 : 0,
-                                                borderTop: followedVenues.length > 0 ? `1px solid ${C.elevated}` : 'none',
-                                            }}>
-                                                <div style={{
-                                                    width: 28, height: 28, borderRadius: 8,
-                                                    background: 'linear-gradient(135deg, #00bfff, #f59e0b)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 13, color: '#fff', fontWeight: 700,
-                                                }}>🌐</div>
-                                                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
-                                                    Tours & Series
-                                                </span>
-                                                <span style={{
-                                                    fontSize: 11, fontWeight: 600, color: '#00bfff',
-                                                    padding: '2px 8px', borderRadius: 12,
-                                                    background: 'rgba(0, 191, 255, 0.12)',
-                                                }}>{followedTours.length + followedSeries.length}</span>
-                                            </div>
-                                            {followedTours.map(tour => (
-                                                <FollowedPageCard
-                                                    key={`tour-${tour.page_id}`}
-                                                    page={tour}
-                                                    onNavigate={(url) => router.push(url)}
-                                                    onUnfollow={handlePageUnfollow}
-                                                />
-                                            ))}
-                                            {followedSeries.map(series => (
-                                                <FollowedPageCard
-                                                    key={`series-${series.page_id}`}
-                                                    page={series}
-                                                    onNavigate={(url) => router.push(url)}
-                                                    onUnfollow={handlePageUnfollow}
-                                                />
-                                            ))}
-                                        </>
-                                    )}
+
 
                                     {/* ── Club Arena Section ── */}
                                     {arenaClubs.length > 0 && (
                                         <>
                                             <div style={{
                                                 display: 'flex', alignItems: 'center', gap: 12,
-                                                marginTop: (followedVenues.length > 0 || followedTours.length > 0 || followedSeries.length > 0) ? 24 : 0,
-                                                paddingTop: (followedVenues.length > 0 || followedTours.length > 0 || followedSeries.length > 0) ? 20 : 0,
-                                                borderTop: (followedVenues.length > 0 || followedTours.length > 0 || followedSeries.length > 0) ? `1px solid ${C.elevated}` : 'none',
+                                                marginTop: followedVenues.length > 0 ? 24 : 0,
+                                                paddingTop: followedVenues.length > 0 ? 20 : 0,
+                                                borderTop: followedVenues.length > 0 ? `1px solid ${C.elevated}` : 'none',
                                             }}>
                                                 <div style={{
                                                     width: 28, height: 28, borderRadius: 8,
