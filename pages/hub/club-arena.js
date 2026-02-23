@@ -596,6 +596,8 @@ const S = {
     },
     mainContent: {
         position: 'relative', padding: '0 0 20px', zIndex: 1,
+        maxWidth: '480px',
+        margin: '0 auto',
     },
 
     // ACTION BAR (baked image) - Overlaps into header background
@@ -622,9 +624,12 @@ const S = {
     // SHARK CLUB CARD (baked image) - Tight overlap into action bar
     sharkClubWrapper: {
         position: 'relative',
-        width: '100%',
-        marginTop: '-120px',
+        width: '80%',
+        maxWidth: '360px',
+        marginTop: '-80px',
         marginBottom: '15px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
         cursor: 'pointer',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
