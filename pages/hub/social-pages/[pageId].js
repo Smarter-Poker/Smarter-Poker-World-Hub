@@ -107,16 +107,10 @@ function PostCard({ post, user, onLike, onComment }) {
             {post.media_urls && post.media_urls.length > 0 && (
                 <div style={{ padding: '0 0 0' }}>
                     {post.media_urls.slice(0, 4).map((url, i) => (
-                        post.media_urls.length === 1 ? (
-                            <div key={i} style={{ width: '100%', maxHeight: 400, backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={url} alt="" style={{ maxWidth: '100%', maxHeight: 400, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }} />
-                            </div>
-                        ) : (
-                            <img key={i} src={url} alt="" style={{
-                                width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block',
-                                marginBottom: 2
-                            }} />
-                        )
+                        <img key={i} src={url} alt="" style={{
+                            width: '100%', display: 'block',
+                            marginBottom: post.media_urls.length > 1 ? 2 : 0
+                        }} />
                     ))}
                 </div>
             )}

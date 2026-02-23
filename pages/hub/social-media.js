@@ -1478,9 +1478,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <div style={{ width: '100%', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', maxHeight: 500, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }} />
-                            </div>
+                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', display: 'block' }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -1660,26 +1658,6 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
                 <button onClick={send} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.blue, fontSize: 16 }}>➤</button>
             </div>
         </div>
-    );
-}
-
-function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
-    const [q, setQ] = useState('');
-    return (
-        <aside style={{ width: 200, position: 'sticky', top: 70, height: 'fit-content' }}>
-            <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec }}>Contacts</h4>
-            <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder=" Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
-            {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
-                <div key={u.id} onClick={() => onOpenChat(u)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
-                    <Avatar name={u.username} size={32} /><span style={{ fontSize: 13 }}>{u.username}</span>
-                </div>
-            ))}
-            {contacts.length === 0 ? <p style={{ color: C.textSec, fontSize: 12, textAlign: 'left', margin: 0 }}>No Contacts Yet</p> : contacts.map(c => (
-                <div key={c.id} onClick={() => onOpenChat(c)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
-                    <Avatar src={c.avatar} name={c.name} size={36} online={c.online} /><span style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</span>
-                </div>
-            ))}
-        </aside>
     );
 }
 
@@ -5689,17 +5667,6 @@ export default function SocialMediaPage() {
                                     }
                                 `}</style>
                             </div>
-                            {/* Contacts Sidebar — desktop only */}
-                            {user && (
-                                <div className="social-contacts-sidebar">
-                                    <ContactsSidebar
-                                        contacts={contacts}
-                                        onOpenChat={handleOpenChat}
-                                        onSearch={handleSearch}
-                                        searchResults={searchResults}
-                                    />
-                                </div>
-                            )}
                         </div>
                     </>}
                 </main>
@@ -5832,6 +5799,10 @@ export default function SocialMediaPage() {
                 isOpen={showInviteModal}
                 onClose={() => setShowInviteModal(false)}
                 user={user}
+                contacts={contacts}
+                onOpenChat={handleOpenChat}
+                onSearch={handleSearch}
+                searchResults={searchResults}
             />
         </PageTransition>
     );

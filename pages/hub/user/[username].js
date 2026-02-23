@@ -361,9 +361,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                         post.content_type === 'video' ? (
                             <video src={post.media_urls[0]} controls style={{ width: '100%', maxHeight: 400, objectFit: 'cover' }} />
                         ) : (
-                            <div style={{ width: '100%', maxHeight: 500, backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={post.media_urls[0]} style={{ maxWidth: '100%', maxHeight: 500, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }} />
-                            </div>
+                            <img src={post.media_urls[0]} alt="" style={{ width: '100%', display: 'block' }} />
                         )
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
