@@ -9,21 +9,17 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Clock, Users, MapPin, Loader2, Zap, ChevronDown, ChevronUp, X, AlertTriangle, Globe, CheckCircle } from 'lucide-react';
 
-const GAME_TYPES = [
-  { value: 'nlh', label: 'No Limit Hold\'em', short: 'NLH' },
-  { value: 'plo', label: 'Pot Limit Omaha', short: 'PLO' },
-  { value: 'plo5', label: 'PLO Hi-Lo', short: 'PLO5' },
-  { value: 'mixed', label: 'Mixed Games', short: 'MIX' },
-  { value: 'limit', label: 'Limit Hold\'em', short: 'LHE' }
-];
+const GAME_LABELS = {
+  nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', mixed: 'MIX', limit: 'LHE',
+  NLH: 'NLH', PLO: 'PLO', PLO5: 'PLO5', MIXED: 'MIX', LIMIT: 'LHE',
+};
 
 export default function PlayerWaitlistPage() {
   const router = useRouter();
   const { venueId } = router.query;
 
   const [venue, setVenue] = useState(null);
-  const [games, setGames] = useState([]);
-  const [waitlists, setWaitlists] = useState([]);
+  const [waitlistColumns, setWaitlistColumns] = useState([]);
   const [myEntries, setMyEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joiningGame, setJoiningGame] = useState(null);
@@ -62,10 +58,41 @@ export default function PlayerWaitlistPage() {
 
       if (publicData.success) {
         setVenue(publicData.data.venue);
-        setGames(publicData.data.live_games || []);
       }
-      if (waitlistData.success) setWaitlists(waitlistData.data.waitlists || []);
 
+      // Build columns from waitlist API (already grouped by game_type+stakes with players)
+      if (waitlistData.success) {
+        const cols = (waitlistData.data.waitlists || []).map(wl => ({
+          label: `${GAME_LABELS[wl.game_type] || wl.game_type.toUpperCase()} ${wl.stakes}`,
+          gameType: wl.game_type,
+          stakes: wl.stakes,
+          players: wl.players || [],
+          count: wl.count || 0,
+        }));
+
+        // Also add game columns with no waiters from live_games
+        if (publicData.success) {
+          const liveGames = publicData.data.live_games || [];
+          liveGames
+            .filter(g => ['waiting', 'running'].includes(g.status))
+            .forEach(g => {
+              const label = `${GAME_LABELS[g.game_type] || g.game_type.toUpperCase()} ${g.stakes}`;
+              if (!cols.find(c => c.label === label)) {
+                cols.push({
+                  label,
+                  gameType: g.game_type,
+                  stakes: g.stakes,
+                  players: [],
+                  count: 0,
+                });
+              }
+            });
+        }
+
+        setWaitlistColumns(cols);
+      }
+
+      // Fetch my entries
       const token = getAuthToken();
       if (token) {
         const myRes = await fetch('/api/commander/waitlist/my', {
@@ -118,7 +145,7 @@ export default function PlayerWaitlistPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSuccess(`Added to ${gameLabel(gameType)} ${stakes}!`);
+        setSuccess(`Added to ${GAME_LABELS[gameType] || gameType} ${stakes}!`);
         fetchData();
         setTimeout(() => setSuccess(null), 4000);
       } else if (data.error?.code === 'ALREADY_ON_WAITLIST') {
@@ -151,60 +178,15 @@ export default function PlayerWaitlistPage() {
     }
   }
 
-  // Group waitlists by game (same as desk view)
-  const waitlistByGame = {};
-  // First, create columns from active games
-  games
-    .filter(g => ['waiting', 'running'].includes(g.status))
-    .forEach(game => {
-      const label = `${gameLabel(game.game_type)} ${game.stakes}`;
-      if (!waitlistByGame[label]) {
-        waitlistByGame[label] = {
-          gameType: game.game_type,
-          stakes: game.stakes,
-          tableCount: 0,
-          entries: []
-        };
-      }
-      waitlistByGame[label].tableCount++;
-    });
-
-  // Add waitlist entries to their game columns
-  waitlists
-    .filter(w => w.status === 'waiting' || w.status === 'called')
-    .sort((a, b) => {
-      if (a.status === 'called' && b.status !== 'called') return -1;
-      if (b.status === 'called' && a.status !== 'called') return 1;
-      return new Date(a.created_at) - new Date(b.created_at);
-    })
-    .forEach(entry => {
-      const label = `${gameLabel(entry.game_type)} ${entry.stakes}`;
-      if (!waitlistByGame[label]) {
-        waitlistByGame[label] = {
-          gameType: entry.game_type,
-          stakes: entry.stakes,
-          tableCount: 0,
-          entries: []
-        };
-      }
-      waitlistByGame[label].entries.push(entry);
-    });
-
-  const gameColumns = Object.entries(waitlistByGame);
-  const totalWaiting = waitlists.filter(w => w.status === 'waiting').length;
-
-  function gameLabel(type) {
-    return GAME_TYPES.find(g => g.value === type)?.short || type.toUpperCase();
-  }
-
   function isMyEntry(gameType, stakes) {
     return myEntries.find(e =>
-      e.venue_id === parseInt(venueId) &&
       e.game_type === gameType &&
       e.stakes === stakes &&
       (e.status === 'waiting' || e.status === 'called')
     );
   }
+
+  const totalWaiting = waitlistColumns.reduce((s, c) => s + c.count, 0);
 
   // ═══ LOADING ═══
   if (loading) {
@@ -214,6 +196,7 @@ export default function PlayerWaitlistPage() {
           <Loader2 style={{ width: 32, height: 32, color: '#D4AF37', animation: 'spin 1s linear infinite' }} />
           <p style={{ color: '#888', marginTop: 12 }}>Loading Waitlist...</p>
         </div>
+        <style jsx global>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -252,7 +235,9 @@ export default function PlayerWaitlistPage() {
             </div>
           </div>
           <div style={S.headerStats}>
-            <span style={S.statText}>{totalWaiting} waiting · {gameColumns.length} game{gameColumns.length !== 1 ? 's' : ''}</span>
+            <span style={S.statText}>
+              {totalWaiting} waiting · {waitlistColumns.length} game{waitlistColumns.length !== 1 ? 's' : ''}
+            </span>
             <span style={S.liveBadge}>
               <span style={S.liveDot} />
               LIVE
@@ -261,57 +246,53 @@ export default function PlayerWaitlistPage() {
         </header>
 
         {/* ═══ ALERTS ═══ */}
-        <div style={S.alertArea}>
-          {success && (
-            <div style={S.successAlert}>
-              <CheckCircle style={{ width: 16, height: 16, color: '#10B981', flexShrink: 0 }} />
-              <span style={{ color: '#10B981', fontSize: 14, fontWeight: 600 }}>{success}</span>
-            </div>
-          )}
-          {error && (
-            <div style={S.errorAlert}>
-              <span style={{ color: '#EF4444', fontSize: 14, fontWeight: 600 }}>{error}</span>
-            </div>
-          )}
-        </div>
+        {(success || error) && (
+          <div style={S.alertArea}>
+            {success && (
+              <div style={S.successAlert}>
+                <CheckCircle style={{ width: 16, height: 16, color: '#10B981', flexShrink: 0 }} />
+                <span style={{ color: '#10B981', fontSize: 14, fontWeight: 600 }}>{success}</span>
+              </div>
+            )}
+            {error && (
+              <div style={S.errorAlert}>
+                <span style={{ color: '#EF4444', fontSize: 14, fontWeight: 600 }}>{error}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ═══ GAME COLUMNS — mirrors desk view ═══ */}
-        {gameColumns.length === 0 ? (
+        {waitlistColumns.length === 0 ? (
           <div style={S.emptyState}>
             <Users style={{ width: 40, height: 40, color: '#333', opacity: 0.5 }} />
             <p style={{ color: '#666', fontSize: 16, marginTop: 12 }}>No Games Running</p>
-            <p style={{ color: '#444', fontSize: 13 }}>Check Back Later</p>
           </div>
         ) : (
-          <div style={S.columnsScroll}>
+          <div style={S.columnsArea}>
             <div style={S.columnsGrid}>
-              {gameColumns.map(([label, data]) => {
-                const myEntry = isMyEntry(data.gameType, data.stakes);
-                const gameKey = `${data.gameType}::${data.stakes}`;
+              {waitlistColumns.map((col) => {
+                const myEntry = isMyEntry(col.gameType, col.stakes);
+                const gameKey = `${col.gameType}::${col.stakes}`;
                 const isJoining = joiningGame === gameKey;
 
                 return (
-                  <div key={label} style={S.column}>
+                  <div key={col.label} style={S.column}>
                     {/* Gold gradient header */}
-                    <div style={S.columnHeader}>{label}</div>
+                    <div style={S.columnHeader}>{col.label}</div>
 
-                    {/* Table numbers */}
-                    <div style={S.columnTableNums}>
-                      {data.tableCount > 0 ? `${data.tableCount} table${data.tableCount > 1 ? 's' : ''}` : '—'}
-                    </div>
-
-                    {/* Player names */}
+                    {/* Player names — fills remaining height */}
                     <div style={S.columnBody}>
-                      {data.entries.length === 0 ? (
+                      {col.players.length === 0 ? (
                         <div style={S.noPlayers}>No players waiting</div>
                       ) : (
-                        data.entries.map((entry) => {
-                          const isCalled = entry.status === 'called';
-                          const isWeb = entry.signup_method === 'web';
-                          const isMe = myEntries.find(m => m.id === entry.id);
+                        col.players.map((player) => {
+                          const isCalled = player.status === 'called';
+                          const isWeb = player.signup_method === 'web';
+                          const isMe = myEntries.find(m => m.id === player.id);
                           return (
                             <div
-                              key={entry.id}
+                              key={player.id}
                               style={{
                                 ...S.playerRow,
                                 ...(isCalled ? S.playerRowCalled : {}),
@@ -326,15 +307,11 @@ export default function PlayerWaitlistPage() {
                                   ...S.playerName,
                                   color: isCalled ? '#D4AF37' : isMe ? '#D4AF37' : '#E0E0E0',
                                 }}>
-                                  {entry.player_name}
+                                  {player.player_name}
                                 </span>
-                                {isMe && (
-                                  <span style={S.youBadge}>YOU</span>
-                                )}
+                                {isMe && <span style={S.youBadge}>YOU</span>}
                               </span>
-                              {isCalled && (
-                                <span style={S.calledBadge}>CALLED</span>
-                              )}
+                              {isCalled && <span style={S.calledBadge}>CALLED</span>}
                             </div>
                           );
                         })
@@ -353,7 +330,7 @@ export default function PlayerWaitlistPage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleJoinGame(data.gameType, data.stakes)}
+                          onClick={() => handleJoinGame(col.gameType, col.stakes)}
                           disabled={isJoining}
                           style={{
                             ...S.joinBtn,
@@ -381,7 +358,7 @@ export default function PlayerWaitlistPage() {
             style={S.howItWorksToggle}
             onClick={() => setShowHowItWorks(!showHowItWorks)}
           >
-            How It Works
+            HOW IT WORKS
             {showHowItWorks
               ? <ChevronUp style={{ width: 16, height: 16 }} />
               : <ChevronDown style={{ width: 16, height: 16 }} />
@@ -446,7 +423,6 @@ const S = {
   header: {
     background: '#050505',
     borderBottom: '2px solid #666',
-    padding: '0',
   },
   headerTop: {
     display: 'flex',
@@ -458,6 +434,8 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
+    minWidth: 0,
+    flex: '0 1 auto',
   },
   backArrow: {
     color: '#D4AF37',
@@ -466,24 +444,28 @@ const S = {
   },
   clubName: {
     color: '#D4AF37',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 700,
     letterSpacing: '0.5px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   headerTitle: {
     color: '#E0E0E0',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 800,
     letterSpacing: '2px',
     textAlign: 'center',
     margin: 0,
     flex: 1,
+    whiteSpace: 'nowrap',
   },
   headerRight: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-end',
-    gap: 0,
+    flex: '0 0 auto',
   },
   poweredBy: {
     fontSize: 8,
@@ -502,7 +484,6 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '6px 16px',
-    background: '#050505',
     borderTop: '1px solid #222',
   },
   statText: {
@@ -530,8 +511,6 @@ const S = {
 
   // ── Alerts ──
   alertArea: {
-    maxWidth: 800,
-    margin: '0 auto',
     padding: '0 16px',
   },
   successAlert: {
@@ -553,22 +532,21 @@ const S = {
   },
 
   // ── Game Columns ──
-  columnsScroll: {
+  columnsArea: {
     flex: 1,
-    overflowX: 'auto',
+    display: 'flex',
     padding: '12px 16px',
-    WebkitOverflowScrolling: 'touch',
+    overflow: 'hidden',
   },
   columnsGrid: {
     display: 'flex',
     gap: 2,
-    minWidth: 'min-content',
-    alignItems: 'flex-start',
+    width: '100%',
+    alignItems: 'stretch',
   },
   column: {
-    flex: '1 1 200px',
-    minWidth: 160,
-    maxWidth: 280,
+    flex: 1,
+    minWidth: 0,
     border: '3px solid #666',
     borderRadius: 4,
     display: 'flex',
@@ -587,20 +565,11 @@ const S = {
     background: 'linear-gradient(180deg, #C5962E 0%, #B8860B 40%, #8B6508 100%)',
     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
     borderBottom: '2px solid #D4AF37',
-  },
-  columnTableNums: {
-    padding: '4px 8px',
-    textAlign: 'center',
-    fontSize: 13,
-    color: '#888',
-    borderBottom: '1px solid #333',
-    background: '#050505',
-    fontWeight: 600,
+    flexShrink: 0,
   },
   columnBody: {
     flex: 1,
     background: '#000',
-    minHeight: 60,
   },
   noPlayers: {
     padding: '16px 12px',
@@ -663,6 +632,7 @@ const S = {
     padding: '8px',
     borderTop: '1px solid #333',
     background: '#050505',
+    flexShrink: 0,
   },
   joinBtn: {
     width: '100%',
@@ -713,11 +683,8 @@ const S = {
 
   // ── How It Works ──
   bottomArea: {
-    maxWidth: 800,
-    margin: '0 auto',
-    padding: '0 16px 12px',
-    width: '100%',
-    boxSizing: 'border-box',
+    padding: '0 16px 8px',
+    flexShrink: 0,
   },
   howItWorksToggle: {
     display: 'flex',
@@ -725,13 +692,13 @@ const S = {
     justifyContent: 'center',
     gap: 6,
     width: '100%',
-    padding: '12px 0',
+    padding: '10px 0',
     background: 'none',
     border: 'none',
     color: '#666',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
-    letterSpacing: '1px',
+    letterSpacing: '1.5px',
     textTransform: 'uppercase',
     cursor: 'pointer',
   },
@@ -776,10 +743,11 @@ const S = {
     padding: '10px 16px',
     background: '#050505',
     borderTop: '2px solid #666',
+    flexShrink: 0,
   },
   tickerText: {
     color: '#D4AF37',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 700,
     letterSpacing: '0.5px',
   },
