@@ -131,7 +131,7 @@ export default function WaitlistMetrics() {
                     const pct = (v / maxHourly) * 100;
                     const isTop = v === maxHourly && v > 0;
                     return (
-                      <CommanderLayout title="Waitlist Metrics" backHref="/commander/reports">
+                      <CommanderLayout title="Waitlist Metrics" backHref="/commander/dashboard?card=reports">
                       <div key={hour} className="flex-1 flex flex-col items-center justify-end h-full">
                         {v > 0 && <span className="text-[8px] text-[#B0B3B8] mb-0.5">{v}</span>}
                         <div className="w-full rounded-t" style={{

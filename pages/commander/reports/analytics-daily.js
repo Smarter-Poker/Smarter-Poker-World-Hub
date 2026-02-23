@@ -212,7 +212,7 @@ export default function AnalyticsDailyReport() {
                     const pct = (rev / maxRevenue) * 100;
                     const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     return (
-                      <CommanderLayout title="Analytics Daily" backHref="/commander/reports">
+                      <CommanderLayout title="Analytics Daily" backHref="/commander/dashboard?card=reports">
                       <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ fontSize: 11, color: '#65676B', minWidth: 50, textAlign: 'right' }}>{dateLabel}</div>
                         <div style={{ flex: 1, height: 20, background: '#F0F2F5', borderRadius: 4, overflow: 'hidden' }}>

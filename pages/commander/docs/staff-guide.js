@@ -433,7 +433,7 @@ export default function StaffGuidePage() {
                     {(() => {
                       const Icon = currentSection.icon;
                       return (
-                        <CommanderLayout title="Staff Training Guide" backHref="/commander/dashboard">
+                        <CommanderLayout title="Staff Training Guide" backHref="/commander/dashboard?card=reports">
                         <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
                           <Icon className="w-5 h-5 text-[#1877F2]" />
                         </div>

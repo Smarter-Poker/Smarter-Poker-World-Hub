@@ -100,7 +100,7 @@ export default function MembersPage() {
     }
 
     return (
-        <CommanderLayout title="Members" backHref="/commander/dashboard">
+        <CommanderLayout title="Members" backHref="/commander/dashboard?card=waitlist">
             <>
                 <SEOHead
                     title="Commander — Member Management"

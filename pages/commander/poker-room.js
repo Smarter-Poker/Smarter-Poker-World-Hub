@@ -106,7 +106,7 @@ export default function PokerRoomFunctions() {
   }
 
   return (
-    <CommanderLayout title="Poker Room Functions" backHref="/commander/dashboard">
+    <CommanderLayout title="Poker Room Functions" backHref="/commander/dashboard?card=staff">
       <>
         <SEOHead
                 title="Commander — Poker Room"

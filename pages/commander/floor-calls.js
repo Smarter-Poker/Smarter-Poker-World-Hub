@@ -109,7 +109,7 @@ export default function FloorCalls() {
   const pendingCount = calls.filter(c => c.status === 'pending').length;
 
   return (
-    <CommanderLayout title={`Floor Calls${pendingCount > 0 ? ` (${pendingCount})` : ''}`} backHref="/commander/dashboard">
+    <CommanderLayout title={`Floor Calls${pendingCount > 0 ? ` (${pendingCount})` : ''}`} backHref="/commander/dashboard?card=floor">
       <SEOHead
         title="Commander — Floor Calls"
         description="Club Commander Poker Room Management Tool."

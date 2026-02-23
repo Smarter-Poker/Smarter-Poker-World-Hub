@@ -520,7 +520,7 @@ export default function PromotionsPage() {
   }
 
   return (
-    <CommanderLayout title="Promotions | Commander" backHref="/commander/displays">
+    <CommanderLayout title="Promotions | Commander" backHref="/commander/dashboard?card=displays">
       <>
         <SEOHead
           title="Commander — Promotions"

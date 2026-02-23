@@ -174,7 +174,7 @@ export default function CompSystem() {
   const REASONS = ['Play Time', 'Tournament Entry', 'Bad Beat Bonus', 'Promotion', 'Loyalty Reward', 'Manager Discretion'];
 
   return (
-    <CommanderLayout title="Comp System" backHref="/commander/dashboard">
+    <CommanderLayout title="Comp System" backHref="/commander/dashboard?card=displays">
       <>
         <SEOHead
           title="Commander — Comps & Rewards"

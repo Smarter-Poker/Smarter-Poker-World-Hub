@@ -56,7 +56,7 @@ export default function TournamentResultsReport() {
   };
 
   return (
-    <CommanderLayout title="Tournament Results" backHref="/commander/reports">
+    <CommanderLayout title="Tournament Results" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
                 title="Commander — Tournament Results"

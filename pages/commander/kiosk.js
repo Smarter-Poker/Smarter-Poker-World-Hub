@@ -145,7 +145,7 @@ export default function MembershipKiosk() {
   };
 
   return (
-    <CommanderLayout title="Check In" backHref="/commander/dashboard">
+    <CommanderLayout title="Check In" backHref="/commander/dashboard?card=waitlist">
       <>
         <SEOHead
           title="Commander — Player Kiosk"

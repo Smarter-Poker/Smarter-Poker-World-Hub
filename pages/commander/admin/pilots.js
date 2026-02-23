@@ -199,7 +199,7 @@ export default function PilotVenuesPage() {
                 const current = pilotsByRegion[region.region.substring(0, 2).toUpperCase()] || 0;
                 const progress = (current / region.target) * 100;
                 return (
-                  <CommanderLayout title="Pilot Venues" backHref="/commander/dashboard">
+                  <CommanderLayout title="Pilot Venues" backHref="/commander/dashboard?card=reports">
                   <div key={region.id} className="bg-[#1E293B] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-white font-medium">{region.region}</span>

@@ -286,7 +286,7 @@ export default function TaxCompliance() {
                 const isExpanded = expandedId === evt.id;
                 const isPending = !evt.w2g_generated && evt.withholding_required;
                 return (
-                  <CommanderLayout title="W-2G Form" backHref="/commander/reports">
+                  <CommanderLayout title="W-2G Form" backHref="/commander/dashboard?card=reports">
                     <div key={evt.id} style={{ background: 'white', borderRadius: 10, border: isPending ? '2px solid #F59E0B' : '2px solid #E4E6EB', overflow: 'hidden' }}>
                       <button onClick={() => setExpandedId(isExpanded ? null : evt.id)}
                         style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>

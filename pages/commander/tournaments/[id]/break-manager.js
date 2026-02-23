@@ -146,7 +146,7 @@ ${receipts.map(r => `
   );
 
   return (
-    <CommanderLayout title="Table Break Receipts" backHref="/commander/tournaments">
+    <CommanderLayout title="Table Break Receipts" backHref="/commander/dashboard?card=tournaments">
     <>
       <SEOHead
                 title="Commander — Break Manager"

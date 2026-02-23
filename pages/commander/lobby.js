@@ -237,7 +237,7 @@ export default function LobbyDisplay() {
                     };
                     const color = statusColors[t.status] || '#B0B3B8';
                     return (
-                      <CommanderLayout title="Poker Room | Now Playing" backHref="/commander/dashboard">
+                      <CommanderLayout title="Poker Room | Now Playing" backHref="/commander/dashboard?card=reports">
                         <div key={t.id} className="bg-white/3 rounded-lg p-3">
                           <p className="text-sm font-semibold text-white truncate">{t.name}</p>
                           <div className="flex items-center justify-between mt-1">

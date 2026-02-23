@@ -133,7 +133,7 @@ export default function TableAssignments() {
   );
 
   return (
-    <CommanderLayout title="Table Assignments" backHref="/commander/tables">
+    <CommanderLayout title="Table Assignments" backHref="/commander/dashboard?card=floor">
       <SEOHead
         title="Commander — Table Assignments"
         description="Club Commander Poker Room Management Tool."

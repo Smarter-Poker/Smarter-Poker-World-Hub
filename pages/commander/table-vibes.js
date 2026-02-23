@@ -111,7 +111,7 @@ export default function TableVibes() {
               {vibes.map(v => {
                 const vc = VIBE_COLORS[v.vibe] || VIBE_COLORS['Standard Game'];
                 return (
-                  <CommanderLayout title="Table Vibes" backHref="/commander/tables">
+                  <CommanderLayout title="Table Vibes" backHref="/commander/dashboard?card=floor">
                     <div key={v.table_number} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
                       <div style={{ padding: 14 }}>
                         {/* Header */}

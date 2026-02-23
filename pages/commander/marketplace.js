@@ -531,7 +531,7 @@ export default function MarketplacePage() {
   }
 
   return (
-    <CommanderLayout title="Marketplace | Commander" backHref="/commander/dashboard">
+    <CommanderLayout title="Marketplace | Commander" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
                 title="Commander — Marketplace"

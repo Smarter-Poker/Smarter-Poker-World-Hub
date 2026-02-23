@@ -143,6 +143,16 @@ export default function CommanderDashboard() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(null);
   const [hardStop, setHardStop] = useState(null); // { enabled, time, minutesLeft }
 
+  // Auto-open card from ?card= query param (for back navigation)
+  useEffect(() => {
+    if (router.isReady && router.query.card) {
+      const cardId = router.query.card;
+      if (CARDS.find(c => c.id === cardId)) {
+        setActiveCard(cardId);
+      }
+    }
+  }, [router.isReady, router.query.card]);
+
 
   // Auth guard
   useEffect(() => {

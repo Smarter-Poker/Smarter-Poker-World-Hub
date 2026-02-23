@@ -37,7 +37,7 @@ export default function StaffActivity() {
   };
 
   return (
-    <CommanderLayout title="Staff Activity" backHref="/commander/reports">
+    <CommanderLayout title="Staff Activity" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
                 title="Commander — Staff Activity"

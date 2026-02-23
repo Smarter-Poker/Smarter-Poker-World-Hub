@@ -174,7 +174,7 @@ export default function StaffSchedule() {
   };
 
   return (
-    <CommanderLayout title="Schedule" backHref="/commander/dashboard">
+    <CommanderLayout title="Schedule" backHref="/commander/dashboard?card=staff">
       <SEOHead
         title="Commander — Game Schedule"
         description="Club Commander Poker Room Management Tool."

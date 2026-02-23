@@ -123,7 +123,7 @@ export default function HighHands() {
   const todayHands = highHands.filter(h => h.created_at?.startsWith(today));
 
   return (
-    <CommanderLayout title="High Hands" backHref="/commander/dashboard">
+    <CommanderLayout title="High Hands" backHref="/commander/dashboard?card=displays">
       <>
         <SEOHead
           title="Commander — High Hands"

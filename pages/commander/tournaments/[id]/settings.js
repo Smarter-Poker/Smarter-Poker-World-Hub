@@ -428,7 +428,7 @@ export default function TournamentSettings() {
                   }
 
                   return (
-                    <CommanderLayout title="Settings | {name || 'Tournament'}" backHref="/commander/tournaments">
+                    <CommanderLayout title="Settings | {name || 'Tournament'}" backHref="/commander/dashboard?card=tournaments">
                     <div key={i} className="grid grid-cols-[40px_1fr_1fr_1fr_60px_40px_40px] gap-1 items-center bg-[#242526] border border-[#3A3B3C] rounded-lg px-2 py-1.5">
                       <span className="text-xs text-[#B0B3B8] font-mono">{levelNum}</span>
                       <input type="number" value={level.small_blind}

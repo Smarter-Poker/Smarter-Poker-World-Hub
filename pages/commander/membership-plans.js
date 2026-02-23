@@ -367,7 +367,7 @@ export default function MembershipPlansPage() {
               ].filter(Boolean);
 
               return (
-                <CommanderLayout title="Membership Plans | Commander" backHref="/commander/members">
+                <CommanderLayout title="Membership Plans | Commander" backHref="/commander/dashboard?card=waitlist">
                   <div key={plan.id} className={`cmd-panel overflow-hidden ${!plan.is_active ? 'opacity-50' : ''}`}>
                     {/* Header row */}
                     <button onClick={() => setExpandedId(isExpanded ? null : plan.id)}

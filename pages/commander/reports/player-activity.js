@@ -211,7 +211,7 @@ export default function PlayerActivityReport() {
                     const playerSessions = isExpanded ? getPlayerSessions(p.id) : [];
 
                     return (
-                      <CommanderLayout title="Player Activity" backHref="/commander/reports">
+                      <CommanderLayout title="Player Activity" backHref="/commander/dashboard?card=reports">
                         <div key={p.id}>
                           <button onClick={() => setExpandedPlayer(isExpanded ? null : p.id)}
                             className="w-full px-4 py-3 grid grid-cols-12 items-center hover:bg-[#18191A] transition-colors text-left">

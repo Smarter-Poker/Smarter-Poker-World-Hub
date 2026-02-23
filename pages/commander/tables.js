@@ -157,7 +157,7 @@ export default function CommanderTablesPage() {
   }
 
   return (
-    <CommanderLayout title="Tables | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
+    <CommanderLayout title="Tables | {venue?.name || 'Commander'}" backHref="/commander/dashboard?card=floor">
       <>
         <SEOHead
           title="Commander — Table Management"

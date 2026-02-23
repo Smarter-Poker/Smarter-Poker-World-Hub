@@ -54,7 +54,7 @@ export default function RevenueReport() {
   const maxDaily = Math.max(...(data?.daily_chart || []).map(d => d.time_revenue), 1);
 
   return (
-    <CommanderLayout title="Revenue Report" backHref="/commander/reports">
+    <CommanderLayout title="Revenue Report" backHref="/commander/dashboard?card=reports">
     <>
       <SEOHead
                 title="Commander — Revenue"

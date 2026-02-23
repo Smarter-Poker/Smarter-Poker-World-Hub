@@ -79,7 +79,7 @@ export default function DownloadsPage() {
   ];
 
   return (
-    <CommanderLayout title="Download Club Commander - Desktop App" backHref="/commander/dashboard">
+    <CommanderLayout title="Download Club Commander - Desktop App" backHref="/commander/dashboard?card=reports">
       <div className="min-h-screen bg-[#18191A]">
         <SEOHead
                 title="Commander — Downloads"

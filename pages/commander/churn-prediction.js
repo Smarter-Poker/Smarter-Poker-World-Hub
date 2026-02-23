@@ -67,7 +67,7 @@ export default function ChurnPrediction() {
   };
 
   return (
-    <CommanderLayout title="Churn Prediction" backHref="/commander/reports">
+    <CommanderLayout title="Churn Prediction" backHref="/commander/dashboard?card=reports">
       <SEOHead
         title="Commander — Churn Prediction"
         description="Club Commander Poker Room Management Tool."

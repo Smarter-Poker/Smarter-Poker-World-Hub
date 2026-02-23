@@ -159,7 +159,7 @@ export default function PlayerReputation() {
                 const isExpanded = expandedId === s.player_id;
                 const reviews = expandedReviews[s.player_id] || [];
                 return (
-                  <CommanderLayout title="Player Reputation" backHref="/commander/dashboard">
+                  <CommanderLayout title="Player Reputation" backHref="/commander/dashboard?card=reports">
                     <div key={s.player_id} style={{ background: 'white', borderRadius: 10, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
                       <button onClick={() => toggleExpand(s.player_id)}
                         style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>

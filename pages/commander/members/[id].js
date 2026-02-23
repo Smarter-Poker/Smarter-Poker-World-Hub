@@ -111,7 +111,7 @@ export default function MemberProfile() {
   const timeMin = (m.time_balance_minutes || 0) % 60;
 
   return (
-    <CommanderLayout title={`${m.first_name} ${m.last_name}`} backHref="/commander/members">
+    <CommanderLayout title={`${m.first_name} ${m.last_name}`} backHref="/commander/dashboard?card=waitlist">
       <>
         <SEOHead
           title="Commander — Details"

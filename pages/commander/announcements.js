@@ -113,7 +113,7 @@ export default function CommanderAnnouncementsPage() {
   }
 
   return (
-    <CommanderLayout title="Announcements | {venue?.name || 'Commander'}" backHref="/commander/displays">
+    <CommanderLayout title="Announcements | {venue?.name || 'Commander'}" backHref="/commander/dashboard?card=displays">
       <>
         <SEOHead
           title="Commander — Announcements"

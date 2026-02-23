@@ -112,7 +112,7 @@ export default function FloorMap() {
   const totalWaiting = Object.values(waitlists).reduce((s, n) => s + n, 0);
 
   return (
-    <CommanderLayout title="Floor Map" backHref="/commander/dashboard">
+    <CommanderLayout title="Floor Map" backHref="/commander/dashboard?card=floor">
       <SEOHead
         title="Commander — Floor Management"
         description="Club Commander Poker Room Management Tool."

@@ -129,7 +129,7 @@ export default function ShiftHandoff() {
   };
 
   return (
-    <CommanderLayout title="Shift Handoff" backHref="/commander/dashboard">
+    <CommanderLayout title="Shift Handoff" backHref="/commander/dashboard?card=staff">
       <SEOHead
         title="Commander — Shift Handoff"
         description="Club Commander Poker Room Management Tool."

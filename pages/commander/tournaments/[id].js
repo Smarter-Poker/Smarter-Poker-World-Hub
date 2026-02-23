@@ -199,7 +199,7 @@ export default function TournamentDetailPage() {
   }
 
   return (
-    <CommanderLayout title={`${tournament.name} | Commander`} backHref="/commander/tournaments">
+    <CommanderLayout title={`${tournament.name} | Commander`} backHref="/commander/dashboard?card=tournaments">
       <SEOHead
         title="Commander — Details"
         description="Club Commander Poker Room Management Tool."

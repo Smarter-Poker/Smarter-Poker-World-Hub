@@ -71,7 +71,7 @@ export default function DailySummaryReport() {
                   const hour = i + 8;
                   const pct = Math.random() * 80 + 10;
                   return (
-                    <CommanderLayout title="Daily Summary" backHref="/commander/reports">
+                    <CommanderLayout title="Daily Summary" backHref="/commander/dashboard?card=reports">
                       <div key={i} className="flex-1 flex flex-col items-center gap-1">
                         <div className="w-full bg-[#1877F2]/30 rounded-t" style={{ height: `${pct}%` }}>
                           <div className="w-full bg-[#1877F2] rounded-t" style={{ height: `${pct * 0.7}%` }} />

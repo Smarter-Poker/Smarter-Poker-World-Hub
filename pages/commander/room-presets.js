@@ -340,7 +340,7 @@ export default function DailyPresetsPage() {
   const canHardStop = hasFeature(currentTier, 'close_day');
 
   return (
-    <CommanderLayout title={`Daily Presets | ${venueName || 'Commander'}`} backHref="/commander/dashboard">
+    <CommanderLayout title={`Daily Presets | ${venueName || 'Commander'}`} backHref="/commander/dashboard?card=staff">
       <>
         <SEOHead
           title="Commander — Room Presets"

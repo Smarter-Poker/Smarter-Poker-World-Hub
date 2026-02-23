@@ -91,7 +91,7 @@ export default function ResponsibleGaming() {
   const excludedMembers = members.filter(m => m.is_excluded || m.self_excluded).length;
 
   return (
-    <CommanderLayout title="Responsible Gaming" backHref="/commander/dashboard">
+    <CommanderLayout title="Responsible Gaming" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
                 title="Commander — Responsible Gaming"

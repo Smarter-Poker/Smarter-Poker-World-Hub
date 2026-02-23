@@ -118,7 +118,7 @@ export default function MustMoveManager() {
   const singles = data?.single_games || [];
 
   return (
-    <CommanderLayout title="Must-Move Games" backHref="/commander/tables">
+    <CommanderLayout title="Must-Move Games" backHref="/commander/dashboard?card=floor">
       <SEOHead
         title="Commander — Must-Move Tables"
         description="Club Commander Poker Room Management Tool."

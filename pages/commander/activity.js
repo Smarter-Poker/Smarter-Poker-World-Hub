@@ -150,7 +150,7 @@ export default function ActivityFeed() {
   });
 
   return (
-    <CommanderLayout title="Activity" backHref="/commander/reports">
+    <CommanderLayout title="Activity" backHref="/commander/dashboard?card=reports">
       <SEOHead
         title="Commander — Activity Log"
         description="Club Commander Poker Room Management Tool."

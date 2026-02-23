@@ -227,7 +227,7 @@ export default function LeaguesManagement() {
                 const sc = statusColor(league.status);
                 const leagueStandings = standings[league.id] || [];
                 return (
-                  <CommanderLayout title="Leagues" backHref="/commander/dashboard">
+                  <CommanderLayout title="Leagues" backHref="/commander/dashboard?card=tournaments">
                     <div key={league.id} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
                       <button onClick={() => handleExpand(league.id)}
                         style={{ width: '100%', padding: '14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>

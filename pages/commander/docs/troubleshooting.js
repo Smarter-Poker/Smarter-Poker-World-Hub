@@ -616,7 +616,7 @@ export default function TroubleshootingPage() {
                     {(() => {
                       const Icon = currentSection.icon;
                       return (
-                        <CommanderLayout title="Troubleshooting Guide" backHref="/commander/dashboard">
+                        <CommanderLayout title="Troubleshooting Guide" backHref="/commander/dashboard?card=reports">
                         <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
                           <Icon className="w-5 h-5 text-[#F59E0B]" />
                         </div>

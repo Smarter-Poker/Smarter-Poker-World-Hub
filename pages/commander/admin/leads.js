@@ -238,7 +238,7 @@ export default function LeadManagementPage() {
                     {filteredLeads.map((lead) => {
                       const statusConfig = STATUS_CONFIG[lead.status] || STATUS_CONFIG.new;
                       return (
-                        <CommanderLayout title="Lead Management" backHref="/commander/dashboard">
+                        <CommanderLayout title="Lead Management" backHref="/commander/dashboard?card=reports">
                         <tr
                           key={lead.id}
                           className="hover:bg-[#1E293B]/50 transition-colors cursor-pointer"

@@ -141,7 +141,7 @@ export default function MemberImport() {
   const previewRows = getMappedRows().slice(0, 5);
 
   return (
-    <CommanderLayout title="Import Members" backHref="/commander/members">
+    <CommanderLayout title="Import Members" backHref="/commander/dashboard?card=waitlist">
     <>
       <SEOHead
                 title="Commander — Member Import"
