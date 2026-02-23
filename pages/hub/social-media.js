@@ -3420,9 +3420,12 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 const res = await fetch(`/api/poker/pages?${params}`);
                 const json = await res.json();
                 if (json.success) {
-                    setPages(json.data || []);
+                    // Only show home_game, charity, and club types
+                    const ALLOWED_TYPES = ['home_game', 'charity', 'club'];
+                    const filtered = (json.data || []).filter(p => ALLOWED_TYPES.includes(p.page_type));
+                    setPages(filtered);
                     const fSet = new Set();
-                    (json.data || []).forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
+                    filtered.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
                     setFollowingIds(fSet);
                 }
             } catch (e) { console.error('Club pages fetch error:', e); }
@@ -3469,18 +3472,12 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
 
     const cats = [
         { key: 'all', label: 'All' },
-        { key: 'venues', label: 'Venues' },
-        { key: 'tours', label: 'Tours' },
-        { key: 'series', label: 'Series' },
         { key: 'home_games', label: 'Home Games' },
         { key: 'charity', label: 'Charity' },
         { key: 'clubs', label: 'Clubs' },
     ];
 
     const typeColors = {
-        venue: { bg: '#1877F2', light: '#E7F3FF' },
-        tour: { bg: '#E74C3C', light: '#FDEDEC' },
-        series: { bg: '#F39C12', light: '#FEF5E7' },
         home_game: { bg: '#22C55E', light: '#F0FDF4' },
         charity: { bg: '#A855F7', light: '#FAF5FF' },
         club: { bg: '#0EA5E9', light: '#F0F9FF' },
@@ -3493,7 +3490,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div>
                         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.text }}>Club Pages</h2>
-                        <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow Venues, Tours, Series, Home Games & More</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow Home Games, Charity Clubs & More</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
