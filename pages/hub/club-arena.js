@@ -483,19 +483,19 @@ export default function ClubArenaPage() {
                             alt="SHARK CLUB"
                             style={S.sharkClubImage}
                         />
-                        {/* Dynamic stats overlay — live Supabase data */}
+                        {/* Dynamic stats overlay — matches ClubStatsPanel exactly */}
                         <div style={S.statsOverlay}>
-                            <div style={S.statItem}>
+                            <div style={{ ...S.statItem, left: '20%', transform: 'translateX(-50%)' }}>
+                                <div style={S.statLabel}>TOTAL<br />MEMBERS</div>
                                 <div style={S.statValue}>{Math.max(1, sharkClubStats.totalMembers).toLocaleString()}</div>
-                                <div style={S.statLabel}>TOTAL MEMBERS</div>
                             </div>
-                            <div style={S.statItem}>
-                                <div style={S.statValueLarge}>{Math.max(1, sharkClubStats.clubLevel)}</div>
+                            <div style={{ ...S.statItem, left: '50%', transform: 'translateX(-50%)' }}>
                                 <div style={S.statLabel}>CLUB LEVEL</div>
+                                <div style={S.statValueLarge}>{Math.max(1, sharkClubStats.clubLevel)}</div>
                             </div>
-                            <div style={S.statItem}>
+                            <div style={{ ...S.statItem, left: '80%', transform: 'translateX(-50%)' }}>
+                                <div style={S.statLabel}>ACTIVE<br />PLAYERS</div>
                                 <div style={S.statValue}>{(sharkClubStats.activePlayers || 0).toLocaleString()}</div>
-                                <div style={S.statLabel}>ACTIVE PLAYERS</div>
                             </div>
                         </div>
                     </div>
@@ -664,7 +664,7 @@ const S = {
         cursor: 'pointer',
     },
 
-    // SHARK CLUB CARD (baked image) - Tight overlap into action bar
+    // SHARK CLUB CARD (baked image)
     sharkClubWrapper: {
         position: 'relative',
         width: '80%',
@@ -675,7 +675,6 @@ const S = {
         marginRight: 'auto',
         cursor: 'pointer',
         overflow: 'hidden',
-        animation: 'ca-glow 4s ease-in-out infinite',
     },
     sharkClubImage: {
         width: '100%',
@@ -684,38 +683,48 @@ const S = {
     },
     statsOverlay: {
         position: 'absolute',
-        bottom: '0',
-        left: '0',
-        right: '0',
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '12px 8px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
     },
     statItem: {
+        position: 'absolute',
+        top: '79.5%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         textAlign: 'center',
-        flex: 1,
     },
     statValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        fontWeight: 700,
-        color: '#00d4ff',
-    },
-    statValueLarge: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "'Inter', 'Roboto', sans-serif",
         fontSize: '24px',
         fontWeight: 700,
-        color: '#00d4ff',
+        letterSpacing: '1px',
+        color: '#ADF9F9',
+        textShadow: '0 0 4px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 212, 255, 0.9), 0 0 20px rgba(0, 150, 255, 0.7)',
+    },
+    statValueLarge: {
+        fontFamily: "'Inter', 'Roboto', sans-serif",
+        fontSize: '56px',
+        fontWeight: 700,
+        lineHeight: 1,
+        marginTop: '8px',
+        letterSpacing: '1px',
+        color: '#ADF9F9',
+        textShadow: '0 0 4px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 212, 255, 0.9), 0 0 20px rgba(0, 150, 255, 0.7)',
     },
     statLabel: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '8px',
+        fontFamily: "'Inter', 'Roboto', sans-serif",
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.6)',
-        letterSpacing: '1px',
-        marginTop: '4px',
+        fontSize: '14px',
+        letterSpacing: '0.5px',
+        color: '#A5EFF0',
+        marginBottom: '2px',
+        textShadow: '0 0 5px rgba(0, 212, 255, 0.4)',
+        textTransform: 'uppercase',
     },
 
     // BOTTOM TILES - Horizontal scroll slider, fixed 108x162 (World Hub size)
