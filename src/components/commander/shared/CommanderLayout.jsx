@@ -408,11 +408,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               <button
                 className="cmd-back-img-btn"
                 onClick={() => {
-                  if (window.history.length > 1) {
-                    router.back();
-                  } else {
-                    router.push('/commander/dashboard').catch(() => { });
-                  }
+                  router.push(backHref || '/commander/dashboard').catch(() => { });
                 }}
                 title="Go Back"
               >
