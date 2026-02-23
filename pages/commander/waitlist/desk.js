@@ -361,7 +361,7 @@ export default function WaitlistDesk() {
             {visibleGames.map(([gameLabel, entries]) => {
               const tableNums = getTableNums(gameLabel);
               return (
-                <div key={gameLabel} style={{ flex: '1 1 0', minWidth: '140px', border: `3px solid ${c.borderColor}`, borderRadius: '4px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div key={gameLabel} style={{ flex: '0 0 calc(25% - 2px)', maxWidth: 'calc(25% - 2px)', minWidth: '140px', border: `3px solid ${c.borderColor}`, borderRadius: '4px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   {/* Header */}
                   <div style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 800, fontSize: '26px', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px', background: headerGradient, textShadow: '0 2px 4px rgba(0,0,0,0.5)', borderBottom: headerBorderBottom }}>
                     {gameLabel}
