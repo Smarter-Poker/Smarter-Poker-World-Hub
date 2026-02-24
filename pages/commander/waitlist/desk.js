@@ -153,7 +153,7 @@ export default function WaitlistDesk() {
       const json = await res.json();
       if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${entry.player_name}` });
       else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
-      else setSmsStatus({ type: 'none', text: 'Called — SMS Unavailable' });
+      else setSmsStatus({ type: 'none', text: 'Texted — SMS Unavailable' });
       await fetchData();
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error(err); }
@@ -488,7 +488,7 @@ export default function WaitlistDesk() {
                                 </span>
                               )}
                             </span>
-                            {isCalled && <span style={{ fontSize: '14px', fontWeight: 800, color: c.bgColor, background: c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px' }}>CALLED</span>}
+                            {isCalled && <span style={{ fontSize: '14px', fontWeight: 800, color: c.bgColor, background: c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px' }}>TEXTED</span>}
                           </div>
 
                           {isSelected && (
@@ -502,7 +502,7 @@ export default function WaitlistDesk() {
                                 <button onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
                                   disabled={callLoading === entry.id} style={makeActionBtn(c)}>
                                   {callLoading === entry.id ? <Loader2 size={18} className="animate-spin" /> : <PhoneCall size={18} />}
-                                  Call
+                                  Text
                                 </button>
                               )}
                               <button onClick={(e) => { e.stopPropagation(); setSeatModal(entry); }} style={makeActionBtnGreen(c)}>
