@@ -293,7 +293,14 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            // Delete members first
+            // Clean up related data first (order matters due to foreign keys)
+            try { await supabase.from('chip_transactions').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('club_announcements').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('club_activity').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('tables').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('union_clubs').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+
+            // Delete members
             await supabase.from('club_members').delete().eq('club_id', club.id);
 
             // Delete club
