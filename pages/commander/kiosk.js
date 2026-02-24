@@ -32,6 +32,7 @@ export default function MembershipKiosk() {
   const [purchasingTime, setPurchasingTime] = useState(false);
   const [showNewMemberPopup, setShowNewMemberPopup] = useState(false);
   const [venueName, setVenueName] = useState('');
+  const [venueId, setVenueId] = useState(null);
   const [lookupIntent, setLookupIntent] = useState('checkin'); // 'checkin' or 'waitlist'
 
   // New member fields
@@ -47,6 +48,7 @@ export default function MembershipKiosk() {
       if (staffStr) {
         const staffData = JSON.parse(staffStr);
         if (staffData.venue_name) setVenueName(staffData.venue_name);
+        if (staffData.venue_id) setVenueId(staffData.venue_id);
       }
     } catch { /* */ }
   }, []);
@@ -232,7 +234,7 @@ export default function MembershipKiosk() {
           }}>
             {/* Background Image */}
             <img
-              src="/images/commander/kiosk-welcome.jpg"
+              src="/images/commander/kiosk-welcome.png"
               alt="Welcome Kiosk"
               style={{
                 maxWidth: '100%',
@@ -246,16 +248,16 @@ export default function MembershipKiosk() {
             {/* Invisible Hitboxes — positioned over the baked-in buttons */}
             {/* These percentages match the button positions in the provided image */}
 
-            {/* Check In — Blue button */}
+            {/* Check In — Blue button (pixel: 36-45%) */}
             <button
               onClick={() => { setLookupIntent('checkin'); setMode('lookup'); }}
               style={{
                 position: 'absolute',
-                top: '47%',
+                top: '35%',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: '52%',
-                height: '10%',
+                width: '55%',
+                height: '11%',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -264,16 +266,22 @@ export default function MembershipKiosk() {
               aria-label="Check In"
             />
 
-            {/* Join Waitlist — Green button */}
+            {/* Join Waitlist — Green button (pixel: 50-59%) → opens venue waitlist page */}
             <button
-              onClick={() => { setLookupIntent('waitlist'); setMode('lookup'); }}
+              onClick={() => {
+                if (venueId) {
+                  router.push(`/hub/commander/waitlist/${venueId}`);
+                } else {
+                  setLookupIntent('waitlist'); setMode('lookup');
+                }
+              }}
               style={{
                 position: 'absolute',
-                top: '59%',
+                top: '49%',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: '52%',
-                height: '10%',
+                width: '55%',
+                height: '11%',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -282,16 +290,16 @@ export default function MembershipKiosk() {
               aria-label="Join Waitlist"
             />
 
-            {/* New Member — Grey button */}
+            {/* New Member — Grey button (pixel: 64-73%) */}
             <button
               onClick={() => setShowNewMemberPopup(true)}
               style={{
                 position: 'absolute',
-                top: '71%',
+                top: '63%',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: '52%',
-                height: '10%',
+                width: '55%',
+                height: '11%',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
