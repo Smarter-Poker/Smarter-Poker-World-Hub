@@ -335,7 +335,7 @@ export default function ClubLobby() {
                                             {/* Bottom Label Trapezoid */}
                                             <div style={styles.createLabelWrapper}>
                                                 <div style={styles.createLabelBox}>
-                                                    Create new table
+                                                    Create New Table
                                                 </div>
                                             </div>
                                         </div>
