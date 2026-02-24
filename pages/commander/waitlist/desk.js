@@ -30,6 +30,12 @@ function formatPhone(raw) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+// Capitalize first letter of every word
+function titleCase(str) {
+  if (!str) return '';
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const GAMES_PER_PAGE = 4;
 const ROTATE_INTERVAL = 10000;
 
@@ -151,7 +157,7 @@ export default function WaitlistDesk() {
         body: JSON.stringify({ waitlist_id: entry.id })
       });
       const json = await res.json();
-      if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${entry.player_name}` });
+      if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${titleCase(entry.player_name)}` });
       else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
       else setSmsStatus({ type: 'none', text: 'Texted — SMS Unavailable' });
       await fetchData();
@@ -485,7 +491,7 @@ export default function WaitlistDesk() {
                                 <CheckCircle size={14} style={{ color: '#10B981' }} />
                               )}
                               <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : isExpired ? '#EF4444' : c.textColor }}>
-                                {entry.player_name}
+                                {titleCase(entry.player_name)}
                               </span>
                               {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (
                                 <span style={{ fontSize: '12px', color: webMinutesLeft <= 10 ? '#F59E0B' : '#64748B', fontWeight: 600 }}>
@@ -585,7 +591,7 @@ export default function WaitlistDesk() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 700, color: c.accentColor, margin: 0 }}>Seat Player</h3>
-                  <p style={{ fontSize: '13px', color: `${c.textColor}88`, margin: '2px 0 0' }}>{seatModal.player_name}</p>
+                  <p style={{ fontSize: '13px', color: `${c.textColor}88`, margin: '2px 0 0' }}>{titleCase(seatModal.player_name)}</p>
                 </div>
                 <button onClick={() => setSeatModal(null)} style={modalCloseStyle(c)}><X size={14} /></button>
               </div>

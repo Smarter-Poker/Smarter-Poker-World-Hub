@@ -112,7 +112,7 @@ export default function Cashier() {
                 const { data: txns } = await supabase
                     .from('chip_transactions')
                     .select('*')
-                    .eq('user_id', authUser.id)
+                    .eq('from_user_id', authUser.id)
                     .order('created_at', { ascending: false })
                     .limit(20);
                 setTransactions(txns || []);
@@ -164,11 +164,10 @@ export default function Cashier() {
 
             // 3. Record transaction
             await supabase.from('chip_transactions').insert({
-                user_id: user.id,
+                from_user_id: user.id,
                 club_id: club?.id,
-                type: 'buyin',
+                transaction_type: 'buyin',
                 amount: amount,
-                diamonds_spent: diamondCost,
                 notes: `Buy-in: ${amount} chips for ${diamondCost} diamonds`,
             });
 
@@ -221,11 +220,10 @@ export default function Cashier() {
 
             // 3. Record transaction
             await supabase.from('chip_transactions').insert({
-                user_id: user.id,
+                from_user_id: user.id,
                 club_id: club?.id,
-                type: 'cashout',
+                transaction_type: 'cashout',
                 amount: -amount,
-                diamonds_earned: diamondsReturned,
                 notes: `Cash-out: ${amount} chips for ${diamondsReturned} diamonds`,
             });
 

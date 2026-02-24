@@ -219,9 +219,9 @@ export default function Admin() {
 
             // Record transaction
             await supabase.from('chip_transactions').insert({
-                user_id: selectedMember.user_id,
+                from_user_id: selectedMember.user_id,
                 club_id: club?.id,
-                type: 'admin_credit',
+                transaction_type: 'admin_credit',
                 amount: amount,
                 notes: `Admin distribution by ${user?.email || 'admin'}`,
             });
