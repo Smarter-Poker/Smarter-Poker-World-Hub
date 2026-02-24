@@ -451,8 +451,13 @@ export default function Admin() {
         { id: 'chips', icon: '', title: 'Chip Management', desc: 'Distribute chips to members', color: FB.success },
         { id: 'reports', icon: '', title: 'Club Reports', desc: 'View club statistics and activity', color: '#F582AE' },
         { id: 'settings', icon: 'Admin', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
-        { id: 'danger', icon: '', title: 'Danger Zone', desc: 'Delete club permanently', color: FB.danger },
     ];
+
+    // Only the club owner should see the Danger Zone
+    const currentMemberForUI = members.find(m => m.user_id === user?.id);
+    if (currentMemberForUI?.role === 'owner') {
+        adminOptions.push({ id: 'danger', icon: '', title: 'Danger Zone', desc: 'Delete club permanently', color: FB.danger });
+    }
 
     return (
         <>

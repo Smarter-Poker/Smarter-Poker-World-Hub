@@ -399,10 +399,14 @@ export default function Cashier() {
             case 'cashout': return 'Cash Out';
             case 'win': return 'Table Win';
             case 'loss': return 'Table Loss';
+            case 'table_win': return 'Table Win';
+            case 'table_loss': return 'Table Loss';
             case 'rake': return 'Rake';
             case 'transfer_in': return 'Transfer In';
             case 'transfer_out': return 'Transfer Out';
-            default: return type || 'Transaction';
+            case 'admin_credit': return 'Admin Credit';
+            case 'purchase': return 'Shop Purchase';
+            default: return type ? type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Transaction';
         }
     };
 

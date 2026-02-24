@@ -269,7 +269,7 @@ export default function ClubLobby() {
                                     onClick={() => {
                                         const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
                                         if (openTable) {
-                                            router.push(`/hub/club-arena/table/${openTable.id}`);
+                                            alert(`Table: ${openTable.name}\nStakes: ${openTable.stakes || `${openTable.small_blind || 1}/${openTable.big_blind || 2}`}\nPlayers: ${openTable.current_players || 0}/${openTable.max_players || 9}\n\nTable game view coming soon!`);
                                         } else if (filteredTables.length > 0) {
                                             alert('All tables are full. Try joining a waitlist or create a new table.');
                                         } else {
@@ -311,7 +311,9 @@ export default function ClubLobby() {
                                     const isSilver = buyIn >= 10 && buyIn < 50;
 
                                     return (
-                                        <div key={table.id} style={styles.pokerCard} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>
+                                        <div key={table.id} style={styles.pokerCard} onClick={() => {
+                                            alert(`Table: ${table.name}\nStakes: ${table.stakes || `${table.small_blind || 1}/${table.big_blind || 2}`}\nPlayers: ${table.current_players || 0}/${table.max_players || 9}\n\nTable game view coming soon!`);
+                                        }}>
                                             <div style={{ ...styles.pokerCardInner, borderColor: isGold ? '#D4A017' : isSilver ? '#A0A0A0' : '#5a6570' }}>
                                                 {/* Top: Buy-in + Seats */}
                                                 <div style={styles.pokerCardTop}>
