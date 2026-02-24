@@ -402,6 +402,10 @@ export default function WaitlistDesk() {
     entries.sort((a, b) => {
       if (a.status === 'called' && b.status !== 'called') return -1;
       if (b.status === 'called' && a.status !== 'called') return 1;
+      // Sort by position first, then by created_at as tiebreaker
+      const posA = a.position ?? 9999;
+      const posB = b.position ?? 9999;
+      if (posA !== posB) return posA - posB;
       return new Date(a.created_at) - new Date(b.created_at);
     });
   });

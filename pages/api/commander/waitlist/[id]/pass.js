@@ -37,41 +37,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Use pass_count to track passes
+    // Track pass count for informational purposes
     const currentPassCount = entry.pass_count || 0;
-    const maxPasses = 3;
-
-    // Remove from waitlist if too many passes
-    if (currentPassCount >= maxPasses) {
-      // Move to history
-      await supabase
-        .from('commander_waitlist_history')
-        .insert({
-          venue_id: entry.venue_id,
-          player_id: entry.player_id,
-          game_type: entry.game_type,
-          stakes: entry.stakes,
-          wait_time_minutes: Math.round(
-            (Date.now() - new Date(entry.created_at).getTime()) / (1000 * 60)
-          ),
-          was_seated: false,
-          signup_method: entry.signup_method
-        });
-
-      // Delete entry
-      await supabase
-        .from('commander_waitlist')
-        .delete()
-        .eq('id', id);
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          removed: true,
-          message: 'Removed from waitlist after maximum passes'
-        }
-      });
-    }
 
     // Move player to bottom of list: get max position for same game at this venue
     let newPosition = (entry.position || 0) + 1;
