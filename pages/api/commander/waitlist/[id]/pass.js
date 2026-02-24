@@ -38,6 +38,7 @@ export default async function handler(req, res) {
     }
 
     // Track pass count for informational purposes
+    const maxPasses = 3;
     const currentPassCount = entry.pass_count || 0;
 
     // Move player to bottom of list: get max position for same game at this venue

@@ -582,7 +582,6 @@ export default function WaitlistDesk() {
                     title="Click to edit game name & stakes"
                   >
                     {gameLabel}
-                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', opacity: 0.5 }}>✏️</span>
                   </div>
                   {/* Table Numbers with Main/Feeder labels */}
                   <div style={{ padding: '4px 8px', textAlign: 'center', fontSize: '14px', color: `${c.textColor}99`, borderBottom: `1px solid ${c.borderColor}55`, background: c.cardBgColor, fontWeight: 600, letterSpacing: '0.5px' }}>
