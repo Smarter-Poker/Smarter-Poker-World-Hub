@@ -233,7 +233,7 @@ export default function Marketplace() {
             showToast(`Purchased ${selectedItem.name}!`);
             setSelectedItem(null);
             setOwnedItems([...ownedItems, selectedItem.id]);
-            setChipBalance(chipBalance - selectedItem.price);
+            setChipBalance(currentBalance - selectedItem.price);
         } catch (e) {
             console.error('[Marketplace] Purchase error:', e);
             showToast('Purchase failed. Try again.', 'error');

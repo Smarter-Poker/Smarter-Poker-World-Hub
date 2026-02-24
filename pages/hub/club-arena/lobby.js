@@ -256,12 +256,14 @@ export default function ClubLobby() {
                                 >
                                     <span style={styles.heroActionLabel}>My Clubs</span>
                                 </button>
-                                <button
-                                    style={{ ...styles.heroActionBtn, ...styles.heroActionPrimary }}
-                                    onClick={() => setShowCreateTable(true)}
-                                >
-                                    <span style={styles.heroActionLabel}>Create Table</span>
-                                </button>
+                                {(membership?.role === 'owner' || membership?.role === 'admin') && (
+                                    <button
+                                        style={{ ...styles.heroActionBtn, ...styles.heroActionPrimary }}
+                                        onClick={() => setShowCreateTable(true)}
+                                    >
+                                        <span style={styles.heroActionLabel}>Create Table</span>
+                                    </button>
+                                )}
                                 <button
                                     style={styles.heroActionBtn}
                                     onClick={() => {
@@ -303,12 +305,14 @@ export default function ClubLobby() {
                                 <div style={styles.emptyState}>
                                     <p>No Active Tables</p>
                                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
-                                    <button
-                                        style={{ ...styles.primaryBtn, marginTop: '16px' }}
-                                        onClick={() => setShowCreateTable(true)}
-                                    >
-                                        Create Table
-                                    </button>
+                                    {(membership?.role === 'owner' || membership?.role === 'admin') && (
+                                        <button
+                                            style={{ ...styles.primaryBtn, marginTop: '16px' }}
+                                            onClick={() => setShowCreateTable(true)}
+                                        >
+                                            Create Table
+                                        </button>
+                                    )}
                                 </div>
                             )}
 
@@ -651,64 +655,170 @@ const styles = {
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
     },
+    /* ═══ PREMIUM POKER TABLE GRID ═══ */
     tableGrid: {
         display: 'grid',
-        gap: '12px',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px',
         marginBottom: '20px',
     },
-    tableCard: {
-        padding: '16px',
-        borderRadius: '8px',
-        background: FB.cardBg,
-        border: `1px solid ${FB.border}`,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    /* Create New Table Card */
+    createTableCard: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px 8px',
+        borderRadius: '12px',
+        background: 'linear-gradient(180deg, #2a2e35 0%, #1a1e25 100%)',
+        border: '2px solid #4a5060',
+        cursor: 'pointer',
+        minHeight: '180px',
+        transition: 'all 0.2s ease',
     },
-    tableHeader: {
+    createTableVisual: {
+        marginBottom: '12px',
+    },
+    createTableIcon: {
+        opacity: 0.8,
+    },
+    createTableLabel: {
+        color: '#B0B3B8',
+        fontSize: '13px',
+        fontWeight: 500,
+    },
+    /* Poker Table Card */
+    pokerCard: {
+        cursor: 'pointer',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        transition: 'transform 0.15s ease',
+    },
+    pokerCardInner: {
+        position: 'relative',
+        padding: '10px 10px 8px',
+        borderRadius: '12px',
+        background: 'linear-gradient(180deg, #1e2530 0%, #141820 60%, #0d1015 100%)',
+        border: '2px solid #5a6570',
+        overflow: 'hidden',
+    },
+    pokerCardTop: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '4px',
+    },
+    buyInSection: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    buyInLabel: {
+        fontSize: '10px',
+        color: '#8B9DAF',
+        fontWeight: 500,
+        letterSpacing: '0.3px',
+    },
+    buyInAmount: {
+        fontSize: '28px',
+        fontWeight: 800,
+        color: '#E8E8E8',
+        lineHeight: '1',
+        fontFamily: 'Orbitron, Inter, sans-serif',
+    },
+    seatsBadgeNew: {
+        padding: '3px 8px',
+        background: 'rgba(255,255,255,0.08)',
+        borderRadius: '10px',
+        fontSize: '11px',
+        fontWeight: 700,
+        color: '#B0B8C0',
+        whiteSpace: 'nowrap',
+    },
+    /* Center visual */
+    pokerCardVisual: {
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '50px',
+        marginBottom: '2px',
+    },
+    trophyGlow: {
+        position: 'absolute',
+        inset: '-10px',
+        borderRadius: '50%',
+    },
+    trophyIcon: {
+        fontSize: '32px',
+        position: 'relative',
+        zIndex: 1,
+    },
+    /* Game type badge */
+    gameTypeBadge: {
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: '4px',
+        marginBottom: '4px',
+    },
+    gameTypeText: {
+        fontSize: '16px',
+        fontWeight: 800,
+        fontFamily: 'Orbitron, Inter, sans-serif',
+        letterSpacing: '1px',
+    },
+    gameVariantSub: {
+        fontSize: '11px',
+        fontWeight: 600,
+        color: '#6B7A8A',
+        letterSpacing: '0.5px',
+    },
+    /* Bottom info */
+    pokerCardBottom: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px',
-    },
-    tableIcon: {
-        fontSize: '20px',
-    },
-    seatsBadge: {
-        padding: '4px 10px',
-        background: FB.primaryLight,
-        borderRadius: '12px',
-        fontSize: '12px',
-        fontWeight: 600,
-        color: FB.primary,
-    },
-    tableBody: {
-        marginBottom: '12px',
-    },
-    tableName: {
-        fontSize: '16px',
-        fontWeight: 600,
-        color: FB.textPrimary,
-        margin: '0 0 4px 0',
-    },
-    tableStakes: {
-        color: FB.success,
-        fontSize: '14px',
-        fontWeight: 600,
         marginBottom: '4px',
     },
-    playersCount: {
-        color: FB.textSecondary,
-        fontSize: '13px',
+    playerInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px',
     },
-    joinBtn: {
-        width: '100%',
-        padding: '10px',
-        background: FB.primary,
-        border: 'none',
-        borderRadius: '6px',
-        fontSize: '14px',
+    playerIcon: {
+        fontSize: '11px',
+    },
+    playerCount: {
+        fontSize: '12px',
+        color: '#8B9DAF',
         fontWeight: 600,
-        color: '#fff',
-        cursor: 'pointer',
+    },
+    timeInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px',
+    },
+    timeIcon: {
+        fontSize: '10px',
+    },
+    timeLabel: {
+        fontSize: '11px',
+        color: '#8B9DAF',
+        fontWeight: 500,
+    },
+    /* Table name & stakes */
+    pokerCardName: {
+        fontSize: '11px',
+        fontWeight: 600,
+        color: '#7BBEDF',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        marginBottom: '2px',
+    },
+    pokerCardStakes: {
+        fontSize: '10px',
+        color: '#5a6a7a',
+        fontWeight: 500,
     },
     emptyState: {
         textAlign: 'center',
@@ -719,6 +829,7 @@ const styles = {
         color: FB.textSecondary,
         fontSize: '15px',
         marginBottom: '20px',
+        gridColumn: '1 / -1',
     },
     quickActions: {
         display: 'grid',

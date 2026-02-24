@@ -221,9 +221,6 @@ export default function Cashier() {
             return;
         }
 
-        // Reverse of buy-in: 100 chips = 38 diamonds
-        const diamondsReturned = Math.floor((amount / 100) * 38);
-
         setProcessing(true);
         try {
             // Read fresh balances to prevent stale-state overwrites
@@ -245,6 +242,9 @@ export default function Cashier() {
                 setProcessing(false);
                 return;
             }
+
+            // Reverse of buy-in: 100 chips = 38 diamonds (calculated from definitive amount)
+            const diamondsReturned = Math.floor((amount / 100) * 38);
 
             const { data: freshProfile } = await supabase
                 .from('profiles')

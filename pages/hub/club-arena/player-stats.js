@@ -168,8 +168,8 @@ export default function PlayerStats() {
                         let txQuery = supabase
                             .from('chip_transactions')
                             .select('*')
-                            .eq('from_user_id', authUser.id)
                             .eq('club_id', clubData.id)
+                            .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
                             .in('transaction_type', ['win', 'loss', 'table_win', 'table_loss']);
 
                         if (dateFilter) {

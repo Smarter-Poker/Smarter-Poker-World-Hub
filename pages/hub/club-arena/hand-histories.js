@@ -160,7 +160,7 @@ export default function HandHistories() {
                         } else {
                             setHands(prev => [...prev, ...filtered]);
                         }
-                        setHasMore(filtered.length === PAGE_SIZE);
+                        setHasMore((handData || []).length === PAGE_SIZE);
                     }
                 } catch (queryErr) {
                     console.warn('[HandHistories] hand_history query failed:', queryErr);
