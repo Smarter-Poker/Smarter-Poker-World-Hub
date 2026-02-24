@@ -102,7 +102,7 @@ export default function Players() {
                 // Get members with profiles
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles!inner(username, display_name, avatar_url, email, last_seen_at)')
+                    .select('*, profiles!inner(username, display_name, avatar_url, email, last_seen)')
                     .eq('club_id', clubData.id)
                     .order('created_at', { ascending: true });
 
@@ -333,7 +333,7 @@ export default function Players() {
                         </div>
                     ) : (
                         filteredMembers.map(member => {
-                            const online = isOnline(member.profiles?.last_seen_at);
+                            const online = isOnline(member.profiles?.last_seen);
                             const isMe = user && member.user_id === user.id;
                             return (
                                 <div
@@ -376,7 +376,7 @@ export default function Players() {
                                         </div>
                                     </div>
                                     <div style={S.lastSeen}>
-                                        {online ? '' : formatLastSeen(member.profiles?.last_seen_at)}
+                                        {online ? '' : formatLastSeen(member.profiles?.last_seen)}
                                     </div>
                                 </div>
                             );
@@ -428,8 +428,8 @@ export default function Players() {
                                     <div style={S.modalStatLabel}>Joined</div>
                                 </div>
                                 <div style={S.modalStat}>
-                                    <div style={{ ...S.modalStatValue, color: isOnline(selectedPlayer.profiles?.last_seen_at) ? FB.success : FB.textSecondary }}>
-                                        {isOnline(selectedPlayer.profiles?.last_seen_at) ? 'Online' : 'Offline'}
+                                    <div style={{ ...S.modalStatValue, color: isOnline(selectedPlayer.profiles?.last_seen) ? FB.success : FB.textSecondary }}>
+                                        {isOnline(selectedPlayer.profiles?.last_seen) ? 'Online' : 'Offline'}
                                     </div>
                                     <div style={S.modalStatLabel}>Status</div>
                                 </div>
