@@ -104,7 +104,7 @@ export default function Admin() {
                 // Get members
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles!inner(username, alias, avatar_url, email)')
+                    .select('*, profiles!inner(username, display_name, avatar_url, email)')
                     .eq('club_id', clubData.id)
                     .order('role', { ascending: true });
                 setMembers(memberData || []);
@@ -226,7 +226,7 @@ export default function Admin() {
                 notes: `Admin distribution by ${user?.email || 'admin'}`,
             });
 
-            showToast(`${amount.toLocaleString()} chips sent to ${selectedMember.profiles?.alias || selectedMember.profiles?.username}`);
+            showToast(`${amount.toLocaleString()} chips sent to ${selectedMember.profiles?.display_name || selectedMember.profiles?.username}`);
             setSelectedMember(null);
             setChipAmount('');
             loadData();
@@ -433,7 +433,7 @@ export default function Admin() {
                                             ) : ''}
                                         </div>
                                         <div style={S.memberInfo}>
-                                            <div style={S.memberName}>{member.profiles?.alias || member.profiles?.username || 'Unknown'}</div>
+                                            <div style={S.memberName}>{member.profiles?.display_name || member.profiles?.username || 'Unknown'}</div>
                                             <div style={S.memberRole}>{member.role} • {(member.chip_balance || 0).toLocaleString()} chips</div>
                                             {member.role === 'player' && agents.length > 0 && (
                                                 <div style={{ marginTop: 4 }}>
@@ -446,7 +446,7 @@ export default function Admin() {
                                                         <option value="">No Agent</option>
                                                         {agents.map(a => (
                                                             <option key={a.user_id} value={a.user_id}>
-                                                                {a.profiles?.alias || a.profiles?.username}
+                                                                {a.profiles?.display_name || a.profiles?.username}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -454,7 +454,7 @@ export default function Admin() {
                                             )}
                                             {member.role === 'player' && assignedAgent && (
                                                 <div style={{ fontSize: '11px', color: '#1877F2', marginTop: 2 }}>
-                                                    Agent: {assignedAgent.profiles?.alias || assignedAgent.profiles?.username}
+                                                    Agent: {assignedAgent.profiles?.display_name || assignedAgent.profiles?.username}
                                                 </div>
                                             )}
                                         </div>
@@ -472,7 +472,7 @@ export default function Admin() {
                                                 </select>
                                                 <button
                                                     style={S.removeBtn}
-                                                    onClick={() => removeMember(member.id, member.profiles?.alias || member.profiles?.username)}
+                                                    onClick={() => removeMember(member.id, member.profiles?.display_name || member.profiles?.username)}
                                                     disabled={processing}
                                                 >
                                                     Remove
@@ -508,7 +508,7 @@ export default function Admin() {
                                     <option value="">Choose A Member...</option>
                                     {members.map(m => (
                                         <option key={m.id} value={m.id}>
-                                            {m.profiles?.alias || m.profiles?.username} ({(m.chip_balance || 0).toLocaleString()} chips)
+                                            {m.profiles?.display_name || m.profiles?.username} ({(m.chip_balance || 0).toLocaleString()} chips)
                                         </option>
                                     ))}
                                 </select>

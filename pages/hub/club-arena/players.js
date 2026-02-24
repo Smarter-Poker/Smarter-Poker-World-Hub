@@ -102,7 +102,7 @@ export default function Players() {
                 // Get members with profiles
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles!inner(username, alias, avatar_url, email, last_seen_at)')
+                    .select('*, profiles!inner(username, display_name, avatar_url, email, last_seen_at)')
                     .eq('club_id', clubData.id)
                     .order('created_at', { ascending: true });
 
@@ -136,7 +136,7 @@ export default function Players() {
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             result = result.filter(m => {
-                const name = (m.profiles?.alias || m.profiles?.username || '').toLowerCase();
+                const name = (m.profiles?.display_name || m.profiles?.username || '').toLowerCase();
                 const email = (m.profiles?.email || '').toLowerCase();
                 return name.includes(q) || email.includes(q);
             });
@@ -154,8 +154,8 @@ export default function Players() {
             } else if (sortBy === 'joined') {
                 return new Date(a.created_at) - new Date(b.created_at);
             } else {
-                const nameA = (a.profiles?.alias || a.profiles?.username || '').toLowerCase();
-                const nameB = (b.profiles?.alias || b.profiles?.username || '').toLowerCase();
+                const nameA = (a.profiles?.display_name || a.profiles?.username || '').toLowerCase();
+                const nameB = (b.profiles?.display_name || b.profiles?.username || '').toLowerCase();
                 return nameA.localeCompare(nameB);
             }
         });
@@ -353,7 +353,7 @@ export default function Players() {
                                     </div>
                                     <div style={S.playerInfo}>
                                         <div style={S.playerName}>
-                                            {member.profiles?.alias || member.profiles?.username || 'Player'}
+                                            {member.profiles?.display_name || member.profiles?.username || 'Player'}
                                             {isMe && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
                                         </div>
                                         <div style={S.playerMeta}>
@@ -369,7 +369,7 @@ export default function Players() {
                                                 const agent = members.find(m => m.user_id === member.agent_id);
                                                 return agent ? (
                                                     <span style={{ fontSize: '11px', color: '#1877F2' }}>
-                                                        Agent: {agent.profiles?.alias || agent.profiles?.username}
+                                                        Agent: {agent.profiles?.display_name || agent.profiles?.username}
                                                     </span>
                                                 ) : null;
                                             })()}
@@ -404,7 +404,7 @@ export default function Players() {
                                 ) : ROLE_BADGES[selectedPlayer.role] || ''}
                             </div>
                             <div style={S.modalName}>
-                                {selectedPlayer.profiles?.alias || selectedPlayer.profiles?.username || 'Player'}
+                                {selectedPlayer.profiles?.display_name || selectedPlayer.profiles?.username || 'Player'}
                             </div>
                             <div style={{
                                 ...S.modalRole,

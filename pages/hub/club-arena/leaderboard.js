@@ -93,7 +93,7 @@ export default function Leaderboard() {
                 // Get members with profiles
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles!inner(username, alias, avatar_url)')
+                    .select('*, profiles!inner(username, display_name, avatar_url)')
                     .eq('club_id', clubData.id);
 
                 if (memberData) {
@@ -323,7 +323,7 @@ export default function Leaderboard() {
                                                 <img src={top3[1].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : '👤'}
                                         </div>
-                                        <div style={S.podiumName}>{top3[1]?.profiles?.alias || top3[1]?.profiles?.username || 'Player'}</div>
+                                        <div style={S.podiumName}>{top3[1]?.profiles?.display_name || top3[1]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[1])}</div>
                                         <div style={S.podiumRank}>🥈</div>
                                     </div>
@@ -335,7 +335,7 @@ export default function Leaderboard() {
                                                 <img src={top3[0].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : '👤'}
                                         </div>
-                                        <div style={S.podiumName}>{top3[0]?.profiles?.alias || top3[0]?.profiles?.username || 'Player'}</div>
+                                        <div style={S.podiumName}>{top3[0]?.profiles?.display_name || top3[0]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.gold, fontSize: '18px' }}>{getDisplayValue(top3[0])}</div>
                                         <div style={{ ...S.podiumRank, fontSize: '24px' }}>🥇</div>
                                     </div>
@@ -347,7 +347,7 @@ export default function Leaderboard() {
                                                 <img src={top3[2].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : '👤'}
                                         </div>
-                                        <div style={S.podiumName}>{top3[2]?.profiles?.alias || top3[2]?.profiles?.username || 'Player'}</div>
+                                        <div style={S.podiumName}>{top3[2]?.profiles?.display_name || top3[2]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[2])}</div>
                                         <div style={S.podiumRank}>🥉</div>
                                     </div>
@@ -379,7 +379,7 @@ export default function Leaderboard() {
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
-                                                        {member.profiles?.alias || member.profiles?.username || 'Player'}
+                                                        {member.profiles?.display_name || member.profiles?.username || 'Player'}
                                                         {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
                                                     </div>
                                                     <div style={S.playerSub}>{member.role || 'Member'}</div>
@@ -418,7 +418,7 @@ export default function Leaderboard() {
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
-                                                        {member.profiles?.alias || member.profiles?.username || 'Player'}
+                                                        {member.profiles?.display_name || member.profiles?.username || 'Player'}
                                                         {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
                                                     </div>
                                                 </div>

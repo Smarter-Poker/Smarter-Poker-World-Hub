@@ -471,7 +471,7 @@ export default function ClubMessages() {
             if (clubData) {
                 setClub(clubData);
 
-                const { data: members } = await supabase.from('club_members').select('*, profiles!inner(id, username, alias, avatar_url)').eq('club_id', clubData.id);
+                const { data: members } = await supabase.from('club_members').select('*, profiles!inner(id, username, display_name, avatar_url)').eq('club_id', clubData.id);
                 setClubMembers(members || []);
 
                 const memberIds = new Set((members || []).map(m => m.user_id));
@@ -524,7 +524,7 @@ export default function ClubMessages() {
         const results = clubMembers
             .filter(m => m.user_id !== user?.id)
             .filter(m => canMessageUser(m)) // 🔒 HIERARCHY: Only show allowed recipients
-            .filter(m => m.profiles?.username?.toLowerCase().includes(query) || m.profiles?.alias?.toLowerCase().includes(query))
+            .filter(m => m.profiles?.username?.toLowerCase().includes(query) || m.profiles?.display_name?.toLowerCase().includes(query))
             .slice(0, 5);
         setSearchResults(results);
     }, [searchQuery, clubMembers, user, currentUserMembership, club]);
@@ -925,7 +925,7 @@ export default function ClubMessages() {
                                 <div key={member.id} onClick={() => startConversation(member)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}>
                                     <Avatar src={member.profiles?.avatar_url} name={member.profiles?.username} size={44} />
                                     <div>
-                                        <div style={{ fontWeight: 600, color: C.text }}>{member.profiles?.alias || member.profiles?.username}</div>
+                                        <div style={{ fontWeight: 600, color: C.text }}>{member.profiles?.display_name || member.profiles?.username}</div>
                                         <div style={{ fontSize: 12, color: C.textSec }}>@{member.profiles?.username}</div>
                                     </div>
                                 </div>
