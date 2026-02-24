@@ -353,6 +353,13 @@ export default function Admin() {
     // DELETE CLUB
     // ═══════════════════════════════════════════════════════════════════════════
     const deleteClub = async () => {
+        // Only the owner can delete the club
+        const currentMember = members.find(m => m.user_id === user?.id);
+        if (!currentMember || currentMember.role !== 'owner') {
+            showToast('Only the club owner can delete the club', 'error');
+            return;
+        }
+
         const confirmText = prompt(`Type "${club?.name}" to delete this club permanently:`);
         if (confirmText !== club?.name) {
             showToast('Club name did not match', 'error');
