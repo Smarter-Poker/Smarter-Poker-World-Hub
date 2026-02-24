@@ -158,6 +158,25 @@ export default function Admin() {
         }
     };
 
+    // Assign agent to a player (sets agent_id on club_members)
+    const assignAgent = async (memberId, agentUserId) => {
+        setProcessing(true);
+        try {
+            const { error } = await supabase
+                .from('club_members')
+                .update({ agent_id: agentUserId || null })
+                .eq('id', memberId);
+
+            if (error) throw error;
+            showToast(agentUserId ? 'Agent assigned' : 'Agent removed');
+            loadData();
+        } catch (e) {
+            showToast('Failed to assign agent', 'error');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const removeMember = async (memberId, memberName) => {
         if (!confirm(`Remove ${memberName} from the club?`)) return;
         setProcessing(true);
@@ -356,7 +375,7 @@ export default function Admin() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Admin Club Admin</h1>
+                    <h1 style={S.pageTitle}> Club Admin</h1>
 
                     {isLoading ? (
                         <div style={S.loading}>Loading...</div>
@@ -403,40 +422,66 @@ export default function Admin() {
                         <div style={S.modalBody}>
                             {members.length === 0 ? (
                                 <p style={{ color: FB.textSecondary, textAlign: 'center' }}>No Members Yet</p>
-                            ) : members.map(member => (
-                                <div key={member.id} style={S.memberRow}>
-                                    <div style={S.memberAvatar}>
-                                        {member.profiles?.avatar_url ? (
-                                            <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        ) : ''}
+                            ) : members.map(member => {
+                                const agents = members.filter(m => m.role === 'agent');
+                                const assignedAgent = agents.find(a => a.user_id === member.agent_id);
+                                return (
+                                    <div key={member.id} style={S.memberRow}>
+                                        <div style={S.memberAvatar}>
+                                            {member.profiles?.avatar_url ? (
+                                                <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : ''}
+                                        </div>
+                                        <div style={S.memberInfo}>
+                                            <div style={S.memberName}>{member.profiles?.alias || member.profiles?.username || 'Unknown'}</div>
+                                            <div style={S.memberRole}>{member.role} • {(member.chip_balance || 0).toLocaleString()} chips</div>
+                                            {member.role === 'player' && agents.length > 0 && (
+                                                <div style={{ marginTop: 4 }}>
+                                                    <select
+                                                        style={{ ...S.roleSelect, fontSize: '11px', padding: '3px 6px' }}
+                                                        value={member.agent_id || ''}
+                                                        onChange={e => assignAgent(member.id, e.target.value)}
+                                                        disabled={processing}
+                                                    >
+                                                        <option value="">No Agent</option>
+                                                        {agents.map(a => (
+                                                            <option key={a.user_id} value={a.user_id}>
+                                                                {a.profiles?.alias || a.profiles?.username}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                            {member.role === 'player' && assignedAgent && (
+                                                <div style={{ fontSize: '11px', color: '#1877F2', marginTop: 2 }}>
+                                                    Agent: {assignedAgent.profiles?.alias || assignedAgent.profiles?.username}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {member.role !== 'owner' && (
+                                            <>
+                                                <select
+                                                    style={S.roleSelect}
+                                                    value={member.role}
+                                                    onChange={e => updateMemberRole(member.id, e.target.value)}
+                                                    disabled={processing}
+                                                >
+                                                    {ROLES.filter(r => r !== 'owner').map(r => (
+                                                        <option key={r} value={r}>{r}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    style={S.removeBtn}
+                                                    onClick={() => removeMember(member.id, member.profiles?.alias || member.profiles?.username)}
+                                                    disabled={processing}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
-                                    <div style={S.memberInfo}>
-                                        <div style={S.memberName}>{member.profiles?.alias || member.profiles?.username || 'Unknown'}</div>
-                                        <div style={S.memberRole}>{member.role} • {(member.chip_balance || 0).toLocaleString()} chips</div>
-                                    </div>
-                                    {member.role !== 'owner' && (
-                                        <>
-                                            <select
-                                                style={S.roleSelect}
-                                                value={member.role}
-                                                onChange={e => updateMemberRole(member.id, e.target.value)}
-                                                disabled={processing}
-                                            >
-                                                {ROLES.filter(r => r !== 'owner').map(r => (
-                                                    <option key={r} value={r}>{r}</option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                style={S.removeBtn}
-                                                onClick={() => removeMember(member.id, member.profiles?.alias || member.profiles?.username)}
-                                                disabled={processing}
-                                            >
-                                                Remove
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

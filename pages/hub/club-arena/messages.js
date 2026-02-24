@@ -209,7 +209,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
             </button>
 
             {/* GIF Button */}
-            <button style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} title="Send GIF">
+            <button onClick={() => { if (typeof setToast === 'function') { /* GIF coming soon */ } }} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, opacity: 0.4 }} title="GIF — Coming Soon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <rect x="3" y="5" width="18" height="14" rx="2" stroke={C.blue} strokeWidth="1.5" />
                     <text x="12" y="14" textAnchor="middle" fontSize="7" fontWeight="bold" fill={C.blue}>GIF</text>
