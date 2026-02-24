@@ -22,6 +22,8 @@ export default function ClubLobby() {
     const [isLoading, setIsLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState('ALL');
+    const [chipBalance, setChipBalance] = useState(0);
+    const [membership, setMembership] = useState(null);
     const [showCreateTable, setShowCreateTable] = useState(false);
     const [creatingTable, setCreatingTable] = useState(false);
     const [newTable, setNewTable] = useState({
@@ -137,6 +139,20 @@ export default function ClubLobby() {
                     .eq('club_id', clubData.id)
                     .neq('status', 'deleted');
                 setTables(tableData || []);
+
+                // Load membership & chip balance
+                if (authUser) {
+                    const { data: memberData } = await supabase
+                        .from('club_members')
+                        .select('id, chip_balance, role')
+                        .eq('club_id', clubData.id)
+                        .eq('user_id', authUser.id)
+                        .maybeSingle();
+                    if (memberData) {
+                        setMembership(memberData);
+                        setChipBalance(memberData.chip_balance || 0);
+                    }
+                }
             }
         } catch (e) {
             console.error('[ClubLobby] Error:', e);
@@ -190,8 +206,8 @@ export default function ClubLobby() {
                                 </div>
                                 <div style={styles.clubBalance}>
                                     <div style={styles.balanceRow}>
-                                        <span style={styles.balanceAmount}>0.00</span>
-                                        <button style={styles.addBtn}>+</button>
+                                        <span style={styles.balanceAmount}>{chipBalance.toLocaleString()}</span>
+                                        <button style={styles.addBtn} onClick={() => router.push(`/hub/club-arena/cashier?club=${club.club_id}`)}>+</button>
                                     </div>
                                 </div>
                             </div>
@@ -242,9 +258,11 @@ export default function ClubLobby() {
                                 <button
                                     style={styles.heroActionBtn}
                                     onClick={() => {
-                                        // Quick seat to first available table
-                                        if (filteredTables.length > 0) {
-                                            alert(`Joining ${filteredTables[0].name}...`);
+                                        const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
+                                        if (openTable) {
+                                            router.push(`/hub/club-arena/lobby?club=${club.club_id}&table=${openTable.id}`);
+                                        } else if (filteredTables.length > 0) {
+                                            alert('All tables are full. Try joining a waitlist or create a new table.');
                                         } else {
                                             alert('No tables available. Create one!');
                                         }
@@ -270,7 +288,7 @@ export default function ClubLobby() {
                                                     {table.current_players || 0}/{table.max_players || 9} players
                                                 </div>
                                             </div>
-                                            <button style={styles.joinBtn}>JOIN TABLE</button>
+                                            <button style={styles.joinBtn} onClick={() => router.push(`/hub/club-arena/lobby?club=${club.club_id}&table=${table.id}`)}>JOIN TABLE</button>
                                         </div>
                                     ))}
                                 </div>
