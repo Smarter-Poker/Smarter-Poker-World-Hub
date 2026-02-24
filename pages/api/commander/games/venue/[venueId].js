@@ -33,34 +33,35 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get games
-    const { data: games, error: gamesError } = await supabase
-      .from('commander_games')
-      .select(`
-        *,
-        commander_tables (
-          id,
-          table_number,
-          table_name,
-          max_seats
-        ),
-        commander_seats (
-          id,
-          seat_number,
-          status,
-          player_name
-        )
-      `)
-      .eq('venue_id', venueId)
-      .in('status', ['waiting', 'running', 'breaking'])
-      .order('created_at', { ascending: false });
+    // Get games — try with joins first, fallback to simple query
+    let games = [];
+    try {
+      const result = await supabase
+        .from('commander_games')
+        .select(`
+          *,
+          commander_tables (
+            id,
+            table_number,
+            table_name,
+            max_seats
+          )
+        `)
+        .eq('venue_id', venueId)
+        .in('status', ['waiting', 'running', 'breaking'])
+        .order('created_at', { ascending: false });
 
-    if (gamesError) {
-      console.error('Commander venue games query error:', gamesError);
-      return res.status(500).json({
-        success: false,
-        error: { code: 'DATABASE_ERROR', message: 'Failed to fetch games' }
-      });
+      if (result.error) throw result.error;
+      games = result.data || [];
+    } catch {
+      // Fallback: simple query without FK joins
+      const result = await supabase
+        .from('commander_games')
+        .select('*')
+        .eq('venue_id', venueId)
+        .in('status', ['waiting', 'running', 'breaking'])
+        .order('created_at', { ascending: false });
+      games = result.data || [];
     }
 
     // Get all tables at venue

@@ -50,21 +50,36 @@ export default function CommanderTablesPage() {
     } catch { router.push('/commander/login').catch(() => { }); }
   }, [router]);
 
-  // Fetch tables + games
+  // Fetch tables + games (each independently — one failure shouldn't block the other)
   const fetchTables = useCallback(async () => {
     if (!venueId) return;
+    const staffSession = localStorage.getItem('commander_staff') || '';
+
+    // Fetch tables
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const [tablesRes, gamesRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } }),
-        fetch(`/api/commander/games/venue/${venueId}`)
-      ]);
+      const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } });
       const tablesData = await tablesRes.json();
-      const gamesData = await gamesRes.json();
-      if (tablesData.success) setTables(tablesData.data || []);
-      if (gamesData.success) setGames(gamesData.data?.games || []);
+      if (tablesData.success) {
+        const tablesArr = Array.isArray(tablesData.data) ? tablesData.data
+          : Array.isArray(tablesData.data?.tables) ? tablesData.data.tables
+            : [];
+        setTables(tablesArr);
+      }
     } catch (err) { console.error('Failed to fetch tables:', err); }
-    finally { setLoading(false); }
+
+    // Fetch games
+    try {
+      const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers: { 'x-staff-session': staffSession } });
+      const gamesData = await gamesRes.json();
+      if (gamesData.success) {
+        const gamesArr = Array.isArray(gamesData.data?.games) ? gamesData.data.games
+          : Array.isArray(gamesData.data) ? gamesData.data
+            : [];
+        setGames(gamesArr);
+      }
+    } catch (err) { console.error('Failed to fetch games:', err); }
+
+    setLoading(false);
   }, [venueId]);
 
   useEffect(() => { if (venueId) fetchTables(); }, [venueId, fetchTables]);
