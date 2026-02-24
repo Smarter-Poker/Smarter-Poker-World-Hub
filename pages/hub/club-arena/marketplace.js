@@ -177,10 +177,27 @@ export default function Marketplace() {
 
         setProcessing(true);
         try {
+            // Read fresh balance to prevent stale-state overwrites
+            const { data: freshMember, error: fetchError } = await supabase
+                .from('club_members')
+                .select('chip_balance')
+                .eq('club_id', club.id)
+                .eq('user_id', user.id)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const currentBalance = freshMember?.chip_balance || 0;
+            if (currentBalance < selectedItem.price) {
+                showToast('Not enough chips!', 'error');
+                setProcessing(false);
+                return;
+            }
+
             // 1. Deduct chips from balance
             const { error: updateError } = await supabase
                 .from('club_members')
-                .update({ chip_balance: chipBalance - selectedItem.price })
+                .update({ chip_balance: currentBalance - selectedItem.price })
                 .eq('club_id', club.id)
                 .eq('user_id', user.id);
 

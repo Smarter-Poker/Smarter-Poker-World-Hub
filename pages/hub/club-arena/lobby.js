@@ -52,6 +52,11 @@ export default function ClubLobby() {
     // Handler for creating a new table
     async function handleCreateTable() {
         if (!club) return;
+        // Only admins/owners can create tables
+        if (membership?.role !== 'owner' && membership?.role !== 'admin') {
+            alert('Only admins and owners can create tables.');
+            return;
+        }
         setCreatingTable(true);
         try {
             const { data, error } = await supabase
@@ -262,7 +267,7 @@ export default function ClubLobby() {
                                     onClick={() => {
                                         const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
                                         if (openTable) {
-                                            router.push(`/hub/club-arena/table/${openTable.id}`);
+                                            router.push(`/hub/club-arena/table?table=${openTable.id}&club=${club.club_id}`);
                                         } else if (filteredTables.length > 0) {
                                             alert('All tables are full. Try joining a waitlist or create a new table.');
                                         } else {
@@ -290,7 +295,7 @@ export default function ClubLobby() {
                                                     {table.current_players || 0}/{table.max_players || 9} players
                                                 </div>
                                             </div>
-                                            <button style={styles.joinBtn} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>JOIN TABLE</button>
+                                            <button style={styles.joinBtn} onClick={() => router.push(`/hub/club-arena/table?table=${table.id}&club=${club.club_id}`)}>JOIN TABLE</button>
                                         </div>
                                     ))}
                                 </div>
