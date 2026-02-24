@@ -15,7 +15,7 @@ export default function ClubTable() {
 
     // Build the Club Arena table URL
     const clubArenaUrl = tableId
-        ? `https://club-arena.vercel.app/table/${tableId}`
+        ? `https://club-arena.vercel.app/hub/club-arena/table/${tableId}`
         : null;
 
     useEffect(() => {
