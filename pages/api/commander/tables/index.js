@@ -40,7 +40,7 @@ async function handleGet(req, res) {
       });
     }
 
-    // Try with game join first, fallback to simple query if FK doesn't exist
+    // Try with game + seats join first, fallback to simple query
     let data, error;
     try {
       const result = await supabase
@@ -61,6 +61,24 @@ async function handleGet(req, res) {
 
       if (result.error) throw result.error;
       data = result.data;
+
+      // Also fetch seat occupancy data
+      try {
+        const { data: seats } = await supabase
+          .from('commander_table_seats')
+          .select('table_number, seat_number, status, player_name, seated_at')
+          .eq('venue_id', venue_id)
+          .eq('status', 'occupied');
+        // Merge seats into table data
+        if (seats && data) {
+          const seatsByTable = {};
+          seats.forEach(s => {
+            if (!seatsByTable[s.table_number]) seatsByTable[s.table_number] = [];
+            seatsByTable[s.table_number].push(s);
+          });
+          data = data.map(t => ({ ...t, seats: seatsByTable[t.table_number] || [] }));
+        }
+      } catch { /* seats table may not exist yet — non-critical */ }
     } catch {
       // Fallback: simple query without FK join
       const result = await supabase

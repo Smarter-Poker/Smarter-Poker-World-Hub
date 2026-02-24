@@ -147,7 +147,7 @@ function JoinClubModal({ onClose, onJoined, user }) {
             await supabase.from('club_members').insert({
                 club_id: club.id,
                 user_id: user.id,
-                role: 'member',
+                role: 'player',
                 status: 'active',
             });
 
@@ -202,8 +202,8 @@ function FindPlayerModal({ onClose }) {
         try {
             const { data } = await supabase
                 .from('profiles')
-                .select('id, alias, avatar_url')
-                .ilike('alias', `%${search.trim()}%`)
+                .select('id, username, display_name, avatar_url')
+                .or(`username.ilike.%${search.trim()}%,display_name.ilike.%${search.trim()}%`)
                 .limit(10);
             setResults(data || []);
         } catch (err) {
@@ -256,10 +256,10 @@ function FindPlayerModal({ onClose }) {
                                     {p.avatar_url ? (
                                         <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        p.alias?.[0]?.toUpperCase() || '?'
+                                        (p.display_name || p.username)?.[0]?.toUpperCase() || '?'
                                     )}
                                 </div>
-                                <span style={{ color: '#fff', fontWeight: 500 }}>{p.alias || 'Unknown'}</span>
+                                <span style={{ color: '#fff', fontWeight: 500 }}>{p.display_name || p.username || 'Unknown'}</span>
                             </div>
                         ))
                     )}
