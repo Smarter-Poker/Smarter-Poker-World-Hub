@@ -281,88 +281,106 @@ export default function ClubLobby() {
                                 </button>
                             </div>
 
-                            {/* ═══ PREMIUM TABLE GRID ═══ */}
-                            <div style={styles.tableGrid}>
-                                {/* Create New Table Card */}
+                            {/* ═══ POKERBROS PILL-ICON GRID ═══ */}
+                            <div style={styles.iconGrid}>
+                                {/* Create New Table Icon */}
                                 {(membership?.role === 'owner' || membership?.role === 'admin') && (
-                                    <div style={styles.createTableCard} onClick={() => setShowCreateTable(true)}>
-                                        <div style={styles.createTableVisual}>
-                                            <div style={styles.createTableIcon}>
-                                                <svg viewBox="0 0 80 50" style={{ width: '80px', height: '50px' }}>
-                                                    <ellipse cx="40" cy="25" rx="38" ry="22" fill="#1a3a2a" stroke="#8B7355" strokeWidth="2" />
-                                                    <ellipse cx="40" cy="25" rx="32" ry="18" fill="#1a5c3a" stroke="#6B5B3A" strokeWidth="1" />
-                                                    <text x="40" y="31" textAnchor="middle" fill="#8B9B8B" fontSize="22" fontWeight="bold">+</text>
-                                                </svg>
+                                    <div style={styles.iconItemWrapper} onClick={() => setShowCreateTable(true)}>
+                                        <div style={{ ...styles.pillOuter, background: 'linear-gradient(180deg, #7A7A7A 0%, #3B3B3B 40%, #5C5C5C 60%, #292929 100%)' }}>
+                                            <div style={{ ...styles.pillInner, background: 'radial-gradient(ellipse at center, #2C2C35 0%, #15151A 100%)' }}>
+                                                <div style={styles.createPlus}>+</div>
+                                            </div>
+
+                                            {/* 3D NEW Logo left overhanging */}
+                                            <div style={styles.newBadgeWrapper}>
+                                                <div style={styles.newBadgeCoin}>
+                                                    <div style={styles.newBadgeText}>NEW</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Bottom Label Trapezoid */}
+                                            <div style={styles.createLabelWrapper}>
+                                                <div style={styles.createLabelBox}>
+                                                    Create new table
+                                                </div>
                                             </div>
                                         </div>
-                                        <div style={styles.createTableLabel}>Create new table</div>
                                     </div>
                                 )}
 
-                                {/* Table Cards */}
+                                {/* Table Icons */}
                                 {filteredTables.map(table => {
                                     const variant = (table.game_variant || 'nlh').toUpperCase();
                                     const gameLabel = variant.startsWith('PLO') ? 'PLO' : variant === 'SHORT_DECK' ? 'SD' : 'NLH';
-                                    const typeLabel = table.game_type === 'tournament' || table.table_type === 'tournament' ? 'MTT' :
-                                        table.table_type === 'sng' ? 'SNG' : '';
-                                    const displayType = typeLabel || gameLabel;
+                                    const typeLabel = table.game_type === 'tournament' || table.table_type === 'tournament' ? 'XMTT' : '';
+                                    const displayType = typeLabel ? `${typeLabel} ${gameLabel}` : gameLabel;
                                     const buyIn = table.big_blind || parseFloat(table.stakes?.split('/')[1]) || 2;
                                     const isGold = buyIn >= 50;
-                                    const isSilver = buyIn >= 10 && buyIn < 50;
+
+                                    // Outer gradient logic based on stakes
+                                    const outerBg = isGold
+                                        ? 'linear-gradient(145deg, #FFEF96 0%, #D4AF37 40%, #FFF5C3 60%, #AA801E 100%)'
+                                        : 'linear-gradient(145deg, #E0E0E0 0%, #8A95A5 40%, #C0C8D0 60%, #5A6A7A 100%)';
+
+                                    const dateStr = table.created_at ? new Date(table.created_at).toISOString().replace('T', ' ').substring(0, 19) : '2026-02-24 19:00:00';
 
                                     return (
-                                        <div key={table.id} style={styles.pokerCard} onClick={() => {
-                                            alert(`Table: ${table.name}\nStakes: ${table.stakes || `${table.small_blind || 1}/${table.big_blind || 2}`}\nPlayers: ${table.current_players || 0}/${table.max_players || 9}\n\nTable game view coming soon!`);
-                                        }}>
-                                            <div style={{ ...styles.pokerCardInner, borderColor: isGold ? '#D4A017' : isSilver ? '#A0A0A0' : '#5a6570' }}>
-                                                {/* Top: Buy-in + Seats */}
-                                                <div style={styles.pokerCardTop}>
-                                                    <div style={styles.buyInSection}>
-                                                        <div style={styles.buyInLabel}>Buy-in</div>
-                                                        <div style={{ ...styles.buyInAmount, color: isGold ? '#FFD700' : '#E8E8E8' }}>{buyIn}</div>
+                                        <div key={table.id} style={styles.iconItemWrapper} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>
+                                            <div style={{ ...styles.pillOuter, background: outerBg }}>
+                                                <div style={styles.pillInner}>
+                                                    <div style={styles.pushPin}>📌</div>
+
+                                                    {/* Left Graphic */}
+                                                    <div style={styles.pillLeftArt}>
+                                                        <span style={styles.trophyEmoji}>{typeLabel ? '🏆' : '♠️'}</span>
+                                                        <div style={styles.artTextOverlay}>{displayType}</div>
                                                     </div>
-                                                    <div style={styles.seatsBadgeNew}>{table.max_players || 9} Max</div>
-                                                </div>
 
-                                                {/* Center: Trophy */}
-                                                <div style={styles.pokerCardVisual}>
-                                                    <div style={{ ...styles.trophyGlow, background: isGold ? 'radial-gradient(ellipse, rgba(212,160,23,0.3) 0%, transparent 70%)' : 'radial-gradient(ellipse, rgba(100,130,200,0.15) 0%, transparent 70%)' }} />
-                                                    <div style={styles.trophyIcon}>{typeLabel ? '\ud83c\udfc6' : '\u2660'}</div>
-                                                </div>
+                                                    {/* Right Stats */}
+                                                    <div style={styles.pillRightStats}>
+                                                        <div style={styles.statsTopRow}>
+                                                            <div style={styles.buyInStack}>
+                                                                <span style={styles.buyInLabel}>Buy-in</span>
+                                                                <span style={styles.buyInValue}>{buyIn}</span>
+                                                            </div>
+                                                            <div style={styles.maxBadge}>{table.max_players || 9} Max</div>
+                                                        </div>
 
-                                                {/* Game type */}
-                                                <div style={styles.gameTypeBadge}>
-                                                    <span style={{ ...styles.gameTypeText, color: isGold ? '#FFD700' : '#4FC3F7' }}>{displayType}</span>
-                                                    <span style={styles.gameVariantSub}>{gameLabel}</span>
-                                                </div>
-
-                                                {/* Bottom: Players + Timer */}
-                                                <div style={styles.pokerCardBottom}>
-                                                    <div style={styles.playerInfo}>
-                                                        <span style={styles.playerIcon}>{'\ud83d\udc64'}</span>
-                                                        <span style={styles.playerCount}>{table.current_players || 0}</span>
-                                                    </div>
-                                                    <div style={styles.timeInfo}>
-                                                        <span style={styles.timeIcon}>{'\u23f1'}</span>
-                                                        <span style={styles.timeLabel}>{table.time_limit || 'Open'}</span>
+                                                        <div style={styles.statsBottomRow}>
+                                                            <div style={styles.statItem}>
+                                                                <span style={styles.statIcon}>⏱</span>
+                                                                {table.time_limit || '10min'}
+                                                            </div>
+                                                            <div style={styles.statItem}>
+                                                                <span style={styles.statIcon}>👤</span>
+                                                                {table.current_players || 0}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Name + Stakes */}
-                                                <div style={styles.pokerCardName}>{table.name}</div>
-                                                <div style={styles.pokerCardStakes}>{table.stakes || `${table.small_blind || 1}/${table.big_blind || 2}`}</div>
+                                                {/* Bottom Ribbon */}
+                                                <div style={styles.ribbonWrapper}>
+                                                    <div style={styles.ribbonBody}>
+                                                        <span style={styles.ribbonIcon}>🐦</span>
+                                                        <span style={styles.ribbonText}>{table.name}</span>
+                                                    </div>
+                                                </div>
                                             </div>
+
+                                            {/* Date Box Below */}
+                                            <div style={styles.dateBox}>{dateStr}</div>
                                         </div>
                                     );
                                 })}
-
-                                {filteredTables.length === 0 && !(membership?.role === 'owner' || membership?.role === 'admin') && (
-                                    <div style={styles.emptyState}>
-                                        <p>No Active Tables</p>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
-                                    </div>
-                                )}
                             </div>
+
+                            {filteredTables.length === 0 && !(membership?.role === 'owner' || membership?.role === 'admin') && (
+                                <div style={styles.emptyState}>
+                                    <p>No Active Tables</p>
+                                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
+                                </div>
+                            )}
 
                             {/* Quick Actions */}
                             <div style={styles.quickActions}>
@@ -695,178 +713,229 @@ const styles = {
         cursor: 'pointer',
         whiteSpace: 'nowrap',
     },
-    sectionTitle: {
-        fontSize: '14px',
-        fontWeight: 700,
-        color: FB.textSecondary,
-        marginBottom: '12px',
+    /* ═══ POKERBROS PILL-ICON GRID ═══ */
+    iconGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '12px 16px',
+        marginBottom: '20px',
+    },
+    iconItemWrapper: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        cursor: 'pointer',
+        marginBottom: '10px',
+    },
+    /* Pill Container */
+    pillOuter: {
+        width: '100%',
+        height: '96px',
+        borderRadius: '48px',
+        padding: '3px',
+        position: 'relative',
+        boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+        transition: 'transform 0.1s ease',
+    },
+    pillInner: {
+        width: '100%',
+        height: '100%',
+        borderRadius: '45px',
+        background: 'radial-gradient(ellipse at right, #2a2a2a 0%, #000 100%)',
+        position: 'relative',
+        display: 'flex',
+        overflow: 'hidden',
+    },
+    pushPin: {
+        position: 'absolute',
+        top: '-2px',
+        right: '18px',
+        fontSize: '18px',
+        zIndex: 5,
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+        transform: 'rotate(15deg)',
+    },
+    /* Left Art */
+    pillLeftArt: {
+        width: '45%',
+        height: '100%',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    trophyEmoji: {
+        fontSize: '50px',
+        position: 'absolute',
+        left: '-5px',
+        top: '5px',
+        filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.8))',
+    },
+    artTextOverlay: {
+        position: 'absolute',
+        bottom: '8px',
+        left: '10px',
+        fontFamily: 'Orbitron, sans-serif',
+        fontWeight: '900',
+        fontSize: '13px',
+        color: '#fff',
+        textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000',
+        transform: 'skewX(-10deg)',
+        letterSpacing: '0.5px',
+    },
+    /* Right Stats */
+    pillRightStats: {
+        width: '55%',
+        height: '100%',
+        padding: '8px 12px 0 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+    },
+    statsTopRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+    },
+    buyInStack: {
+        display: 'flex',
+        flexDirection: 'column',
+        lineHeight: '1',
+    },
+    buyInLabel: {
+        fontSize: '9px',
+        color: '#ccc',
+        marginBottom: '2px',
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
     },
-    /* ═══ PREMIUM POKER TABLE GRID ═══ */
-    tableGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px',
-        marginBottom: '20px',
+    buyInValue: {
+        fontSize: '20px',
+        fontWeight: '900',
+        fontFamily: 'Orbitron, sans-serif',
+        color: '#fff',
+        textShadow: '0 2px 4px rgba(0,0,0,0.5)',
     },
-    /* Create New Table Card */
-    createTableCard: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px 8px',
-        borderRadius: '12px',
-        background: 'linear-gradient(180deg, #2a2e35 0%, #1a1e25 100%)',
-        border: '2px solid #4a5060',
-        cursor: 'pointer',
-        minHeight: '180px',
-        transition: 'all 0.2s ease',
-    },
-    createTableVisual: {
-        marginBottom: '12px',
-    },
-    createTableIcon: {
-        opacity: 0.8,
-    },
-    createTableLabel: {
-        color: '#B0B3B8',
-        fontSize: '13px',
-        fontWeight: 500,
-    },
-    /* Poker Table Card */
-    pokerCard: {
-        cursor: 'pointer',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        transition: 'transform 0.15s ease',
-    },
-    pokerCardInner: {
-        position: 'relative',
-        padding: '10px 10px 8px',
-        borderRadius: '12px',
-        background: 'linear-gradient(180deg, #1e2530 0%, #141820 60%, #0d1015 100%)',
-        border: '2px solid #5a6570',
-        overflow: 'hidden',
-    },
-    pokerCardTop: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '4px',
-    },
-    buyInSection: {
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    buyInLabel: {
-        fontSize: '10px',
-        color: '#8B9DAF',
-        fontWeight: 500,
-        letterSpacing: '0.3px',
-    },
-    buyInAmount: {
-        fontSize: '28px',
-        fontWeight: 800,
-        color: '#E8E8E8',
-        lineHeight: '1',
-        fontFamily: 'Orbitron, Inter, sans-serif',
-    },
-    seatsBadgeNew: {
-        padding: '3px 8px',
-        background: 'rgba(255,255,255,0.08)',
-        borderRadius: '10px',
-        fontSize: '11px',
-        fontWeight: 700,
-        color: '#B0B8C0',
-        whiteSpace: 'nowrap',
-    },
-    /* Center visual */
-    pokerCardVisual: {
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '50px',
-        marginBottom: '2px',
-    },
-    trophyGlow: {
-        position: 'absolute',
-        inset: '-10px',
-        borderRadius: '50%',
-    },
-    trophyIcon: {
-        fontSize: '32px',
-        position: 'relative',
-        zIndex: 1,
-    },
-    /* Game type badge */
-    gameTypeBadge: {
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: '4px',
-        marginBottom: '4px',
-    },
-    gameTypeText: {
-        fontSize: '16px',
-        fontWeight: 800,
-        fontFamily: 'Orbitron, Inter, sans-serif',
-        letterSpacing: '1px',
-    },
-    gameVariantSub: {
-        fontSize: '11px',
-        fontWeight: 600,
-        color: '#6B7A8A',
-        letterSpacing: '0.5px',
-    },
-    /* Bottom info */
-    pokerCardBottom: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '4px',
-    },
-    playerInfo: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '3px',
-    },
-    playerIcon: {
-        fontSize: '11px',
-    },
-    playerCount: {
+    maxBadge: {
         fontSize: '12px',
-        color: '#8B9DAF',
-        fontWeight: 600,
+        fontWeight: '800',
+        fontFamily: 'Orbitron, sans-serif',
+        color: '#F8B036',
+        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
     },
-    timeInfo: {
+    statsBottomRow: {
+        display: 'flex',
+        flexDirection: 'column',
+        marginTop: '6px',
+        gap: '4px',
+    },
+    statItem: {
+        fontSize: '11px',
+        color: '#ccc',
         display: 'flex',
         alignItems: 'center',
-        gap: '3px',
+        gap: '4px',
     },
-    timeIcon: {
+    statIcon: {
         fontSize: '10px',
     },
-    timeLabel: {
-        fontSize: '11px',
-        color: '#8B9DAF',
-        fontWeight: 500,
+    /* Bottom Ribbon */
+    ribbonWrapper: {
+        position: 'absolute',
+        bottom: '-10px',
+        left: '15px',
+        right: '15px',
+        zIndex: 10,
+        filter: 'drop-shadow(0 4px 5px rgba(0,0,0,0.5))',
     },
-    /* Table name & stakes */
-    pokerCardName: {
-        fontSize: '11px',
-        fontWeight: 600,
-        color: '#7BBEDF',
+    ribbonBody: {
+        background: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.85) 85%, transparent 100%)',
+        padding: '2px 8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        borderBottom: '1px solid rgba(91,192,222,0.3)',
+    },
+    ribbonIcon: {
+        fontSize: '10px',
+        color: '#5BC0DE',
+    },
+    ribbonText: {
+        fontSize: '10px',
+        fontWeight: 'bold',
+        color: '#5BC0DE',
+        textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        marginBottom: '2px',
     },
-    pokerCardStakes: {
+    /* Date Box */
+    dateBox: {
+        marginTop: '12px',
+        background: 'rgba(0,0,0,0.5)',
+        borderRadius: '6px',
+        padding: '3px 12px',
         fontSize: '10px',
-        color: '#5a6a7a',
-        fontWeight: 500,
+        color: '#888',
+        border: '1px solid rgba(255,255,255,0.05)',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)',
+        whiteSpace: 'nowrap',
+    },
+    /* Create Table Specifics */
+    createPlus: {
+        fontSize: '48px',
+        color: '#666',
+        fontWeight: '300',
+        textShadow: '0 1px 1px rgba(255,255,255,0.1), inset 0 1px 3px rgba(0,0,0,0.5)',
+    },
+    newBadgeWrapper: {
+        position: 'absolute',
+        left: '-12px',
+        top: '-12px',
+        zIndex: 20,
+        transform: 'rotate(-10deg)',
+        filter: 'drop-shadow(0 5px 8px rgba(0,0,0,0.6))',
+    },
+    newBadgeCoin: {
+        width: '64px',
+        height: '24px',
+        background: '#222',
+        borderRadius: '12px',
+        border: '2px solid #555',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    newBadgeText: {
+        position: 'absolute',
+        bottom: '3px',
+        left: '2px',
+        fontSize: '26px',
+        fontWeight: '900',
+        fontFamily: 'Inter, sans-serif',
+        color: '#ddd',
+        letterSpacing: '-1px',
+        textShadow: '0 1px 0 #aaa, 0 2px 0 #999, 0 3px 0 #888, 0 4px 0 #777, 0 5px 0 #666, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2)',
+    },
+    createLabelWrapper: {
+        position: 'absolute',
+        bottom: '-12px',
+        left: '20px',
+        right: '20px',
+        zIndex: 15,
+        filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
+    },
+    createLabelBox: {
+        background: 'linear-gradient(to bottom, #333, #111)',
+        padding: '4px 10px',
+        fontSize: '11px',
+        color: '#aaa',
+        textAlign: 'center',
+        clipPath: 'polygon(5% 0, 95% 0, 100% 100%, 0% 100%)',
+        borderBottom: '1px solid #444',
     },
     emptyState: {
         textAlign: 'center',
