@@ -2774,7 +2774,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
                                         {/* Poker Table Visualization — Full Width (cropped to hide dead space) */}
                                         <div style={{ overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
-                                            <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', marginTop: '-18%', marginBottom: '-18%' }}>
+                                            <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', marginTop: '-22%', marginBottom: '-22%' }}>
                                                 {/* Table image fills entire container */}
                                                 <img
                                                     src="/images/poker-table-black-gold.png"
@@ -3258,7 +3258,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                 {/* Poker Table Visualization — Full Width (cropped to hide dead space) */}
                                 <div style={{ overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
-                                    <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', marginTop: '-18%', marginBottom: '-18%' }}>
+                                    <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', marginTop: '-22%', marginBottom: '-22%' }}>
                                         {/* Table image fills entire container */}
                                         <img
                                             src="/images/poker-table-black-gold.png"
