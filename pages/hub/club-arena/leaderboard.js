@@ -99,13 +99,14 @@ export default function Leaderboard() {
                 if (memberData) {
                     // Calculate date filter for period-specific stats
                     let dateFilter = null;
-                    if (period !== 'all') {
-                        const now = new Date();
-                        if (period === 'week') {
-                            dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString();
-                        } else if (period === 'month') {
-                            dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-                        }
+                    if (period === 'week') {
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        dateFilter = weekAgo.toISOString();
+                    } else if (period === 'month') {
+                        const monthAgo = new Date();
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        dateFilter = monthAgo.toISOString();
                     }
 
                     // Batch fetch hand_history for ALL members at once (avoid N+1)
@@ -382,7 +383,7 @@ export default function Leaderboard() {
                                         const isCurrentUser = user && member.user_id === user.id;
                                         return (
                                             <div
-                                                key={member.id}
+                                                key={member.user_id}
                                                 style={{
                                                     ...S.playerRow,
                                                     ...(isCurrentUser ? S.playerRowHighlight : {}),
@@ -421,7 +422,7 @@ export default function Leaderboard() {
                                         const isCurrentUser = user && member.user_id === user.id;
                                         return (
                                             <div
-                                                key={member.id}
+                                                key={member.user_id}
                                                 style={{
                                                     ...S.playerRow,
                                                     ...(isCurrentUser ? S.playerRowHighlight : {}),

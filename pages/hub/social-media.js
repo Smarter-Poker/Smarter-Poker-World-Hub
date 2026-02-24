@@ -3209,6 +3209,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                             <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                 {/* Game Header */}
                                 <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
+                                    {/* Interest List banner for non-running games */}
+                                    {game.status !== 'running' && (
+                                        <div style={{ textAlign: 'center', marginBottom: 6, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>INTEREST LIST</div>
+                                    )}
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <div>
                                             <div style={{ fontSize: 18, fontWeight: 800 }}>{game.game_name}</div>
@@ -3216,7 +3220,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <div style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
-                                                {game.status === 'running' ? '🟢 RUNNING' : '🔵 SIGN UP'}
+                                                {game.status === 'running' ? '🟢 RUNNING' : '🔵 INTEREST LIST'}
                                             </div>
                                             <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
                                                 {occupiedCount}/{game.max_seats} seated
@@ -3275,9 +3279,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
                                             ${game.stakes}
                                         </div>
-                                        {canInteract && !myReservation && openSeats > 0 && (
+                                        {canInteract && !myReservation && (
                                             <div style={{ fontSize: 11, color: game.status === 'running' ? '#93c5fd' : '#86efac', marginTop: 6, fontWeight: 600 }}>
-                                                {game.status === 'running' ? 'JOIN WAITLIST' : 'TAP TO RESERVE'}
+                                                {game.status === 'running' ? 'JOIN WAITLIST' : 'TAP A SEAT TO RESERVE'}
                                             </div>
                                         )}
                                     </div>
@@ -3432,15 +3436,41 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                     })}
                                 </div>
 
-                                {/* Waitlist + Join Waitlist */}
-                                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ fontSize: 11, color: '#a1a1aa' }}>
-                                        {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>}
+                                {/* Waitlist info */}
+                                {waitlist.length > 0 && (
+                                    <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
+                                        <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
                                     </div>
-                                    {canInteract && !myReservation && (
-                                        <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '5px 14px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
-                                    )}
-                                </div>
+                                )}
+
+                                {/* ── Join Waitlist — Large Centered Button ── */}
+                                {canInteract && !myReservation && (
+                                    <div style={{ padding: '12px 16px 16px' }}>
+                                        <button
+                                            onClick={() => handleJoinWaitlist(game.id)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '16px 24px',
+                                                borderRadius: 12,
+                                                border: 'none',
+                                                background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                color: '#fff',
+                                                fontSize: 18,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                letterSpacing: 1,
+                                                textTransform: 'uppercase',
+                                                boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
+                                                transition: 'transform 0.1s, box-shadow 0.1s',
+                                            }}
+                                            onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
+                                            onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
+                                        >
+                                            Join Waitlist
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

@@ -108,16 +108,18 @@ export default function HandHistories() {
                         .range(reset ? 0 : page * PAGE_SIZE, (reset ? 0 : page) * PAGE_SIZE + PAGE_SIZE - 1);
 
                     // Date filter (created_at always exists)
-                    const now = new Date();
                     if (period === 'today') {
-                        const today = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-                        query = query.gte('created_at', today);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        query = query.gte('created_at', today.toISOString());
                     } else if (period === 'week') {
-                        const weekAgo = new Date(now.setDate(now.getDate() - 7)).toISOString();
-                        query = query.gte('created_at', weekAgo);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        query = query.gte('created_at', weekAgo.toISOString());
                     } else if (period === 'month') {
-                        const monthAgo = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-                        query = query.gte('created_at', monthAgo);
+                        const monthAgo = new Date();
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        query = query.gte('created_at', monthAgo.toISOString());
                     }
 
                     const { data: handData, error } = await query;
@@ -180,7 +182,7 @@ export default function HandHistories() {
 
     useEffect(() => {
         if (page > 0) loadData(false);
-    }, [page]);
+    }, [page, loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CARD RENDERING
@@ -231,7 +233,7 @@ export default function HandHistories() {
         const cardArray = Array.isArray(cards) ? cards : cards.split(/[\s,]+/);
         return (
             <div style={{ display: 'flex', gap: '4px' }}>
-                {cardArray.map((c, i) => renderCard(c, size))}
+                {cardArray.map((c, i) => <span key={`${c}-${i}`}>{renderCard(c, size)}</span>)}
             </div>
         );
     };

@@ -337,7 +337,7 @@ export default function Players() {
                             const isMe = user && member.user_id === user.id;
                             return (
                                 <div
-                                    key={member.id}
+                                    key={member.user_id}
                                     style={S.playerCard}
                                     onClick={() => setSelectedPlayer(member)}
                                     onMouseEnter={e => e.currentTarget.style.borderColor = FB.primary}

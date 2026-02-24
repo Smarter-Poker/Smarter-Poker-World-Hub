@@ -782,7 +782,13 @@ export default function ClubPage() {
           )}
           {/* Back Button */}
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/hub/my-clubs');
+              }
+            }}
             className="absolute top-4 left-4 flex items-center gap-1 px-3 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-lg text-sm font-medium transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -947,7 +953,7 @@ export default function ClubPage() {
               {/* Join Waitlist — always visible when Commander is enabled */}
               {venue.commander_enabled && (
                 <Link
-                  href={`/hub/commander/waitlist/${venue.linked_venue_id || id}`}
+                  href={`/hub/commander/waitlist/${venue.linked_venue_id || id}?from=${id}`}
                   className="block w-full text-center py-3 px-4 bg-[#1877F2] text-white font-semibold rounded-xl hover:bg-[#1664d9] transition-colors shadow-sm"
                 >
                   Join Waitlist

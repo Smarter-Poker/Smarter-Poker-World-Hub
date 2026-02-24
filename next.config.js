@@ -14,23 +14,40 @@ const nextConfig = {
   // Club Arena static assets are proxied from the Club Arena Vercel deployment
   // The pages/hub/club-arena.js pages render the UI, but images/videos come from club-arena.vercel.app
   async rewrites() {
-    return [
-      // Club Arena images (action bar, tiles, cards, etc.)
-      {
-        source: '/hub/club-arena/images/:path*',
-        destination: 'https://club-arena.vercel.app/images/:path*',
-      },
-      // Club Arena videos
-      {
-        source: '/hub/club-arena/videos/:path*',
-        destination: 'https://club-arena.vercel.app/videos/:path*',
-      },
-      // Club Arena manifest and other static files
-      {
-        source: '/hub/club-arena/manifest.json',
-        destination: 'https://club-arena.vercel.app/manifest.json',
-      },
-    ];
+    return {
+      // Rewrites that run BEFORE pages — these take priority over Next.js file routes
+      beforeFiles: [
+        // Club Arena table page — proxy the full React SPA from same domain
+        // This ensures Supabase auth (localStorage) is shared between lobby and table
+        {
+          source: '/hub/club-arena/table/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/table/:path*',
+        },
+      ],
+      // Rewrites that run AFTER pages (fallback)
+      afterFiles: [
+        // Club Arena JS/CSS/font assets
+        {
+          source: '/hub/club-arena/assets/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/assets/:path*',
+        },
+        // Club Arena images (action bar, tiles, cards, etc.)
+        {
+          source: '/hub/club-arena/images/:path*',
+          destination: 'https://club-arena.vercel.app/images/:path*',
+        },
+        // Club Arena videos
+        {
+          source: '/hub/club-arena/videos/:path*',
+          destination: 'https://club-arena.vercel.app/videos/:path*',
+        },
+        // Club Arena manifest and other static files
+        {
+          source: '/hub/club-arena/manifest.json',
+          destination: 'https://club-arena.vercel.app/manifest.json',
+        },
+      ],
+    };
   },
 };
 

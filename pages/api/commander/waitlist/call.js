@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // Get current waitlist entry
     const { data: entry } = await supabase
       .from('commander_waitlist')
-      .select('id, player_name, player_phone, game_type, stakes, venue_id, status')
+      .select('*')
       .eq('id', waitlist_id)
       .single();
 
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
         if (venue?.name) venueName = venue.name;
       } catch { }
 
-      const gameLabel = `${entry.stakes || ''} ${entry.game_type || 'Cash Game'}`.trim();
+      const gameLabel = `${entry.game_type || 'Cash Game'} ${entry.stakes || ''}`.trim();
       const tableInfo = table_number ? ` at Table ${table_number}` : '';
 
       if (isTwilioConfigured()) {

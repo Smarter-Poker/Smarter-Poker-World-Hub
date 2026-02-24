@@ -11,7 +11,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
+  const staff = await guardWriteStaff(req, res); if (!staff) return;
 
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -21,48 +21,8 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { pass_count = 1 } = req.body;
 
   try {
-    // Verify authentication - either player (Bearer) or staff (x-staff-session)
-    let authenticatedUserId = null;
-    let isStaff = false;
-
-    const authHeader = req.headers.authorization;
-    const staffSession = req.headers['x-staff-session'];
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && user) {
-        authenticatedUserId = user.id;
-      }
-    }
-
-    let staffVenueId = null;
-    if (staffSession) {
-      try {
-        const sessionData = JSON.parse(staffSession);
-        const { data: staff } = await supabase
-          .from('commander_staff')
-          .select('id, venue_id, is_active')
-          .eq('id', sessionData.id)
-          .eq('is_active', true)
-          .single();
-        if (staff) {
-          isStaff = true;
-          staffVenueId = staff.venue_id;
-        }
-      } catch { /* invalid session format */ }
-    }
-
-    if (!authenticatedUserId && !isStaff) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
-      });
-    }
-
     // Get current entry
     const { data: entry, error: getError } = await supabase
       .from('commander_waitlist')
@@ -77,27 +37,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Verify staff belongs to the same venue as the waitlist entry
-    if (isStaff && staffVenueId && staffVenueId !== entry.venue_id) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'Staff is not authorized for this venue' }
-      });
-    }
-
-    // Verify ownership: player can only pass on their own entry, staff can pass on any
-    if (!isStaff && entry.player_id && entry.player_id !== authenticatedUserId) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'You can only pass on your own waitlist entry' }
-      });
-    }
-
     // Use pass_count to track passes
     const currentPassCount = entry.pass_count || 0;
     const maxPasses = 3;
 
-    // Remove from waitlist if too many calls/passes
+    // Remove from waitlist if too many passes
     if (currentPassCount >= maxPasses) {
       // Move to history
       await supabase

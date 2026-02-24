@@ -413,10 +413,10 @@ export default function ClubMessages() {
         return cleanup;
     }, []);
 
-    // Load club and members
+    // Load club and members (re-run when user loads so membership is found)
     useEffect(() => {
-        if (clubIdParam) loadClubData();
-    }, [clubIdParam]);
+        if (clubIdParam) loadClubData(user?.id);
+    }, [clubIdParam, user?.id]);
 
     // Load conversations when we have user and club members
     useEffect(() => {
@@ -464,7 +464,7 @@ export default function ClubMessages() {
         return false;
     }
 
-    async function loadClubData() {
+    async function loadClubData(userId) {
         try {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
             const { data: clubData } = await supabase.from('clubs').select('*').eq(isUUID ? 'id' : 'club_id', clubIdParam).single();
@@ -478,8 +478,8 @@ export default function ClubMessages() {
                 setClubMemberIds(memberIds);
 
                 // Set current user's membership for permission checking
-                if (user?.id) {
-                    const myMembership = (members || []).find(m => m.user_id === user.id);
+                if (userId) {
+                    const myMembership = (members || []).find(m => m.user_id === userId);
                     setCurrentUserMembership(myMembership || null);
                 }
             }
@@ -533,6 +533,36 @@ export default function ClubMessages() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Real-time subscription for incoming messages
+    useEffect(() => {
+        if (!activeConversation?.id || !user?.id) return;
+
+        const channel = supabase
+            .channel(`messages:${activeConversation.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `conversation_id=eq.${activeConversation.id}`,
+            }, (payload) => {
+                const newMsg = payload.new;
+                // Only add if not from current user (we already optimistically added our own)
+                if (newMsg && newMsg.sender_id !== user.id) {
+                    setMessages(prev => {
+                        // Avoid duplicates
+                        if (prev.some(m => m.id === newMsg.id)) return prev;
+                        return [...prev, newMsg];
+                    });
+                    playMessageSound();
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [activeConversation?.id, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // 📞 VIDEO/VOICE CALL FUNCTIONS
@@ -922,7 +952,7 @@ export default function ClubMessages() {
                     {searchResults.length > 0 && (
                         <div style={{ marginTop: 8, background: C.card, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
                             {searchResults.map(member => (
-                                <div key={member.id} onClick={() => startConversation(member)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}>
+                                <div key={member.user_id} onClick={() => startConversation(member)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` }}>
                                     <Avatar src={member.profiles?.avatar_url} name={member.profiles?.username} size={44} />
                                     <div>
                                         <div style={{ fontWeight: 600, color: C.text }}>{member.profiles?.display_name || member.profiles?.username}</div>

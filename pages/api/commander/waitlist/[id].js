@@ -4,6 +4,7 @@
  * DELETE /api/commander/waitlist/[id] - Remove player from waitlist (player or staff)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Guard: write methods (POST/PUT/PATCH/DELETE) require staff auth; GET passes through
+  const staff = await guardWriteStaff(req, res); if (!staff) return;
+
   const { id } = req.query;
 
   // ── GET: Return a single waitlist entry ──────────────────────────
@@ -33,61 +37,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── DELETE: Remove player from waitlist (player or staff) ────────
+  // ── DELETE: Remove player from waitlist ────────────────────────────
   if (req.method === 'DELETE') {
     try {
-      // Authenticate: accept Bearer token (player) or x-staff-session (staff)
-      let authenticatedUserId = null;
-      let isStaff = false;
-
-      const authHeader = req.headers.authorization;
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) authenticatedUserId = user.id;
-      }
-
-      const staffSession = req.headers['x-staff-session'];
-      if (staffSession) {
-        try {
-          const sessionData = JSON.parse(staffSession);
-          if (sessionData.id) {
-            const { data: staff } = await supabase
-              .from('commander_staff')
-              .select('id, venue_id, is_active')
-              .eq('id', sessionData.id)
-              .eq('is_active', true)
-              .single();
-            if (staff) isStaff = true;
-          }
-          if (!isStaff && sessionData.user_id && sessionData.venue_id) {
-            const { data: staff } = await supabase
-              .from('commander_staff')
-              .select('id, venue_id, is_active')
-              .eq('user_id', sessionData.user_id)
-              .eq('venue_id', sessionData.venue_id)
-              .eq('is_active', true)
-              .single();
-            if (staff) isStaff = true;
-            // Owner fallback
-            if (!isStaff && sessionData.role === 'owner') {
-              const { data: sub } = await supabase
-                .from('commander_subscriptions')
-                .select('id')
-                .eq('owner_id', sessionData.user_id)
-                .eq('venue_id', sessionData.venue_id)
-                .in('status', ['active', 'trialing'])
-                .single();
-              if (sub) isStaff = true;
-            }
-          }
-        } catch { /* invalid session format */ }
-      }
-
-      if (!authenticatedUserId && !isStaff) {
-        return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authentication required' } });
-      }
-
       // Fetch entry
       const { data: entry, error: fetchErr } = await supabase
         .from('commander_waitlist')
@@ -99,12 +51,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' } });
       }
 
-      // Verify: player can only remove their own entry, staff can remove any
-      if (!isStaff && entry.player_id && entry.player_id !== authenticatedUserId) {
-        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You can only remove your own waitlist entry' } });
-      }
-
-      // Log to history (non-blocking — don't let this prevent the delete)
+      // Log to history (non-blocking)
       try {
         await supabase.from('commander_waitlist_history').insert({
           venue_id: entry.venue_id,

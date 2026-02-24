@@ -181,7 +181,8 @@ export default function Marketplace() {
             const { error: updateError } = await supabase
                 .from('club_members')
                 .update({ chip_balance: chipBalance - selectedItem.price })
-                .eq('id', membership.id);
+                .eq('club_id', club.id)
+                .eq('user_id', user.id);
 
             if (updateError) throw updateError;
 

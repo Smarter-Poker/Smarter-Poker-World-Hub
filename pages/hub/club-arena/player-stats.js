@@ -96,11 +96,14 @@ export default function PlayerStats() {
 
                     // Calculate date range
                     let dateFilter = null;
-                    const now = new Date();
                     if (period === 'week') {
-                        dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString();
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        dateFilter = weekAgo.toISOString();
                     } else if (period === 'month') {
-                        dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+                        const monthAgo = new Date();
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        dateFilter = monthAgo.toISOString();
                     }
 
                     // Fetch hand history for this user in this club
@@ -115,8 +118,14 @@ export default function PlayerStats() {
                             handQuery = handQuery.gte('created_at', dateFilter);
                         }
                         const { data: handData } = await handQuery.order('created_at', { ascending: false }).limit(100);
-                        // Filter client-side since table may lack user_id/club_id columns
-                        hands = (handData || []).filter(h => h.user_id === authUser.id && h.club_id === clubData.id);
+                        // Filter client-side only for columns that exist in the schema
+                        hands = handData || [];
+                        if (hands.length > 0 && hands[0].user_id !== undefined) {
+                            hands = hands.filter(h => h.user_id === authUser.id);
+                        }
+                        if (hands.length > 0 && hands[0].club_id !== undefined) {
+                            hands = hands.filter(h => h.club_id === clubData.id || h.club_id === clubData.club_id);
+                        }
                     } catch (handErr) {
                         console.warn('[PlayerStats] hand_history query failed (schema may be minimal):', handErr);
                     }

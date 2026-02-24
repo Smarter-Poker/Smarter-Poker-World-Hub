@@ -242,11 +242,12 @@ export default function PlayerWaitlistPage() {
               <button
                 onClick={() => {
                   // Navigate back to the club page. Use router.back() if history exists,
-                  // otherwise fall back to the club arena page.
+                  // otherwise fall back to the club page using the 'from' query param
+                  // (preserves the original slug when linked_venue_id differs).
                   if (window.history.length > 1) {
                     router.back();
                   } else {
-                    router.push(`/club/${venueId}`);
+                    router.push(`/club/${router.query.from || venueId}`);
                   }
                 }}
                 style={{

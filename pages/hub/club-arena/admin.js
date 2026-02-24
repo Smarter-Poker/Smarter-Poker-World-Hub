@@ -140,13 +140,14 @@ export default function Admin() {
     // ═══════════════════════════════════════════════════════════════════════════
     // MEMBER MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════════
-    const updateMemberRole = async (memberId, newRole) => {
+    const updateMemberRole = async (memberUserId, newRole) => {
         setProcessing(true);
         try {
             const { error } = await supabase
                 .from('club_members')
                 .update({ role: newRole })
-                .eq('id', memberId);
+                .eq('club_id', club.id)
+                .eq('user_id', memberUserId);
 
             if (error) throw error;
             showToast(`Role updated to ${newRole}`);
@@ -159,13 +160,14 @@ export default function Admin() {
     };
 
     // Assign agent to a player (sets agent_id on club_members)
-    const assignAgent = async (memberId, agentUserId) => {
+    const assignAgent = async (memberUserId, agentUserId) => {
         setProcessing(true);
         try {
             const { error } = await supabase
                 .from('club_members')
                 .update({ agent_id: agentUserId || null })
-                .eq('id', memberId);
+                .eq('club_id', club.id)
+                .eq('user_id', memberUserId);
 
             if (error) throw error;
             showToast(agentUserId ? 'Agent assigned' : 'Agent removed');
@@ -177,14 +179,15 @@ export default function Admin() {
         }
     };
 
-    const removeMember = async (memberId, memberName) => {
+    const removeMember = async (memberUserId, memberName) => {
         if (!confirm(`Remove ${memberName} from the club?`)) return;
         setProcessing(true);
         try {
             const { error } = await supabase
                 .from('club_members')
                 .delete()
-                .eq('id', memberId);
+                .eq('club_id', club.id)
+                .eq('user_id', memberUserId);
 
             if (error) throw error;
             showToast('Member removed');
@@ -213,7 +216,8 @@ export default function Admin() {
             const { error } = await supabase
                 .from('club_members')
                 .update({ chip_balance: currentBalance + amount })
-                .eq('id', selectedMember.id);
+                .eq('club_id', club.id)
+                .eq('user_id', selectedMember.user_id);
 
             if (error) throw error;
 
@@ -426,7 +430,7 @@ export default function Admin() {
                                 const agents = members.filter(m => m.role === 'agent');
                                 const assignedAgent = agents.find(a => a.user_id === member.agent_id);
                                 return (
-                                    <div key={member.id} style={S.memberRow}>
+                                    <div key={member.user_id} style={S.memberRow}>
                                         <div style={S.memberAvatar}>
                                             {member.profiles?.avatar_url ? (
                                                 <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -440,7 +444,7 @@ export default function Admin() {
                                                     <select
                                                         style={{ ...S.roleSelect, fontSize: '11px', padding: '3px 6px' }}
                                                         value={member.agent_id || ''}
-                                                        onChange={e => assignAgent(member.id, e.target.value)}
+                                                        onChange={e => assignAgent(member.user_id, e.target.value)}
                                                         disabled={processing}
                                                     >
                                                         <option value="">No Agent</option>
@@ -463,7 +467,7 @@ export default function Admin() {
                                                 <select
                                                     style={S.roleSelect}
                                                     value={member.role}
-                                                    onChange={e => updateMemberRole(member.id, e.target.value)}
+                                                    onChange={e => updateMemberRole(member.user_id, e.target.value)}
                                                     disabled={processing}
                                                 >
                                                     {ROLES.filter(r => r !== 'owner').map(r => (
@@ -472,7 +476,7 @@ export default function Admin() {
                                                 </select>
                                                 <button
                                                     style={S.removeBtn}
-                                                    onClick={() => removeMember(member.id, member.profiles?.display_name || member.profiles?.username)}
+                                                    onClick={() => removeMember(member.user_id, member.profiles?.display_name || member.profiles?.username)}
                                                     disabled={processing}
                                                 >
                                                     Remove

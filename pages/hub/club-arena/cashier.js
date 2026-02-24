@@ -158,7 +158,8 @@ export default function Cashier() {
             const { error: chipError } = await supabase
                 .from('club_members')
                 .update({ chip_balance: chipBalance + amount })
-                .eq('id', membership.id);
+                .eq('club_id', club.id)
+                .eq('user_id', user.id);
 
             if (chipError) throw chipError;
 
@@ -206,7 +207,8 @@ export default function Cashier() {
             const { error: chipError } = await supabase
                 .from('club_members')
                 .update({ chip_balance: chipBalance - amount })
-                .eq('id', membership.id);
+                .eq('club_id', club.id)
+                .eq('user_id', user.id);
 
             if (chipError) throw chipError;
 
@@ -417,7 +419,7 @@ export default function Cashier() {
                             {transactions.length > 0 ? transactions.map((tx, i) => (
                                 <div key={tx.id || i} style={S.listItem}>
                                     <div>
-                                        <div style={S.txType}>{getTransactionLabel(tx.type)}</div>
+                                        <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
                                         <div style={S.txDate}>
                                             {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
                                         </div>
