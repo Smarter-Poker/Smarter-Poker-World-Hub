@@ -125,7 +125,7 @@ function ClubArenaCard({ club, onNavigate }) {
                             {club.name}
                         </div>
                         <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-                            Club Arena · {club.userRole === 'owner' ? 'Owner' : club.userRole === 'admin' ? 'Admin' : 'Member'}
+                            Club Arena · {(club.userRole || 'player').charAt(0).toUpperCase() + (club.userRole || 'player').slice(1)}
                         </div>
                     </div>
                 </div>
