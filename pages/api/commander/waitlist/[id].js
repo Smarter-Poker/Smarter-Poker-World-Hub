@@ -128,7 +128,9 @@ export default async function handler(req, res) {
       const allowedFields = ['checked_in_at', 'notes', 'player_phone', 'game_type', 'stakes'];
       const updates = {};
       for (const key of allowedFields) {
-        if (req.body[key] !== undefined) updates[key] = req.body[key];
+        if (req.body[key] !== undefined) {
+          updates[key] = key === 'game_type' ? (req.body[key] || '').toUpperCase() : req.body[key];
+        }
       }
 
       if (Object.keys(updates).length === 0) {

@@ -65,13 +65,14 @@ export default async function handler(req, res) {
   try {
     const {
       venue_id,
-      game_type,
+      game_type: rawGameType,
       stakes,
       player_id,
       player_name,
       player_phone,
       signup_method = 'app'
     } = req.body;
+    const game_type = (rawGameType || '').toUpperCase();
 
     // Validation
     if (!venue_id || !game_type || !stakes) {
