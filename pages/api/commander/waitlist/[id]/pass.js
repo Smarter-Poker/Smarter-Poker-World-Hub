@@ -93,12 +93,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Use call_count to track passes (each pass follows a call)
-    const currentCallCount = entry.call_count || 0;
+    // Use pass_count to track passes
+    const currentPassCount = entry.pass_count || 0;
     const maxPasses = 3;
 
     // Remove from waitlist if too many calls/passes
-    if (currentCallCount >= maxPasses) {
+    if (currentPassCount >= maxPasses) {
       // Move to history
       await supabase
         .from('commander_waitlist_history')
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
       .update({
         last_called_at: new Date().toISOString(),
         status: 'waiting',
-        call_count: (entry.call_count || 0) + 1
+        pass_count: (entry.pass_count || 0) + 1
       })
       .eq('id', id)
       .select()
@@ -147,7 +147,7 @@ export default async function handler(req, res) {
       success: true,
       data: {
         entry: updated,
-        passes_remaining: maxPasses - currentCallCount
+        passes_remaining: maxPasses - currentPassCount
       }
     });
   } catch (error) {

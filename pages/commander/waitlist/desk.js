@@ -20,6 +20,16 @@ import {
   Globe, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
+// Format phone to 555-555-5555 (internal display only)
+function formatPhone(raw) {
+  if (!raw) return '';
+  const d = raw.replace(/\D/g, '');
+  // Strip leading country code '1' if 11 digits
+  const digits = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  if (digits.length !== 10) return raw; // fallback: return as-is if not 10 digits
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 const GAMES_PER_PAGE = 4;
 const ROTATE_INTERVAL = 10000;
 
@@ -339,9 +349,6 @@ export default function WaitlistDesk() {
             <button onClick={() => setShowSettings(true)} style={makeBtn(c)} title="Customize Desk">
               <Settings size={18} />
             </button>
-            <button onClick={fetchData} style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', background: `linear-gradient(180deg, ${c.cardBgColor}, ${darken(c.cardBgColor, 10)})`, border: `2px solid ${c.borderColor}88`, borderRadius: '6px', color: `${c.textColor}99`, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <RefreshCw size={18} />
-            </button>
           </div>
         </div>
 
@@ -413,7 +420,7 @@ export default function WaitlistDesk() {
                               {entry.player_phone && (
                                 <span style={{ fontSize: '13px', color: `${c.textColor}66`, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                                   <Phone size={11} style={{ opacity: 0.6 }} />
-                                  {entry.player_phone}
+                                  {formatPhone(entry.player_phone)}
                                 </span>
                               )}
                               {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (

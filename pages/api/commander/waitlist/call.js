@@ -44,8 +44,8 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .update({
         status: 'called',
-        called_at: new Date().toISOString(),
-        called_by: user.id
+        last_called_at: new Date().toISOString(),
+        call_count: (entry.call_count || 0) + 1
       })
       .eq('id', waitlist_id)
       .select()

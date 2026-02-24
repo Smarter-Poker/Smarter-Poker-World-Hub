@@ -43,9 +43,7 @@ export default async function handler(req, res) {
       .update({
         status: 'seated',
         seated_at: new Date().toISOString(),
-        seated_table: table_number,
-        seated_seat: seat_number,
-        seated_by: user.id
+        notes: `Seated at Table ${table_number}, Seat ${seat_number}`
       })
       .eq('id', waitlist_id);
 
