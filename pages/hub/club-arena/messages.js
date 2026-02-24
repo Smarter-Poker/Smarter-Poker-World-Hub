@@ -504,7 +504,10 @@ export default function ClubMessages() {
             if (result.success && Array.isArray(result.conversations)) {
                 const clubConversations = result.conversations.filter(conv => {
                     const otherId = conv.otherUser?.id;
-                    return otherId && clubMemberIds.has(otherId);
+                    if (!otherId || !clubMemberIds.has(otherId)) return false;
+                    // 🔒 HIERARCHY: Only show conversations with permitted recipients
+                    const otherMember = clubMembers.find(m => m.user_id === otherId);
+                    return otherMember ? canMessageUser(otherMember) : false;
                 });
                 setConversations(clubConversations);
             }

@@ -108,12 +108,12 @@ export default function Cashier() {
                     }
                 }
 
-                // Get transaction history for this club
+                // Get transaction history for this club (both sent AND received)
                 const { data: txns } = await supabase
                     .from('chip_transactions')
                     .select('*')
-                    .eq('from_user_id', authUser.id)
                     .eq('club_id', clubData.id)
+                    .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
                     .order('created_at', { ascending: false })
                     .limit(20);
                 setTransactions(txns || []);
@@ -287,8 +287,15 @@ export default function Cashier() {
 
             // ═══════════════════════════════════════════════════════════════════════════
             // NOTIFY AGENT: Send message and push notification on cash-out
+            // Read fresh membership to get current agent_id (not stale state)
             // ═══════════════════════════════════════════════════════════════════════════
-            if (membership?.agent_id) {
+            const { data: freshMembership } = await supabase
+                .from('club_members')
+                .select('agent_id')
+                .eq('club_id', club.id)
+                .eq('user_id', user.id)
+                .single();
+            if (freshMembership?.agent_id) {
                 try {
                     // Get user profile for name
                     const { data: userProfile } = await supabase
@@ -301,7 +308,7 @@ export default function Cashier() {
                     // 1. Create/get conversation and send in-app message
                     const { data: convId } = await supabase.rpc('fn_get_or_create_conversation', {
                         user1_id: user.id,
-                        user2_id: membership.agent_id,
+                        user2_id: freshMembership.agent_id,
                     });
                     if (convId) {
                         await supabase.rpc('fn_send_message', {
@@ -319,7 +326,7 @@ export default function Cashier() {
                             title: ' Cash-Out Request',
                             message: `${displayName} cashed out ${amount.toLocaleString()} chips`,
                             url: `/hub/club-arena/messages?club=${clubIdParam}`,
-                            externalUserIds: [membership.agent_id],
+                            externalUserIds: [freshMembership.agent_id],
                         }),
                     });
 

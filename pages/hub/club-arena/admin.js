@@ -522,6 +522,7 @@ export default function Admin() {
                                 const agents = members.filter(m => m.role === 'agent');
                                 return members.map(member => {
                                     const assignedAgent = agents.find(a => a.user_id === member.agent_id);
+                                    const downlineCount = member.role === 'agent' ? members.filter(m => m.agent_id === member.user_id).length : 0;
                                     return (
                                         <div key={member.user_id} style={S.memberRow}>
                                             <div style={S.memberAvatar}>
@@ -531,7 +532,7 @@ export default function Admin() {
                                             </div>
                                             <div style={S.memberInfo}>
                                                 <div style={S.memberName}>{member.profiles?.display_name || member.profiles?.username || 'Unknown'}</div>
-                                                <div style={S.memberRole}>{member.role} • {(member.chip_balance || 0).toLocaleString()} chips</div>
+                                                <div style={S.memberRole}>{member.role}{member.role === 'agent' && downlineCount > 0 ? ` (${downlineCount} player${downlineCount !== 1 ? 's' : ''})` : ''} • {(member.chip_balance || 0).toLocaleString()} chips</div>
                                                 {member.role === 'player' && agents.length > 0 && (
                                                     <div style={{ marginTop: 4 }}>
                                                         <select
@@ -600,12 +601,12 @@ export default function Admin() {
                                 <label style={S.formLabel}>Select Member</label>
                                 <select
                                     style={{ ...S.formInput, marginBottom: 0 }}
-                                    value={selectedMember?.id || ''}
-                                    onChange={e => setSelectedMember(members.find(m => m.id === e.target.value))}
+                                    value={selectedMember?.user_id || ''}
+                                    onChange={e => setSelectedMember(members.find(m => m.user_id === e.target.value))}
                                 >
                                     <option value="">Choose A Member...</option>
                                     {members.map(m => (
-                                        <option key={m.id} value={m.id}>
+                                        <option key={m.user_id} value={m.user_id}>
                                             {m.profiles?.display_name || m.profiles?.username} ({(m.chip_balance || 0).toLocaleString()} chips)
                                         </option>
                                     ))}
