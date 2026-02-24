@@ -744,7 +744,7 @@ export default function ClubMessages() {
             if (currentUserMembership?.role === 'player') {
                 errorMsg = 'You can only message your agent or club admins.';
             } else if (currentUserMembership?.role === 'agent') {
-                errorMsg = 'You can only message players assigned to you.';
+                errorMsg = 'You can only message your assigned players or club admins.';
             }
             setToast({ type: 'error', message: errorMsg });
             return;

@@ -23,6 +23,11 @@ const nextConfig = {
           source: '/hub/club-arena/table/:path*',
           destination: 'https://club-arena.vercel.app/hub/club-arena/table/:path*',
         },
+        // Club Arena lobby — proxy the native React lobby (poker table + sign layout)
+        {
+          source: '/hub/club-arena/lobby',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/lobby',
+        },
       ],
       // Rewrites that run AFTER pages (fallback)
       afterFiles: [
