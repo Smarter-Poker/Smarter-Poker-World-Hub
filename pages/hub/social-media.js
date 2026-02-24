@@ -2773,14 +2773,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         </div>
 
                                         {/* Poker Table Visualization — Full Width */}
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 7', overflow: 'hidden' }}>
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10 }}>
                                             {/* Table image fills entire container */}
                                             <img
                                                 src="/images/poker-table-black-gold.png"
                                                 alt="Poker Table"
                                                 style={{
-                                                    position: 'absolute', top: '-15%', left: 0, width: '100%', height: '130%',
-                                                    objectFit: 'cover', pointerEvents: 'none', zIndex: 0,
+                                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
                                                 }}
                                             />
 
@@ -3254,14 +3254,14 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Poker Table Visualization — Full Width */}
-                                <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 7', overflow: 'hidden' }}>
+                                <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10 }}>
                                     {/* Table image fills entire container */}
                                     <img
                                         src="/images/poker-table-black-gold.png"
                                         alt="Poker Table"
                                         style={{
-                                            position: 'absolute', top: '-15%', left: 0, width: '100%', height: '130%',
-                                            objectFit: 'cover', pointerEvents: 'none', zIndex: 0,
+                                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                            objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
                                         }}
                                     />
 
