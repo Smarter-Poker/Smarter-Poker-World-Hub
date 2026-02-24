@@ -115,6 +115,8 @@ export default function WaitlistDesk() {
     } catch (err) { console.error('Failed to save customization:', err); }
   };
 
+  const CALL_EXPIRY_MINUTES = 10; // Auto-delete called entries after 10 minutes
+
   const fetchData = useCallback(async () => {
     try {
       const token = getToken();
@@ -129,7 +131,28 @@ export default function WaitlistDesk() {
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
       if (tabJson.success) setTables(tabJson.data?.tables || tabJson.data || []);
-      if (wlJson.success) setWaitlists(wlJson.data || []);
+      if (wlJson.success) {
+        const entries = wlJson.data || [];
+        // Auto-delete called entries older than 10 minutes
+        const now = Date.now();
+        const expiredCalled = entries.filter(e =>
+          e.status === 'called' && e.last_called_at &&
+          (now - new Date(e.last_called_at).getTime()) > CALL_EXPIRY_MINUTES * 60 * 1000
+        );
+        if (expiredCalled.length > 0) {
+          await Promise.all(expiredCalled.map(e =>
+            fetch(`/api/commander/waitlist/${e.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+            }).catch(() => { /* non-critical */ })
+          ));
+          // Filter out expired entries from the display
+          const expiredIds = new Set(expiredCalled.map(e => e.id));
+          setWaitlists(entries.filter(e => !expiredIds.has(e.id)));
+        } else {
+          setWaitlists(entries);
+        }
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, []);
@@ -545,6 +568,10 @@ export default function WaitlistDesk() {
                         ? Math.max(0, Math.ceil((new Date(entry.created_at).getTime() + 60 * 60 * 1000 - Date.now()) / 60000))
                         : null;
                       const isExpired = webMinutesLeft !== null && webMinutesLeft <= 0;
+                      // Calculate texted countdown (10 min from last_called_at)
+                      const calledMinutesLeft = isCalled && entry.last_called_at
+                        ? Math.max(0, Math.ceil((new Date(entry.last_called_at).getTime() + CALL_EXPIRY_MINUTES * 60 * 1000 - Date.now()) / 60000))
+                        : null;
                       return (
                         <div key={entry.id}>
                           <div
@@ -575,7 +602,11 @@ export default function WaitlistDesk() {
                                 </span>
                               )}
                             </span>
-                            {isCalled && <span style={{ fontSize: '14px', fontWeight: 800, color: c.bgColor, background: c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px' }}>TEXTED</span>}
+                            {isCalled && (
+                              <span style={{ fontSize: '12px', fontWeight: 800, color: c.bgColor, background: calledMinutesLeft !== null && calledMinutesLeft <= 3 ? '#EF4444' : c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                TEXTED{calledMinutesLeft !== null ? ` ${calledMinutesLeft}m` : ''}
+                              </span>
+                            )}
                           </div>
 
                           {isSelected && (

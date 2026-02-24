@@ -141,11 +141,46 @@ export default function Admin() {
     // MEMBER MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════════
     const updateMemberRole = async (memberUserId, newRole) => {
+        // Hierarchy enforcement: prevent unauthorized role changes
+        const currentMember = members.find(m => m.user_id === user?.id);
+        const targetMember = members.find(m => m.user_id === memberUserId);
+        if (!currentMember || !targetMember) return;
+
+        // Only owner can promote to admin
+        if (newRole === 'admin' && currentMember.role !== 'owner') {
+            showToast('Only the club owner can promote to admin', 'error');
+            return;
+        }
+        // Only owner can demote admins
+        if (targetMember.role === 'admin' && currentMember.role !== 'owner') {
+            showToast('Only the club owner can change admin roles', 'error');
+            return;
+        }
+        // Never allow changing the owner's role
+        if (targetMember.role === 'owner') {
+            showToast('Cannot change the owner\'s role', 'error');
+            return;
+        }
+
         setProcessing(true);
         try {
+            const updates = { role: newRole };
+            // If changing from agent to another role, clear agent_id on their downline
+            if (targetMember.role === 'agent' && newRole !== 'agent') {
+                await supabase
+                    .from('club_members')
+                    .update({ agent_id: null })
+                    .eq('club_id', club.id)
+                    .eq('agent_id', memberUserId);
+            }
+            // If changing from player/agent to non-player, clear their own agent_id
+            if (newRole !== 'player') {
+                updates.agent_id = null;
+            }
+
             const { error } = await supabase
                 .from('club_members')
-                .update({ role: newRole })
+                .update(updates)
                 .eq('club_id', club.id)
                 .eq('user_id', memberUserId);
 
@@ -159,8 +194,16 @@ export default function Admin() {
         }
     };
 
-    // Assign agent to a player (sets agent_id on club_members)
     const assignAgent = async (memberUserId, agentUserId) => {
+        // Validate: if assigning, verify the agent actually has the agent role
+        if (agentUserId) {
+            const agentMember = members.find(m => m.user_id === agentUserId);
+            if (!agentMember || agentMember.role !== 'agent') {
+                showToast('Selected user is not an agent', 'error');
+                return;
+            }
+        }
+
         setProcessing(true);
         try {
             const { error } = await supabase
@@ -180,9 +223,34 @@ export default function Admin() {
     };
 
     const removeMember = async (memberUserId, memberName) => {
+        // Hierarchy enforcement
+        const currentMember = members.find(m => m.user_id === user?.id);
+        const targetMember = members.find(m => m.user_id === memberUserId);
+        if (!currentMember || !targetMember) return;
+
+        // Can't remove the owner
+        if (targetMember.role === 'owner') {
+            showToast('Cannot remove the club owner', 'error');
+            return;
+        }
+        // Admins can't remove other admins (only owner can)
+        if (targetMember.role === 'admin' && currentMember.role !== 'owner') {
+            showToast('Only the club owner can remove admins', 'error');
+            return;
+        }
+
         if (!confirm(`Remove ${memberName} from the club?`)) return;
         setProcessing(true);
         try {
+            // If removing an agent, clear agent_id on their downline first
+            if (targetMember.role === 'agent') {
+                await supabase
+                    .from('club_members')
+                    .update({ agent_id: null })
+                    .eq('club_id', club.id)
+                    .eq('agent_id', memberUserId);
+            }
+
             const { error } = await supabase
                 .from('club_members')
                 .delete()
