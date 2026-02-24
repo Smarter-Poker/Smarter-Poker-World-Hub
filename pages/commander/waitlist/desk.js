@@ -417,12 +417,6 @@ export default function WaitlistDesk() {
                               <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : isExpired ? '#EF4444' : c.textColor }}>
                                 {entry.player_name}
                               </span>
-                              {entry.player_phone && (
-                                <span style={{ fontSize: '13px', color: `${c.textColor}66`, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                  <Phone size={11} style={{ opacity: 0.6 }} />
-                                  {formatPhone(entry.player_phone)}
-                                </span>
-                              )}
                               {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (
                                 <span style={{ fontSize: '12px', color: webMinutesLeft <= 10 ? '#F59E0B' : '#64748B', fontWeight: 600 }}>
                                   {webMinutesLeft}m
