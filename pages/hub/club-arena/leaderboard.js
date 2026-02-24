@@ -454,7 +454,7 @@ export default function Leaderboard() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={null} />
             </div>
         </>
     );

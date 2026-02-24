@@ -416,7 +416,7 @@ export default function PlayerStats() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={membership?.role} />
             </div>
         </>
     );

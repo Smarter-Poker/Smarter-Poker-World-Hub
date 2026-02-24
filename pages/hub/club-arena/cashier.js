@@ -503,7 +503,7 @@ export default function Cashier() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="cashier" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="cashier" userRole={membership?.role} />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

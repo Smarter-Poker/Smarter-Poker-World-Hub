@@ -511,7 +511,7 @@ export default function ClubLobby() {
                     </div>
                 )}
 
-                <ClubArenaBottomNav clubId={club?.club_id || clubIdParam} activePage="messages" />
+                <ClubArenaBottomNav clubId={club?.club_id || clubIdParam} activePage="messages" userRole={membership?.role} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

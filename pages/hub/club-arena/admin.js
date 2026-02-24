@@ -510,7 +510,7 @@ export default function Admin() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="admin" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="admin" userRole={currentMemberForUI?.role} />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

@@ -384,7 +384,7 @@ export default function Players() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="players" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="players" userRole={currentUserRole} />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

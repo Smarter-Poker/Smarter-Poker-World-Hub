@@ -416,7 +416,7 @@ export default function Marketplace() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="cashier" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="cashier" userRole={membership?.role} />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

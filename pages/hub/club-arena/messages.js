@@ -841,7 +841,7 @@ export default function ClubMessages() {
                 <div style={S.page}>
                     <UniversalHeader pageDepth={2} />
                     <div style={S.emptyState}>Loading...</div>
-                    <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" />
+                    <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 </div>
             </>
         );
@@ -908,7 +908,7 @@ export default function ClubMessages() {
                     </div>
 
                     <MessageInput onSend={sendMessage} onMediaUpload={handleMediaUpload} />
-                    <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" />
+                    <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 </div>
 
                 {/* LiveKit Video Call Modal */}
@@ -982,7 +982,7 @@ export default function ClubMessages() {
                     </div>
                 )}
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="messages" userRole={currentUserMembership?.role} />
                 <Toast toast={toast} onDismiss={() => setToast(null)} />
             </div>
         </>

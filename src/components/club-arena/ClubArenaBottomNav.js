@@ -84,7 +84,7 @@ const AdminIcon = () => (
  * @param {string} clubId - The club ID from URL query param (required)
  * @param {string} activePage - Current page name: 'messages' | 'players' | 'cashier' | 'data' | 'admin'
  */
-export default function ClubArenaBottomNav({ clubId, activePage }) {
+export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
     // HARDENED: Don't render if no clubId - prevents broken links
     if (!clubId) return null;
 
@@ -93,7 +93,10 @@ export default function ClubArenaBottomNav({ clubId, activePage }) {
         { key: 'players', label: 'Players', href: `/hub/club-arena/players?club=${clubId}`, Icon: PlayersIcon },
         { key: 'cashier', label: 'Cashier', href: `/hub/club-arena/cashier?club=${clubId}`, Icon: CashierIcon },
         { key: 'data', label: 'Data', href: `/hub/club-arena/player-stats?club=${clubId}`, Icon: DataIcon },
-        { key: 'admin', label: 'Admin', href: `/hub/club-arena/admin?club=${clubId}`, Icon: AdminIcon },
+        // Only show Admin link to owners and admins
+        ...((!userRole || userRole === 'owner' || userRole === 'admin')
+            ? [{ key: 'admin', label: 'Admin', href: `/hub/club-arena/admin?club=${clubId}`, Icon: AdminIcon }]
+            : []),
     ];
 
     return (
