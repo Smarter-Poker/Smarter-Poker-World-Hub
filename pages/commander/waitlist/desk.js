@@ -823,7 +823,7 @@ export default function WaitlistDesk() {
                         </div>
 
                         {/* Oval Poker Table */}
-                        <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
+                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3' }}>
                           <img
                             src="/images/poker-table-black-gold.png"
                             alt="Poker Table"
