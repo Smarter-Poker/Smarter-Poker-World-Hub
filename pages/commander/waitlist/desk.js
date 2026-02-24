@@ -171,6 +171,9 @@ export default function WaitlistDesk() {
 
   // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
+    if (!entry.player_phone) {
+      alert(`⚠️ NO PHONE NUMBER\n\n${titleCase(entry.player_name || '')} does not have a phone number on file. Please page them verbally in the room.`);
+    }
     setCallLoading(entry.id); setSmsStatus(null);
     setSelectedPlayer(null);
     try {
@@ -443,6 +446,8 @@ export default function WaitlistDesk() {
     const parts = gameLabel.split(' ');
     const gameType = parts[0];
     const stakes = parts.slice(1).join(' ');
+    const cleanStakes = stakes.replace(/\$/g, '');
+    const cleanLabel = gameLabel.replace(/\$/g, '');
     return tables
       .filter(t => {
         if (t.is_active === false || t.status === 'maintenance') return false;
@@ -450,9 +455,10 @@ export default function WaitlistDesk() {
         const activeGame = games.find(g => g.status !== 'closed') || games[0];
         const tGame = (t.game_type || activeGame?.game_type || '').toUpperCase();
         const tStakes = (t.stakes || activeGame?.stakes || '').trim();
-        if (tGame === gameType && tStakes === stakes) return true;
-        if (tGame === gameType && !tStakes) return true;
-        return `${tGame} ${tStakes}`.trim() === gameLabel;
+        const cleanTStakes = tStakes.replace(/\$/g, '');
+        if (tGame === gameType && cleanTStakes === cleanStakes) return true;
+        if (tGame === gameType && !cleanTStakes && !cleanStakes) return true;
+        return `${tGame} ${cleanTStakes}`.trim() === cleanLabel;
       })
       .map(t => t.table_number)
       .sort((a, b) => a - b);
