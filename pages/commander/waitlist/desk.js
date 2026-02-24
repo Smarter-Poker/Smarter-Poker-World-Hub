@@ -62,6 +62,7 @@ export default function WaitlistDesk() {
   const [showSettings, setShowSettings] = useState(false);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   const [addGameType, setAddGameType] = useState('');
+  const [editGame, setEditGame] = useState(null); // { oldLabel, gameType, stakes }
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -224,6 +225,46 @@ export default function WaitlistDesk() {
     } catch (err) { console.error(err); }
   };
 
+  // ── RENAME GAME: Batch-update all entries for old game to new name/stakes ──
+  const handleRenameGame = async () => {
+    if (!editGame) return;
+    const { oldLabel, gameType, stakes } = editGame;
+    const newGameType = (gameType || '').trim().toUpperCase();
+    const newStakes = (stakes || '').trim();
+    if (!newGameType || !newStakes) return;
+
+    const oldParts = oldLabel.split(' ');
+    const oldGameType = oldParts[0];
+    const oldStakes = oldParts.slice(1).join(' ');
+
+    // Skip if nothing changed
+    if (newGameType === oldGameType && newStakes === oldStakes) {
+      setEditGame(null);
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const staffSession = getStaffSession();
+      // Find all entries that match the old game/stakes
+      const entriesToUpdate = waitlists.filter(w =>
+        (w.game_type || '').toUpperCase() === oldGameType &&
+        (w.stakes || '') === oldStakes &&
+        (w.status === 'waiting' || w.status === 'called')
+      );
+      // Batch update each entry
+      await Promise.all(entriesToUpdate.map(entry =>
+        fetch(`/api/commander/waitlist/${entry.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          body: JSON.stringify({ game_type: newGameType, stakes: newStakes })
+        })
+      ));
+      setEditGame(null);
+      await fetchData();
+    } catch (err) { console.error('Rename game error:', err); }
+  };
+
   // ── GROUP & SORT ────────────────────────────────────────────────
   const waitlistByGame = {};
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
@@ -313,7 +354,7 @@ export default function WaitlistDesk() {
         {/* ═══ TOP BAR ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: `2px solid ${c.borderColor}44`, background: c.cardBgColor }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
-            <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => router.push('/commander/waitlist')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
               <ArrowLeft size={16} color={c.accentColor} />
             </button>
             {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />}
@@ -372,9 +413,17 @@ export default function WaitlistDesk() {
               const tableNums = getTableNums(gameLabel);
               return (
                 <div key={gameLabel} style={{ flex: '0 0 calc(25% - 2px)', maxWidth: 'calc(25% - 2px)', minWidth: '140px', border: `3px solid ${c.borderColor}`, borderRadius: '4px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  {/* Header */}
-                  <div style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 800, fontSize: '26px', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px', background: headerGradient, textShadow: '0 2px 4px rgba(0,0,0,0.5)', borderBottom: headerBorderBottom }}>
+                  {/* Header — Click to edit game name/stakes */}
+                  <div
+                    onClick={() => {
+                      const parts = gameLabel.split(' ');
+                      setEditGame({ oldLabel: gameLabel, gameType: parts[0], stakes: parts.slice(1).join(' ') });
+                    }}
+                    style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 800, fontSize: '26px', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px', background: headerGradient, textShadow: '0 2px 4px rgba(0,0,0,0.5)', borderBottom: headerBorderBottom, cursor: 'pointer', position: 'relative' }}
+                    title="Click to edit game name & stakes"
+                  >
                     {gameLabel}
+                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', opacity: 0.5 }}>✏️</span>
                   </div>
                   {/* Table Numbers */}
                   <div style={{ padding: '4px 8px', textAlign: 'center', fontSize: '16px', color: `${c.textColor}99`, borderBottom: `1px solid ${c.borderColor}55`, background: c.cardBgColor, fontWeight: 600, letterSpacing: '0.5px' }}>
@@ -562,6 +611,41 @@ export default function WaitlistDesk() {
                 <button onClick={() => setShowAddWalkIn(false)} style={modalCloseStyle(c)}><X size={14} /></button>
               </div>
               <WalkInForm onSubmit={handleAddWalkIn} activeTables={activeTables} custom={custom} defaultGame={addGameType} />
+            </div>
+          </div>
+        )}
+
+        {/* ═══ EDIT GAME MODAL ═══ */}
+        {editGame && (
+          <div onClick={() => setEditGame(null)} style={overlayStyle}>
+            <div onClick={e => e.stopPropagation()} style={{ ...modalStyle(c), maxWidth: '400px' }}>
+              <button onClick={() => setEditGame(null)} style={modalCloseStyle(c)}><X size={16} /></button>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, color: c.accentColor, marginBottom: '16px', textAlign: 'center' }}>Edit Game</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', color: `${c.textColor}88`, marginBottom: '4px', display: 'block' }}>Game Type</label>
+                  <input
+                    value={editGame.gameType}
+                    onChange={e => setEditGame(prev => ({ ...prev, gameType: e.target.value }))}
+                    placeholder="NLH, PLO, etc."
+                    style={{ ...formInputStyle(c), textTransform: 'uppercase' }}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', color: `${c.textColor}88`, marginBottom: '4px', display: 'block' }}>Stakes</label>
+                  <input
+                    value={editGame.stakes}
+                    onChange={e => setEditGame(prev => ({ ...prev, stakes: e.target.value }))}
+                    placeholder="$1/$2, $2/$5, etc."
+                    style={formInputStyle(c)}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <button onClick={() => setEditGame(null)} style={{ ...makeBtn(c), flex: 1, background: `${c.textColor}22`, color: c.textColor }}>Cancel</button>
+                  <button onClick={handleRenameGame} style={{ ...makeBtn(c), flex: 1, background: c.accentColor, color: '#000', fontWeight: 700 }}>Save</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
