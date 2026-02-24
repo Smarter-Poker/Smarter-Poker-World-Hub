@@ -79,7 +79,7 @@ export default function HandHistories() {
  const { data: clubByClubId } = await supabase
  .from('clubs')
  .select('*')
- .eq('club_id', clubIdParam)
+ .eq(isUUID ? 'id' : 'club_id', clubIdParam)
  .single();
 
  if (clubByClubId) {

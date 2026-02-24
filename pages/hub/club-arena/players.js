@@ -88,11 +88,12 @@ export default function Players() {
             }
             setUser(authUser);
 
-            // Get club data
+            // Get club data — try UUID (id) first, fall back to numeric (club_id)
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
             const { data: clubData } = await supabase
                 .from('clubs')
                 .select('*')
-                .eq('club_id', clubIdParam)
+                .eq(isUUID ? 'id' : 'club_id', clubIdParam)
                 .single();
 
             if (clubData) {
