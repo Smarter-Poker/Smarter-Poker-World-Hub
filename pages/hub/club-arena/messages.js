@@ -542,7 +542,7 @@ export default function ClubMessages() {
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'messages',
+                table: 'social_messages',
                 filter: `conversation_id=eq.${activeConversation.id}`,
             }, (payload) => {
                 const newMsg = payload.new;
