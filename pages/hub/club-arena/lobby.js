@@ -281,40 +281,86 @@ export default function ClubLobby() {
                                 </button>
                             </div>
 
-                            {/* Tables Section */}
-                            <h2 style={styles.sectionTitle}>ACTIVE TABLES</h2>
-                            {filteredTables.length > 0 ? (
-                                <div style={styles.tableGrid}>
-                                    {filteredTables.map(table => (
-                                        <div key={table.id} style={styles.tableCard}>
-                                            <div style={styles.tableHeader}>
-                                                <span style={styles.seatsBadge}>{table.max_players || 9} Max</span>
+                            {/* ═══ PREMIUM TABLE GRID ═══ */}
+                            <div style={styles.tableGrid}>
+                                {/* Create New Table Card */}
+                                {(membership?.role === 'owner' || membership?.role === 'admin') && (
+                                    <div style={styles.createTableCard} onClick={() => setShowCreateTable(true)}>
+                                        <div style={styles.createTableVisual}>
+                                            <div style={styles.createTableIcon}>
+                                                <svg viewBox="0 0 80 50" style={{ width: '80px', height: '50px' }}>
+                                                    <ellipse cx="40" cy="25" rx="38" ry="22" fill="#1a3a2a" stroke="#8B7355" strokeWidth="2" />
+                                                    <ellipse cx="40" cy="25" rx="32" ry="18" fill="#1a5c3a" stroke="#6B5B3A" strokeWidth="1" />
+                                                    <text x="40" y="31" textAnchor="middle" fill="#8B9B8B" fontSize="22" fontWeight="bold">+</text>
+                                                </svg>
                                             </div>
-                                            <div style={styles.tableBody}>
-                                                <h3 style={styles.tableName}>{table.name}</h3>
-                                                <div style={styles.tableStakes}>{table.stakes || '1/2'}</div>
-                                                <div style={styles.playersCount}>
-                                                    {table.current_players || 0}/{table.max_players || 9} players
-                                                </div>
-                                            </div>
-                                            <button style={styles.joinBtn} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>JOIN TABLE</button>
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={styles.emptyState}>
-                                    <p>No Active Tables</p>
-                                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
-                                    {(membership?.role === 'owner' || membership?.role === 'admin') && (
-                                        <button
-                                            style={{ ...styles.primaryBtn, marginTop: '16px' }}
-                                            onClick={() => setShowCreateTable(true)}
-                                        >
-                                            Create Table
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                                        <div style={styles.createTableLabel}>Create new table</div>
+                                    </div>
+                                )}
+
+                                {/* Table Cards */}
+                                {filteredTables.map(table => {
+                                    const variant = (table.game_variant || 'nlh').toUpperCase();
+                                    const gameLabel = variant.startsWith('PLO') ? 'PLO' : variant === 'SHORT_DECK' ? 'SD' : 'NLH';
+                                    const typeLabel = table.game_type === 'tournament' || table.table_type === 'tournament' ? 'MTT' :
+                                        table.table_type === 'sng' ? 'SNG' : '';
+                                    const displayType = typeLabel || gameLabel;
+                                    const buyIn = table.big_blind || parseFloat(table.stakes?.split('/')[1]) || 2;
+                                    const isGold = buyIn >= 50;
+                                    const isSilver = buyIn >= 10 && buyIn < 50;
+
+                                    return (
+                                        <div key={table.id} style={styles.pokerCard} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>
+                                            <div style={{ ...styles.pokerCardInner, borderColor: isGold ? '#D4A017' : isSilver ? '#A0A0A0' : '#5a6570' }}>
+                                                {/* Top: Buy-in + Seats */}
+                                                <div style={styles.pokerCardTop}>
+                                                    <div style={styles.buyInSection}>
+                                                        <div style={styles.buyInLabel}>Buy-in</div>
+                                                        <div style={{ ...styles.buyInAmount, color: isGold ? '#FFD700' : '#E8E8E8' }}>{buyIn}</div>
+                                                    </div>
+                                                    <div style={styles.seatsBadgeNew}>{table.max_players || 9} Max</div>
+                                                </div>
+
+                                                {/* Center: Trophy */}
+                                                <div style={styles.pokerCardVisual}>
+                                                    <div style={{ ...styles.trophyGlow, background: isGold ? 'radial-gradient(ellipse, rgba(212,160,23,0.3) 0%, transparent 70%)' : 'radial-gradient(ellipse, rgba(100,130,200,0.15) 0%, transparent 70%)' }} />
+                                                    <div style={styles.trophyIcon}>{typeLabel ? '\ud83c\udfc6' : '\u2660'}</div>
+                                                </div>
+
+                                                {/* Game type */}
+                                                <div style={styles.gameTypeBadge}>
+                                                    <span style={{ ...styles.gameTypeText, color: isGold ? '#FFD700' : '#4FC3F7' }}>{displayType}</span>
+                                                    <span style={styles.gameVariantSub}>{gameLabel}</span>
+                                                </div>
+
+                                                {/* Bottom: Players + Timer */}
+                                                <div style={styles.pokerCardBottom}>
+                                                    <div style={styles.playerInfo}>
+                                                        <span style={styles.playerIcon}>{'\ud83d\udc64'}</span>
+                                                        <span style={styles.playerCount}>{table.current_players || 0}</span>
+                                                    </div>
+                                                    <div style={styles.timeInfo}>
+                                                        <span style={styles.timeIcon}>{'\u23f1'}</span>
+                                                        <span style={styles.timeLabel}>{table.time_limit || 'Open'}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Name + Stakes */}
+                                                <div style={styles.pokerCardName}>{table.name}</div>
+                                                <div style={styles.pokerCardStakes}>{table.stakes || `${table.small_blind || 1}/${table.big_blind || 2}`}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {filteredTables.length === 0 && !(membership?.role === 'owner' || membership?.role === 'admin') && (
+                                    <div style={styles.emptyState}>
+                                        <p>No Active Tables</p>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Quick Actions */}
                             <div style={styles.quickActions}>
