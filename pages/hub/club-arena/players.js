@@ -420,12 +420,12 @@ export default function Players() {
                                     <div style={S.modalStatLabel}>Chips</div>
                                 </div>
                                 <div style={S.modalStat}>
-                                    <div style={S.modalStatValue}>{selectedPlayer.hands_played || 0}</div>
-                                    <div style={S.modalStatLabel}>Hands</div>
+                                    <div style={S.modalStatValue}>{formatJoined(selectedPlayer.joined_at || selectedPlayer.created_at)}</div>
+                                    <div style={S.modalStatLabel}>Joined</div>
                                 </div>
                                 <div style={S.modalStat}>
-                                    <div style={S.modalStatValue}>{formatJoined(selectedPlayer.created_at)}</div>
-                                    <div style={S.modalStatLabel}>Joined</div>
+                                    <div style={S.modalStatValue}>{selectedPlayer.role?.charAt(0).toUpperCase() + selectedPlayer.role?.slice(1)}</div>
+                                    <div style={S.modalStatLabel}>Role</div>
                                 </div>
                                 <div style={S.modalStat}>
                                     <div style={{ ...S.modalStatValue, color: isOnline(selectedPlayer.profiles?.last_seen) ? FB.success : FB.textSecondary }}>

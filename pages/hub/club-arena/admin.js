@@ -223,7 +223,8 @@ export default function Admin() {
 
             // Record transaction
             await supabase.from('chip_transactions').insert({
-                from_user_id: selectedMember.user_id,
+                from_user_id: user.id,
+                to_user_id: selectedMember.user_id,
                 club_id: club?.id,
                 transaction_type: 'admin_credit',
                 amount: amount,

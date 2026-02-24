@@ -113,6 +113,7 @@ export default function Cashier() {
                     .from('chip_transactions')
                     .select('*')
                     .eq('from_user_id', authUser.id)
+                    .eq('club_id', clubData.id)
                     .order('created_at', { ascending: false })
                     .limit(20);
                 setTransactions(txns || []);
