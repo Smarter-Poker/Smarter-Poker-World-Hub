@@ -16,6 +16,29 @@ import {
   CheckCircle2, AlertTriangle, Clock, Plus, Timer, DollarSign, X
 } from 'lucide-react';
 
+// Format phone to 555-555-5555 (internal display only)
+function formatPhone(raw) {
+  if (!raw) return '';
+  const d = raw.replace(/\D/g, '');
+  const digits = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  if (digits.length !== 10) return raw;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+// Capitalize first letter of every word
+function titleCase(str) {
+  if (!str) return '';
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Live phone formatter: adds dashes as user types (XXX-XXX-XXXX)
+function liveFormatPhone(value) {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+}
+
 export default function MembershipKiosk() {
   const router = useRouter();
   const [mode, setMode] = useState('home');
@@ -39,6 +62,10 @@ export default function MembershipKiosk() {
   // Check-in: waitlist matches
   const [waitlistMatches, setWaitlistMatches] = useState([]);
 
+  // QR Scan check-in
+  const [scanQR, setScanQR] = useState('');
+  const [scanError, setScanError] = useState('');
+
   // Staff session header for API calls
   const [staffHeader, setStaffHeader] = useState('');
 
@@ -59,7 +86,7 @@ export default function MembershipKiosk() {
     setMode('home'); setPhone(''); setName(''); setSearchResults([]);
     setSuccessMsg(''); setShowNewMemberPopup(false);
     setJoinName(''); setJoinPhone(''); setSelectedGames([]);
-    setWaitlistMatches([]);
+    setWaitlistMatches([]); setScanQR(''); setScanError('');
   };
 
   // Auto-reset after inactivity on success
@@ -151,11 +178,67 @@ export default function MembershipKiosk() {
           body: JSON.stringify({ checked_in_at: new Date().toISOString() })
         });
       }
-      const playerName = waitlistMatches[0]?.player_name || 'Player';
+      const playerName = titleCase(waitlistMatches[0]?.player_name || 'Player');
       const gameList = waitlistMatches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
       setSuccessMsg(`✅ ${playerName} — Checked In!\n${gameList}`);
       setMode('success');
     } catch (err) { console.error(err); }
+    finally { setSubmitting(false); }
+  };
+
+  // ── SCAN CARD: Look up member by QR code and check in ──
+  const handleScanCheckIn = async () => {
+    if (!scanQR.trim() || !venueId) return;
+    setSubmitting(true);
+    setScanError('');
+    try {
+      const res = await fetch('/api/commander/members/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+        body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
+      });
+      const json = await res.json();
+      if (!json.success || !json.data?.member) {
+        setScanError('Card not recognized. Please try again or search by name.');
+        setSubmitting(false);
+        return;
+      }
+      const member = json.data.member;
+
+      // Also check in to waitlist if they have matching entries
+      try {
+        const wlRes = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+          headers: { 'x-staff-session': staffHeader }
+        });
+        const wlData = await wlRes.json();
+        if (wlData.success && wlData.data) {
+          const memberName = (member.name || `${member.first_name} ${member.last_name}`).toLowerCase().trim();
+          const memberPhone = (member.phone || '').replace(/\D/g, '');
+          const matchingEntries = (wlData.data || []).filter(w => {
+            if (w.status !== 'waiting' && w.status !== 'called') return false;
+            if (w.checked_in_at) return false;
+            const wName = (w.player_name || '').toLowerCase().trim();
+            const wPhone = (w.player_phone || '').replace(/\D/g, '');
+            if (memberPhone && wPhone && memberPhone.slice(-10) === wPhone.slice(-10)) return true;
+            if (wName && memberName && wName === memberName) return true;
+            return false;
+          });
+          for (const entry of matchingEntries) {
+            await fetch(`/api/commander/waitlist/${entry.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+              body: JSON.stringify({ checked_in_at: new Date().toISOString() })
+            });
+          }
+        }
+      } catch { /* non-critical */ }
+
+      setSuccessMsg(`✅ ${titleCase(member.first_name || member.name || 'Player')} — Checked In!`);
+      setMode('success');
+    } catch (err) {
+      console.error(err);
+      setScanError('Scan failed. Please try again.');
+    }
     finally { setSubmitting(false); }
   };
 
@@ -182,7 +265,7 @@ export default function MembershipKiosk() {
         });
       }
       const gameList = selectedGames.map(g => g.label).join(', ');
-      setSuccessMsg(`✅ ${joinName.trim()} added to waitlist!\n${gameList}`);
+      setSuccessMsg(`✅ ${titleCase(joinName.trim())} Added To Waitlist!\n${gameList}`);
       setMode('success');
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
@@ -440,7 +523,7 @@ export default function MembershipKiosk() {
 
                 <div>
                   <label className="text-sm text-[#B0B3B8] mb-1 block">Phone Number</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                  <input type="tel" inputMode="numeric" value={phone} onChange={e => setPhone(liveFormatPhone(e.target.value))}
                     placeholder="(555) 123-4567"
                     className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
                 </div>
@@ -449,6 +532,19 @@ export default function MembershipKiosk() {
                   className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
                   {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   Find My Spot
+                </button>
+
+                {/* Scan Card Divider */}
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex-1 h-px bg-[#3A3B3C]" />
+                  <span className="text-xs text-[#B0B3B8]">Or</span>
+                  <div className="flex-1 h-px bg-[#3A3B3C]" />
+                </div>
+
+                <button onClick={() => { setScanQR(''); setScanError(''); setMode('scan'); }}
+                  className="w-full py-4 rounded-xl bg-[#242526] border-2 border-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                  Scan Player Card
                 </button>
 
                 {/* Waitlist matches */}
@@ -463,7 +559,7 @@ export default function MembershipKiosk() {
                         <Clock className="w-6 h-6 text-[#31A24C]" />
                         <div className="flex-1">
                           <p className="text-lg font-medium text-white">{m.stakes} {m.game_type}</p>
-                          <p className="text-sm text-[#B0B3B8]">Position #{m.position} • {m.player_name}</p>
+                          <p className="text-sm text-[#B0B3B8]">Position #{m.position} • {titleCase(m.player_name)}</p>
                         </div>
                         {m.checked_in_at && (
                           <span className="text-xs bg-[#31A24C]/20 text-[#31A24C] px-2 py-1 rounded-full">✓ Checked In</span>
@@ -489,6 +585,48 @@ export default function MembershipKiosk() {
               </div>
             )}
 
+            {/* ===== SCAN CARD MODE ===== */}
+            {mode === 'scan' && (
+              <div className="w-full max-w-md space-y-4">
+                <div className="text-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-10 h-10 text-[#1877F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Scan Your Player Card</h2>
+                  <p className="text-[#B0B3B8] text-sm">Hold your card&apos;s QR code up to the scanner</p>
+                </div>
+
+                <input
+                  type="text"
+                  value={scanQR}
+                  onChange={e => setScanQR(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleScanCheckIn(); }}
+                  placeholder="Waiting for scan..."
+                  autoFocus
+                  className="w-full bg-[#3A3B3C] border-2 border-[#1877F2]/50 rounded-xl px-5 py-5 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
+                />
+
+                <button onClick={handleScanCheckIn} disabled={!scanQR.trim() || submitting}
+                  className="w-full py-5 rounded-2xl bg-[#1877F2] text-white text-xl font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-6 h-6" />}
+                  Check In
+                </button>
+
+                {scanError && (
+                  <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-4 text-center">
+                    <p className="text-[#EF4444] text-sm font-medium">{scanError}</p>
+                  </div>
+                )}
+
+                <div className="text-center pt-2">
+                  <button onClick={() => setMode('checkin_search')}
+                    className="text-[#1877F2] text-sm font-medium underline">
+                    Search By Name Instead
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ===== JOIN WAITLIST: Enter Name ===== */}
             {mode === 'join_name' && (
               <div className="w-full max-w-md space-y-4">
@@ -504,7 +642,7 @@ export default function MembershipKiosk() {
 
                 <div>
                   <label className="text-sm text-[#B0B3B8] mb-1 block">Phone (optional — for text alerts)</label>
-                  <input type="tel" value={joinPhone} onChange={e => setJoinPhone(e.target.value)}
+                  <input type="tel" inputMode="numeric" value={joinPhone} onChange={e => setJoinPhone(liveFormatPhone(e.target.value))}
                     placeholder="(555) 123-4567"
                     className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#31A24C]" />
                 </div>
@@ -523,7 +661,7 @@ export default function MembershipKiosk() {
               <div className="w-full max-w-md space-y-4">
                 <h2 className="text-2xl font-bold text-white text-center mb-1">Select Game</h2>
                 <p className="text-center text-[#B0B3B8] text-sm mb-4">
-                  Joining as <span className="text-white font-bold">{joinName}</span>
+                  Joining as <span className="text-white font-bold">{titleCase(joinName)}</span>
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
