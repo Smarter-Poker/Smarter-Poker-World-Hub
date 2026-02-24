@@ -420,9 +420,25 @@ export default function ClubMessages() {
 
     // Load conversations when we have user and club members
     useEffect(() => {
-        if (user && clubMemberIds.size > 0) {
-            loadConversations();
-        }
+        let isMounted = true;
+        let pollTimeout;
+
+        const runPoll = async () => {
+            if (!isMounted) return;
+            if (user && clubMemberIds.size > 0) {
+                await loadConversations();
+            }
+            if (isMounted) {
+                pollTimeout = setTimeout(runPoll, 15000);
+            }
+        };
+
+        runPoll();
+
+        return () => {
+            isMounted = false;
+            clearTimeout(pollTimeout);
+        };
     }, [user, clubMemberIds]);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -721,6 +737,20 @@ export default function ClubMessages() {
     const openConversation = async (conv) => {
         setActiveConversation(conv);
         setView('chat');
+
+        // Optimistically clear unread count locally
+        setConversations(prev => prev.map(c =>
+            c.id === conv.id ? { ...c, unreadCount: 0 } : c
+        ));
+
+        // Background call to mark as read
+        if (user?.id) {
+            fetch('/api/messenger/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: conv.id, userId: user.id })
+            }).catch(e => console.error('Failed to mark read:', e));
+        }
 
         try {
             const resp = await fetch('/api/messenger/get-messages', {
