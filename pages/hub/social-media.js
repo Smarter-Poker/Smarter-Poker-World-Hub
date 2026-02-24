@@ -2716,7 +2716,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const openSeats = game.max_seats - occupiedCount;
 
                                 // Arc-length parameterized ellipse: equal visual spacing
-                                const rx = 47, ry = 22, cxE = 50, cyE = 50;
+                                const cxE = 50;
+                                const cyE = 48; // center Y
+                                const rx = 25; // horizontal radius % (Mapped exactly for 1:1 image inside 5:3 container)
+                                const ry = 30; // vertical radius %
                                 const STEPS = 360;
                                 const startAngle = Math.PI / 2; // dealer at bottom (90°)
                                 const cumArc = [0];
@@ -2828,13 +2831,13 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 const avatarUrl = seat.taken?.avatar_url || null;
                                                 // Direction-aware badge: left-side extends right, right-side extends left
                                                 const leftPct = parseFloat(pos.left);
-                                                const isLeftSide = leftPct < 18.75; // 25% reduction from 25
-                                                const isRightSide = leftPct > 81.25; // 25% reduction from 75
+                                                const isLeftSide = leftPct < 30; // Covers 25% (50 - rx)
+                                                const isRightSide = leftPct > 70; // Covers 75% (50 + rx)
                                                 const badgeTransform = isLeftSide
-                                                    ? 'translate(-17px, -50%)'
+                                                    ? 'translate(-12px, -50%)'
                                                     : isRightSide
-                                                        ? 'translate(calc(-100% + 17px), -50%)'
-                                                        : 'translate(-50%, -50%)';
+                                                        ? 'translate(calc(-100% + 12px), -50%)'
+                                                        : 'translate(-50%, calc(-100% + 16px))';
                                                 const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
                                                 // Timer computation
@@ -3174,7 +3177,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
                         // Arc-length parameterized ellipse: equal visual spacing
-                        const rx = 47, ry = 22, cxE = 50, cyE = 50;
+                        const cxE = 50;
+                        const cyE = 48; // center Y
+                        const rx = 25; // horizontal radius %
+                        const ry = 30; // vertical radius %
                         const STEPS = 360;
                         const startAngle = Math.PI / 2; // dealer at bottom (90°)
                         const cumArc = [0];
@@ -3223,7 +3229,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 {game.status === 'running' ? '🟢 RUNNING' : '🔵 INTEREST LIST'}
                                             </div>
                                             <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-                                                {occupiedCount}/{game.max_seats} seated
+                                                {occupiedCount} / {game.max_seats} seated
                                                 {openSeats > 0 && <span style={{ color: '#86efac', marginLeft: 4 }}>({openSeats} open)</span>}
                                             </div>
                                         </div>
@@ -3324,13 +3330,13 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                         // Direction-aware badge: left-side extends right, right-side extends left
                                         const leftPct = parseFloat(pos.left);
-                                        const isLeftSide = leftPct < 25;
-                                        const isRightSide = leftPct > 75;
+                                        const isLeftSide = leftPct < 30;
+                                        const isRightSide = leftPct > 70;
                                         const badgeTransform = isLeftSide
-                                            ? 'translate(-17px, -50%)'
+                                            ? 'translate(-12px, -50%)'
                                             : isRightSide
-                                                ? 'translate(calc(-100% + 17px), -50%)'
-                                                : 'translate(-50%, -50%)';
+                                                ? 'translate(calc(-100% + 12px), -50%)'
+                                                : 'translate(-50%, calc(-100% + 16px))';
                                         const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
                                         // Timer computation
@@ -3437,40 +3443,44 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Waitlist info */}
-                                {waitlist.length > 0 && (
-                                    <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
-                                        <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
-                                    </div>
-                                )}
+                                {
+                                    waitlist.length > 0 && (
+                                        <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
+                                            <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
+                                        </div>
+                                    )
+                                }
 
                                 {/* ── Join Waitlist — Large Centered Button ── */}
-                                {canInteract && !myReservation && (
-                                    <div style={{ padding: '12px 16px 16px' }}>
-                                        <button
-                                            onClick={() => handleJoinWaitlist(game.id)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '16px 24px',
-                                                borderRadius: 12,
-                                                border: 'none',
-                                                background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                color: '#fff',
-                                                fontSize: 18,
-                                                fontWeight: 800,
-                                                cursor: 'pointer',
-                                                fontFamily: 'inherit',
-                                                letterSpacing: 1,
-                                                textTransform: 'uppercase',
-                                                boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
-                                                transition: 'transform 0.1s, box-shadow 0.1s',
-                                            }}
-                                            onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
-                                            onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
-                                        >
-                                            Join Waitlist
-                                        </button>
-                                    </div>
-                                )}
+                                {
+                                    canInteract && !myReservation && (
+                                        <div style={{ padding: '12px 16px 16px' }}>
+                                            <button
+                                                onClick={() => handleJoinWaitlist(game.id)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '16px 24px',
+                                                    borderRadius: 12,
+                                                    border: 'none',
+                                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                    color: '#fff',
+                                                    fontSize: 18,
+                                                    fontWeight: 800,
+                                                    cursor: 'pointer',
+                                                    fontFamily: 'inherit',
+                                                    letterSpacing: 1,
+                                                    textTransform: 'uppercase',
+                                                    boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
+                                                    transition: 'transform 0.1s, box-shadow 0.1s',
+                                                }}
+                                                onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
+                                                onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
+                                            >
+                                                Join Waitlist
+                                            </button>
+                                        </div>
+                                    )
+                                }
                             </div>
                         );
                     })}
