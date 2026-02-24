@@ -7,7 +7,7 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import { getGrokClient } from '../../lib/grokClient.js';
+import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -16,7 +16,7 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const openai = getGrokClient();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Avatar prompt variations for diversity
 const AVATAR_STYLES = [
@@ -50,25 +50,15 @@ async function downloadImage(url, filepath) {
     });
 }
 
-async function generateAvatar(horseName, index) {
-    // Select style based on name (infer gender from first name)
-    const femaleNames = ['Sarah', 'Jennifer', 'Amanda', 'Rachel', 'Emily', 'Ashley', 'Nicole',
-        'Lauren', 'Stephanie', 'Megan', 'Heather', 'Amber', 'Brittany', 'Vanessa', 'Courtney',
-        'Kayla', 'Rebecca', 'Alexis', 'Melissa', 'Caroline', 'Angela', 'Maria', 'Natalie',
-        'Julia', 'Monica', 'Diana', 'Hannah', 'Karen', 'Sabrina', 'Valerie', 'Danielle',
-        'Fiona', 'Holly', 'Jasmine', 'Gabriella', 'Sophia', 'Christina', 'Jessica',
-        'Samantha', 'Kimberly', 'Michelle', 'Olivia'];
-
-    const firstName = horseName.split(' ')[0];
-    const isFemale = femaleNames.includes(firstName);
-
-    const styleIndex = index % 3;
-    const style = isFemale ? AVATAR_STYLES[3 + styleIndex] : AVATAR_STYLES[styleIndex];
+async function generateAvatar(horse, index) {
     const ethnicity = ETHNICITIES[index % ETHNICITIES.length];
 
-    const prompt = `Professional headshot portrait of a ${ethnicity} ${style.gender} poker player, age ${style.age}, ${style.style}, neutral studio background with soft lighting, high quality portrait photography, realistic, sharp focus, looking at camera with confident expression`;
+    const prompt = `Professional headshot portrait of a ${ethnicity} ${horse.gender} poker player named ${horse.name}, age 25-45. 
+Location: ${horse.location}. Specialty: ${horse.specialty?.replace('_', ' ')}. Stakes: ${horse.stakes}. 
+Bio: ${horse.bio}.
+Style: Authentic poker player aesthetic, highly realistic, professional lighting, sharp focus, looking at camera. Neutral casino or studio background.`;
 
-    console.log(`🎨 Generating avatar for ${horseName}...`);
+    console.log(`🎨 Generating avatar for ${horse.name} (${horse.gender})...`);
 
     try {
         const response = await openai.images.generate({
@@ -82,7 +72,7 @@ async function generateAvatar(horseName, index) {
         const imageUrl = response.data[0].url;
         return imageUrl;
     } catch (error) {
-        console.error(`   Failed to generate for ${horseName}: ${error.message}`);
+        console.error(`   Failed to generate for ${horse.name}: ${error.message}`);
         return null;
     }
 }
@@ -123,24 +113,53 @@ async function uploadToSupabase(imageUrl, horseName, profileId) {
     }
 }
 
-async function updateProfileAvatar(profileId, avatarUrl) {
-    const { error } = await supabase
-        .from('profiles')
+async function updateProfileAvatar(horseId, profileId, avatarUrl) {
+    // Update content_authors
+    const { error: authorError } = await supabase
+        .from('content_authors')
         .update({ avatar_url: avatarUrl })
-        .eq('id', profileId);
+        .eq('id', horseId);
 
-    return !error;
+    if (authorError) {
+        console.error('Failed to update content_authors:', authorError.message);
+        return false;
+    }
+
+    // Update profiles if it exists
+    if (profileId) {
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: avatarUrl })
+            .eq('id', profileId);
+
+        if (profileError) {
+            console.error('Failed to update profiles:', profileError.message);
+            // We still consider it a success if content_authors was updated
+        }
+    }
+
+    return true;
 }
 
 async function main() {
     console.log('\n🖼️ HORSE AVATAR GENERATOR');
     console.log('═'.repeat(50));
 
-    // Get all horses without avatars
+    // Get specific horses with issues
+    const targetNames = [
+        'Maria Rodriguez', 'Vanessa Morgan',
+        'Brittany Collins', 'Heather Adams',
+        'Richard Wells', 'Isaac Stone',
+        'Seth Gordon', 'Nathan Cooper',
+        'Thomas Hart', 'Trevor Hayes', 'Andrew Wilson'
+    ];
+
+    // Get all horses but filter by target names
     const { data: horses } = await supabase
         .from('content_authors')
-        .select('id, name, profile_id')
-        .eq('is_active', true);
+        .select('id, name, profile_id, gender, location, specialty, stakes, bio')
+        .eq('is_active', true)
+        .in('name', targetNames);
 
     if (!horses?.length) {
         console.log('No horses found');
@@ -164,7 +183,7 @@ async function main() {
         for (const horse of batch) {
             try {
                 // Generate avatar
-                const imageUrl = await generateAvatar(horse.name, i + batch.indexOf(horse));
+                const imageUrl = await generateAvatar(horse, i + batch.indexOf(horse));
                 if (!imageUrl) {
                     failed++;
                     continue;
@@ -178,7 +197,7 @@ async function main() {
                 }
 
                 // Update profile
-                const updated = await updateProfileAvatar(horse.profile_id, publicUrl);
+                const updated = await updateProfileAvatar(horse.id, horse.profile_id, publicUrl);
                 if (updated) {
                     console.log(`✅ ${horse.name}: Avatar set!`);
                     success++;

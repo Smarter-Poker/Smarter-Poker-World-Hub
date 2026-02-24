@@ -80,7 +80,59 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    return res.status(200).json({ success: true, data: members || [] });
+    let results = members || [];
+
+    // ═══ FALLBACK: Also search commander_waitlist for active web/kiosk sign-ups ═══
+    // Web sign-ups may not have a commander_members record yet.
+    // This ensures the kiosk can find anyone who signed up online.
+    if (results.length === 0) {
+      try {
+        let wlQuery = supabase
+          .from('commander_waitlist')
+          .select('id, player_name, player_phone, signup_method, status, created_at')
+          .eq('venue_id', venueFilter)
+          .in('status', ['waiting', 'called'])
+          .limit(limitNum);
+
+        if (isPhone) {
+          const digits = q.replace(/\D/g, '');
+          wlQuery = wlQuery.ilike('player_phone', `%${digits}%`);
+        } else {
+          wlQuery = wlQuery.ilike('player_name', `%${q}%`);
+        }
+
+        const { data: wlMatches } = await wlQuery.order('created_at', { ascending: false });
+
+        if (wlMatches && wlMatches.length > 0) {
+          // De-duplicate by name+phone and convert to member-like shape
+          const seen = new Set();
+          for (const wl of wlMatches) {
+            const dedupKey = `${(wl.player_name || '').toLowerCase()}::${wl.player_phone || ''}`;
+            if (seen.has(dedupKey)) continue;
+            seen.add(dedupKey);
+
+            const nameParts = (wl.player_name || '').trim().split(/\s+/);
+            results.push({
+              id: `wl-${wl.id}`,
+              first_name: nameParts[0] || wl.player_name,
+              last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '',
+              name: wl.player_name,
+              phone: wl.player_phone || null,
+              email: null,
+              last_checkin: null,
+              comp_balance: 0,
+              _from_waitlist: true,
+              _waitlist_id: wl.id,
+              _signup_method: wl.signup_method,
+            });
+          }
+        }
+      } catch (wlErr) {
+        console.warn('Waitlist fallback search warning:', wlErr);
+      }
+    }
+
+    return res.status(200).json({ success: true, data: results });
   } catch (err) {
     console.error('Member search error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });

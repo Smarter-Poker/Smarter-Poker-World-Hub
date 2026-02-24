@@ -1,0 +1,47 @@
+[dotenv@17.2.3] injecting env (27) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+Logged in as: 47965354-0e56-43ef-931c-ddaab82af765
+Daniel has 44 accepted friend links
+Testing profile viewing for friend: a6951550-6ec2-4359-a0bc-8c2f66fc5078
+f1 (I am user_id): [
+  {
+    id: '7baadcaf-edb1-40d8-ae5e-4dd60ac786cc',
+    user_id: '47965354-0e56-43ef-931c-ddaab82af765',
+    friend_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+    status: 'accepted',
+    created_at: '2026-01-25T07:43:36.492764+00:00'
+  }
+]
+f2 (I am friend_id): [
+  {
+    id: '2989e3b1-4b97-4d30-81bb-b9fadeda911c',
+    user_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+    friend_id: '47965354-0e56-43ef-931c-ddaab82af765',
+    status: 'accepted',
+    created_at: '2026-01-25T00:15:05.029445+00:00'
+  }
+]
+Combined: [
+  {
+    id: '7baadcaf-edb1-40d8-ae5e-4dd60ac786cc',
+    user_id: '47965354-0e56-43ef-931c-ddaab82af765',
+    friend_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+    status: 'accepted',
+    created_at: '2026-01-25T07:43:36.492764+00:00'
+  },
+  {
+    id: '2989e3b1-4b97-4d30-81bb-b9fadeda911c',
+    user_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+    friend_id: '47965354-0e56-43ef-931c-ddaab82af765',
+    status: 'accepted',
+    created_at: '2026-01-25T00:15:05.029445+00:00'
+  }
+]
+Original .or query returns: [
+  {
+    id: '7baadcaf-edb1-40d8-ae5e-4dd60ac786cc',
+    user_id: '47965354-0e56-43ef-931c-ddaab82af765',
+    friend_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+    status: 'accepted',
+    created_at: '2026-01-25T07:43:36.492764+00:00'
+  }
+]

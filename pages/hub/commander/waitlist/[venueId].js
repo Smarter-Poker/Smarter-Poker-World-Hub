@@ -317,6 +317,11 @@ export default function PlayerWaitlistPage() {
                                 }}>
                                   {player.player_name}
                                 </span>
+                                {isMe && player.player_phone && player.player_phone.length >= 4 && (
+                                  <span style={S.phoneBadge}>
+                                    {'•••-' + player.player_phone.slice(-4)}
+                                  </span>
+                                )}
                                 {isMe && <span style={S.youBadge}>YOU</span>}
                               </span>
                               {isCalled && <span style={S.calledBadge}>CALLED</span>}
@@ -632,6 +637,13 @@ const S = {
     padding: '2px 6px',
     borderRadius: 3,
     letterSpacing: '0.5px',
+    flexShrink: 0,
+  },
+  phoneBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#888',
+    letterSpacing: '0.3px',
     flexShrink: 0,
   },
 

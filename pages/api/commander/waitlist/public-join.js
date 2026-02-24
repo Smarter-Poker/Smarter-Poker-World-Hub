@@ -213,8 +213,10 @@ export default async function handler(req, res) {
 
                 if (!memberByPhone) {
                     // Create new member record
+                    const memberNum = `WEB-${Date.now().toString(36).toUpperCase().slice(-5)}`;
                     await supabase.from('commander_members').insert({
                         venue_id,
+                        member_number: memberNum,
                         first_name: firstName,
                         last_name: lastName,
                         phone: playerPhone,

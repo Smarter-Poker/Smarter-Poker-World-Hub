@@ -395,7 +395,7 @@ export default function WaitlistDesk() {
                               backgroundColor: isCalled ? `${c.accentColor}14` : isExpired ? 'rgba(239,68,68,0.08)' : isSelected ? 'rgba(255,255,255,0.04)' : 'transparent'
                             }}
                           >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               {hasApp && <span style={{ color: c.accentColor, fontSize: '16px' }}>♦</span>}
                               {isWeb && !isCheckedIn && (
                                 <span style={{ fontSize: '11px', fontWeight: 800, color: '#fff', background: isExpired ? '#EF4444' : '#3B82F6', padding: '1px 5px', borderRadius: '3px', letterSpacing: '0.5px', lineHeight: '16px' }}>
@@ -408,6 +408,12 @@ export default function WaitlistDesk() {
                               <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : isExpired ? '#EF4444' : c.textColor }}>
                                 {entry.player_name}
                               </span>
+                              {entry.player_phone && (
+                                <span style={{ fontSize: '13px', color: `${c.textColor}66`, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Phone size={11} style={{ opacity: 0.6 }} />
+                                  {entry.player_phone}
+                                </span>
+                              )}
                               {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (
                                 <span style={{ fontSize: '12px', color: webMinutesLeft <= 10 ? '#F59E0B' : '#64748B', fontWeight: 600 }}>
                                   {webMinutesLeft}m

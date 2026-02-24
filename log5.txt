@@ -1,0 +1,5 @@
+[dotenv@17.2.3] injecting env (27) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Found 50 users
+Checking friendship for a6951550-6ec2-4359-a0bc-8c2f66fc5078 and 4d5ec8d4-375b-4656-8deb-8e9ab7d342b6
+All relationships found: [ { status: 'accepted' } ]
+{ isFriend: true, friendRequestSent: false }

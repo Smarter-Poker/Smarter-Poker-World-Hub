@@ -3,10 +3,9 @@
  * /commander/kiosk
  * Self-service check-in terminal for players entering the poker room
  * - Image-based welcome screen with invisible hitboxes
- * - Member lookup by phone or name
- * - Quick waitlist signup
- * - Session check-in
- * - New member popup directing to staff
+ * - Check In: search waitlist by name/phone, confirm check-in for all games
+ * - Join Waitlist: enter name, select game(s), add to waitlist
+ * - New Member: popup directing to staff for membership registration
  * Designed for tablet at room entrance, large touch targets
  */
 import { useState, useEffect } from 'react';
@@ -19,29 +18,31 @@ import {
 
 export default function MembershipKiosk() {
   const router = useRouter();
-  const [mode, setMode] = useState('home'); // home, lookup, register, waitlist, buy_time, success
+  const [mode, setMode] = useState('home');
+  // home | checkin_search | checkin_confirm | join_name | join_game | success
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [gameType, setGameType] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [selectedTimePackage, setSelectedTimePackage] = useState(null);
-  const [purchasingTime, setPurchasingTime] = useState(false);
   const [showNewMemberPopup, setShowNewMemberPopup] = useState(false);
   const [venueName, setVenueName] = useState('');
   const [venueId, setVenueId] = useState(null);
-  const [lookupIntent, setLookupIntent] = useState('checkin'); // 'checkin' or 'waitlist'
 
-  // New member fields
-  const [newFirst, setNewFirst] = useState('');
-  const [newLast, setNewLast] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newEmail, setNewEmail] = useState('');
+  // Join waitlist fields
+  const [joinName, setJoinName] = useState('');
+  const [joinPhone, setJoinPhone] = useState('');
+  const [selectedGames, setSelectedGames] = useState([]);
+  const [availableGames, setAvailableGames] = useState([]);
 
-  // Load venue name from staff session
+  // Check-in: waitlist matches
+  const [waitlistMatches, setWaitlistMatches] = useState([]);
+
+  // Staff session header for API calls
+  const [staffHeader, setStaffHeader] = useState('');
+
+  // Load venue info from staff session
   useEffect(() => {
     try {
       const staffStr = localStorage.getItem('commander_staff');
@@ -49,18 +50,19 @@ export default function MembershipKiosk() {
         const staffData = JSON.parse(staffStr);
         if (staffData.venue_name) setVenueName(staffData.venue_name);
         if (staffData.venue_id) setVenueId(staffData.venue_id);
+        setStaffHeader(staffStr);
       }
     } catch { /* */ }
   }, []);
 
   const reset = () => {
     setMode('home'); setPhone(''); setName(''); setSearchResults([]);
-    setSelectedMember(null); setGameType(''); setSuccessMsg('');
-    setNewFirst(''); setNewLast(''); setNewPhone(''); setNewEmail('');
-    setShowNewMemberPopup(false); setLookupIntent('checkin');
+    setSuccessMsg(''); setShowNewMemberPopup(false);
+    setJoinName(''); setJoinPhone(''); setSelectedGames([]);
+    setWaitlistMatches([]);
   };
 
-  // Auto-reset after inactivity
+  // Auto-reset after inactivity on success
   useEffect(() => {
     if (mode === 'success') {
       const t = setTimeout(reset, 8000);
@@ -76,138 +78,112 @@ export default function MembershipKiosk() {
     }
   }, [showNewMemberPopup]);
 
-  const searchMembers = async () => {
-    const query = phone || name;
-    if (!query || query.length < 2) return;
+  // ── Fetch available games for this venue ──
+  const fetchGames = async () => {
+    if (!venueId) return;
+    try {
+      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+        headers: { 'x-staff-session': staffHeader }
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        // Extract unique game_type + stakes combos from current waitlist
+        const seen = new Set();
+        const games = [];
+        json.data.forEach(e => {
+          const key = `${e.game_type}|${e.stakes}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            games.push({ game_type: e.game_type, stakes: e.stakes, label: `${e.stakes} ${e.game_type}` });
+          }
+        });
+        if (games.length > 0) setAvailableGames(games);
+      }
+    } catch { /* */ }
+    // Always provide fallback games
+    if (availableGames.length === 0) {
+      setAvailableGames([
+        { game_type: 'NLH', stakes: '$1/$2', label: '$1/$2 NLH' },
+        { game_type: 'NLH', stakes: '$2/$5', label: '$2/$5 NLH' },
+        { game_type: 'PLO', stakes: '$1/$2', label: '$1/$2 PLO' },
+        { game_type: 'NLH', stakes: '$5/$10', label: '$5/$10 NLH' }
+      ]);
+    }
+  };
+
+  // ── CHECK IN: Search waitlist for player ──
+  const searchWaitlist = async () => {
+    const query = (phone || name).trim();
+    if (!query || query.length < 2 || !venueId) return;
     setSearching(true);
     try {
-      let venueId = null;
-      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
-      if (staffSession) {
-        try { venueId = JSON.parse(staffSession).venue_id; } catch { /* */ }
-      }
-      const headers = {};
-      if (staffSession) headers['x-staff-session'] = staffSession;
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
+      // Fetch all active waitlist entries for this venue
+      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+        headers: { 'x-staff-session': staffHeader }
+      });
       const json = await res.json();
-      if (json.success) setSearchResults(json.data || []);
+      if (json.success && json.data) {
+        const q = query.toLowerCase();
+        const matches = json.data.filter(entry => {
+          const nameMatch = entry.player_name?.toLowerCase().includes(q);
+          const phoneMatch = entry.player_phone?.replace(/\D/g, '').includes(q.replace(/\D/g, ''));
+          return nameMatch || phoneMatch;
+        });
+        setWaitlistMatches(matches);
+      }
     } catch (err) { console.error(err); }
     finally { setSearching(false); }
   };
 
-  const checkIn = async (member) => {
+  // ── CHECK IN: Confirm check-in for all matching games ──
+  const confirmCheckIn = async () => {
+    if (waitlistMatches.length === 0) return;
     setSubmitting(true);
     try {
-      await fetch('/api/commander/members/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_id: member.id })
-      });
-
-      // Also mark any matching waitlist entries as checked-in
-      // This links web sign-ups to kiosk check-in
-      try {
-        const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-        const venueId = staffData.venue_id;
-        const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
-        const staffStr = localStorage.getItem('commander_staff') || '';
-        if (venueId) {
-          // Fetch active waitlist entries for this venue
-          const wlRes = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
-            headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffStr }
-          });
-          const wlData = await wlRes.json();
-          if (wlData.success && wlData.data) {
-            const memberName = (member.name || `${member.first_name} ${member.last_name}`).toLowerCase().trim();
-            const memberPhone = (member.phone || '').replace(/\D/g, '');
-            // Find matching waitlist entries by name or phone
-            const matchingEntries = (wlData.data || []).filter(w => {
-              if (w.status !== 'waiting' && w.status !== 'called') return false;
-              if (w.checked_in_at) return false;
-              const wName = (w.player_name || '').toLowerCase().trim();
-              const wPhone = (w.player_phone || '').replace(/\D/g, '');
-              // Match by phone (most reliable) or by name
-              if (memberPhone && wPhone && memberPhone.slice(-10) === wPhone.slice(-10)) return true;
-              if (wName && memberName && wName === memberName) return true;
-              return false;
-            });
-            // Check in each matching waitlist entry
-            for (const entry of matchingEntries) {
-              await fetch(`/api/commander/waitlist/${entry.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffStr },
-                body: JSON.stringify({ checked_in_at: new Date().toISOString() })
-              });
-            }
-          }
-        }
-      } catch (wlErr) {
-        // Non-critical — member check-in already succeeded
-        console.warn('Waitlist check-in sync warning:', wlErr);
+      // Check in all matched waitlist entries
+      for (const entry of waitlistMatches) {
+        await fetch(`/api/commander/waitlist/${entry.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-staff-session': staffHeader
+          },
+          body: JSON.stringify({ checked_in_at: new Date().toISOString() })
+        });
       }
-
-      setSuccessMsg(`Welcome back, ${member.first_name || member.name}!`);
+      const playerName = waitlistMatches[0]?.player_name || 'Player';
+      const gameList = waitlistMatches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
+      setSuccessMsg(`✅ ${playerName} — Checked In!\n${gameList}`);
       setMode('success');
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };
 
-  const joinWaitlist = async () => {
-    if (!selectedMember || !gameType) return;
+  // ── JOIN WAITLIST: Add player to selected games ──
+  const submitJoinWaitlist = async () => {
+    if (!joinName.trim() || selectedGames.length === 0 || !venueId) return;
     setSubmitting(true);
     try {
-      // Parse gameType label (e.g. "$1/$2 NLH") into game_type + stakes
-      const parts = gameType.split(' ');
-      const parsedStakes = parts.length > 1 ? parts.slice(0, -1).join(' ') : gameType;
-      const parsedGameType = parts.length > 1 ? parts[parts.length - 1] : 'NLH';
-
-      // Get venue_id from staff localStorage
-      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      const venueId = staffData.venue_id;
-
-      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
-      const staffStr = localStorage.getItem('commander_staff') || '';
-      await fetch('/api/commander/waitlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'x-staff-session': staffStr
-        },
-        body: JSON.stringify({
-          venue_id: venueId,
-          player_name: selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`,
-          player_phone: selectedMember.phone,
-          game_type: parsedGameType,
-          stakes: parsedStakes,
-          signup_method: 'kiosk'
-        })
-      });
-      setSuccessMsg(`Added to ${gameType} waitlist! We'll text you when a seat opens.`);
-      setMode('success');
-    } catch (err) { console.error(err); }
-    finally { setSubmitting(false); }
-  };
-
-  const registerNewMember = async () => {
-    if (!newFirst || !newLast) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/commander/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: newFirst,
-          last_name: newLast,
-          phone: newPhone || null,
-          email: newEmail || null
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSuccessMsg(`Welcome, ${newFirst}! You're all set.`);
-        setMode('success');
+      for (const game of selectedGames) {
+        await fetch('/api/commander/waitlist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-staff-session': staffHeader
+          },
+          body: JSON.stringify({
+            venue_id: venueId,
+            game_type: game.game_type,
+            stakes: game.stakes,
+            player_name: joinName.trim(),
+            player_phone: joinPhone.trim() || null,
+            signup_method: 'kiosk'
+          })
+        });
       }
+      const gameList = selectedGames.map(g => g.label).join(', ');
+      setSuccessMsg(`✅ ${joinName.trim()} added to waitlist!\n${gameList}`);
+      setMode('success');
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };
@@ -230,7 +206,7 @@ export default function MembershipKiosk() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#0a0a0a'
+            background: '#18191A'
           }}>
             {/* Background Image */}
             <img
@@ -246,14 +222,13 @@ export default function MembershipKiosk() {
             />
 
             {/* Invisible Hitboxes — positioned over the baked-in buttons */}
-            {/* These percentages match the button positions in the provided image */}
 
-            {/* Check In — Blue button (pixel: 36-45%) */}
+            {/* Check In — Blue button (pixel: 35-44%) */}
             <button
-              onClick={() => { setLookupIntent('checkin'); setMode('lookup'); }}
+              onClick={() => setMode('checkin_search')}
               style={{
                 position: 'absolute',
-                top: '35%',
+                top: '34%',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: '55%',
@@ -266,18 +241,12 @@ export default function MembershipKiosk() {
               aria-label="Check In"
             />
 
-            {/* Join Waitlist — Green button (pixel: 50-59%) → opens venue waitlist page */}
+            {/* Join Waitlist — Green button (pixel: 49-59%) */}
             <button
-              onClick={() => {
-                if (venueId) {
-                  router.push(`/hub/commander/waitlist/${venueId}`);
-                } else {
-                  setLookupIntent('waitlist'); setMode('lookup');
-                }
-              }}
+              onClick={() => { fetchGames(); setMode('join_name'); }}
               style={{
                 position: 'absolute',
-                top: '49%',
+                top: '48%',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: '55%',
@@ -290,12 +259,12 @@ export default function MembershipKiosk() {
               aria-label="Join Waitlist"
             />
 
-            {/* New Member — Grey button (pixel: 64-73%) */}
+            {/* New Member — Grey button (pixel: 63-73%) */}
             <button
               onClick={() => setShowNewMemberPopup(true)}
               style={{
                 position: 'absolute',
-                top: '63%',
+                top: '62%',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: '55%',
@@ -423,7 +392,7 @@ export default function MembershipKiosk() {
           </div>
         )}
 
-        {/* ===== NON-HOME MODES — Contained in a panel ===== */}
+        {/* ===== NON-HOME MODES ===== */}
         {mode !== 'home' && (
           <div className="w-full max-w-md mx-auto p-6" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
 
@@ -450,15 +419,16 @@ export default function MembershipKiosk() {
               ← Back
             </button>
 
-            {/* ===== MEMBER LOOKUP ===== */}
-            {mode === 'lookup' && !selectedMember && (
+            {/* ===== CHECK IN: Search Waitlist ===== */}
+            {mode === 'checkin_search' && (
               <div className="w-full max-w-md space-y-4">
-                <h2 className="text-2xl font-bold text-white">Find Your Account</h2>
+                <h2 className="text-2xl font-bold text-white text-center mb-2">Check In</h2>
+                <p className="text-center text-[#B0B3B8] text-sm mb-4">Enter your name or phone to find your waitlist spot</p>
 
                 <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone Number</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder="(555) 123-4567" autoFocus
+                  <label className="text-sm text-[#B0B3B8] mb-1 block">Name</label>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)}
+                    placeholder="Your Name" autoFocus
                     className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
                 </div>
 
@@ -469,211 +439,127 @@ export default function MembershipKiosk() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)}
-                    placeholder="Your Name"
+                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone Number</label>
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
                     className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
                 </div>
 
-                <button onClick={searchMembers} disabled={(!phone && !name) || searching}
+                <button onClick={searchWaitlist} disabled={(!phone && !name) || searching}
                   className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
                   {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                  Search
+                  Find My Spot
                 </button>
 
-                {searchResults.length > 0 && (
-                  <div className="space-y-2 mt-4">
-                    {searchResults.map(m => (
-                      <button key={m.id} onClick={() => setSelectedMember(m)}
-                        className="w-full bg-[#242526] rounded-xl border border-[#3A3B3C] p-4 flex items-center gap-3 active:bg-[#3A3B3C] text-left">
-                        <UserCheck className="w-6 h-6 text-[#1877F2]" />
+                {/* Waitlist matches */}
+                {waitlistMatches.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    <p className="text-sm text-[#B0B3B8] text-center">
+                      Found on <span className="text-white font-bold">{waitlistMatches.length}</span> waitlist{waitlistMatches.length > 1 ? 's' : ''}:
+                    </p>
+                    {waitlistMatches.map(m => (
+                      <div key={m.id}
+                        className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4 flex items-center gap-3">
+                        <Clock className="w-6 h-6 text-[#31A24C]" />
                         <div className="flex-1">
-                          <p className="text-lg font-medium text-white">{m.name || `${m.first_name} ${m.last_name}`}</p>
-                          {m.phone && <p className="text-sm text-[#B0B3B8]">{m.phone}</p>}
+                          <p className="text-lg font-medium text-white">{m.stakes} {m.game_type}</p>
+                          <p className="text-sm text-[#B0B3B8]">Position #{m.position} • {m.player_name}</p>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
-                      </button>
+                        {m.checked_in_at && (
+                          <span className="text-xs bg-[#31A24C]/20 text-[#31A24C] px-2 py-1 rounded-full">✓ Checked In</span>
+                        )}
+                      </div>
                     ))}
+                    <button onClick={confirmCheckIn} disabled={submitting}
+                      className="w-full py-5 rounded-2xl bg-[#1877F2] text-white text-xl font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
+                      {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-6 h-6" />}
+                      Confirm Check In
+                    </button>
                   </div>
                 )}
 
-                {searchResults.length === 0 && (phone || name) && !searching && (
+                {waitlistMatches.length === 0 && (phone || name) && !searching && (
                   <div className="text-center py-4">
-                    <p className="text-[#B0B3B8] mb-3">No Account Found</p>
+                    <p className="text-[#B0B3B8] mb-3">Not Found On Waitlist</p>
                     <p className="text-sm text-[#B0B3B8]">
-                      Please see <span className="text-[#1877F2] font-bold">{venueName || 'venue'}</span> staff to register.
+                      You may not have signed up yet. Tap <span className="text-[#31A24C] font-bold">Join Waitlist</span> from the home screen, or see staff for help.
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* ===== MEMBER FOUND — Actions ===== */}
-            {mode === 'lookup' && selectedMember && (
+            {/* ===== JOIN WAITLIST: Enter Name ===== */}
+            {mode === 'join_name' && (
               <div className="w-full max-w-md space-y-4">
-
-                <div className="bg-[#242526] rounded-2xl p-5 text-center border border-[#3A3B3C]">
-                  <div className="w-16 h-16 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-3">
-                    <UserCheck className="w-8 h-8 text-[#1877F2]" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-white">
-                    {selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`}
-                  </h2>
-                  {selectedMember.phone && <p className="text-[#B0B3B8] mt-1">{selectedMember.phone}</p>}
-                  {selectedMember.time_balance_minutes !== undefined && (
-                    <div className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full ${(selectedMember.time_balance_minutes || 0) > 0 ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
-                      }`}>
-                      <Timer className="w-4 h-4" />
-                      <span className="text-sm font-bold">{selectedMember.time_balance_minutes || 0} min on card</span>
-                    </div>
-                  )}
-                </div>
-
-                <button onClick={() => checkIn(selectedMember)} disabled={submitting}
-                  className="w-full py-5 rounded-2xl bg-[#1877F2] text-white text-xl font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-6 h-6" />}
-                  Check In
-                </button>
+                <h2 className="text-2xl font-bold text-white text-center mb-2">Join Waitlist</h2>
+                <p className="text-center text-[#B0B3B8] text-sm mb-4">Enter your name to get on the list</p>
 
                 <div>
-                  <p className="text-sm text-[#B0B3B8] mb-2">Join A Waitlist:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['$1/$2 NLH', '$2/$5 NLH', '$1/$2 PLO', '$5/$10 NLH'].map(g => (
-                      <button key={g} onClick={() => setGameType(g)}
-                        className={`py-4 rounded-xl text-base font-medium ${gameType === g ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'
-                          }`}>
-                        {g}
-                      </button>
-                    ))}
-                  </div>
-                  {gameType && (
-                    <button onClick={joinWaitlist} disabled={submitting}
-                      className="w-full mt-3 py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold active:bg-[#28883F] disabled:opacity-50">
-                      Join {gameType} Waitlist
-                    </button>
-                  )}
+                  <label className="text-sm text-[#B0B3B8] mb-1 block">Your Name *</label>
+                  <input type="text" value={joinName} onChange={e => setJoinName(e.target.value)}
+                    placeholder="First and Last Name" autoFocus
+                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#31A24C]" />
                 </div>
 
-                <button onClick={() => setMode('buy_time')}
-                  className="w-full py-5 rounded-2xl bg-[#F59E0B]/10 border-2 border-[#F59E0B]/40 text-[#F59E0B] text-xl font-semibold flex items-center justify-center gap-3 active:bg-[#F59E0B]/20">
-                  <Timer className="w-6 h-6" /> Buy Play Time
+                <div>
+                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone (optional — for text alerts)</label>
+                  <input type="tel" value={joinPhone} onChange={e => setJoinPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
+                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#31A24C]" />
+                </div>
+
+                <button onClick={() => { if (joinName.trim()) setMode('join_game'); }}
+                  disabled={!joinName.trim()}
+                  className="w-full py-5 rounded-2xl bg-[#31A24C] text-white text-xl font-semibold active:bg-[#28883F] disabled:opacity-50 flex items-center justify-center gap-2">
+                  <ChevronRight className="w-6 h-6" />
+                  Next — Select Game
                 </button>
               </div>
             )}
 
-            {/* ===== BUY TIME ===== */}
-            {mode === 'buy_time' && selectedMember && (
+            {/* ===== JOIN WAITLIST: Select Game(s) ===== */}
+            {mode === 'join_game' && (
               <div className="w-full max-w-md space-y-4">
-
-                <div className="bg-[#242526] rounded-2xl p-4 border border-[#3A3B3C] flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
-                    <UserCheck className="w-6 h-6 text-[#1877F2]" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-lg font-bold text-white">
-                      {selectedMember.first_name} {selectedMember.last_name}
-                    </p>
-                    <p className="text-sm text-[#B0B3B8]">
-                      Current balance: <span className="font-bold text-[#31A24C]">{selectedMember.time_balance_minutes || 0} min</span>
-                    </p>
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-bold text-white text-center">Select Time Package</h3>
+                <h2 className="text-2xl font-bold text-white text-center mb-1">Select Game</h2>
+                <p className="text-center text-[#B0B3B8] text-sm mb-4">
+                  Joining as <span className="text-white font-bold">{joinName}</span>
+                </p>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { minutes: 30, price: 5, label: '30 Min' },
-                    { minutes: 60, price: 10, label: '1 Hour' },
-                    { minutes: 120, price: 18, label: '2 Hours' },
-                    { minutes: 180, price: 25, label: '3 Hours' },
-                    { minutes: 300, price: 35, label: '5 Hours' },
-                    { minutes: 480, price: 50, label: '8 Hours' }
-                  ].map(pkg => (
-                    <button key={pkg.minutes}
-                      onClick={() => setSelectedTimePackage(pkg)}
-                      className={`py-5 rounded-2xl text-center space-y-1 border-2 ${selectedTimePackage?.minutes === pkg.minutes
-                        ? 'bg-[#F59E0B]/20 border-[#F59E0B] text-[#F59E0B]'
-                        : 'bg-[#242526] border-[#3A3B3C] text-[#E4E6EB] active:border-[#F59E0B]'
-                        }`}>
-                      <p className="text-2xl font-bold">{pkg.label}</p>
-                      <p className="text-lg font-semibold">${pkg.price}</p>
-                    </button>
-                  ))}
+                  {availableGames.map(g => {
+                    const isSelected = selectedGames.some(s => s.label === g.label);
+                    return (
+                      <button key={g.label}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedGames(selectedGames.filter(s => s.label !== g.label));
+                          } else {
+                            setSelectedGames([...selectedGames, g]);
+                          }
+                        }}
+                        className={`py-5 rounded-2xl text-center border-2 ${isSelected
+                          ? 'bg-[#31A24C]/20 border-[#31A24C] text-[#31A24C]'
+                          : 'bg-[#242526] border-[#3A3B3C] text-[#E4E6EB] active:border-[#31A24C]'
+                          }`}>
+                        <p className="text-lg font-bold">{g.label}</p>
+                        {isSelected && <p className="text-sm mt-1">✓ Selected</p>}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {selectedTimePackage && (
-                  <button
-                    onClick={async () => {
-                      setPurchasingTime(true);
-                      try {
-                        const res = await fetch('/api/commander/kiosk/buy-time', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            member_id: selectedMember.id,
-                            minutes: selectedTimePackage.minutes,
-                            amount: selectedTimePackage.price,
-                            payment_method: 'kiosk'
-                          })
-                        });
-                        const json = await res.json();
-                        if (json.success) {
-                          setSuccessMsg(`${selectedTimePackage.label} added! New balance: ${json.data.new_balance} min`);
-                          const pw = window.open('', '_blank', 'width=400,height=600');
-                          if (pw) {
-                            pw.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0;padding:0}.r{width:72mm;padding:4mm;margin:0 auto}.c{text-align:center}.b{font-weight:bold}.big{font-size:24px}.med{font-size:14px}.sm{font-size:11px}.d{border-top:1px dashed #000;margin:3mm 0}.row{display:flex;justify-content:space-between}</style></head><body><div class="r"><div class="c b med">SMARTER.POKER</div><div class="c sm">Time Purchase Receipt</div><div class="d"></div><div class="row sm"><span>Player:</span><span class="b">${selectedMember.name || selectedMember.first_name || 'Player'}</span></div><div class="d"></div><div class="row sm"><span>Package:</span><span class="b">${selectedTimePackage.label}</span></div><div class="row sm"><span>Minutes:</span><span class="b">${selectedTimePackage.minutes}</span></div><div class="d"></div><div class="c b big">$${selectedTimePackage.price}</div><div class="c sm">PAID - KIOSK</div><div class="d"></div><div class="sm c" style="opacity:.6">${new Date().toLocaleString()}</div><div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker</div></div></body></html>`);
-                            pw.document.close();
-                            setTimeout(() => { pw.print(); pw.close(); }, 500);
-                          }
-                          setMode('success');
-                        }
-                      } catch (err) { console.error(err); }
-                      finally { setPurchasingTime(false); }
-                    }}
-                    disabled={purchasingTime}
-                    className="w-full py-5 rounded-2xl bg-[#F59E0B] text-white text-xl font-semibold flex items-center justify-center gap-3 active:bg-[#D97706] disabled:opacity-50">
-                    {purchasingTime ? <Loader2 className="w-6 h-6 animate-spin" /> : <DollarSign className="w-6 h-6" />}
-                    Buy {selectedTimePackage.label} — ${selectedTimePackage.price}
+                {selectedGames.length > 0 && (
+                  <button onClick={submitJoinWaitlist} disabled={submitting}
+                    className="w-full py-5 rounded-2xl bg-[#31A24C] text-white text-xl font-semibold active:bg-[#28883F] disabled:opacity-50 flex items-center justify-center gap-2">
+                    {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
+                    Join {selectedGames.length} Waitlist{selectedGames.length > 1 ? 's' : ''}
                   </button>
                 )}
-              </div>
-            )}
 
-            {/* ===== NEW MEMBER REGISTRATION ===== */}
-            {mode === 'register' && (
-              <div className="w-full max-w-md space-y-4">
-                <h2 className="text-2xl font-bold text-white">New Member</h2>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm text-[#B0B3B8] mb-1 block">First Name</label>
-                    <input type="text" value={newFirst} onChange={e => setNewFirst(e.target.value)}
-                      className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-[#1877F2]" autoFocus />
-                  </div>
-                  <div>
-                    <label className="text-sm text-[#B0B3B8] mb-1 block">Last Name</label>
-                    <input type="text" value={newLast} onChange={e => setNewLast(e.target.value)}
-                      className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-[#1877F2]" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone (for Waitlist Texts)</label>
-                  <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)}
-                    placeholder="(555) 123-4567"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
-                </div>
-                <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Email (optional)</label>
-                  <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
-                    placeholder="you@email.com"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
-                </div>
-
-                <button onClick={registerNewMember} disabled={!newFirst || !newLast || submitting}
-                  className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold active:bg-[#28883F] disabled:opacity-50 flex items-center justify-center gap-2">
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-                  Create Account
+                <button onClick={() => setMode('join_name')}
+                  className="w-full py-3 rounded-xl bg-transparent text-[#B0B3B8] text-base active:text-white">
+                  ← Back to Name
                 </button>
               </div>
             )}
@@ -684,8 +570,27 @@ export default function MembershipKiosk() {
                 <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-12 h-12 text-[#31A24C]" />
                 </div>
-                <h2 className="text-3xl font-bold text-white">{successMsg}</h2>
-                <p className="text-[#B0B3B8]">This Screen Will Reset Automatically</p>
+                <h2 className="text-2xl font-bold text-white whitespace-pre-line">{successMsg}</h2>
+
+                {/* Membership reminder */}
+                <div style={{
+                  background: 'linear-gradient(145deg, #2a2d30, #1a1c1f)',
+                  border: '1px solid rgba(245,158,11,0.4)',
+                  borderRadius: '16px',
+                  padding: '20px 24px',
+                  marginTop: '16px'
+                }}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <AlertTriangle className="w-6 h-6 text-[#F59E0B] flex-shrink-0" />
+                    <p className="text-lg font-semibold text-[#F59E0B]">Membership Required</p>
+                  </div>
+                  <p className="text-[#E4E6EB] text-base leading-relaxed">
+                    You are checked in, but still need a membership to play.
+                    Please see <span className="text-[#1877F2] font-bold">{venueName || 'venue'}</span> staff to sign up.
+                  </p>
+                </div>
+
+                <p className="text-[#B0B3B8] text-sm">This Screen Will Reset Automatically</p>
                 <button onClick={reset}
                   className="px-8 py-4 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] text-lg font-medium active:bg-[#4A4B4C]">
                   Done
@@ -704,4 +609,3 @@ export default function MembershipKiosk() {
     </>
   );
 }
-

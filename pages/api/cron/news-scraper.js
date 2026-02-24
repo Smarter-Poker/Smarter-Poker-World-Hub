@@ -219,6 +219,31 @@ async function fetchArticlePage(url) {
     }
 }
 
+// Fetch page with mobile Safari UA (many sites that block Googlebot still allow mobile browsers)
+async function fetchWithMobileUA(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT + 5000); // Extra 5s for slow ASP.NET pages
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive'
+            }
+        });
+        clearTimeout(timeout);
+        if (!response.ok) return null;
+        return await response.text();
+    } catch (error) {
+        clearTimeout(timeout);
+        return null;
+    }
+}
+
 // Extract og:image via microlink.io proxy (for sites like CardPlayer that block ALL automated access)
 async function fetchOgImageViaProxy(url) {
     try {
@@ -324,6 +349,69 @@ async function fastFailImageProxy(url) {
     ]).catch(() => null); // If ALL reject, return null
 
     return Promise.race([proxyRace, timeoutPromise]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CARDPLAYER-SPECIFIC IMAGE EXTRACTION
+// CardPlayer's RSS feed contains ZERO image data. This function extracts
+// images by: (1) constructing the og:image URL from article ID patterns,
+// (2) trying to fetch the article page with multiple UAs.
+// ═══════════════════════════════════════════════════════════════════════════
+async function extractCardPlayerImage(articleUrl) {
+    if (!articleUrl) return null;
+
+    // Step 1: Extract article ID from URL pattern
+    // Format: https://www.cardplayer.com/poker-news/1639047-title-here
+    const idMatch = articleUrl.match(/poker-news\/(\d+)/);
+    if (idMatch) {
+        const articleId = idMatch[1];
+        // CardPlayer uses predictable image paths — try common patterns
+        const candidateUrls = [
+            `https://www.cardplayer.com/assets/poker-news/${articleId}/main_image.jpg`,
+            `https://www.cardplayer.com/assets/poker-news/${articleId}/main.jpg`,
+            `https://www.cardplayer.com/poker-news/${articleId}/image.jpg`
+        ];
+
+        for (const candidateUrl of candidateUrls) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(candidateUrl, {
+                    method: 'HEAD',
+                    signal: controller.signal,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
+                });
+                clearTimeout(timeout);
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.startsWith('image/')) {
+                        console.log(`   ✓ CardPlayer CDN image found: ${candidateUrl.substring(0, 60)}...`);
+                        return candidateUrl;
+                    }
+                }
+            } catch (e) { /* continue to next candidate */ }
+        }
+    }
+
+    // Step 2: Try fetching article page with mobile UA (less likely to be blocked)
+    console.log(`   Trying mobile UA for CardPlayer: ${articleUrl.substring(0, 50)}...`);
+    const mobileHtml = await fetchWithMobileUA(articleUrl);
+    if (mobileHtml) {
+        const ogImage = extractArticleImage(mobileHtml, articleUrl);
+        if (ogImage) {
+            console.log(`   ✓ CardPlayer image via mobile UA: ${ogImage.substring(0, 60)}...`);
+            return ogImage;
+        }
+    }
+
+    // Step 3: Fast-fail proxy chain with extended timeout for CardPlayer
+    console.log(`   Trying proxy chain for CardPlayer...`);
+    const proxyImage = await fastFailImageProxy(articleUrl);
+    if (proxyImage) return proxyImage;
+
+    return null;
 }
 
 function cleanText(text) {
@@ -567,14 +655,19 @@ async function scrapeRSS(source) {
 
             let image = extractRssImage(item);
 
-            // If no image in RSS, fetch from article page (use Googlebot UA for sites that block regular browsers)
-            if (!image && item.link) {
+            // CardPlayer RSS has ZERO image data — use dedicated extractor
+            if (!image && item.link && source.name === 'CardPlayer') {
+                image = await extractCardPlayerImage(item.link);
+            }
+
+            // If no image in RSS, fetch from article page (skip for CardPlayer — already handled above)
+            if (!image && item.link && source.name !== 'CardPlayer') {
                 const articleHtml = await fetchArticlePage(item.link);
                 image = extractArticleImage(articleHtml, item.link);
             }
 
-            // Fast-fail proxy chain: microlink + noembed + Google Cache race (5s hard timeout)
-            if (!image && item.link) {
+            // Fast-fail proxy chain (skip for CardPlayer — already tried in extractCardPlayerImage)
+            if (!image && item.link && source.name !== 'CardPlayer') {
                 image = await fastFailImageProxy(item.link);
             }
 
@@ -1076,9 +1169,18 @@ async function scrapeSource(source) {
             }
         }
     } else {
-        const html = await fetchPage(source.url);
+        // Multi-UA resilient fetch: try standard → Googlebot → mobile Safari
+        let html = await fetchPage(source.url);
         if (!html) {
-            console.log(`   ✗ Failed to fetch ${source.name}`);
+            console.log(`   ⚠ Initial fetch failed for ${source.name}, trying Googlebot UA...`);
+            html = await fetchArticlePage(source.url);
+        }
+        if (!html) {
+            console.log(`   ⚠ Googlebot failed for ${source.name}, trying mobile Safari UA...`);
+            html = await fetchWithMobileUA(source.url);
+        }
+        if (!html) {
+            console.log(`   ✗ All fetch methods failed for ${source.name}`);
             return [];
         }
 

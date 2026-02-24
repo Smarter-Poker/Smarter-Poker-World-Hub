@@ -1,0 +1,18 @@
+[dotenv@17.2.3] injecting env (27) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+Testing with row: {
+  id: '2c54af27-3f45-4231-93d6-58c8556f6b3b',
+  user_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+  friend_id: '4d5ec8d4-375b-4656-8deb-8e9ab7d342b6',
+  status: 'accepted',
+  created_at: '2026-01-24T16:15:01.854004+00:00'
+}
+Query returned: [ { status: 'accepted' } ] null
+ALL rows between these two users: [
+  {
+    id: '2c54af27-3f45-4231-93d6-58c8556f6b3b',
+    user_id: 'a6951550-6ec2-4359-a0bc-8c2f66fc5078',
+    friend_id: '4d5ec8d4-375b-4656-8deb-8e9ab7d342b6',
+    status: 'accepted',
+    created_at: '2026-01-24T16:15:01.854004+00:00'
+  }
+]

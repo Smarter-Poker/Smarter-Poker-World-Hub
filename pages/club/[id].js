@@ -32,7 +32,7 @@ import {
   ThumbsUp,
   Send,
   MoreHorizontal,
-  X
+  X,
 } from 'lucide-react';
 
 
@@ -68,8 +68,28 @@ function LiveGameCard({ game }) {
   );
 }
 
-function PostCard({ post, onLike, onComment }) {
+function PostCard({ post, onLike, onComment, isLiked, onShare }) {
   const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    return /\.(mp4|webm|mov|avi|m4v)$/i.test(url) ||
+      url.includes('/videos/') ||
+      (post.content_type === 'video');
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!commentText.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    try {
+      await onComment?.(post.id, commentText.trim());
+      setCommentText('');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
@@ -101,12 +121,21 @@ function PostCard({ post, onLike, onComment }) {
         <p className="text-[#1F2937] whitespace-pre-wrap">{post.content}</p>
       </div>
 
-      {/* Post Images */}
+      {/* Post Media (images + videos) */}
       {post.image_urls?.length > 0 && (
         <div className={`grid gap-1 ${post.image_urls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {post.image_urls.slice(0, 4).map((url, idx) => (
             <div key={idx} className={`relative ${post.image_urls.length > 1 ? 'aspect-video overflow-hidden' : ''}`}>
-              <img src={url} alt="" className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
+              {isVideoUrl(url) ? (
+                <video
+                  src={url}
+                  controls
+                  preload="metadata"
+                  className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`}
+                />
+              ) : (
+                <img src={url} alt="" className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
+              )}
               {idx === 3 && post.image_urls.length > 4 && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <span className="text-white font-semibold text-lg">+{post.image_urls.length - 4}</span>
@@ -127,10 +156,11 @@ function PostCard({ post, onLike, onComment }) {
       <div className="px-4 py-2 border-t border-[#E5E7EB] flex items-center gap-2">
         <button
           onClick={() => onLike?.(post.id)}
-          className="flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors"
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${isLiked ? 'text-[#1877F2] bg-[#1877F2]/5' : 'text-[#6B7280] hover:bg-[#F3F4F6]'
+            }`}
         >
-          <ThumbsUp className="w-5 h-5" />
-          <span className="font-medium">Like</span>
+          <ThumbsUp className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+          <span className="font-medium">{isLiked ? 'Liked' : 'Like'}</span>
         </button>
         <button
           onClick={() => setShowComments(!showComments)}
@@ -140,6 +170,7 @@ function PostCard({ post, onLike, onComment }) {
           <span className="font-medium">Comment</span>
         </button>
         <button
+          onClick={() => onShare?.(post.id)}
           className="flex-1 flex items-center justify-center gap-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors"
         >
           <Share2 className="w-5 h-5" />
@@ -153,10 +184,18 @@ function PostCard({ post, onLike, onComment }) {
           <div className="flex items-center gap-2">
             <input
               type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
               placeholder="Write A Comment..."
               className="flex-1 h-10 px-4 bg-white border border-[#E5E7EB] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1877F2] text-sm"
+              disabled={submittingComment}
             />
-            <button className="p-2 text-[#1877F2] hover:bg-[#1877F2]/10 rounded-full">
+            <button
+              onClick={handleCommentSubmit}
+              disabled={!commentText.trim() || submittingComment}
+              className="p-2 text-[#1877F2] hover:bg-[#1877F2]/10 rounded-full disabled:opacity-50"
+            >
               <Send className="w-5 h-5" />
             </button>
           </div>
@@ -259,6 +298,7 @@ export default function ClubPage() {
 
   const [venue, setVenue] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState(new Set());
   const [photos, setPhotos] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [liveGames, setLiveGames] = useState([]);
@@ -426,7 +466,88 @@ export default function ClubPage() {
       router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
-    // Like logic here
+    // Optimistic update
+    const wasLiked = likedPosts.has(postId);
+    setLikedPosts(prev => {
+      const next = new Set(prev);
+      wasLiked ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+    setPosts(prev => prev.map(p =>
+      p.id === postId
+        ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) + (wasLiked ? -1 : 1)) }
+        : p
+    ));
+    try {
+      const res = await fetch('/api/social/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postId, user_id: user.id, interaction_type: 'like' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // Revert on failure
+        setLikedPosts(prev => {
+          const next = new Set(prev);
+          wasLiked ? next.add(postId) : next.delete(postId);
+          return next;
+        });
+        setPosts(prev => prev.map(p =>
+          p.id === postId
+            ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) + (wasLiked ? 1 : -1)) }
+            : p
+        ));
+      }
+    } catch (err) {
+      console.error('Like error:', err);
+    }
+  }
+
+  async function handleComment(postId, content) {
+    if (!user?.id || !content) return;
+    try {
+      const res = await fetch('/api/social/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postId, user_id: user.id, interaction_type: 'comment', content }),
+      });
+      if (res.ok) {
+        // Increment comment count locally
+        setPosts(prev => prev.map(p =>
+          p.id === postId
+            ? { ...p, comments_count: (p.comments_count || 0) + 1 }
+            : p
+        ));
+      }
+    } catch (err) {
+      console.error('Comment error:', err);
+    }
+  }
+
+  async function handleShare(postId) {
+    const shareUrl = `${window.location.origin}/club/${id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ url: shareUrl, title: venue?.name || 'Check out this club' });
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error('Share error:', e);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
+      } catch (e) {
+        console.error('Copy error:', e);
+      }
+    }
+    // Record the share interaction
+    if (user?.id && postId) {
+      fetch('/api/social/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: postId, user_id: user.id, interaction_type: 'share' }),
+      }).catch(() => { });
+    }
   }
 
   // Post media upload handler
@@ -733,7 +854,17 @@ export default function ClubPage() {
                   >
                     {isFollowing ? 'Following' : 'Follow'}
                   </button>
-                  <button className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6]">
+                  <button
+                    onClick={() => {
+                      const shareUrl = window.location.href;
+                      if (navigator.share) {
+                        navigator.share({ url: shareUrl, title: venue?.name || 'Poker Club' }).catch(() => { });
+                      } else {
+                        navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied!')).catch(() => { });
+                      }
+                    }}
+                    className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6]"
+                  >
                     <Share2 className="w-5 h-5 text-[#6B7280]" />
                   </button>
                 </div>
@@ -960,7 +1091,13 @@ export default function ClubPage() {
                             <div className="flex gap-2 mt-2 flex-wrap">
                               {postMedia.map((m, idx) => (
                                 <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden">
-                                  <img src={m.url} alt="" className="w-full h-full object-cover" />
+                                  {m.type === 'video' ? (
+                                    <div className="w-full h-full bg-black/80 flex items-center justify-center">
+                                      <Play className="w-6 h-6 text-white" />
+                                    </div>
+                                  ) : (
+                                    <img src={m.url} alt="" className="w-full h-full object-cover" />
+                                  )}
                                   <button
                                     onClick={() => setPostMedia(prev => prev.filter((_, i) => i !== idx))}
                                     className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
@@ -1011,7 +1148,7 @@ export default function ClubPage() {
                     </div>
                   ) : (
                     posts.map((post) => (
-                      <PostCard key={post.id} post={post} onLike={handleLike} />
+                      <PostCard key={post.id} post={post} onLike={handleLike} onComment={handleComment} onShare={handleShare} isLiked={likedPosts.has(post.id)} />
                     ))
                   )}
                 </>

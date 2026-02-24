@@ -1,0 +1,9 @@
+[dotenv@17.2.3] injecting env (27) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+Profiles with username 'Danny': [
+  {
+    id: '3bb71bfe-f723-427c-aac7-a853ba04a014',
+    username: 'Danny',
+    full_name: 'Danny Bek'
+  }
+]
+Friendship with 3bb71bfe-f723-427c-aac7-a853ba04a014: [ { status: 'accepted' }, { status: 'accepted' } ]

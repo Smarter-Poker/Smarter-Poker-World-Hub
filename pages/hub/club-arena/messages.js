@@ -470,7 +470,7 @@ export default function ClubMessages() {
             if (clubData) {
                 setClub(clubData);
 
-                const { data: members } = await supabase.from('club_members').select('*, profiles:user_id(id, username, alias, avatar_url)').eq('club_id', clubData.id);
+                const { data: members } = await supabase.from('club_members').select('*, profiles!inner(id, username, alias, avatar_url)').eq('club_id', clubData.id);
                 setClubMembers(members || []);
 
                 const memberIds = new Set((members || []).map(m => m.user_id));

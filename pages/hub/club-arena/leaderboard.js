@@ -92,7 +92,7 @@ export default function Leaderboard() {
                 // Get members with profiles
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles:user_id(username, alias, avatar_url)')
+                    .select('*, profiles!inner(username, alias, avatar_url)')
                     .eq('club_id', clubData.id);
 
                 if (memberData) {
