@@ -97,55 +97,62 @@ export default function Leaderboard() {
                     .eq('club_id', clubData.id);
 
                 if (memberData) {
-                    // Get additional stats if needed
-                    const membersWithStats = await Promise.all(memberData.map(async (member) => {
-                        let stats = {
-                            chip_balance: member.chip_balance || 0,
-                            total_profit: member.total_profit || 0,
-                            hands_played: member.hands_played || 0,
-                            win_rate: member.win_rate || 0,
-                        };
+                    // Calculate date filter for period-specific stats
+                    let dateFilter = null;
+                    if (period !== 'all') {
+                        const now = new Date();
+                        if (period === 'week') {
+                            dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString();
+                        } else if (period === 'month') {
+                            dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+                        }
+                    }
 
-                        // Try to get period-specific stats from hand_history
-                        if (period !== 'all') {
-                            const now = new Date();
-                            let dateFilter;
-                            if (period === 'week') {
-                                dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString();
-                            } else if (period === 'month') {
-                                dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-                            }
+                    // Batch fetch hand_history for ALL members at once (avoid N+1)
+                    let allHands = [];
+                    if (boardType !== 'chips') {
+                        let handQuery = supabase
+                            .from('hand_history')
+                            .select('user_id, profit, result')
+                            .eq('club_id', clubData.id);
 
-                            if (dateFilter) {
-                                const { data: periodHands } = await supabase
-                                    .from('hand_history')
-                                    .select('profit, result')
-                                    .eq('user_id', member.user_id)
-                                    .eq('club_id', clubData.id)
-                                    .gte('created_at', dateFilter);
-
-                                if (periodHands && periodHands.length > 0) {
-                                    const wins = periodHands.filter(h => h.result === 'win' || h.profit > 0).length;
-                                    stats = {
-                                        ...stats,
-                                        total_profit: periodHands.reduce((sum, h) => sum + (h.profit || 0), 0),
-                                        hands_played: periodHands.length,
-                                        win_rate: Math.round((wins / periodHands.length) * 100),
-                                    };
-                                }
-                            }
+                        if (dateFilter) {
+                            handQuery = handQuery.gte('created_at', dateFilter);
                         }
 
-                        return { ...member, stats };
-                    }));
+                        const { data: handData } = await handQuery;
+                        allHands = handData || [];
+                    }
+
+                    // Group hand_history by user_id
+                    const handsByUser = {};
+                    allHands.forEach(h => {
+                        if (!handsByUser[h.user_id]) handsByUser[h.user_id] = [];
+                        handsByUser[h.user_id].push(h);
+                    });
+
+                    // Compute stats for each member
+                    const membersWithStats = memberData.map(member => {
+                        const userHands = handsByUser[member.user_id] || [];
+                        const wins = userHands.filter(h => h.result === 'win' || h.profit > 0).length;
+                        return {
+                            ...member,
+                            stats: {
+                                chip_balance: member.chip_balance || 0,
+                                total_profit: userHands.reduce((sum, h) => sum + (h.profit || 0), 0),
+                                hands_played: userHands.length,
+                                win_rate: userHands.length > 0 ? Math.round((wins / userHands.length) * 100) : 0,
+                            },
+                        };
+                    });
 
                     // Sort based on selected board type
                     const boardConfig = LEADERBOARD_TYPES.find(b => b.id === boardType);
                     const sortField = boardConfig?.field || 'chip_balance';
 
                     const sorted = membersWithStats.sort((a, b) => {
-                        const aVal = a.stats?.[sortField] ?? a[sortField] ?? 0;
-                        const bVal = b.stats?.[sortField] ?? b[sortField] ?? 0;
+                        const aVal = a.stats?.[sortField] ?? 0;
+                        const bVal = b.stats?.[sortField] ?? 0;
                         return bVal - aVal;
                     });
 
