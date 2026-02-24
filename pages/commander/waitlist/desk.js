@@ -446,8 +446,10 @@ export default function WaitlistDesk() {
     return tables
       .filter(t => {
         if (t.is_active === false || t.status === 'maintenance') return false;
-        const tGame = (t.game_type || '').toUpperCase();
-        const tStakes = (t.stakes || '').trim();
+        const games = Array.isArray(t.commander_games) ? t.commander_games : [];
+        const activeGame = games.find(g => g.status !== 'closed') || games[0];
+        const tGame = (t.game_type || activeGame?.game_type || '').toUpperCase();
+        const tStakes = (t.stakes || activeGame?.stakes || '').trim();
         if (tGame === gameType && tStakes === stakes) return true;
         if (tGame === gameType && !tStakes) return true;
         return `${tGame} ${tStakes}`.trim() === gameLabel;
