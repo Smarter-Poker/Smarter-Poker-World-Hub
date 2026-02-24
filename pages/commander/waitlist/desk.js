@@ -139,6 +139,9 @@ export default function WaitlistDesk() {
   // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
     setCallLoading(entry.id); setSmsStatus(null);
+    // Optimistic: mark as called immediately
+    setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: 'called' } : e));
+    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
@@ -151,13 +154,16 @@ export default function WaitlistDesk() {
       if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${entry.player_name}` });
       else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
       else setSmsStatus({ type: 'none', text: 'Called — SMS Unavailable' });
-      setSelectedPlayer(null); await fetchData();
+      await fetchData();
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error(err); }
     finally { setCallLoading(null); }
   };
 
   const handleSeat = async (entry, tableNumber, seatNumber) => {
+    // Optimistic: remove from UI immediately
+    setEntries(prev => prev.filter(e => e.id !== entry.id));
+    setSeatModal(null); setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
@@ -166,30 +172,40 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
-      setSeatModal(null); setSelectedPlayer(null); await fetchData();
-    } catch (err) { console.error(err); }
+      await fetchData();
+    } catch (err) { console.error(err); await fetchData(); }
   };
 
   const handlePass = async (entry) => {
+    // Optimistic: move player to bottom of their game column instantly
+    setEntries(prev => {
+      const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
+      const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
+      return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
+    });
+    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      setSelectedPlayer(null); await fetchData();
-    } catch (err) { console.error(err); }
+      await fetchData();
+    } catch (err) { console.error(err); await fetchData(); }
   };
 
   const handleRemove = async (entry) => {
+    // Optimistic: remove from UI immediately
+    setEntries(prev => prev.filter(e => e.id !== entry.id));
+    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       await fetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      setSelectedPlayer(null); await fetchData();
-    } catch (err) { console.error(err); }
+      await fetchData();
+    } catch (err) { console.error(err); await fetchData(); }
   };
 
   const handleCheckIn = async (entry) => {
