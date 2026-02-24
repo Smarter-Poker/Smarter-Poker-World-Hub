@@ -261,7 +261,7 @@ export default function ClubLobby() {
                                     onClick={() => {
                                         const openTable = filteredTables.find(t => (t.current_players || 0) < (t.max_players || 9));
                                         if (openTable) {
-                                            router.push(`/hub/club-arena/lobby?club=${club.club_id}&table=${openTable.id}`);
+                                            router.push(`/hub/club-arena/table?club=${club.club_id}&table=${openTable.id}`);
                                         } else if (filteredTables.length > 0) {
                                             alert('All tables are full. Try joining a waitlist or create a new table.');
                                         } else {
@@ -289,7 +289,7 @@ export default function ClubLobby() {
                                                     {table.current_players || 0}/{table.max_players || 9} players
                                                 </div>
                                             </div>
-                                            <button style={styles.joinBtn} onClick={() => router.push(`/hub/club-arena/lobby?club=${club.club_id}&table=${table.id}`)}>JOIN TABLE</button>
+                                            <button style={styles.joinBtn} onClick={() => router.push(`/hub/club-arena/table?club=${club.club_id}&table=${table.id}`)}>JOIN TABLE</button>
                                         </div>
                                     ))}
                                 </div>
