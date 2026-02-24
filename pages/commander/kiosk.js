@@ -695,13 +695,6 @@ export default function MembershipKiosk() {
                   Search By Phone
                 </button>
 
-                {/* Not a member yet */}
-                <div className="text-center pt-2">
-                  <button onClick={() => { haptic(); setShowNewMemberPopup(true); }}
-                    className="text-[#B0B3B8] text-base font-medium underline">
-                    Not A Member? Tap Here
-                  </button>
-                </div>
               </div>
             )}
 
