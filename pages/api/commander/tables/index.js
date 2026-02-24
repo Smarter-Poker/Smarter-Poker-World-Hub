@@ -40,27 +40,41 @@ async function handleGet(req, res) {
       });
     }
 
-    let query = supabase
-      .from('commander_tables')
-      .select(`
-        *,
-        commander_games (
-          id,
-          game_type,
-          stakes,
-          status,
-          current_players,
-          max_players
-        )
-      `)
-      .eq('venue_id', venue_id)
-      .order('table_number', { ascending: true });
+    // Try with game join first, fallback to simple query if FK doesn't exist
+    let data, error;
+    try {
+      const result = await supabase
+        .from('commander_tables')
+        .select(`
+          *,
+          commander_games (
+            id,
+            game_type,
+            stakes,
+            status,
+            current_players,
+            max_players
+          )
+        `)
+        .eq('venue_id', venue_id)
+        .order('table_number', { ascending: true });
 
-    if (status) {
-      query = query.eq('status', status);
+      if (result.error) throw result.error;
+      data = result.data;
+    } catch {
+      // Fallback: simple query without FK join
+      const result = await supabase
+        .from('commander_tables')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .order('table_number', { ascending: true });
+      data = result.data;
+      error = result.error;
     }
 
-    const { data, error } = await query;
+    if (status) {
+      data = (data || []).filter(t => t.status === status);
+    }
 
     if (error) {
       console.error('Commander tables query error:', error);
