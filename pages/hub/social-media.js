@@ -2749,7 +2749,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
 
                                 return (
-                                    <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
+                                    <div key={game.id} style={{ background: '#000000', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                         {/* Game Header */}
                                         <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2773,7 +2773,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         </div>
 
                                         {/* Poker Table Visualization — Full Width */}
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10 }}>
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10, background: '#000000' }}>
                                             {/* Table image fills entire container */}
                                             <img
                                                 src="/images/poker-table-black-gold.png"
@@ -3206,7 +3206,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
 
                         return (
-                            <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
+                            <div key={game.id} style={{ background: '#000000', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                 {/* Game Header */}
                                 <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                     {/* Interest List banner for non-running games */}
@@ -3254,7 +3254,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Poker Table Visualization — Full Width */}
-                                <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10 }}>
+                                <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10, background: '#000000' }}>
                                     {/* Table image fills entire container */}
                                     <img
                                         src="/images/poker-table-black-gold.png"
