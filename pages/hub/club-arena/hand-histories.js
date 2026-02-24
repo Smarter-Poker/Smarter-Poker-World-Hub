@@ -98,62 +98,72 @@ export default function HandHistories() {
             if (clubData) {
                 setClub(clubData);
 
-                // Build query with filters
-                let query = supabase
-                    .from('hand_history')
-                    .select('*')
-                    .eq('user_id', authUser?.id)
-                    .order('created_at', { ascending: false })
-                    .range(reset ? 0 : page * PAGE_SIZE, (reset ? 0 : page) * PAGE_SIZE + PAGE_SIZE - 1);
-
-                // Club filter - try both id and club_id
-                query = query.or(`club_id.eq.${clubData.id},club_id.eq.${clubData.club_id}`);
-
-                // Date filter
-                const now = new Date();
-                if (period === 'today') {
-                    const today = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-                    query = query.gte('created_at', today);
-                } else if (period === 'week') {
-                    const weekAgo = new Date(now.setDate(now.getDate() - 7)).toISOString();
-                    query = query.gte('created_at', weekAgo);
-                } else if (period === 'month') {
-                    const monthAgo = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-                    query = query.gte('created_at', monthAgo);
-                }
-
-                // Result filter
-                if (resultFilter === 'wins') {
-                    query = query.or('result.eq.win,profit.gt.0');
-                } else if (resultFilter === 'losses') {
-                    query = query.or('result.eq.loss,profit.lt.0');
-                }
-
-                // Game type filter
-                if (gameType !== 'all') {
-                    query = query.eq('game_type', gameType);
-                }
-
-                const { data: handData, error } = await query;
-
-                if (error) {
-                    console.warn('[HandHistories] Query error:', error);
-                    // Fallback to simpler query
-                    const { data: fallbackData } = await supabase
+                // hand_history table may have minimal schema (only id, winner_name, pot_size, created_at)
+                // Build a resilient query that doesn't filter on columns that may not exist
+                try {
+                    let query = supabase
                         .from('hand_history')
                         .select('*')
-                        .eq('user_id', authUser?.id)
                         .order('created_at', { ascending: false })
-                        .limit(PAGE_SIZE);
-                    setHands(fallbackData || []);
-                    setHasMore(false);
-                } else {
-                    if (reset) {
-                        setHands(handData || []);
-                    } else {
-                        setHands(prev => [...prev, ...(handData || [])]);
+                        .range(reset ? 0 : page * PAGE_SIZE, (reset ? 0 : page) * PAGE_SIZE + PAGE_SIZE - 1);
+
+                    // Date filter (created_at always exists)
+                    const now = new Date();
+                    if (period === 'today') {
+                        const today = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+                        query = query.gte('created_at', today);
+                    } else if (period === 'week') {
+                        const weekAgo = new Date(now.setDate(now.getDate() - 7)).toISOString();
+                        query = query.gte('created_at', weekAgo);
+                    } else if (period === 'month') {
+                        const monthAgo = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+                        query = query.gte('created_at', monthAgo);
                     }
-                    setHasMore((handData || []).length === PAGE_SIZE);
+
+                    const { data: handData, error } = await query;
+
+                    if (error) {
+                        console.warn('[HandHistories] Query error:', error);
+                        setHands([]);
+                        setHasMore(false);
+                    } else {
+                        // Client-side filtering for columns that may not exist in schema
+                        let filtered = handData || [];
+
+                        // Filter by user if column exists
+                        if (filtered.length > 0 && filtered[0].user_id !== undefined) {
+                            filtered = filtered.filter(h => h.user_id === authUser?.id);
+                        }
+                        // Filter by club if column exists
+                        if (filtered.length > 0 && filtered[0].club_id !== undefined) {
+                            filtered = filtered.filter(h =>
+                                h.club_id === clubData.id || h.club_id === clubData.club_id
+                            );
+                        }
+                        // Filter by result if column exists
+                        if (resultFilter !== 'all' && filtered.length > 0 && filtered[0].profit !== undefined) {
+                            if (resultFilter === 'wins') {
+                                filtered = filtered.filter(h => h.result === 'win' || h.profit > 0);
+                            } else if (resultFilter === 'losses') {
+                                filtered = filtered.filter(h => h.result === 'loss' || h.profit < 0);
+                            }
+                        }
+                        // Filter by game type if column exists
+                        if (gameType !== 'all' && filtered.length > 0 && filtered[0].game_type !== undefined) {
+                            filtered = filtered.filter(h => h.game_type === gameType);
+                        }
+
+                        if (reset) {
+                            setHands(filtered);
+                        } else {
+                            setHands(prev => [...prev, ...filtered]);
+                        }
+                        setHasMore(filtered.length === PAGE_SIZE);
+                    }
+                } catch (queryErr) {
+                    console.warn('[HandHistories] hand_history query failed:', queryErr);
+                    setHands([]);
+                    setHasMore(false);
                 }
             }
         } catch (e) {

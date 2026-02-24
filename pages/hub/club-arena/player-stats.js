@@ -106,15 +106,20 @@ export default function PlayerStats() {
                     // Fetch hand history for this user in this club
                     let handQuery = supabase
                         .from('hand_history')
-                        .select('*')
-                        .eq('user_id', authUser.id)
-                        .eq('club_id', clubData.id);
+                        .select('*');
 
-                    if (dateFilter) {
-                        handQuery = handQuery.gte('created_at', dateFilter);
+                    // hand_history may not have user_id/club_id columns — wrap in try/catch
+                    let hands = [];
+                    try {
+                        if (dateFilter) {
+                            handQuery = handQuery.gte('created_at', dateFilter);
+                        }
+                        const { data: handData } = await handQuery.order('created_at', { ascending: false }).limit(100);
+                        // Filter client-side since table may lack user_id/club_id columns
+                        hands = (handData || []).filter(h => h.user_id === authUser.id && h.club_id === clubData.id);
+                    } catch (handErr) {
+                        console.warn('[PlayerStats] hand_history query failed (schema may be minimal):', handErr);
                     }
-
-                    const { data: hands } = await handQuery.order('created_at', { ascending: false });
 
                     // Calculate stats from hands
                     if (hands && hands.length > 0) {
@@ -154,9 +159,9 @@ export default function PlayerStats() {
                         let txQuery = supabase
                             .from('chip_transactions')
                             .select('*')
-                            .eq('user_id', authUser.id)
+                            .eq('from_user_id', authUser.id)
                             .eq('club_id', clubData.id)
-                            .in('type', ['win', 'loss', 'table_win', 'table_loss']);
+                            .in('transaction_type', ['win', 'loss', 'table_win', 'table_loss']);
 
                         if (dateFilter) {
                             txQuery = txQuery.gte('created_at', dateFilter);
@@ -165,7 +170,7 @@ export default function PlayerStats() {
                         const { data: txns } = await txQuery.order('created_at', { ascending: false });
 
                         if (txns && txns.length > 0) {
-                            const wins = txns.filter(t => t.type === 'win' || t.type === 'table_win' || t.amount > 0);
+                            const wins = txns.filter(t => t.transaction_type === 'win' || t.transaction_type === 'table_win' || t.amount > 0);
                             const totalWinnings = txns.reduce((sum, t) => sum + (t.amount || 0), 0);
 
                             setStats({
@@ -176,7 +181,7 @@ export default function PlayerStats() {
                                 biggestPot: Math.max(...txns.map(t => Math.abs(t.amount || 0))),
                                 bestHand: null,
                                 sessionsPlayed: memberData?.sessions_played || 0,
-                                hoursPlayed: memberData?.hours_played || 0,
+                                hoursPlayed: 0,
                                 vpip: 0,
                                 pfr: 0,
                                 avgPot: txns.length > 0 ? Math.round(totalWinnings / txns.length) : 0,

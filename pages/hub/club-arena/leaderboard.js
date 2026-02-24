@@ -109,19 +109,31 @@ export default function Leaderboard() {
                     }
 
                     // Batch fetch hand_history for ALL members at once (avoid N+1)
+                    // hand_history may have minimal schema — wrap in try/catch
                     let allHands = [];
                     if (boardType !== 'chips') {
-                        let handQuery = supabase
-                            .from('hand_history')
-                            .select('user_id, profit, result')
-                            .eq('club_id', clubData.id);
+                        try {
+                            let handQuery = supabase
+                                .from('hand_history')
+                                .select('*');
 
-                        if (dateFilter) {
-                            handQuery = handQuery.gte('created_at', dateFilter);
+                            if (dateFilter) {
+                                handQuery = handQuery.gte('created_at', dateFilter);
+                            }
+
+                            const { data: handData, error: handErr } = await handQuery;
+                            if (!handErr && handData) {
+                                // Only use data if it has the columns we need
+                                if (handData.length > 0 && handData[0].user_id !== undefined) {
+                                    // Filter by club_id client-side if column exists
+                                    allHands = handData[0].club_id !== undefined
+                                        ? handData.filter(h => h.club_id === clubData.id)
+                                        : handData;
+                                }
+                            }
+                        } catch (handQueryErr) {
+                            console.warn('[Leaderboard] hand_history query failed:', handQueryErr);
                         }
-
-                        const { data: handData } = await handQuery;
-                        allHands = handData || [];
                     }
 
                     // Group hand_history by user_id
