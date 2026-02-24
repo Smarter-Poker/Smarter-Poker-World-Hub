@@ -409,6 +409,14 @@ export default function WaitlistDesk() {
       if (!waitlistByGame[label]) waitlistByGame[label] = [];
     });
   }
+  // Also seed from active tables — auto-sync with live floor
+  tables.filter(t => t.is_active !== false && t.status !== 'maintenance' && t.game_type)
+    .forEach(t => {
+      const tGame = (t.game_type || '').toUpperCase();
+      const tStakes = (t.stakes || '').trim();
+      const key = tStakes ? `${tGame} ${tStakes}` : tGame;
+      if (!waitlistByGame[key]) waitlistByGame[key] = [];
+    });
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
     const key = w.stakes ? `${(w.game_type || 'NLH').toUpperCase()} ${w.stakes}` : (w.game_type || 'Unknown').toUpperCase();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
@@ -500,7 +508,7 @@ export default function WaitlistDesk() {
         {/* ═══ TOP BAR ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: `2px solid ${c.borderColor}44`, background: c.cardBgColor }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
-            <button onClick={() => router.push('/commander/waitlist')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => router.push('/commander/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
               <ArrowLeft size={16} color={c.accentColor} />
             </button>
             {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />}
