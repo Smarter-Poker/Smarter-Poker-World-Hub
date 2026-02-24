@@ -440,18 +440,17 @@ export default function ClubMessages() {
         const senderRole = currentUserMembership.role;
         const targetRole = targetMember.role;
 
-        // Union owners/admins can message anyone
-        if (club?.is_union && ['owner', 'admin'].includes(senderRole)) return true;
-
-        // Club owners can message all players
+        // Club owners can message anyone in their club
         if (senderRole === 'owner') return true;
 
-        // Admins can message all players
+        // Admins can message anyone in their club
         if (senderRole === 'admin') return true;
 
-        // Agents can only message their downlines (players assigned to them)
+        // Agents can message their downlines (assigned players) AND admins/owners (upward escalation)
         if (senderRole === 'agent') {
-            return targetMember.agent_id === currentUserMembership.user_id;
+            const isMyDownline = targetMember.agent_id === currentUserMembership.user_id;
+            const isAdminOrOwner = ['admin', 'owner'].includes(targetRole);
+            return isMyDownline || isAdminOrOwner;
         }
 
         // Players can only message their agent or admins/owners

@@ -69,6 +69,9 @@ export default function WaitlistDesk() {
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   const [addGameType, setAddGameType] = useState('');
   const [editGame, setEditGame] = useState(null); // { oldLabel, gameType, stakes }
+  const [showAddGame, setShowAddGame] = useState(false);
+  const [newGameType, setNewGameType] = useState('');
+  const [newGameStakes, setNewGameStakes] = useState('');
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -318,8 +321,55 @@ export default function WaitlistDesk() {
     } catch (err) { console.error('Rename game error:', err); }
   };
 
+  // ── ADD GAME: Create a new game column (interest list) ──
+  const handleAddGame = () => {
+    const gt = (newGameType || '').trim().toUpperCase();
+    const st = (newGameStakes || '').trim();
+    if (!gt || !st) return;
+    const label = `${gt} ${st}`;
+    // Add to customization gameTypes for persistence
+    const updatedGameTypes = [...new Set([...(custom.gameTypes || []), label])];
+    saveCustomization({ ...custom, gameTypes: updatedGameTypes });
+    setNewGameType(''); setNewGameStakes(''); setShowAddGame(false);
+  };
+
+  // ── REMOVE GAME: Delete all waitlist entries for a game + remove from custom ──
+  const handleRemoveGame = async (gameLabel) => {
+    if (!confirm(`Remove "${gameLabel}" and all its waitlist entries?`)) return;
+    try {
+      const token = getToken();
+      const staffSession = getStaffSession();
+      const parts = gameLabel.split(' ');
+      const gameType = parts[0];
+      const stakes = parts.slice(1).join(' ');
+      // Delete all matching waitlist entries
+      const entriesToDelete = waitlists.filter(w =>
+        (w.game_type || '').toUpperCase() === gameType &&
+        (w.stakes || '') === stakes &&
+        (w.status === 'waiting' || w.status === 'called')
+      );
+      await Promise.all(entriesToDelete.map(entry =>
+        fetch(`/api/commander/waitlist/${entry.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        })
+      ));
+      // Remove from custom gameTypes
+      const updatedGameTypes = (custom.gameTypes || []).filter(g => g !== gameLabel);
+      saveCustomization({ ...custom, gameTypes: updatedGameTypes });
+      setEditGame(null);
+      await fetchData();
+    } catch (err) { console.error('Remove game error:', err); }
+  };
+
   // ── GROUP & SORT ────────────────────────────────────────────────
   const waitlistByGame = {};
+  // First, seed with custom game types so empty columns persist
+  if (custom.gameTypes && custom.gameTypes.length > 0) {
+    custom.gameTypes.forEach(label => {
+      if (!waitlistByGame[label]) waitlistByGame[label] = [];
+    });
+  }
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
     const key = w.stakes ? `${(w.game_type || 'NLH').toUpperCase()} ${w.stakes}` : (w.game_type || 'Unknown').toUpperCase();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
@@ -437,8 +487,8 @@ export default function WaitlistDesk() {
             <button onClick={() => setShowAddWalkIn(true)} style={makeBtn(c)}>
               <UserPlus size={18} /> Add Player
             </button>
-            <button onClick={() => { }} style={makeBtn(c)}>
-              <Phone size={18} /> Call-In
+            <button onClick={() => setShowAddGame(true)} style={{ ...makeBtn(c), background: `${c.accentColor}22`, border: `1px solid ${c.accentColor}`, color: c.accentColor }}>
+              <Plus size={18} /> Add Game
             </button>
             <button onClick={() => setShowSettings(true)} style={makeBtn(c)} title="Customize Desk">
               <Settings size={18} />
@@ -458,7 +508,7 @@ export default function WaitlistDesk() {
         {gameEntries.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
             <Users size={40} color={`${c.textColor}33`} />
-            <p style={{ color: `${c.textColor}66`, marginTop: '12px', fontSize: '16px' }}>No Players Waiting</p>
+            <p style={{ color: `${c.textColor}66`, marginTop: '12px', fontSize: '16px' }}>No Games — Tap "Add Game" To Create An Interest List</p>
           </div>
         ) : (
           <div style={{ flex: 1, display: 'flex', padding: '12px 16px', gap: '2px', alignItems: 'stretch' }}>
@@ -697,6 +747,47 @@ export default function WaitlistDesk() {
                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                   <button onClick={() => setEditGame(null)} style={{ ...makeBtn(c), flex: 1, background: `${c.textColor}22`, color: c.textColor }}>Cancel</button>
                   <button onClick={handleRenameGame} style={{ ...makeBtn(c), flex: 1, background: c.accentColor, color: '#000', fontWeight: 700 }}>Save</button>
+                </div>
+                <button
+                  onClick={() => handleRemoveGame(editGame.oldLabel)}
+                  style={{ ...makeBtn(c), width: '100%', background: 'rgba(239,68,68,0.15)', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <Trash size={16} /> Remove This Game
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ ADD GAME MODAL ═══ */}
+        {showAddGame && (
+          <div onClick={() => setShowAddGame(false)} style={overlayStyle}>
+            <div onClick={e => e.stopPropagation()} style={{ ...modalStyle(c), maxWidth: '400px' }}>
+              <button onClick={() => setShowAddGame(false)} style={modalCloseStyle(c)}><X size={16} /></button>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, color: c.accentColor, marginBottom: '16px', textAlign: 'center' }}>Add Game / Interest List</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', color: `${c.textColor}88`, marginBottom: '4px', display: 'block' }}>Game Type</label>
+                  <input
+                    value={newGameType}
+                    onChange={e => setNewGameType(e.target.value)}
+                    placeholder="NLH, PLO, etc."
+                    style={{ ...formInputStyle(c), textTransform: 'uppercase' }}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', color: `${c.textColor}88`, marginBottom: '4px', display: 'block' }}>Stakes</label>
+                  <input
+                    value={newGameStakes}
+                    onChange={e => setNewGameStakes(e.target.value)}
+                    placeholder="$1/$2, $2/$5, etc."
+                    style={formInputStyle(c)}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <button onClick={() => setShowAddGame(false)} style={{ ...makeBtn(c), flex: 1, background: `${c.textColor}22`, color: c.textColor }}>Cancel</button>
+                  <button onClick={handleAddGame} disabled={!newGameType.trim() || !newGameStakes.trim()} style={{ ...makeBtn(c), flex: 1, background: c.accentColor, color: '#000', fontWeight: 700, opacity: (!newGameType.trim() || !newGameStakes.trim()) ? 0.5 : 1 }}>Add Game</button>
                 </div>
               </div>
             </div>
