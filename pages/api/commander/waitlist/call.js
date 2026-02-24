@@ -66,7 +66,7 @@ export default async function handler(req, res) {
         if (venue?.name) venueName = venue.name;
       } catch { }
 
-      const gameLabel = `${entry.game_type || 'Cash Game'} ${entry.stakes || ''}`.trim();
+      const gameLabel = `${entry.stakes || ''} ${entry.game_type || 'Cash Game'}`.trim();
       const tableInfo = table_number ? ` at Table ${table_number}` : '';
 
       if (isTwilioConfigured()) {

@@ -106,7 +106,7 @@ function formatPhoneNumber(phone) {
  * Send seat ready notification
  */
 export async function sendSeatNotification(phone, venueName, game, options = {}) {
-  const message = `Your seat is ready at ${venueName} for ${game}! Please check in within ${options.timeout || 5} minutes or you may lose your spot.`;
+  const message = `Your ${game} Seat Is Open At ${venueName}! Please check in within ${options.timeout || 5} minutes or you may lose your spot.`;
   return sendSMS(phone, message);
 }
 
