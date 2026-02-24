@@ -206,11 +206,11 @@ export default function MembershipKiosk() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#18191A'
+            background: '#1e1f23'
           }}>
             {/* Background Image */}
             <img
-              src="/images/commander/kiosk-welcome.png"
+              src="/images/commander/kiosk-welcome.jpg"
               alt="Welcome Kiosk"
               style={{
                 maxWidth: '100%',

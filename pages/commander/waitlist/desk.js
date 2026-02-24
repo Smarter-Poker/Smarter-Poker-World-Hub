@@ -264,11 +264,13 @@ export default function WaitlistDesk() {
 
   useEffect(() => {
     if (totalPages <= 1) return;
+    // Freeze rotation while staff is interacting with a player
+    if (selectedPlayer || seatModal || showAddWalkIn) return;
     const timer = setInterval(() => {
       setCurrentPage(prev => (prev + 1) % totalPages);
     }, ROTATE_INTERVAL);
     return () => clearInterval(timer);
-  }, [totalPages]);
+  }, [totalPages, selectedPlayer, seatModal, showAddWalkIn]);
 
   useEffect(() => {
     if (currentPage >= totalPages) setCurrentPage(0);
