@@ -2867,17 +2867,17 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                     <div key={seat.number} style={{
                                                         position: 'absolute', top: pos.top, left: pos.left,
                                                         transform: badgeTransform, zIndex: 2,
-                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
+                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
                                                         background: 'rgba(36,37,38,0.9)',
-                                                        borderRadius: 14,
-                                                        padding: '6px 12px 6px 6px',
+                                                        borderRadius: 24,
+                                                        padding: '4px 10px 4px 4px',
                                                         border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
                                                         backdropFilter: 'blur(6px)',
-                                                        minWidth: 80,
+                                                        minWidth: 60,
                                                     }}>
                                                         {/* Avatar circle */}
                                                         <div style={{
-                                                            width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
+                                                            width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
                                                                 ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
@@ -2889,19 +2889,19 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                                 avatarUrl ? (
                                                                     <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                                 ) : (
-                                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                                    <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                                 )
                                                             ) : (
-                                                                <span style={{ fontSize: 18, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                                                <span style={{ fontSize: 13, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
                                                             )}
                                                         </div>
                                                         {/* Name + Timer text */}
                                                         <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                             <div style={{
-                                                                fontSize: 16, fontWeight: 600, lineHeight: 1.2,
+                                                                fontSize: 13, fontWeight: 600, lineHeight: 1.2,
                                                                 color: isOccupied ? '#E4E6EB' : '#B0B3B8',
                                                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                                maxWidth: 140,
+                                                                maxWidth: 90,
                                                             }}>
                                                                 {isOccupied ? fullName : 'Open'}
                                                             </div>
@@ -3372,20 +3372,20 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
                                                 transform: badgeTransform, zIndex: 2,
-                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
+                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
                                                 background: 'rgba(36,37,38,0.9)',
-                                                borderRadius: 14,
-                                                padding: '6px 12px 6px 6px',
+                                                borderRadius: 24,
+                                                padding: '4px 10px 4px 4px',
                                                 border: `2px solid ${badgeBorder}`,
                                                 backdropFilter: 'blur(6px)',
                                                 cursor: canClick ? 'pointer' : 'default',
-                                                minWidth: 80,
+                                                minWidth: 60,
                                             }}
                                                 onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
                                             >
                                                 {/* Avatar circle */}
                                                 <div style={{
-                                                    width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
+                                                    width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
@@ -3399,14 +3399,14 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 }}>
                                                     {isOccupied ? (
                                                         isMe ? (
-                                                            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
+                                                            <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>YOU</span>
                                                         ) : avatarUrl ? (
                                                             <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                         ) : (
-                                                            <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                            <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                         )
                                                     ) : (
-                                                        <span style={{ fontSize: canClick ? 22 : 18, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
+                                                        <span style={{ fontSize: canClick ? 16 : 13, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
                                                             {canClick ? '+' : seat.number}
                                                         </span>
                                                     )}
@@ -3414,10 +3414,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 {/* Name + Timer text */}
                                                 <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                     <div style={{
-                                                        fontSize: 16, fontWeight: 600, lineHeight: 1.2,
+                                                        fontSize: 13, fontWeight: 600, lineHeight: 1.2,
                                                         color: isMe ? '#4ade80' : isOccupied ? '#E4E6EB' : canClick ? 'rgba(34,197,94,0.5)' : '#B0B3B8',
                                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                        maxWidth: 140,
+                                                        maxWidth: 90,
                                                     }}>
                                                         {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
                                                     </div>
