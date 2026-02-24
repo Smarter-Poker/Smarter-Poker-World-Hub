@@ -161,51 +161,56 @@ export default function WaitlistDesk() {
   };
 
   const handleSeat = async (entry, tableNumber, seatNumber) => {
-    // Optimistic: remove from UI immediately
-    setEntries(prev => prev.filter(e => e.id !== entry.id));
-    setSeatModal(null); setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      await fetch('/api/commander/waitlist/seat', {
+      const res = await fetch('/api/commander/waitlist/seat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
+      // Remove from UI after successful API call
+      setEntries(prev => prev.filter(e => e.id !== entry.id));
+      setSeatModal(null); setSelectedPlayer(null);
       await fetchData();
-    } catch (err) { console.error(err); await fetchData(); }
+    } catch (err) { console.error('Seat error:', err); await fetchData(); }
   };
 
   const handlePass = async (entry) => {
-    // Optimistic: move player to bottom of their game column instantly
-    setEntries(prev => {
-      const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
-      const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
-      return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
-    });
-    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      const res = await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
+      const json = await res.json();
+      if (json.success) {
+        // Move player to bottom of their game column
+        setEntries(prev => {
+          const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
+          const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
+          return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
+        });
+      }
+      setSelectedPlayer(null);
       await fetchData();
-    } catch (err) { console.error(err); await fetchData(); }
+    } catch (err) { console.error('Pass error:', err); await fetchData(); }
   };
 
   const handleRemove = async (entry) => {
-    // Optimistic: remove from UI immediately
-    setEntries(prev => prev.filter(e => e.id !== entry.id));
-    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      await fetch(`/api/commander/waitlist/${entry.id}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
+      // Remove from UI after successful API call
+      setEntries(prev => prev.filter(e => e.id !== entry.id));
+      setSelectedPlayer(null);
       await fetchData();
-    } catch (err) { console.error(err); await fetchData(); }
+    } catch (err) { console.error('Remove error:', err); await fetchData(); }
   };
 
   const handleCheckIn = async (entry) => {
