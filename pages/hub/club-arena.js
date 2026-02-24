@@ -309,17 +309,21 @@ export default function ClubArenaPage() {
                 .eq('club_id', club.id);
 
             let activePlayers = 0;
-            const { data: clubTables } = await supabase
-                .from('tables')
-                .select('id')
-                .eq('club_id', club.id);
-            if (clubTables && clubTables.length > 0) {
-                const tableIds = clubTables.map(t => t.id);
-                const { count: seatCount } = await supabase
-                    .from('table_seats')
-                    .select('*', { count: 'exact', head: true })
-                    .in('table_id', tableIds);
-                activePlayers = seatCount || 0;
+            try {
+                const { data: clubTables } = await supabase
+                    .from('tables')
+                    .select('id')
+                    .eq('club_id', club.id);
+                if (clubTables && clubTables.length > 0) {
+                    const tableIds = clubTables.map(t => t.id);
+                    const { count: seatCount } = await supabase
+                        .from('table_seats')
+                        .select('*', { count: 'exact', head: true })
+                        .in('table_id', tableIds);
+                    activePlayers = seatCount || 0;
+                }
+            } catch (e) {
+                // table_seats may not exist yet
             }
 
             setSharkClubStats({
@@ -396,7 +400,7 @@ export default function ClubArenaPage() {
     };
 
     const handleClubJoined = (club) => {
-        const joinedClub = { ...club, userRole: 'member' };
+        const joinedClub = { ...club, userRole: 'player' };
         setClubs(prev => [...prev, joinedClub]);
         setActiveClub(joinedClub);
     };
