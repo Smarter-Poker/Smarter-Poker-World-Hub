@@ -172,8 +172,11 @@ export default function Players() {
         setSelectedPlayer(null);
     };
 
-    const viewProfile = (userId) => {
-        router.push(`/hub/profile/${userId}`);
+    const viewProfile = (member) => {
+        const username = member.profiles?.username;
+        if (username) {
+            router.push(`/hub/user/${username}`);
+        }
         setSelectedPlayer(null);
     };
 
@@ -362,6 +365,14 @@ export default function Players() {
                                                 {ROLE_BADGES[member.role]} {member.role}
                                             </span>
                                             <span style={S.chipCount}>{(member.chip_balance || 0).toLocaleString()} </span>
+                                            {member.role === 'player' && member.agent_id && (() => {
+                                                const agent = members.find(m => m.user_id === member.agent_id);
+                                                return agent ? (
+                                                    <span style={{ fontSize: '11px', color: '#1877F2' }}>
+                                                        Agent: {agent.profiles?.alias || agent.profiles?.username}
+                                                    </span>
+                                                ) : null;
+                                            })()}
                                         </div>
                                     </div>
                                     <div style={S.lastSeen}>
@@ -434,7 +445,7 @@ export default function Players() {
                                     </button>
                                     <button
                                         style={{ ...S.modalBtn, background: FB.hover, color: FB.textPrimary }}
-                                        onClick={() => viewProfile(selectedPlayer.user_id)}
+                                        onClick={() => viewProfile(selectedPlayer)}
                                     >
                                         Profile
                                     </button>
