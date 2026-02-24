@@ -21,8 +21,8 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         if (!file) return;
 
         // Validate file type
-        if (!file.type.startsWith('video/')) {
-            setError('Please select a video file');
+        if (!file.type || !file.type.startsWith('video/')) {
+            setError('Please select a valid video file');
             return;
         }
 
@@ -63,7 +63,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             const publicUrl = await new Promise((resolve, reject) => {
                 xhr.upload.addEventListener('progress', (e) => {
                     if (e.lengthComputable) {
-                        const pct = Math.round((e.loaded / e.total) * 85) + 5;
+                        const pct = e.total > 0 ? Math.round((e.loaded / e.total) * 85) + 5 : 5;
                         setUploadProgress(Math.min(pct, 90));
                     }
                 });

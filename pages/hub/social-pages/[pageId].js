@@ -395,7 +395,7 @@ export default function SocialPageDetail() {
     }
 
     const typeColors = { venue: C.blue, group: C.green, community: '#8b5cf6', brand: '#F5A623' };
-    const pageColor = typeColors[page.page_type] || C.blue;
+    const pageColor = typeColors[page.page_type || 'venue'] || C.blue;
 
     return (
         <>
@@ -440,8 +440,8 @@ export default function SocialPageDetail() {
                                     )}
                                 </h1>
                                 <p style={{ fontSize: 14, color: C.textSec, margin: '2px 0 0' }}>
-                                    {page.page_type.charAt(0).toUpperCase() + page.page_type.slice(1)}
-                                    {page.category !== 'general' && ` - ${page.category}`}
+                                    {(page.page_type || 'page').charAt(0).toUpperCase() + (page.page_type || 'page').slice(1)}
+                                    {page.category && page.category !== 'general' && ` - ${page.category}`}
                                     {' '} - {page.follower_count || 0} followers
                                 </p>
                             </div>

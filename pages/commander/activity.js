@@ -62,10 +62,25 @@ export default function ActivityFeed() {
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   useEffect(() => {
-    fetchEvents();
-    const poll = setInterval(fetchEvents, 5000);
+    let isMounted = true;
+    let pollTimeout;
+
+    const runPoll = async () => {
+      if (!isMounted) return;
+      await fetchEvents();
+      if (isMounted) {
+        pollTimeout = setTimeout(runPoll, 5000);
+      }
+    };
+
+    runPoll();
     const clock = setInterval(() => setNow(new Date()), 30000);
-    return () => { clearInterval(poll); clearInterval(clock); };
+
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimeout);
+      clearInterval(clock);
+    };
   }, []);
 
   const fetchEvents = async () => {
