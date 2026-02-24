@@ -2718,7 +2718,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 // Arc-length parameterized ellipse: equal visual spacing
                                 const cxE = 50;
                                 const cyE = 48; // center Y
-                                const rx = 25; // horizontal radius % (Mapped exactly for 1:1 image inside 5:3 container)
+                                const rx = 18; // horizontal radius % (Mapped accurately for container visual bounds)
                                 const ry = 30; // vertical radius %
                                 const STEPS = 360;
                                 const startAngle = Math.PI / 2; // dealer at bottom (90°)
@@ -2831,8 +2831,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 const avatarUrl = seat.taken?.avatar_url || null;
                                                 // Direction-aware badge: left-side extends right, right-side extends left
                                                 const leftPct = parseFloat(pos.left);
-                                                const isLeftSide = leftPct < 30; // Covers 25% (50 - rx)
-                                                const isRightSide = leftPct > 70; // Covers 75% (50 + rx)
+                                                const isLeftSide = leftPct < 35; // Covers 32% (50 - rx)
+                                                const isRightSide = leftPct > 65; // Covers 68% (50 + rx)
                                                 const badgeTransform = isLeftSide
                                                     ? 'translate(-12px, -50%)'
                                                     : isRightSide
@@ -3179,7 +3179,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         // Arc-length parameterized ellipse: equal visual spacing
                         const cxE = 50;
                         const cyE = 48; // center Y
-                        const rx = 25; // horizontal radius %
+                        const rx = 18; // horizontal radius %
                         const ry = 30; // vertical radius %
                         const STEPS = 360;
                         const startAngle = Math.PI / 2; // dealer at bottom (90°)
@@ -3330,8 +3330,8 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                         // Direction-aware badge: left-side extends right, right-side extends left
                                         const leftPct = parseFloat(pos.left);
-                                        const isLeftSide = leftPct < 30;
-                                        const isRightSide = leftPct > 70;
+                                        const isLeftSide = leftPct < 35;
+                                        const isRightSide = leftPct > 65;
                                         const badgeTransform = isLeftSide
                                             ? 'translate(-12px, -50%)'
                                             : isRightSide
