@@ -372,6 +372,9 @@ export default function Admin() {
             try { await supabase.from('chip_transactions').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
             try { await supabase.from('club_announcements').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
             try { await supabase.from('club_activity').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('club_shop_purchases').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('club_shop_items').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
+            try { await supabase.from('hand_history').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
             try { await supabase.from('tables').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
             try { await supabase.from('union_clubs').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
 
