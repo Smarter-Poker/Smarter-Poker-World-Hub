@@ -61,7 +61,7 @@ const CARDS = [
       { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-dealers.png' },
       { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/mg-dealer-rotation.png' },
       { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
-      { label: 'Dealer Tablet', href: '/commander/dealer/1', icon: '/images/commander/icons/mg-dealers.png' },
+      { label: 'Table Tablets', href: '/commander/table-tablets', icon: '/images/commander/icons/mg-dealers.png' },
     ],
   },
   {

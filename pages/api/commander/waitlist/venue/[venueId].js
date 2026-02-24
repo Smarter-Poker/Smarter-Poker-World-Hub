@@ -74,7 +74,6 @@ export default async function handler(req, res) {
         id: entry.id,
         position: entry.position,
         player_name: entry.player_name || 'Player',
-        player_phone: entry.player_phone || null,
         status: entry.status,
         signup_method: entry.signup_method,
         call_count: entry.call_count,

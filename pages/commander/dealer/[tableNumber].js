@@ -282,7 +282,7 @@ export default function DealerTablet() {
       if (player.session_id) {
         await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
           method: 'POST', headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => {});
+        }).catch(() => { });
       }
       await fetchTable();
     } catch (err) { console.error(err); }
@@ -300,7 +300,7 @@ export default function DealerTablet() {
         seatedPlayers.map(player =>
           fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
             method: 'POST', headers
-          }).catch(() => {})
+          }).catch(() => { })
         )
       );
       setConfirmRemoveAll(false);
@@ -343,15 +343,15 @@ export default function DealerTablet() {
 
   const maxSeats = table?.max_seats || 9;
   const seatPositions = getSeatPositions(maxSeats);
-  const lowTimePlayers = seatedPlayers.filter(p => p.time_remaining !== null && p.time_remaining > 0 && P.time_remaining <= 900);
+  const lowTimePlayers = seatedPlayers.filter(p => p.time_remaining !== null && p.time_remaining > 0 && p.time_remaining <= 900);
 
   return (
     <>
       <SEOHead
-                title="Commander — Details"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Details"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <style jsx global>{`
         @keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .time-warn { animation: pulse-warn 1.5s ease-in-out infinite; }
@@ -421,9 +421,8 @@ export default function DealerTablet() {
                   style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
                   {isEmpty ? (
                     <button onClick={() => !tournamentMode && openScanner(pos.seat)}
-                      className={`w-14 h-14 rounded-full border-2 border-dashed flex items-center justify-center ${
-                        tournamentMode ? 'bg-[#3A3B3C]/20 border-[#3A3B3C]/40' : 'bg-[#3A3B3C]/50 border-[#3A3B3C] active:bg-[#3A3B3C]'
-                      }`}>
+                      className={`w-14 h-14 rounded-full border-2 border-dashed flex items-center justify-center ${tournamentMode ? 'bg-[#3A3B3C]/20 border-[#3A3B3C]/40' : 'bg-[#3A3B3C]/50 border-[#3A3B3C] active:bg-[#3A3B3C]'
+                        }`}>
                       {tournamentMode
                         ? <span className="text-xs text-[#6A6B6D]">{pos.seat}</span>
                         : <ScanLine className="w-5 h-5 text-[#B0B3B8]" />
@@ -431,14 +430,13 @@ export default function DealerTablet() {
                     </button>
                   ) : (
                     <button onClick={() => tournamentMode ? bustOutPlayer(player) : setAddTimePlayer(player)}
-                      className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
-                        tournamentMode
+                      className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${tournamentMode
                           ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40 active:bg-[#EF4444]/30'
                           : isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn'
-                          : isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn'
-                          : isLow ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40'
-                          : 'bg-[#1877F2]/20 border-[#1877F2]/40'
-                      }`}>
+                            : isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn'
+                              : isLow ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40'
+                                : 'bg-[#1877F2]/20 border-[#1877F2]/40'
+                        }`}>
                       <span className="text-sm font-bold text-white">{pos.seat}</span>
                     </button>
                   )}
@@ -452,7 +450,7 @@ export default function DealerTablet() {
                   {/* Tournament mode: chip count */}
                   {tournamentMode && player && (
                     <span className="text-[9px] font-mono text-[#F59E0B]">
-                      {player.current_chips ? (player.current_chips >= 1000 ? `${(player.current_chips/1000).toFixed(0)}K` : player.current_chips) : ''}
+                      {player.current_chips ? (player.current_chips >= 1000 ? `${(player.current_chips / 1000).toFixed(0)}K` : player.current_chips) : ''}
                     </span>
                   )}
                   {!tournamentMode && player?.membership_tier && player.membership_tier !== 'standard' && (
@@ -480,17 +478,16 @@ export default function DealerTablet() {
                 const isBusting = bustingOut?.seat_number === player.seat_number;
                 return (
                   <div key={player.session_id || player.seat_number}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
-                      isBusting ? 'bg-[#EF4444]/20' :
-                      isExpired ? 'bg-[#EF4444]/10' : isCritical ? 'bg-[#EF4444]/5' : isLow ? 'bg-[#F59E0B]/5' : 'bg-[#3A3B3C]/30'
-                    }`}>
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isBusting ? 'bg-[#EF4444]/20' :
+                        isExpired ? 'bg-[#EF4444]/10' : isCritical ? 'bg-[#EF4444]/5' : isLow ? 'bg-[#F59E0B]/5' : 'bg-[#3A3B3C]/30'
+                      }`}>
                     <span className="text-xs text-[#B0B3B8] w-6">S{player.seat_number}</span>
                     <span className="text-sm text-white flex-1 truncate">{player.player_name}</span>
                     {/* Tournament mode: show chips + bust-out */}
                     {tournamentMode ? (
                       <>
                         {player.current_chips && (
-                          <span className="text-xs font-mono text-[#B0B3B8]">{player.current_chips >= 1000 ? `${(player.current_chips/1000).toFixed(1)}K` : player.current_chips}</span>
+                          <span className="text-xs font-mono text-[#B0B3B8]">{player.current_chips >= 1000 ? `${(player.current_chips / 1000).toFixed(1)}K` : player.current_chips}</span>
                         )}
                         <button onClick={(e) => { e.stopPropagation(); bustOutPlayer(player); }}
                           disabled={isBusting}
@@ -700,7 +697,7 @@ export default function DealerTablet() {
                 {[30, 60, 120, 180].map(m => (
                   <button key={m} onClick={() => setAddTimeMinutes(String(m))}
                     className={`py-3 rounded-xl text-sm font-medium ${addTimeMinutes === String(m) ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
-                    +{m >= 60 ? `${m/60}hr` : `${m}m`}
+                    +{m >= 60 ? `${m / 60}hr` : `${m}m`}
                   </button>
                 ))}
               </div>

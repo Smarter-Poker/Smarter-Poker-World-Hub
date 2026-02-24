@@ -133,16 +133,16 @@ export default function ClockDisplay() {
 
   // Pick 4 chip denoms relevant to blind level
   const maxBlind = (blinds.big_blind || 20) * 100;
-  let activeChips = CHIP_DENOMS.filter(c => C.value <= Math.max(maxBlind, 500)).slice(0, 4);
+  let activeChips = CHIP_DENOMS.filter(c => c.value <= Math.max(maxBlind, 500)).slice(0, 4);
   if (activeChips.length < 3) activeChips = CHIP_DENOMS.slice(0, 4);
 
   return (
     <>
       <SEOHead
-                title="Commander — Clock Display"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Clock Display"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div style={S.container} onClick={goFullscreen}>
 

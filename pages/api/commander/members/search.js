@@ -11,6 +11,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Format phone to 555-555-5555
+function formatPhone(raw) {
+  if (!raw) return null;
+  const d = raw.replace(/\D/g, '');
+  const digits = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  if (digits.length !== 10) return raw;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
@@ -80,7 +89,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    let results = members || [];
+    let results = (members || []).map(m => ({ ...m, phone: formatPhone(m.phone) }));
 
     // ═══ FALLBACK: Also search commander_waitlist for active web/kiosk sign-ups ═══
     // Web sign-ups may not have a commander_members record yet.
@@ -117,7 +126,7 @@ export default async function handler(req, res) {
               first_name: nameParts[0] || wl.player_name,
               last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '',
               name: wl.player_name,
-              phone: wl.player_phone || null,
+              phone: formatPhone(wl.player_phone) || null,
               email: null,
               last_checkin: null,
               comp_balance: 0,

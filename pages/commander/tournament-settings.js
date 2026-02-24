@@ -296,7 +296,7 @@ export default function TournamentSettingsPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-white">Tournament Clock</p>
-                                    <p className="text-xs text-[#64748B]">Run The Live Tournament Clock Display</p>
+                                    <p className="text-xs text-[#64748B]">Select A Tournament To Run Its Clock Display</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-[#64748B] ml-auto" />
                             </button>

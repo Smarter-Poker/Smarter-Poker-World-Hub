@@ -37,32 +37,40 @@ export default async function handler(req, res) {
 
     if (!entry) return res.status(404).json({ success: false, error: 'Waitlist entry not found' });
 
-    // Update waitlist entry to seated
+    // Log to history (non-blocking)
+    try {
+      await supabase.from('commander_waitlist_history').insert({
+        venue_id: entry.venue_id,
+        player_id: entry.player_id,
+        game_type: entry.game_type,
+        stakes: entry.stakes,
+        wait_time_minutes: Math.round((Date.now() - new Date(entry.created_at).getTime()) / (1000 * 60)),
+        was_seated: true,
+        signup_method: entry.signup_method
+      });
+    } catch { /* history is non-critical */ }
+
+    // Delete the waitlist entry (player is now seated)
     const { error: wlError } = await supabase
       .from('commander_waitlist')
-      .update({
-        status: 'seated',
-        seated_at: new Date().toISOString(),
-        notes: `Seated at Table ${table_number}, Seat ${seat_number}`
-      })
+      .delete()
       .eq('id', waitlist_id);
 
     if (wlError) return res.status(500).json({ success: false, error: wlError.message });
 
-    // Update table seat status
-    const { error: seatError } = await supabase
-      .from('commander_table_seats')
-      .upsert({
-        venue_id: entry.venue_id,
-        table_number,
-        seat_number,
-        status: 'occupied',
-        player_name: entry.player_name,
-        seated_at: new Date().toISOString()
-      }, { onConflict: 'venue_id,table_number,seat_number' });
-
-    // Seat error is non-fatal (table_seats might not exist yet)
-    if (seatError) console.warn('Seat update warning:', seatError.message);
+    // Update table seat status (non-fatal if table_seats doesn't exist)
+    try {
+      await supabase
+        .from('commander_table_seats')
+        .upsert({
+          venue_id: entry.venue_id,
+          table_number,
+          seat_number,
+          status: 'occupied',
+          player_name: entry.player_name,
+          seated_at: new Date().toISOString()
+        }, { onConflict: 'venue_id,table_number,seat_number' });
+    } catch { /* seat update is non-critical */ }
 
     return res.status(200).json({
       success: true,

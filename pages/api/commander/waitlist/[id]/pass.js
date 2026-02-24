@@ -129,13 +129,30 @@ export default async function handler(req, res) {
       });
     }
 
-    // Set status back to waiting (player passed on the call)
+    // Move player to bottom of list: get max position for same game at this venue
+    let newPosition = (entry.position || 0) + 1;
+    try {
+      const { data: maxEntry } = await supabase
+        .from('commander_waitlist')
+        .select('position')
+        .eq('venue_id', entry.venue_id)
+        .eq('game_type', entry.game_type)
+        .eq('stakes', entry.stakes)
+        .in('status', ['waiting', 'called'])
+        .order('position', { ascending: false })
+        .limit(1)
+        .single();
+      if (maxEntry?.position) newPosition = maxEntry.position + 1;
+    } catch { /* use fallback */ }
+
+    // Set status back to waiting, move to bottom position
     const { data: updated, error } = await supabase
       .from('commander_waitlist')
       .update({
         last_called_at: new Date().toISOString(),
         status: 'waiting',
-        pass_count: (entry.pass_count || 0) + 1
+        pass_count: (entry.pass_count || 0) + 1,
+        position: newPosition
       })
       .eq('id', id)
       .select()

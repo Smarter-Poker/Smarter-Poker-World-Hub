@@ -42,7 +42,7 @@ function liveFormatPhone(value) {
 export default function MembershipKiosk() {
   const router = useRouter();
   const [mode, setMode] = useState('home');
-  // home | checkin_search | checkin_confirm | join_name | join_game | success
+  // home | scan | scan_join | join_name | join_game | success
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -242,6 +242,36 @@ export default function MembershipKiosk() {
     finally { setSubmitting(false); }
   };
 
+  // ── SCAN CARD → JOIN WAITLIST: Look up member, pre-fill name/phone, go to game select ──
+  const handleScanJoinWaitlist = async () => {
+    if (!scanQR.trim() || !venueId) return;
+    setSubmitting(true);
+    setScanError('');
+    try {
+      const res = await fetch('/api/commander/members/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+        body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
+      });
+      const json = await res.json();
+      if (!json.success || !json.data?.member) {
+        setScanError('Card not recognized. Please enter your name manually.');
+        setSubmitting(false);
+        return;
+      }
+      const member = json.data.member;
+      const memberName = member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Player';
+      setJoinName(memberName);
+      setJoinPhone(member.phone || '');
+      fetchGames();
+      setMode('join_game');
+    } catch (err) {
+      console.error(err);
+      setScanError('Scan failed. Please enter your name manually.');
+    }
+    finally { setSubmitting(false); }
+  };
+
   // ── JOIN WAITLIST: Add player to selected games ──
   const submitJoinWaitlist = async () => {
     if (!joinName.trim() || selectedGames.length === 0 || !venueId) return;
@@ -271,6 +301,11 @@ export default function MembershipKiosk() {
     finally { setSubmitting(false); }
   };
 
+  // Haptic feedback for touch devices (iPads, mobiles)
+  const haptic = () => {
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch { /* not supported */ }
+  };
+
   return (
     <>
       <SEOHead
@@ -278,7 +313,7 @@ export default function MembershipKiosk() {
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-0" style={{ overflow: 'hidden' }}>
+      <div className="min-h-screen bg-[#000000] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-0" style={{ overflow: 'hidden' }}>
 
         {/* ===== HOME — Image-Based Welcome ===== */}
         {mode === 'home' && (
@@ -289,76 +324,89 @@ export default function MembershipKiosk() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#1e1f23'
+            background: '#000000'
           }}>
-            {/* Background Image */}
-            <img
-              src="/images/commander/kiosk-welcome.jpg"
-              alt="Welcome Kiosk"
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                display: 'block'
-              }}
-              draggable={false}
-            />
+            {/*
+              Image + hitbox wrapper — hitboxes are positioned relative to THIS container
+              so they scale perfectly with the image at any viewport size
+            */}
+            <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%', display: 'flex' }}>
+              {/* Background Image — PNG with transparent background */}
+              <img
+                src="/images/commander/kiosk-welcome.png"
+                alt="Welcome Kiosk"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block'
+                }}
+                draggable={false}
+              />
 
-            {/* Invisible Hitboxes — positioned over the baked-in buttons */}
+              {/* Invisible Hitboxes — positioned relative to the image */}
+              {/* Percentages are relative to image dimensions (829x946 after trim) */}
 
-            {/* Check In — Blue button (pixel: 35-44%) */}
-            <button
-              onClick={() => setMode('checkin_search')}
-              style={{
-                position: 'absolute',
-                top: '34%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '55%',
-                height: '11%',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                zIndex: 10
-              }}
-              aria-label="Check In"
-            />
+              {/* Check In — Blue button */}
+              {/* Image: y~378-448/946 ≈ 40%-47.4%, centered, width ~65% */}
+              <button
+                onClick={() => { haptic(); setScanQR(''); setScanError(''); setMode('scan'); }}
+                style={{
+                  position: 'absolute',
+                  top: '39.5%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '65%',
+                  height: '8%',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                aria-label="Check In"
+              />
 
-            {/* Join Waitlist — Green button (pixel: 49-59%) */}
-            <button
-              onClick={() => { fetchGames(); setMode('join_name'); }}
-              style={{
-                position: 'absolute',
-                top: '48%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '55%',
-                height: '11%',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                zIndex: 10
-              }}
-              aria-label="Join Waitlist"
-            />
+              {/* Join Waitlist — Green button */}
+              {/* Image: y~496-566/946 ≈ 52.4%-59.8% */}
+              <button
+                onClick={() => { haptic(); fetchGames(); setMode('join_name'); }}
+                style={{
+                  position: 'absolute',
+                  top: '52%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '65%',
+                  height: '8%',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                aria-label="Join Waitlist"
+              />
 
-            {/* New Member — Grey button (pixel: 63-73%) */}
-            <button
-              onClick={() => setShowNewMemberPopup(true)}
-              style={{
-                position: 'absolute',
-                top: '62%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '55%',
-                height: '11%',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                zIndex: 10
-              }}
-              aria-label="New Member"
-            />
+              {/* New Member — Grey button */}
+              {/* Image: y~622-692/946 ≈ 65.7%-73.2% */}
+              <button
+                onClick={() => { haptic(); setShowNewMemberPopup(true); }}
+                style={{
+                  position: 'absolute',
+                  top: '65.5%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '65%',
+                  height: '8%',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                aria-label="New Member"
+              />
+            </div>
           </div>
         )}
 
@@ -502,90 +550,7 @@ export default function MembershipKiosk() {
               ← Back
             </button>
 
-            {/* ===== CHECK IN: Search Waitlist ===== */}
-            {mode === 'checkin_search' && (
-              <div className="w-full max-w-md space-y-4">
-                <h2 className="text-2xl font-bold text-white text-center mb-2">Check In</h2>
-                <p className="text-center text-[#B0B3B8] text-sm mb-4">Enter your name or phone to find your waitlist spot</p>
-
-                <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)}
-                    placeholder="Your Name" autoFocus
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-[#3A3B3C]" />
-                  <span className="text-xs text-[#B0B3B8]">Or</span>
-                  <div className="flex-1 h-px bg-[#3A3B3C]" />
-                </div>
-
-                <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone Number</label>
-                  <input type="tel" inputMode="numeric" value={phone} onChange={e => setPhone(liveFormatPhone(e.target.value))}
-                    placeholder="(555) 123-4567"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
-                </div>
-
-                <button onClick={searchWaitlist} disabled={(!phone && !name) || searching}
-                  className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
-                  {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                  Find My Spot
-                </button>
-
-                {/* Scan Card Divider */}
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="flex-1 h-px bg-[#3A3B3C]" />
-                  <span className="text-xs text-[#B0B3B8]">Or</span>
-                  <div className="flex-1 h-px bg-[#3A3B3C]" />
-                </div>
-
-                <button onClick={() => { setScanQR(''); setScanError(''); setMode('scan'); }}
-                  className="w-full py-4 rounded-xl bg-[#242526] border-2 border-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
-                  Scan Player Card
-                </button>
-
-                {/* Waitlist matches */}
-                {waitlistMatches.length > 0 && (
-                  <div className="space-y-3 mt-4">
-                    <p className="text-sm text-[#B0B3B8] text-center">
-                      Found on <span className="text-white font-bold">{waitlistMatches.length}</span> waitlist{waitlistMatches.length > 1 ? 's' : ''}:
-                    </p>
-                    {waitlistMatches.map(m => (
-                      <div key={m.id}
-                        className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4 flex items-center gap-3">
-                        <Clock className="w-6 h-6 text-[#31A24C]" />
-                        <div className="flex-1">
-                          <p className="text-lg font-medium text-white">{m.stakes} {m.game_type}</p>
-                          <p className="text-sm text-[#B0B3B8]">Position #{m.position} • {titleCase(m.player_name)}</p>
-                        </div>
-                        {m.checked_in_at && (
-                          <span className="text-xs bg-[#31A24C]/20 text-[#31A24C] px-2 py-1 rounded-full">✓ Checked In</span>
-                        )}
-                      </div>
-                    ))}
-                    <button onClick={confirmCheckIn} disabled={submitting}
-                      className="w-full py-5 rounded-2xl bg-[#1877F2] text-white text-xl font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
-                      {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-6 h-6" />}
-                      Confirm Check In
-                    </button>
-                  </div>
-                )}
-
-                {waitlistMatches.length === 0 && (phone || name) && !searching && (
-                  <div className="text-center py-4">
-                    <p className="text-[#B0B3B8] mb-3">Not Found On Waitlist</p>
-                    <p className="text-sm text-[#B0B3B8]">
-                      You may not have signed up yet. Tap <span className="text-[#31A24C] font-bold">Join Waitlist</span> from the home screen, or see staff for help.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ===== SCAN CARD MODE ===== */}
+            {/* ===== SCAN CARD MODE (CHECK-IN) ===== */}
             {mode === 'scan' && (
               <div className="w-full max-w-md space-y-4">
                 <div className="text-center mb-4">
@@ -619,9 +584,51 @@ export default function MembershipKiosk() {
                 )}
 
                 <div className="text-center pt-2">
-                  <button onClick={() => setMode('checkin_search')}
+                  <button onClick={() => { fetchGames(); setMode('join_name'); }}
                     className="text-[#1877F2] text-sm font-medium underline">
                     Search By Name Instead
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ===== SCAN CARD MODE (JOIN WAITLIST) ===== */}
+            {mode === 'scan_join' && (
+              <div className="w-full max-w-md space-y-4">
+                <div className="text-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-10 h-10 text-[#31A24C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Scan Card to Join</h2>
+                  <p className="text-[#B0B3B8] text-sm">Hold your card&apos;s QR code up to the scanner</p>
+                </div>
+
+                <input
+                  type="text"
+                  value={scanQR}
+                  onChange={e => setScanQR(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleScanJoinWaitlist(); }}
+                  placeholder="Waiting for scan..."
+                  autoFocus
+                  className="w-full bg-[#3A3B3C] border-2 border-[#31A24C]/50 rounded-xl px-5 py-5 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#31A24C]"
+                />
+
+                <button onClick={handleScanJoinWaitlist} disabled={!scanQR.trim() || submitting}
+                  className="w-full py-5 rounded-2xl bg-[#31A24C] text-white text-xl font-semibold active:bg-[#28883F] disabled:opacity-50 flex items-center justify-center gap-2">
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-6 h-6" />}
+                  Join Waitlist
+                </button>
+
+                {scanError && (
+                  <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-4 text-center">
+                    <p className="text-[#EF4444] text-sm font-medium">{scanError}</p>
+                  </div>
+                )}
+
+                <div className="text-center pt-2">
+                  <button onClick={() => { fetchGames(); setMode('join_name'); }}
+                    className="text-[#31A24C] text-sm font-medium underline">
+                    Enter Name Manually Instead
                   </button>
                 </div>
               </div>
@@ -631,12 +638,25 @@ export default function MembershipKiosk() {
             {mode === 'join_name' && (
               <div className="w-full max-w-md space-y-4">
                 <h2 className="text-2xl font-bold text-white text-center mb-2">Join Waitlist</h2>
-                <p className="text-center text-[#B0B3B8] text-sm mb-4">Enter your name to get on the list</p>
+
+                {/* Scan Card — Primary Action */}
+                <button onClick={() => { setScanQR(''); setScanError(''); setMode('scan_join'); }}
+                  className="w-full py-5 rounded-2xl bg-[#242526] border-2 border-[#31A24C] text-[#E4E6EB] text-xl font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-3">
+                  <svg className="w-6 h-6 text-[#31A24C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                  Scan Player Card
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-[#3A3B3C]" />
+                  <span className="text-xs text-[#B0B3B8]">Or Enter Manually</span>
+                  <div className="flex-1 h-px bg-[#3A3B3C]" />
+                </div>
 
                 <div>
                   <label className="text-sm text-[#B0B3B8] mb-1 block">Your Name *</label>
                   <input type="text" value={joinName} onChange={e => setJoinName(e.target.value)}
-                    placeholder="First and Last Name" autoFocus
+                    placeholder="First and Last Name"
                     className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#31A24C]" />
                 </div>
 

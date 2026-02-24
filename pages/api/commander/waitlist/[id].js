@@ -51,13 +51,36 @@ export default async function handler(req, res) {
       if (staffSession) {
         try {
           const sessionData = JSON.parse(staffSession);
-          const { data: staff } = await supabase
-            .from('commander_staff')
-            .select('id, venue_id, is_active')
-            .eq('id', sessionData.id)
-            .eq('is_active', true)
-            .single();
-          if (staff) isStaff = true;
+          if (sessionData.id) {
+            const { data: staff } = await supabase
+              .from('commander_staff')
+              .select('id, venue_id, is_active')
+              .eq('id', sessionData.id)
+              .eq('is_active', true)
+              .single();
+            if (staff) isStaff = true;
+          }
+          if (!isStaff && sessionData.user_id && sessionData.venue_id) {
+            const { data: staff } = await supabase
+              .from('commander_staff')
+              .select('id, venue_id, is_active')
+              .eq('user_id', sessionData.user_id)
+              .eq('venue_id', sessionData.venue_id)
+              .eq('is_active', true)
+              .single();
+            if (staff) isStaff = true;
+            // Owner fallback
+            if (!isStaff && sessionData.role === 'owner') {
+              const { data: sub } = await supabase
+                .from('commander_subscriptions')
+                .select('id')
+                .eq('owner_id', sessionData.user_id)
+                .eq('venue_id', sessionData.venue_id)
+                .in('status', ['active', 'trialing'])
+                .single();
+              if (sub) isStaff = true;
+            }
+          }
         } catch { /* invalid session format */ }
       }
 
@@ -81,16 +104,18 @@ export default async function handler(req, res) {
         return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You can only remove your own waitlist entry' } });
       }
 
-      // Log to history
-      await supabase.from('commander_waitlist_history').insert({
-        venue_id: entry.venue_id,
-        player_id: entry.player_id,
-        game_type: entry.game_type,
-        stakes: entry.stakes,
-        wait_time_minutes: Math.round((Date.now() - new Date(entry.created_at).getTime()) / (1000 * 60)),
-        was_seated: false,
-        signup_method: entry.signup_method
-      });
+      // Log to history (non-blocking — don't let this prevent the delete)
+      try {
+        await supabase.from('commander_waitlist_history').insert({
+          venue_id: entry.venue_id,
+          player_id: entry.player_id,
+          game_type: entry.game_type,
+          stakes: entry.stakes,
+          wait_time_minutes: Math.round((Date.now() - new Date(entry.created_at).getTime()) / (1000 * 60)),
+          was_seated: false,
+          signup_method: entry.signup_method
+        });
+      } catch { /* history logging is non-critical */ }
 
       // Delete entry
       const { error: delErr } = await supabase.from('commander_waitlist').delete().eq('id', id);
@@ -153,7 +178,7 @@ export default async function handler(req, res) {
       }
 
       // Only allow specific fields to be updated
-      const allowedFields = ['checked_in_at', 'notes', 'player_phone'];
+      const allowedFields = ['checked_in_at', 'notes', 'player_phone', 'game_type', 'stakes'];
       const updates = {};
       for (const key of allowedFields) {
         if (req.body[key] !== undefined) updates[key] = req.body[key];

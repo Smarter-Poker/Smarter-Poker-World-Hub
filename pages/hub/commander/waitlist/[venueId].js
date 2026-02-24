@@ -233,8 +233,31 @@ export default function PlayerWaitlistPage() {
         <header style={S.header}>
           <div style={S.headerTop}>
             <div style={S.headerLeft}>
-              <span style={S.backArrow}>←</span>
-              <span style={S.clubName}>{venue.name?.toUpperCase()}</span>
+              <button
+                onClick={() => {
+                  // Navigate back to the club page. Use router.back() if history exists,
+                  // otherwise fall back to the club arena page.
+                  if (window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push(`/club/${venueId}`);
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 0',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                aria-label={`Back to ${venue.name}`}
+              >
+                <span style={S.backArrow}>←</span>
+                <span style={S.clubName}>{venue.name?.toUpperCase()}</span>
+              </button>
             </div>
             <h1 style={S.headerTitle}>POKER WAITING LIST</h1>
             <div style={S.headerRight}>
@@ -317,11 +340,6 @@ export default function PlayerWaitlistPage() {
                                 }}>
                                   {player.player_name}
                                 </span>
-                                {isMe && player.player_phone && player.player_phone.length >= 4 && (
-                                  <span style={S.phoneBadge}>
-                                    {'•••-' + player.player_phone.slice(-4)}
-                                  </span>
-                                )}
                                 {isMe && <span style={S.youBadge}>YOU</span>}
                               </span>
                               {isCalled && <span style={S.calledBadge}>CALLED</span>}
@@ -639,13 +657,7 @@ const S = {
     letterSpacing: '0.5px',
     flexShrink: 0,
   },
-  phoneBadge: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#888',
-    letterSpacing: '0.3px',
-    flexShrink: 0,
-  },
+
 
   // ── Column footer — Join button ──
   columnFooter: {
