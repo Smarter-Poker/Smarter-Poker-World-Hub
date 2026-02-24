@@ -435,22 +435,45 @@ export default function Players() {
                                 </div>
                             </div>
 
-                            {user && selectedPlayer.user_id !== user.id && (
-                                <div style={S.modalActions}>
-                                    <button
-                                        style={{ ...S.modalBtn, background: FB.primary, color: '#fff' }}
-                                        onClick={() => sendMessage(selectedPlayer.user_id)}
-                                    >
-                                        Message
-                                    </button>
-                                    <button
-                                        style={{ ...S.modalBtn, background: FB.hover, color: FB.textPrimary }}
-                                        onClick={() => viewProfile(selectedPlayer)}
-                                    >
-                                        Profile
-                                    </button>
-                                </div>
-                            )}
+                            {user && selectedPlayer.user_id !== user.id && (() => {
+                                // Enforce messaging hierarchy
+                                const canMessage = (() => {
+                                    if (!currentUserRole) return false;
+                                    if (currentUserRole === 'owner' || currentUserRole === 'admin') return true;
+                                    if (currentUserRole === 'agent') {
+                                        // Agents can message their downlines + admins/owners
+                                        const isDownline = selectedPlayer.agent_id === user.id;
+                                        const isUpward = ['admin', 'owner'].includes(selectedPlayer.role);
+                                        return isDownline || isUpward;
+                                    }
+                                    if (currentUserRole === 'player') {
+                                        // Players can only message their agent or admins/owners
+                                        const currentMember = members.find(m => m.user_id === user.id);
+                                        const isMyAgent = currentMember?.agent_id === selectedPlayer.user_id;
+                                        const isUpward = ['admin', 'owner'].includes(selectedPlayer.role);
+                                        return isMyAgent || isUpward;
+                                    }
+                                    return false;
+                                })();
+                                return (
+                                    <div style={S.modalActions}>
+                                        {canMessage && (
+                                            <button
+                                                style={{ ...S.modalBtn, background: FB.primary, color: '#fff' }}
+                                                onClick={() => sendMessage(selectedPlayer.user_id)}
+                                            >
+                                                Message
+                                            </button>
+                                        )}
+                                        <button
+                                            style={{ ...S.modalBtn, background: FB.hover, color: FB.textPrimary }}
+                                            onClick={() => viewProfile(selectedPlayer)}
+                                        >
+                                            Profile
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>

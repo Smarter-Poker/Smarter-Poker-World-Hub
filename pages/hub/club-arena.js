@@ -64,6 +64,7 @@ function CreateClubModal({ onClose, onCreated, user }) {
                 user_id: user.id,
                 role: 'owner',
                 status: 'active',
+                chip_balance: 0,
             });
 
             onCreated(data);
@@ -149,6 +150,7 @@ function JoinClubModal({ onClose, onJoined, user }) {
                 user_id: user.id,
                 role: 'player',
                 status: 'active',
+                chip_balance: 0,
             });
 
             onJoined(club);
@@ -408,12 +410,13 @@ export default function ClubArenaPage() {
     // ═══════════════════════════════════════════════════════════════════════
     // BOTTOM TILES - Using baked images from Club Arena
     // ═══════════════════════════════════════════════════════════════════════
+    const clubParam = activeClub?.club_id || '';
     const tiles = [
-        { id: 'player-stats', image: IMAGES.tiles.playerStats, href: '/hub/club-arena/player-stats' },
-        { id: 'leaderboards', image: IMAGES.tiles.leaderboards, href: '/hub/club-arena/leaderboard' },
-        { id: 'cashier', image: IMAGES.tiles.cashier, href: '/hub/club-arena/cashier' },
-        { id: 'marketplace', image: IMAGES.tiles.marketplace, href: '/hub/club-arena/marketplace' },
-        { id: 'hand-histories', image: IMAGES.tiles.handHistories, href: '/hub/club-arena/hand-histories' },
+        { id: 'player-stats', image: IMAGES.tiles.playerStats, href: `/hub/club-arena/player-stats?club=${clubParam}` },
+        { id: 'leaderboards', image: IMAGES.tiles.leaderboards, href: `/hub/club-arena/leaderboard?club=${clubParam}` },
+        { id: 'cashier', image: IMAGES.tiles.cashier, href: `/hub/club-arena/cashier?club=${clubParam}` },
+        { id: 'marketplace', image: IMAGES.tiles.marketplace, href: `/hub/club-arena/marketplace?club=${clubParam}` },
+        { id: 'hand-histories', image: IMAGES.tiles.handHistories, href: `/hub/club-arena/hand-histories?club=${clubParam}` },
     ];
 
     if (isLoading) {
@@ -567,12 +570,14 @@ export default function ClubArenaPage() {
                                 </svg>
                                 <span style={S.bottomNavLabel}>Data</span>
                             </Link>
-                            <Link href={`/hub/club-arena/admin?club=${activeClub.club_id}`} style={S.bottomNavItem}>
-                                <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-                                </svg>
-                                <span style={S.bottomNavLabel}>Admin</span>
-                            </Link>
+                            {(activeClub.userRole === 'owner' || activeClub.userRole === 'admin') && (
+                                <Link href={`/hub/club-arena/admin?club=${activeClub.club_id}`} style={S.bottomNavItem}>
+                                    <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                                    </svg>
+                                    <span style={S.bottomNavLabel}>Admin</span>
+                                </Link>
+                            )}
                         </div>
                     </nav>
                 )}
