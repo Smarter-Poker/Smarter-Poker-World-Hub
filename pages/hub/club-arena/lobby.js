@@ -323,6 +323,9 @@ export default function ClubLobby() {
                                 <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club.club_id}`)}>
                                     Hands
                                 </button>
+                                <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/marketplace?club=${club.club_id}`)}>
+                                    Marketplace
+                                </button>
                             </div>
                         </>
                     )}
@@ -456,7 +459,7 @@ export default function ClubLobby() {
                     </div>
                 )}
 
-                <ClubArenaBottomNav clubId={club?.club_id || clubIdParam} activePage="lobby" />
+                <ClubArenaBottomNav clubId={club?.club_id || clubIdParam} activePage="messages" />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
@@ -719,7 +722,7 @@ const styles = {
     },
     quickActions: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '10px',
     },
     actionBtn: {

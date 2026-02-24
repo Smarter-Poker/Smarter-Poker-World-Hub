@@ -433,7 +433,7 @@ export default function HandHistories() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="hand-histories" />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════
