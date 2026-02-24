@@ -600,14 +600,14 @@ export default function MembershipKiosk() {
                 marginBottom: '32px',
                 fontFamily: "'Inter', sans-serif"
               }}>
-                Please see{' '}
+                Please See{' '}
                 <span style={{
                   color: '#1877F2',
                   fontWeight: '700'
                 }}>
-                  {venueName || 'our'}
+                  {venueName || 'Our'}
                 </span>{' '}
-                staff to register for membership.
+                Staff To Register For Membership.
               </p>
 
               <button
@@ -738,12 +738,10 @@ export default function MembershipKiosk() {
                   </div>
                 )}
 
-                <div className="text-center pt-2">
-                  <button onClick={() => setMode('checkin_pick')}
-                    className="text-[#1877F2] text-sm font-medium underline">
-                    ← Other Check-In Options
-                  </button>
-                </div>
+                <button onClick={() => setMode('checkin_pick')}
+                  className="w-full py-5 rounded-2xl bg-[#242526] border-2 border-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-2">
+                  ← Other Check-In Options
+                </button>
               </div>
             )}
 
@@ -780,12 +778,10 @@ export default function MembershipKiosk() {
                   </div>
                 )}
 
-                <div className="text-center pt-2">
-                  <button onClick={() => setMode('checkin_pick')}
-                    className="text-[#1877F2] text-sm font-medium underline">
-                    ← Other Check-In Options
-                  </button>
-                </div>
+                <button onClick={() => setMode('checkin_pick')}
+                  className="w-full py-5 rounded-2xl bg-[#242526] border-2 border-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-2">
+                  ← Other Check-In Options
+                </button>
               </div>
             )}
 
@@ -823,12 +819,10 @@ export default function MembershipKiosk() {
                   </div>
                 )}
 
-                <div className="text-center pt-2">
-                  <button onClick={() => setMode('checkin_pick')}
-                    className="text-[#1877F2] text-sm font-medium underline">
-                    ← Other Check-In Options
-                  </button>
-                </div>
+                <button onClick={() => setMode('checkin_pick')}
+                  className="w-full py-5 rounded-2xl bg-[#242526] border-2 border-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-2">
+                  ← Other Check-In Options
+                </button>
               </div>
             )}
 
