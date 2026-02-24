@@ -10,7 +10,6 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
-import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 
 export default function ClubLobby() {
@@ -27,6 +26,8 @@ export default function ClubLobby() {
     const [membership, setMembership] = useState(null);
     const [showCreateTable, setShowCreateTable] = useState(false);
     const [creatingTable, setCreatingTable] = useState(false);
+    const [isEditingDescription, setIsEditingDescription] = useState(false);
+    const [newDescription, setNewDescription] = useState('');
     const [newTable, setNewTable] = useState({
         name: '',
         variant: 'nlh',
@@ -48,6 +49,23 @@ export default function ClubLobby() {
         if (activeFilter === 'sng') return table.table_type === 'sng';
         return true;
     });
+
+    // Save description
+    async function handleSaveDescription() {
+        if (!club) return;
+        try {
+            const { error } = await supabase
+                .from('clubs')
+                .update({ description: newDescription })
+                .eq('id', club.id);
+            if (error) throw error;
+            setClub({ ...club, description: newDescription });
+            setIsEditingDescription(false);
+        } catch (err) {
+            console.error('Error updating description:', err);
+            alert('Failed to update description.');
+        }
+    }
 
     // Handler for creating a new table
     async function handleCreateTable() {
@@ -220,11 +238,33 @@ export default function ClubLobby() {
                             </div>
 
                             {/* Club Description */}
-                            {club.description && (
-                                <div style={styles.descriptionCard}>
-                                    <p style={styles.descriptionText}>{club.description}</p>
-                                </div>
-                            )}
+                            <div
+                                style={{ ...styles.descriptionCard, cursor: (membership?.role === 'owner' || membership?.role === 'admin') ? 'pointer' : 'default' }}
+                                onClick={() => {
+                                    if (membership?.role === 'owner' || membership?.role === 'admin') {
+                                        setNewDescription(club.description || '');
+                                        setIsEditingDescription(true);
+                                    }
+                                }}
+                            >
+                                {isEditingDescription ? (
+                                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <textarea
+                                            value={newDescription}
+                                            onChange={e => setNewDescription(e.target.value)}
+                                            style={{ ...styles.formInput, width: '100%', minHeight: '60px', resize: 'vertical' }}
+                                            placeholder="Enter club description/message..."
+                                            autoFocus
+                                        />
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                            <button style={{ ...styles.actionBtn, padding: '4px 12px', fontSize: '12px' }} onClick={() => setIsEditingDescription(false)}>Cancel</button>
+                                            <button style={{ ...styles.actionBtn, padding: '4px 12px', fontSize: '12px', background: FB.primary, color: '#fff', borderColor: FB.primary }} onClick={handleSaveDescription}>Save</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p style={styles.descriptionText}>{club.description || 'Welcome to the club!'}</p>
+                                )}
+                            </div>
 
                             {/* Game Type Filters */}
                             <div style={styles.filterTabs}>
@@ -250,12 +290,6 @@ export default function ClubLobby() {
 
                             {/* Quick Actions */}
                             <div style={styles.heroActions}>
-                                <button
-                                    style={styles.heroActionBtn}
-                                    onClick={() => router.push('/hub/club-arena')}
-                                >
-                                    <span style={styles.heroActionLabel}>My Clubs</span>
-                                </button>
                                 {(membership?.role === 'owner' || membership?.role === 'admin') && (
                                     <button
                                         style={{ ...styles.heroActionBtn, ...styles.heroActionPrimary }}
@@ -382,21 +416,6 @@ export default function ClubLobby() {
                                 </div>
                             )}
 
-                            {/* Quick Actions */}
-                            <div style={styles.quickActions}>
-                                <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/cashier?club=${club.club_id}`)}>
-                                    Cashier
-                                </button>
-                                <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/leaderboard?club=${club.club_id}`)}>
-                                    Leaderboard
-                                </button>
-                                <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club.club_id}`)}>
-                                    Hands
-                                </button>
-                                <button style={styles.actionBtn} onClick={() => router.push(`/hub/club-arena/marketplace?club=${club.club_id}`)}>
-                                    Marketplace
-                                </button>
-                            </div>
                         </>
                     )}
                 </div>
@@ -529,8 +548,6 @@ export default function ClubLobby() {
                     </div>
                 )}
 
-                <ClubArenaBottomNav clubId={club?.club_id || clubIdParam} activePage="lobby" userRole={membership?.role} />
-
                 {/* Hamburger Menu */}
                 <HamburgerMenu
                     isOpen={menuOpen}
@@ -567,7 +584,7 @@ const styles = {
     page: {
         minHeight: '100vh',
         background: FB.background,
-        paddingBottom: '80px',
+        paddingBottom: '20px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
     container: {
