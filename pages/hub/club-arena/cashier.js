@@ -147,10 +147,31 @@ export default function Cashier() {
 
         setProcessing(true);
         try {
+            // Read fresh balances to prevent stale-state overwrites
+            const { data: freshProfile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', user.id)
+                .single();
+            const currentDiamonds = freshProfile?.diamonds || 0;
+            if (diamondCost > currentDiamonds) {
+                showToast(`Not enough diamonds. Need ${diamondCost}, have ${currentDiamonds}`, 'error');
+                setProcessing(false);
+                return;
+            }
+
+            const { data: freshMember } = await supabase
+                .from('club_members')
+                .select('chip_balance')
+                .eq('club_id', club.id)
+                .eq('user_id', user.id)
+                .single();
+            const currentChips = freshMember?.chip_balance || 0;
+
             // 1. Deduct diamonds from profile
             const { error: diamondError } = await supabase
                 .from('profiles')
-                .update({ diamonds: diamondBalance - diamondCost })
+                .update({ diamonds: currentDiamonds - diamondCost })
                 .eq('id', user.id);
 
             if (diamondError) throw diamondError;
@@ -158,7 +179,7 @@ export default function Cashier() {
             // 2. Add chips to club membership
             const { error: chipError } = await supabase
                 .from('club_members')
-                .update({ chip_balance: chipBalance + amount })
+                .update({ chip_balance: currentChips + amount })
                 .eq('club_id', club.id)
                 .eq('user_id', user.id);
 
@@ -205,10 +226,32 @@ export default function Cashier() {
 
         setProcessing(true);
         try {
+            // Read fresh balances to prevent stale-state overwrites
+            const { data: freshMember } = await supabase
+                .from('club_members')
+                .select('chip_balance')
+                .eq('club_id', club.id)
+                .eq('user_id', user.id)
+                .single();
+            const currentChips = freshMember?.chip_balance || 0;
+
+            if (amount > currentChips) {
+                showToast(`Max cashout is ${currentChips.toLocaleString()} chips`, 'error');
+                setProcessing(false);
+                return;
+            }
+
+            const { data: freshProfile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', user.id)
+                .single();
+            const currentDiamonds = freshProfile?.diamonds || 0;
+
             // 1. Deduct chips from club membership
             const { error: chipError } = await supabase
                 .from('club_members')
-                .update({ chip_balance: chipBalance - amount })
+                .update({ chip_balance: currentChips - amount })
                 .eq('club_id', club.id)
                 .eq('user_id', user.id);
 
@@ -217,7 +260,7 @@ export default function Cashier() {
             // 2. Add diamonds to profile
             const { error: diamondError } = await supabase
                 .from('profiles')
-                .update({ diamonds: diamondBalance + diamondsReturned })
+                .update({ diamonds: currentDiamonds + diamondsReturned })
                 .eq('id', user.id);
 
             if (diamondError) throw diamondError;
