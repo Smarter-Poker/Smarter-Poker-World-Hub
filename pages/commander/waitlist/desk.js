@@ -72,6 +72,7 @@ export default function WaitlistDesk() {
   const [showAddGame, setShowAddGame] = useState(false);
   const [newGameType, setNewGameType] = useState('');
   const [newGameStakes, setNewGameStakes] = useState('');
+  const [newGameTable, setNewGameTable] = useState('');
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -345,15 +346,30 @@ export default function WaitlistDesk() {
   };
 
   // ── ADD GAME: Create a new game column (interest list) ──
-  const handleAddGame = () => {
+  const handleAddGame = async () => {
     const gt = (newGameType || '').trim().toUpperCase();
     const st = (newGameStakes || '').trim();
+    const tn = (newGameTable || '').trim();
     if (!gt || !st) return;
     const label = `${gt} ${st}`;
     // Add to customization gameTypes for persistence
     const updatedGameTypes = [...new Set([...(custom.gameTypes || []), label])];
     saveCustomization({ ...custom, gameTypes: updatedGameTypes });
-    setNewGameType(''); setNewGameStakes(''); setShowAddGame(false);
+    // Auto-create table if a table number was provided
+    if (tn) {
+      try {
+        const token = getToken();
+        const staffSession = getStaffSession();
+        const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        await fetch('/api/commander/tables', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          body: JSON.stringify({ venue_id: staffData.venue_id, table_number: parseInt(tn) || tn, table_name: `Table ${tn}`, max_seats: 9, game_type: gt, stakes: st })
+        });
+      } catch { /* table may already exist — ignore */ }
+      await fetchData();
+    }
+    setNewGameType(''); setNewGameStakes(''); setNewGameTable(''); setShowAddGame(false);
   };
 
   // ── REMOVE GAME: Delete all waitlist entries for a game + remove from custom ──
@@ -555,9 +571,16 @@ export default function WaitlistDesk() {
                     {gameLabel}
                     <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', opacity: 0.5 }}>✏️</span>
                   </div>
-                  {/* Table Numbers */}
-                  <div style={{ padding: '4px 8px', textAlign: 'center', fontSize: '16px', color: `${c.textColor}99`, borderBottom: `1px solid ${c.borderColor}55`, background: c.cardBgColor, fontWeight: 600, letterSpacing: '0.5px' }}>
-                    {tableNums.length > 0 ? tableNums.join('-') : '—'}
+                  {/* Table Numbers with Main/Feeder labels */}
+                  <div style={{ padding: '4px 8px', textAlign: 'center', fontSize: '14px', color: `${c.textColor}99`, borderBottom: `1px solid ${c.borderColor}55`, background: c.cardBgColor, fontWeight: 600, letterSpacing: '0.5px' }}>
+                    {tableNums.length > 0 ? tableNums.map((tn, i) => (
+                      <span key={tn}>
+                        {i > 0 && ' · '}
+                        <span style={{ color: i === 0 ? c.accentColor : `${c.textColor}77` }}>
+                          T{tn}{tableNums.length > 1 ? (i === 0 ? ' ★' : ' ⇢') : ''}
+                        </span>
+                      </span>
+                    )) : '—'}
                   </div>
                   {/* Player Names */}
                   <div style={{ flex: 1, background: c.bgColor }}>
@@ -695,50 +718,99 @@ export default function WaitlistDesk() {
           </div>
         </div>
 
-        {/* ═══ SEAT MODAL ═══ */}
-        {seatModal && (
-          <div style={overlayStyle} onClick={() => setSeatModal(null)}>
-            <div style={modalStyle(c)} onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: c.accentColor, margin: 0 }}>Seat Player</h3>
-                  <p style={{ fontSize: '13px', color: `${c.textColor}88`, margin: '2px 0 0' }}>{titleCase(seatModal.player_name)}</p>
+        {/* ═══ SEAT MODAL — Visual Table Display ═══ */}
+        {seatModal && (() => {
+          // Filter tables to match the player's game type
+          const seatGameType = (seatModal.game_type || '').toUpperCase();
+          const seatStakes = (seatModal.stakes || '').trim();
+          const matchingTables = activeTables.filter(t => {
+            const tGame = (t.game_type || t.current_game_type || '').toUpperCase();
+            const tStakes = (t.stakes || t.current_stakes || '').trim();
+            return tGame === seatGameType && tStakes === seatStakes;
+          });
+          // Fallback: show all active tables if none match
+          const tablesToShow = matchingTables.length > 0 ? matchingTables : activeTables;
+          // Filter to tables with at least 1 open seat
+          const tablesWithOpen = tablesToShow.filter(t => {
+            const seated = (t.seats || []).filter(s => s.status === 'occupied').length;
+            return seated < (t.max_seats || 9);
+          });
+          return (
+            <div style={overlayStyle} onClick={() => setSeatModal(null)}>
+              <div style={{ ...modalStyle(c), maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: c.accentColor, margin: 0 }}>Seat Player</h3>
+                    <p style={{ fontSize: '14px', color: `${c.textColor}88`, margin: '2px 0 0' }}>
+                      {titleCase(seatModal.player_name)} — {seatStakes} {seatGameType}
+                    </p>
+                  </div>
+                  <button onClick={() => setSeatModal(null)} style={modalCloseStyle(c)}><X size={14} /></button>
                 </div>
-                <button onClick={() => setSeatModal(null)} style={modalCloseStyle(c)}><X size={14} /></button>
-              </div>
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                {activeTables.filter(t => {
-                  const seated = (t.seats || []).filter(s => s.status === 'occupied').length;
-                  return seated < (t.max_seats || 9);
-                }).map(table => {
-                  const maxSeats = table.max_seats || 9;
-                  const seats = table.seats || [];
-                  const openSeats = [];
-                  for (let s = 1; s <= maxSeats; s++) {
-                    if (!seats.find(se => se.seat_number === s && se.status === 'occupied')) openSeats.push(s);
-                  }
-                  return (
-                    <div key={table.table_number} style={{ background: `${c.cardBgColor}`, border: `1px solid ${c.borderColor}55`, borderRadius: '6px', padding: '10px', marginBottom: '8px' }}>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: c.textColor, margin: '0 0 8px' }}>
-                        Table {table.table_number}
-                        {table.game_type && <span style={{ color: `${c.textColor}88` }}> — {table.game_type}</span>}
-                      </p>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {openSeats.map(seat => (
-                          <button key={seat} onClick={() => handleSeat(seatModal, table.table_number, seat)} style={{
-                            width: '36px', height: '36px', borderRadius: '4px', background: '#0a1a0a',
-                            border: '1px solid #2a5a2a', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#4CAF50', cursor: 'pointer'
-                          }}>{seat}</button>
-                        ))}
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {tablesWithOpen.length === 0 ? (
+                    <p style={{ color: `${c.textColor}66`, textAlign: 'center', padding: '24px', fontSize: '14px' }}>No tables with open seats for {seatStakes} {seatGameType}</p>
+                  ) : tablesWithOpen.map((table, tIdx) => {
+                    const maxSeats = table.max_seats || 9;
+                    const seats = table.seats || [];
+                    const isMain = tIdx === 0 && tablesWithOpen.length > 1;
+                    const isFeeder = tIdx > 0 && tablesWithOpen.length > 1;
+                    const tGame = (table.game_type || table.current_game_type || '').toUpperCase();
+                    const tStakes = (table.stakes || table.current_stakes || '').trim();
+                    return (
+                      <div key={table.table_number} style={{ background: c.cardBgColor, border: `1px solid ${c.borderColor}`, borderRadius: '8px', padding: '12px', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 700, color: c.textColor }}>
+                            Table {table.table_number}
+                            <span style={{ color: `${c.textColor}66`, fontWeight: 400 }}> — {tStakes} {tGame}</span>
+                          </span>
+                          {isMain && <span style={{ fontSize: '11px', fontWeight: 800, color: '#000', background: c.accentColor, padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>MAIN</span>}
+                          {isFeeder && <span style={{ fontSize: '11px', fontWeight: 800, color: c.accentColor, background: `${c.accentColor}22`, border: `1px solid ${c.accentColor}`, padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>FEEDER</span>}
+                        </div>
+                        {/* Visual Seat Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px' }}>
+                          {Array.from({ length: maxSeats }, (_, i) => i + 1).map(seatNum => {
+                            const occupant = seats.find(s => s.seat_number === seatNum && s.status === 'occupied');
+                            if (occupant) {
+                              // Occupied seat — show player name
+                              return (
+                                <div key={seatNum} style={{
+                                  padding: '6px 4px', borderRadius: '5px', background: 'rgba(239,68,68,0.12)',
+                                  border: '1px solid rgba(239,68,68,0.3)', textAlign: 'center', minHeight: '44px',
+                                  display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
+                                }}>
+                                  <span style={{ fontSize: '10px', color: '#EF4444', fontWeight: 700 }}>S{seatNum}</span>
+                                  <span style={{ fontSize: '10px', color: `${c.textColor}99`, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70px' }}>
+                                    {(occupant.player_name || '').split(' ')[0]}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            // Open seat — clickable
+                            return (
+                              <button key={seatNum} onClick={() => handleSeat(seatModal, table.table_number, seatNum)} style={{
+                                padding: '6px 4px', borderRadius: '5px', background: 'rgba(76,175,80,0.08)',
+                                border: '1px solid rgba(76,175,80,0.4)', textAlign: 'center', minHeight: '44px',
+                                display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                                cursor: 'pointer', transition: 'all 0.15s'
+                              }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(76,175,80,0.25)'; e.currentTarget.style.borderColor = '#4CAF50'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(76,175,80,0.08)'; e.currentTarget.style.borderColor = 'rgba(76,175,80,0.4)'; }}
+                              >
+                                <span style={{ fontSize: '14px', color: '#4CAF50', fontWeight: 800 }}>S{seatNum}</span>
+                                <span style={{ fontSize: '9px', color: '#4CAF5099', fontWeight: 600, textTransform: 'uppercase' }}>OPEN</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ═══ ADD PLAYER MODAL ═══ */}
         {showAddWalkIn && (
@@ -817,6 +889,17 @@ export default function WaitlistDesk() {
                     value={newGameStakes}
                     onChange={e => setNewGameStakes(e.target.value)}
                     placeholder="$1/$2, $2/$5, etc."
+                    style={formInputStyle(c)}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', color: `${c.textColor}88`, marginBottom: '4px', display: 'block' }}>Table Number</label>
+                  <input
+                    value={newGameTable}
+                    onChange={e => setNewGameTable(e.target.value)}
+                    placeholder="1, 2, 3... (assigns table)"
+                    type="number"
+                    min="1"
                     style={formInputStyle(c)}
                   />
                 </div>

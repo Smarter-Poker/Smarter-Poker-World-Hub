@@ -158,7 +158,9 @@ async function handlePost(req, res) {
       max_seats = 9,
       features = {},
       position_x,
-      position_y
+      position_y,
+      game_type,
+      stakes
     } = req.body;
 
     if (!venue_id || !table_number) {
@@ -183,18 +185,22 @@ async function handlePost(req, res) {
       });
     }
 
+    const insertData = {
+      venue_id,
+      table_number,
+      table_name: table_name || `Table ${table_number}`,
+      max_seats,
+      status: 'available',
+      features,
+      position_x,
+      position_y
+    };
+    if (game_type) insertData.game_type = game_type.toUpperCase();
+    if (stakes) insertData.stakes = stakes;
+
     const { data: table, error } = await supabase
       .from('commander_tables')
-      .insert({
-        venue_id,
-        table_number,
-        table_name: table_name || `Table ${table_number}`,
-        max_seats,
-        status: 'available',
-        features,
-        position_x,
-        position_y
-      })
+      .insert(insertData)
       .select()
       .single();
 
