@@ -410,13 +410,18 @@ export default function WaitlistDesk() {
     });
   }
   // Also seed from active tables — auto-sync with live floor
-  tables.filter(t => t.is_active !== false && t.status !== 'maintenance' && t.game_type)
-    .forEach(t => {
-      const tGame = (t.game_type || '').toUpperCase();
-      const tStakes = (t.stakes || '').trim();
-      const key = tStakes ? `${tGame} ${tStakes}` : tGame;
-      if (!waitlistByGame[key]) waitlistByGame[key] = [];
-    });
+  tables.forEach(t => {
+    // Skip inactive or maintenance tables
+    if (t.is_active === false || t.status === 'maintenance') return;
+    // Get game info from table directly OR from joined commander_games
+    const games = Array.isArray(t.commander_games) ? t.commander_games : [];
+    const activeGame = games.find(g => g.status !== 'closed') || games[0];
+    const gameType = (t.game_type || activeGame?.game_type || '').toUpperCase();
+    const stakes = (t.stakes || activeGame?.stakes || '').trim();
+    if (!gameType) return; // No game assigned to this table
+    const key = stakes ? `${gameType} ${stakes}` : gameType;
+    if (!waitlistByGame[key]) waitlistByGame[key] = [];
+  });
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
     const key = w.stakes ? `${(w.game_type || 'NLH').toUpperCase()} ${w.stakes}` : (w.game_type || 'Unknown').toUpperCase();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];

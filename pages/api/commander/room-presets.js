@@ -18,21 +18,58 @@ export default async function handler(req, res) {
   const _g = await guardManager(req, res); if (!_g) return;
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // Get venue_id from the guard result (staff session)
+    let venueId;
+    try {
+      const staffSession = JSON.parse(req.headers['x-staff-session'] || '{}');
+      if (staffSession.venue_id) {
+        venueId = staffSession.venue_id;
+      } else if (staffSession.id) {
+        const { data: staffData } = await supabase
+          .from('commander_staff')
+          .select('venue_id')
+          .eq('id', staffSession.id)
+          .eq('is_active', true)
+          .single();
+        venueId = staffData?.venue_id;
+      } else if (staffSession.user_id) {
+        // Owner login path
+        venueId = staffSession.venue_id;
+      }
+    } catch { }
 
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('venue_id, role, name')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+    // Fallback: try Bearer token for backward compatibility
+    if (!venueId) {
+      try {
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.replace('Bearer ', '');
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            const { data: staff } = await supabase
+              .from('commander_staff')
+              .select('venue_id')
+              .eq('user_id', user.id)
+              .eq('is_active', true)
+              .single();
+            venueId = staff?.venue_id;
+          }
+        }
+      } catch { }
+    }
 
-    const venueId = staff.venue_id;
+    if (!venueId) return res.status(403).json({ success: false, error: 'Could not determine venue' });
+
+    // Extract role info for permission checks
+    let staffRole = 'owner'; // default for owner logins
+    let staffName = 'Staff';
+    let staffUserId = null;
+    try {
+      const sess = JSON.parse(req.headers['x-staff-session'] || '{}');
+      staffRole = sess.role || 'owner';
+      staffName = sess.name || sess.venue_name || 'Staff';
+      staffUserId = sess.user_id || sess.id || null;
+    } catch { }
 
     // Helper: normalize a preset row from DB into frontend-friendly shape
     // DB stores { tables: [...], promotions: [...], tournaments: [...] } all inside `tables` JSONB
@@ -111,7 +148,11 @@ export default async function handler(req, res) {
               });
 
               await supabase.from('commander_tables')
-                .update({ status: 'in_use' })
+                .update({
+                  status: 'in_use',
+                  game_type: config.short_code || config.game_type_name || 'NLH',
+                  stakes: config.stakes
+                })
                 .eq('id', table.id);
 
               results.games_opened++;
@@ -197,8 +238,8 @@ export default async function handler(req, res) {
             preset_name: preset.name,
             ...results
           },
-          performed_by: user.id,
-          performed_by_name: staff.name
+          performed_by: staffUserId,
+          performed_by_name: staffName
         });
 
         return res.status(200).json({
@@ -210,7 +251,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       // CREATE NEW PRESET
       // ═══════════════════════════════════════════════════════════════
-      if (!['owner', 'manager'].includes(staff.role)) {
+      if (!['owner', 'manager'].includes(staffRole)) {
         return res.status(403).json({ success: false, error: 'Manager access required' });
       }
 
@@ -236,7 +277,7 @@ export default async function handler(req, res) {
           auto_apply_schedule: start_time && day_of_week
             ? { start_time, day_of_week }
             : null,
-          created_by: user.id
+          created_by: staffUserId
         })
         .select()
         .single();
@@ -247,7 +288,7 @@ export default async function handler(req, res) {
 
     // PUT - Update preset
     if (req.method === 'PUT') {
-      if (!['owner', 'manager'].includes(staff.role)) {
+      if (!['owner', 'manager'].includes(staffRole)) {
         return res.status(403).json({ success: false, error: 'Manager access required' });
       }
 
@@ -291,7 +332,7 @@ export default async function handler(req, res) {
 
     // DELETE
     if (req.method === 'DELETE') {
-      if (!['owner', 'manager'].includes(staff.role)) {
+      if (!['owner', 'manager'].includes(staffRole)) {
         return res.status(403).json({ success: false, error: 'Manager access required' });
       }
 
