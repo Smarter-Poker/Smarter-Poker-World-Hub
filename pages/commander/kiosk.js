@@ -42,7 +42,8 @@ function liveFormatPhone(value) {
 export default function MembershipKiosk() {
   const router = useRouter();
   const [mode, setMode] = useState('home');
-  // home | scan | scan_join | join_name | join_game | success
+  // home | checkin_pick | checkin_scan | checkin_name | checkin_phone
+  // | scan_join | join_name | join_game | success
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -66,6 +67,13 @@ export default function MembershipKiosk() {
   const [scanQR, setScanQR] = useState('');
   const [scanError, setScanError] = useState('');
 
+  // Check-in context: track whether player was found on waitlist
+  const [checkinIsWaitlisted, setCheckinIsWaitlisted] = useState(false);
+
+  // Check-in search fields for name/phone modes
+  const [checkinName, setCheckinName] = useState('');
+  const [checkinPhone, setCheckinPhone] = useState('');
+
   // Staff session header for API calls
   const [staffHeader, setStaffHeader] = useState('');
 
@@ -87,6 +95,7 @@ export default function MembershipKiosk() {
     setSuccessMsg(''); setShowNewMemberPopup(false);
     setJoinName(''); setJoinPhone(''); setSelectedGames([]);
     setWaitlistMatches([]); setScanQR(''); setScanError('');
+    setCheckinIsWaitlisted(false); setCheckinName(''); setCheckinPhone('');
   };
 
   // Auto-reset after inactivity on success
@@ -191,6 +200,7 @@ export default function MembershipKiosk() {
     if (!scanQR.trim() || !venueId) return;
     setSubmitting(true);
     setScanError('');
+    let foundOnWaitlist = false;
     try {
       const res = await fetch('/api/commander/members/scan', {
         method: 'POST',
@@ -223,6 +233,7 @@ export default function MembershipKiosk() {
             if (wName && memberName && wName === memberName) return true;
             return false;
           });
+          if (matchingEntries.length > 0) foundOnWaitlist = true;
           for (const entry of matchingEntries) {
             await fetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
@@ -233,11 +244,108 @@ export default function MembershipKiosk() {
         }
       } catch { /* non-critical */ }
 
+      setCheckinIsWaitlisted(foundOnWaitlist);
       setSuccessMsg(`✅ ${titleCase(member.first_name || member.name || 'Player')} — Checked In!`);
       setMode('success');
     } catch (err) {
       console.error(err);
       setScanError('Scan failed. Please try again.');
+    }
+    finally { setSubmitting(false); }
+  };
+
+  // ── CHECK IN BY NAME: Search waitlist by name and check in ──
+  const handleNameCheckIn = async () => {
+    const q = checkinName.trim();
+    if (!q || q.length < 2 || !venueId) return;
+    setSubmitting(true);
+    setScanError('');
+    try {
+      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+        headers: { 'x-staff-session': staffHeader }
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const qLower = q.toLowerCase();
+        const matches = json.data.filter(entry =>
+          entry.player_name?.toLowerCase().includes(qLower) &&
+          entry.status !== 'seated' && !entry.checked_in_at
+        );
+        if (matches.length > 0) {
+          // Check in all matching entries
+          for (const entry of matches) {
+            await fetch(`/api/commander/waitlist/${entry.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+              body: JSON.stringify({ checked_in_at: new Date().toISOString() })
+            });
+          }
+          const gameList = matches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
+          setCheckinIsWaitlisted(true);
+          setSuccessMsg(`✅ ${titleCase(matches[0]?.player_name || q)} — Checked In!\n${gameList}`);
+          setMode('success');
+        } else {
+          // Not on waitlist — still check in but show non-member popup
+          setCheckinIsWaitlisted(false);
+          setSuccessMsg(`✅ ${titleCase(q)} — Checked In!`);
+          setMode('success');
+        }
+      } else {
+        // API failed — still allow check-in
+        setCheckinIsWaitlisted(false);
+        setSuccessMsg(`✅ ${titleCase(q)} — Checked In!`);
+        setMode('success');
+      }
+    } catch (err) {
+      console.error(err);
+      setScanError('Search failed. Please try again.');
+    }
+    finally { setSubmitting(false); }
+  };
+
+  // ── CHECK IN BY PHONE: Search waitlist by phone and check in ──
+  const handlePhoneCheckIn = async () => {
+    const q = checkinPhone.replace(/\D/g, '');
+    if (!q || q.length < 7 || !venueId) return;
+    setSubmitting(true);
+    setScanError('');
+    try {
+      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+        headers: { 'x-staff-session': staffHeader }
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const matches = json.data.filter(entry => {
+          const entryPhone = (entry.player_phone || '').replace(/\D/g, '');
+          return entryPhone && entryPhone.slice(-10) === q.slice(-10) &&
+            entry.status !== 'seated' && !entry.checked_in_at;
+        });
+        if (matches.length > 0) {
+          for (const entry of matches) {
+            await fetch(`/api/commander/waitlist/${entry.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
+              body: JSON.stringify({ checked_in_at: new Date().toISOString() })
+            });
+          }
+          const gameList = matches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
+          setCheckinIsWaitlisted(true);
+          setSuccessMsg(`✅ ${titleCase(matches[0]?.player_name || 'Player')} — Checked In!\n${gameList}`);
+          setMode('success');
+        } else {
+          // Not on waitlist — still check in but show non-member popup
+          setCheckinIsWaitlisted(false);
+          setSuccessMsg(`✅ ${formatPhone(checkinPhone)} — Checked In!`);
+          setMode('success');
+        }
+      } else {
+        setCheckinIsWaitlisted(false);
+        setSuccessMsg(`✅ ${formatPhone(checkinPhone)} — Checked In!`);
+        setMode('success');
+      }
+    } catch (err) {
+      console.error(err);
+      setScanError('Search failed. Please try again.');
     }
     finally { setSubmitting(false); }
   };
@@ -333,7 +441,7 @@ export default function MembershipKiosk() {
             <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%', display: 'flex' }}>
               {/* Background Image — PNG with transparent background */}
               <img
-                src="/images/commander/kiosk-welcome.png?v=4"
+                src="/images/commander/kiosk-welcome.png?v=5"
                 alt="Welcome Kiosk"
                 style={{
                   width: '100%',
@@ -347,10 +455,9 @@ export default function MembershipKiosk() {
               {/* Invisible Hitboxes — positioned relative to the image */}
               {/* Percentages are relative to image dimensions (829x946 after trim) */}
 
-              {/* Check In — Blue button */}
-              {/* Image: y~378-448/946 ≈ 40%-47.4%, centered, width ~65% */}
+              {/* Check In — opens 3-option picker */}
               <button
-                onClick={() => { haptic(); setScanQR(''); setScanError(''); setMode('scan'); }}
+                onClick={() => { haptic(); setMode('checkin_pick'); }}
                 style={{
                   position: 'absolute',
                   top: '39.5%',
@@ -550,8 +657,56 @@ export default function MembershipKiosk() {
               ← Back
             </button>
 
-            {/* ===== SCAN CARD MODE (CHECK-IN) ===== */}
-            {mode === 'scan' && (
+            {/* ===== CHECK-IN: 3-Option Picker ===== */}
+            {mode === 'checkin_pick' && (
+              <div className="w-full max-w-md space-y-5">
+                <div className="text-center mb-2">
+                  <div className="w-20 h-20 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-4">
+                    <UserCheck className="w-10 h-10 text-[#1877F2]" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-white mb-2">Check In</h2>
+                  <p className="text-[#B0B3B8] text-base">Choose how you'd like to check in</p>
+                </div>
+
+                {/* Option 1: Scan Card */}
+                <button
+                  onClick={() => { haptic(); setScanQR(''); setScanError(''); setMode('checkin_scan'); }}
+                  className="w-full py-6 rounded-2xl bg-[#242526] border-2 border-[#1877F2] text-[#E4E6EB] text-xl font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-4"
+                >
+                  <svg className="w-8 h-8 text-[#1877F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                  Scan Player Card
+                </button>
+
+                {/* Option 2: Search by Name */}
+                <button
+                  onClick={() => { haptic(); setCheckinName(''); setScanError(''); setMode('checkin_name'); }}
+                  className="w-full py-6 rounded-2xl bg-[#242526] border-2 border-[#1877F2] text-[#E4E6EB] text-xl font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-4"
+                >
+                  <Search className="w-8 h-8 text-[#1877F2]" />
+                  Search By Name
+                </button>
+
+                {/* Option 3: Search by Phone */}
+                <button
+                  onClick={() => { haptic(); setCheckinPhone(''); setScanError(''); setMode('checkin_phone'); }}
+                  className="w-full py-6 rounded-2xl bg-[#242526] border-2 border-[#1877F2] text-[#E4E6EB] text-xl font-semibold active:bg-[#3A3B3C] flex items-center justify-center gap-4"
+                >
+                  <Phone className="w-8 h-8 text-[#1877F2]" />
+                  Search By Phone
+                </button>
+
+                {/* Not a member yet */}
+                <div className="text-center pt-2">
+                  <button onClick={() => { haptic(); setShowNewMemberPopup(true); }}
+                    className="text-[#B0B3B8] text-base font-medium underline">
+                    Not A Member? Tap Here
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ===== CHECK-IN: Scan Card ===== */}
+            {mode === 'checkin_scan' && (
               <div className="w-full max-w-md space-y-4">
                 <div className="text-center mb-4">
                   <div className="w-20 h-20 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-4">
@@ -584,9 +739,94 @@ export default function MembershipKiosk() {
                 )}
 
                 <div className="text-center pt-2">
-                  <button onClick={() => { fetchGames(); setMode('join_name'); }}
+                  <button onClick={() => setMode('checkin_pick')}
                     className="text-[#1877F2] text-sm font-medium underline">
-                    Search By Name Instead
+                    ← Other Check-In Options
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ===== CHECK-IN: Search by Name ===== */}
+            {mode === 'checkin_name' && (
+              <div className="w-full max-w-md space-y-4">
+                <div className="text-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-10 h-10 text-[#1877F2]" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Check In By Name</h2>
+                  <p className="text-[#B0B3B8] text-sm">Enter your first and last name</p>
+                </div>
+
+                <input
+                  type="text"
+                  value={checkinName}
+                  onChange={e => setCheckinName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleNameCheckIn(); }}
+                  placeholder="First and Last Name"
+                  autoFocus
+                  className="w-full bg-[#3A3B3C] border-2 border-[#1877F2]/50 rounded-xl px-5 py-5 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
+                />
+
+                <button onClick={handleNameCheckIn} disabled={!checkinName.trim() || checkinName.trim().length < 2 || submitting}
+                  className="w-full py-5 rounded-2xl bg-[#1877F2] text-white text-xl font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-6 h-6" />}
+                  Check In
+                </button>
+
+                {scanError && (
+                  <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-4 text-center">
+                    <p className="text-[#EF4444] text-sm font-medium">{scanError}</p>
+                  </div>
+                )}
+
+                <div className="text-center pt-2">
+                  <button onClick={() => setMode('checkin_pick')}
+                    className="text-[#1877F2] text-sm font-medium underline">
+                    ← Other Check-In Options
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ===== CHECK-IN: Search by Phone ===== */}
+            {mode === 'checkin_phone' && (
+              <div className="w-full max-w-md space-y-4">
+                <div className="text-center mb-4">
+                  <div className="w-20 h-20 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-4">
+                    <Phone className="w-10 h-10 text-[#1877F2]" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Check In By Phone</h2>
+                  <p className="text-[#B0B3B8] text-sm">Enter the phone number on your account</p>
+                </div>
+
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={checkinPhone}
+                  onChange={e => setCheckinPhone(liveFormatPhone(e.target.value))}
+                  onKeyDown={e => { if (e.key === 'Enter') handlePhoneCheckIn(); }}
+                  placeholder="555-123-4567"
+                  autoFocus
+                  className="w-full bg-[#3A3B3C] border-2 border-[#1877F2]/50 rounded-xl px-5 py-5 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
+                />
+
+                <button onClick={handlePhoneCheckIn} disabled={checkinPhone.replace(/\D/g, '').length < 7 || submitting}
+                  className="w-full py-5 rounded-2xl bg-[#1877F2] text-white text-xl font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-6 h-6" />}
+                  Check In
+                </button>
+
+                {scanError && (
+                  <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-4 text-center">
+                    <p className="text-[#EF4444] text-sm font-medium">{scanError}</p>
+                  </div>
+                )}
+
+                <div className="text-center pt-2">
+                  <button onClick={() => setMode('checkin_pick')}
+                    className="text-[#1877F2] text-sm font-medium underline">
+                    ← Other Check-In Options
                   </button>
                 </div>
               </div>
@@ -661,9 +901,8 @@ export default function MembershipKiosk() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone (optional — for text alerts)</label>
+                  <label className="text-sm text-[#B0B3B8] mb-1 block">Phone</label>
                   <input type="tel" inputMode="numeric" value={joinPhone} onChange={e => setJoinPhone(liveFormatPhone(e.target.value))}
-                    placeholder="(555) 123-4567"
                     className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#31A24C]" />
                 </div>
 
@@ -730,23 +969,24 @@ export default function MembershipKiosk() {
                 </div>
                 <h2 className="text-2xl font-bold text-white whitespace-pre-line">{successMsg}</h2>
 
-                {/* Membership reminder */}
-                <div style={{
-                  background: 'linear-gradient(145deg, #2a2d30, #1a1c1f)',
-                  border: '1px solid rgba(245,158,11,0.4)',
-                  borderRadius: '16px',
-                  padding: '20px 24px',
-                  marginTop: '16px'
-                }}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <AlertTriangle className="w-6 h-6 text-[#F59E0B] flex-shrink-0" />
-                    <p className="text-lg font-semibold text-[#F59E0B]">Membership Required</p>
+                {/* Membership reminder — only shown when player was NOT found on waitlist */}
+                {!checkinIsWaitlisted && (
+                  <div style={{
+                    background: 'linear-gradient(145deg, #2a2d30, #1a1c1f)',
+                    border: '1px solid rgba(245,158,11,0.4)',
+                    borderRadius: '16px',
+                    padding: '20px 24px',
+                    marginTop: '16px'
+                  }}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <AlertTriangle className="w-6 h-6 text-[#F59E0B] flex-shrink-0" />
+                      <p className="text-lg font-semibold text-[#F59E0B]">Not A Member Yet?</p>
+                    </div>
+                    <p className="text-[#E4E6EB] text-base leading-relaxed">
+                      Please see <span className="text-[#1877F2] font-bold">{venueName || 'venue'}</span> staff to sign up for membership.
+                    </p>
                   </div>
-                  <p className="text-[#E4E6EB] text-base leading-relaxed">
-                    You are checked in, but still need a membership to play.
-                    Please see <span className="text-[#1877F2] font-bold">{venueName || 'venue'}</span> staff to sign up.
-                  </p>
-                </div>
+                )}
 
                 <p className="text-[#B0B3B8] text-sm">This Screen Will Reset Automatically</p>
                 <button onClick={reset}
