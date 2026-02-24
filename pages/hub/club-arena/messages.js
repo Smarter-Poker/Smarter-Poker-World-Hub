@@ -267,7 +267,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 
     return (
         <div style={{ display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: isLastInGroup ? 16 : 2, paddingLeft: isOwn ? 60 : 12, paddingRight: isOwn ? 12 : 60 }}>
-            {!isOwn && (showAvatar ? <Avatar src={sender?.avatar_url} name={sender?.username || sender?.alias} size={28} showOnline={false} /> : <div style={{ width: 28 }} />)}
+            {!isOwn && (showAvatar ? <Avatar src={sender?.avatar_url} name={sender?.username || sender?.display_name} size={28} showOnline={false} /> : <div style={{ width: 28 }} />)}
 
             {imageMatch ? (
                 <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '70%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
@@ -295,9 +295,9 @@ function ConversationItem({ conversation, isActive, onClick }) {
 
     return (
         <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', cursor: 'pointer', background: isActive ? C.hoverBg : 'transparent', borderRadius: 8, margin: '2px 8px', transition: 'background 0.15s' }}>
-            <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.alias} size={56} online={otherUser?.online} />
+            <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={56} online={otherUser?.online} />
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: isUnread ? 600 : 500, fontSize: 15, color: C.text, marginBottom: 2 }}>{otherUser?.alias || otherUser?.username || 'Unknown Player'}</div>
+                <div style={{ fontWeight: isUnread ? 600 : 500, fontSize: 15, color: C.text, marginBottom: 2 }}>{otherUser?.display_name || otherUser?.username || 'Unknown Player'}</div>
                 <div style={{ fontSize: 13, color: isUnread ? C.text : C.textSec, fontWeight: isUnread ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {lastMsg?.slice(0, 35)}{lastMsg?.length > 35 ? '...' : ''}
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
@@ -380,7 +380,7 @@ export default function ClubMessages() {
                 }
 
                 if (authUser) {
-                    const { data: profile } = await supabase.from('profiles').select('id, username, alias, avatar_url').eq('id', authUser.id).single();
+                    const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).single();
                     const fullUser = { ...authUser, ...profile };
                     setUser(fullUser);
                     persistSession(fullUser);
@@ -406,7 +406,7 @@ export default function ClubMessages() {
                 return;
             }
 
-            const { data: profile } = await supabase.from('profiles').select('id, username, alias, avatar_url').eq('id', authUser.id).single();
+            const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).single();
             setUser({ ...authUser, ...profile });
         });
 
@@ -562,7 +562,7 @@ export default function ClubMessages() {
                 event: 'incoming_call',
                 payload: {
                     callerId: user.id,
-                    callerName: user.alias || user.username,
+                    callerName: user.display_name || user.username,
                     callerAvatar: user.avatar_url,
                     callType: type,
                     roomName: roomName,
@@ -578,7 +578,7 @@ export default function ClubMessages() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title: `Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
-                        message: `${user.alias || user.username} is calling you`,
+                        message: `${user.display_name || user.username} is calling you`,
                         url: `https://smarter.poker/hub/club-arena/messages?club=${clubIdParam}`,
                         externalUserIds: [otherUser.id],
                         isCall: true,
@@ -605,7 +605,7 @@ export default function ClubMessages() {
         }
         outgoingRingToneRef.current?.start();
 
-        setToast({ type: 'info', message: `Calling ${otherUser.alias || otherUser.username}...` });
+        setToast({ type: 'info', message: `Calling ${otherUser.display_name || otherUser.username}...` });
     };
 
     const endCall = async () => {
@@ -821,7 +821,7 @@ export default function ClubMessages() {
 
         return (
             <>
-                <Head><title>Chat with {otherUser?.alias || otherUser?.username} | Club Arena</title></Head>
+                <Head><title>Chat with {otherUser?.display_name || otherUser?.username} | Club Arena</title></Head>
                 <div style={{ ...S.page, display: 'flex', flexDirection: 'column', height: '100vh' }}>
                     <UniversalHeader pageDepth={2} />
 
@@ -830,9 +830,9 @@ export default function ClubMessages() {
                         <button onClick={() => setView('list')} style={S.backBtn}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
                         </button>
-                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.alias} size={40} />
+                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username || otherUser?.display_name} size={40} />
                         <div style={{ flex: 1 }}>
-                            <div style={S.chatName}>{otherUser?.alias || otherUser?.username}</div>
+                            <div style={S.chatName}>{otherUser?.display_name || otherUser?.username}</div>
                             <div style={{ fontSize: 12, color: C.textSec }}>Club Member</div>
                         </div>
 
@@ -858,7 +858,7 @@ export default function ClubMessages() {
                         {messages.length === 0 ? (
                             <div style={{ ...S.emptyState, padding: '40px 20px' }}>
                                 <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
-                                <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: C.text }}>{otherUser?.alias || otherUser?.username}</p>
+                                <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: C.text }}>{otherUser?.display_name || otherUser?.username}</p>
                                 <p style={{ fontSize: 14, color: C.textSec }}>Start Your Conversation</p>
                             </div>
                         ) : (
@@ -889,7 +889,7 @@ export default function ClubMessages() {
                             <div style={{ flex: 1 }}>
                                 <div style={{ color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                                     {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
-                                    <span>{callType === 'video' ? 'Video' : 'Voice'} Call with {otherUser?.alias || otherUser?.username}</span>
+                                    <span>{callType === 'video' ? 'Video' : 'Voice'} Call with {otherUser?.display_name || otherUser?.username}</span>
                                 </div>
                             </div>
                         </div>
