@@ -17,12 +17,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
     const { waitlist_id, table_number, seat_number } = req.body;
     if (!waitlist_id || !table_number || !seat_number) {
       return res.status(400).json({ success: false, error: 'waitlist_id, table_number, and seat_number required' });
