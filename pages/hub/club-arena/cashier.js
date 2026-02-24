@@ -235,8 +235,13 @@ export default function Cashier() {
                 .single();
             const currentChips = freshMember?.chip_balance || 0;
 
-            if (amount > currentChips) {
-                showToast(`Max cashout is ${currentChips.toLocaleString()} chips`, 'error');
+            // If 'Cash All', recalculate amount from fresh balance
+            if (cashOutAmount === 'All') {
+                amount = currentChips;
+            }
+
+            if (amount > currentChips || amount <= 0) {
+                showToast(currentChips <= 0 ? 'No chips to cash out' : `Max cashout is ${currentChips.toLocaleString()} chips`, 'error');
                 setProcessing(false);
                 return;
             }
