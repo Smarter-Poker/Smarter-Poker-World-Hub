@@ -9,6 +9,12 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Clock, Users, MapPin, Loader2, Zap, ChevronDown, ChevronUp, X, AlertTriangle, Globe, CheckCircle } from 'lucide-react';
 
+// Capitalize first letter of every word
+function titleCase(str) {
+  if (!str) return '';
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const GAME_LABELS = {
   nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', mixed: 'MIX', limit: 'LHE',
   NLH: 'NLH', PLO: 'PLO', PLO5: 'PLO5', MIXED: 'MIX', LIMIT: 'LHE',
@@ -338,7 +344,7 @@ export default function PlayerWaitlistPage() {
                                   ...S.playerName,
                                   color: isCalled ? '#D4AF37' : isMe ? '#D4AF37' : '#E0E0E0',
                                 }}>
-                                  {player.player_name}
+                                  {titleCase(player.player_name)}
                                 </span>
                                 {isMe && <span style={S.youBadge}>YOU</span>}
                               </span>

@@ -201,9 +201,9 @@ export default function Marketplace() {
             // 3. Try to record chip transaction
             try {
                 await supabase.from('chip_transactions').insert({
-                    user_id: user.id,
+                    from_user_id: user.id,
                     club_id: club.id,
-                    type: 'purchase',
+                    transaction_type: 'purchase',
                     amount: -selectedItem.price,
                     notes: `Purchased: ${selectedItem.name}`,
                 });
