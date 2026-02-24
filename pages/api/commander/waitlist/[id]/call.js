@@ -208,7 +208,7 @@ export default async function handler(req, res) {
     // Send notifications
     const notifications = [];
     const notificationMessage = message ||
-      `Your seat is ready at ${entry.poker_venues?.name || 'the venue'} for ${entry.game_type.toUpperCase()} ${entry.stakes}. Please check in within 5 minutes.`;
+      `Your seat is ready at ${entry.poker_venues?.name || 'the venue'} for ${entry.stakes} ${(entry.game_type || '').toUpperCase()}. Please check in within 5 minutes.`;
 
     // Create notification record
     if (entry.player_id || entry.player_phone) {

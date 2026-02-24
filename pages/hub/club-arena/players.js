@@ -102,7 +102,7 @@ export default function Players() {
                 // Get members with profiles
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles!inner(username, display_name, avatar_url, email, last_seen)')
+                    .select('*, profiles(username, display_name, avatar_url, email, last_seen)')
                     .eq('club_id', clubData.id)
                     .order('created_at', { ascending: true });
 

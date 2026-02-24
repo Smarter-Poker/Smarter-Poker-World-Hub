@@ -104,7 +104,7 @@ export default function Admin() {
                 // Get members
                 const { data: memberData } = await supabase
                     .from('club_members')
-                    .select('*, profiles!inner(username, display_name, avatar_url, email)')
+                    .select('*, profiles(username, display_name, avatar_url, email)')
                     .eq('club_id', clubData.id)
                     .order('role', { ascending: true });
                 setMembers(memberData || []);
@@ -211,8 +211,17 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            // Add chips to member
-            const currentBalance = selectedMember.chip_balance || 0;
+            // Read fresh balance to prevent stale-state overwrites
+            const { data: freshMember, error: fetchError } = await supabase
+                .from('club_members')
+                .select('chip_balance')
+                .eq('club_id', club.id)
+                .eq('user_id', selectedMember.user_id)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const currentBalance = freshMember?.chip_balance || 0;
             const { error } = await supabase
                 .from('club_members')
                 .update({ chip_balance: currentBalance + amount })
