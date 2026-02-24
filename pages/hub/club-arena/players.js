@@ -310,7 +310,7 @@ export default function Players() {
                                 }}
                                 onClick={() => setRoleFilter(r)}
                             >
-                                {r === 'all' ? 'All' : `${ROLE_BADGES[r] || ''} ${r.charAt(0).toUpperCase() + r.slice(1)}`}
+                                {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
                             </button>
                         ))}
                         <select
