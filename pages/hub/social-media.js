@@ -2751,7 +2751,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 return (
                                     <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                         {/* Game Header */}
-                                        <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
+                                        <div style={{ padding: '12px 16px', position: 'relative', zIndex: 10, background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                 <div>
                                                     <div style={{ fontSize: 16, fontWeight: 800 }}>{game.game_name}</div>
@@ -2772,8 +2772,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                             </div>
                                         </div>
 
-                                        {/* Poker Table Visualization — Full Width */}
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10 }}>
+                                        {/* Poker Table Visualization — Full Width (Negative margins crop the empty 5/3 space under header/footer) */}
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: '-8%', marginBottom: '-8%', zIndex: 1 }}>
                                             {/* Table image fills entire container */}
                                             <img
                                                 src="/images/poker-table-black-gold.png"
@@ -3208,7 +3208,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         return (
                             <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                 {/* Game Header */}
-                                <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
+                                <div style={{ padding: '12px 16px', position: 'relative', zIndex: 10, background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                     {/* Interest List banner for non-running games */}
                                     {game.status !== 'running' && (
                                         <div style={{ textAlign: 'center', marginBottom: 6, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>INTEREST LIST</div>
@@ -3232,7 +3232,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Follow-gate / My seat status — above table */}
-                                <div style={{ padding: '0 16px' }}>
+                                <div style={{ padding: '0 16px', position: 'relative', zIndex: 10 }}>
                                     {!canInteract && (
                                         <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 8, textAlign: 'center' }}>
                                             <span style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24' }}>
@@ -3253,8 +3253,8 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                     )}
                                 </div>
 
-                                {/* Poker Table Visualization — Full Width */}
-                                <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10 }}>
+                                {/* Poker Table Visualization — Full Width (Negative margins crop the empty 5/3 space under header/footer) */}
+                                <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: '-8%', marginBottom: '-8%', zIndex: 1 }}>
                                     {/* Table image fills entire container */}
                                     <img
                                         src="/images/poker-table-black-gold.png"
@@ -3445,7 +3445,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                 {/* ── Join Waitlist — Large Centered Button ── */}
                                 {canInteract && !myReservation && (
-                                    <div style={{ padding: '0 16px 10px' }}>
+                                    <div style={{ padding: '0 16px 10px', position: 'relative', zIndex: 10 }}>
                                         <button
                                             onClick={() => handleJoinWaitlist(game.id)}
                                             style={{
