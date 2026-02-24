@@ -441,7 +441,7 @@ export default function MembershipKiosk() {
             <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%', display: 'flex' }}>
               {/* Background Image — PNG with transparent background */}
               <img
-                src="/images/commander/kiosk-welcome.png?v=5"
+                src="/images/commander/kiosk-welcome.png?v=6"
                 alt="Welcome Kiosk"
                 style={{
                   width: '100%',
@@ -970,7 +970,7 @@ export default function MembershipKiosk() {
                       <p className="text-lg font-semibold text-[#F59E0B]">Not A Member Yet?</p>
                     </div>
                     <p className="text-[#E4E6EB] text-base leading-relaxed">
-                      Please see <span className="text-[#1877F2] font-bold">{venueName || 'venue'}</span> staff to sign up for membership.
+                      Please See <span className="text-[#1877F2] font-bold">{venueName || 'Venue'}</span> Staff To Sign Up For Membership.
                     </p>
                   </div>
                 )}

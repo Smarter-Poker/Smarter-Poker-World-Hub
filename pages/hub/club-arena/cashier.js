@@ -167,6 +167,7 @@ export default function Cashier() {
             // 3. Record transaction
             await supabase.from('chip_transactions').insert({
                 from_user_id: user.id,
+                to_user_id: user.id,
                 club_id: club?.id,
                 transaction_type: 'buyin',
                 amount: amount,
@@ -224,6 +225,7 @@ export default function Cashier() {
             // 3. Record transaction
             await supabase.from('chip_transactions').insert({
                 from_user_id: user.id,
+                to_user_id: user.id,
                 club_id: club?.id,
                 transaction_type: 'cashout',
                 amount: -amount,

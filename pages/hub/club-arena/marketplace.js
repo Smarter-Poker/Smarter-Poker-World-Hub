@@ -203,6 +203,7 @@ export default function Marketplace() {
             try {
                 await supabase.from('chip_transactions').insert({
                     from_user_id: user.id,
+                    to_user_id: user.id,
                     club_id: club.id,
                     transaction_type: 'purchase',
                     amount: -selectedItem.price,
