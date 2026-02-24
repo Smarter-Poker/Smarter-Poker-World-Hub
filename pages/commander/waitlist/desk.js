@@ -145,8 +145,6 @@ export default function WaitlistDesk() {
   // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
     setCallLoading(entry.id); setSmsStatus(null);
-    // Optimistic: mark as called immediately
-    setWaitlists(prev => prev.map(e => e.id === entry.id ? { ...e, status: 'called' } : e));
     setSelectedPlayer(null);
     try {
       const token = getToken();
@@ -157,12 +155,21 @@ export default function WaitlistDesk() {
         body: JSON.stringify({ waitlist_id: entry.id })
       });
       const json = await res.json();
+      if (!res.ok || !json.success) {
+        console.error('Call API error:', json);
+        setSmsStatus({ type: 'none', text: json.error?.message || json.error || 'Call failed' });
+        setTimeout(() => setSmsStatus(null), 4000);
+        await fetchData();
+        return;
+      }
+      // Update UI
+      setWaitlists(prev => prev.map(e => e.id === entry.id ? { ...e, status: 'called' } : e));
       if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${titleCase(entry.player_name)}` });
       else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
-      else setSmsStatus({ type: 'none', text: 'Texted — SMS Unavailable' });
+      else setSmsStatus({ type: 'none', text: 'Called — SMS Unavailable' });
       await fetchData();
       setTimeout(() => setSmsStatus(null), 3000);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
     finally { setCallLoading(null); }
   };
 
@@ -175,14 +182,21 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
-      // Remove from UI after successful API call
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        console.error('Seat API error:', json);
+        alert('Seat failed: ' + (json.error?.message || json.error || 'Unknown error'));
+        return;
+      }
+      // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
       setSeatModal(null); setSelectedPlayer(null);
       await fetchData();
-    } catch (err) { console.error('Seat error:', err); await fetchData(); }
+    } catch (err) { console.error('Seat error:', err); alert('Seat failed: ' + err.message); await fetchData(); }
   };
 
   const handlePass = async (entry) => {
+    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
@@ -191,20 +205,25 @@ export default function WaitlistDesk() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
-      if (json.success) {
-        // Move player to bottom of their game column
-        setWaitlists(prev => {
-          const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
-          const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
-          return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
-        });
+      if (!res.ok || !json.success) {
+        console.error('Pass API error:', json);
+        setSmsStatus({ type: 'none', text: 'Pass failed: ' + (json.error?.message || json.error || 'Unknown error') });
+        setTimeout(() => setSmsStatus(null), 4000);
+        await fetchData();
+        return;
       }
-      setSelectedPlayer(null);
+      // Move player to bottom of their game column
+      setWaitlists(prev => {
+        const sameGame = prev.filter(e => e.game_type === entry.game_type && e.stakes === entry.stakes);
+        const maxPos = Math.max(...sameGame.map(e => e.position || 0), 0);
+        return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
+      });
       await fetchData();
     } catch (err) { console.error('Pass error:', err); await fetchData(); }
   };
 
   const handleRemove = async (entry) => {
+    setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
@@ -212,9 +231,16 @@ export default function WaitlistDesk() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
-      // Remove from UI after successful API call
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        console.error('Remove API error:', json);
+        setSmsStatus({ type: 'none', text: 'Delete failed: ' + (json.error?.message || json.error || 'Unknown error') });
+        setTimeout(() => setSmsStatus(null), 4000);
+        await fetchData();
+        return;
+      }
+      // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
-      setSelectedPlayer(null);
       await fetchData();
     } catch (err) { console.error('Remove error:', err); await fetchData(); }
   };
