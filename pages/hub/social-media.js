@@ -2716,10 +2716,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const openSeats = game.max_seats - occupiedCount;
 
                                 // Arc-length parameterized ellipse: equal visual spacing
-                                const cxE = 50;
-                                const cyE = 48; // center Y
-                                const rx = 18; // horizontal radius % (Mapped accurately for container visual bounds)
-                                const ry = 30; // vertical radius %
+                                const rx = 47, ry = 22, cxE = 50, cyE = 50;
                                 const STEPS = 360;
                                 const startAngle = Math.PI / 2; // dealer at bottom (90°)
                                 const cumArc = [0];
@@ -2752,7 +2749,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
 
                                 return (
-                                    <div key={game.id} style={{ background: '#000000', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
+                                    <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                         {/* Game Header */}
                                         <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2776,7 +2773,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         </div>
 
                                         {/* Poker Table Visualization — Full Width */}
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10, background: '#000000' }}>
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
                                             {/* Table image fills entire container */}
                                             <img
                                                 src="/images/poker-table-black-gold.png"
@@ -2831,13 +2828,13 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 const avatarUrl = seat.taken?.avatar_url || null;
                                                 // Direction-aware badge: left-side extends right, right-side extends left
                                                 const leftPct = parseFloat(pos.left);
-                                                const isLeftSide = leftPct < 35; // Covers 32% (50 - rx)
-                                                const isRightSide = leftPct > 65; // Covers 68% (50 + rx)
+                                                const isLeftSide = leftPct < 25;
+                                                const isRightSide = leftPct > 75;
                                                 const badgeTransform = isLeftSide
-                                                    ? 'translate(-12px, -50%)'
+                                                    ? 'translate(-17px, -50%)'
                                                     : isRightSide
-                                                        ? 'translate(calc(-100% + 12px), -50%)'
-                                                        : 'translate(-50%, calc(-100% + 16px))';
+                                                        ? 'translate(calc(-100% + 17px), -50%)'
+                                                        : 'translate(-50%, -50%)';
                                                 const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
                                                 // Timer computation
@@ -2870,17 +2867,17 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                     <div key={seat.number} style={{
                                                         position: 'absolute', top: pos.top, left: pos.left,
                                                         transform: badgeTransform, zIndex: 2,
-                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 8,
+                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
                                                         background: 'rgba(36,37,38,0.9)',
-                                                        borderRadius: 18,
-                                                        padding: '4px 10px 4px 4px',
+                                                        borderRadius: 14,
+                                                        padding: '6px 12px 6px 6px',
                                                         border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
                                                         backdropFilter: 'blur(6px)',
-                                                        minWidth: 70,
+                                                        minWidth: 80,
                                                     }}>
                                                         {/* Avatar circle */}
                                                         <div style={{
-                                                            width: 51, height: 51, borderRadius: '50%', flexShrink: 0,
+                                                            width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             background: isOccupied
                                                                 ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
@@ -2892,19 +2889,19 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                                 avatarUrl ? (
                                                                     <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                                 ) : (
-                                                                    <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                                 )
                                                             ) : (
-                                                                <span style={{ fontSize: 14, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                                                <span style={{ fontSize: 18, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
                                                             )}
                                                         </div>
                                                         {/* Name + Timer text */}
                                                         <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                             <div style={{
-                                                                fontSize: 14, fontWeight: 600, lineHeight: 1.2,
+                                                                fontSize: 16, fontWeight: 600, lineHeight: 1.2,
                                                                 color: isOccupied ? '#E4E6EB' : '#B0B3B8',
                                                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                                maxWidth: 110,
+                                                                maxWidth: 140,
                                                             }}>
                                                                 {isOccupied ? fullName : 'Open'}
                                                             </div>
@@ -3177,10 +3174,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
                         // Arc-length parameterized ellipse: equal visual spacing
-                        const cxE = 50;
-                        const cyE = 48; // center Y
-                        const rx = 18; // horizontal radius %
-                        const ry = 30; // vertical radius %
+                        const rx = 47, ry = 22, cxE = 50, cyE = 50;
                         const STEPS = 360;
                         const startAngle = Math.PI / 2; // dealer at bottom (90°)
                         const cumArc = [0];
@@ -3212,7 +3206,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
 
                         return (
-                            <div key={game.id} style={{ background: '#000000', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
+                            <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                 {/* Game Header */}
                                 <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                     {/* Interest List banner for non-running games */}
@@ -3229,7 +3223,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 {game.status === 'running' ? '🟢 RUNNING' : '🔵 INTEREST LIST'}
                                             </div>
                                             <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-                                                {occupiedCount} / {game.max_seats} seated
+                                                {occupiedCount}/{game.max_seats} seated
                                                 {openSeats > 0 && <span style={{ color: '#86efac', marginLeft: 4 }}>({openSeats} open)</span>}
                                             </div>
                                         </div>
@@ -3260,7 +3254,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Poker Table Visualization — Full Width */}
-                                <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3', marginTop: 10, marginBottom: 10, background: '#000000' }}>
+                                <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
                                     {/* Table image fills entire container */}
                                     <img
                                         src="/images/poker-table-black-gold.png"
@@ -3330,13 +3324,13 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                         // Direction-aware badge: left-side extends right, right-side extends left
                                         const leftPct = parseFloat(pos.left);
-                                        const isLeftSide = leftPct < 35;
-                                        const isRightSide = leftPct > 65;
+                                        const isLeftSide = leftPct < 25;
+                                        const isRightSide = leftPct > 75;
                                         const badgeTransform = isLeftSide
-                                            ? 'translate(-12px, -50%)'
+                                            ? 'translate(-17px, -50%)'
                                             : isRightSide
-                                                ? 'translate(calc(-100% + 12px), -50%)'
-                                                : 'translate(-50%, calc(-100% + 16px))';
+                                                ? 'translate(calc(-100% + 17px), -50%)'
+                                                : 'translate(-50%, -50%)';
                                         const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
                                         // Timer computation
@@ -3378,20 +3372,20 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             <div key={seat.number} style={{
                                                 position: 'absolute', top: pos.top, left: pos.left,
                                                 transform: badgeTransform, zIndex: 2,
-                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 8,
+                                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
                                                 background: 'rgba(36,37,38,0.9)',
-                                                borderRadius: 18,
-                                                padding: '4px 10px 4px 4px',
+                                                borderRadius: 14,
+                                                padding: '6px 12px 6px 6px',
                                                 border: `2px solid ${badgeBorder}`,
                                                 backdropFilter: 'blur(6px)',
                                                 cursor: canClick ? 'pointer' : 'default',
-                                                minWidth: 70,
+                                                minWidth: 80,
                                             }}
                                                 onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
                                             >
                                                 {/* Avatar circle */}
                                                 <div style={{
-                                                    width: 51, height: 51, borderRadius: '50%', flexShrink: 0,
+                                                    width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: isMe
                                                         ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
@@ -3405,14 +3399,14 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 }}>
                                                     {isOccupied ? (
                                                         isMe ? (
-                                                            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>YOU</span>
+                                                            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
                                                         ) : avatarUrl ? (
                                                             <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                                         ) : (
-                                                            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                            <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                         )
                                                     ) : (
-                                                        <span style={{ fontSize: canClick ? 18 : 14, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
+                                                        <span style={{ fontSize: canClick ? 22 : 18, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
                                                             {canClick ? '+' : seat.number}
                                                         </span>
                                                     )}
@@ -3420,10 +3414,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 {/* Name + Timer text */}
                                                 <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                                     <div style={{
-                                                        fontSize: 14, fontWeight: 600, lineHeight: 1.2,
+                                                        fontSize: 16, fontWeight: 600, lineHeight: 1.2,
                                                         color: isMe ? '#4ade80' : isOccupied ? '#E4E6EB' : canClick ? 'rgba(34,197,94,0.5)' : '#B0B3B8',
                                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                        maxWidth: 110,
+                                                        maxWidth: 140,
                                                     }}>
                                                         {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
                                                     </div>
@@ -3443,44 +3437,40 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Waitlist info */}
-                                {
-                                    waitlist.length > 0 && (
-                                        <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
-                                            <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
-                                        </div>
-                                    )
-                                }
+                                {waitlist.length > 0 && (
+                                    <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
+                                        <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
+                                    </div>
+                                )}
 
                                 {/* ── Join Waitlist — Large Centered Button ── */}
-                                {
-                                    canInteract && !myReservation && (
-                                        <div style={{ padding: '12px 16px 16px' }}>
-                                            <button
-                                                onClick={() => handleJoinWaitlist(game.id)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '16px 24px',
-                                                    borderRadius: 12,
-                                                    border: 'none',
-                                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                    color: '#fff',
-                                                    fontSize: 18,
-                                                    fontWeight: 800,
-                                                    cursor: 'pointer',
-                                                    fontFamily: 'inherit',
-                                                    letterSpacing: 1,
-                                                    textTransform: 'uppercase',
-                                                    boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
-                                                    transition: 'transform 0.1s, box-shadow 0.1s',
-                                                }}
-                                                onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
-                                                onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
-                                            >
-                                                Join Waitlist
-                                            </button>
-                                        </div>
-                                    )
-                                }
+                                {canInteract && !myReservation && (
+                                    <div style={{ padding: '12px 16px 16px' }}>
+                                        <button
+                                            onClick={() => handleJoinWaitlist(game.id)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '16px 24px',
+                                                borderRadius: 12,
+                                                border: 'none',
+                                                background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                color: '#fff',
+                                                fontSize: 18,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                letterSpacing: 1,
+                                                textTransform: 'uppercase',
+                                                boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
+                                                transition: 'transform 0.1s, box-shadow 0.1s',
+                                            }}
+                                            onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
+                                            onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
+                                        >
+                                            Join Waitlist
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
