@@ -17,15 +17,15 @@ export default function TournamentResultsReport() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getStaffSession = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const token = getToken();
+        const staffSession = getStaffSession();
         const res = await fetch('/api/commander/tournaments?status=completed&limit=50', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 'x-staff-session': staffSession }
         });
         const json = await res.json();
         if (json.success) {
@@ -42,9 +42,9 @@ export default function TournamentResultsReport() {
     if (expanded === tournamentId) { setExpanded(null); return; }
     setExpanded(tournamentId);
     try {
-      const token = getToken();
+      const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) {
@@ -59,10 +59,10 @@ export default function TournamentResultsReport() {
     <CommanderLayout title="Tournament Results" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
-                title="Commander — Tournament Results"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Tournament Results"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
             <h1 className="text-lg font-bold text-white">Tournament Results</h1>
@@ -127,8 +127,6 @@ export default function TournamentResultsReport() {
             </div>
           )}
         </div>
-        <style jsx>{`
-`}</style>
       </>
     </CommanderLayout>
   );

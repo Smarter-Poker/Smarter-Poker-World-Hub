@@ -129,9 +129,10 @@ export default function PayoutModal({
     setError(null);
 
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${tournament.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
           payout_structure: payouts,
           actual_prizepool: prizePool,
@@ -215,11 +216,10 @@ export default function PayoutModal({
                     setPayingPlaces(num);
                     setCustomPayouts({});
                   }}
-                  className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                    payingPlaces === num
+                  className={`w-10 h-10 rounded-lg font-medium transition-colors ${payingPlaces === num
                       ? 'bg-[#22D3EE] text-white'
                       : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                  }`}
+                    }`}
                 >
                   {num}
                 </button>
@@ -233,9 +233,8 @@ export default function PayoutModal({
               <label className="text-sm font-medium text-white">
                 Payout Structure
               </label>
-              <span className={`text-sm font-medium ${
-                Math.abs(totalPercentage - 100) > 0.5 ? 'text-[#EF4444]' : 'text-[#10B981]'
-              }`}>
+              <span className={`text-sm font-medium ${Math.abs(totalPercentage - 100) > 0.5 ? 'text-[#EF4444]' : 'text-[#10B981]'
+                }`}>
                 Total: {totalPercentage.toFixed(1)}%
               </span>
             </div>
@@ -248,17 +247,15 @@ export default function PayoutModal({
                 return (
                   <div
                     key={payout.position}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${
-                      isPaid ? 'bg-[#10B981]/10' : 'bg-[#0D192E]'
-                    }`}
+                    className={`flex items-center gap-3 p-3 rounded-lg ${isPaid ? 'bg-[#10B981]/10' : 'bg-[#0D192E]'
+                      }`}
                   >
                     <div className="w-8 h-8 bg-[#0B1426] rounded-full flex items-center justify-center">
-                      <Trophy className={`w-4 h-4 ${
-                        payout.position === 1 ? 'text-[#F59E0B]' :
-                        payout.position === 2 ? 'text-[#4A5E78]' :
-                        payout.position === 3 ? 'text-[#B45309]' :
-                        'text-[#64748B]'
-                      }`} />
+                      <Trophy className={`w-4 h-4 ${payout.position === 1 ? 'text-[#F59E0B]' :
+                          payout.position === 2 ? 'text-[#4A5E78]' :
+                            payout.position === 3 ? 'text-[#B45309]' :
+                              'text-[#64748B]'
+                        }`} />
                     </div>
 
                     <div className="flex-1">
@@ -294,11 +291,10 @@ export default function PayoutModal({
                     {finisher && (
                       <button
                         onClick={() => markAsPaid(payout.position)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                          isPaid
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isPaid
                             ? 'bg-[#10B981] text-white'
                             : 'border border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
-                        }`}
+                          }`}
                       >
                         <Check className="w-4 h-4" />
                       </button>

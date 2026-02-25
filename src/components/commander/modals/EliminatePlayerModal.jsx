@@ -44,9 +44,10 @@ export default function EliminatePlayerModal({
     setError(null);
 
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${tournament.id}/eliminate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
           entry_id: selectedEntry.id,
           eliminated_by_id: eliminatedBy?.id || null,
@@ -135,16 +136,15 @@ export default function EliminatePlayerModal({
                     key={entry.id}
                     onClick={() => setSelectedEntry(entry)}
                     disabled={entry.id === eliminatedBy?.id}
-                    className={`w-full p-3 rounded-lg text-left transition-colors flex items-center justify-between ${
-                      selectedEntry?.id === entry.id
+                    className={`w-full p-3 rounded-lg text-left transition-colors flex items-center justify-between ${selectedEntry?.id === entry.id
                         ? 'bg-[#EF4444] text-white'
                         : entry.id === eliminatedBy?.id
-                        ? 'bg-[#0D192E] text-[#4A5E78] cursor-not-allowed'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                    }`}
+                          ? 'bg-[#0D192E] text-[#4A5E78] cursor-not-allowed'
+                          : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      }`}
                   >
                     <span className="font-medium">
-                      {entry.player_name || entry.profiles?.display_name || `Entry #${entry.id.slice(0,8)}`}
+                      {entry.player_name || entry.profiles?.display_name || `Entry #${entry.id.slice(0, 8)}`}
                     </span>
                     {entry.seat_number && (
                       <span className={`text-sm ${selectedEntry?.id === entry.id ? 'text-white/80' : 'text-[#64748B]'}`}>
@@ -166,11 +166,10 @@ export default function EliminatePlayerModal({
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 <button
                   onClick={() => setEliminatedBy(null)}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    !eliminatedBy
+                  className={`w-full p-3 rounded-lg text-left transition-colors ${!eliminatedBy
                       ? 'bg-[#22D3EE] text-white'
                       : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                  }`}
+                    }`}
                 >
                   Not specified
                 </button>
@@ -180,13 +179,12 @@ export default function EliminatePlayerModal({
                     <button
                       key={entry.id}
                       onClick={() => setEliminatedBy(entry)}
-                      className={`w-full p-3 rounded-lg text-left transition-colors ${
-                        eliminatedBy?.id === entry.id
+                      className={`w-full p-3 rounded-lg text-left transition-colors ${eliminatedBy?.id === entry.id
                           ? 'bg-[#22D3EE] text-white'
                           : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                      }`}
+                        }`}
                     >
-                      {entry.player_name || entry.profiles?.display_name || `Entry #${entry.id.slice(0,8)}`}
+                      {entry.player_name || entry.profiles?.display_name || `Entry #${entry.id.slice(0, 8)}`}
                     </button>
                   ))}
               </div>
@@ -201,8 +199,8 @@ export default function EliminatePlayerModal({
                 <span className="font-medium text-white">
                   Finishing position: {activeEntries.length}
                   {activeEntries.length === 1 ? 'st' :
-                   activeEntries.length === 2 ? 'nd' :
-                   activeEntries.length === 3 ? 'rd' : 'th'}
+                    activeEntries.length === 2 ? 'nd' :
+                      activeEntries.length === 3 ? 'rd' : 'th'}
                 </span>
               </div>
             </div>

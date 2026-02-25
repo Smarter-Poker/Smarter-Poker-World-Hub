@@ -26,17 +26,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    // Staff is already validated by guardWriteStaff at the handler level
 
     const { entry_id, eliminated_by_id } = req.body;
 
@@ -55,18 +45,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Tournament not found' });
     }
 
-    // Verify staff access
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id')
-      .eq('venue_id', tournament.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
 
-    if (staffError || !staff) {
-      return res.status(403).json({ error: 'You are not staff at this venue' });
-    }
 
     // Get entry being eliminated
     const { data: entry, error: entryError } = await supabase

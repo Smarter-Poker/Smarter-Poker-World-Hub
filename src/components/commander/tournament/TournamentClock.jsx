@@ -61,12 +61,12 @@ export default function TournamentClock({
   const handleAction = async (action, extra = {}) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('supabase_token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'x-staff-session': staffSession
         },
         body: JSON.stringify({ action, ...extra })
       });
@@ -127,12 +127,11 @@ export default function TournamentClock({
           <h2 className="text-white font-bold text-xl">{tournament.name}</h2>
           <p className="text-[#4A5E78] text-sm">Level {(tournament.current_level || 0) + 1}</p>
         </div>
-        <div className={`px-3 py-1 rounded text-sm font-medium ${
-          tournament.status === 'running' ? 'bg-[#10B981] text-white' :
-          tournament.status === 'paused' ? 'bg-[#F59E0B] text-white' :
-          tournament.status === 'final_table' ? 'bg-[#8B5CF6] text-white' :
-          'bg-[#6B7280] text-white'
-        }`}>
+        <div className={`px-3 py-1 rounded text-sm font-medium ${tournament.status === 'running' ? 'bg-[#10B981] text-white' :
+            tournament.status === 'paused' ? 'bg-[#F59E0B] text-white' :
+              tournament.status === 'final_table' ? 'bg-[#8B5CF6] text-white' :
+                'bg-[#6B7280] text-white'
+          }`}>
           {tournament.status === 'final_table' ? 'Final Table' : tournament.status?.toUpperCase()}
         </div>
       </div>

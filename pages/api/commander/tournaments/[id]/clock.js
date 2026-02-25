@@ -149,23 +149,7 @@ async function getClockState(req, res, tournamentId) {
 
 async function handleClockAction(req, res, tournamentId) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Authorization required' }
-      });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_TOKEN', message: 'Invalid token' }
-      });
-    }
+    // Staff is already validated by guardWriteStaff at the handler level
 
     const { action } = req.body;
 
@@ -180,22 +164,6 @@ async function handleClockAction(req, res, tournamentId) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Tournament not found' }
-      });
-    }
-
-    // Verify staff access
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, role')
-      .eq('venue_id', tournament.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-
-    if (staffError || !staff) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' }
       });
     }
 

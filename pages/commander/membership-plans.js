@@ -279,7 +279,7 @@ export default function MembershipPlansPage() {
           <div className="mp-page-header">
             <div>
               <div className="mp-page-title">Membership Plans</div>
-              <div className="mp-page-sub">Set pricing & perks per tier</div>
+              <div className="mp-page-sub">Set Pricing & Perks Per Tier</div>
             </div>
             <button className="mp-new-btn" onClick={() => startEdit(null)}>
               <Plus size={16} /> New Plan
@@ -299,7 +299,7 @@ export default function MembershipPlansPage() {
             <div className="mp-empty">
               <Crown size={48} style={{ color: '#F59E0B', margin: '0 auto 16px', display: 'block' }} />
               <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>No Membership Plans Yet</div>
-              <div style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Create your first membership tier with pricing and perks</div>
+              <div style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Create Your First Membership Tier With Pricing And Perks</div>
               <button className="mp-new-btn" style={{ margin: '0 auto', justifyContent: 'center' }} onClick={() => startEdit(null)}>
                 <Plus size={16} /> Create First Plan
               </button>
@@ -334,7 +334,7 @@ export default function MembershipPlansPage() {
                         )}
                       </div>
                       <div className="mp-plan-prices">
-                        {prices.length > 0 ? prices.join(' · ') : 'Free tier'}
+                        {prices.length > 0 ? prices.join(' · ') : 'Free Tier'}
                       </div>
                     </div>
                     <div className="mp-chevron">
@@ -351,7 +351,7 @@ export default function MembershipPlansPage() {
 
                       {/* Price Grid — with inline editing */}
                       <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Pricing</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Pricing Rates</div>
                         {!isQ ? (
                           <button className="mp-btn mp-btn-amber" style={{ padding: '4px 12px', fontSize: 12 }}
                             onClick={() => startQuickEdit(plan)}>
@@ -444,7 +444,7 @@ export default function MembershipPlansPage() {
           {!loading && (
             <div className="mp-info" style={{ marginTop: 24 }}>
               <p>
-                <strong style={{ color: '#B0B3B8' }}>How It Works:</strong> Set pricing at any interval you want — daily passes for tourists, weekly for short-term players, monthly for regulars, yearly for VIPs. Leave an interval blank if you don't offer it. Use the <strong style={{ color: '#F59E0B' }}>Edit Prices</strong> button for quick price updates without opening the full editor.
+                <strong style={{ color: '#B0B3B8' }}>How It Works:</strong> Set Pricing At Any Interval You Want — Daily Passes For Tourists, Weekly For Short-Term Players, Monthly For Regulars, Yearly For VIPs. Leave An Interval Blank If You Don't Offer It. Use The <strong style={{ color: '#F59E0B' }}>Edit Prices</strong> Button For Quick Price Updates Without Opening The Full Editor.
               </p>
             </div>
           )}
@@ -457,7 +457,7 @@ export default function MembershipPlansPage() {
           <div className="mp-modal">
             {/* Modal header */}
             <div className="mp-modal-header">
-              <span className="mp-modal-title">{editing === 'new' ? '+ New Membership Plan' : 'Edit Plan'}</span>
+              <span className="mp-modal-title">{editing === 'new' ? '+ New Membership Plan' : 'Edit Plan Details'}</span>
               <button onClick={cancelEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: 4 }}>
                 <X size={20} />
               </button>
@@ -471,7 +471,7 @@ export default function MembershipPlansPage() {
                   <label>Tier Code</label>
                   <input className="mp-input" value={form.tier}
                     onChange={e => f('tier', e.target.value.toLowerCase().replace(/\s/g, '_'))}
-                    placeholder="e.g. gold" />
+                    placeholder="e.g. Gold" />
                 </div>
                 <div className="mp-field">
                   <label>Display Name</label>
@@ -484,7 +484,7 @@ export default function MembershipPlansPage() {
                 <label>Description</label>
                 <input className="mp-input" value={form.description || ''}
                   onChange={e => f('description', e.target.value)}
-                  placeholder="What's included..." />
+                  placeholder="What's Included With This Tier..." />
               </div>
               <div className="mp-field-grid" style={{ marginTop: 12 }}>
                 <div className="mp-field">
@@ -496,7 +496,7 @@ export default function MembershipPlansPage() {
                   </div>
                 </div>
                 <div className="mp-field">
-                  <label>Max Members (blank = ∞)</label>
+                  <label>Max Members (Blank = Unlimited)</label>
                   <input type="number" className="mp-input" value={form.max_members}
                     onChange={e => f('max_members', e.target.value)} placeholder="∞" />
                 </div>
@@ -508,7 +508,7 @@ export default function MembershipPlansPage() {
                 Pricing
               </div>
               <div style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>
-                Leave blank for intervals you don't offer. Default: Daily $5 · Weekly $10 · Monthly $25 · Yearly $199.
+                Leave Blank For Intervals You Don't Offer. Defaults: Daily $5 · Weekly $10 · Monthly $25 · Yearly $199.
               </div>
               <div className="mp-field-grid">
                 {[
@@ -536,12 +536,12 @@ export default function MembershipPlansPage() {
               </div>
               <div className="mp-field-grid">
                 <div className="mp-field">
-                  <label>Override $/hr (blank = default)</label>
+                  <label>Override $/Hr (Blank = Default Rate)</label>
                   <div className="mp-input-prefix">
                     <span className="pfx">$</span>
                     <input type="number" step="0.5" className="mp-input"
                       value={form.seat_fee_override} onChange={e => f('seat_fee_override', e.target.value)}
-                      placeholder="Game rate" />
+                      placeholder="Default Game Rate" />
                   </div>
                 </div>
                 <div className="mp-field">
@@ -561,7 +561,7 @@ export default function MembershipPlansPage() {
                   <label>Comp Multiplier</label>
                   <input type="number" step="0.25" min="0.5" max="5" className="mp-input"
                     value={form.comp_multiplier} onChange={e => f('comp_multiplier', e.target.value)} />
-                  <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>1.0 = normal, 1.5 = 50% bonus</div>
+                  <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>1.0 = Normal, 1.5 = 50% Bonus</div>
                 </div>
                 <div className="mp-field">
                   <label>Tournament Discount %</label>
@@ -577,7 +577,7 @@ export default function MembershipPlansPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
                 {[
-                  { key: 'priority_waitlist', label: 'Priority Waitlist', Icon: Users },
+                  { key: 'priority_waitlist', label: 'Priority Waitlist Access', Icon: Users },
                   { key: 'reserved_seating', label: 'Reserved Seating', Icon: Armchair },
                   { key: 'free_food_drinks', label: 'Free Food & Drinks', Icon: Utensils },
                   { key: 'free_parking', label: 'Free Parking', Icon: Car },
@@ -603,6 +603,7 @@ export default function MembershipPlansPage() {
               <button onClick={handleSave} disabled={saving} className="mp-btn mp-btn-blue" style={{ flex: 2, justifyContent: 'center', padding: '12px' }}>
                 {saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
                 {saving ? 'Saving...' : editing === 'new' ? 'Create Plan' : 'Save Changes'}
+
               </button>
             </div>
           </div>
