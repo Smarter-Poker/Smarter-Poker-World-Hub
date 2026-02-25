@@ -80,12 +80,50 @@ export default function FloorMap() {
       const token = staffData.token || staffData.access_token || localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const vid = staffData.venue_id || venueId || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const [tablesRes, waitlistRes] = await Promise.all([
+      const [tablesRes, waitlistRes, gamesRes] = await Promise.all([
         fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json())
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/games/venue/${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false }))
       ]);
-      const rawTables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.tables || []);
-      if (tablesRes.success) setTables(rawTables);
+      let rawTables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.tables || []);
+
+      // If commander_tables is empty, synthesize table entries from active commander_games
+      const gamesArr = Array.isArray(gamesRes.data?.games) ? gamesRes.data.games
+        : Array.isArray(gamesRes.data) ? gamesRes.data : [];
+      const activeGames = gamesArr.filter(g => g.status === 'running' || g.status === 'waiting');
+
+      if (rawTables.length === 0 && activeGames.length > 0) {
+        // Build virtual table entries from games so the floor map has something to display
+        rawTables = activeGames.map((g, idx) => ({
+          id: g.id,
+          table_number: g.table_number || idx + 1,
+          table_name: g.table_name || null,
+          status: g.status === 'running' ? 'in_use' : 'available',
+          game_type: (g.game_type || 'NLH').toUpperCase(),
+          stakes: g.stakes || '',
+          max_seats: g.max_players || 9,
+          current_players: g.current_players || 0,
+          _fromGame: true, // marker that this came from commander_games
+        }));
+      } else if (rawTables.length > 0 && activeGames.length > 0) {
+        // Enrich existing tables with game data
+        rawTables = rawTables.map(t => {
+          const game = activeGames.find(g => g.table_id === t.id);
+          if (game) {
+            return {
+              ...t,
+              status: 'in_use',
+              game_type: (game.game_type || t.game_type || '').toUpperCase(),
+              stakes: game.stakes || t.stakes || '',
+              current_players: game.current_players || 0,
+            };
+          }
+          return t;
+        });
+      }
+
+      setTables(rawTables);
+
       if (waitlistRes.success) {
         // Group waitlist by game type
         const grouped = {};

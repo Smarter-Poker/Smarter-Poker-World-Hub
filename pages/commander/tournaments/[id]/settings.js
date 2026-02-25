@@ -182,6 +182,7 @@ export default function TournamentSettings() {
   const [addonCost, setAddonCost] = useState(100);
   const [addonChips, setAddonChips] = useState(15000);
   const [lateRegLevels, setLateRegLevels] = useState(6);
+  const [clockColor, setClockColor] = useState('navy');
 
   // Structure
   const [levels, setLevels] = useState([]);
@@ -220,6 +221,7 @@ export default function TournamentSettings() {
           setAddonCost(t.addon_cost || 100);
           setAddonChips(t.addon_chips || 15000);
           setLateRegLevels(t.late_reg_levels || 6);
+          setClockColor(t.clock_color || 'navy');
           setLevels(t.blind_structure || STRUCTURE_TEMPLATES.standard.levels);
           if (t.payout_structure) setPayoutStructure(t.payout_structure);
           if (t.custom_payouts) setCustomPayouts(t.custom_payouts);
@@ -288,6 +290,7 @@ export default function TournamentSettings() {
           rebuy_cost: rebuyCost, rebuy_chips: rebuyChips,
           addon_allowed: addonAllowed, addon_cost: addonCost, addon_chips: addonChips,
           late_reg_levels: lateRegLevels,
+          clock_color: clockColor,
           blind_structure: levels,
           payout_structure: payoutStructure,
           custom_payouts: customPayouts.length > 0 ? customPayouts : null
@@ -351,8 +354,8 @@ export default function TournamentSettings() {
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 -mb-px ${activeTab === tab.key
-                  ? 'text-[#1877F2] border-[#1877F2]'
-                  : 'text-[#B0B3B8] border-transparent'
+                ? 'text-[#1877F2] border-[#1877F2]'
+                : 'text-[#B0B3B8] border-transparent'
                 }`}>
               <tab.icon className="w-4 h-4" /> {tab.label}
             </button>
@@ -483,6 +486,29 @@ export default function TournamentSettings() {
                     <button key={type} onClick={() => setTournamentType(type)}
                       className={`py-2.5 rounded-lg text-sm font-medium capitalize ${tournamentType === type ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
                         }`}>{type}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clock Color */}
+              <div>
+                <label className="text-xs text-[#B0B3B8] uppercase tracking-wider block mb-1">Clock Color</label>
+                <p className="text-[10px] text-[#64748B] mb-2">Assign a unique color to distinguish this tournament's clock display</p>
+                <div className="grid grid-cols-6 gap-2">
+                  {[
+                    { key: 'navy', label: 'Navy', from: '#2C3E6B', to: '#1E2D52' },
+                    { key: 'red', label: 'Red', from: '#6B2C2C', to: '#521E1E' },
+                    { key: 'green', label: 'Green', from: '#2C6B3E', to: '#1E522D' },
+                    { key: 'purple', label: 'Purple', from: '#4B2C6B', to: '#351E52' },
+                    { key: 'gold', label: 'Gold', from: '#6B5C2C', to: '#52451E' },
+                    { key: 'teal', label: 'Teal', from: '#2C5F6B', to: '#1E4852' },
+                  ].map(c => (
+                    <button key={c.key} onClick={() => setClockColor(c.key)}
+                      className={`py-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${clockColor === c.key ? 'ring-2 ring-white ring-offset-2 ring-offset-[#18191A] scale-105' : 'opacity-70 hover:opacity-100'
+                        }`}
+                      style={{ background: `linear-gradient(180deg, ${c.from}, ${c.to})`, color: '#fff' }}>
+                      {c.label}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -639,14 +665,14 @@ export default function TournamentSettings() {
                 {payouts.map(p => (
                   <div key={p.place}
                     className={`flex items-center gap-3 px-4 py-2.5 rounded-lg ${p.place === 1 ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' :
-                        p.place === 2 ? 'bg-white/5 border border-white/10' :
-                          p.place === 3 ? 'bg-[#B87333]/10 border border-[#B87333]/30' :
-                            'bg-[#242526] border border-[#3A3B3C]'
+                      p.place === 2 ? 'bg-white/5 border border-white/10' :
+                        p.place === 3 ? 'bg-[#B87333]/10 border border-[#B87333]/30' :
+                          'bg-[#242526] border border-[#3A3B3C]'
                       }`}>
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${p.place === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
-                        p.place === 2 ? 'bg-white/10 text-white' :
-                          p.place === 3 ? 'bg-[#B87333]/20 text-[#B87333]' :
-                            'bg-[#3A3B3C] text-[#B0B3B8]'
+                      p.place === 2 ? 'bg-white/10 text-white' :
+                        p.place === 3 ? 'bg-[#B87333]/20 text-[#B87333]' :
+                          'bg-[#3A3B3C] text-[#B0B3B8]'
                       }`}>{p.place}</span>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-white">{p.place === 1 ? '1st Place' : p.place === 2 ? '2nd Place' : p.place === 3 ? '3rd Place' : `${p.place}th Place`}</p>

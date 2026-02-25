@@ -50,6 +50,16 @@ const CHIP_DENOMS = [
   { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '$1,000' },
 ];
 
+// Multi-tournament clock color themes — up to 6 concurrent tournaments
+const CLOCK_THEMES = {
+  navy: { gradient: 'linear-gradient(180deg, #2C3E6B 0%, #1E2D52 100%)', accent: '#FFFFFF', headerBg: 'rgba(0,0,0,0.3)' },
+  red: { gradient: 'linear-gradient(180deg, #6B2C2C 0%, #521E1E 100%)', accent: '#FF6B6B', headerBg: 'rgba(0,0,0,0.3)' },
+  green: { gradient: 'linear-gradient(180deg, #2C6B3E 0%, #1E522D 100%)', accent: '#6BFF8B', headerBg: 'rgba(0,0,0,0.3)' },
+  purple: { gradient: 'linear-gradient(180deg, #4B2C6B 0%, #351E52 100%)', accent: '#B06BFF', headerBg: 'rgba(0,0,0,0.3)' },
+  gold: { gradient: 'linear-gradient(180deg, #6B5C2C 0%, #52451E 100%)', accent: '#FFD76B', headerBg: 'rgba(0,0,0,0.3)' },
+  teal: { gradient: 'linear-gradient(180deg, #2C5F6B 0%, #1E4852 100%)', accent: '#6BFFEB', headerBg: 'rgba(0,0,0,0.3)' },
+};
+
 export default function ClockDisplay() {
   const router = useRouter();
   const { id } = router.query;
@@ -114,6 +124,7 @@ export default function ClockDisplay() {
   );
 
   const { tournament: t = {}, clock = {}, stats = {}, alerts = {} } = data;
+  const theme = CLOCK_THEMES[t.clock_color] || CLOCK_THEMES.navy;
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
   const clockState = clock.clock_state || {};
@@ -147,10 +158,10 @@ export default function ClockDisplay() {
         noindex={true}
       />
 
-      <div style={S.container} onClick={goFullscreen}>
+      <div style={{ ...S.container, background: theme.gradient }} onClick={goFullscreen}>
 
         {/* ===== HEADER ===== */}
-        <div style={S.header}>
+        <div style={{ ...S.header, borderBottomColor: theme.accent + '26' }}>
           <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
           <div style={S.headerSub}>
             {formatMoney(t.buyin_amount || 0)} Buy-in
@@ -182,7 +193,7 @@ export default function ClockDisplay() {
             {/* Countdown */}
             <div style={{
               ...S.timer,
-              color: isBreak ? '#F59E0B' : displaySeconds <= 60 ? '#EF4444' : '#FFFFFF'
+              color: isBreak ? '#F59E0B' : displaySeconds <= 60 ? '#EF4444' : theme.accent
             }}>
               {formatClock(displaySeconds)}
             </div>
