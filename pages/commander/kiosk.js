@@ -441,7 +441,7 @@ export default function MembershipKiosk() {
             <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%', display: 'flex' }}>
               {/* Background Image — PNG with transparent background */}
               <img
-                src="/images/commander/kiosk-welcome.png?v=30"
+                src="/images/commander/kiosk-welcome.png?v=31"
                 alt="Welcome Kiosk"
                 style={{
                   width: '100%',
