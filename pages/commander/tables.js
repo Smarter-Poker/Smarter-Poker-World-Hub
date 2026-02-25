@@ -92,11 +92,12 @@ export default function CommanderTablesPage() {
     const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
     // Fetch tables
+    let tablesArr = [];
     try {
       const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       const tablesData = await tablesRes.json();
       if (tablesData.success) {
-        const tablesArr = Array.isArray(tablesData.data) ? tablesData.data
+        tablesArr = Array.isArray(tablesData.data) ? tablesData.data
           : Array.isArray(tablesData.data?.tables) ? tablesData.data.tables
             : [];
         setTables(tablesArr);
@@ -115,13 +116,9 @@ export default function CommanderTablesPage() {
       }
     } catch (err) { console.error('Failed to fetch games:', err); }
 
-    // Fetch sessions per in-use table
+    // Fetch sessions per in-use table (reuse fetched tablesArr)
     try {
-      const tablesRes2 = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
-      const tablesData2 = await tablesRes2.json();
-      const allTables = Array.isArray(tablesData2.data) ? tablesData2.data
-        : Array.isArray(tablesData2.data?.tables) ? tablesData2.data.tables : [];
-      const activeTables = allTables.filter(t => t.status === 'in_use');
+      const activeTables = tablesArr.filter(t => t.status === 'in_use');
       const sessionData = {};
       await Promise.all(activeTables.map(async (t) => {
         try {
