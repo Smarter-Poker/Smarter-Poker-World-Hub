@@ -190,12 +190,7 @@
   padding: 12px 28px;
   background: linear-gradient(180deg, var(--cmd-chrome-dark) 0%, var(--cmd-bg-panel) 50%, var(--cmd-chrome-shadow) 100%);
   border: 3px solid var(--cmd-chrome-mid);
-  clip-path: polygon(
-    20px 0, calc(100% - 20px) 0,
-    100% 50%,
-    calc(100% - 20px) 100%, 20px 100%,
-    0 50%
-  );
+  border-radius: 10px;
   box-shadow:
     inset 0 1px 0 rgba(192, 205, 224, 0.2),
     inset 0 -1px 0 rgba(0, 0, 0, 0.3);
@@ -311,15 +306,10 @@
   text-transform: uppercase;
   letter-spacing: 2px;
   border: 3px solid var(--cmd-chrome-mid);
+  border-radius: 10px;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
-  clip-path: polygon(
-    14px 0, calc(100% - 14px) 0,
-    100% 14px, 100% calc(100% - 14px),
-    calc(100% - 14px) 100%, 14px 100%,
-    0 calc(100% - 14px), 0 14px
-  );
 }
 
 .cmd-btn-primary {

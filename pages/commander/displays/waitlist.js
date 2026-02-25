@@ -87,7 +87,18 @@ export default function WaitlistDisplay() {
       const token = getToken();
       const staffSession = getStaffSession();
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      const vid = staffData.venue_id || '';
+      // Resolve venue_id: check commander_staff first, then commander_venue, then commander_subscription
+      let vid = staffData.venue_id || '';
+      if (!vid) {
+        try { vid = JSON.parse(localStorage.getItem('commander_venue') || '{}').id || ''; } catch { }
+      }
+      if (!vid) {
+        try { vid = JSON.parse(localStorage.getItem('commander_subscription') || '{}').venue_id || ''; } catch { }
+      }
+      // Also get the alternate venue_id (commander_venue.id) in case staff session points to stale venue
+      let altVid = '';
+      try { altVid = String(JSON.parse(localStorage.getItem('commander_venue') || '{}').id || ''); } catch { }
+      if (altVid === String(vid)) altVid = ''; // no need for alternate if same
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Fetch tables
@@ -97,25 +108,48 @@ export default function WaitlistDisplay() {
         const tabJson = await tabRes.json().catch(() => ({}));
         tabData = tabJson.data?.tables || tabJson.data || [];
         if (!Array.isArray(tabData)) tabData = [];
+        // If empty and we have an alternate venue_id, try that
+        if (tabData.length === 0 && altVid) {
+          const tabRes2 = await fetch(`/api/commander/tables?venue_id=${altVid}`, { headers });
+          const tabJson2 = await tabRes2.json().catch(() => ({}));
+          const altTabData = tabJson2.data?.tables || tabJson2.data || [];
+          if (Array.isArray(altTabData) && altTabData.length > 0) tabData = altTabData;
+        }
       } catch { /* non-critical */ }
 
-      // Fetch waitlist — try staff endpoint first, fall back to public
+      // Fetch waitlist — try primary venue, then alternate, then public fallback
       let wlData = [];
       try {
         const wlRes = await fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers });
         const wlJson = await wlRes.json().catch(() => ({}));
-        if (wlJson.success && Array.isArray(wlJson.data)) {
+        if (wlJson.success && Array.isArray(wlJson.data) && wlJson.data.length > 0) {
           wlData = wlJson.data;
-        } else if (vid) {
-          // Fallback: public venue endpoint
-          const pubRes = await fetch(`/api/commander/waitlist/venue/${vid}`);
-          const pubJson = await pubRes.json().catch(() => ({}));
-          const grouped = Array.isArray(pubJson.data?.waitlists) ? pubJson.data.waitlists : [];
-          grouped.forEach(wl => {
-            (Array.isArray(wl.players) ? wl.players : []).forEach(p => {
-              wlData.push({ ...p, game_type: wl.game_type, stakes: wl.stakes });
-            });
-          });
+        } else if (altVid) {
+          // Try alternate venue_id (commander_venue.id)
+          const wlRes2 = await fetch(`/api/commander/waitlist?venue_id=${altVid}`, { headers });
+          const wlJson2 = await wlRes2.json().catch(() => ({}));
+          if (wlJson2.success && Array.isArray(wlJson2.data) && wlJson2.data.length > 0) {
+            wlData = wlJson2.data;
+          }
+        }
+        // If still empty, try public venue endpoints as last resort
+        if (wlData.length === 0) {
+          const tryVids = [vid, altVid].filter(Boolean);
+          for (const tryVid of tryVids) {
+            try {
+              const pubRes = await fetch(`/api/commander/waitlist/venue/${tryVid}`);
+              const pubJson = await pubRes.json().catch(() => ({}));
+              const grouped = Array.isArray(pubJson.data?.waitlists) ? pubJson.data.waitlists : [];
+              if (grouped.length > 0) {
+                grouped.forEach(wl => {
+                  (Array.isArray(wl.players) ? wl.players : []).forEach(p => {
+                    wlData.push({ ...p, game_type: wl.game_type, stakes: wl.stakes });
+                  });
+                });
+                break; // Found data, stop trying
+              }
+            } catch { /* continue to next vid */ }
+          }
         }
       } catch { /* non-critical */ }
 

@@ -1,17 +1,28 @@
 /**
- * Membership Plans — Image-Based Layout
+ * Membership Plans — Image-Based Layout with JS Click Detection
  * /commander/membership-plans
  *
- * Uses the exact mockup image as background.
- * Transparent clickable hotspots over each plan card open inline price editors.
+ * Uses the exact mockup image as the page.
+ * Clicks anywhere on the image are detected via JS — the Y position
+ * relative to the image determines which plan card was tapped.
+ * No CSS-positioned hotspot buttons needed.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Loader2, Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+
+// Card zones in the source image (1024×835px) — measured as percentage of image height
+// Each entry: [topPercent, bottomPercent]
+const CARD_ZONES = {
+  daily: [27, 38],
+  weekly: [39, 51],
+  monthly: [52, 64],
+  yearly: [65, 77],
+};
 
 function getPlanPrice(plan) {
   if (plan.tier === 'daily') return plan.price_daily;
@@ -67,13 +78,32 @@ export default function MembershipPlansPage() {
     setLoading(false);
   }
 
-  function handleCardClick(plan) {
-    if (editingId === plan.id) return;
-    setEditingId(plan.id);
-    const price = getPlanPrice(plan);
-    setEditPrice(price != null ? String(Number(price)) : '');
-    setError(null);
-  }
+  // Map plans by tier
+  const planByTier = {};
+  plans.forEach(p => { planByTier[p.tier] = p; });
+
+  // JS click detection: calculate Y% relative to image, map to card zone
+  const handleImageClick = useCallback((e) => {
+    const img = e.currentTarget;
+    const rect = img.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const yPercent = (clickY / rect.height) * 100;
+
+    // Find which card zone was clicked
+    for (const [tier, [top, bottom]] of Object.entries(CARD_ZONES)) {
+      if (yPercent >= top && yPercent <= bottom) {
+        const plan = planByTier[tier];
+        if (plan) {
+          setEditingId(plan.id);
+          const price = getPlanPrice(plan);
+          setEditPrice(price != null ? String(Number(price)) : '');
+          setError(null);
+        }
+        return;
+      }
+    }
+    // Click was outside any card zone — do nothing
+  }, [planByTier]);
 
   async function savePrice(plan) {
     setSaving(plan.id);
@@ -97,10 +127,6 @@ export default function MembershipPlansPage() {
     setSaving(null);
   }
 
-  // Map plans by tier for easy hotspot access
-  const planByTier = {};
-  plans.forEach(p => { planByTier[p.tier] = p; });
-
   return (
     <CommanderLayout title="Membership Plans" backHref="/commander/dashboard">
       <style jsx>{`
@@ -118,26 +144,9 @@ export default function MembershipPlansPage() {
         .mp-bg-img {
           width: 100%;
           display: block;
-        }
-        /* Transparent hotspot buttons overlaid on each plan card — no hover */
-        .mp-hotspot {
-          position: absolute;
-          left: 6.5%;
-          right: 6.5%;
           cursor: pointer;
-          border: none;
-          background: transparent;
-          border-radius: 8px;
-          outline: none;
-          -webkit-tap-highlight-color: transparent;
         }
-        /* Card positions calculated from 1024×835 source image */
-        .mp-hotspot-daily   { top: 27.5%; height: 9.5%; }
-        .mp-hotspot-weekly  { top: 40.7%; height: 9.5%; }
-        .mp-hotspot-monthly { top: 53.9%; height: 9.5%; }
-        .mp-hotspot-yearly  { top: 67.1%; height: 9.5%; }
-
-        /* Edit modal that appears on click */
+        /* Edit modal */
         .mp-edit-overlay {
           position: fixed;
           inset: 0;
@@ -258,27 +267,14 @@ export default function MembershipPlansPage() {
           </div>
         ) : (
           <div className="mp-container">
-            {/* Background image */}
+            {/* Full-width background image — click detection via JS */}
             <img
               src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/media/commander/membership-plans-bg.jpg"
               alt="Membership Plans"
               className="mp-bg-img"
               draggable={false}
+              onClick={handleImageClick}
             />
-
-            {/* Transparent clickable hotspots over each plan card */}
-            {PLAN_ORDER.map(tier => {
-              const plan = planByTier[tier];
-              if (!plan) return null;
-              return (
-                <button
-                  key={tier}
-                  className={`mp-hotspot mp-hotspot-${tier}`}
-                  onClick={() => handleCardClick(plan)}
-                  aria-label={`Edit ${PLAN_LABELS[tier]} Membership Price`}
-                />
-              );
-            })}
           </div>
         )}
 
