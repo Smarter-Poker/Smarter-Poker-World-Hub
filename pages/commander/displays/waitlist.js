@@ -36,14 +36,43 @@ export default function WaitlistDisplay() {
           'x-staff-session': staffSession
         };
 
-        const [tabRes, wlRes] = await Promise.all([
-          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }),
-          fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers })
-        ]);
-        const tabJson = await tabRes.json();
-        const wlJson = await wlRes.json();
-        if (tabJson.success) setTables(tabJson.data || []);
-        if (wlJson.success) setWaitlists(wlJson.data || []);
+        // Fetch tables
+        let tabData = [];
+        try {
+          const tabRes = await fetch(`/api/commander/tables?venue_id=${vid}`, { headers });
+          const tabJson = await tabRes.json().catch(() => ({}));
+          tabData = Array.isArray(tabJson.data) ? tabJson.data : [];
+        } catch { /* non-critical */ }
+
+        // Fetch waitlist — try staff endpoint first, fall back to public venue endpoint
+        let wlData = [];
+        try {
+          const wlRes = await fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers });
+          // Staff endpoint returns JSON with { success, data: [] }
+          const wlJson = await wlRes.json().catch(() => ({}));
+          if (Array.isArray(wlJson.data)) {
+            wlData = wlJson.data;
+          } else if (vid) {
+            // Fallback: public venue endpoint — returns { success, data: { waitlists: [...grouped] } }
+            // Flatten grouped entries back to individual player records
+            const pubRes = await fetch(`/api/commander/waitlist/venue/${vid}`);
+            const pubJson = await pubRes.json().catch(() => ({}));
+            const grouped = Array.isArray(pubJson.data?.waitlists) ? pubJson.data.waitlists : [];
+            // Flatten: each waitlist has a players array
+            grouped.forEach(wl => {
+              (Array.isArray(wl.players) ? wl.players : []).forEach(p => {
+                wlData.push({
+                  ...p,
+                  game_type: wl.game_type,
+                  stakes: wl.stakes,
+                });
+              });
+            });
+          }
+        } catch { /* non-critical */ }
+
+        setTables(tabData);
+        setWaitlists(wlData);
       } catch (err) { console.error(err); }
       setNow(new Date());
     };
@@ -113,7 +142,7 @@ export default function WaitlistDisplay() {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         @keyframes pulse-called {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
