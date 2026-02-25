@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   CheckCircle2, XCircle, AlertTriangle, Loader2,
-  Users, DollarSign, Clock, Lock, FileText, ChevronRight
+  Users, DollarSign, Clock, Lock, FileText, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -55,9 +55,16 @@ export default function CloseDay() {
         fetch(`/api/commander/reports/daily?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: {} }))
       ]);
 
-      if (tablesRes.data) setTables(tablesRes.data);
-      if (waitlistRes.data) setWaitlistCount(waitlistRes.data.filter(w => w.status === 'waiting').length);
-      if (sessionsRes.data) setActiveSessions(sessionsRes.data.filter(s => s.status === 'active'));
+      // Tables: data may be {tables: []} or array directly
+      const tablesArr = Array.isArray(tablesRes.data) ? tablesRes.data
+        : Array.isArray(tablesRes.data?.tables) ? tablesRes.data.tables : [];
+      setTables(tablesArr);
+      // Waitlist
+      const waitlistArr = Array.isArray(waitlistRes.data) ? waitlistRes.data : [];
+      setWaitlistCount(waitlistArr.filter(w => w.status === 'waiting').length);
+      // Sessions
+      const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
+      setActiveSessions(sessionsArr.filter(s => s.status === 'active'));
       if (reportRes.data) setDayStats(reportRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -130,6 +137,9 @@ export default function CloseDay() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
+          <button onClick={() => router.push('/commander/dashboard')} className="p-1.5 rounded-lg active:bg-[#3A3B3C]">
+            <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+          </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">End Of Day Close</h1>
             <p className="text-xs text-[#B0B3B8]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>

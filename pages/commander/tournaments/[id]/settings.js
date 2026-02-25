@@ -334,7 +334,7 @@ export default function TournamentSettings() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push(`/commander/tournaments/${id}`)}
+            <button onClick={() => router.back()}
               className="p-1.5 rounded-lg hover:bg-[#3A3B3C] transition-colors">
               <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
             </button>

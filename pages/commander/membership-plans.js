@@ -131,11 +131,11 @@ export default function MembershipPlansPage() {
           outline: none;
           -webkit-tap-highlight-color: transparent;
         }
-        /* Precise positions — calibrated from visual overlay test */
-        .mp-hotspot-daily   { top: 27%;   height: 10%; }
-        .mp-hotspot-weekly  { top: 38.5%; height: 10%; }
-        .mp-hotspot-monthly { top: 50%;   height: 10%; }
-        .mp-hotspot-yearly  { top: 61.5%; height: 10%; }
+        /* Card positions calculated from 1024×835 source image */
+        .mp-hotspot-daily   { top: 27.5%; height: 9.5%; }
+        .mp-hotspot-weekly  { top: 40.7%; height: 9.5%; }
+        .mp-hotspot-monthly { top: 53.9%; height: 9.5%; }
+        .mp-hotspot-yearly  { top: 67.1%; height: 9.5%; }
 
         /* Edit modal that appears on click */
         .mp-edit-overlay {

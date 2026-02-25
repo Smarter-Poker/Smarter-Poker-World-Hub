@@ -157,6 +157,7 @@ export default function CommanderStaffPage() {
       <div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-50">
+          <button onClick={() => router.push('/commander/dashboard')} className="p-1.5 rounded-lg active:bg-[#3A3B3C] mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0B3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div>
