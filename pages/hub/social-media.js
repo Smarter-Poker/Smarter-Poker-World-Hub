@@ -2772,217 +2772,217 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                             </div>
                                         </div>
 
-                                        {/* Poker Table Visualization — Full Width (cropped to hide dead space) */}
-                                        <div style={{ overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
-                                            <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', marginTop: '-12%', marginBottom: '-12%' }}>
-                                                {/* Table image fills entire container */}
-                                                <img
-                                                    src="/images/poker-table-black-gold.png"
-                                                    alt="Poker Table"
-                                                    style={{
-                                                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                                        objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                                    }}
-                                                />
+                                        {/* Poker Table Visualization — Full Width */}
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', marginTop: 10, marginBottom: 10 }}>
+                                            {/* Table image fills entire container */}
+                                            <img
+                                                src="/images/poker-table-black-gold.png"
+                                                alt="Poker Table"
+                                                style={{
+                                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                                }}
+                                            />
 
-                                                {/* Game info in center of table */}
-                                                <div style={{
-                                                    position: 'absolute', top: '48%', left: '50%',
-                                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-                                                }}>
-                                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-                                                        {page.name || 'Club'}
-                                                    </div>
-                                                    <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                        {game.table_number || game.game_name}
-                                                    </div>
-                                                    <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
-                                                        ${game.stakes}
-                                                    </div>
+                                            {/* Game info in center of table */}
+                                            <div style={{
+                                                position: 'absolute', top: '48%', left: '50%',
+                                                transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
+                                            }}>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+                                                    {page.name || 'Club'}
                                                 </div>
-
-                                                {/* Dealer seat — on the bottom rail of the table */}
-                                                <div style={{
-                                                    position: 'absolute', top: dealerTop, left: dealerLeft,
-                                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
-                                                }}>
-                                                    <div style={{
-                                                        width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
-                                                        background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                        border: '3px solid #E4E6EB',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                                        fontSize: 32, fontWeight: 900, color: '#fff',
-                                                        letterSpacing: 1,
-                                                    }}>D</div>
-                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {game.dealer_name || 'No Dealer'}
-                                                    </div>
+                                                <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                    {game.table_number || game.game_name}
                                                 </div>
-
-                                                {/* 9 Player seat chips on the table rail */}
-                                                {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
-                                                    const pos = seatPositions[idx];
-                                                    const isOccupied = !!seat.taken;
-                                                    const firstName = seat.taken?.player_name?.split(' ')[0] || '';
-                                                    const fullName = seat.taken?.player_name || '';
-                                                    const avatarUrl = seat.taken?.avatar_url || null;
-                                                    // Direction-aware badge: left-side extends right, right-side extends left
-                                                    const leftPct = parseFloat(pos.left);
-                                                    const isLeftSide = leftPct < 25;
-                                                    const isRightSide = leftPct > 75;
-                                                    const badgeTransform = isLeftSide
-                                                        ? 'translate(-17px, -50%)'
-                                                        : isRightSide
-                                                            ? 'translate(calc(-100% + 17px), -50%)'
-                                                            : 'translate(-50%, -50%)';
-                                                    const badgeDirection = isRightSide ? 'row-reverse' : 'row';
-
-                                                    // Timer computation
-                                                    let timerText = null, timerColor = null;
-                                                    if (isOccupied) {
-                                                        const session = (game.sessions || []).find(s => s.seat_number === seat.number);
-                                                        if (session) {
-                                                            const isTexas = game.venue_type === 'texas';
-                                                            if (isTexas) {
-                                                                const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
-                                                                const mins = Math.floor(rem / 60);
-                                                                const secs = rem % 60;
-                                                                timerText = `${mins}:${String(secs).padStart(2, '0')}`;
-                                                                const isExpired = rem <= 0;
-                                                                const isCritical = rem <= 300 && rem > 0;
-                                                                const isLow = rem <= 900 && rem > 0;
-                                                                timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
-                                                                if (isExpired) timerText = 'EXPIRED';
-                                                            } else {
-                                                                const elapsed = (session.elapsed_seconds || 0) + timerTick;
-                                                                const hrs = Math.floor(elapsed / 3600);
-                                                                const mins = Math.floor((elapsed % 3600) / 60);
-                                                                timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
-                                                                timerColor = '#a78bfa';
-                                                            }
-                                                        }
-                                                    }
-
-                                                    return (
-                                                        <div key={seat.number} style={{
-                                                            position: 'absolute', top: pos.top, left: pos.left,
-                                                            transform: badgeTransform, zIndex: 2,
-                                                            display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
-                                                            background: 'rgba(36,37,38,0.9)',
-                                                            borderRadius: 14,
-                                                            padding: '6px 12px 6px 6px',
-                                                            border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
-                                                            backdropFilter: 'blur(6px)',
-                                                            minWidth: 80,
-                                                        }}>
-                                                            {/* Avatar circle */}
-                                                            <div style={{
-                                                                width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                background: isOccupied
-                                                                    ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
-                                                                    : 'rgba(255,255,255,0.06)',
-                                                                border: `2px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
-                                                                overflow: 'hidden',
-                                                            }}>
-                                                                {isOccupied ? (
-                                                                    avatarUrl ? (
-                                                                        <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                                                                    ) : (
-                                                                        <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
-                                                                    )
-                                                                ) : (
-                                                                    <span style={{ fontSize: 18, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
-                                                                )}
-                                                            </div>
-                                                            {/* Name + Timer text */}
-                                                            <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
-                                                                <div style={{
-                                                                    fontSize: 16, fontWeight: 600, lineHeight: 1.2,
-                                                                    color: isOccupied ? '#E4E6EB' : '#B0B3B8',
-                                                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                                    maxWidth: 140,
-                                                                }}>
-                                                                    {isOccupied ? fullName : 'Open'}
-                                                                </div>
-                                                                {timerText && (
-                                                                    <div style={{
-                                                                        fontSize: 14, fontWeight: 700, color: timerColor,
-                                                                        fontFamily: 'monospace', lineHeight: 1.2,
-                                                                        animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
-                                                                    }}>
-                                                                        {timerText}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
+                                                    ${game.stakes}
+                                                </div>
                                             </div>
 
-                                            {/* Waitlist — Read Only */}
-                                            {waitlist.length > 0 && (
-                                                <div style={{ padding: '8px 16px 12px', background: '#1a1a2e', borderTop: '1px solid #2d2d44' }}>
-                                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Waitlist</div>
-                                                    {waitlist.map((w, i) => (
-                                                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '2px 0', fontSize: 11 }}>
-                                                            <span style={{ color: '#d4d4d8' }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
-                                                        </div>
-                                                    ))}
+                                            {/* Dealer seat — on the bottom rail of the table */}
+                                            <div style={{
+                                                position: 'absolute', top: dealerTop, left: dealerLeft,
+                                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
+                                            }}>
+                                                <div style={{
+                                                    width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
+                                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                    border: '3px solid #E4E6EB',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                                                    fontSize: 32, fontWeight: 900, color: '#fff',
+                                                    letterSpacing: 1,
+                                                }}>D</div>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {game.dealer_name || 'No Dealer'}
                                                 </div>
-                                            )}
+                                            </div>
+
+                                            {/* 9 Player seat chips on the table rail */}
+                                            {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                                                const pos = seatPositions[idx];
+                                                const isOccupied = !!seat.taken;
+                                                const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                                const fullName = seat.taken?.player_name || '';
+                                                const avatarUrl = seat.taken?.avatar_url || null;
+                                                // Direction-aware badge: left-side extends right, right-side extends left
+                                                const leftPct = parseFloat(pos.left);
+                                                const isLeftSide = leftPct < 25;
+                                                const isRightSide = leftPct > 75;
+                                                const badgeTransform = isLeftSide
+                                                    ? 'translate(-17px, -50%)'
+                                                    : isRightSide
+                                                        ? 'translate(calc(-100% + 17px), -50%)'
+                                                        : 'translate(-50%, -50%)';
+                                                const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                                                // Timer computation
+                                                let timerText = null, timerColor = null;
+                                                if (isOccupied) {
+                                                    const session = (game.sessions || []).find(s => s.seat_number === seat.number);
+                                                    if (session) {
+                                                        const isTexas = game.venue_type === 'texas';
+                                                        if (isTexas) {
+                                                            const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
+                                                            const mins = Math.floor(rem / 60);
+                                                            const secs = rem % 60;
+                                                            timerText = `${mins}:${String(secs).padStart(2, '0')}`;
+                                                            const isExpired = rem <= 0;
+                                                            const isCritical = rem <= 300 && rem > 0;
+                                                            const isLow = rem <= 900 && rem > 0;
+                                                            timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
+                                                            if (isExpired) timerText = 'EXPIRED';
+                                                        } else {
+                                                            const elapsed = (session.elapsed_seconds || 0) + timerTick;
+                                                            const hrs = Math.floor(elapsed / 3600);
+                                                            const mins = Math.floor((elapsed % 3600) / 60);
+                                                            timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                                            timerColor = '#a78bfa';
+                                                        }
+                                                    }
+                                                }
+
+                                                return (
+                                                    <div key={seat.number} style={{
+                                                        position: 'absolute', top: pos.top, left: pos.left,
+                                                        transform: badgeTransform, zIndex: 2,
+                                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
+                                                        background: 'rgba(36,37,38,0.9)',
+                                                        borderRadius: 14,
+                                                        padding: '6px 12px 6px 6px',
+                                                        border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
+                                                        backdropFilter: 'blur(6px)',
+                                                        minWidth: 80,
+                                                    }}>
+                                                        {/* Avatar circle */}
+                                                        <div style={{
+                                                            width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            background: isOccupied
+                                                                ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
+                                                                : 'rgba(255,255,255,0.06)',
+                                                            border: `2px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
+                                                            overflow: 'hidden',
+                                                        }}>
+                                                            {isOccupied ? (
+                                                                avatarUrl ? (
+                                                                    <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                                                ) : (
+                                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                                )
+                                                            ) : (
+                                                                <span style={{ fontSize: 18, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                                            )}
+                                                        </div>
+                                                        {/* Name + Timer text */}
+                                                        <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                                                            <div style={{
+                                                                fontSize: 16, fontWeight: 600, lineHeight: 1.2,
+                                                                color: isOccupied ? '#E4E6EB' : '#B0B3B8',
+                                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                                maxWidth: 140,
+                                                            }}>
+                                                                {isOccupied ? fullName : 'Open'}
+                                                            </div>
+                                                            {timerText && (
+                                                                <div style={{
+                                                                    fontSize: 14, fontWeight: 700, color: timerColor,
+                                                                    fontFamily: 'monospace', lineHeight: 1.2,
+                                                                    animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
+                                                                }}>
+                                                                    {timerText}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
+
+                                        {/* Waitlist — Read Only */}
+                                        {waitlist.length > 0 && (
+                                            <div style={{ padding: '8px 16px 12px', background: '#1a1a2e', borderTop: '1px solid #2d2d44' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Waitlist</div>
+                                                {waitlist.map((w, i) => (
+                                                    <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '2px 0', fontSize: 11 }}>
+                                                        <span style={{ color: '#d4d4d8' }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                );
+                                    </div>
+                    );
                             })}
-                        </div>
-                    )
-                    }
                 </div>
-            )}
-
-
-            {/* About Tab */}
-            {
-                activeTab === 'about' && (
-                    <div style={{ background: C.card, borderRadius: 12, padding: 16 }}>
-                        <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>About</h3>
-                        {page.description && <p style={{ margin: '0 0 12px', fontSize: 14, color: C.text, lineHeight: 1.5 }}>{page.description}</p>}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {page.category && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /></svg>
-                                    <span style={{ fontSize: 14, color: C.text }}>{CATEGORY_LABELS[page.category] || page.category}</span>
-                                </div>
-                            )}
-                            {(page.location_city || page.location_state) && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                                    <span style={{ fontSize: 14, color: C.text }}>{[page.location_city, page.location_state].filter(Boolean).join(', ')}</span>
-                                </div>
-                            )}
-                            {page.website && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-                                    <a href={page.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: C.blue }}>{page.website}</a>
-                                </div>
-                            )}
-                            {page.phone && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72" /></svg>
-                                    <span style={{ fontSize: 14, color: C.text }}>{page.phone}</span>
-                                </div>
-                            )}
-                        </div>
-                        <div style={{ marginTop: 16, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
-                            <span style={{ fontSize: 13, color: C.textSec }}>Page created {page.created_at ? new Date(page.created_at).toLocaleDateString() : 'recently'}</span>
-                        </div>
-                    </div>
-                )
+            )
             }
+        </div>
+    )
+}
 
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+{/* About Tab */ }
+{
+    activeTab === 'about' && (
+        <div style={{ background: C.card, borderRadius: 12, padding: 16 }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>About</h3>
+            {page.description && <p style={{ margin: '0 0 12px', fontSize: 14, color: C.text, lineHeight: 1.5 }}>{page.description}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {page.category && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /></svg>
+                        <span style={{ fontSize: 14, color: C.text }}>{CATEGORY_LABELS[page.category] || page.category}</span>
+                    </div>
+                )}
+                {(page.location_city || page.location_state) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                        <span style={{ fontSize: 14, color: C.text }}>{[page.location_city, page.location_state].filter(Boolean).join(', ')}</span>
+                    </div>
+                )}
+                {page.website && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                        <a href={page.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: C.blue }}>{page.website}</a>
+                    </div>
+                )}
+                {page.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72" /></svg>
+                        <span style={{ fontSize: 14, color: C.text }}>{page.phone}</span>
+                    </div>
+                )}
+            </div>
+            <div style={{ marginTop: 16, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 13, color: C.textSec }}>Page created {page.created_at ? new Date(page.created_at).toLocaleDateString() : 'recently'}</span>
+            </div>
+        </div>
+    )
+}
+
+<style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div >
     );
 }
@@ -3225,264 +3225,263 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             <div style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
                                                 {game.status === 'running' ? '🟢 RUNNING' : '🔵 INTEREST LIST'}
                                             </div>
-                                            <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-                                                {occupiedCount}/{game.max_seats} seated
+                                            <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 } >
+                                                { occupiedCount } / { game.max_seats } seated
                                                 {openSeats > 0 && <span style={{ color: '#86efac', marginLeft: 4 }}>({openSeats} open)</span>}
                                             </div>
-                                        </div>
-                                    </div>
-                                    {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
-                                </div>
-
-                                {/* Follow-gate / My seat status — above table */}
-                                <div style={{ padding: '0 16px' }}>
-                                    {!canInteract && (
-                                        <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 8, textAlign: 'center' }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24' }}>
-                                                {followStatus === 'pending' ? '⏳ Approval pending — you can view but not join yet' : '🔒 Follow this page to sign up for games'}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {myReservation && (
-                                        <div style={{ marginBottom: 8, padding: '8px 12px', borderRadius: 8, background: myReservation.status === 'waitlist' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)', border: `1px solid ${myReservation.status === 'waitlist' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
-                                                {myReservation.status === 'waitlist'
-                                                    ? `📋 You're #${myReservation.waitlist_position} on the waitlist`
-                                                    : `✅ You have Seat ${myReservation.seat_number}`}
-                                            </span>
-                                            <button onClick={() => handleLeave(game.id)} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#F02849', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Leave</button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Poker Table Visualization — Full Width (cropped to hide dead space) */}
-                                <div style={{ overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
-                                    <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', marginTop: '-12%', marginBottom: '-12%' }}>
-                                        {/* Table image fills entire container */}
-                                        <img
-                                            src="/images/poker-table-black-gold.png"
-                                            alt="Poker Table"
-                                            style={{
-                                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                                objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                            }}
-                                        />
-
-                                        {/* Game info in center of table */}
-                                        <div style={{
-                                            position: 'absolute', top: '48%', left: '50%',
-                                            transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
-                                        }}>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-                                                {pageName || 'Club'}
-                                            </div>
-                                            <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                {game.table_number || game.game_name}
-                                            </div>
-                                            <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
-                                                ${game.stakes}
-                                            </div>
-                                            {canInteract && !myReservation && (
-                                                <div style={{ fontSize: 11, color: game.status === 'running' ? '#93c5fd' : '#86efac', marginTop: 6, fontWeight: 600 }}>
-                                                    {game.status === 'running' ? 'JOIN WAITLIST' : 'TAP A SEAT TO RESERVE'}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Dealer seat — on the bottom rail of the table (clickable → Dealer Tablet) */}
-                                        <div style={{
-                                            position: 'absolute', top: dealerTop, left: dealerLeft,
-                                            transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
-                                            cursor: 'pointer',
-                                        }}
-                                            onClick={() => window.open(`/commander/dealer/${game.table_number || 1}`, '_blank')}
-                                        >
-                                            <div style={{
-                                                width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
-                                                background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                border: '3px solid #E4E6EB',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                                fontSize: 32, fontWeight: 900, color: '#fff',
-                                                letterSpacing: 1,
-                                                transition: 'transform 0.15s',
-                                            }}>D</div>
-                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {game.dealer_name || 'No Dealer'}
-                                            </div>
-                                        </div>
-
-                                        {/* 9 Player seat chips on the table rail */}
-                                        {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
-                                            const pos = seatPositions[idx];
-                                            const isOccupied = !!seat.taken;
-                                            const isMe = seat.taken?.player_name === playerName.trim();
-                                            const firstName = seat.taken?.player_name?.split(' ')[0] || '';
-                                            const fullName = seat.taken?.player_name || '';
-                                            const avatarUrl = seat.taken?.avatar_url || null;
-                                            // Players can only click seats if game is NOT running (interest list / signup)
-                                            // Running games require joining the waitlist instead
-                                            const isRunning = game.status === 'running';
-                                            const canClick = canInteract && !isOccupied && !myReservation && !isRunning;
-
-                                            // Direction-aware badge: left-side extends right, right-side extends left
-                                            const leftPct = parseFloat(pos.left);
-                                            const isLeftSide = leftPct < 25;
-                                            const isRightSide = leftPct > 75;
-                                            const badgeTransform = isLeftSide
-                                                ? 'translate(-17px, -50%)'
-                                                : isRightSide
-                                                    ? 'translate(calc(-100% + 17px), -50%)'
-                                                    : 'translate(-50%, -50%)';
-                                            const badgeDirection = isRightSide ? 'row-reverse' : 'row';
-
-                                            // Timer computation
-                                            let timerText = null, timerColor = null;
-                                            if (isOccupied) {
-                                                const session = (game.sessions || []).find(s => s.seat_number === seat.number);
-                                                if (session) {
-                                                    const isTexas = game.venue_type === 'texas';
-                                                    if (isTexas) {
-                                                        const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
-                                                        const mins = Math.floor(rem / 60);
-                                                        const secs = rem % 60;
-                                                        timerText = `${mins}:${String(secs).padStart(2, '0')}`;
-                                                        const isExpired = rem <= 0;
-                                                        const isCritical = rem <= 300 && rem > 0;
-                                                        const isLow = rem <= 900 && rem > 0;
-                                                        timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
-                                                        if (isExpired) timerText = 'EXPIRED';
-                                                    } else {
-                                                        const elapsed = (session.elapsed_seconds || 0) + timerTick;
-                                                        const hrs = Math.floor(elapsed / 3600);
-                                                        const mins = Math.floor((elapsed % 3600) / 60);
-                                                        timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
-                                                        timerColor = '#a78bfa';
-                                                    }
-                                                }
-                                            }
-
-                                            // Badge border color (Facebook dark)
-                                            const badgeBorder = isMe
-                                                ? 'rgba(74,222,128,0.6)'
-                                                : isOccupied
-                                                    ? 'rgba(24,119,242,0.5)'
-                                                    : canClick
-                                                        ? 'rgba(34,197,94,0.3)'
-                                                        : 'rgba(62,64,66,0.6)';
-
-                                            return (
-                                                <div key={seat.number} style={{
-                                                    position: 'absolute', top: pos.top, left: pos.left,
-                                                    transform: badgeTransform, zIndex: 2,
-                                                    display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
-                                                    background: 'rgba(36,37,38,0.9)',
-                                                    borderRadius: 14,
-                                                    padding: '6px 12px 6px 6px',
-                                                    border: `2px solid ${badgeBorder}`,
-                                                    backdropFilter: 'blur(6px)',
-                                                    cursor: canClick ? 'pointer' : 'default',
-                                                    minWidth: 80,
-                                                }}
-                                                    onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
-                                                >
-                                                    {/* Avatar circle */}
-                                                    <div style={{
-                                                        width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        background: isMe
-                                                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                                                            : isOccupied
-                                                                ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
-                                                                : canClick
-                                                                    ? 'rgba(34,197,94,0.15)'
-                                                                    : 'rgba(255,255,255,0.06)',
-                                                        border: `2px solid ${isMe ? '#4ade80' : isOccupied ? '#1877F2' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(62,64,66,0.5)'}`,
-                                                        overflow: 'hidden',
-                                                    }}>
-                                                        {isOccupied ? (
-                                                            isMe ? (
-                                                                <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
-                                                            ) : avatarUrl ? (
-                                                                <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                                                            ) : (
-                                                                <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
-                                                            )
-                                                        ) : (
-                                                            <span style={{ fontSize: canClick ? 22 : 18, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
-                                                                {canClick ? '+' : seat.number}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {/* Name + Timer text */}
-                                                    <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
-                                                        <div style={{
-                                                            fontSize: 16, fontWeight: 600, lineHeight: 1.2,
-                                                            color: isMe ? '#4ade80' : isOccupied ? '#E4E6EB' : canClick ? 'rgba(34,197,94,0.5)' : '#B0B3B8',
-                                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                            maxWidth: 140,
-                                                        }}>
-                                                            {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
-                                                        </div>
-                                                        {timerText && (
-                                                            <div style={{
-                                                                fontSize: 14, fontWeight: 700, color: timerColor,
-                                                                fontFamily: 'monospace', lineHeight: 1.2,
-                                                                animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
-                                                            }}>
-                                                                {timerText}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
                                     </div>
                                 </div>
+                                {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
+                            </div>
 
-                                {/* Waitlist info */}
-                                {waitlist.length > 0 && (
-                                    <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
-                                        <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
-                                    </div>
-                                )}
+                                {/* Follow-gate / My seat status — above table */ }
+                        <div style={{ padding: '0 16px' }}>
+                            {!canInteract && (
+                                <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 8, textAlign: 'center' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24' }}>
+                                        {followStatus === 'pending' ? '⏳ Approval pending — you can view but not join yet' : '🔒 Follow this page to sign up for games'}
+                                    </span>
+                                </div>
+                            )}
 
-                                {/* ── Join Waitlist — Large Centered Button ── */}
+                            {myReservation && (
+                                <div style={{ marginBottom: 8, padding: '8px 12px', borderRadius: 8, background: myReservation.status === 'waitlist' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)', border: `1px solid ${myReservation.status === 'waitlist' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+                                        {myReservation.status === 'waitlist'
+                                            ? `📋 You're #${myReservation.waitlist_position} on the waitlist`
+                                            : `✅ You have Seat ${myReservation.seat_number}`}
+                                    </span>
+                                    <button onClick={() => handleLeave(game.id)} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#F02849', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Leave</button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Poker Table Visualization — Full Width */ }
+                        <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', marginTop: 10, marginBottom: 10 }}>
+                            {/* Table image fills entire container */}
+                            <img
+                                src="/images/poker-table-black-gold.png"
+                                alt="Poker Table"
+                                style={{
+                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                }}
+                            />
+
+                            {/* Game info in center of table */}
+                            <div style={{
+                                position: 'absolute', top: '48%', left: '50%',
+                                transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
+                            }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+                                    {pageName || 'Club'}
+                                </div>
+                                <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                    {game.table_number || game.game_name}
+                                </div>
+                                <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
+                                    ${game.stakes}
+                                </div>
                                 {canInteract && !myReservation && (
-                                    <div style={{ padding: '12px 16px 16px' }}>
-                                        <button
-                                            onClick={() => handleJoinWaitlist(game.id)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '16px 24px',
-                                                borderRadius: 12,
-                                                border: 'none',
-                                                background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                color: '#fff',
-                                                fontSize: 18,
-                                                fontWeight: 800,
-                                                cursor: 'pointer',
-                                                fontFamily: 'inherit',
-                                                letterSpacing: 1,
-                                                textTransform: 'uppercase',
-                                                boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
-                                                transition: 'transform 0.1s, box-shadow 0.1s',
-                                            }}
-                                            onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
-                                            onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
-                                        >
-                                            Join Waitlist
-                                        </button>
+                                    <div style={{ fontSize: 11, color: game.status === 'running' ? '#93c5fd' : '#86efac', marginTop: 6, fontWeight: 600 }}>
+                                        {game.status === 'running' ? 'JOIN WAITLIST' : 'TAP A SEAT TO RESERVE'}
                                     </div>
                                 )}
                             </div>
-                        );
-                    })}
+
+                            {/* Dealer seat — on the bottom rail of the table (clickable → Dealer Tablet) */}
+                            <div style={{
+                                position: 'absolute', top: dealerTop, left: dealerLeft,
+                                transform: 'translate(-50%, -50%)', textAlign: 'center', width: 90, zIndex: 3,
+                                cursor: 'pointer',
+                            }}
+                                onClick={() => window.open(`/commander/dealer/${game.table_number || 1}`, '_blank')}
+                            >
+                                <div style={{
+                                    width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
+                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                    border: '3px solid #E4E6EB',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                                    fontSize: 32, fontWeight: 900, color: '#fff',
+                                    letterSpacing: 1,
+                                    transition: 'transform 0.15s',
+                                }}>D</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {game.dealer_name || 'No Dealer'}
+                                </div>
+                            </div>
+
+                            {/* 9 Player seat chips on the table rail */}
+                            {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                                const pos = seatPositions[idx];
+                                const isOccupied = !!seat.taken;
+                                const isMe = seat.taken?.player_name === playerName.trim();
+                                const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                const fullName = seat.taken?.player_name || '';
+                                const avatarUrl = seat.taken?.avatar_url || null;
+                                // Players can only click seats if game is NOT running (interest list / signup)
+                                // Running games require joining the waitlist instead
+                                const isRunning = game.status === 'running';
+                                const canClick = canInteract && !isOccupied && !myReservation && !isRunning;
+
+                                // Direction-aware badge: left-side extends right, right-side extends left
+                                const leftPct = parseFloat(pos.left);
+                                const isLeftSide = leftPct < 25;
+                                const isRightSide = leftPct > 75;
+                                const badgeTransform = isLeftSide
+                                    ? 'translate(-17px, -50%)'
+                                    : isRightSide
+                                        ? 'translate(calc(-100% + 17px), -50%)'
+                                        : 'translate(-50%, -50%)';
+                                const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                                // Timer computation
+                                let timerText = null, timerColor = null;
+                                if (isOccupied) {
+                                    const session = (game.sessions || []).find(s => s.seat_number === seat.number);
+                                    if (session) {
+                                        const isTexas = game.venue_type === 'texas';
+                                        if (isTexas) {
+                                            const rem = Math.max(0, (session.time_remaining || 0) - timerTick);
+                                            const mins = Math.floor(rem / 60);
+                                            const secs = rem % 60;
+                                            timerText = `${mins}:${String(secs).padStart(2, '0')}`;
+                                            const isExpired = rem <= 0;
+                                            const isCritical = rem <= 300 && rem > 0;
+                                            const isLow = rem <= 900 && rem > 0;
+                                            timerColor = isExpired ? '#ef4444' : isCritical ? '#ef4444' : isLow ? '#f59e0b' : '#22c55e';
+                                            if (isExpired) timerText = 'EXPIRED';
+                                        } else {
+                                            const elapsed = (session.elapsed_seconds || 0) + timerTick;
+                                            const hrs = Math.floor(elapsed / 3600);
+                                            const mins = Math.floor((elapsed % 3600) / 60);
+                                            timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                            timerColor = '#a78bfa';
+                                        }
+                                    }
+                                }
+
+                                // Badge border color (Facebook dark)
+                                const badgeBorder = isMe
+                                    ? 'rgba(74,222,128,0.6)'
+                                    : isOccupied
+                                        ? 'rgba(24,119,242,0.5)'
+                                        : canClick
+                                            ? 'rgba(34,197,94,0.3)'
+                                            : 'rgba(62,64,66,0.6)';
+
+                                return (
+                                    <div key={seat.number} style={{
+                                        position: 'absolute', top: pos.top, left: pos.left,
+                                        transform: badgeTransform, zIndex: 2,
+                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
+                                        background: 'rgba(36,37,38,0.9)',
+                                        borderRadius: 14,
+                                        padding: '6px 12px 6px 6px',
+                                        border: `2px solid ${badgeBorder}`,
+                                        backdropFilter: 'blur(6px)',
+                                        cursor: canClick ? 'pointer' : 'default',
+                                        minWidth: 80,
+                                    }}
+                                        onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
+                                    >
+                                        {/* Avatar circle */}
+                                        <div style={{
+                                            width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: isMe
+                                                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                                : isOccupied
+                                                    ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
+                                                    : canClick
+                                                        ? 'rgba(34,197,94,0.15)'
+                                                        : 'rgba(255,255,255,0.06)',
+                                            border: `2px solid ${isMe ? '#4ade80' : isOccupied ? '#1877F2' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(62,64,66,0.5)'}`,
+                                            overflow: 'hidden',
+                                        }}>
+                                            {isOccupied ? (
+                                                isMe ? (
+                                                    <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
+                                                ) : avatarUrl ? (
+                                                    <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                                ) : (
+                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                                )
+                                            ) : (
+                                                <span style={{ fontSize: canClick ? 22 : 18, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : '#B0B3B8' }}>
+                                                    {canClick ? '+' : seat.number}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {/* Name + Timer text */}
+                                        <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                                            <div style={{
+                                                fontSize: 16, fontWeight: 600, lineHeight: 1.2,
+                                                color: isMe ? '#4ade80' : isOccupied ? '#E4E6EB' : canClick ? 'rgba(34,197,94,0.5)' : '#B0B3B8',
+                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                maxWidth: 140,
+                                            }}>
+                                                {isMe ? 'You' : isOccupied ? fullName : canClick ? 'Reserve' : 'Open'}
+                                            </div>
+                                            {timerText && (
+                                                <div style={{
+                                                    fontSize: 14, fontWeight: 700, color: timerColor,
+                                                    fontFamily: 'monospace', lineHeight: 1.2,
+                                                    animation: timerColor === '#ef4444' ? 'pulse 1s infinite' : 'none',
+                                                }}>
+                                                    {timerText}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                                </div>
+
+                                {/* Waitlist info */}
+            {waitlist.length > 0 && (
+                <div style={{ padding: '6px 16px', fontSize: 11, color: '#a1a1aa' }}>
+                    <span style={{ fontWeight: 600, color: '#1877F2' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>
                 </div>
+            )}
+
+            {/* ── Join Waitlist — Large Centered Button ── */}
+            {canInteract && !myReservation && (
+                <div style={{ padding: '12px 16px 16px' }}>
+                    <button
+                        onClick={() => handleJoinWaitlist(game.id)}
+                        style={{
+                            width: '100%',
+                            padding: '16px 24px',
+                            borderRadius: 12,
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                            color: '#fff',
+                            fontSize: 18,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            letterSpacing: 1,
+                            textTransform: 'uppercase',
+                            boxShadow: '0 4px 14px rgba(24,119,242,0.4)',
+                            transition: 'transform 0.1s, box-shadow 0.1s',
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(24,119,242,0.5)'; }}
+                        onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.4)'; }}
+                    >
+                        Join Waitlist
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+})}
+                </div >
             )
             }
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+<style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div >
     );
 }
