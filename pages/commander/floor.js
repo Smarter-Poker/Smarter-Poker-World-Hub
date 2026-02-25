@@ -46,29 +46,40 @@ export default function FloorMap() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, active, open, closed
   const [now, setNow] = useState(new Date());
+  const [staff, setStaff] = useState(null);
+  const [venueId, setVenueId] = useState(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
-
+  // Auth guard — extract token from commander_staff JSON
   useEffect(() => {
+    const storedStaff = localStorage.getItem('commander_staff');
+    if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
+    try {
+      const staffData = JSON.parse(storedStaff);
+      if (!staffData.venue_id) { router.push('/commander/login').catch(() => { }); return; }
+      setStaff(staffData);
+      setVenueId(staffData.venue_id);
+    } catch { router.push('/commander/login').catch(() => { }); }
+  }, [router]);
+
+  // Start polling + realtime after auth is confirmed
+  useEffect(() => {
+    if (!venueId) return;
     fetchAll();
-    const poll = setInterval(fetchAll, 30000); // 30s fallback — realtime handles instant updates
+    const poll = setInterval(fetchAll, 30000);
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  }, [venueId]);
 
   // Realtime: instant table/game updates
-  const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
   useRealtimeUpdates(venueId, () => fetchAll(), !!venueId);
 
   const fetchAll = async () => {
     try {
-      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
+      const staffData = JSON.parse(staffSession || '{}');
+      const token = staffData.token || staffData.access_token || localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const vid = staffData.venue_id || venueId || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const vid = venueId || '';
       const [tablesRes, waitlistRes] = await Promise.all([
         fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()),
         fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json())
