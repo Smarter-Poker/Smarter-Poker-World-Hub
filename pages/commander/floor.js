@@ -78,7 +78,8 @@ export default function FloorMap() {
       if (waitlistRes.success) {
         // Group waitlist by game type
         const grouped = {};
-        (waitlistRes.data || []).filter(w => w.status === 'waiting').forEach(w => {
+        const waitlistArr = Array.isArray(waitlistRes.data) ? waitlistRes.data : [];
+        waitlistArr.filter(w => w.status === 'waiting').forEach(w => {
           const game = w.game_type || 'Unknown';
           grouped[game] = (grouped[game] || 0) + 1;
         });

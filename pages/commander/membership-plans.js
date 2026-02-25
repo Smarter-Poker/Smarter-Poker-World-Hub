@@ -1,21 +1,17 @@
 /**
- * Membership Plans — Futuristic Metal UI
+ * Membership Plans — Image-Based Layout
  * /commander/membership-plans
  *
- * 4 interval plans: Daily $5, Weekly $10, Monthly $25, Yearly $199
- * Click any card to expand inline price editor.
+ * Uses the exact mockup image as background.
+ * Transparent clickable hotspots over each plan card open inline price editors.
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Loader2, Save, X, Check } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
-const PLAN_META = {
-  daily: { color: '#22D3EE', starBg: 'linear-gradient(135deg, #1a8fa8, #22D3EE)', label: 'Daily', period: '/Day', badgeGrad: 'linear-gradient(135deg, #1a8fa8, #22D3EE)' },
-  weekly: { color: '#31A24C', starBg: 'linear-gradient(135deg, #1e7a34, #31A24C)', label: 'Weekly', period: '/Wk', badgeGrad: 'linear-gradient(135deg, #1e7a34, #31A24C)' },
-  monthly: { color: '#F59E0B', starBg: 'linear-gradient(135deg, #c27d08, #F59E0B)', label: 'Monthly', period: '/Mo', badgeGrad: 'linear-gradient(135deg, #c27d08, #F59E0B)' },
-  yearly: { color: '#8B5CF6', starBg: 'linear-gradient(135deg, #6d3fd4, #8B5CF6)', label: 'Yearly', period: '/Yr', badgeGrad: 'linear-gradient(135deg, #6d3fd4, #8B5CF6)' },
-};
+const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
+const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 
 function getPlanPrice(plan) {
   if (plan.tier === 'daily') return plan.price_daily;
@@ -64,8 +60,7 @@ export default function MembershipPlansPage() {
       const data = await res.json();
       if (data.success) {
         const p = data.data.plans || [];
-        const order = ['daily', 'weekly', 'monthly', 'yearly'];
-        p.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
+        p.sort((a, b) => PLAN_ORDER.indexOf(a.tier) - PLAN_ORDER.indexOf(b.tier));
         setPlans(p);
       }
     } catch { setError('Failed To Load Plans'); }
@@ -73,7 +68,7 @@ export default function MembershipPlansPage() {
   }
 
   function handleCardClick(plan) {
-    if (editingId === plan.id) return; // already editing
+    if (editingId === plan.id) return;
     setEditingId(plan.id);
     const price = getPlanPrice(plan);
     setEditPrice(price != null ? String(Number(price)) : '');
@@ -102,180 +97,97 @@ export default function MembershipPlansPage() {
     setSaving(null);
   }
 
+  // Map plans by tier for easy hotspot access
+  const planByTier = {};
+  plans.forEach(p => { planByTier[p.tier] = p; });
+
   return (
     <CommanderLayout title="Membership Plans" backHref="/commander/dashboard">
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700;800&display=swap');
-
         .mp-page {
           min-height: 100vh;
-          background: linear-gradient(180deg, #1c1c24 0%, #141418 40%, #0f0f12 100%);
+          background: #0f0f0f;
           font-family: 'Inter', sans-serif;
-          padding: 0 0 80px;
-        }
-
-        /* ── Outer metal frame ── */
-        .mp-frame {
-          max-width: 620px;
-          margin: 0 auto;
-          padding: 28px 16px;
-        }
-
-        .mp-panel {
-          background: linear-gradient(180deg, #2a2a32 0%, #1e1e26 50%, #1a1a22 100%);
-          border: 2px solid #3a3a44;
-          border-radius: 20px;
-          padding: 32px 24px;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.06),
-            0 8px 32px rgba(0,0,0,0.6),
-            0 0 0 1px rgba(0,0,0,0.3);
-          position: relative;
-          overflow: hidden;
-        }
-
-        /* Corner accent lines */
-        .mp-panel::before {
-          content: '';
-          position: absolute;
-          top: 12px; left: 20px; right: 60%;
-          height: 2px;
-          background: linear-gradient(90deg, #555 0%, transparent 100%);
-          border-radius: 1px;
-        }
-        .mp-panel::after {
-          content: '';
-          position: absolute;
-          top: 12px; right: 20px;
-          width: 40px; height: 2px;
-          background: linear-gradient(90deg, transparent, #555);
-          border-radius: 1px;
-        }
-
-        /* ── Title ── */
-        .mp-title {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 28px;
-          font-weight: 900;
-          color: #fff;
-          letter-spacing: 1px;
-          margin-bottom: 4px;
-          text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-        }
-        .mp-subtitle {
-          font-size: 13px;
-          color: #888;
-          margin-bottom: 28px;
-          letter-spacing: 0.3px;
-        }
-
-        /* ── Plan card ── */
-        .mp-card {
-          background: linear-gradient(135deg, #28282f 0%, #1f1f25 50%, #1a1a20 100%);
-          border: 2px solid #333;
-          border-radius: 14px;
-          margin-bottom: 12px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          overflow: hidden;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 2px 8px rgba(0,0,0,0.3);
-        }
-        .mp-card:hover {
-          border-color: #444;
-          transform: translateY(-1px);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.06),
-            0 4px 16px rgba(0,0,0,0.4);
-        }
-        .mp-card.editing {
-          border-color: #555;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.06),
-            0 6px 24px rgba(0,0,0,0.5);
-        }
-
-        .mp-card-row {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 14px;
-          padding: 16px 18px;
+          padding: 0 0 40px;
         }
+        .mp-container {
+          position: relative;
+          width: 100%;
+          max-width: 620px;
+        }
+        .mp-bg-img {
+          width: 100%;
+          display: block;
+        }
+        /* Transparent hotspot buttons overlaid on each plan card */
+        .mp-hotspot {
+          position: absolute;
+          left: 5%;
+          right: 5%;
+          cursor: pointer;
+          border: none;
+          background: transparent;
+          border-radius: 12px;
+          transition: background 0.15s;
+        }
+        .mp-hotspot:hover {
+          background: rgba(255,255,255,0.04);
+        }
+        .mp-hotspot:active {
+          background: rgba(255,255,255,0.08);
+        }
+        /* Position each hotspot over the corresponding card in the image */
+        .mp-hotspot-daily   { top: 17.5%; height: 10.5%; }
+        .mp-hotspot-weekly  { top: 29.5%; height: 10.5%; }
+        .mp-hotspot-monthly { top: 41.5%; height: 10.5%; }
+        .mp-hotspot-yearly  { top: 53.5%; height: 10.5%; }
 
-        /* Star icon */
-        .mp-star {
-          width: 44px; height: 44px;
-          border-radius: 10px;
+        /* Edit modal that appears on click */
+        .mp-edit-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 300;
+          background: rgba(0,0,0,0.75);
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+          padding: 20px;
         }
-        .mp-star svg {
-          filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
-        }
-
-        .mp-card-info { flex: 1; min-width: 0; }
-        .mp-card-name {
-          font-size: 17px;
-          font-weight: 700;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .mp-badge {
-          font-size: 11px;
-          font-weight: 700;
-          padding: 2px 10px;
+        .mp-edit-modal {
+          background: linear-gradient(135deg, #1e1e26 0%, #16161a 100%);
+          border: 2px solid #3a3a44;
           border-radius: 20px;
+          padding: 28px 24px;
+          width: 100%;
+          max-width: 380px;
+          box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+          text-align: center;
+        }
+        .mp-edit-title {
+          font-size: 20px;
+          font-weight: 800;
           color: #fff;
-          text-transform: lowercase;
-          letter-spacing: 0.5px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+          margin-bottom: 6px;
         }
-        .mp-card-price-row {
-          font-size: 14px;
-          color: #999;
-          margin-top: 2px;
-        }
-        .mp-card-price-row strong {
-          color: #ccc;
-          font-weight: 700;
-        }
-
-        /* ── Edit panel (expanded) ── */
-        .mp-edit-panel {
-          border-top: 1px solid #333;
-          padding: 18px 18px 16px;
-          background: rgba(0,0,0,0.15);
-        }
-        .mp-edit-label {
-          font-size: 12px;
-          font-weight: 700;
+        .mp-edit-subtitle {
+          font-size: 13px;
           color: #888;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 10px;
-        }
-        .mp-edit-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          margin-bottom: 24px;
         }
         .mp-edit-input-wrap {
           position: relative;
-          flex: 1;
-          max-width: 180px;
+          width: 180px;
+          margin: 0 auto 20px;
         }
         .mp-edit-input-wrap .pfx {
           position: absolute;
-          left: 14px;
+          left: 18px;
           top: 50%;
           transform: translateY(-50%);
-          font-size: 18px;
+          font-size: 24px;
           font-weight: 800;
           color: #666;
           pointer-events: none;
@@ -284,22 +196,28 @@ export default function MembershipPlansPage() {
           width: 100%;
           background: #111;
           border: 2px solid #444;
-          border-radius: 10px;
-          padding: 10px 14px 10px 28px;
+          border-radius: 14px;
+          padding: 14px 20px 14px 40px;
           color: #fff;
-          font-size: 20px;
-          font-weight: 800;
+          font-size: 28px;
+          font-weight: 900;
           outline: none;
+          text-align: center;
           transition: border-color 0.2s;
         }
         .mp-edit-input:focus { border-color: #1877F2; }
+        .mp-edit-btns {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
         .mp-btn-save {
           background: linear-gradient(135deg, #31A24C, #1e7a34);
           border: none;
-          border-radius: 10px;
-          padding: 10px 18px;
+          border-radius: 12px;
+          padding: 12px 28px;
           color: #fff;
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 700;
           cursor: pointer;
           display: flex;
@@ -310,153 +228,108 @@ export default function MembershipPlansPage() {
         }
         .mp-btn-save:hover { opacity: 0.9; }
         .mp-btn-cancel {
-          background: none;
+          background: rgba(255,255,255,0.07);
           border: 1px solid #444;
-          border-radius: 10px;
-          padding: 10px 14px;
+          border-radius: 12px;
+          padding: 12px 24px;
           color: #999;
-          font-size: 13px;
+          font-size: 15px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
         }
         .mp-btn-cancel:hover { border-color: #666; color: #fff; }
-
-        /* ── Info box ── */
-        .mp-info-box {
-          background: linear-gradient(135deg, #1a1a22 0%, #141418 100%);
-          border: 2px solid #2a2a32;
-          border-radius: 14px;
-          padding: 18px 20px;
-          margin-top: 20px;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-        }
-        .mp-info-box p {
-          font-size: 13px;
-          color: #777;
-          line-height: 1.7;
-          margin: 0;
-        }
-        .mp-info-box strong { color: #F59E0B; }
-        .mp-info-label { color: #bbb !important; font-weight: 700 !important; }
-
-        /* ── Toast ── */
         .mp-toast {
-          padding: 12px 16px;
+          position: fixed;
+          top: 70px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 400;
+          padding: 12px 24px;
           border-radius: 12px;
           font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 16px;
+          font-weight: 700;
         }
-        .mp-toast.ok { background: rgba(49,162,76,0.12); color: #31A24C; border: 1px solid rgba(49,162,76,0.25); }
-        .mp-toast.err { background: rgba(239,68,68,0.12); color: #EF4444; border: 1px solid rgba(239,68,68,0.25); }
-
+        .mp-toast.ok { background: rgba(49,162,76,0.95); color: #fff; box-shadow: 0 4px 16px rgba(49,162,76,0.4); }
+        .mp-toast.err { background: rgba(239,68,68,0.95); color: #fff; box-shadow: 0 4px 16px rgba(239,68,68,0.4); }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
       <div className="mp-page">
-        <div className="mp-frame">
-          <div className="mp-panel">
-            {/* Title */}
-            <div className="mp-title">Membership Plans</div>
-            <div className="mp-subtitle">Set Pricing & Perks Per Tier</div>
+        {/* Toasts */}
+        {success && <div className="mp-toast ok">✓ {success}</div>}
+        {error && !editingId && <div className="mp-toast err">⚠ {error}</div>}
 
-            {/* Toasts */}
-            {success && <div className="mp-toast ok">✓ {success}</div>}
-            {error && <div className="mp-toast err">⚠ {error}</div>}
-
-            {/* Loading */}
-            {loading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-                <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#1877F2' }} />
-              </div>
-            ) : plans.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: 16, color: '#888' }}>No Plans Found — Refresh To Auto-Create</div>
-              </div>
-            ) : (
-              plans.map(plan => {
-                const meta = PLAN_META[plan.tier] || PLAN_META.daily;
-                const price = getPlanPrice(plan);
-                const isEditing = editingId === plan.id;
-
-                return (
-                  <div key={plan.id}
-                    className={`mp-card ${isEditing ? 'editing' : ''}`}
-                    style={isEditing ? { borderColor: meta.color + '55' } : undefined}
-                    onClick={() => handleCardClick(plan)}
-                  >
-                    {/* Card row */}
-                    <div className="mp-card-row">
-                      {/* Star icon */}
-                      <div className="mp-star" style={{ background: meta.starBg }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" stroke="none">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      </div>
-
-                      {/* Info */}
-                      <div className="mp-card-info">
-                        <div className="mp-card-name">
-                          {meta.label} Membership
-                          <span className="mp-badge" style={{ background: meta.badgeGrad }}>{plan.tier}</span>
-                        </div>
-                        <div className="mp-card-price-row">
-                          <strong>${price != null ? Number(price).toFixed(0) : '—'}</strong>{meta.period}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Edit panel (expanded) */}
-                    {isEditing && (
-                      <div className="mp-edit-panel" onClick={e => e.stopPropagation()}>
-                        <div className="mp-edit-label">Edit {meta.label} Price</div>
-                        <div className="mp-edit-row">
-                          <div className="mp-edit-input-wrap">
-                            <span className="pfx">$</span>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              className="mp-edit-input"
-                              value={editPrice}
-                              onChange={e => setEditPrice(e.target.value)}
-                              autoFocus
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') savePrice(plan);
-                                if (e.key === 'Escape') setEditingId(null);
-                              }}
-                            />
-                          </div>
-                          <button className="mp-btn-save" disabled={saving === plan.id}
-                            onClick={() => savePrice(plan)}>
-                            {saving === plan.id
-                              ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                              : <Check size={16} />}
-                            Save
-                          </button>
-                          <button className="mp-btn-cancel" onClick={() => setEditingId(null)}>
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-
-            {/* Info box */}
-            {!loading && plans.length > 0 && (
-              <div className="mp-info-box">
-                <p>
-                  <span className="mp-info-label">How It Works: </span>
-                  Set Pricing At Any Interval You Want — Daily Passes For Tourists, Weekly For Short-Term Players, Monthly For Regulars, Yearly For VIPs. Leave An Interval Blank If You Don't Offer It. Use The <strong>Edit Prices</strong> Button For Quick Price Updates Without Opening The Full Editor.
-                </p>
-              </div>
-            )}
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+            <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#1877F2' }} />
           </div>
-        </div>
+        ) : (
+          <div className="mp-container">
+            {/* Background image */}
+            <img
+              src="/images/commander/membership-plans-bg.png"
+              alt="Membership Plans"
+              className="mp-bg-img"
+              draggable={false}
+            />
+
+            {/* Transparent clickable hotspots over each plan card */}
+            {PLAN_ORDER.map(tier => {
+              const plan = planByTier[tier];
+              if (!plan) return null;
+              return (
+                <button
+                  key={tier}
+                  className={`mp-hotspot mp-hotspot-${tier}`}
+                  onClick={() => handleCardClick(plan)}
+                  aria-label={`Edit ${PLAN_LABELS[tier]} Membership Price`}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Edit price modal */}
+        {editingId && (() => {
+          const plan = plans.find(p => p.id === editingId);
+          if (!plan) return null;
+          const meta = PLAN_LABELS[plan.tier] || plan.tier;
+          return (
+            <div className="mp-edit-overlay" onClick={e => { if (e.target === e.currentTarget) setEditingId(null); }}>
+              <div className="mp-edit-modal">
+                <div className="mp-edit-title">Edit {meta} Price</div>
+                <div className="mp-edit-subtitle">Set The {meta} Membership Rate</div>
+                {error && <div style={{ color: '#EF4444', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>⚠ {error}</div>}
+                <div className="mp-edit-input-wrap">
+                  <span className="pfx">$</span>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    className="mp-edit-input"
+                    value={editPrice}
+                    onChange={e => setEditPrice(e.target.value)}
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') savePrice(plan);
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                  />
+                </div>
+                <div className="mp-edit-btns">
+                  <button className="mp-btn-cancel" onClick={() => setEditingId(null)}>Cancel</button>
+                  <button className="mp-btn-save" disabled={saving === plan.id} onClick={() => savePrice(plan)}>
+                    {saving === plan.id
+                      ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      : <Check size={16} />}
+                    Save Price
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </CommanderLayout>
   );
