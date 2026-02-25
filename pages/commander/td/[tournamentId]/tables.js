@@ -64,12 +64,12 @@ export default function TDTablesMap() {
   const [breakExecuting, setBreakExecuting] = useState(false);
 
   const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async () => {
     if (!tournamentId) return;
     try {
-      const headers = { Authorization: `Bearer ${getToken()}` };
+      const headers = { 'x-staff-session': getToken() };
       const [floorRes, breakRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { headers }),
         fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, { headers }).catch(() => null)
@@ -95,7 +95,7 @@ export default function TDTablesMap() {
     try {
       await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
       });
       await fetchFloor();
@@ -120,10 +120,10 @@ export default function TDTablesMap() {
   return (
     <>
       <SEOHead
-                title="Commander — Tables"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Tables"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
         {/* Header */}
@@ -164,7 +164,7 @@ export default function TDTablesMap() {
                 try {
                   const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
                     body: JSON.stringify({
                       break_table: autoBreak.break_table,
                       assignments: autoBreak.assignments
@@ -247,11 +247,10 @@ export default function TDTablesMap() {
                       return (
                         <div
                           key={pos.seat}
-                          className={`absolute w-4 h-4 rounded-full border-2 ${
-                            isOccupied
+                          className={`absolute w-4 h-4 rounded-full border-2 ${isOccupied
                               ? `${colors.dot} border-white/30`
                               : 'bg-transparent border-[#3A3B3C]'
-                          }`}
+                            }`}
                           style={{
                             left: `${pos.x}%`,
                             top: `${pos.y}%`,
@@ -303,9 +302,8 @@ export default function TDTablesMap() {
                     return (
                       <div key={pos.seat} className="absolute flex flex-col items-center"
                         style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                          player ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                        }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${player ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                          }`}>
                           {pos.seat}
                         </div>
                         {player && (
@@ -374,20 +372,20 @@ export default function TDTablesMap() {
                           for (const player of selectedTable.players) {
                             await fetch(`/api/commander/tournaments/${tournamentId}/move-player`, {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+                              headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
                               body: JSON.stringify({
                                 entry_id: player.entry_id,
                                 from_table: selectedTable.table_number,
                                 status: 'needs_seat'
                               })
-                            }).catch(() => {});
+                            }).catch(() => { });
                           }
                           // Mark table as broken
                           await fetch(`/api/commander/tables/${selectedTable.table_number || selectedTable.id}`, {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+                            headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
                             body: JSON.stringify({ status: 'closed' })
-                          }).catch(() => {});
+                          }).catch(() => { });
                           setSelectedTable(null);
                           await fetchFloor();
                         } catch (err) { console.error(err); }
@@ -416,9 +414,8 @@ export default function TDTablesMap() {
               const isActive = item.key === 'tables';
               return (
                 <button key={item.key} onClick={() => navigateTo(item.path)}
-                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${
-                    isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
-                  }`}>
+                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
+                    }`}>
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] font-medium">{item.label}</span>
                 </button>

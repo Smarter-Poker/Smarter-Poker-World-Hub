@@ -5,6 +5,7 @@
  * Algorithm: break table with fewest players if possible, otherwise move from fullest to emptiest
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,6 +20,8 @@ function findAvailableSeat(maxSeats, occupiedSeats) {
 }
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -30,30 +33,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // Staff is already validated by guardWriteStaff at the handler level
 
-    // Get tournament
-    const { data: tournament } = await supabase
+    // Get tournament for venue_id
+    const { data: tournament, error: tErr } = await supabase
       .from('commander_tournaments')
       .select('id, venue_id')
       .eq('id', tournamentId)
       .single();
-    if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
-
-    // Verify staff
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id')
-      .eq('venue_id', tournament.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+    if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     // Get all active entries with table/seat info
     const { data: entries } = await supabase

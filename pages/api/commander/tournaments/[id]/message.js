@@ -25,27 +25,15 @@ export default async function handler(req, res) {
   if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // Staff is already validated by guardWriteStaff at the handler level
 
-    const { data: tournament } = await supabase
+    // Get tournament for clock_state
+    const { data: tournament, error: tErr } = await supabase
       .from('commander_tournaments')
-      .select('id, venue_id, clock_state')
+      .select('*')
       .eq('id', tournamentId)
       .single();
-    if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
-
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id')
-      .eq('venue_id', tournament.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+    if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     const { message, type, duration_seconds } = req.body;
     if (!message || message.trim().length === 0) {
@@ -64,7 +52,7 @@ export default async function handler(req, res) {
       type: msgType,
       created_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + duration * 1000).toISOString(),
-      created_by: user.id
+      created_by: 'staff'
     };
 
     messages.push(newMessage);

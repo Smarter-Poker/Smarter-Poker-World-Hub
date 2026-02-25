@@ -81,7 +81,7 @@ export default function TDControlCenter() {
 
   const getToken = useCallback(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      return localStorage.getItem('commander_staff') || '';
     }
     return null;
   }, []);
@@ -91,7 +91,7 @@ export default function TDControlCenter() {
     try {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 'x-staff-session': staffSession }
       });
       const json = await res.json();
       if (json.success) {
@@ -140,7 +140,7 @@ export default function TDControlCenter() {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ action })
       });
       const json = await res.json();
@@ -161,7 +161,7 @@ export default function TDControlCenter() {
       const token = getToken();
       await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
       });
       setMessageText('');
@@ -179,7 +179,7 @@ export default function TDControlCenter() {
       const token = getToken();
       await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ active: !isActive })
       });
       await fetchFloor();
@@ -226,10 +226,10 @@ export default function TDControlCenter() {
   return (
     <>
       <SEOHead
-                title="Commander — Index"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Index"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
@@ -310,10 +310,9 @@ export default function TDControlCenter() {
 
             {/* Countdown */}
             <div className="text-center mb-4">
-              <p className={`text-5xl font-mono font-bold tabular-nums ${
-                displaySeconds <= 60 ? 'text-[#EF4444]' :
-                displaySeconds <= 120 ? 'text-[#F59E0B]' : 'text-white'
-              }`}>
+              <p className={`text-5xl font-mono font-bold tabular-nums ${displaySeconds <= 60 ? 'text-[#EF4444]' :
+                  displaySeconds <= 120 ? 'text-[#F59E0B]' : 'text-white'
+                }`}>
                 {formatClockTime(displaySeconds)}
               </p>
             </div>
@@ -365,11 +364,10 @@ export default function TDControlCenter() {
             <div className="flex items-center justify-center gap-2 mt-3">
               <button
                 onClick={handleHandForHand}
-                className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 ${
-                  alerts.hand_for_hand
+                className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 ${alerts.hand_for_hand
                     ? 'bg-[#EF4444] text-white'
                     : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                }`}
+                  }`}
               >
                 <Hand className="w-3.5 h-3.5" />
                 {alerts.hand_for_hand ? 'End H4H' : 'Hand 4 Hand'}
@@ -427,20 +425,18 @@ export default function TDControlCenter() {
             {tables.map(table => (
               <button key={table.table_number}
                 onClick={() => navigateTo('tables')}
-                className={`flex-shrink-0 w-20 h-20 rounded-xl border flex flex-col items-center justify-center ${
-                  table.color === 'red' ? 'bg-[#EF4444]/10 border-[#EF4444]/30' :
-                  table.color === 'yellow' ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30' :
-                  table.color === 'blue' ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                  'bg-[#242526] border-[#3A3B3C]'
-                }`}
+                className={`flex-shrink-0 w-20 h-20 rounded-xl border flex flex-col items-center justify-center ${table.color === 'red' ? 'bg-[#EF4444]/10 border-[#EF4444]/30' :
+                    table.color === 'yellow' ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30' :
+                      table.color === 'blue' ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                        'bg-[#242526] border-[#3A3B3C]'
+                  }`}
               >
                 <span className="text-xs text-[#B0B3B8]">Table</span>
                 <span className="text-lg font-bold text-white">{table.table_number}</span>
-                <span className={`text-xs font-medium ${
-                  table.color === 'red' ? 'text-[#EF4444]' :
-                  table.color === 'yellow' ? 'text-[#F59E0B]' :
-                  'text-[#B0B3B8]'
-                }`}>
+                <span className={`text-xs font-medium ${table.color === 'red' ? 'text-[#EF4444]' :
+                    table.color === 'yellow' ? 'text-[#F59E0B]' :
+                      'text-[#B0B3B8]'
+                  }`}>
                   {table.player_count}/{table.max_seats}
                 </span>
               </button>
@@ -523,9 +519,8 @@ export default function TDControlCenter() {
                 <button
                   key={item.key}
                   onClick={() => navigateTo(item.key)}
-                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${
-                    isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
-                  }`}
+                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] font-medium">{item.label}</span>

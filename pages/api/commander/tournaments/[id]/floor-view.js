@@ -9,6 +9,7 @@
  * - Stats (entries, rebuys, addons, prize pool, avg stack)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,6 +17,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -25,11 +28,7 @@ export default async function handler(req, res) {
   if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // Staff is already validated by guardWriteStaff at the handler level
 
     // Get tournament with full details
     const { data: tournament, error: tErr } = await supabase
@@ -39,15 +38,6 @@ export default async function handler(req, res) {
       .single();
     if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
-    // Verify staff
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id')
-      .eq('venue_id', tournament.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     // Get ALL entries (active + eliminated + registered)
     const { data: allEntries } = await supabase

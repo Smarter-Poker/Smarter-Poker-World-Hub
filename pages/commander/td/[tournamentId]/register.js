@@ -39,13 +39,13 @@ export default function TDRegister() {
   const [searchingMembers, setSearchingMembers] = useState(false);
 
   const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async () => {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': getToken() }
       });
       const json = await res.json();
       if (json.success) setFloor(json.data);
@@ -60,7 +60,7 @@ export default function TDRegister() {
     setSearchingMembers(true);
     try {
       const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(q)}&limit=5`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': getToken() }
       });
       const json = await res.json();
       if (json.success) setMemberResults(json.data || []);
@@ -114,7 +114,7 @@ export default function TDRegister() {
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({
           player_name: playerName.trim(),
           phone: playerPhone.trim() || undefined,
@@ -149,10 +149,10 @@ export default function TDRegister() {
   return (
     <>
       <SEOHead
-                title="Commander — Register"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Register"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
         {/* Header */}
@@ -244,13 +244,11 @@ export default function TDRegister() {
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <button onClick={() => setAutoSeat(true)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${
-                    autoSeat ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                  }`}>Auto Seat</button>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${autoSeat ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                    }`}>Auto Seat</button>
                 <button onClick={() => setAutoSeat(false)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${
-                    !autoSeat ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                  }`}>Manual</button>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${!autoSeat ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                    }`}>Manual</button>
               </div>
 
               {autoSeat ? (
@@ -288,9 +286,8 @@ export default function TDRegister() {
 
             {/* Result */}
             {lastResult && (
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                lastResult.success ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
-              }`}>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${lastResult.success ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
+                }`}>
                 {lastResult.success
                   ? <><CheckCircle2 className="w-4 h-4" /> Registered — T{lastResult.data?.table_number || '?'} S{lastResult.data?.seat_number || '?'}</>
                   : <><AlertTriangle className="w-4 h-4" /> {lastResult.error || 'Failed'}</>
@@ -322,9 +319,8 @@ export default function TDRegister() {
               const isActive = item.key === 'register';
               return (
                 <button key={item.key} onClick={() => navigateTo(item.path)}
-                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${
-                    isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
-                  }`}>
+                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
+                    }`}>
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] font-medium capitalize">{item.key}</span>
                 </button>

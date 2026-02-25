@@ -50,13 +50,13 @@ export default function TDPlayers() {
   const [moveSeat, setMoveSeat] = useState('');
 
   const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async () => {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': getToken() }
       });
       const json = await res.json();
       if (json.success) setFloor(json.data);
@@ -92,7 +92,7 @@ export default function TDPlayers() {
   const apiCall = async (url, body) => {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
       body: JSON.stringify(body)
     });
     return res.json();
@@ -129,7 +129,7 @@ export default function TDPlayers() {
     setActionLoading('chips');
     await fetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
       body: JSON.stringify({ chips: parseInt(chipValue) })
     });
     setChipModal(null);
@@ -160,10 +160,10 @@ export default function TDPlayers() {
   return (
     <>
       <SEOHead
-                title="Commander — Players"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Players"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
         {/* Header */}
@@ -195,11 +195,10 @@ export default function TDPlayers() {
         <div className="px-4 flex gap-2 pb-3">
           {FILTERS.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`px-4 py-2 rounded-full text-sm font-medium ${
-                filter === f.key
+              className={`px-4 py-2 rounded-full text-sm font-medium ${filter === f.key
                   ? 'bg-[#1877F2] text-white'
                   : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-              }`}>
+                }`}>
               {f.label}
             </button>
           ))}
@@ -213,11 +212,10 @@ export default function TDPlayers() {
               onClick={() => setSelectedPlayer(player)}
               className="w-full flex items-center gap-3 px-4 py-3 bg-[#242526] rounded-xl border border-[#3A3B3C] active:bg-[#3A3B3C] text-left"
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-                player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
-                'bg-[#B0B3B8]/20 text-[#B0B3B8]'
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
+                  player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                    'bg-[#B0B3B8]/20 text-[#B0B3B8]'
+                }`}>
                 {player.table_number ? `${player.table_number}-${player.seat_number}` : '--'}
               </div>
               <div className="flex-1 min-w-0">
@@ -360,9 +358,8 @@ export default function TDPlayers() {
                         if (!occupied.includes(s)) { setMoveSeat(String(s)); break; }
                       }
                     }}
-                      className={`px-3 py-2 rounded-lg text-sm ${
-                        moveTable === String(t.table_number) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                      }`}>
+                      className={`px-3 py-2 rounded-lg text-sm ${moveTable === String(t.table_number) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                        }`}>
                       T{t.table_number} ({t.available_seats} open)
                     </button>
                   ))}
@@ -389,9 +386,8 @@ export default function TDPlayers() {
               const isActive = item.key === 'players';
               return (
                 <button key={item.key} onClick={() => navigateTo(item.path)}
-                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${
-                    isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
-                  }`}>
+                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
+                    }`}>
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] font-medium capitalize">{item.key}</span>
                 </button>
@@ -407,9 +403,8 @@ export default function TDPlayers() {
 function ActionBtn({ icon: Icon, label, color, danger, onClick, loading }) {
   return (
     <button onClick={onClick} disabled={loading}
-      className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50 ${
-        danger ? 'bg-[#EF4444]/10 border border-[#EF4444]/30' : 'bg-[#3A3B3C]/50 border border-[#3A3B3C]'
-      }`}>
+      className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50 ${danger ? 'bg-[#EF4444]/10 border border-[#EF4444]/30' : 'bg-[#3A3B3C]/50 border border-[#3A3B3C]'
+        }`}>
       {loading
         ? <Loader2 className="w-5 h-5 animate-spin" style={{ color }} />
         : <Icon className="w-5 h-5" style={{ color }} />

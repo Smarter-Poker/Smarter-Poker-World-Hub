@@ -31,13 +31,13 @@ export default function TDBalance() {
   const [result, setResult] = useState(null);
 
   const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async () => {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': getToken() }
       });
       const json = await res.json();
       if (json.success) setFloor(json.data);
@@ -53,7 +53,7 @@ export default function TDBalance() {
     setResult(null);
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/balance-suggest`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': getToken() }
       });
       const json = await res.json();
       if (json.success) setSuggestion(json.data);
@@ -76,7 +76,7 @@ export default function TDBalance() {
 
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify(body)
       });
       const json = await res.json();
@@ -105,10 +105,10 @@ export default function TDBalance() {
   return (
     <>
       <SEOHead
-                title="Commander — Balance"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Balance"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
         {/* Header */}
@@ -129,9 +129,8 @@ export default function TDBalance() {
 
         {/* Status Banner */}
         <div className="px-4 py-3">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
-            isBalanced ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
-          }`}>
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${isBalanced ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
+            }`}>
             {isBalanced
               ? <CheckCircle2 className="w-5 h-5 text-[#31A24C]" />
               : <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
@@ -148,7 +147,7 @@ export default function TDBalance() {
             const pct = (table.player_count / table.max_seats) * 100;
             const barColor = table.color === 'red' ? '#EF4444' :
               table.color === 'yellow' ? '#F59E0B' :
-              table.color === 'blue' ? '#1877F2' : '#31A24C';
+                table.color === 'blue' ? '#1877F2' : '#31A24C';
             return (
               <div key={table.table_number} className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3">
                 <div className="flex items-center justify-between mb-2">
@@ -185,7 +184,7 @@ export default function TDBalance() {
                 <div>
                   <h3 className="text-sm font-bold text-white">
                     {suggestion.type === 'break' ? `Break Table ${suggestion.table_to_break}` :
-                     suggestion.type === 'balance' ? 'Balance Move' : 'No Action Needed'}
+                      suggestion.type === 'balance' ? 'Balance Move' : 'No Action Needed'}
                   </h3>
                   <p className="text-xs text-[#B0B3B8]">{suggestion.message}</p>
                 </div>
@@ -234,9 +233,8 @@ export default function TDBalance() {
         {/* Result */}
         {result && (
           <div className="px-4 pb-3">
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
-              result.success ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
-            }`}>
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${result.success ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
+              }`}>
               {result.success
                 ? <CheckCircle2 className="w-5 h-5 text-[#31A24C]" />
                 : <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
@@ -259,9 +257,8 @@ export default function TDBalance() {
               const isActive = item.key === 'balance';
               return (
                 <button key={item.key} onClick={() => navigateTo(item.path)}
-                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${
-                    isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
-                  }`}>
+                  className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
+                    }`}>
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] font-medium capitalize">{item.key}</span>
                 </button>

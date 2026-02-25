@@ -26,16 +26,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ success: false, error: 'Authorization required' });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
+    // Staff is already validated by guardWriteStaff at the handler level
 
     // Get tournament
     const { data: tournament, error: tErr } = await supabase
@@ -45,18 +36,6 @@ export default async function handler(req, res) {
       .single();
     if (tErr || !tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
-    }
-
-    // Verify staff
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id, role')
-      .eq('venue_id', tournament.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) {
-      return res.status(403).json({ success: false, error: 'Staff access required' });
     }
 
     const { entry_id, to_table, to_seat } = req.body;

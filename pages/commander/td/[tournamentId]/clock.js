@@ -58,13 +58,13 @@ export default function TDClock() {
   const containerRef = useRef(null);
 
   const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   const fetchFloor = useCallback(async () => {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { 'x-staff-session': getToken() }
       });
       const json = await res.json();
       if (json.success) {
@@ -95,7 +95,7 @@ export default function TDClock() {
     try {
       await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ action })
       });
       await fetchFloor();
@@ -107,7 +107,7 @@ export default function TDClock() {
     const isActive = floor?.alerts?.hand_for_hand;
     await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
       body: JSON.stringify({ active: !isActive })
     });
     await fetchFloor();
@@ -118,7 +118,7 @@ export default function TDClock() {
     try {
       await fetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ final_table_number: 1 })
       });
       await fetchFloor();
@@ -130,7 +130,7 @@ export default function TDClock() {
     if (!messageText.trim()) return;
     await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
       body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
     });
     setMessageText('');
@@ -169,10 +169,10 @@ export default function TDClock() {
   return (
     <>
       <SEOHead
-                title="Commander — Clock"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Clock"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div ref={containerRef} className={`min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col ${isFullscreen ? '' : 'pb-20'}`}>
 
         {/* Fullscreen header bar */}
@@ -226,12 +226,10 @@ export default function TDClock() {
           </p>
 
           {/* Big Countdown */}
-          <p className={`font-mono font-bold tabular-nums mb-2 ${
-            isFullscreen ? 'text-[120px] leading-none' : 'text-7xl'
-          } ${
-            displaySeconds <= 60 ? 'text-[#EF4444]' :
-            displaySeconds <= 120 ? 'text-[#F59E0B]' : 'text-white'
-          }`}>
+          <p className={`font-mono font-bold tabular-nums mb-2 ${isFullscreen ? 'text-[120px] leading-none' : 'text-7xl'
+            } ${displaySeconds <= 60 ? 'text-[#EF4444]' :
+              displaySeconds <= 120 ? 'text-[#F59E0B]' : 'text-white'
+            }`}>
             {formatClockTime(displaySeconds)}
           </p>
 
@@ -344,9 +342,8 @@ export default function TDClock() {
                 const isActive = item.key === 'clock';
                 return (
                   <button key={item.key} onClick={() => navigateTo(item.path)}
-                    className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${
-                      isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
-                    }`}>
+                    className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-lg ${isActive ? 'text-[#1877F2]' : 'text-[#B0B3B8] active:text-[#E4E6EB]'
+                      }`}>
                     <Icon className="w-5 h-5" />
                     <span className="text-[10px] font-medium capitalize">{item.key}</span>
                   </button>
@@ -363,11 +360,10 @@ export default function TDClock() {
 function ActionChip({ icon: Icon, label, onClick, active, activeColor, disabled }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className={`px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-40 ${
-        active
+      className={`px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-40 ${active
           ? `text-white`
           : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-      }`}
+        }`}
       style={active ? { backgroundColor: activeColor } : undefined}>
       <Icon className="w-4 h-4" />
       {label}
