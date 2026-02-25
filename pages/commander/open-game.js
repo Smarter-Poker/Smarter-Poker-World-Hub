@@ -63,7 +63,9 @@ export default function OpenGame() {
         const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
         const json = await res.json();
         if (json.success) {
-          setTables((json.data || []).filter(t => t.status === 'closed' || t.status === 'open' || !t.status));
+          const tablesArr = Array.isArray(json.data) ? json.data
+            : Array.isArray(json.data?.tables) ? json.data.tables : [];
+          setTables(tablesArr.filter(t => t.status === 'available' || !t.status));
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
@@ -103,10 +105,10 @@ export default function OpenGame() {
 
       // Update table status to active
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
-          status: 'active',
+          status: 'in_use',
           game_type: selectedGame.type,
           stakes: stakes
         })
@@ -123,12 +125,7 @@ export default function OpenGame() {
   };
 
   return (
-    <>
-      <SEOHead
-        title="Commander — Open Game"
-        description="Club Commander Poker Room Management Tool."
-        noindex={true}
-      />
+    <CommanderLayout title="Open Cash Game" backHref="/commander/dashboard?card=floor">
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -292,6 +289,6 @@ export default function OpenGame() {
           )}
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

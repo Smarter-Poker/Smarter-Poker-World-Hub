@@ -122,55 +122,6 @@ export default function FloorMap() {
         });
       }
 
-      // Fallback: if BOTH commander_tables and commander_games are empty,
-      // pull from club_live_games via social pages API (seeded/demo data)
-      if (rawTables.length === 0) {
-        try {
-          // Try multiple strategies to find the social page for this venue
-          let pageId = null;
-
-          // Strategy 1: lookup by linked_venue_id (try both exact and nearby IDs)
-          for (const tryVid of [vid, String(vid), String(Number(vid) + 1), String(Number(vid) - 1)]) {
-            if (pageId) break;
-            const r = await fetch(`/api/social/pages?linked_venue_id=${tryVid}`).then(r => r.json());
-            const p = (Array.isArray(r.data) ? r.data : Array.isArray(r.pages) ? r.pages : [])[0];
-            if (p?.id) pageId = p.id;
-          }
-
-          // Strategy 2: search by venue name from staff session
-          if (!pageId && staffData.venue_name) {
-            const r = await fetch(`/api/social/pages?search=${encodeURIComponent(staffData.venue_name)}`).then(r => r.json());
-            const p = (Array.isArray(r.data) ? r.data : Array.isArray(r.pages) ? r.pages : [])[0];
-            if (p?.id) pageId = p.id;
-          }
-
-          // Strategy 3: lookup by owner's user_id
-          if (!pageId && staffData.user_id) {
-            const r = await fetch(`/api/social/pages?owner_id=${staffData.user_id}`).then(r => r.json());
-            const p = (Array.isArray(r.data) ? r.data : Array.isArray(r.pages) ? r.pages : [])[0];
-            if (p?.id) pageId = p.id;
-          }
-
-          if (pageId) {
-            const liveRes = await fetch(`/api/social/pages/games?page_id=${pageId}`).then(r => r.json());
-            const liveGames = Array.isArray(liveRes.data) ? liveRes.data : [];
-            if (liveGames.length > 0) {
-              rawTables = liveGames.map((g, idx) => ({
-                id: g.id,
-                table_number: g.table_number || idx + 1,
-                table_name: g.game_name || null,
-                status: g.status === 'running' ? 'in_use' : (g.status === 'open' ? 'available' : g.status),
-                game_type: (g.game_type || g.game_name?.split(' ')[0] || 'NLH').toUpperCase(),
-                stakes: g.stakes || g.game_name?.replace(/^[A-Z]+ /, '') || '',
-                max_seats: g.max_seats || 9,
-                current_players: g.seated_count || 0,
-                _fromLive: true,
-              }));
-            }
-          }
-        } catch (e) { console.error('Social games fallback:', e); }
-      }
-
       setTables(rawTables);
 
       if (waitlistRes.success) {
