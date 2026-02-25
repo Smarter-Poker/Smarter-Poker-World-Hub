@@ -1,12 +1,13 @@
 /**
  * Commander Table Management Page
- * Unified view: clickable table grid with action panel
- * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
+ * Oval poker table visualization with real-time seat data
+ * Staff actions: start/close game, set status, add/delete tables
+ * UI: Dark industrial sci-fi gaming theme, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Plus, Edit2, Trash2, Table2, Users, Loader2, Play, Square, X, Save, Wrench, Clock } from 'lucide-react';
+import { Plus, Trash2, Table2, Users, Loader2, Play, Square, X, Clock } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const STATUS_COLORS = {
@@ -19,6 +20,38 @@ const STATUS_COLORS = {
 const GAME_TYPES = ['NLH', 'PLO', 'NLO8', 'PLO8', 'Mixed', 'Stud', 'Razz', 'Draw'];
 const COMMON_STAKES = ['$1/$2', '$1/$3', '$2/$5', '$5/$10', '$10/$20', '$25/$50'];
 
+// Arc-length parameterized ellipse for equal visual spacing of seats
+function computeSeatPositions(maxSeats) {
+  const rx = 47, ry = 22, cxE = 50, cyE = 50;
+  const STEPS = 360;
+  const startAngle = Math.PI / 2;
+  const cumArc = [0];
+  for (let i = 1; i <= STEPS; i++) {
+    const t0 = startAngle + ((i - 1) / STEPS) * 2 * Math.PI;
+    const t1 = startAngle + (i / STEPS) * 2 * Math.PI;
+    const dx = rx * (Math.cos(t1) - Math.cos(t0));
+    const dy = ry * (Math.sin(t1) - Math.sin(t0));
+    cumArc.push(cumArc[i - 1] + Math.sqrt(dx * dx + dy * dy));
+  }
+  const totalArc = cumArc[STEPS];
+  const totalSlots = maxSeats + 1; // +1 for dealer
+  const allPos = [];
+  for (let p = 0; p < totalSlots; p++) {
+    const target = (p / totalSlots) * totalArc;
+    let idx = 1;
+    while (idx <= STEPS && cumArc[idx] < target) idx++;
+    const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
+    allPos.push({
+      top: `${cyE + ry * Math.sin(angle)}%`,
+      left: `${cxE + rx * Math.cos(angle)}%`,
+    });
+  }
+  const dealerPos = allPos[0];
+  const seatPositions = allPos.slice(1);
+  seatPositions.forEach(p => { const t = parseFloat(p.top); if (t < 30) p.top = '30%'; });
+  return { dealerPos, seatPositions };
+}
+
 export default function CommanderTablesPage() {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
@@ -26,8 +59,9 @@ export default function CommanderTablesPage() {
   const [venue, setVenue] = useState(null);
   const [tables, setTables] = useState([]);
   const [games, setGames] = useState([]);
+  const [sessions, setSessions] = useState({}); // keyed by table_number
   const [loading, setLoading] = useState(true);
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTableId, setSelectedTableId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -50,14 +84,16 @@ export default function CommanderTablesPage() {
     } catch { router.push('/commander/login').catch(() => { }); }
   }, [router]);
 
-  // Fetch tables + games (each independently — one failure shouldn't block the other)
+  // Fetch tables + games + sessions
   const fetchTables = useCallback(async () => {
     if (!venueId) return;
     const staffSession = localStorage.getItem('commander_staff') || '';
+    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
     // Fetch tables
     try {
-      const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } });
+      const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       const tablesData = await tablesRes.json();
       if (tablesData.success) {
         const tablesArr = Array.isArray(tablesData.data) ? tablesData.data
@@ -69,7 +105,7 @@ export default function CommanderTablesPage() {
 
     // Fetch games
     try {
-      const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers: { 'x-staff-session': staffSession } });
+      const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers });
       const gamesData = await gamesRes.json();
       if (gamesData.success) {
         const gamesArr = Array.isArray(gamesData.data?.games) ? gamesData.data.games
@@ -78,6 +114,25 @@ export default function CommanderTablesPage() {
         setGames(gamesArr);
       }
     } catch (err) { console.error('Failed to fetch games:', err); }
+
+    // Fetch sessions per in-use table
+    try {
+      const tablesRes2 = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+      const tablesData2 = await tablesRes2.json();
+      const allTables = Array.isArray(tablesData2.data) ? tablesData2.data
+        : Array.isArray(tablesData2.data?.tables) ? tablesData2.data.tables : [];
+      const activeTables = allTables.filter(t => t.status === 'in_use');
+      const sessionData = {};
+      await Promise.all(activeTables.map(async (t) => {
+        try {
+          const tNum = t.table_number || t.number;
+          const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+          const json = await res.json();
+          if (json.success) sessionData[tNum] = json.data || [];
+        } catch { }
+      }));
+      setSessions(sessionData);
+    } catch { }
 
     setLoading(false);
   }, [venueId]);
@@ -93,13 +148,14 @@ export default function CommanderTablesPage() {
 
   // Get the game running on a table
   const getGameForTable = (table) => {
-    // Check nested commander_games from join
     if (Array.isArray(table.commander_games) && table.commander_games.length > 0) {
       return table.commander_games.find(g => g.status !== 'closed') || null;
     }
-    // Check games array
     return games.find(g => g.table_id === table.id && g.status !== 'closed') || null;
   };
+
+  const selectedTable = tables.find(t => t.id === selectedTableId) || null;
+  const selectedGame = selectedTable ? getGameForTable(selectedTable) : null;
 
   // ── ACTIONS ──
   const handleStartGame = async () => {
@@ -107,22 +163,17 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      // Create game
       const res = await fetch('/api/commander/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
-          venue_id: venueId,
-          table_id: selectedTable.id,
-          game_type: newGameType,
-          stakes: newStakes,
-          max_players: newMaxPlayers,
-          status: 'waiting'
+          venue_id: venueId, table_id: selectedTable.id,
+          game_type: newGameType, stakes: newStakes,
+          max_players: newMaxPlayers, status: 'waiting'
         })
       });
       const data = await res.json();
       if (data.success || data.data) {
-        // Update table status + game_type
         await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
@@ -145,7 +196,6 @@ export default function CommanderTablesPage() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ status: 'closed' })
       });
-      // Set table back to available + clear game_type
       if (selectedTable) {
         await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
@@ -188,7 +238,7 @@ export default function CommanderTablesPage() {
         method: 'DELETE',
         headers: { 'x-staff-session': staffSession }
       });
-      setSelectedTable(null);
+      setSelectedTableId(null);
       await fetchTables();
     } catch (err) { console.error('Delete table error:', err); }
     finally { setActionLoading(false); }
@@ -210,27 +260,13 @@ export default function CommanderTablesPage() {
     } catch (err) { console.error('Add table error:', err); }
   };
 
-  const handleUpdateTable = async (tableId, tableData) => {
-    try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/tables/${tableId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
-        body: JSON.stringify(tableData)
-      });
-      const data = await res.json();
-      if (data.success) await fetchTables();
-    } catch (err) { console.error('Update table error:', err); }
-  };
-
-  // Update selectedTable ref when tables refresh
+  // Update selectedTableId ref when tables refresh
   useEffect(() => {
-    if (selectedTable) {
-      const updated = tables.find(t => t.id === selectedTable.id);
-      if (updated) setSelectedTable(updated);
-      else setSelectedTable(null);
+    if (selectedTableId) {
+      const updated = tables.find(t => t.id === selectedTableId);
+      if (!updated) setSelectedTableId(null);
     }
-  }, [tables]);
+  }, [tables, selectedTableId]);
 
   if (!staff || loading) {
     return (
@@ -240,19 +276,21 @@ export default function CommanderTablesPage() {
     );
   }
 
-  const game = selectedTable ? getGameForTable(selectedTable) : null;
+  // Separate tables into active (with game) and idle (no game)
+  const activeTables = tables.filter(t => getGameForTable(t));
+  const idleTables = tables.filter(t => !getGameForTable(t));
 
   return (
     <CommanderLayout title={`Tables | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=floor">
       <>
         <SEOHead title="Commander — Table Management" description="Club Commander Poker Room Management Tool." noindex={true} />
-        <div className="cmd-page" style={{ minHeight: '100vh', background: '#0A1628' }}>
+        <div className="cmd-page" style={{ minHeight: '100vh', background: '#0A1628', fontFamily: 'Inter, sans-serif' }}>
 
           {/* Header */}
           <header style={{ position: 'sticky', top: 0, zIndex: 50, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #1E3A5F', background: '#0D1F38' }}>
             <div>
-              <h1 style={{ color: '#fff', fontWeight: 700, fontSize: '18px', fontFamily: 'Inter, sans-serif' }}>Table Management</h1>
-              <p style={{ color: '#64748B', fontSize: '13px' }}>{venue?.name} — {tables.length} Tables</p>
+              <h1 style={{ color: '#fff', fontWeight: 700, fontSize: '18px' }}>Table Management</h1>
+              <p style={{ color: '#64748B', fontSize: '13px' }}>{venue?.name} — {tables.length} Tables ({activeTables.length} active)</p>
             </div>
             <button
               onClick={() => setShowAddModal(true)}
@@ -262,8 +300,7 @@ export default function CommanderTablesPage() {
             </button>
           </header>
 
-          {/* Main Content */}
-          <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 16px' }}>
+          <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px 16px' }}>
 
             {tables.length === 0 ? (
               <div style={{ background: '#132240', border: '2px solid #1E3A5F', borderRadius: '12px', padding: '48px', textAlign: 'center' }}>
@@ -278,279 +315,461 @@ export default function CommanderTablesPage() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                {/* ═══ TABLE GRID ═══ */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                  {tables.map(table => {
-                    const tGame = getGameForTable(table);
-                    const sc = STATUS_COLORS[table.status] || STATUS_COLORS.available;
-                    const isSelected = selectedTable?.id === table.id;
-                    return (
-                      <button
-                        key={table.id}
-                        onClick={() => {
-                          setSelectedTable(isSelected ? null : table);
-                          setShowStartGame(false);
-                        }}
-                        style={{
-                          width: '100%', textAlign: 'left', padding: '14px',
-                          background: isSelected ? 'rgba(34,211,238,0.1)' : '#132240',
-                          border: `2px solid ${isSelected ? '#22D3EE' : '#1E3A5F'}`,
-                          borderRadius: '10px', cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                          <div>
-                            <div style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>
-                              Table {table.table_number}
+                {/* ═══ ACTIVE TABLES — Oval Visualization ═══ */}
+                {activeTables.length > 0 && (
+                  <div>
+                    <h2 style={{ color: '#22D3EE', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+                      Live Tables ({activeTables.length})
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {activeTables.map(table => {
+                        const game = getGameForTable(table);
+                        if (!game) return null;
+                        const maxSeats = table.max_seats || game.max_players || 9;
+                        const tNum = table.table_number;
+                        const tableSessions = sessions[tNum] || [];
+                        const isSelected = selectedTableId === table.id;
+
+                        // Build seat array from sessions
+                        const seatArr = Array.from({ length: maxSeats }, (_, i) => {
+                          const session = tableSessions.find(s => s.seat_number === i + 1);
+                          return { number: i + 1, taken: session || null };
+                        });
+                        const occupiedCount = seatArr.filter(s => s.taken).length;
+
+                        // Compute seat positions
+                        const { dealerPos, seatPositions } = computeSeatPositions(maxSeats);
+
+                        return (
+                          <div key={table.id}>
+                            {/* Game Header */}
+                            <div
+                              style={{
+                                background: '#1a1a2e', borderRadius: 16,
+                                border: `2px solid ${isSelected ? '#22D3EE' : '#2d2d44'}`,
+                                overflow: 'hidden', cursor: 'pointer',
+                                transition: 'border-color 0.2s',
+                              }}
+                              onClick={() => { setSelectedTableId(isSelected ? null : table.id); setShowStartGame(false); }}
+                            >
+                              <div style={{
+                                padding: '12px 16px',
+                                background: game.status === 'running'
+                                  ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                  : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                color: '#fff',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div>
+                                    <div style={{ fontSize: 16, fontWeight: 800 }}>
+                                      {(game.game_type || table.game_type || 'NLH').toUpperCase()} {game.stakes || table.stakes || ''}
+                                    </div>
+                                    <div style={{ fontSize: 13, opacity: 0.9 }}>
+                                      Table {tNum}{table.table_name ? ` · ${table.table_name}` : ''} · {maxSeats}-max
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{
+                                      padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                      background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase',
+                                      display: 'flex', alignItems: 'center', gap: 4,
+                                    }}>
+                                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
+                                      {game.status === 'running' ? 'RUNNING' : game.status?.toUpperCase() || 'ACTIVE'}
+                                    </span>
+                                    <span style={{ fontSize: 13, fontWeight: 600 }}>{occupiedCount}/{maxSeats} seated</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* ── Oval Table Visualization (cropped viewport) ── */}
+                              <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden' }}>
+                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
+                                  {/* Table image */}
+                                  <img
+                                    src="/images/poker-table-black-gold.png"
+                                    alt="Poker Table"
+                                    style={{
+                                      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                      objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                    }}
+                                  />
+
+                                  {/* Game info in center */}
+                                  <div style={{
+                                    position: 'absolute', top: '48%', left: '50%',
+                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
+                                  }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+                                      {venue?.name || 'Table'} #{tNum}
+                                    </div>
+                                    <div style={{ fontSize: 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                      {(game.game_type || table.game_type || '').toUpperCase()}
+                                    </div>
+                                    <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
+                                      {game.stakes || table.stakes || ''}
+                                    </div>
+                                  </div>
+
+                                  {/* Dealer */}
+                                  <div style={{
+                                    position: 'absolute', top: dealerPos.top, left: dealerPos.left,
+                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 80, zIndex: 3,
+                                  }}>
+                                    <div style={{
+                                      width: 64, height: 64, borderRadius: '50%', margin: '0 auto 4px',
+                                      background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                      border: '3px solid #E4E6EB',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                                      fontSize: 28, fontWeight: 900, color: '#fff',
+                                    }}>D</div>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1877F2', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {game.dealer_name || 'No Dealer'}
+                                    </div>
+                                  </div>
+
+                                  {/* Seat badges */}
+                                  {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                                    const pos = seatPositions[idx];
+                                    const isOccupied = !!seat.taken;
+                                    const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                    const fullName = seat.taken?.player_name || '';
+
+                                    const leftPct = parseFloat(pos.left);
+                                    const isLeftSide = leftPct < 25;
+                                    const isRightSide = leftPct > 75;
+                                    const badgeTransform = isLeftSide
+                                      ? 'translate(-17px, -50%)'
+                                      : isRightSide
+                                        ? 'translate(calc(-100% + 17px), -50%)'
+                                        : 'translate(-50%, -50%)';
+                                    const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                                    // Timer computation
+                                    let timerText = null, timerColor = null;
+                                    if (isOccupied && seat.taken) {
+                                      const isTexas = game.venue_type === 'texas';
+                                      if (isTexas && seat.taken.time_remaining != null) {
+                                        const rem = Math.max(0, seat.taken.time_remaining || 0);
+                                        const mins = Math.floor(rem / 60);
+                                        const secs = rem % 60;
+                                        timerText = rem <= 0 ? 'EXPIRED' : `${mins}:${String(secs).padStart(2, '0')}`;
+                                        timerColor = rem <= 0 ? '#ef4444' : rem <= 300 ? '#ef4444' : rem <= 900 ? '#f59e0b' : '#22c55e';
+                                      } else if (seat.taken.elapsed_seconds != null) {
+                                        const elapsed = seat.taken.elapsed_seconds || 0;
+                                        const hrs = Math.floor(elapsed / 3600);
+                                        const mins = Math.floor((elapsed % 3600) / 60);
+                                        timerText = `${hrs}:${String(mins).padStart(2, '0')}`;
+                                        timerColor = '#a78bfa';
+                                      }
+                                    }
+
+                                    return (
+                                      <div key={seat.number} style={{
+                                        position: 'absolute', top: pos.top, left: pos.left,
+                                        transform: badgeTransform, zIndex: 2,
+                                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 8,
+                                        background: 'rgba(36,37,38,0.9)',
+                                        borderRadius: 12,
+                                        padding: '5px 10px 5px 5px',
+                                        border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
+                                        backdropFilter: 'blur(6px)',
+                                        minWidth: 70,
+                                      }}>
+                                        {/* Avatar circle */}
+                                        <div style={{
+                                          width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                          background: isOccupied
+                                            ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)'
+                                            : 'rgba(255,255,255,0.06)',
+                                          border: `2px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
+                                          overflow: 'hidden',
+                                        }}>
+                                          {isOccupied ? (
+                                            <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                          ) : (
+                                            <span style={{ fontSize: 16, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                          )}
+                                        </div>
+                                        {/* Name + Timer */}
+                                        <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                                          <div style={{
+                                            fontSize: 13, fontWeight: 600, lineHeight: 1.2,
+                                            color: isOccupied ? '#E4E6EB' : '#B0B3B8',
+                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                            maxWidth: 110,
+                                          }}>
+                                            {isOccupied ? fullName : 'Open'}
+                                          </div>
+                                          {timerText && (
+                                            <div style={{
+                                              fontSize: 12, fontWeight: 700, color: timerColor,
+                                              fontFamily: 'monospace', lineHeight: 1.2,
+                                            }}>
+                                              {timerText}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </div>
-                            {table.table_name && (
-                              <div style={{ color: '#64748B', fontSize: '12px', marginTop: '2px' }}>{table.table_name}</div>
+
+                            {/* ── Action Panel (if selected) ── */}
+                            {isSelected && (
+                              <div style={{
+                                background: '#132240', border: '2px solid #22D3EE', borderTop: 'none',
+                                borderRadius: '0 0 12px 12px', padding: '16px',
+                                animation: 'fadeIn 0.2s',
+                              }}>
+                                {/* Active Game Info */}
+                                <div style={{
+                                  background: 'rgba(34,211,238,0.1)', border: '1px solid #22D3EE40',
+                                  borderRadius: '8px', padding: '12px', marginBottom: '12px',
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                }}>
+                                  <div>
+                                    <div style={{ color: '#22D3EE', fontWeight: 700, fontSize: '15px' }}>
+                                      {(game.game_type || table.game_type || '').toUpperCase()} {game.stakes || table.stakes || ''}
+                                    </div>
+                                    <div style={{ color: '#64748B', fontSize: '13px', marginTop: '2px' }}>
+                                      <Users size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                                      {occupiedCount} / {maxSeats} players
+                                      {game.started_at && ` — Running ${formatDuration(game.started_at)}`}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleCloseGame(game.id); }}
+                                    disabled={actionLoading}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', gap: '6px',
+                                      padding: '8px 16px', background: 'rgba(239,68,68,0.15)', color: '#EF4444',
+                                      fontWeight: 600, fontSize: '13px', borderRadius: '8px', border: '1px solid #EF444440',
+                                      cursor: 'pointer', opacity: actionLoading ? 0.5 : 1,
+                                    }}
+                                  >
+                                    <Square size={14} /> Close Game
+                                  </button>
+                                </div>
+
+                                {/* Quick Actions */}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                  {['available', 'reserved', 'maintenance'].filter(s => s !== table.status).map(status => {
+                                    const sc = STATUS_COLORS[status];
+                                    return (
+                                      <button
+                                        key={status}
+                                        onClick={(e) => { e.stopPropagation(); handleSetStatus(status); }}
+                                        disabled={actionLoading || (table.status === 'in_use' && status !== 'maintenance')}
+                                        style={{
+                                          padding: '8px 14px', fontSize: '13px', fontWeight: 600,
+                                          borderRadius: '8px', cursor: 'pointer',
+                                          background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
+                                          opacity: (actionLoading || (table.status === 'in_use' && status !== 'maintenance')) ? 0.4 : 1,
+                                        }}
+                                      >
+                                        Set {sc.label}
+                                      </button>
+                                    );
+                                  })}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteTable(); }}
+                                    disabled={actionLoading || table.status === 'in_use'}
+                                    style={{
+                                      padding: '8px 14px', fontSize: '13px', fontWeight: 600,
+                                      borderRadius: '8px', cursor: 'pointer', marginLeft: 'auto',
+                                      background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid #EF444430',
+                                      opacity: (actionLoading || table.status === 'in_use') ? 0.4 : 1,
+                                    }}
+                                  >
+                                    <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
                             )}
                           </div>
-                          <span style={{
-                            padding: '3px 8px', fontSize: '11px', fontWeight: 600, borderRadius: '6px',
-                            background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`
-                          }}>
-                            {sc.label}
-                          </span>
-                        </div>
-
-                        {/* Game info */}
-                        {tGame && table.status === 'in_use' && (
-                          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #1E3A5F' }}>
-                            <div style={{ color: '#22D3EE', fontWeight: 600, fontSize: '14px' }}>
-                              {(tGame.game_type || table.game_type || '').toUpperCase()} {tGame.stakes || table.stakes || ''}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', color: '#64748B', fontSize: '12px' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                <Users size={12} /> {tGame.current_players || 0}/{table.max_seats || 9}
-                              </span>
-                              {tGame.started_at && (
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                  <Clock size={12} /> {formatDuration(tGame.started_at)}
-                                </span>
-                              )}
-                            </div>
-                            {/* Seat visualization */}
-                            <div style={{ display: 'flex', gap: '2px', marginTop: '6px' }}>
-                              {Array.from({ length: table.max_seats || 9 }).map((_, i) => (
-                                <div key={i} style={{
-                                  flex: 1, height: '3px', borderRadius: '2px',
-                                  background: i < (tGame.current_players || 0) ? '#22D3EE' : '#1E3A5F'
-                                }} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {!tGame && table.status === 'available' && (
-                          <div style={{ marginTop: '6px', color: '#64748B', fontSize: '12px' }}>
-                            {table.max_seats || 9} seats — Ready
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* ═══ ACTION PANEL ═══ */}
-                {selectedTable && (
-                  <div style={{
-                    background: '#132240', border: '2px solid #22D3EE', borderRadius: '12px',
-                    padding: '20px', animation: 'fadeIn 0.2s'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-                        Table {selectedTable.table_number}
-                        {selectedTable.table_name && <span style={{ color: '#64748B', fontWeight: 400, marginLeft: '8px', fontSize: '14px' }}>({selectedTable.table_name})</span>}
-                      </h3>
-                      <button onClick={() => { setSelectedTable(null); setShowStartGame(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                        <X size={20} color="#64748B" />
-                      </button>
+                        );
+                      })}
                     </div>
+                  </div>
+                )}
 
-                    {/* Active Game Info */}
-                    {game && (
-                      <div style={{
-                        background: 'rgba(34,211,238,0.1)', border: '1px solid #22D3EE40',
-                        borderRadius: '8px', padding: '12px', marginBottom: '16px',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                      }}>
-                        <div>
-                          <div style={{ color: '#22D3EE', fontWeight: 700, fontSize: '16px' }}>
-                            {(game.game_type || selectedTable.game_type || '').toUpperCase()} {game.stakes || selectedTable.stakes || ''}
-                          </div>
-                          <div style={{ color: '#64748B', fontSize: '13px', marginTop: '2px' }}>
-                            <Users size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                            {game.current_players || 0} / {game.max_players || selectedTable.max_seats || 9} players
-                            {game.started_at && ` — Running ${formatDuration(game.started_at)}`}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleCloseGame(game.id)}
-                          disabled={actionLoading}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '8px 16px', background: 'rgba(239,68,68,0.15)', color: '#EF4444',
-                            fontWeight: 600, fontSize: '13px', borderRadius: '8px', border: '1px solid #EF444440',
-                            cursor: 'pointer', opacity: actionLoading ? 0.5 : 1
-                          }}
-                        >
-                          <Square size={14} /> Close Game
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Start Game Section */}
-                    {!game && selectedTable.status !== 'maintenance' && (
-                      <>
-                        {!showStartGame ? (
-                          <button
-                            onClick={() => setShowStartGame(true)}
-                            style={{
-                              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                              padding: '12px', background: 'rgba(16,185,129,0.15)', color: '#10B981',
-                              fontWeight: 600, fontSize: '14px', borderRadius: '8px', border: '1px solid #10B98140',
-                              cursor: 'pointer', marginBottom: '16px'
-                            }}
-                          >
-                            <Play size={16} /> Start Game on Table {selectedTable.table_number}
-                          </button>
-                        ) : (
-                          <div style={{
-                            background: '#0D1F38', borderRadius: '10px', padding: '16px',
-                            marginBottom: '16px', border: '1px solid #1E3A5F'
-                          }}>
-                            <h4 style={{ color: '#fff', fontWeight: 600, fontSize: '15px', marginBottom: '12px' }}>Start New Game</h4>
-
-                            {/* Game Type */}
-                            <div style={{ marginBottom: '12px' }}>
-                              <label style={{ display: 'block', color: '#64748B', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Game Type</label>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {GAME_TYPES.map(gt => (
-                                  <button
-                                    key={gt}
-                                    onClick={() => setNewGameType(gt)}
-                                    style={{
-                                      padding: '6px 14px', fontSize: '13px', fontWeight: 600,
-                                      borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                      background: newGameType === gt ? '#22D3EE' : '#1E3A5F',
-                                      color: newGameType === gt ? '#0A1628' : '#94A3B8',
-                                    }}
-                                  >
-                                    {gt}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Stakes */}
-                            <div style={{ marginBottom: '12px' }}>
-                              <label style={{ display: 'block', color: '#64748B', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Stakes</label>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {COMMON_STAKES.map(s => (
-                                  <button
-                                    key={s}
-                                    onClick={() => setNewStakes(s)}
-                                    style={{
-                                      padding: '6px 14px', fontSize: '13px', fontWeight: 600,
-                                      borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                      background: newStakes === s ? '#22D3EE' : '#1E3A5F',
-                                      color: newStakes === s ? '#0A1628' : '#94A3B8',
-                                    }}
-                                  >
-                                    {s}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Max Players */}
-                            <div style={{ marginBottom: '16px' }}>
-                              <label style={{ display: 'block', color: '#64748B', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Max Players</label>
-                              <div style={{ display: 'flex', gap: '6px' }}>
-                                {[6, 8, 9, 10].map(n => (
-                                  <button
-                                    key={n}
-                                    onClick={() => setNewMaxPlayers(n)}
-                                    style={{
-                                      padding: '6px 16px', fontSize: '13px', fontWeight: 600,
-                                      borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                      background: newMaxPlayers === n ? '#22D3EE' : '#1E3A5F',
-                                      color: newMaxPlayers === n ? '#0A1628' : '#94A3B8',
-                                    }}
-                                  >
-                                    {n}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                              <button
-                                onClick={() => setShowStartGame(false)}
-                                style={{
-                                  flex: 1, padding: '10px', background: '#1E3A5F', color: '#94A3B8',
-                                  fontWeight: 600, fontSize: '14px', borderRadius: '8px', border: 'none', cursor: 'pointer'
-                                }}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={handleStartGame}
-                                disabled={actionLoading}
-                                style={{
-                                  flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                  padding: '10px', background: '#10B981', color: '#fff',
-                                  fontWeight: 700, fontSize: '14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                                  opacity: actionLoading ? 0.5 : 1
-                                }}
-                              >
-                                <Play size={16} /> Start {newGameType} {newStakes}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Quick Actions */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {['available', 'reserved', 'maintenance'].filter(s => s !== selectedTable.status).map(status => {
-                        const sc = STATUS_COLORS[status];
+                {/* ═══ IDLE TABLES — Compact Grid ═══ */}
+                {idleTables.length > 0 && (
+                  <div>
+                    <h2 style={{ color: '#64748B', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+                      Idle Tables ({idleTables.length})
+                    </h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                      {idleTables.map(table => {
+                        const sc = STATUS_COLORS[table.status] || STATUS_COLORS.available;
+                        const isSelected = selectedTableId === table.id;
                         return (
                           <button
-                            key={status}
-                            onClick={() => handleSetStatus(status)}
-                            disabled={actionLoading || (selectedTable.status === 'in_use' && status !== 'maintenance')}
+                            key={table.id}
+                            onClick={() => { setSelectedTableId(isSelected ? null : table.id); setShowStartGame(false); }}
                             style={{
-                              padding: '8px 14px', fontSize: '13px', fontWeight: 600,
-                              borderRadius: '8px', cursor: 'pointer',
-                              background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
-                              opacity: (actionLoading || (selectedTable.status === 'in_use' && status !== 'maintenance')) ? 0.4 : 1
+                              width: '100%', textAlign: 'left', padding: '14px',
+                              background: isSelected ? 'rgba(34,211,238,0.1)' : '#132240',
+                              border: `2px solid ${isSelected ? '#22D3EE' : '#1E3A5F'}`,
+                              borderRadius: '10px', cursor: 'pointer',
+                              transition: 'all 0.2s',
                             }}
                           >
-                            Set {sc.label}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                              <div>
+                                <div style={{ color: '#fff', fontWeight: 700, fontSize: '15px' }}>
+                                  Table {table.table_number}
+                                </div>
+                                {table.table_name && (
+                                  <div style={{ color: '#64748B', fontSize: '12px', marginTop: '2px' }}>{table.table_name}</div>
+                                )}
+                              </div>
+                              <span style={{
+                                padding: '3px 8px', fontSize: '11px', fontWeight: 600, borderRadius: '6px',
+                                background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
+                              }}>
+                                {sc.label}
+                              </span>
+                            </div>
+                            <div style={{ marginTop: '6px', color: '#64748B', fontSize: '12px' }}>
+                              {table.max_seats || 9} seats — Ready
+                            </div>
                           </button>
                         );
                       })}
-                      <button
-                        onClick={handleDeleteTable}
-                        disabled={actionLoading || selectedTable.status === 'in_use'}
-                        style={{
-                          padding: '8px 14px', fontSize: '13px', fontWeight: 600,
-                          borderRadius: '8px', cursor: 'pointer', marginLeft: 'auto',
-                          background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid #EF444430',
-                          opacity: (actionLoading || selectedTable.status === 'in_use') ? 0.4 : 1
-                        }}
-                      >
-                        <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                        Delete
-                      </button>
                     </div>
+
+                    {/* Action Panel for Idle Tables */}
+                    {selectedTable && !selectedGame && (
+                      <div style={{
+                        background: '#132240', border: '2px solid #22D3EE', borderRadius: '12px',
+                        padding: '20px', marginTop: '16px', animation: 'fadeIn 0.2s',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+                            Table {selectedTable.table_number}
+                            {selectedTable.table_name && <span style={{ color: '#64748B', fontWeight: 400, marginLeft: '8px', fontSize: '14px' }}>({selectedTable.table_name})</span>}
+                          </h3>
+                          <button onClick={() => { setSelectedTableId(null); setShowStartGame(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                            <X size={20} color="#64748B" />
+                          </button>
+                        </div>
+
+                        {/* Start Game */}
+                        {selectedTable.status !== 'maintenance' && (
+                          <>
+                            {!showStartGame ? (
+                              <button
+                                onClick={() => setShowStartGame(true)}
+                                style={{
+                                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                  padding: '12px', background: 'rgba(16,185,129,0.15)', color: '#10B981',
+                                  fontWeight: 600, fontSize: '14px', borderRadius: '8px', border: '1px solid #10B98140',
+                                  cursor: 'pointer', marginBottom: '16px',
+                                }}
+                              >
+                                <Play size={16} /> Start Game on Table {selectedTable.table_number}
+                              </button>
+                            ) : (
+                              <div style={{
+                                background: '#0D1F38', borderRadius: '10px', padding: '16px',
+                                marginBottom: '16px', border: '1px solid #1E3A5F',
+                              }}>
+                                <h4 style={{ color: '#fff', fontWeight: 600, fontSize: '15px', marginBottom: '12px' }}>Start New Game</h4>
+
+                                <div style={{ marginBottom: '12px' }}>
+                                  <label style={{ display: 'block', color: '#64748B', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Game Type</label>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {GAME_TYPES.map(gt => (
+                                      <button key={gt} onClick={() => setNewGameType(gt)}
+                                        style={{
+                                          padding: '6px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer',
+                                          background: newGameType === gt ? '#22D3EE' : '#1E3A5F', color: newGameType === gt ? '#0A1628' : '#94A3B8',
+                                        }}
+                                      >{gt}</button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div style={{ marginBottom: '12px' }}>
+                                  <label style={{ display: 'block', color: '#64748B', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Stakes</label>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {COMMON_STAKES.map(s => (
+                                      <button key={s} onClick={() => setNewStakes(s)}
+                                        style={{
+                                          padding: '6px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer',
+                                          background: newStakes === s ? '#22D3EE' : '#1E3A5F', color: newStakes === s ? '#0A1628' : '#94A3B8',
+                                        }}
+                                      >{s}</button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div style={{ marginBottom: '16px' }}>
+                                  <label style={{ display: 'block', color: '#64748B', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Max Players</label>
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    {[6, 8, 9, 10].map(n => (
+                                      <button key={n} onClick={() => setNewMaxPlayers(n)}
+                                        style={{
+                                          padding: '6px 16px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer',
+                                          background: newMaxPlayers === n ? '#22D3EE' : '#1E3A5F', color: newMaxPlayers === n ? '#0A1628' : '#94A3B8',
+                                        }}
+                                      >{n}</button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                  <button onClick={() => setShowStartGame(false)}
+                                    style={{ flex: 1, padding: '10px', background: '#1E3A5F', color: '#94A3B8', fontWeight: 600, fontSize: '14px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                                  >Cancel</button>
+                                  <button onClick={handleStartGame} disabled={actionLoading}
+                                    style={{
+                                      flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                      padding: '10px', background: '#10B981', color: '#fff', fontWeight: 700, fontSize: '14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                                      opacity: actionLoading ? 0.5 : 1,
+                                    }}
+                                  ><Play size={16} /> Start {newGameType} {newStakes}</button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Quick Actions */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {['available', 'reserved', 'maintenance'].filter(s => s !== selectedTable.status).map(status => {
+                            const sc = STATUS_COLORS[status];
+                            return (
+                              <button key={status} onClick={() => handleSetStatus(status)} disabled={actionLoading}
+                                style={{
+                                  padding: '8px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '8px', cursor: 'pointer',
+                                  background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
+                                  opacity: actionLoading ? 0.4 : 1,
+                                }}
+                              >Set {sc.label}</button>
+                            );
+                          })}
+                          <button onClick={handleDeleteTable} disabled={actionLoading || selectedTable.status === 'in_use'}
+                            style={{
+                              padding: '8px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginLeft: 'auto',
+                              background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid #EF444430',
+                              opacity: (actionLoading || selectedTable.status === 'in_use') ? 0.4 : 1,
+                            }}
+                          >
+                            <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -586,20 +805,11 @@ function AddTableModal({ existingCount, onClose, onSubmit }) {
     e.preventDefault();
     setSubmitting(true);
     if (bulkCount > 1) {
-      // Bulk add
       for (let i = 0; i < bulkCount; i++) {
-        await onSubmit({
-          table_number: tableNumber + i,
-          table_name: null,
-          max_seats: maxSeats
-        });
+        await onSubmit({ table_number: tableNumber + i, table_name: null, max_seats: maxSeats });
       }
     } else {
-      await onSubmit({
-        table_number: parseInt(tableNumber),
-        table_name: tableName || null,
-        max_seats: maxSeats
-      });
+      await onSubmit({ table_number: parseInt(tableNumber), table_name: tableName || null, max_seats: maxSeats });
     }
     setSubmitting(false);
   }
@@ -611,95 +821,46 @@ function AddTableModal({ existingCount, onClose, onSubmit }) {
           <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '16px' }}>Add Table</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#64748B" /></button>
         </div>
-
         <form onSubmit={handleSubmit} style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Bulk add option */}
           <div>
             <label style={{ display: 'block', color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Add Multiple Tables</label>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[1, 5, 10, 20].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setBulkCount(n)}
-                  style={{
-                    flex: 1, padding: '8px', fontSize: '14px', fontWeight: 600,
-                    borderRadius: '6px', border: 'none', cursor: 'pointer',
-                    background: bulkCount === n ? '#22D3EE' : '#1E3A5F',
-                    color: bulkCount === n ? '#0A1628' : '#94A3B8'
-                  }}
-                >
-                  {n}
-                </button>
+                <button key={n} type="button" onClick={() => setBulkCount(n)}
+                  style={{ flex: 1, padding: '8px', fontSize: '14px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer', background: bulkCount === n ? '#22D3EE' : '#1E3A5F', color: bulkCount === n ? '#0A1628' : '#94A3B8' }}
+                >{n}</button>
               ))}
             </div>
           </div>
-
           <div>
             <label style={{ display: 'block', color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>
               {bulkCount > 1 ? `Starting Table Number (${bulkCount} tables: ${tableNumber} - ${tableNumber + bulkCount - 1})` : 'Table Number'}
             </label>
-            <input
-              type="number"
-              value={tableNumber}
-              onChange={e => setTableNumber(parseInt(e.target.value) || 1)}
-              min="1"
-              required
-              style={{ width: '100%', height: '44px', padding: '0 12px', background: '#0D1F38', border: '1px solid #1E3A5F', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }}
-            />
+            <input type="number" value={tableNumber} onChange={e => setTableNumber(parseInt(e.target.value) || 1)} min="1" required
+              style={{ width: '100%', height: '44px', padding: '0 12px', background: '#0D1F38', border: '1px solid #1E3A5F', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }} />
           </div>
-
           {bulkCount <= 1 && (
             <div>
               <label style={{ display: 'block', color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Table Name (Optional)</label>
-              <input
-                type="text"
-                value={tableName}
-                onChange={e => setTableName(e.target.value)}
-                placeholder="e.g., Feature Table, VIP Table"
-                style={{ width: '100%', height: '44px', padding: '0 12px', background: '#0D1F38', border: '1px solid #1E3A5F', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }}
-              />
+              <input type="text" value={tableName} onChange={e => setTableName(e.target.value)} placeholder="e.g., Feature Table, VIP Table"
+                style={{ width: '100%', height: '44px', padding: '0 12px', background: '#0D1F38', border: '1px solid #1E3A5F', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }} />
             </div>
           )}
-
           <div>
             <label style={{ display: 'block', color: '#94A3B8', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Max Seats Per Table</label>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[6, 8, 9, 10].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setMaxSeats(n)}
-                  style={{
-                    flex: 1, padding: '8px', fontSize: '14px', fontWeight: 600,
-                    borderRadius: '6px', border: 'none', cursor: 'pointer',
-                    background: maxSeats === n ? '#22D3EE' : '#1E3A5F',
-                    color: maxSeats === n ? '#0A1628' : '#94A3B8'
-                  }}
-                >
-                  {n}
-                </button>
+                <button key={n} type="button" onClick={() => setMaxSeats(n)}
+                  style={{ flex: 1, padding: '8px', fontSize: '14px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer', background: maxSeats === n ? '#22D3EE' : '#1E3A5F', color: maxSeats === n ? '#0A1628' : '#94A3B8' }}
+                >{n}</button>
               ))}
             </div>
           </div>
-
           <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ flex: 1, padding: '12px', background: '#1E3A5F', color: '#94A3B8', fontWeight: 600, borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px' }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                flex: 2, padding: '12px', background: '#22D3EE', color: '#0A1628',
-                fontWeight: 700, borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px',
-                opacity: submitting ? 0.5 : 1
-              }}
-            >
+            <button type="button" onClick={onClose}
+              style={{ flex: 1, padding: '12px', background: '#1E3A5F', color: '#94A3B8', fontWeight: 600, borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+            <button type="submit" disabled={submitting}
+              style={{ flex: 2, padding: '12px', background: '#22D3EE', color: '#0A1628', fontWeight: 700, borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: submitting ? 0.5 : 1 }}>
               {submitting ? 'Adding...' : bulkCount > 1 ? `Add ${bulkCount} Tables` : 'Add Table'}
             </button>
           </div>
