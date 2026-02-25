@@ -81,7 +81,10 @@ export default function ClockDisplay() {
     if (!id) return;
     const fetch_ = async () => {
       try {
-        const res = await fetch(`/api/commander/tournaments/${id}/floor-view`);
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
+          headers: { 'x-staff-session': staffSession },
+        });
         const json = await res.json();
         if (json.success) {
           setData(json.data);

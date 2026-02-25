@@ -77,9 +77,11 @@ export default function TournamentDetailPage() {
     if (!id) return;
 
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'x-staff-session': staffSession };
       const [tournamentRes, entriesRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`),
-        fetch(`/api/commander/tournaments/${id}/entries`)
+        fetch(`/api/commander/tournaments/${id}`, { headers }),
+        fetch(`/api/commander/tournaments/${id}/entries`, { headers })
       ]);
 
       const tournamentData = await tournamentRes.json();

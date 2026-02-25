@@ -11,7 +11,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { Save, Plus, Trash2, GripVertical, Clock, DollarSign,
+import {
+  Save, Plus, Trash2, GripVertical, Clock, DollarSign,
   Users, Trophy, Coffee, ChevronUp, ChevronDown, Copy, Download,
   Loader2, Settings, Calculator, FileText, RotateCcw, Check
 } from 'lucide-react';
@@ -188,17 +189,17 @@ export default function TournamentSettings() {
   const [estimatedEntries, setEstimatedEntries] = useState(30);
   const [customPayouts, setCustomPayouts] = useState([]);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getStaffSession = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_staff') || '' : '';
 
   // Fetch tournament
   useEffect(() => {
     if (!id) return;
     const fetch_ = async () => {
       try {
-        const token = getToken();
+        const staffSession = getStaffSession();
         const res = await fetch(`/api/commander/tournaments/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 'x-staff-session': staffSession }
         });
         const json = await res.json();
         if (json.success) {
@@ -273,10 +274,10 @@ export default function TournamentSettings() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const token = getToken();
+      const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/tournaments/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
           name, tournament_type: tournamentType,
           buyin_amount: buyinAmount, buyin_fee: buyinFee,
@@ -321,10 +322,10 @@ export default function TournamentSettings() {
   return (
     <>
       <SEOHead
-                title="Commander — Settings"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Settings"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col">
 
         {/* Header */}
@@ -336,12 +337,11 @@ export default function TournamentSettings() {
             </div>
           </div>
           <button onClick={saveSettings} disabled={saving}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
-              saved ? 'bg-[#31A24C] text-white' : 'bg-[#1877F2] text-white active:bg-[#1565D8]'
-            } disabled:opacity-50`}>
+            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${saved ? 'bg-[#31A24C] text-white' : 'bg-[#1877F2] text-white active:bg-[#1565D8]'
+              } disabled:opacity-50`}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> :
-             saved ? <Check className="w-4 h-4" /> :
-             <Save className="w-4 h-4" />}
+              saved ? <Check className="w-4 h-4" /> :
+                <Save className="w-4 h-4" />}
             {saved ? 'Saved' : 'Save'}
           </button>
         </div>
@@ -350,11 +350,10 @@ export default function TournamentSettings() {
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 flex gap-1">
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 -mb-px ${
-                activeTab === tab.key
+              className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 -mb-px ${activeTab === tab.key
                   ? 'text-[#1877F2] border-[#1877F2]'
                   : 'text-[#B0B3B8] border-transparent'
-              }`}>
+                }`}>
               <tab.icon className="w-4 h-4" /> {tab.label}
             </button>
           ))}
@@ -428,7 +427,6 @@ export default function TournamentSettings() {
                   }
 
                   return (
-                    <CommanderLayout title="Settings | {name || 'Tournament'}" backHref="/commander/dashboard?card=tournaments">
                     <div key={i} className="grid grid-cols-[40px_1fr_1fr_1fr_60px_40px_40px] gap-1 items-center bg-[#242526] border border-[#3A3B3C] rounded-lg px-2 py-1.5">
                       <span className="text-xs text-[#B0B3B8] font-mono">{levelNum}</span>
                       <input type="number" value={level.small_blind}
@@ -449,7 +447,6 @@ export default function TournamentSettings() {
                       </div>
                       <button onClick={() => removeLevel(i)} className="p-1"><Trash2 className="w-3.5 h-3.5 text-[#EF4444]" /></button>
                     </div>
-                    </CommanderLayout>
                   );
                 })}
               </div>
@@ -484,9 +481,8 @@ export default function TournamentSettings() {
                 <div className="grid grid-cols-4 gap-2">
                   {['freezeout', 'rebuy', 'bounty', 'satellite'].map(type => (
                     <button key={type} onClick={() => setTournamentType(type)}
-                      className={`py-2.5 rounded-lg text-sm font-medium capitalize ${
-                        tournamentType === type ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                      }`}>{type}</button>
+                      className={`py-2.5 rounded-lg text-sm font-medium capitalize ${tournamentType === type ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                        }`}>{type}</button>
                   ))}
                 </div>
               </div>
@@ -632,9 +628,8 @@ export default function TournamentSettings() {
                 <div className="grid grid-cols-3 gap-2">
                   {Object.entries(PAYOUT_STRUCTURES).map(([key, struct]) => (
                     <button key={key} onClick={() => setPayoutStructure(key)}
-                      className={`py-2.5 rounded-lg text-xs font-medium ${
-                        payoutStructure === key ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                      }`}>{struct.name.split('(')[0].trim()}</button>
+                      className={`py-2.5 rounded-lg text-xs font-medium ${payoutStructure === key ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                        }`}>{struct.name.split('(')[0].trim()}</button>
                   ))}
                 </div>
               </div>
@@ -643,18 +638,16 @@ export default function TournamentSettings() {
               <div className="space-y-1">
                 {payouts.map(p => (
                   <div key={p.place}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg ${
-                      p.place === 1 ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' :
-                      p.place === 2 ? 'bg-white/5 border border-white/10' :
-                      p.place === 3 ? 'bg-[#B87333]/10 border border-[#B87333]/30' :
-                      'bg-[#242526] border border-[#3A3B3C]'
-                    }`}>
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      p.place === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
-                      p.place === 2 ? 'bg-white/10 text-white' :
-                      p.place === 3 ? 'bg-[#B87333]/20 text-[#B87333]' :
-                      'bg-[#3A3B3C] text-[#B0B3B8]'
-                    }`}>{p.place}</span>
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg ${p.place === 1 ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' :
+                        p.place === 2 ? 'bg-white/5 border border-white/10' :
+                          p.place === 3 ? 'bg-[#B87333]/10 border border-[#B87333]/30' :
+                            'bg-[#242526] border border-[#3A3B3C]'
+                      }`}>
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${p.place === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
+                        p.place === 2 ? 'bg-white/10 text-white' :
+                          p.place === 3 ? 'bg-[#B87333]/20 text-[#B87333]' :
+                            'bg-[#3A3B3C] text-[#B0B3B8]'
+                      }`}>{p.place}</span>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-white">{p.place === 1 ? '1st Place' : p.place === 2 ? '2nd Place' : p.place === 3 ? '3rd Place' : `${p.place}th Place`}</p>
                       <p className="text-[10px] text-[#B0B3B8]">{p.percentage}%</p>
@@ -677,8 +670,7 @@ export default function TournamentSettings() {
           )}
         </div>
       </div>
-      <style jsx>{`
-`}</style>
+
     </>
   );
 }
