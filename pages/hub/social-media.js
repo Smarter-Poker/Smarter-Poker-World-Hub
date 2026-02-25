@@ -2773,7 +2773,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         </div>
 
                                         {/* Poker Table Visualization — Full Width */}
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', marginTop: 10, marginBottom: 10 }}>
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '3 / 2', marginTop: 10, marginBottom: 10 }}>
                                             {/* Table image fills entire container */}
                                             <img
                                                 src="/images/poker-table-black-gold.png"
@@ -3256,7 +3256,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 </div>
 
                                 {/* Poker Table Visualization — Full Width */}
-                                <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', marginTop: 10, marginBottom: 10 }}>
+                                <div style={{ position: 'relative', width: '100%', aspectRatio: '3 / 2', marginTop: 10, marginBottom: 10 }}>
                                     {/* Table image fills entire container */}
                                     <img
                                         src="/images/poker-table-black-gold.png"
