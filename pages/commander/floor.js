@@ -181,7 +181,7 @@ export default function FloorMap() {
         {/* Filter */}
         <div className="px-4 pb-3 flex gap-2">
           {['all', 'in_use', 'available', 'reserved', 'maintenance'].map(f => {
-            const filterLabel = f === 'in_use' ? 'Active' : f === 'available' ? 'Open' : f === 'maintenance' ? 'Maint.' : f;
+            const filterLabel = f === 'in_use' ? 'Active' : f === 'available' ? 'Open' : f === 'maintenance' ? 'Maint.' : f === 'reserved' ? 'Reserved' : f;
             return (
               <button key={f} onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium ${filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
