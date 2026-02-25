@@ -271,8 +271,8 @@ export default function TournamentDetailPage() {
                 <button
                   onClick={() => handleClockAction(clockRunning ? 'pause' : 'resume')}
                   className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium ${clockRunning
-                      ? 'bg-[#F59E0B] hover:bg-[#D97706]'
-                      : 'bg-[#10B981] hover:bg-[#059669]'
+                    ? 'bg-[#F59E0B] hover:bg-[#D97706]'
+                    : 'bg-[#10B981] hover:bg-[#059669]'
                     }`}
                 >
                   {clockRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
@@ -462,8 +462,7 @@ export default function TournamentDetailPage() {
         tournament={tournament}
         entries={entries}
       />
-      <style jsx>{`
-`}</style>
+
     </CommanderLayout>
   );
 }

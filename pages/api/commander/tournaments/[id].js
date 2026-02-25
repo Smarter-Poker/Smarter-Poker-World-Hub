@@ -26,15 +26,16 @@ export default async function handler(req, res) {
     return getTournament(req, res, id);
   }
 
-  if (req.method === 'PUT') {
-    return updateTournament(req, res, id);
+  // PATCH is how the frontend sends status changes
+  if (req.method === 'PATCH' || req.method === 'PUT') {
+    return updateTournament(req, res, id, _g);
   }
 
   if (req.method === 'DELETE') {
-    return cancelTournament(req, res, id);
+    return cancelTournament(req, res, id, _g);
   }
 
-  res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+  res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
   return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 }
 
@@ -74,21 +75,14 @@ async function getTournament(req, res, id) {
   }
 }
 
-async function updateTournament(req, res, id) {
+async function updateTournament(req, res, id, staff) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authorization required' } });
+    // staff is already validated by guardWriteStaff at the handler level
+    if (!staff || staff === true) {
+      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' } });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ success: false, error: { code: 'AUTH_INVALID', message: 'Invalid token' } });
-    }
-
-    // Get tournament to check venue
+    // Get tournament to verify it exists
     const { data: existing, error: fetchError } = await supabase
       .from('commander_tournaments')
       .select('venue_id, status')
@@ -99,16 +93,8 @@ async function updateTournament(req, res, id) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
     }
 
-    // Verify staff access
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, role')
-      .eq('venue_id', existing.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-
-    if (staffError || !staff) {
+    // Verify staff belongs to this venue
+    if (staff.venue_id !== undefined && String(staff.venue_id) !== String(existing.venue_id)) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' } });
     }
 
@@ -136,18 +122,16 @@ async function updateTournament(req, res, id) {
   }
 }
 
-async function cancelTournament(req, res, id) {
+async function cancelTournament(req, res, id, staff) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authorization required' } });
+    // staff is already validated by guardWriteStaff at the handler level
+    if (!staff || staff === true) {
+      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' } });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ success: false, error: { code: 'AUTH_INVALID', message: 'Invalid token' } });
+    // Only owners/managers can cancel
+    if (!['owner', 'manager'].includes(staff.role)) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only owners and managers can cancel tournaments' } });
     }
 
     // Get tournament
@@ -161,18 +145,9 @@ async function cancelTournament(req, res, id) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
     }
 
-    // Only owners/managers can cancel
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, role')
-      .eq('venue_id', existing.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .in('role', ['owner', 'manager'])
-      .single();
-
-    if (staffError || !staff) {
-      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only owners and managers can cancel tournaments' } });
+    // Verify staff belongs to this venue
+    if (staff.venue_id !== undefined && String(staff.venue_id) !== String(existing.venue_id)) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' } });
     }
 
     if (existing.status === 'completed') {

@@ -73,14 +73,14 @@ export default function CommanderTournamentsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
@@ -89,7 +89,7 @@ export default function CommanderTournamentsPage() {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
       }
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -335,7 +335,7 @@ export default function CommanderTournamentsPage() {
                     )}
 
                     {/* Guaranteed overlay */}
-                    {tournament.guaranteed_pool > 0 && TotalPrizePool < tournament.guaranteed_pool && (
+                    {tournament.guaranteed_pool > 0 && totalPrizePool < tournament.guaranteed_pool && (
                       <div className="mt-2 px-2 py-1 bg-[#F59E0B]/10 rounded text-xs text-[#F59E0B]">
                         ${tournament.guaranteed_pool.toLocaleString()} GTD
                       </div>
