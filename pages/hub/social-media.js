@@ -2781,7 +2781,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 style={{
                                                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                                     objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                                    transform: 'scale(1.4)',
+                                                    transform: 'scale(2.0)', transformOrigin: '50% 50%',
                                                 }}
                                             />
 
@@ -3265,7 +3265,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         style={{
                                             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                             objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                            transform: 'scale(1.4)',
+                                            transform: 'scale(2.0)', transformOrigin: '50% 50%',
                                         }}
                                     />
 
