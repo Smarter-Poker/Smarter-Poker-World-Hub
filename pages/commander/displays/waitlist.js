@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
 import {
   Loader2, Users, ArrowLeft,
   MessageSquare, Phone,
@@ -52,28 +53,34 @@ export default function WaitlistDisplay() {
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
 
-  // Load venue info + saved desk customization (shares same settings as desk)
+  // Load venue info
   useEffect(() => {
     try {
       const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (staff.venue_name) setVenueName(staff.venue_name);
     } catch { }
-
-    // Fetch saved settings (same endpoint as desk)
-    (async () => {
-      try {
-        const token = getToken();
-        const staffSession = getStaffSession();
-        const res = await fetch('/api/commander/settings', {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        });
-        const json = await res.json();
-        if (json.success && json.data?.desk_customization) {
-          setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
-        }
-      } catch { }
-    })();
   }, []);
+
+  // Fetch customization settings — periodic re-fetch so desk changes sync
+  const fetchSettings = useCallback(async () => {
+    try {
+      const token = getToken();
+      const staffSession = getStaffSession();
+      const res = await fetch('/api/commander/settings', {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
+      const json = await res.json();
+      if (json.success && json.data?.desk_customization) {
+        setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
+      }
+    } catch { }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+    const settingsInterval = setInterval(fetchSettings, 30000); // Re-fetch settings every 30s
+    return () => clearInterval(settingsInterval);
+  }, [fetchSettings]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -123,6 +130,12 @@ export default function WaitlistDisplay() {
     const interval = setInterval(fetchData, 5000); // 5s refresh
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Real-time Supabase subscription — same as desk.js for instant updates
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+  useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
 
   // ── GROUP & SORT (identical to desk.js) ──────────────────────────
   const waitlistByGame = {};
