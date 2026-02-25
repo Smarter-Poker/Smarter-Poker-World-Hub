@@ -268,7 +268,7 @@ export default function MembershipPlansPage() {
           <div className="mp-container">
             {/* Background image */}
             <img
-              src="/images/commander/membership-plans-bg.png"
+              src="/images/commander/membership-plans-v2.jpg"
               alt="Membership Plans"
               className="mp-bg-img"
               draggable={false}
