@@ -104,7 +104,7 @@ export default function ReportsPage() {
   }, [dateRange]);
 
   return (
-    <CommanderLayout title="Reports">
+    <CommanderLayout title="Reports" backHref="/commander/dashboard">
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Date Range Filter */}

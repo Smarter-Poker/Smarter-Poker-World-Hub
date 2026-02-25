@@ -509,7 +509,7 @@ export default function IncidentsPage() {
   }
 
   return (
-    <CommanderLayout title="Incidents">
+    <CommanderLayout title="Incidents" backHref="/commander/dashboard">
       <div className="cmd-page">
         {/* Action Bar */}
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">

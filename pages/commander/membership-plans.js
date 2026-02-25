@@ -131,11 +131,11 @@ export default function MembershipPlansPage() {
           outline: none;
           -webkit-tap-highlight-color: transparent;
         }
-        /* Precise positions matching the 1024×835 mockup image */
-        .mp-hotspot-daily   { top: 19.8%; height: 10.2%; }
-        .mp-hotspot-weekly  { top: 31.4%; height: 10.2%; }
-        .mp-hotspot-monthly { top: 43.0%; height: 10.2%; }
-        .mp-hotspot-yearly  { top: 54.6%; height: 10.2%; }
+        /* Precise positions — calibrated from visual overlay test */
+        .mp-hotspot-daily   { top: 27%;   height: 10%; }
+        .mp-hotspot-weekly  { top: 38.5%; height: 10%; }
+        .mp-hotspot-monthly { top: 50%;   height: 10%; }
+        .mp-hotspot-yearly  { top: 61.5%; height: 10%; }
 
         /* Edit modal that appears on click */
         .mp-edit-overlay {

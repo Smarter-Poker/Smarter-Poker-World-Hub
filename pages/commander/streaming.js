@@ -381,7 +381,7 @@ export default function StreamingPage() {
   }
 
   return (
-    <CommanderLayout title="Streaming">
+    <CommanderLayout title="Streaming" backHref="/commander/dashboard">
       <div className="cmd-page">
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
