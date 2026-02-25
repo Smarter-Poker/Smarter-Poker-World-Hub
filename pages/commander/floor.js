@@ -73,7 +73,8 @@ export default function FloorMap() {
         fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()),
         fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }).then(r => r.json())
       ]);
-      if (tablesRes.success) setTables(tablesRes.data || []);
+      const rawTables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.tables || []);
+      if (tablesRes.success) setTables(rawTables);
       if (waitlistRes.success) {
         // Group waitlist by game type
         const grouped = {};
@@ -86,7 +87,7 @@ export default function FloorMap() {
 
       // Fetch active sessions per table for countdown info
       const sessionData = {};
-      const activeTables = (tablesRes.data || []).filter(t => t.status === 'in_use');
+      const activeTables = rawTables.filter(t => t.status === 'in_use');
       await Promise.all(activeTables.map(async (t) => {
         try {
           const tNum = t.table_number || t.number;
