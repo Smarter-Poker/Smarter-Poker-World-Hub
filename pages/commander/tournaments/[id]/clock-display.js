@@ -124,7 +124,7 @@ export default function ClockDisplay() {
   );
 
   const { tournament: t = {}, clock = {}, stats = {}, alerts = {} } = data;
-  const theme = CLOCK_THEMES[t.clock_color] || CLOCK_THEMES.navy;
+  const theme = CLOCK_THEMES[t.settings?.clock_color || t.clock_color] || CLOCK_THEMES.navy;
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
   const clockState = clock.clock_state || {};

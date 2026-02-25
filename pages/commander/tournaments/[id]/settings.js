@@ -221,7 +221,7 @@ export default function TournamentSettings() {
           setAddonCost(t.addon_cost || 100);
           setAddonChips(t.addon_chips || 15000);
           setLateRegLevels(t.late_reg_levels || 6);
-          setClockColor(t.clock_color || 'navy');
+          setClockColor(t.settings?.clock_color || t.clock_color || 'navy');
           setLevels(t.blind_structure || STRUCTURE_TEMPLATES.standard.levels);
           if (t.payout_structure) setPayoutStructure(t.payout_structure);
           if (t.custom_payouts) setCustomPayouts(t.custom_payouts);
@@ -290,10 +290,10 @@ export default function TournamentSettings() {
           rebuy_cost: rebuyCost, rebuy_chips: rebuyChips,
           addon_allowed: addonAllowed, addon_cost: addonCost, addon_chips: addonChips,
           late_reg_levels: lateRegLevels,
-          clock_color: clockColor,
           blind_structure: levels,
           payout_structure: payoutStructure,
-          custom_payouts: customPayouts.length > 0 ? customPayouts : null
+          custom_payouts: customPayouts.length > 0 ? customPayouts : null,
+          settings: { clock_color: clockColor }
         })
       });
       const json = await res.json();

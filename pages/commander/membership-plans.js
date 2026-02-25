@@ -108,42 +108,34 @@ export default function MembershipPlansPage() {
           min-height: 100vh;
           background: #0f0f0f;
           font-family: 'Inter', sans-serif;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 0 0 40px;
+          padding: 0;
+          margin: 0;
         }
         .mp-container {
           position: relative;
           width: 100%;
-          max-width: 620px;
         }
         .mp-bg-img {
           width: 100%;
           display: block;
         }
-        /* Transparent hotspot buttons overlaid on each plan card */
+        /* Transparent hotspot buttons overlaid on each plan card — no hover */
         .mp-hotspot {
           position: absolute;
-          left: 5%;
-          right: 5%;
+          left: 6.5%;
+          right: 6.5%;
           cursor: pointer;
           border: none;
           background: transparent;
-          border-radius: 12px;
-          transition: background 0.15s;
+          border-radius: 8px;
+          outline: none;
+          -webkit-tap-highlight-color: transparent;
         }
-        .mp-hotspot:hover {
-          background: rgba(255,255,255,0.04);
-        }
-        .mp-hotspot:active {
-          background: rgba(255,255,255,0.08);
-        }
-        /* Position each hotspot over the corresponding card in the image */
-        .mp-hotspot-daily   { top: 17.5%; height: 10.5%; }
-        .mp-hotspot-weekly  { top: 29.5%; height: 10.5%; }
-        .mp-hotspot-monthly { top: 41.5%; height: 10.5%; }
-        .mp-hotspot-yearly  { top: 53.5%; height: 10.5%; }
+        /* Precise positions matching the 1024×835 mockup image */
+        .mp-hotspot-daily   { top: 19.8%; height: 10.2%; }
+        .mp-hotspot-weekly  { top: 31.4%; height: 10.2%; }
+        .mp-hotspot-monthly { top: 43.0%; height: 10.2%; }
+        .mp-hotspot-yearly  { top: 54.6%; height: 10.2%; }
 
         /* Edit modal that appears on click */
         .mp-edit-overlay {
