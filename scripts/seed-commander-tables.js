@@ -27,8 +27,18 @@ const TABLES = [
     { table_number: 6, table_name: 'Table 6', max_seats: 9, status: 'available' },
     { table_number: 7, table_name: 'Table 7', max_seats: 9, status: 'available' },
     { table_number: 8, table_name: 'Table 8', max_seats: 9, status: 'available' },
-    { table_number: 9, table_name: 'Table 9', max_seats: 6, status: 'reserved' },
+    { table_number: 9, table_name: 'Table 9', max_seats: 6, status: 'available' },
     { table_number: 10, table_name: 'High-Stakes', max_seats: 9, status: 'available' },
+    { table_number: 11, table_name: 'Table 11', max_seats: 9, status: 'available' },
+    { table_number: 12, table_name: 'Table 12', max_seats: 9, status: 'available' },
+    { table_number: 13, table_name: 'Table 13', max_seats: 9, status: 'available' },
+    { table_number: 14, table_name: 'Table 14', max_seats: 9, status: 'available' },
+    { table_number: 15, table_name: 'Table 15', max_seats: 9, status: 'available' },
+    { table_number: 16, table_name: 'Table 16', max_seats: 9, status: 'available' },
+    { table_number: 17, table_name: 'Table 17', max_seats: 9, status: 'available' },
+    { table_number: 18, table_name: 'Table 18', max_seats: 9, status: 'available' },
+    { table_number: 19, table_name: 'Table 19', max_seats: 6, status: 'available' },
+    { table_number: 20, table_name: 'Table 20', max_seats: 9, status: 'available' },
 ];
 
 const GAMES = [

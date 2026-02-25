@@ -164,7 +164,7 @@ export default function CommanderTournamentsPage() {
   }
 
   return (
-    <CommanderLayout title={`Tournaments | ${venue?.name || 'Commander'}`}>
+    <CommanderLayout title={`Tournaments | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=tournaments">
       <div className="cmd-page">
         {/* Action Bar */}
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-end gap-2">

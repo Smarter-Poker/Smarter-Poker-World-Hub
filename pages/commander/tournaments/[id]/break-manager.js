@@ -115,7 +115,7 @@ ${receipts.map(r => `
       <span>FROM:</span>
       <span class="bold">Table ${r.from_table}, Seat ${r.from_seat}</span>
     </div>
-    <div class="arrow">⬇</div>
+    <div class="arrow">&darr;</div>
     <div class="row">
       <span class="med">NEW SEAT:</span>
       <span class="bold big">T${r.to_table} - S${r.to_seat}</span>
@@ -215,12 +215,12 @@ ${receipts.map(r => `
                   {(breakData?.table_summary || []).map(t => (
                     <div key={t.table_number}
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${t.table_number === breakData?.break_table && breakData?.should_break
-                          ? 'bg-[#EF4444]/10 border-[#EF4444]/30'
-                          : 'bg-[#242526] border-[#3A3B3C]'
+                        ? 'bg-[#EF4444]/10 border-[#EF4444]/30'
+                        : 'bg-[#242526] border-[#3A3B3C]'
                         }`}>
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${t.table_number === breakData?.break_table && breakData?.should_break
-                          ? 'bg-[#EF4444]/20 text-[#EF4444]'
-                          : 'bg-[#1877F2]/20 text-[#1877F2]'
+                        ? 'bg-[#EF4444]/20 text-[#EF4444]'
+                        : 'bg-[#1877F2]/20 text-[#1877F2]'
                         }`}>
                         T{t.table_number}
                       </div>

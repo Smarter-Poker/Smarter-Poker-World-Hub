@@ -56,9 +56,16 @@ export default function DealerRotation() {
         fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
         fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
-      if (dealersRes.data) setDealers(dealersRes.data);
-      if (tablesRes.data) setTables(tablesRes.data);
-      if (rotationsRes.data) setRotations(rotationsRes.data);
+      // Dealers: data is array directly
+      const dealersArr = Array.isArray(dealersRes.data) ? dealersRes.data : [];
+      setDealers(dealersArr);
+      // Tables: data may be {tables: []} or array directly
+      const tablesArr = Array.isArray(tablesRes.data) ? tablesRes.data
+        : Array.isArray(tablesRes.data?.tables) ? tablesRes.data.tables : [];
+      setTables(tablesArr);
+      // Rotations: data is array directly
+      const rotationsArr = Array.isArray(rotationsRes.data) ? rotationsRes.data : [];
+      setRotations(rotationsArr);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };

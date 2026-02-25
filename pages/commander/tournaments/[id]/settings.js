@@ -14,7 +14,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Save, Plus, Trash2, GripVertical, Clock, DollarSign,
   Users, Trophy, Coffee, ChevronUp, ChevronDown, Copy, Download,
-  Loader2, Settings, Calculator, FileText, RotateCcw, Check
+  Loader2, Settings, Calculator, FileText, RotateCcw, Check, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 
@@ -334,6 +334,10 @@ export default function TournamentSettings() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
+            <button onClick={() => router.push(`/commander/tournaments/${id}`)}
+              className="p-1.5 rounded-lg hover:bg-[#3A3B3C] transition-colors">
+              <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+            </button>
             <div>
               <h1 className="text-lg font-bold text-white">Tournament Settings</h1>
               <p className="text-xs text-[#B0B3B8]">{name}</p>

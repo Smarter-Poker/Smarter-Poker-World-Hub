@@ -19,7 +19,8 @@ import {
   Award,
   ExternalLink,
   RefreshCw,
-  Loader2
+  Loader2,
+  XCircle
 } from 'lucide-react';
 import EliminatePlayerModal from '../../../src/components/commander/modals/EliminatePlayerModal';
 import PayoutModal from '../../../src/components/commander/modals/PayoutModal';
@@ -55,6 +56,7 @@ export default function TournamentDetailPage() {
 
   const [showEliminateModal, setShowEliminateModal] = useState(false);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   // Check staff session
   useEffect(() => {
@@ -247,6 +249,37 @@ export default function TournamentDetailPage() {
               >
                 <span className="text-sm font-medium text-white">TD Tablet</span>
               </button>
+              {!['completed', 'cancelled'].includes(tournament.status) && (
+                <button
+                  onClick={async () => {
+                    if (!confirm(`Close tournament "${tournament.name}"? This will cancel the tournament and cannot be undone.`)) return;
+                    setClosing(true);
+                    try {
+                      const staffSession = localStorage.getItem('commander_staff') || '';
+                      const res = await fetch(`/api/commander/tournaments/${tournament.id}`, {
+                        method: 'DELETE',
+                        headers: { 'x-staff-session': staffSession }
+                      });
+                      const json = await res.json();
+                      if (json.success) {
+                        fetchTournament();
+                      } else {
+                        alert(json.error?.message || 'Failed to close tournament');
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert('Failed to close tournament');
+                    } finally {
+                      setClosing(false);
+                    }
+                  }}
+                  disabled={closing}
+                  className="flex items-center gap-2 px-3 py-2 border border-[#EF4444]/40 rounded-lg hover:bg-[#EF4444]/10 transition-colors disabled:opacity-50"
+                >
+                  <XCircle className="w-4 h-4 text-[#EF4444]" />
+                  <span className="text-sm font-medium text-[#EF4444]">{closing ? 'Closing...' : 'Close'}</span>
+                </button>
+              )}
             </div>
           </div>
         </header>
