@@ -87,13 +87,13 @@ export default function FloorMap() {
       ]);
       let rawTables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.tables || []);
 
-      // If commander_tables is empty, synthesize table entries from active commander_games
+      // Get commander_games
       const gamesArr = Array.isArray(gamesRes.data?.games) ? gamesRes.data.games
         : Array.isArray(gamesRes.data) ? gamesRes.data : [];
       const activeGames = gamesArr.filter(g => g.status === 'running' || g.status === 'waiting');
 
       if (rawTables.length === 0 && activeGames.length > 0) {
-        // Build virtual table entries from games so the floor map has something to display
+        // Build virtual table entries from commander_games
         rawTables = activeGames.map((g, idx) => ({
           id: g.id,
           table_number: g.table_number || idx + 1,
@@ -103,7 +103,7 @@ export default function FloorMap() {
           stakes: g.stakes || '',
           max_seats: g.max_players || 9,
           current_players: g.current_players || 0,
-          _fromGame: true, // marker that this came from commander_games
+          _fromGame: true,
         }));
       } else if (rawTables.length > 0 && activeGames.length > 0) {
         // Enrich existing tables with game data
@@ -120,6 +120,35 @@ export default function FloorMap() {
           }
           return t;
         });
+      }
+
+      // Fallback: if BOTH commander_tables and commander_games are empty,
+      // pull from club_live_games via social pages API (seeded/demo data)
+      if (rawTables.length === 0) {
+        try {
+          // Find the social page linked to this venue
+          const pageRes = await fetch(`/api/social/pages?linked_venue_id=${vid}`).then(r => r.json());
+          const pages = Array.isArray(pageRes.data) ? pageRes.data
+            : Array.isArray(pageRes.pages) ? pageRes.pages : [];
+          const page = pages[0];
+          if (page?.id) {
+            const liveRes = await fetch(`/api/social/pages/games?page_id=${page.id}`).then(r => r.json());
+            const liveGames = Array.isArray(liveRes.data) ? liveRes.data : [];
+            if (liveGames.length > 0) {
+              rawTables = liveGames.map((g, idx) => ({
+                id: g.id,
+                table_number: g.table_number || idx + 1,
+                table_name: g.game_name || null,
+                status: g.status === 'running' ? 'in_use' : (g.status === 'open' ? 'available' : g.status),
+                game_type: (g.game_type || g.game_name?.split(' ')[0] || 'NLH').toUpperCase(),
+                stakes: g.stakes || g.game_name?.replace(/^[A-Z]+ /, '') || '',
+                max_seats: g.max_seats || 9,
+                current_players: g.seated_count || 0,
+                _fromLive: true,
+              }));
+            }
+          }
+        } catch (e) { console.error('Social games fallback:', e); }
       }
 
       setTables(rawTables);
