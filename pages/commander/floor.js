@@ -23,9 +23,9 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const STATUS_COLORS = {
-  active: { bg: '#31A24C', label: 'Active' },
-  open: { bg: '#1877F2', label: 'Open' },
-  closed: { bg: '#3A3B3C', label: 'Closed' },
+  in_use: { bg: '#31A24C', label: 'Active' },
+  available: { bg: '#1877F2', label: 'Open' },
+  maintenance: { bg: '#6B7280', label: 'Maintenance' },
   reserved: { bg: '#F59E0B', label: 'Reserved' },
   breaking: { bg: '#EF4444', label: 'Breaking' }
 };
@@ -86,7 +86,7 @@ export default function FloorMap() {
 
       // Fetch active sessions per table for countdown info
       const sessionData = {};
-      const activeTables = (tablesRes.data || []).filter(t => t.status === 'active' || t.status === 'open');
+      const activeTables = (tablesRes.data || []).filter(t => t.status === 'in_use');
       await Promise.all(activeTables.map(async (t) => {
         try {
           const tNum = t.table_number || t.number;
@@ -105,8 +105,8 @@ export default function FloorMap() {
     return t.status === filter;
   }).sort((a, b) => (a.table_number || a.number || 0) - (b.table_number || b.number || 0));
 
-  const activeCount = tables.filter(t => t.status === 'active').length;
-  const openCount = tables.filter(t => t.status === 'open').length;
+  const activeCount = tables.filter(t => t.status === 'in_use').length;
+  const openCount = tables.filter(t => t.status === 'available').length;
   const totalSeats = tables.reduce((s, t) => s + (t.max_seats || t.seats || 9), 0);
   const occupiedSeats = Object.values(sessions).reduce((s, arr) => s + arr.length, 0);
   const totalWaiting = Object.values(waitlists).reduce((s, n) => s + n, 0);
@@ -178,11 +178,14 @@ export default function FloorMap() {
 
         {/* Filter */}
         <div className="px-4 pb-3 flex gap-2">
-          {['all', 'active', 'open', 'closed'].map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                }`}>{f} {f === 'all' ? `(${tables.length})` : ''}</button>
-          ))}
+          {['all', 'in_use', 'available', 'reserved', 'maintenance'].map(f => {
+            const filterLabel = f === 'in_use' ? 'Active' : f === 'available' ? 'Open' : f === 'maintenance' ? 'Maint.' : f;
+            return (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium ${filter === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                  }`}>{filterLabel} {f === 'all' ? `(${tables.length})` : ''}</button>
+            );
+          })}
         </div>
 
         {/* Table Grid */}
@@ -194,8 +197,8 @@ export default function FloorMap() {
           <div className="px-4 pb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {filtered.map(table => {
               const tNum = table.table_number || table.number;
-              const status = table.status || 'closed';
-              const statusConfig = STATUS_COLORS[status] || STATUS_COLORS.closed;
+              const status = table.status || 'available';
+              const statusConfig = STATUS_COLORS[status] || STATUS_COLORS.available;
               const gameType = table.game_type || '';
               const gameColor = GAME_COLORS[gameType] || '#B0B3B8';
               const maxSeats = table.max_seats || table.seats || 9;
@@ -212,7 +215,7 @@ export default function FloorMap() {
                   onClick={() => router.push(`/commander/dealer/${tNum}`)}
                   className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${hasExpired ? 'border-[#EF4444]/50' :
                     hasLowTime ? 'border-[#F59E0B]/50' :
-                      status === 'active' ? 'border-[#31A24C]/30' :
+                      status === 'in_use' ? 'border-[#31A24C]/30' :
                         'border-[#3A3B3C]'
                     }`}>
 

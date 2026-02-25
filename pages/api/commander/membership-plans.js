@@ -34,44 +34,44 @@ export default async function handler(req, res) {
     const { data, error } = await query;
     if (error) return res.status(500).json({ success: false, error: error.message });
 
-    // Auto-seed default plans for new venues
+    // Auto-seed default interval plans for new venues
     if (!data || data.length === 0) {
       const DEFAULT_PLANS = [
         {
-          tier: 'standard', name: 'Standard', description: 'Free Membership — Welcome To The Room',
-          color: '#B0B3B8', sort_order: 0,
-          price_daily: null, price_weekly: null, price_monthly: null, price_yearly: null,
+          tier: 'daily', name: 'Daily Membership', description: 'One-Day Access Pass',
+          color: '#22D3EE', sort_order: 0,
+          price_daily: 5, price_weekly: null, price_monthly: null, price_yearly: null,
           comp_multiplier: 1.0, seat_fee_discount_pct: 0, tournament_discount_pct: 0,
           priority_waitlist: false, reserved_seating: false,
           free_food_drinks: false, free_parking: false,
           guest_passes_per_month: 0, custom_perks: [], max_members: null, is_active: true,
         },
         {
-          tier: 'gold', name: 'Gold Member', description: 'Gold Tier Membership — Daily, Weekly, Monthly & Yearly Options',
-          color: '#F59E0B', sort_order: 1,
-          price_daily: 5, price_weekly: 10, price_monthly: 25, price_yearly: 199,
-          comp_multiplier: 1.25, seat_fee_discount_pct: 5, tournament_discount_pct: 0,
-          priority_waitlist: true, reserved_seating: false,
+          tier: 'weekly', name: 'Weekly Membership', description: 'Seven-Day Access Pass',
+          color: '#31A24C', sort_order: 1,
+          price_daily: null, price_weekly: 10, price_monthly: null, price_yearly: null,
+          comp_multiplier: 1.0, seat_fee_discount_pct: 0, tournament_discount_pct: 0,
+          priority_waitlist: false, reserved_seating: false,
           free_food_drinks: false, free_parking: false,
           guest_passes_per_month: 0, custom_perks: [], max_members: null, is_active: true,
         },
         {
-          tier: 'platinum', name: 'Platinum Member', description: 'Platinum Tier — Premium Access And Perks',
-          color: '#94A3B8', sort_order: 2,
-          price_daily: 5, price_weekly: 10, price_monthly: 25, price_yearly: 199,
-          comp_multiplier: 1.5, seat_fee_discount_pct: 10, tournament_discount_pct: 5,
-          priority_waitlist: true, reserved_seating: true,
+          tier: 'monthly', name: 'Monthly Membership', description: '30-Day Access Pass',
+          color: '#F59E0B', sort_order: 2,
+          price_daily: null, price_weekly: null, price_monthly: 25, price_yearly: null,
+          comp_multiplier: 1.0, seat_fee_discount_pct: 0, tournament_discount_pct: 0,
+          priority_waitlist: false, reserved_seating: false,
           free_food_drinks: false, free_parking: false,
-          guest_passes_per_month: 1, custom_perks: [], max_members: null, is_active: true,
+          guest_passes_per_month: 0, custom_perks: [], max_members: null, is_active: true,
         },
         {
-          tier: 'vip', name: 'VIP', description: 'Exclusive VIP Membership — The Full Experience',
+          tier: 'yearly', name: 'Yearly Membership', description: 'Full-Year Access Pass',
           color: '#8B5CF6', sort_order: 3,
-          price_daily: 5, price_weekly: 10, price_monthly: 25, price_yearly: 199,
-          comp_multiplier: 2.0, seat_fee_discount_pct: 20, tournament_discount_pct: 10,
-          priority_waitlist: true, reserved_seating: true,
-          free_food_drinks: true, free_parking: true,
-          guest_passes_per_month: 2, custom_perks: [], max_members: null, is_active: true,
+          price_daily: null, price_weekly: null, price_monthly: null, price_yearly: 199,
+          comp_multiplier: 1.0, seat_fee_discount_pct: 0, tournament_discount_pct: 0,
+          priority_waitlist: false, reserved_seating: false,
+          free_food_drinks: false, free_parking: false,
+          guest_passes_per_month: 0, custom_perks: [], max_members: null, is_active: true,
         },
       ].map(p => ({ ...p, venue_id: parseInt(venue_id) }));
 
