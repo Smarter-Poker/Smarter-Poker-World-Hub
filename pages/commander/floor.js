@@ -126,13 +126,33 @@ export default function FloorMap() {
       // pull from club_live_games via social pages API (seeded/demo data)
       if (rawTables.length === 0) {
         try {
-          // Find the social page linked to this venue
-          const pageRes = await fetch(`/api/social/pages?linked_venue_id=${vid}`).then(r => r.json());
-          const pages = Array.isArray(pageRes.data) ? pageRes.data
-            : Array.isArray(pageRes.pages) ? pageRes.pages : [];
-          const page = pages[0];
-          if (page?.id) {
-            const liveRes = await fetch(`/api/social/pages/games?page_id=${page.id}`).then(r => r.json());
+          // Try multiple strategies to find the social page for this venue
+          let pageId = null;
+
+          // Strategy 1: lookup by linked_venue_id (try both exact and nearby IDs)
+          for (const tryVid of [vid, String(vid), String(Number(vid) + 1), String(Number(vid) - 1)]) {
+            if (pageId) break;
+            const r = await fetch(`/api/social/pages?linked_venue_id=${tryVid}`).then(r => r.json());
+            const p = (Array.isArray(r.data) ? r.data : Array.isArray(r.pages) ? r.pages : [])[0];
+            if (p?.id) pageId = p.id;
+          }
+
+          // Strategy 2: search by venue name from staff session
+          if (!pageId && staffData.venue_name) {
+            const r = await fetch(`/api/social/pages?search=${encodeURIComponent(staffData.venue_name)}`).then(r => r.json());
+            const p = (Array.isArray(r.data) ? r.data : Array.isArray(r.pages) ? r.pages : [])[0];
+            if (p?.id) pageId = p.id;
+          }
+
+          // Strategy 3: lookup by owner's user_id
+          if (!pageId && staffData.user_id) {
+            const r = await fetch(`/api/social/pages?owner_id=${staffData.user_id}`).then(r => r.json());
+            const p = (Array.isArray(r.data) ? r.data : Array.isArray(r.pages) ? r.pages : [])[0];
+            if (p?.id) pageId = p.id;
+          }
+
+          if (pageId) {
+            const liveRes = await fetch(`/api/social/pages/games?page_id=${pageId}`).then(r => r.json());
             const liveGames = Array.isArray(liveRes.data) ? liveRes.data : [];
             if (liveGames.length > 0) {
               rawTables = liveGames.map((g, idx) => ({
