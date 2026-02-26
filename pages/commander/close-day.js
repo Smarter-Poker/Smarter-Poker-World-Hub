@@ -286,9 +286,9 @@ export default function CloseDay() {
                   className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]">
                   <FileText className="w-5 h-5" /> View Daily Report
                 </button>
-                <button onClick={() => router.push('/commander/dashboard')}
+                <button onClick={() => router.back()}
                   className="w-full py-4 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#4A4B4C]">
-                  Back to Dashboard
+                  Go Back
                 </button>
               </div>
             </div>
