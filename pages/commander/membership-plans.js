@@ -356,8 +356,8 @@ export default function MembershipPlansPage() {
               const price = getPlanPrice(plan);
               if (price == null) return null;
               const [topPct, bottomPct] = zone;
-              // Position the overlay directly on the baked-in price text (bottom ~30% of card)
-              const pricePct = topPct + (bottomPct - topPct) * 0.64;
+              // Position the overlay directly on the baked-in price text
+              const pricePct = topPct + (bottomPct - topPct) * 0.52;
               return (
                 <div
                   key={tier}
