@@ -16,7 +16,7 @@ const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: '/day', weekly: '/wk', monthly: '/mo', yearly: '/yr' };
 // Measured Y% of the baked-in price text within the background image
-const PRICE_TEXT_Y = { daily: 29.5, weekly: 42, monthly: 54.5, yearly: 67 };
+const PRICE_TEXT_Y = { daily: 31.5, weekly: 44, monthly: 56.5, yearly: 69 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -280,7 +280,7 @@ export default function MembershipPlansPage() {
           padding: 4px 18px;
           border-radius: 4px;
           min-width: 90px;
-          min-height: 24px;
+          min-height: 30px;
         }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
