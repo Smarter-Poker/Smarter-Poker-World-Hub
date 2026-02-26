@@ -265,7 +265,7 @@ export default function MembershipPlansPage() {
         /* Dynamic price overlay — white text over the card */
         .mp-price-overlay {
           position: absolute;
-          left: 42%;
+          left: 39%;
           transform: translateX(-50%);
           display: flex;
           justify-content: center;
