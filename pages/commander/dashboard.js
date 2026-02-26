@@ -39,7 +39,7 @@ const CARDS = [
     features: [
       { label: 'Tournament Manager', href: '/commander/tournaments', icon: '/images/commander/icons/tn-registration.png' },
       { label: 'Tournament Settings', href: '/commander/tournament-settings', icon: '/images/commander/icons/tn-settings.png' },
-      { label: 'Leagues & Free Rolls', href: '/commander/leagues', icon: '/images/commander/icons/tn-leagues-freerolls.png' },
+      { label: 'Leagues & Free Rolls', href: '/commander/leagues', icon: '/images/commander/icons/tn-leagues-freerolls.png?v=2' },
       { label: 'Tournament Clock', href: '/commander/tournament-clock', icon: '/images/commander/icons/tn-clock.png' },
       { label: 'Tournament Clock Setup', href: '/commander/tournament-clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
       { label: 'Tournament Controls', href: '/commander/tournament-controls', icon: '/images/commander/icons/tn-controls.png' },

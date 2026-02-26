@@ -263,20 +263,21 @@ export default function MembershipPlansPage() {
         /* Dynamic price overlay — covers the baked-in price text */
         .mp-price-overlay {
           position: absolute;
-          left: 25%;
+          left: 19%;
           display: flex;
           align-items: center;
           pointer-events: none;
           z-index: 10;
           font-family: 'Inter', -apple-system, sans-serif;
-          font-size: 17px;
+          font-size: 18px;
           font-weight: 700;
           color: rgba(200,200,200,0.95);
           letter-spacing: 0.3px;
           text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
-          background: rgba(15,15,15,0.85);
-          padding: 2px 10px;
+          background: rgba(60,62,60,0.98);
+          padding: 3px 14px;
           border-radius: 4px;
+          min-width: 80px;
         }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
@@ -355,8 +356,8 @@ export default function MembershipPlansPage() {
               const price = getPlanPrice(plan);
               if (price == null) return null;
               const [topPct, bottomPct] = zone;
-              // Position the overlay at ~75% down within the card zone (where the price text sits)
-              const pricePct = topPct + (bottomPct - topPct) * 0.72;
+              // Position the overlay directly on the baked-in price text (bottom ~30% of card)
+              const pricePct = topPct + (bottomPct - topPct) * 0.64;
               return (
                 <div
                   key={tier}
