@@ -14,9 +14,9 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
-const PRICE_SUFFIX = { daily: '/day', weekly: '/wk', monthly: '/mo', yearly: '/yr' };
+const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
 // Y% positioning: top of the band that covers the baked-in price text
-const PRICE_TEXT_Y = { daily: 30, weekly: 42.5, monthly: 55, yearly: 67.5 };
+const PRICE_TEXT_Y = { daily: 30, weekly: 44.5, monthly: 57, yearly: 69.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -279,7 +279,7 @@ export default function MembershipPlansPage() {
           background: rgba(60,62,60,0.98);
           padding: 6px 20px;
           border-radius: 4px;
-          min-width: 100px;
+          min-width: 140px;
           height: 4.5%;
         }
         /* Scrim behind popover to catch dismiss clicks */
