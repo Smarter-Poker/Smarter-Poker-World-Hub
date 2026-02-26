@@ -16,7 +16,7 @@ const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: '/day', weekly: '/wk', monthly: '/mo', yearly: '/yr' };
 // Measured Y% of the baked-in price text within the background image
-const PRICE_TEXT_Y = { daily: 25.5, weekly: 38, monthly: 51, yearly: 64 };
+const PRICE_TEXT_Y = { daily: 34, weekly: 46.5, monthly: 59, yearly: 71.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -265,7 +265,7 @@ export default function MembershipPlansPage() {
         /* Dynamic price overlay — covers the baked-in price text */
         .mp-price-overlay {
           position: absolute;
-          left: 19%;
+          left: 26%;
           display: flex;
           align-items: center;
           pointer-events: none;
