@@ -62,10 +62,11 @@ export default function CommanderAnnouncementsPage() {
     setSuccess(null);
 
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/notifications/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           message: message.trim(),
@@ -122,16 +123,6 @@ export default function CommanderAnnouncementsPage() {
         />
 
         <div className="cmd-page">
-          {/* Header */}
-          <header className="cmd-header-bar sticky top-0 z-50">
-            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white text-lg">Announcements</h1>
-                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
-              </div>
-            </div>
-          </header>
-
           {/* Main Content */}
           <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
             {/* Alerts */}
@@ -167,8 +158,8 @@ export default function CommanderAnnouncementsPage() {
                       type="button"
                       onClick={() => setSendTo(value)}
                       className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sendTo === value
-                          ? 'bg-[#1877F2] text-white'
-                          : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
+                        ? 'bg-[#1877F2] text-white'
+                        : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
                         }`}
                     >
                       <Icon className="w-4 h-4" />

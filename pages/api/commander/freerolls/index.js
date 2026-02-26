@@ -11,6 +11,13 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+function getVenueIdFromSession(req) {
+    try {
+        const session = JSON.parse(req.headers['x-staff-session'] || '{}');
+        return session.venue_id ? parseInt(session.venue_id) : null;
+    } catch { return null; }
+}
+
 export default async function handler(req, res) {
     const guard = await guardWriteStaff(req, res);
     if (!guard) return;
@@ -23,20 +30,23 @@ export default async function handler(req, res) {
         });
     }
 
-    return listFreerolls(req, res, guard);
+    return listFreerolls(req, res);
 }
 
-async function listFreerolls(req, res, guard) {
+async function listFreerolls(req, res) {
     try {
-        const venueId = guard.venue_id;
+        const venueId = getVenueIdFromSession(req);
         const { status, limit = 50 } = req.query;
 
         let query = supabase
             .from('commander_freerolls')
             .select('*')
-            .eq('venue_id', venueId)
             .order('scheduled_date', { ascending: false, nullsFirst: false })
             .limit(parseInt(limit));
+
+        if (venueId) {
+            query = query.eq('venue_id', venueId);
+        }
 
         if (status) {
             query = query.eq('status', status);
@@ -89,6 +99,7 @@ async function listFreerolls(req, res, guard) {
 }
 
 async function createFreeroll(req, res, guard) {
+    const venueId = guard.venue_id || getVenueIdFromSession(req);
     const {
         name, description, qualification_type, qualification_threshold,
         qualification_period, qualification_game_types, qualification_min_stakes,
@@ -107,7 +118,7 @@ async function createFreeroll(req, res, guard) {
         const { data: freeroll, error } = await supabase
             .from('commander_freerolls')
             .insert({
-                venue_id: guard.venue_id,
+                venue_id: venueId,
                 name: name.trim(),
                 description: description?.trim() || null,
                 qualification_type: qualification_type || 'cash_hours',
@@ -121,7 +132,7 @@ async function createFreeroll(req, res, guard) {
                 prize_description: prize_description || null,
                 max_qualifiers: max_qualifiers ? parseInt(max_qualifiers) : null,
                 status: status || 'upcoming',
-                created_by: guard.staff_id || null,
+                created_by: guard.id || null,
             })
             .select()
             .single();

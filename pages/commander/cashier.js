@@ -184,20 +184,16 @@ export default function Cashier() {
   });
 
   return (
-    <>
+    <CommanderLayout title="Cashier" backHref="/commander/dashboard">
       <SEOHead
         title="Commander — Cashier Operations"
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
-        {/* Header */}
+        {/* Sub-header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/dashboard')} className="p-1.5 rounded-lg active:bg-[#3A3B3C]">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0B3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-          </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">Cashier</h1>
             <p className="text-xs text-[#B0B3B8]">{sessions.length} active players</p>
           </div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
@@ -416,6 +412,6 @@ export default function Cashier() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }

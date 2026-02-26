@@ -46,8 +46,9 @@ export default function LobbyDisplay() {
   const fetchData = async () => {
     if (!venueId) return;
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const headers = { 'x-staff-session': staffSession };
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [tablesRes, waitlistRes, tournamentsRes] = await Promise.all([
         fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
         fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),

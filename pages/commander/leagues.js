@@ -77,6 +77,8 @@ export default function LeaguesAndFreerollsManagement() {
 
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
+  const getToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -99,7 +101,7 @@ export default function LeaguesAndFreerollsManagement() {
     setLeaguesLoading(true);
     try {
       const res = await fetch('/api/commander/leagues?limit=50', {
-        headers: { 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) setLeagues(json.data?.leagues || []);
@@ -112,7 +114,7 @@ export default function LeaguesAndFreerollsManagement() {
     setFreerollsLoading(true);
     try {
       const res = await fetch('/api/commander/freerolls?limit=50', {
-        headers: { 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) setFreerolls(json.data?.freerolls || []);
@@ -131,7 +133,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchStandings = async (leagueId) => {
     try {
       const res = await fetch(`/api/commander/leagues/${leagueId}/standings`, {
-        headers: { 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) {
@@ -162,7 +164,7 @@ export default function LeaguesAndFreerollsManagement() {
       };
       const res = await fetch('/api/commander/leagues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
       });
       const json = await res.json();
@@ -182,7 +184,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchQualifications = async (freerollId) => {
     try {
       const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
-        headers: { 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) {
@@ -217,7 +219,7 @@ export default function LeaguesAndFreerollsManagement() {
       };
       const res = await fetch('/api/commander/freerolls', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
       });
       const json = await res.json();
@@ -251,7 +253,7 @@ export default function LeaguesAndFreerollsManagement() {
       };
       const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
       });
       const json = await res.json();
@@ -301,8 +303,8 @@ export default function LeaguesAndFreerollsManagement() {
             <button
               onClick={() => setActiveTab('leagues')}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'leagues'
-                  ? 'bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/20'
-                  : 'text-[#64748B] hover:text-white hover:bg-[#132240]'
+                ? 'bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/20'
+                : 'text-[#64748B] hover:text-white hover:bg-[#132240]'
                 }`}
             >
               <Trophy className="w-4 h-4" /> Leagues
@@ -310,8 +312,8 @@ export default function LeaguesAndFreerollsManagement() {
             <button
               onClick={() => setActiveTab('freerolls')}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'freerolls'
-                  ? 'bg-[#F59E0B] text-black shadow-lg shadow-[#F59E0B]/20'
-                  : 'text-[#64748B] hover:text-white hover:bg-[#132240]'
+                ? 'bg-[#F59E0B] text-black shadow-lg shadow-[#F59E0B]/20'
+                : 'text-[#64748B] hover:text-white hover:bg-[#132240]'
                 }`}
             >
               <Gift className="w-4 h-4" /> Free Rolls
@@ -787,8 +789,8 @@ export default function LeaguesAndFreerollsManagement() {
                                         </div>
 
                                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${q.is_qualified
-                                            ? 'bg-[#31A24C]/10 text-[#31A24C]'
-                                            : 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                                          ? 'bg-[#31A24C]/10 text-[#31A24C]'
+                                          : 'bg-[#F59E0B]/10 text-[#F59E0B]'
                                           }`}>
                                           {q.is_qualified ? 'Qualified' : 'In Progress'}
                                         </span>

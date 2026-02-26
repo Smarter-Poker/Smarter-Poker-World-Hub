@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
     try {
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -152,9 +152,12 @@ export default function AnalyticsPage() {
       // Convert period to days; fetch 2x to get previous period for comparison
       const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
 
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [dailyRes, playersRes] = await Promise.all([
-        fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`),
-        fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`)
+        fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`, { headers }),
+        fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`, { headers })
       ]);
 
       const dailyData = await dailyRes.json();
@@ -277,37 +280,29 @@ export default function AnalyticsPage() {
     <CommanderLayout title="Analytics | Commander" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
-                title="Commander — Analytics & Reports"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Analytics & Reports"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <div className="cmd-page">
-          <header className="cmd-header-bar sticky top-0 z-40">
-            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="font-bold text-white">Analytics</h1>
-                  <p className="text-sm text-[#B0B3B8]">Venue Performance Metrics</p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                {['week', 'month', 'year'].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${period === p
-                        ? 'bg-[#3A3B3C] text-[#1877F2] border-2 border-[#1877F2]'
-                        : 'bg-[#242526] text-[#B0B3B8] border-2 border-[#3A3B3C] hover:bg-[#3A3B3C]'
-                      }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+          {/* Period selector */}
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-end">
+            <div className="flex gap-2">
+              {['week', 'month', 'year'].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${period === p
+                    ? 'bg-[#3A3B3C] text-[#1877F2] border-2 border-[#1877F2]'
+                    : 'bg-[#242526] text-[#B0B3B8] border-2 border-[#3A3B3C] hover:bg-[#3A3B3C]'
+                    }`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
-          </header>
+          </div>
 
           <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
             {loading ? (

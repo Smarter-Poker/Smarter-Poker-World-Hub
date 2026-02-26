@@ -460,7 +460,7 @@ export default function MarketplacePage() {
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
     try {
@@ -468,13 +468,16 @@ export default function MarketplacePage() {
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
   const fetchDealers = useCallback(async () => {
     try {
-      const res = await fetch('/api/commander/marketplace/dealers?limit=50');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const res = await fetch('/api/commander/marketplace/dealers?limit=50', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setDealers(data.data?.dealers || []);
@@ -486,7 +489,10 @@ export default function MarketplacePage() {
 
   const fetchEquipment = useCallback(async () => {
     try {
-      const res = await fetch('/api/commander/marketplace/equipment?limit=50');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const res = await fetch('/api/commander/marketplace/equipment?limit=50', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setEquipment(data.data?.equipment || []);
@@ -534,24 +540,13 @@ export default function MarketplacePage() {
     <CommanderLayout title="Marketplace | Commander" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
-                title="Commander — Marketplace"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Marketplace"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <div className="cmd-page">
           <header className="cmd-header-bar sticky top-0 z-40">
-            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="font-bold text-white">Marketplace</h1>
-                  <p className="text-sm text-[#B0B3B8]">
-                    {activeTab === 'dealers' ? `${dealers.length} dealers` : `${equipment.length} items`}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
               <button
                 onClick={() => setActiveTab('dealers')}

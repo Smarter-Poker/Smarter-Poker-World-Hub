@@ -35,12 +35,12 @@ export default function TableVibes() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, []);
 
   useEffect(() => {
@@ -74,20 +74,13 @@ export default function TableVibes() {
   );
 
   return (
-    <>
+    <CommanderLayout title="Table Vibes" backHref="/commander/dashboard?card=floor">
       <SEOHead
-                title="Commander — Table Vibes"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Table Vibes"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Flame size={22} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>Table Vibes</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>{totalRatings} player ratings in last {days} days</div>
-          </div>
-        </div>
 
         <div style={{ padding: 16, maxWidth: 600, margin: '0 auto' }}>
           {/* Period */}
@@ -111,46 +104,44 @@ export default function TableVibes() {
               {vibes.map(v => {
                 const vc = VIBE_COLORS[v.vibe] || VIBE_COLORS['Standard Game'];
                 return (
-                  <CommanderLayout title="Table Vibes" backHref="/commander/dashboard?card=floor">
-                    <div key={v.table_number} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
-                      <div style={{ padding: 14 }}>
-                        {/* Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                          <div style={{ width: 42, height: 42, borderRadius: 10, background: vc.bg, border: `2px solid ${vc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                            {vc.emoji}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Table {v.table_number}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: vc.bg, color: vc.text, border: `2px solid ${vc.border}` }}>
-                                {v.vibe}
-                              </span>
-                              <span style={{ fontSize: 11, color: '#65676B' }}>{v.rating_count} ratings</span>
-                            </div>
+                  <div key={v.table_number} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
+                    <div style={{ padding: 14 }}>
+                      {/* Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 10, background: vc.bg, border: `2px solid ${vc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                          {vc.emoji}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Table {v.table_number}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: vc.bg, color: vc.text, border: `2px solid ${vc.border}` }}>
+                              {v.vibe}
+                            </span>
+                            <span style={{ fontSize: 11, color: '#65676B' }}>{v.rating_count} ratings</span>
                           </div>
                         </div>
-
-                        {/* Rating Bars */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {renderBar(v.avg_action, 'Action', '#EF4444')}
-                          {renderBar(v.avg_friendliness, 'Friendly', '#31A24C')}
-                          {renderBar(v.avg_pace, 'Pace', '#3B82F6')}
-                        </div>
-
-                        {/* Comments */}
-                        {v.recent_comments.length > 0 && (
-                          <div style={{ marginTop: 10, borderTop: '2px solid #F0F2F5', paddingTop: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <MessageSquare size={11} /> RECENT COMMENTS
-                            </div>
-                            {v.recent_comments.map((c, i) => (
-                              <div key={i} style={{ fontSize: 13, color: '#444', fontStyle: 'italic', padding: '2px 0' }}>"{c}"</div>
-                            ))}
-                          </div>
-                        )}
                       </div>
+
+                      {/* Rating Bars */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {renderBar(v.avg_action, 'Action', '#EF4444')}
+                        {renderBar(v.avg_friendliness, 'Friendly', '#31A24C')}
+                        {renderBar(v.avg_pace, 'Pace', '#3B82F6')}
+                      </div>
+
+                      {/* Comments */}
+                      {v.recent_comments.length > 0 && (
+                        <div style={{ marginTop: 10, borderTop: '2px solid #F0F2F5', paddingTop: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <MessageSquare size={11} /> RECENT COMMENTS
+                          </div>
+                          {v.recent_comments.map((c, i) => (
+                            <div key={i} style={{ fontSize: 13, color: '#444', fontStyle: 'italic', padding: '2px 0' }}>"{c}"</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </CommanderLayout>
+                  </div>
                 );
               })}
             </div>
@@ -159,6 +150,6 @@ export default function TableVibes() {
       </div>
       <style jsx global>{`
 .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </>
+    </CommanderLayout>
   );
 }
