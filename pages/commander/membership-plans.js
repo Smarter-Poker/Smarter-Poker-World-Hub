@@ -355,8 +355,8 @@ export default function MembershipPlansPage() {
               const price = getPlanPrice(plan);
               if (price == null) return null;
               const [topPct, bottomPct] = zone;
-              // Position the price label near the bottom of each card zone
-              const pricePct = bottomPct - 3;
+              // Position the overlay at ~75% down within the card zone (where the price text sits)
+              const pricePct = topPct + (bottomPct - topPct) * 0.72;
               return (
                 <div
                   key={tier}
