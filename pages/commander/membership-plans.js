@@ -15,8 +15,8 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
-// Y% positioning: calibrated via red overlay test
-const PRICE_TEXT_Y = { daily: 29, weekly: 41, monthly: 53.5, yearly: 66 };
+// Y% positioning: below each card's title text
+const PRICE_TEXT_Y = { daily: 33, weekly: 45.5, monthly: 58, yearly: 70.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
