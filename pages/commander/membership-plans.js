@@ -15,6 +15,8 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: '/day', weekly: '/wk', monthly: '/mo', yearly: '/yr' };
+// Measured Y% of the baked-in price text within the background image
+const PRICE_TEXT_Y = { daily: 25.5, weekly: 38, monthly: 51, yearly: 64 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -351,18 +353,15 @@ export default function MembershipPlansPage() {
             {/* Dynamic price overlays — positioned on each card zone */}
             {PLAN_ORDER.map(tier => {
               const plan = planByTier[tier];
-              const zone = CARD_ZONES[tier];
-              if (!plan || !zone) return null;
+              if (!plan) return null;
               const price = getPlanPrice(plan);
               if (price == null) return null;
-              const [topPct, bottomPct] = zone;
-              // Position the overlay directly on the baked-in price text
-              const pricePct = topPct + (bottomPct - topPct) * 0.52;
+              const yPct = PRICE_TEXT_Y[tier];
               return (
                 <div
                   key={tier}
                   className="mp-price-overlay"
-                  style={{ top: `${pricePct}%` }}
+                  style={{ top: `${yPct}%` }}
                 >
                   ${Number(price)}{PRICE_SUFFIX[tier]}
                 </div>
