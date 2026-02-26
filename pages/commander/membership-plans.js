@@ -16,7 +16,14 @@ const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
 // Y% positioning: top of the band that covers the baked-in price text
-const PRICE_TEXT_Y = { daily: 30, weekly: 43.5, monthly: 56, yearly: 68.5 };
+const PRICE_TEXT_Y = { daily: 30, weekly: 42.5, monthly: 55, yearly: 67.5 };
+// Per-tier background gradients sampled from the card image
+const PRICE_BG = {
+  daily: 'linear-gradient(180deg, rgba(44,47,49,1) 0%, rgba(40,43,45,1) 100%)',
+  weekly: 'linear-gradient(180deg, rgba(43,49,44,1) 0%, rgba(39,45,40,1) 100%)',
+  monthly: 'linear-gradient(180deg, rgba(49,47,43,1) 0%, rgba(45,43,39,1) 100%)',
+  yearly: 'linear-gradient(180deg, rgba(49,43,49,1) 0%, rgba(45,39,45,1) 100%)',
+};
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -276,7 +283,6 @@ export default function MembershipPlansPage() {
           color: rgba(200,200,200,0.95);
           letter-spacing: 0.3px;
           text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
-          background: rgba(60,62,60,0.98);
           padding: 6px 20px;
           border-radius: 4px;
           min-width: 140px;
@@ -358,11 +364,12 @@ export default function MembershipPlansPage() {
               const price = getPlanPrice(plan);
               if (price == null) return null;
               const yPct = PRICE_TEXT_Y[tier];
+              const bg = PRICE_BG[tier];
               return (
                 <div
                   key={tier}
                   className="mp-price-overlay"
-                  style={{ top: `${yPct}%` }}
+                  style={{ top: `${yPct}%`, background: bg }}
                 >
                   ${Number(price)}{PRICE_SUFFIX[tier]}
                 </div>
