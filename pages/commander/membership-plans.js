@@ -16,7 +16,7 @@ const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
 // Y% positioning: top of the band that covers the baked-in price text
-const PRICE_TEXT_Y = { daily: 30, weekly: 44.5, monthly: 57, yearly: 69.5 };
+const PRICE_TEXT_Y = { daily: 30, weekly: 43.5, monthly: 56, yearly: 68.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
