@@ -75,32 +75,16 @@ export default function TableTabletsPage() {
         const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
         const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
-        // Fetch tables
-        let tablesArr = [];
+        // Fetch tables — API already joins commander_games + commander_table_seats
         try {
             const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
             const json = await res.json();
             if (json.success) {
-                tablesArr = Array.isArray(json.data) ? json.data
+                const tablesArr = Array.isArray(json.data) ? json.data
                     : Array.isArray(json.data?.tables) ? json.data.tables : [];
                 setTables(tablesArr);
             }
         } catch (err) { console.error('Failed to fetch tables:', err); }
-
-        // Fetch sessions for active tables
-        try {
-            const activeTables = tablesArr.filter(t => t.status === 'in_use');
-            const sessionData = {};
-            await Promise.all(activeTables.map(async (t) => {
-                try {
-                    const tNum = t.table_number || t.number;
-                    const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
-                    const json = await res.json();
-                    if (json.success) sessionData[tNum] = json.data || [];
-                } catch { }
-            }));
-            setSessions(sessionData);
-        } catch { }
 
         setLoading(false);
     }, [venueId]);
@@ -116,6 +100,20 @@ export default function TableTabletsPage() {
 
     const openTablet = (tableNumber) => {
         router.push(`/commander/dealer/${tableNumber}`);
+    };
+
+    // Helper: get game + player info from table data
+    const getTableGame = (table) => {
+        const games = Array.isArray(table.commander_games) ? table.commander_games : [];
+        return games.find(g => g.status !== 'closed') || games[0] || null;
+    };
+
+    const getSeatedCount = (table) => {
+        const game = getTableGame(table);
+        // Use seats array if available, otherwise fall back to game.current_players
+        if (table.seats && table.seats.length > 0) return table.seats.length;
+        if (game && game.current_players) return game.current_players;
+        return 0;
     };
 
     const activeTables = tables.filter(t => t.status === 'in_use');
@@ -165,11 +163,12 @@ export default function TableTabletsPage() {
                                         {activeTables.map(table => {
                                             const tNum = table.table_number || table.number;
                                             const maxSeats = table.max_seats || 9;
-                                            const tableSessions = sessions[tNum] || [];
-                                            const game = Array.isArray(table.commander_games) && table.commander_games.length > 0
-                                                ? table.commander_games.find(g => g.status !== 'closed') : null;
+                                            const game = getTableGame(table);
+                                            const seatedCount = getSeatedCount(table);
                                             const seatPositions = computeSeatPositions(maxSeats);
-                                            const hasTimed = tableSessions.some(s => s.time_remaining !== undefined && s.time_remaining !== null);
+                                            const seatData = table.seats || [];
+                                            // Determine if this is timed (Texas-style)
+                                            const hasTimed = seatData.some(s => s.time_remaining !== undefined && s.time_remaining !== null);
 
                                             return (
                                                 <button key={table.id || tNum} onClick={() => openTablet(tNum)}
@@ -189,8 +188,8 @@ export default function TableTabletsPage() {
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                            <span style={{ fontSize: 12, color: '#B0B3B8', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                                <Users size={13} /> {tableSessions.length}/{maxSeats}
+                                                            <span style={{ fontSize: 12, color: seatedCount > 0 ? '#31A24C' : '#B0B3B8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                <Users size={13} /> {seatedCount}/{maxSeats}
                                                             </span>
                                                             <ChevronRight size={16} color="#64748B" />
                                                         </div>
@@ -209,9 +208,11 @@ export default function TableTabletsPage() {
                                                         {/* Seat badges */}
                                                         {seatPositions.map((pos, idx) => {
                                                             const seatNum = idx + 1;
-                                                            const session = tableSessions.find(s => s.seat_number === seatNum);
-                                                            const isOccupied = !!session;
-                                                            const timerColor = isOccupied && hasTimed ? getTimerColor(session.time_remaining) : null;
+                                                            // Check seat data first, then fall back to game.current_players count
+                                                            const seatInfo = seatData.find(s => s.seat_number === seatNum);
+                                                            const isOccupied = seatInfo ? true : (seatNum <= seatedCount && seatData.length === 0);
+                                                            const timerColor = isOccupied && seatInfo?.time_remaining != null ? getTimerColor(seatInfo.time_remaining) : null;
+                                                            const playerName = seatInfo?.player_name || (isOccupied ? `P${seatNum}` : '');
 
                                                             return (
                                                                 <div key={idx} style={{
@@ -228,11 +229,11 @@ export default function TableTabletsPage() {
                                                                     {isOccupied ? (
                                                                         <>
                                                                             <span style={{ color: '#fff', fontSize: 10, lineHeight: 1, maxWidth: 40, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                                                {(session.player_name || 'P').substring(0, 5)}
+                                                                                {playerName.substring(0, 5)}
                                                                             </span>
-                                                                            {hasTimed && (
+                                                                            {seatInfo?.time_remaining != null && (
                                                                                 <span style={{ color: timerColor, fontSize: 8, fontWeight: 700, marginTop: 1 }}>
-                                                                                    {formatTime(session.time_remaining)}
+                                                                                    {formatTime(seatInfo.time_remaining)}
                                                                                 </span>
                                                                             )}
                                                                         </>
@@ -247,7 +248,7 @@ export default function TableTabletsPage() {
                                                     {/* Footer — countdown summary for timed games */}
                                                     {hasTimed && (
                                                         <div style={{ padding: '8px 16px', borderTop: '1px solid #3A3B3C', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                                            {tableSessions.filter(s => s.time_remaining !== undefined).map((s, i) => (
+                                                            {seatData.filter(s => s.time_remaining !== undefined).map((s, i) => (
                                                                 <span key={i} style={{
                                                                     fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
                                                                     background: `${getTimerColor(s.time_remaining)}20`,

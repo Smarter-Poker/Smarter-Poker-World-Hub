@@ -41,7 +41,6 @@ const GAME_COLORS = {
 export default function FloorMap() {
   const router = useRouter();
   const [tables, setTables] = useState([]);
-  const [sessions, setSessions] = useState({});
   const [waitlists, setWaitlists] = useState({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, active, open, closed
@@ -134,19 +133,6 @@ export default function FloorMap() {
         });
         setWaitlists(grouped);
       }
-
-      // Fetch active sessions per table for countdown info
-      const sessionData = {};
-      const activeTables = rawTables.filter(t => t.status === 'in_use');
-      await Promise.all(activeTables.map(async (t) => {
-        try {
-          const tNum = t.table_number || t.number;
-          const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
-          const json = await res.json();
-          if (json.success) sessionData[tNum] = json.data || [];
-        } catch { }
-      }));
-      setSessions(sessionData);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -159,7 +145,7 @@ export default function FloorMap() {
   const activeCount = tables.filter(t => t.status === 'in_use').length;
   const openCount = tables.filter(t => t.status === 'available').length;
   const totalSeats = tables.reduce((s, t) => s + (t.max_seats || t.seats || 9), 0);
-  const occupiedSeats = Object.values(sessions).reduce((s, arr) => s + arr.length, 0);
+  const occupiedSeats = tables.reduce((s, t) => s + (t.current_players || 0), 0);
   const totalWaiting = Object.values(waitlists).reduce((s, n) => s + n, 0);
 
   return (
@@ -253,21 +239,13 @@ export default function FloorMap() {
               const gameType = table.game_type || '';
               const gameColor = GAME_COLORS[gameType] || '#B0B3B8';
               const maxSeats = table.max_seats || table.seats || 9;
-              const tableSessions = sessions[tNum] || [];
-              const occupied = tableSessions.length;
-              const hasLowTime = tableSessions.some(s => s.is_low || s.is_critical);
-              const hasExpired = tableSessions.some(s => s.is_expired);
-              const lowestTime = tableSessions.length > 0
-                ? Math.min(...tableSessions.map(s => s.time_remaining ?? Infinity))
-                : null;
+              const occupied = table.current_players || 0;
 
               return (
                 <button key={table.id || tNum}
                   onClick={() => router.push(`/commander/dealer/${tNum}`)}
-                  className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${hasExpired ? 'border-[#EF4444]/50' :
-                    hasLowTime ? 'border-[#F59E0B]/50' :
-                      status === 'in_use' ? 'border-[#31A24C]/30' :
-                        'border-[#3A3B3C]'
+                  className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${status === 'in_use' ? 'border-[#31A24C]/30' :
+                    'border-[#3A3B3C]'
                     }`}>
 
                   {/* Table number + status dot */}
@@ -295,16 +273,6 @@ export default function FloorMap() {
                       <span className="text-[10px] text-[#31A24C] ml-1">{maxSeats - occupied} open</span>
                     )}
                   </div>
-
-                  {/* Time info */}
-                  {occupied > 0 && lowestTime !== null && lowestTime !== Infinity && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }} />
-                      <span className="text-xs" style={{ color: lowestTime <= 300 ? '#EF4444' : lowestTime <= 900 ? '#F59E0B' : '#31A24C' }}>
-                        {lowestTime <= 0 ? 'EXPIRED' : `${Math.floor(lowestTime / 60)}m low`}
-                      </span>
-                    </div>
-                  )}
 
                   {/* Tap indicator */}
                   <ChevronRight className="absolute bottom-2 right-2 w-4 h-4 text-white/10" />

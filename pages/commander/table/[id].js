@@ -61,8 +61,10 @@ export default function TableSeating() {
         fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (tableRes.data || tableRes.success) setTable(tableRes.data || tableRes);
-      if (sessionsRes.data) setSessions(sessionsRes.data.filter(s => s.status === 'active'));
-      if (waitlistRes.data) setWaitlist(waitlistRes.data.filter(w => w.status === 'waiting'));
+      const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
+      setSessions(sessionsArr.filter(s => s.status === 'active'));
+      const waitlistArr = Array.isArray(waitlistRes.data) ? waitlistRes.data : [];
+      setWaitlist(waitlistArr.filter(w => w.status === 'waiting'));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -137,8 +139,8 @@ export default function TableSeating() {
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-xs font-bold px-2 py-1 rounded ${table.status === 'active' ? 'bg-[#31A24C]/20 text-[#31A24C]' :
-                table.status === 'open' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-                  'bg-[#3A3B3C] text-[#B0B3B8]'
+              table.status === 'open' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
+                'bg-[#3A3B3C] text-[#B0B3B8]'
               }`}>{table.status}</span>
             <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
               <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />

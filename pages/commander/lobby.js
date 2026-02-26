@@ -54,21 +54,24 @@ export default function LobbyDisplay() {
         fetch(`/api/commander/tournaments?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
 
-      if (tablesRes.data) setTables(tablesRes.data);
+      // Tables: data may be {tables: []} or array directly
+      const tablesArr = Array.isArray(tablesRes.data) ? tablesRes.data
+        : Array.isArray(tablesRes.data?.tables) ? tablesRes.data.tables : [];
+      setTables(tablesArr);
 
       // Group waitlists by game type
       const grouped = {};
-      (waitlistRes.data || []).filter(w => w.status === 'waiting').forEach(w => {
+      const waitlistArr = Array.isArray(waitlistRes.data) ? waitlistRes.data : [];
+      waitlistArr.filter(w => w.status === 'waiting').forEach(w => {
         const game = w.game_type || 'Unknown';
         grouped[game] = (grouped[game] || 0) + 1;
       });
       setWaitlists(grouped);
 
-      if (tournamentsRes.data) {
-        setTournaments(tournamentsRes.data.filter(t =>
-          ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'].includes(t.status)
-        ).slice(0, 4));
-      }
+      const tournamentsArr = Array.isArray(tournamentsRes.data) ? tournamentsRes.data : [];
+      setTournaments(tournamentsArr.filter(t =>
+        ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'].includes(t.status)
+      ).slice(0, 4));
     } catch (err) { console.error(err); }
     setNow(new Date());
   };
@@ -237,7 +240,7 @@ export default function LobbyDisplay() {
                     };
                     const color = statusColors[t.status] || '#B0B3B8';
                     return (
-                      <CommanderLayout title="Poker Room | Now Playing" backHref="/commander/dashboard?card=reports">
+                      <>
                         <div key={t.id} className="bg-white/3 rounded-lg p-3">
                           <p className="text-sm font-semibold text-white truncate">{t.name}</p>
                           <div className="flex items-center justify-between mt-1">
@@ -252,7 +255,7 @@ export default function LobbyDisplay() {
                             </p>
                           )}
                         </div>
-                      </CommanderLayout>
+                      </>
                     );
                   })}
                 </div>

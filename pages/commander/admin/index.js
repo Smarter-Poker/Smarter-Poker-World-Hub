@@ -12,6 +12,7 @@ import {
   ChevronRight, RefreshCw, X, Plus, Trash2,
   Copy, Eye, EyeOff, Loader2, Check
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import MultiVenueDashboard from '../../../src/components/commander/admin/MultiVenueDashboard';
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import ExportManager from '../../../src/components/commander/admin/ExportManager';
@@ -561,34 +562,16 @@ export default function AdminDashboard() {
   };
 
   return (
-    <>
+    <CommanderLayout title="Admin Dashboard | Commander" backHref="/commander/dashboard">
       <SEOHead
-                title="Commander — Index"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            >
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            </SEOHead>
+        title="Commander — Admin"
+        description="Club Commander Admin Dashboard."
+        noindex={true}
+      >
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </SEOHead>
 
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
-        {/* Header */}
-        <header className="cmd-header-bar">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-[#1877F2]">
-                Club Commander
-              </h1>
-              <span className="text-[#3A3B3C]">|</span>
-              <span className="font-medium text-white">Admin Dashboard</span>
-            </div>
-            <button
-              onClick={loadAdminData}
-              className="p-2 rounded-lg hover:bg-[#3A3B3C] text-[#B0B3B8]"
-            >
-              <RefreshCw size={20} />
-            </button>
-          </div>
-        </header>
 
         {/* Tabs */}
         <div className="border-b border-[#3A3B3C] bg-[#0F1D32]">
@@ -602,8 +585,8 @@ export default function AdminDashboard() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
-                        ? 'border-[#1877F2] text-[#1877F2]'
-                        : 'border-transparent text-[#B0B3B8] hover:text-white'
+                      ? 'border-[#1877F2] text-[#1877F2]'
+                      : 'border-transparent text-[#B0B3B8] hover:text-white'
                       }`}
                   >
                     <Icon size={18} />
@@ -726,6 +709,6 @@ export default function AdminDashboard() {
         venue={settingsVenue}
         onSave={handleVenueSettingsSaved}
       />
-    </>
+    </CommanderLayout>
   );
 }

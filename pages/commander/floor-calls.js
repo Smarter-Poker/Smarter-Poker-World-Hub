@@ -69,14 +69,17 @@ export default function FloorCalls() {
   const fetchCalls = async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      let vid = '';
+      try { vid = JSON.parse(staffSession).venue_id || ''; } catch { }
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const [activeRes, resolvedRes] = await Promise.all([
-        fetch('/api/commander/floor-calls?status=pending', { headers }).then(r => r.json()),
-        fetch('/api/commander/floor-calls?status=resolved', { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/floor-calls?status=pending&venue_id=${vid}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/floor-calls?status=resolved&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       // Also get acknowledged and en_route
-      const ackRes = await fetch('/api/commander/floor-calls?status=acknowledged', { headers }).then(r => r.json()).catch(() => ({ data: [] }));
-      const routeRes = await fetch('/api/commander/floor-calls?status=en_route', { headers }).then(r => r.json()).catch(() => ({ data: [] }));
+      const ackRes = await fetch(`/api/commander/floor-calls?status=acknowledged&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }));
+      const routeRes = await fetch(`/api/commander/floor-calls?status=en_route&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }));
 
       const allActive = [
         ...(activeRes.data || []),

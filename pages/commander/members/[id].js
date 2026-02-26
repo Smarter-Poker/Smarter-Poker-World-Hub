@@ -55,8 +55,10 @@ export default function MemberProfile() {
         fetch(`/api/commander/tournaments/player-results?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (memberRes.data || memberRes.success) setMember(memberRes.data || memberRes);
-      if (sessionsRes.data) setSessions(sessionsRes.data);
-      if (tournamentsRes.data) setTournamentResults(tournamentsRes.data);
+      const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
+      setSessions(sessionsArr);
+      const tournamentsArr = Array.isArray(tournamentsRes.data) ? tournamentsRes.data : [];
+      setTournamentResults(tournamentsArr);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };

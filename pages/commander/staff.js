@@ -147,7 +147,7 @@ export default function CommanderStaffPage() {
   }
 
   return (
-    <>
+    <CommanderLayout title="Staff Management" backHref="/commander/dashboard?card=staff">
       <SEOHead
         title="Commander — Staff Management"
         description="Club Commander Poker Room Management Tool."
@@ -155,28 +155,19 @@ export default function CommanderStaffPage() {
       />
 
       <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-50">
-          <button onClick={() => router.push('/commander/dashboard')} className="p-1.5 rounded-lg active:bg-[#3A3B3C] mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0B3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white text-lg">Staff Management</h1>
-                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
-              </div>
-            </div>
-
-            {canManageStaff && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary"
-              >
-                <Plus className="w-4 h-4" />
-                Add Staff
-              </button>
-            )}
-          </div>
-        </header>
+        {/* Action Bar */}
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+          {canManageStaff && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary"
+            >
+              <Plus className="w-4 h-4" />
+              Add Staff
+            </button>
+          )}
+        </div>
 
         {/* Main Content */}
         <main className="max-w-4xl mx-auto px-4 py-6">
@@ -294,7 +285,7 @@ export default function CommanderStaffPage() {
       )}
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }
 

@@ -57,7 +57,7 @@ export default function CompSystem() {
       const headers = { Authorization: `Bearer ${token}` };
       if (tab === 'balances') {
         // Get members with comp balances from members API
-        const res = await fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`);
+        const res = await fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers });
         const json = await res.json();
         if (json.success) {
           const members = json.data?.members || json.data || [];
@@ -71,7 +71,7 @@ export default function CompSystem() {
           })));
         }
       } else if (tab === 'rates') {
-        const res = await fetch('/api/commander/comps/rates', { headers });
+        const res = await fetch(`/api/commander/comps/rates?venue_id=${venueId}`, { headers });
         const json = await res.json();
         if (json.success) setRates(json.data || []);
       } else if (tab === 'history') {

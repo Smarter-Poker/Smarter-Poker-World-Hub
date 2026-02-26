@@ -5,9 +5,9 @@
  * Uses the exact mockup image as the page.
  * Clicks anywhere on the image are detected via JS — the Y position
  * relative to the image determines which plan card was tapped.
- * No CSS-positioned hotspot buttons needed.
+ * The edit popover appears directly on top of the clicked card.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Loader2, Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -15,7 +15,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 
-// Card zones in the source image (1024×835px) — measured as percentage of image height
+// Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
 const CARD_ZONES = {
   daily: [27, 38],
@@ -41,11 +41,13 @@ function getPriceField(tier) {
 
 export default function MembershipPlansPage() {
   const router = useRouter();
+  const imgRef = useRef(null);
   const [venueId, setVenueId] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [editingTier, setEditingTier] = useState(null);
   const [editPrice, setEditPrice] = useState('');
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
@@ -95,6 +97,7 @@ export default function MembershipPlansPage() {
         const plan = planByTier[tier];
         if (plan) {
           setEditingId(plan.id);
+          setEditingTier(tier);
           const price = getPlanPrice(plan);
           setEditPrice(price != null ? String(Number(price)) : '');
           setError(null);
@@ -104,6 +107,12 @@ export default function MembershipPlansPage() {
     }
     // Click was outside any card zone — do nothing
   }, [planByTier]);
+
+  function closeEditor() {
+    setEditingId(null);
+    setEditingTier(null);
+    setError(null);
+  }
 
   async function savePrice(plan) {
     setSaving(plan.id);
@@ -121,11 +130,15 @@ export default function MembershipPlansPage() {
       if (!data.success) throw new Error(data.error);
       setSuccess('Price Updated!');
       setTimeout(() => setSuccess(null), 3000);
-      setEditingId(null);
+      closeEditor();
       fetchPlans();
     } catch (err) { setError(err.message || 'Failed To Save'); }
     setSaving(null);
   }
+
+  // Calculate the popover position based on the card zone
+  const editingPlan = editingId ? plans.find(p => p.id === editingId) : null;
+  const editingZone = editingTier ? CARD_ZONES[editingTier] : null;
 
   return (
     <CommanderLayout title="Membership Plans" backHref="/commander/dashboard">
@@ -146,100 +159,111 @@ export default function MembershipPlansPage() {
           display: block;
           cursor: pointer;
         }
-        /* Edit modal */
-        .mp-edit-overlay {
-          position: fixed;
-          inset: 0;
+        /* Inline edit popover — positioned absolutely over the card */
+        .mp-edit-popover {
+          position: absolute;
+          left: 8%;
+          right: 8%;
           z-index: 300;
-          background: rgba(0,0,0,0.75);
+          background: linear-gradient(135deg, rgba(20,20,30,0.97) 0%, rgba(14,14,18,0.97) 100%);
+          border: 2px solid #4a4aff;
+          border-radius: 16px;
+          padding: 16px 18px;
+          box-shadow: 0 8px 32px rgba(74,74,255,0.25), 0 0 60px rgba(0,0,0,0.6);
           display: flex;
           align-items: center;
-          justify-content: center;
-          padding: 20px;
+          gap: 14px;
+          backdrop-filter: blur(12px);
+          animation: mp-popIn 0.2s ease-out;
         }
-        .mp-edit-modal {
-          background: linear-gradient(135deg, #1e1e26 0%, #16161a 100%);
-          border: 2px solid #3a3a44;
-          border-radius: 20px;
-          padding: 28px 24px;
-          width: 100%;
-          max-width: 380px;
-          box-shadow: 0 12px 48px rgba(0,0,0,0.7);
-          text-align: center;
+        @keyframes mp-popIn {
+          from { opacity: 0; transform: scale(0.92); }
+          to { opacity: 1; transform: scale(1); }
         }
-        .mp-edit-title {
-          font-size: 20px;
-          font-weight: 800;
+        .mp-edit-label {
+          font-size: 14px;
+          font-weight: 700;
+          color: #ccc;
+          white-space: nowrap;
+          min-width: 60px;
+        }
+        .mp-edit-label strong {
+          display: block;
+          font-size: 16px;
           color: #fff;
-          margin-bottom: 6px;
+          margin-bottom: 2px;
         }
-        .mp-edit-subtitle {
-          font-size: 13px;
-          color: #888;
-          margin-bottom: 24px;
-        }
-        .mp-edit-input-wrap {
+        .mp-edit-inline-input-wrap {
           position: relative;
-          width: 180px;
-          margin: 0 auto 20px;
+          flex: 0 0 auto;
+          width: 110px;
         }
-        .mp-edit-input-wrap .pfx {
+        .mp-edit-inline-input-wrap .pfx {
           position: absolute;
-          left: 18px;
+          left: 12px;
           top: 50%;
           transform: translateY(-50%);
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 800;
           color: #666;
           pointer-events: none;
         }
-        .mp-edit-input {
+        .mp-edit-inline-input {
           width: 100%;
           background: #111;
           border: 2px solid #444;
-          border-radius: 14px;
-          padding: 14px 20px 14px 40px;
+          border-radius: 10px;
+          padding: 10px 12px 10px 32px;
           color: #fff;
-          font-size: 28px;
+          font-size: 22px;
           font-weight: 900;
           outline: none;
           text-align: center;
           transition: border-color 0.2s;
         }
-        .mp-edit-input:focus { border-color: #1877F2; }
-        .mp-edit-btns {
+        .mp-edit-inline-input:focus { border-color: #4a4aff; }
+        .mp-edit-inline-btns {
           display: flex;
-          gap: 10px;
-          justify-content: center;
+          gap: 8px;
+          margin-left: auto;
         }
         .mp-btn-save {
           background: linear-gradient(135deg, #31A24C, #1e7a34);
           border: none;
-          border-radius: 12px;
-          padding: 12px 28px;
+          border-radius: 10px;
+          padding: 10px 18px;
           color: #fff;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
           box-shadow: 0 2px 8px rgba(49,162,76,0.3);
           transition: opacity 0.2s;
+          white-space: nowrap;
         }
         .mp-btn-save:hover { opacity: 0.9; }
         .mp-btn-cancel {
           background: rgba(255,255,255,0.07);
           border: 1px solid #444;
-          border-radius: 12px;
-          padding: 12px 24px;
+          border-radius: 10px;
+          padding: 10px 14px;
           color: #999;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
+          white-space: nowrap;
         }
         .mp-btn-cancel:hover { border-color: #666; color: #fff; }
+        /* Scrim behind popover to catch dismiss clicks */
+        .mp-scrim {
+          position: fixed;
+          inset: 0;
+          z-index: 299;
+          background: rgba(0,0,0,0.45);
+        }
         .mp-toast {
           position: fixed;
           top: 70px;
@@ -254,6 +278,28 @@ export default function MembershipPlansPage() {
         .mp-toast.ok { background: rgba(49,162,76,0.95); color: #fff; box-shadow: 0 4px 16px rgba(49,162,76,0.4); }
         .mp-toast.err { background: rgba(239,68,68,0.95); color: #fff; box-shadow: 0 4px 16px rgba(239,68,68,0.4); }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Responsive: stack vertically on narrow screens */
+        @media (max-width: 480px) {
+          .mp-edit-popover {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            left: 5%;
+            right: 5%;
+            padding: 14px;
+          }
+          .mp-edit-label {
+            text-align: center;
+          }
+          .mp-edit-inline-input-wrap {
+            width: 100%;
+          }
+          .mp-edit-inline-btns {
+            justify-content: center;
+            margin-left: 0;
+          }
+        }
       `}</style>
 
       <div className="mp-page">
@@ -267,57 +313,69 @@ export default function MembershipPlansPage() {
           </div>
         ) : (
           <div className="mp-container">
+            {/* Scrim to dismiss popover when clicking outside */}
+            {editingId && <div className="mp-scrim" onClick={closeEditor} />}
+
             {/* Full-width background image — click detection via JS */}
             <img
+              ref={imgRef}
               src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/media/commander/membership-plans-bg.jpg"
               alt="Membership Plans"
               className="mp-bg-img"
               draggable={false}
               onClick={handleImageClick}
             />
+
+            {/* Inline edit popover — anchored directly over the clicked card */}
+            {editingPlan && editingZone && (() => {
+              const [topPct, bottomPct] = editingZone;
+              const midPct = (topPct + bottomPct) / 2;
+              const heightPct = bottomPct - topPct;
+              const meta = PLAN_LABELS[editingPlan.tier] || editingPlan.tier;
+              return (
+                <div
+                  className="mp-edit-popover"
+                  style={{
+                    top: `${midPct}%`,
+                    transform: 'translateY(-50%)',
+                    minHeight: `${heightPct}%`,
+                  }}
+                >
+                  <div className="mp-edit-label">
+                    <strong>{meta}</strong>
+                    Price
+                  </div>
+                  <div className="mp-edit-inline-input-wrap">
+                    <span className="pfx">$</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      className="mp-edit-inline-input"
+                      value={editPrice}
+                      onChange={e => setEditPrice(e.target.value)}
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') savePrice(editingPlan);
+                        if (e.key === 'Escape') closeEditor();
+                      }}
+                    />
+                  </div>
+                  {error && <div style={{ color: '#EF4444', fontSize: 12, fontWeight: 600 }}>⚠ {error}</div>}
+                  <div className="mp-edit-inline-btns">
+                    <button className="mp-btn-cancel" onClick={closeEditor}>✕</button>
+                    <button className="mp-btn-save" disabled={saving === editingPlan.id} onClick={() => savePrice(editingPlan)}>
+                      {saving === editingPlan.id
+                        ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                        : <Check size={14} />}
+                      Save
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
-
-        {/* Edit price modal */}
-        {editingId && (() => {
-          const plan = plans.find(p => p.id === editingId);
-          if (!plan) return null;
-          const meta = PLAN_LABELS[plan.tier] || plan.tier;
-          return (
-            <div className="mp-edit-overlay" onClick={e => { if (e.target === e.currentTarget) setEditingId(null); }}>
-              <div className="mp-edit-modal">
-                <div className="mp-edit-title">Edit {meta} Price</div>
-                <div className="mp-edit-subtitle">Set The {meta} Membership Rate</div>
-                {error && <div style={{ color: '#EF4444', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>⚠ {error}</div>}
-                <div className="mp-edit-input-wrap">
-                  <span className="pfx">$</span>
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    className="mp-edit-input"
-                    value={editPrice}
-                    onChange={e => setEditPrice(e.target.value)}
-                    autoFocus
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') savePrice(plan);
-                      if (e.key === 'Escape') setEditingId(null);
-                    }}
-                  />
-                </div>
-                <div className="mp-edit-btns">
-                  <button className="mp-btn-cancel" onClick={() => setEditingId(null)}>Cancel</button>
-                  <button className="mp-btn-save" disabled={saving === plan.id} onClick={() => savePrice(plan)}>
-                    {saving === plan.id
-                      ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      : <Check size={16} />}
-                    Save Price
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
       </div>
     </CommanderLayout>
   );

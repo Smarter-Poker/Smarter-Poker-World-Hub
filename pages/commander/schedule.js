@@ -106,7 +106,7 @@ export default function StaffSchedule() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/staff/' + staffId, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ clocked_in: true, clock_in_time: new Date().toISOString() })
       });
@@ -119,7 +119,7 @@ export default function StaffSchedule() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/staff/' + staffId, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ clocked_in: false, clock_out_time: new Date().toISOString() })
       });

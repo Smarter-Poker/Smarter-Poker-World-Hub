@@ -127,7 +127,7 @@ export default function CloseDay() {
   );
 
   return (
-    <>
+    <CommanderLayout title="Close Day" backHref="/commander/dashboard">
       <SEOHead
         title="Commander — Close Day"
         description="Club Commander Poker Room Management Tool."
@@ -135,15 +135,9 @@ export default function CloseDay() {
       />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-        {/* Header */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/dashboard')} className="p-1.5 rounded-lg active:bg-[#3A3B3C]">
-            <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">End Of Day Close</h1>
-            <p className="text-xs text-[#B0B3B8]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          </div>
+        {/* Progress dots */}
+        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
+          <p className="text-xs text-[#B0B3B8]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
           <div className="flex gap-1.5">
             {[1, 2, 3, 4].map(s => (
               <div key={s} className={`w-2.5 h-2.5 rounded-full ${s <= step ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`} />
@@ -303,7 +297,7 @@ export default function CloseDay() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }
 

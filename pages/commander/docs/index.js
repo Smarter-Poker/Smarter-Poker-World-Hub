@@ -6,8 +6,8 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import {
-  ChevronLeft,
   BookOpen,
   Users,
   Settings,
@@ -64,28 +64,14 @@ const QUICK_LINKS = [
 
 export default function DocumentationIndexPage() {
   return (
-    <>
+    <CommanderLayout title="Documentation | Commander" backHref="/commander/dashboard">
       <SEOHead
-                title="Commander — Index"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Documentation"
+        description="Club Commander Documentation Hub."
+        noindex={true}
+      />
 
       <div className="cmd-page min-h-screen">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-20">
-          <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/commander/dashboard" className="text-[#B0B3B8] hover:text-white">
-                <ChevronLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-[#1877F2]" />
-                <h1 className="text-xl font-bold text-white">Documentation</h1>
-              </div>
-            </div>
-          </div>
-        </header>
 
         <div className="max-w-5xl mx-auto px-4 py-8">
           {/* Hero */}
@@ -180,6 +166,6 @@ export default function DocumentationIndexPage() {
           </div>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

@@ -359,10 +359,14 @@ export default function DealersPage() {
   async function fetchDealers() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/dealers?venue_id=${venueId}`);
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const res = await fetch(`/api/commander/dealers?venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       const data = await res.json();
       if (data.success) {
-        setDealers(data.data?.dealers || []);
+        setDealers(Array.isArray(data.data) ? data.data : data.data?.dealers || []);
       }
     } catch (err) {
       console.error('Fetch dealers failed:', err);
@@ -374,10 +378,14 @@ export default function DealersPage() {
 
   async function fetchTables() {
     try {
-      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`);
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       const data = await res.json();
       if (data.success) {
-        setTables(data.data?.tables || []);
+        setTables(Array.isArray(data.data) ? data.data : data.data?.tables || []);
       }
     } catch (err) {
       console.error('Fetch tables failed:', err);
@@ -387,13 +395,14 @@ export default function DealersPage() {
 
   async function fetchRotations() {
     try {
-      const staffSession = localStorage.getItem('commander_staff');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, {
-        headers: { 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const data = await res.json();
       if (data.success) {
-        setRotations(data.data?.rotations || []);
+        setRotations(Array.isArray(data.data) ? data.data : data.data?.rotations || []);
       }
     } catch (err) {
       console.error('Fetch rotations failed:', err);
@@ -403,9 +412,11 @@ export default function DealersPage() {
 
   async function handleAddDealer(data) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch('/api/commander/dealers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, ...data })
       });
       const result = await res.json();
@@ -420,9 +431,11 @@ export default function DealersPage() {
 
   async function handleEditDealer(data) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       await fetch(`/api/commander/dealers/${editingDealer.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(data)
       });
       setEditingDealer(null);
@@ -434,9 +447,11 @@ export default function DealersPage() {
 
   async function handleRotate(dealerId, tableId) {
     try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       await fetch('/api/commander/dealers/rotations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ dealer_id: dealerId, table_id: tableId, venue_id: venueId })
       });
       setRotatingDealer(null);
