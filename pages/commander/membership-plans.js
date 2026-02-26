@@ -14,6 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+const PRICE_SUFFIX = { daily: '/day', weekly: '/wk', monthly: '/mo', yearly: '/yr' };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -259,6 +260,24 @@ export default function MembershipPlansPage() {
           white-space: nowrap;
         }
         .mp-btn-cancel:hover { border-color: #666; color: #fff; }
+        /* Dynamic price overlay — covers the baked-in price text */
+        .mp-price-overlay {
+          position: absolute;
+          left: 25%;
+          display: flex;
+          align-items: center;
+          pointer-events: none;
+          z-index: 10;
+          font-family: 'Inter', -apple-system, sans-serif;
+          font-size: 17px;
+          font-weight: 700;
+          color: rgba(200,200,200,0.95);
+          letter-spacing: 0.3px;
+          text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+          background: rgba(15,15,15,0.85);
+          padding: 2px 10px;
+          border-radius: 4px;
+        }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
           position: fixed;
@@ -327,6 +346,27 @@ export default function MembershipPlansPage() {
               draggable={false}
               onClick={handleImageClick}
             />
+
+            {/* Dynamic price overlays — positioned on each card zone */}
+            {PLAN_ORDER.map(tier => {
+              const plan = planByTier[tier];
+              const zone = CARD_ZONES[tier];
+              if (!plan || !zone) return null;
+              const price = getPlanPrice(plan);
+              if (price == null) return null;
+              const [topPct, bottomPct] = zone;
+              // Position the price label near the bottom of each card zone
+              const pricePct = bottomPct - 3;
+              return (
+                <div
+                  key={tier}
+                  className="mp-price-overlay"
+                  style={{ top: `${pricePct}%` }}
+                >
+                  ${Number(price)}{PRICE_SUFFIX[tier]}
+                </div>
+              );
+            })}
 
             {/* Inline edit popover — anchored directly over the clicked card */}
             {editingPlan && editingZone && (() => {
