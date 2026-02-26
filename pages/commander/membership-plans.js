@@ -15,15 +15,8 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
-// Y% positioning: top of the band that covers the baked-in price text
-const PRICE_TEXT_Y = { daily: 30, weekly: 42.5, monthly: 55, yearly: 67.5 };
-// Per-tier background gradients sampled from the card image
-const PRICE_BG = {
-  daily: 'linear-gradient(180deg, rgba(44,47,49,1) 0%, rgba(40,43,45,1) 100%)',
-  weekly: 'linear-gradient(180deg, rgba(43,49,44,1) 0%, rgba(39,45,40,1) 100%)',
-  monthly: 'linear-gradient(180deg, rgba(49,47,43,1) 0%, rgba(45,43,39,1) 100%)',
-  yearly: 'linear-gradient(180deg, rgba(49,43,49,1) 0%, rgba(45,39,45,1) 100%)',
-};
+// Y% positioning: calibrated via red overlay test
+const PRICE_TEXT_Y = { daily: 29, weekly: 41, monthly: 53.5, yearly: 66 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -269,7 +262,7 @@ export default function MembershipPlansPage() {
           white-space: nowrap;
         }
         .mp-btn-cancel:hover { border-color: #666; color: #fff; }
-        /* Dynamic price overlay — covers the baked-in price text */
+        /* Dynamic price overlay — white text over the card */
         .mp-price-overlay {
           position: absolute;
           left: 24%;
@@ -278,15 +271,12 @@ export default function MembershipPlansPage() {
           pointer-events: none;
           z-index: 10;
           font-family: 'Inter', -apple-system, sans-serif;
-          font-size: 18px;
-          font-weight: 700;
-          color: rgba(200,200,200,0.95);
+          font-size: 16px;
+          font-weight: 600;
+          color: #ffffff;
           letter-spacing: 0.3px;
-          text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
-          padding: 6px 20px;
-          border-radius: 4px;
-          min-width: 140px;
-          height: 4.5%;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.5);
+          background: none;
         }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
@@ -364,12 +354,11 @@ export default function MembershipPlansPage() {
               const price = getPlanPrice(plan);
               if (price == null) return null;
               const yPct = PRICE_TEXT_Y[tier];
-              const bg = PRICE_BG[tier];
               return (
                 <div
                   key={tier}
                   className="mp-price-overlay"
-                  style={{ top: `${yPct}%`, background: bg }}
+                  style={{ top: `${yPct}%` }}
                 >
                   ${Number(price)}{PRICE_SUFFIX[tier]}
                 </div>
