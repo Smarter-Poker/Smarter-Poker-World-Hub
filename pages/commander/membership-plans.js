@@ -15,7 +15,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
-// Y% positioning: directly on top of baked-in price text (browser-calibrated)
+// Y% positioning: dynamically placed in the clean space on the cards
 const PRICE_TEXT_Y = { daily: 31.5, weekly: 43.5, monthly: 55.5, yearly: 68.5 };
 
 // Card zones in the source image — measured as percentage of image height
@@ -266,25 +266,17 @@ export default function MembershipPlansPage() {
         .mp-price-overlay {
           position: absolute;
           left: 24%;
+          display: flex;
+          align-items: center;
           pointer-events: none;
           z-index: 10;
           font-family: 'Inter', -apple-system, sans-serif;
-          font-size: 17px;
-          font-weight: 700;
+          font-size: 16px;
+          font-weight: 600;
           color: #ffffff;
-          letter-spacing: 0.5px;
-          text-shadow:
-            0 0 4px rgba(0,0,0,1),
-            0 0 8px rgba(0,0,0,0.9),
-            0 0 12px rgba(0,0,0,0.7),
-            1px 0 2px rgba(0,0,0,1),
-            -1px 0 2px rgba(0,0,0,1),
-            0 1px 2px rgba(0,0,0,1),
-            0 -1px 2px rgba(0,0,0,1);
-          background: none !important;
-          padding: 0;
-          margin: 0;
-          line-height: 1;
+          letter-spacing: 0.3px;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.5);
+          background: none;
         }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
@@ -348,7 +340,7 @@ export default function MembershipPlansPage() {
             {/* Full-width background image — click detection via JS */}
             <img
               ref={imgRef}
-              src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/media/commander/membership-plans-bg.jpg"
+              src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/media/commander/membership-plans-bg-user-clean.jpg"
               alt="Membership Plans"
               className="mp-bg-img"
               draggable={false}
