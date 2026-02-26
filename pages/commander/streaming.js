@@ -313,7 +313,11 @@ export default function StreamingPage() {
   async function fetchStreams() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`);
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+      });
       const data = await res.json();
       if (data.success) {
         setStreams(data.data?.streams || []);
@@ -328,10 +332,11 @@ export default function StreamingPage() {
 
   async function handleStartStream(tableId) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/streaming/${tableId}/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId })
       });
       fetchStreams();
@@ -342,10 +347,11 @@ export default function StreamingPage() {
 
   async function handleStopStream(tableId) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/streaming/${tableId}/stop`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId })
       });
       fetchStreams();
@@ -356,10 +362,11 @@ export default function StreamingPage() {
 
   async function handleSaveConfig(tableId, config) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/streaming/${tableId}/config`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, ...config })
       });
       setConfiguring(null);

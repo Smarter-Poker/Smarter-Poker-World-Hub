@@ -348,24 +348,15 @@ export default function DailyPresetsPage() {
           noindex={true}
         />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
-          <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
-            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="font-bold text-white text-lg">Daily Presets</h1>
-                  <p className="text-sm text-[#B0B3B8]">One-Click Day Launcher — Tables, Tournaments, Promotions</p>
-                </div>
-              </div>
-              {canManage && !showForm && (
+          <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            {canManage && !showForm && (
+              <div className="flex justify-end">
                 <button onClick={() => { resetForm(); setEditingId(null); setShowForm(true); }}
                   className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-xl text-sm font-medium">
                   <Plus className="w-4 h-4" /> New Preset
                 </button>
-              )}
-            </div>
-          </header>
-
-          <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+              </div>
+            )}
             {success && <div className="p-3 bg-[#31A24C]/10 rounded-xl text-sm text-[#31A24C] font-medium flex items-center gap-2"><CheckCircle className="w-4 h-4" />{success}</div>}
             {hardStopSuccess && <div className="p-3 bg-[#31A24C]/10 rounded-xl text-sm text-[#31A24C] font-medium flex items-center gap-2"><CheckCircle className="w-4 h-4" />{hardStopSuccess}</div>}
             {error && <div className="p-3 bg-[#EF4444]/10 rounded-xl text-sm text-[#EF4444] flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}

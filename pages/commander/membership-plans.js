@@ -67,8 +67,9 @@ export default function MembershipPlansPage() {
   async function fetchPlans() {
     setLoading(true);
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
-        headers: { 'x-staff-session': localStorage.getItem('commander_staff') || '' }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' }
       });
       const data = await res.json();
       if (data.success) {
@@ -121,9 +122,10 @@ export default function MembershipPlansPage() {
       const price = parseFloat(editPrice);
       if (isNaN(price) || price < 0) { setError('Enter A Valid Price'); setSaving(null); return; }
       const field = getPriceField(plan.tier);
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': localStorage.getItem('commander_staff') || '' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' },
         body: JSON.stringify({ [field]: price })
       });
       const data = await res.json();

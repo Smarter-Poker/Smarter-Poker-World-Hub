@@ -188,7 +188,7 @@ export default function TimeBilling() {
   if (loading) return <div className="min-h-screen bg-[#18191A] flex items-center justify-center"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>;
 
   return (
-    <>
+    <CommanderLayout title="Time Billing" backHref="/commander/dashboard">
       <SEOHead
         title="Commander — Time Billing"
         description="Club Commander Poker Room Management Tool."
@@ -196,13 +196,9 @@ export default function TimeBilling() {
       />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-        {/* Header */}
+        {/* Sub-header with stats and actions */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/dashboard')} className="p-1.5 rounded-lg active:bg-[#3A3B3C]">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0B3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-          </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">Time Billing</h1>
             <p className="text-xs text-[#B0B3B8]">{activeSessions.length} active sessions</p>
           </div>
           <button onClick={() => setShowNew(true)}
@@ -381,6 +377,6 @@ export default function TimeBilling() {
       </div>
       <style jsx>{`
 `}</style>
-    </>
+    </CommanderLayout>
   );
 }

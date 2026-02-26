@@ -128,13 +128,11 @@ export default function OpenGame() {
     <CommanderLayout title="Open Cash Game" backHref="/commander/dashboard?card=floor">
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-        {/* Header */}
+        {/* Progress bar */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">Open Cash Game</h1>
             <p className="text-xs text-[#B0B3B8]">Step {step} of 3</p>
           </div>
-          {/* Progress dots */}
           <div className="flex gap-1.5">
             {[1, 2, 3].map(s => (
               <div key={s} className={`w-2.5 h-2.5 rounded-full ${s <= step ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`} />

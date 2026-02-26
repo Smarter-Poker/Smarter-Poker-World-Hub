@@ -133,7 +133,6 @@ export default function HighHands() {
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
             <div className="flex-1">
-              <h1 className="text-lg font-bold text-white">High Hands</h1>
               <p className="text-xs text-[#B0B3B8]">{todayHands.length} today</p>
             </div>
             <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>

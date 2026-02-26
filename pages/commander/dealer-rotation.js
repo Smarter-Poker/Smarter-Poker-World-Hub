@@ -149,16 +149,11 @@ export default function DealerRotation() {
       />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-        {/* Header */}
+        {/* Sub-header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg font-bold text-white">Dealer Rotation</h1>
-              <p className="text-xs text-[#B0B3B8]">
-                {assignedDealers.length} dealing · {availableDealers.length} available · {unassignedTables.length} tables need dealer
-              </p>
-            </div>
-          </div>
+          <p className="text-xs text-[#B0B3B8]">
+            {assignedDealers.length} dealing · {availableDealers.length} available · {unassignedTables.length} tables need dealer
+          </p>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
             <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
           </button>

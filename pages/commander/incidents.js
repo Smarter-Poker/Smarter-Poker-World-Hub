@@ -433,9 +433,10 @@ export default function IncidentsPage() {
   async function fetchIncidents() {
     setLoading(true);
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`, {
-        headers: { 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const data = await res.json();
       if (data.success) {
@@ -451,10 +452,11 @@ export default function IncidentsPage() {
 
   async function handleCreateIncident(data) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/incidents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
           reported_by: staff.id,
@@ -474,10 +476,11 @@ export default function IncidentsPage() {
 
   async function handleResolveIncident(incidentId, resolution) {
     try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ resolution })
       });
       setSelectedIncident(null);
