@@ -280,7 +280,7 @@ export default function MembershipPlansPage() {
           padding: 6px 20px;
           border-radius: 4px;
           min-width: 100px;
-          height: 3.5%;
+          height: 4.5%;
         }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
