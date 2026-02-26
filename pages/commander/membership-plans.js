@@ -15,8 +15,8 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: '/day', weekly: '/wk', monthly: '/mo', yearly: '/yr' };
-// Measured Y% of the baked-in price text within the background image
-const PRICE_TEXT_Y = { daily: 31.5, weekly: 44, monthly: 56.5, yearly: 69 };
+// Y% positioning: top of the band that covers the baked-in price text
+const PRICE_TEXT_Y = { daily: 30, weekly: 42.5, monthly: 55, yearly: 67.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -265,7 +265,7 @@ export default function MembershipPlansPage() {
         /* Dynamic price overlay — covers the baked-in price text */
         .mp-price-overlay {
           position: absolute;
-          left: 25%;
+          left: 24%;
           display: flex;
           align-items: center;
           pointer-events: none;
@@ -277,10 +277,10 @@ export default function MembershipPlansPage() {
           letter-spacing: 0.3px;
           text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
           background: rgba(60,62,60,0.98);
-          padding: 4px 18px;
+          padding: 6px 20px;
           border-radius: 4px;
-          min-width: 90px;
-          min-height: 30px;
+          min-width: 100px;
+          height: 3.5%;
         }
         /* Scrim behind popover to catch dismiss clicks */
         .mp-scrim {
