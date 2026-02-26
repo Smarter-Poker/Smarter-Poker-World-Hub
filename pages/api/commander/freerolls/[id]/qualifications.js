@@ -92,7 +92,7 @@ async function upsertQualification(req, res, freerollId) {
             }
         }
 
-        if (manually_added) autoQualified = true;
+        if (manually_added && is_qualified !== false) autoQualified = true;
 
         const payload = {
             freeroll_id: freerollId,
@@ -108,15 +108,30 @@ async function upsertQualification(req, res, freerollId) {
             updated_at: new Date().toISOString(),
         };
 
-        // Upsert based on freeroll_id + player_id
-        const { data: qual, error } = await supabase
-            .from('commander_freeroll_qualifications')
-            .upsert(payload, {
-                onConflict: 'freeroll_id,player_id',
-                ignoreDuplicates: false,
-            })
-            .select()
-            .single();
+        let qual, error;
+
+        if (player_id) {
+            // Upsert based on freeroll_id + player_id (real user)
+            const result = await supabase
+                .from('commander_freeroll_qualifications')
+                .upsert(payload, {
+                    onConflict: 'freeroll_id,player_id',
+                    ignoreDuplicates: false,
+                })
+                .select()
+                .single();
+            qual = result.data;
+            error = result.error;
+        } else {
+            // Insert for name-only players (no real user_id)
+            const result = await supabase
+                .from('commander_freeroll_qualifications')
+                .insert(payload)
+                .select()
+                .single();
+            qual = result.data;
+            error = result.error;
+        }
 
         if (error) throw error;
 
