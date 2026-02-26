@@ -15,8 +15,8 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
-// Y% positioning: directly on top of baked-in price text
-const PRICE_TEXT_Y = { daily: 29, weekly: 41, monthly: 53.5, yearly: 66 };
+// Y% positioning: directly on top of baked-in price text (browser-calibrated)
+const PRICE_TEXT_Y = { daily: 31.5, weekly: 43.5, monthly: 55.5, yearly: 68.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
