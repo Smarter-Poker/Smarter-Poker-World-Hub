@@ -340,7 +340,7 @@ export default function MembershipPlansPage() {
             {/* Full-width background image — click detection via JS */}
             <img
               ref={imgRef}
-              src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/media/commander/membership-plans-bg.jpg"
+              src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/media/commander/membership-plans-bg-clean.jpg"
               alt="Membership Plans"
               className="mp-bg-img"
               draggable={false}
