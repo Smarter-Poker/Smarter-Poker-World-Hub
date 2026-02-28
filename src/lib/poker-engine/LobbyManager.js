@@ -29,8 +29,8 @@ class LobbyManager {
    * @param {Object} config
    * @param {Object} config.supabase - Supabase client (server-side, service role)
    */
-  constructor(config) {
-    this.supabase = config.supabase;
+  constructor(config = {}) {
+    this.supabase = config.supabase || null;
     
     /** @type {Map<string, { table: TableManager, sync: RealtimeSync, timer: ActionTimer, history: HandHistoryRecorder }>} */
     this.tables = new Map();
@@ -300,13 +300,24 @@ class LobbyManager {
     });
     
     table.on('blinds_posted', (data) => {
-      history.recordBlinds(data.blinds || []);
+      // blinds_posted emits { smallBlind: { playerId, amount }, bigBlind: { playerId, amount }, ante }
+      const blinds = [];
+      if (data.smallBlind) {
+        blinds.push({ playerId: data.smallBlind.playerId, type: 'small_blind', amount: data.smallBlind.amount });
+      }
+      if (data.bigBlind) {
+        blinds.push({ playerId: data.bigBlind.playerId, type: 'big_blind', amount: data.bigBlind.amount });
+      }
+      history.recordBlinds(blinds);
     });
     
     table.on('cards_dealt', (data) => {
+      // cards_dealt event only has { id, cardCount } for privacy.
+      // Pull actual cards from the table engine for hand history recording.
       if (data.players) {
         for (const p of data.players) {
-          if (p.holeCards) history.recordHoleCards(p.id, p.holeCards);
+          const cards = table.getPlayerCards(p.id);
+          if (cards) history.recordHoleCards(p.id, cards);
         }
       }
     });
@@ -329,7 +340,24 @@ class LobbyManager {
     });
     
     table.on('showdown', (data) => {
-      history.recordShowdown(data);
+      // showdown has { players: [{ id, holeCards, hand }], communityCards, winners: [playerId] }
+      // Record shown cards from showdown event
+      history.recordShowdown({
+        shownCards: data.players?.map(p => ({
+          playerId: p.id,
+          cards: p.holeCards,
+          hand: p.hand,
+        })) || [],
+      });
+    });
+    
+    table.on('payout', (data) => {
+      // payout has { type, winners: [{ playerId, amount }], pots, rake }
+      // Update winners, pots, and rake from payout event
+      if (!history._currentHand) return;
+      history._currentHand.winners = data.winners || [];
+      history._currentHand.pots = data.pots || [];
+      history._currentHand.rake = data.rake || 0;
     });
     
     table.on('hand_complete', async (data) => {
