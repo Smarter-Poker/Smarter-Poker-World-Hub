@@ -243,8 +243,8 @@ export default function FloorMap() {
   // Computed stats
   const activeTables = tables.filter(t => t.status === 'in_use');
   const activeCount = activeTables.length;
-  const cashActive = activeTables.filter(t => (t.table_purpose || 'cash_game') !== 'tournament').length;
-  const tournamentActive = activeTables.filter(t => t.table_purpose === 'tournament').length;
+  const cashActive = activeTables.filter(t => (t.mode || t.table_purpose || 'cash') !== 'tournament').length;
+  const tournamentActive = activeTables.filter(t => (t.mode || t.table_purpose) === 'tournament').length;
   const openCount = tables.filter(t => t.status === 'available').length;
   const totalSeats = tables.reduce((s, t) => s + (t.max_seats || 9), 0);
   const occupiedSeats = tables.reduce((s, t) => s + (t.current_players || 0), 0);
@@ -433,7 +433,7 @@ export default function FloorMap() {
                       </div>
 
                       {/* Purpose badge */}
-                      {table.table_purpose === 'tournament' && (
+                      {(table.mode || table.table_purpose) === 'tournament' && (
                         <div style={{
                           position: 'absolute', top: 2 * zoom, right: 6 * zoom,
                           fontSize: Math.max(7, 8 * zoom), fontWeight: 800,

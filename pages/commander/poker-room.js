@@ -131,9 +131,9 @@ export default function PokerRoomFunctions() {
   };
 
   const activeTables = tables.filter(t => t.status === 'in_use');
-  // Split by table_purpose
-  const cashTables = activeTables.filter(t => (t.table_purpose || 'cash_game') !== 'tournament');
-  const tournamentTables = activeTables.filter(t => t.table_purpose === 'tournament');
+  // Split by mode (set by table-assignments, synced to table_purpose)
+  const cashTables = activeTables.filter(t => (t.mode || t.table_purpose || 'cash') !== 'tournament');
+  const tournamentTables = activeTables.filter(t => (t.mode || t.table_purpose) === 'tournament');
   const cashSeated = cashTables.reduce((sum, t) => sum + (t.current_players || t.seated_count || 0), 0);
   const tournamentSeated = tournamentTables.reduce((sum, t) => sum + (t.current_players || t.seated_count || 0), 0);
   const totalSeated = cashSeated + tournamentSeated;
@@ -293,16 +293,16 @@ export default function PokerRoomFunctions() {
                       <button key={table.id || table.table_number}
                         onClick={() => router.push(`/commander/table/${table.id || table.table_number}`)}
                         className={`rounded-xl border p-3 text-center active:scale-[0.97] transition-transform relative ${isActive
-                          ? table.table_purpose === 'tournament'
+                          ? (table.mode || table.table_purpose) === 'tournament'
                             ? 'bg-[#242526] border-[#F59E0B]/30'
                             : 'bg-[#242526] border-[#31A24C]/30'
                           : 'bg-[#1E1F20] border-[#3A3B3C]/50 opacity-50'
                           }`}>
                         {/* Purpose badge */}
-                        <div className={`absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-md ${table.table_purpose === 'tournament'
+                        <div className={`absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-md ${(table.mode || table.table_purpose) === 'tournament'
                           ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'
                           : 'bg-[#31A24C]/15 text-[#31A24C] border border-[#31A24C]/30'
-                          }`}>{table.table_purpose === 'tournament' ? 'T' : 'C'}</div>
+                          }`}>{(table.mode || table.table_purpose) === 'tournament' ? 'T' : 'C'}</div>
                         <div className="text-lg font-bold text-white">T{table.table_number}</div>
                         {isActive ? (
                           <>
@@ -312,7 +312,7 @@ export default function PokerRoomFunctions() {
                               {players}/{maxSeats}
                             </div>
                             {game && <div className="text-[9px] text-[#B0B3B8] truncate mt-0.5">{game}</div>}
-                            {stakes && <div className={`text-[10px] font-medium ${table.table_purpose === 'tournament' ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>{stakes}</div>}
+                            {stakes && <div className={`text-[10px] font-medium ${(table.mode || table.table_purpose) === 'tournament' ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>{stakes}</div>}
                             {/* Fill bar */}
                             <div className="mt-1.5 h-1 bg-[#3A3B3C] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${fillPct >= 90 ? 'bg-[#EF4444]' :

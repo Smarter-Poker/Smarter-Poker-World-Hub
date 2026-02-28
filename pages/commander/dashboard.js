@@ -60,7 +60,6 @@ const CARDS = [
       { label: 'Must-Move Games', href: '/commander/must-move', icon: '/images/commander/icons/mg-must-move.png' },
       { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/mg-floor-calls.png' },
       { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/mg-dealer-rotation.png' },
-      { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
       { label: 'Table Tablets', href: '/commander/table-tablets', icon: '/images/commander/icons/mg-table-tablets.png?v=5' },
     ],
   },

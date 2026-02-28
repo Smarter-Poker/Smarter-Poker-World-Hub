@@ -182,7 +182,7 @@ export default function CommanderTablesPage() {
         await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
-          body: JSON.stringify({ status: 'in_use', game_type: newGameType, stakes: newStakes })
+          body: JSON.stringify({ status: 'in_use', game_type: newGameType, stakes: newStakes, mode: 'cash', table_purpose: 'cash_game' })
         });
         setShowStartGame(false);
         await fetchTables();
@@ -206,7 +206,7 @@ export default function CommanderTablesPage() {
         await fetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
-          body: JSON.stringify({ status: 'available', game_type: null, stakes: null })
+          body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
         });
       }
       await fetchTables();
@@ -276,10 +276,12 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
+      // Sync both table_purpose and mode columns
+      const mode = purpose === 'tournament' ? 'tournament' : 'cash';
       await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
-        body: JSON.stringify({ table_purpose: purpose })
+        body: JSON.stringify({ table_purpose: purpose, mode })
       });
       await fetchTables();
       broadcastChange('tables');
@@ -610,7 +612,10 @@ export default function CommanderTablesPage() {
                                 {/* Table Purpose Toggle */}
                                 <div style={{ marginBottom: 10, display: 'flex', gap: 8 }}>
                                   {Object.entries(PURPOSE_COLORS).map(([key, pc]) => {
-                                    const isActive = (table.table_purpose || 'cash_game') === key;
+                                    // Use mode to determine the active purpose, with fallback to table_purpose
+                                    const tableMode = table.mode || table.table_purpose || 'cash';
+                                    const mappedPurpose = tableMode === 'tournament' ? 'tournament' : 'cash_game';
+                                    const isActive = mappedPurpose === key;
                                     return (
                                       <button key={key} onClick={(e) => { e.stopPropagation(); handleSetPurpose(key); }} disabled={actionLoading}
                                         style={{
@@ -707,13 +712,22 @@ export default function CommanderTablesPage() {
                             </div>
                             <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <span style={{ color: '#B0B3B8', fontSize: '12px' }}>{table.max_seats || 9} seats</span>
-                              <span style={{
-                                fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
-                                background: (table.table_purpose === 'tournament' ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game).bg,
-                                color: (table.table_purpose === 'tournament' ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game).text,
-                                border: `1px solid ${(table.table_purpose === 'tournament' ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game).border}40`,
-                                textTransform: 'uppercase',
-                              }}>{table.table_purpose === 'tournament' ? 'TOURNAMENT' : 'CASH GAME'}</span>
+                              {(() => {
+                                const tableMode = table.mode || table.table_purpose || 'cash';
+                                const isTournament = tableMode === 'tournament';
+                                const isInactive = tableMode === 'inactive';
+                                const pc = isTournament ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game;
+                                const label = isInactive ? 'INACTIVE' : isTournament ? 'TOURNAMENT' : 'CASH GAME';
+                                return (
+                                  <span style={{
+                                    fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                                    background: isInactive ? 'rgba(176,179,184,0.15)' : pc.bg,
+                                    color: isInactive ? '#B0B3B8' : pc.text,
+                                    border: `1px solid ${isInactive ? '#B0B3B840' : pc.border + '40'}`,
+                                    textTransform: 'uppercase',
+                                  }}>{label}</span>
+                                );
+                              })()}
                             </div>
                           </button>
                         );
@@ -821,7 +835,9 @@ export default function CommanderTablesPage() {
                         {/* Table Purpose Toggle */}
                         <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
                           {Object.entries(PURPOSE_COLORS).map(([key, pc]) => {
-                            const isActive = (selectedTable.table_purpose || 'cash_game') === key;
+                            const tableMode = selectedTable.mode || selectedTable.table_purpose || 'cash';
+                            const mappedPurpose = tableMode === 'tournament' ? 'tournament' : 'cash_game';
+                            const isActive = mappedPurpose === key;
                             return (
                               <button key={key} onClick={() => handleSetPurpose(key)} disabled={actionLoading}
                                 style={{

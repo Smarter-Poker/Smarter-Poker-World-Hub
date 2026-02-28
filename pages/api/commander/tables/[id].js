@@ -95,7 +95,7 @@ async function handlePatch(req, res, tableId) {
       });
     }
 
-    const { table_name, max_seats, status, features, position_x, position_y, rotation, game_type, stakes, table_purpose } = req.body;
+    const { table_name, max_seats, status, features, position_x, position_y, rotation, game_type, stakes, table_purpose, mode } = req.body;
 
     // Verify table exists
     const { data: existing, error: fetchError } = await supabase
@@ -122,6 +122,11 @@ async function handlePatch(req, res, tableId) {
     if (game_type !== undefined) updates.game_type = game_type;
     if (stakes !== undefined) updates.stakes = stakes;
     if (table_purpose !== undefined) updates.table_purpose = table_purpose;
+    if (mode !== undefined) updates.mode = mode;
+    // Auto-sync mode when table_purpose is set but mode is not explicitly provided
+    if (table_purpose !== undefined && mode === undefined) {
+      updates.mode = table_purpose === 'tournament' ? 'tournament' : 'cash';
+    }
 
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {
