@@ -19,6 +19,7 @@ import {
   MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical,
   Globe, CheckCircle, AlertTriangle
 } from 'lucide-react';
+import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -737,6 +738,16 @@ export default function WaitlistDesk() {
             <span style={{ fontSize: '39px', color: c.accentColor, fontWeight: 700, letterSpacing: '1px', paddingRight: '150px', whiteSpace: 'nowrap' }}>{tickerMessage}</span>
           </div>
         </div>
+
+        {/* ═══ DEALER PUSH & BREAK TICKER ═══ */}
+        <DealerTicker
+          accentColor={c.accentColor}
+          bgColor={c.cardBgColor}
+          fontSize={24}
+          borderColor={c.borderColor}
+          speed={20}
+          showBorder={true}
+        />
 
         {/* ═══ SEAT MODAL — Oval Poker Table Visual ═══ */}
         {seatModal && (() => {

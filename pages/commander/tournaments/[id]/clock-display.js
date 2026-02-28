@@ -22,6 +22,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { calculateICM, calculateChipChop, formatPrize } from '../../../../src/lib/commander/icm-utils';
+import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -734,6 +735,16 @@ export default function ClockDisplay() {
             <span style={S.payoutItem}><span style={{ opacity: 0.6 }}>Prize Pool:</span> <span style={{ fontWeight: 700 }}>{formatMoney(prizePool)}</span></span>
           </div>
         )}
+
+        {/* ===== DEALER PUSH & BREAK TICKER ===== */}
+        <DealerTicker
+          accentColor={theme.accent || '#1877F2'}
+          bgColor="rgba(0,0,0,0.35)"
+          fontSize={16}
+          borderColor="rgba(255,255,255,0.15)"
+          speed={22}
+          showBorder={true}
+        />
 
         {/* Branding + QR Code */}
         <div style={{ position: 'absolute', bottom: 4, right: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
