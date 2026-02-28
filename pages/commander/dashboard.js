@@ -467,10 +467,9 @@ export default function CommanderDashboard() {
           border-radius: 14px;
           cursor: pointer;
           transition: all 0.25s;
-          border: 2px solid #3A3B3C;
+          border: none;
           overflow: hidden;
-          background: #1A1A1A;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          background: transparent;
         }
         .cmd-feature-btn img {
           width: 100%;
@@ -479,12 +478,11 @@ export default function CommanderDashboard() {
           display: block;
         }
         .cmd-feature-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 30px var(--glow-dim), inset 0 1px 0 rgba(255,255,255,0.1);
-          border-color: var(--glow);
+          transform: translateY(-3px) scale(1.03);
+          filter: brightness(1.1);
         }
         .cmd-feature-btn:active {
-          transform: translateY(0);
+          transform: translateY(0) scale(1);
         }
       `}</style>
 

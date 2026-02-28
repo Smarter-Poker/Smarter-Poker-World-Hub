@@ -2595,25 +2595,58 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     {tournaments.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No Tournaments Yet</div><p style={{ margin: 0, fontSize: 14 }}>Add Tournaments Through Club Commander To See Them Here.</p></div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {tournaments.map((t, i) => {
                                 const d = t.scheduled_start ? new Date(t.scheduled_start) : null;
                                 const GLABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo' };
+                                const isLive = ['running', 'break', 'final_table'].includes(t.status);
+                                const isCompleted = t.status === 'completed';
+                                const statusColor = isLive ? '#42B72A' : isCompleted ? '#B0B3B8' : '#1877F2';
+                                const statusLabel = isLive ? (t.status === 'break' ? 'BREAK' : t.status === 'final_table' ? 'FINAL TABLE' : 'LIVE') : isCompleted ? 'Completed' : 'Upcoming';
+                                const prizePool = (t.current_entries || 0) * (t.buyin_amount || 0);
                                 return (
-                                    <div key={t.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f5f5f5', borderRadius: 8, border: '1px solid #e4e6eb' }}>
+                                    <div key={t.id || i}
+                                        onClick={() => t.id && window.open(`/commander/tournaments/${t.id}/public`, '_blank')}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                                            background: isLive ? 'rgba(66,183,42,0.04)' : '#f5f5f5',
+                                            borderRadius: 10,
+                                            border: isLive ? '1px solid rgba(66,183,42,0.25)' : '1px solid #e4e6eb',
+                                            cursor: t.id ? 'pointer' : 'default', transition: 'all 0.15s'
+                                        }}>
                                         {d && <div style={{ minWidth: 44, textAlign: 'center', background: '#fff', borderRadius: 8, padding: '4px 6px', border: '1px solid #e4e6eb' }}>
                                             <div style={{ fontSize: 10, color: C.textSec, textTransform: 'uppercase', fontWeight: 700 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</div>
                                             <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{d.getDate()}</div>
                                         </div>}
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.name}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                                                <span style={{
+                                                    fontSize: 9, fontWeight: 800, color: statusColor, textTransform: 'uppercase',
+                                                    letterSpacing: 0.5, display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                    padding: '2px 6px', borderRadius: 4,
+                                                    background: isLive ? 'rgba(66,183,42,0.12)' : isCompleted ? 'rgba(176,179,184,0.12)' : 'rgba(24,119,242,0.08)'
+                                                }}>
+                                                    {isLive && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#42B72A', animation: 'pulse 1.5s infinite' }} />}
+                                                    {statusLabel}
+                                                </span>
+                                            </div>
                                             <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
                                                 {d ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
                                                 {t.game_type ? ` · ${GLABELS[t.game_type] || t.game_type}` : ''}
                                                 {t.buyin_amount ? ` · $${t.buyin_amount} Buy-in` : ''}
                                                 {t.guaranteed_prize ? ` · $${t.guaranteed_prize.toLocaleString()} GTD` : ''}
                                             </div>
+                                            {(isLive || isCompleted) && (
+                                                <div style={{ fontSize: 11, color: isLive ? '#42B72A' : C.textSec, marginTop: 3, fontWeight: 600 }}>
+                                                    {isLive && t.players_remaining ? `${t.players_remaining} players remaining` : ''}
+                                                    {isLive && t.players_remaining && prizePool > 0 ? ' · ' : ''}
+                                                    {prizePool > 0 ? `$${prizePool.toLocaleString()} prize pool` : ''}
+                                                    {isLive && !t.players_remaining && t.current_entries ? `${t.current_entries} entries` : ''}
+                                                </div>
+                                            )}
                                         </div>
+                                        {t.id && <span style={{ fontSize: 14, color: C.textSec }}>›</span>}
                                     </div>
                                 );
                             })}

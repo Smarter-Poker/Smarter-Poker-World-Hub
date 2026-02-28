@@ -1,7 +1,7 @@
 /**
  * Staff Incident Management Page
  * Log and track disputes, rule violations, and safety issues
- * Dark industrial sci-fi gaming theme
+ * Dark Commander theme with severity stats dashboard
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -13,89 +13,123 @@ import {
   User,
   Check,
   X,
-  Filter,
   Search,
   Loader2,
   MapPin,
-  FileText
+  FileText,
+  Shield,
+  Flame,
+  Zap,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const INCIDENT_TYPES = [
-  { value: 'dispute', label: 'Player Dispute' },
-  { value: 'rules_violation', label: 'Rules Violation' },
-  { value: 'behavior', label: 'Behavior Issue' },
-  { value: 'safety', label: 'Safety Concern' },
-  { value: 'equipment', label: 'Equipment Issue' },
-  { value: 'other', label: 'Other' }
+  { value: 'dispute', label: 'Player Dispute', emoji: '⚔️' },
+  { value: 'rules_violation', label: 'Rules Violation', emoji: '📋' },
+  { value: 'behavior', label: 'Behavior Issue', emoji: '🚨' },
+  { value: 'safety', label: 'Safety Concern', emoji: '🛡️' },
+  { value: 'equipment', label: 'Equipment Issue', emoji: '🔧' },
+  { value: 'other', label: 'Other', emoji: '📝' }
 ];
 
 const SEVERITY_LEVELS = [
-  { value: 'low', label: 'Low', color: '#31A24C' },
-  { value: 'medium', label: 'Medium', color: '#F59E0B' },
-  { value: 'high', label: 'High', color: '#EF4444' },
-  { value: 'critical', label: 'Critical', color: '#7C3AED' }
+  { value: 'low', label: 'Low', color: '#31A24C', icon: Shield },
+  { value: 'medium', label: 'Medium', color: '#F59E0B', icon: AlertTriangle },
+  { value: 'high', label: 'High', color: '#EF4444', icon: Flame },
+  { value: 'critical', label: 'Critical', color: '#7C3AED', icon: Zap }
 ];
 
 function IncidentCard({ incident, onClick }) {
-  const severityColors = {
-    low: 'bg-[#31A24C]/10 text-[#31A24C] border-[#31A24C]',
-    medium: 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]',
-    high: 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]',
-    critical: 'bg-[#7C3AED]/10 text-[#7C3AED] border-[#7C3AED]'
-  };
+  const sev = SEVERITY_LEVELS.find(s => s.value === incident.severity) || SEVERITY_LEVELS[1];
+  const typeInfo = INCIDENT_TYPES.find(t => t.value === incident.incident_type) || INCIDENT_TYPES[5];
 
-  const typeLabels = {
-    dispute: 'Dispute',
-    rules_violation: 'Rules',
-    behavior: 'Behavior',
-    safety: 'Safety',
-    equipment: 'Equipment',
-    other: 'Other'
-  };
+  // Time elapsed
+  const elapsed = (() => {
+    const mins = Math.floor((Date.now() - new Date(incident.created_at).getTime()) / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
+    return `${Math.floor(mins / 1440)}d ago`;
+  })();
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full cmd-panel p-4 text-left hover:border-[#1877F2] transition-colors"
-    >
+    <button onClick={onClick}
+      className="w-full text-left transition-all active:scale-[0.99]"
+      style={{
+        background: '#242526',
+        border: `2px solid ${incident.resolved ? '#3A3B3C' : `${sev.color}30`}`,
+        borderRadius: 12,
+        padding: 14,
+        borderLeft: `4px solid ${incident.resolved ? '#31A24C' : sev.color}`,
+      }}>
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-1 rounded text-xs font-medium border ${severityColors[incident.severity]}`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span style={{
+            background: `${sev.color}15`,
+            color: sev.color,
+            border: `1px solid ${sev.color}30`,
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+          }}>
             {incident.severity?.toUpperCase()}
           </span>
-          <span className="px-2 py-1 bg-[#3A3B3C] text-[#B0B3B8] rounded text-xs font-medium">
-            {typeLabels[incident.incident_type] || incident.incident_type}
+          <span style={{
+            background: '#3A3B3C',
+            color: '#B0B3B8',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 600,
+          }}>
+            {typeInfo.emoji} {typeInfo.label}
           </span>
         </div>
         {incident.resolved ? (
-          <span className="px-2 py-1 bg-[#31A24C]/10 text-[#31A24C] rounded text-xs font-medium flex items-center gap-1">
-            <Check className="w-3 h-3" />
-            Resolved
+          <span style={{
+            background: '#31A24C15',
+            color: '#31A24C',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 700,
+            display: 'flex', alignItems: 'center', gap: 3,
+          }}>
+            <Check size={12} /> Resolved
           </span>
         ) : (
-          <span className="px-2 py-1 bg-[#EF4444]/10 text-[#EF4444] rounded text-xs font-medium">
-            Open
+          <span style={{
+            background: '#EF444415',
+            color: '#EF4444',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 700,
+            animation: incident.severity === 'critical' ? 'pulse 2s infinite' : 'none',
+          }}>
+            ● Open
           </span>
         )}
       </div>
 
-      <p className="font-medium text-white line-clamp-2 mb-2">{incident.description}</p>
+      <p style={{ color: 'white', fontWeight: 600, fontSize: 14, marginBottom: 8, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        {incident.description}
+      </p>
 
-      <div className="flex items-center gap-4 text-sm text-[#B0B3B8]">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#B0B3B8', flexWrap: 'wrap' }}>
         {incident.table_number && (
-          <span className="flex items-center gap-1">
-            <MapPin className="w-4 h-4" />
-            Table {incident.table_number}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <MapPin size={13} /> T{incident.table_number}
           </span>
         )}
-        <span className="flex items-center gap-1">
-          <Clock className="w-4 h-4" />
-          {new Date(incident.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <Clock size={13} /> {elapsed}
         </span>
-        <span className="flex items-center gap-1">
-          <User className="w-4 h-4" />
-          {incident.reported_by_name || 'Staff'}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <User size={13} /> {incident.reported_by_name || 'Staff'}
         </span>
       </div>
     </button>
@@ -115,7 +149,6 @@ function CreateIncidentModal({ onSubmit, onClose }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.description) return;
-
     setLoading(true);
     await onSubmit({
       ...formData,
@@ -127,127 +160,100 @@ function CreateIncidentModal({ onSubmit, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-lg cmd-panel cmd-corner-lights p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Report Incident</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-[#B0B3B8]" />
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 480, background: '#242526', borderRadius: 16, border: '2px solid #3A3B3C', padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ color: 'white', fontSize: 18, fontWeight: 800 }}>🚨 Report Incident</h2>
+          <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
+            <X size={18} color="#B0B3B8" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Incident Type */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Type of Incident
-            </label>
-            <select
-              value={formData.incident_type}
-              onChange={(e) => setFormData(prev => ({ ...prev, incident_type: e.target.value }))}
-              className="w-full h-12 px-4 cmd-input"
-            >
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6 }}>Type Of Incident</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
               {INCIDENT_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+                <button key={type.value} type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, incident_type: type.value }))}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: `2px solid ${formData.incident_type === type.value ? '#1877F2' : '#3A3B3C'}`,
+                    background: formData.incident_type === type.value ? '#1877F215' : '#18191A',
+                    color: formData.incident_type === type.value ? '#1877F2' : '#B0B3B8',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textAlign: 'left',
+                  }}>
+                  {type.emoji} {type.label}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           {/* Severity */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Severity
-            </label>
-            <div className="grid grid-cols-4 gap-2">
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6 }}>Severity Level</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
               {SEVERITY_LEVELS.map(level => (
-                <button
-                  key={level.value}
-                  type="button"
+                <button key={level.value} type="button"
                   onClick={() => setFormData(prev => ({ ...prev, severity: level.value }))}
-                  className={`py-2 rounded-lg border text-sm font-medium transition-colors ${formData.severity === level.value
-                    ? `border-2`
-                    : 'border-[#3A3B3C] text-[#B0B3B8]'
-                    }`}
                   style={{
-                    borderColor: formData.severity === level.value ? level.color : undefined,
-                    backgroundColor: formData.severity === level.value ? `${level.color}15` : undefined,
-                    color: formData.severity === level.value ? level.color : undefined
-                  }}
-                >
+                    padding: '8px 4px',
+                    borderRadius: 8,
+                    border: `2px solid ${formData.severity === level.value ? level.color : '#3A3B3C'}`,
+                    background: formData.severity === level.value ? `${level.color}15` : '#18191A',
+                    color: formData.severity === level.value ? level.color : '#65676B',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textAlign: 'center',
+                  }}>
                   {level.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Table Number */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Table Number (optional)
-            </label>
-            <input
-              type="text"
-              value={formData.table_number}
-              onChange={(e) => setFormData(prev => ({ ...prev, table_number: e.target.value }))}
-              placeholder="e.g., 5"
-              className="w-full h-12 px-4 cmd-input"
-            />
-          </div>
-
-          {/* Players Involved */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Players Involved (optional)
-            </label>
-            <input
-              type="text"
-              value={formData.players_involved}
-              onChange={(e) => setFormData(prev => ({ ...prev, players_involved: e.target.value }))}
-              placeholder="e.g., John D., Mike S."
-              className="w-full h-12 px-4 cmd-input"
-            />
-            <p className="text-xs text-[#3A3B3C] mt-1">Separate Names With Commas</p>
+          {/* Table + Players row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6 }}>Table #</label>
+              <input type="text" value={formData.table_number}
+                onChange={(e) => setFormData(prev => ({ ...prev, table_number: e.target.value }))}
+                placeholder="e.g. 5"
+                style={{ width: '100%', height: 44, padding: '0 12px', background: '#18191A', border: '2px solid #3A3B3C', borderRadius: 8, color: 'white', fontSize: 14, boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6 }}>Players Involved</label>
+              <input type="text" value={formData.players_involved}
+                onChange={(e) => setFormData(prev => ({ ...prev, players_involved: e.target.value }))}
+                placeholder="John D., Mike S."
+                style={{ width: '100%', height: 44, padding: '0 12px', background: '#18191A', border: '2px solid #3A3B3C', borderRadius: 8, color: 'white', fontSize: 14, boxSizing: 'border-box' }} />
+            </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Description *
-            </label>
-            <textarea
-              value={formData.description}
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6 }}>Description *</label>
+            <textarea value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe What Happened..."
-              rows={4}
-              required
-              className="w-full px-4 py-3 cmd-input resize-none"
-            />
+              rows={4} required
+              style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '2px solid #3A3B3C', borderRadius: 8, color: 'white', fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-12 cmd-btn cmd-btn-secondary"
-            >
+          <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+            <button type="button" onClick={onClose}
+              style={{ flex: 1, height: 44, background: '#3A3B3C', color: '#B0B3B8', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading || !formData.description}
-              className="flex-1 h-12 bg-[#EF4444] text-white font-semibold rounded-xl hover:bg-[#DC2626] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <AlertTriangle className="w-5 h-5" />
-                  Report
-                </>
-              )}
+            <button type="submit" disabled={loading || !formData.description}
+              style={{ flex: 1, height: 44, background: '#EF4444', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: (loading || !formData.description) ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <><AlertTriangle size={16} /> Report Incident</>}
             </button>
           </div>
         </form>
@@ -259,6 +265,8 @@ function CreateIncidentModal({ onSubmit, onClose }) {
 function IncidentDetailModal({ incident, onResolve, onClose }) {
   const [resolution, setResolution] = useState('');
   const [loading, setLoading] = useState(false);
+  const sev = SEVERITY_LEVELS.find(s => s.value === incident.severity) || SEVERITY_LEVELS[1];
+  const typeInfo = INCIDENT_TYPES.find(t => t.value === incident.incident_type) || INCIDENT_TYPES[5];
 
   async function handleResolve() {
     if (!resolution) return;
@@ -267,123 +275,87 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
     setLoading(false);
   }
 
-  const severityColors = {
-    low: '#31A24C',
-    medium: '#F59E0B',
-    high: '#EF4444',
-    critical: '#7C3AED'
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-lg cmd-panel cmd-corner-lights p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Incident Details</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-[#B0B3B8]" />
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 480, background: '#242526', borderRadius: 16, border: `2px solid ${sev.color}30`, padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ color: 'white', fontSize: 18, fontWeight: 800 }}>Incident Details</h2>
+          <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}>
+            <X size={18} color="#B0B3B8" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          {/* Header Info */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className="px-3 py-1 rounded text-sm font-medium"
-              style={{
-                backgroundColor: `${severityColors[incident.severity]}15`,
-                color: severityColors[incident.severity]
-              }}
-            >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Header badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ background: `${sev.color}15`, color: sev.color, border: `1px solid ${sev.color}30`, padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
               {incident.severity?.toUpperCase()}
             </span>
-            <span className="px-3 py-1 bg-[#3A3B3C] text-[#B0B3B8] rounded text-sm font-medium">
-              {INCIDENT_TYPES.find(t => t.value === incident.incident_type)?.label}
+            <span style={{ background: '#3A3B3C', color: '#B0B3B8', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+              {typeInfo.emoji} {typeInfo.label}
             </span>
             {incident.resolved && (
-              <span className="px-3 py-1 bg-[#31A24C]/10 text-[#31A24C] rounded text-sm font-medium flex items-center gap-1">
-                <Check className="w-4 h-4" />
-                Resolved
+              <span style={{ background: '#31A24C15', color: '#31A24C', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <Check size={12} /> Resolved
               </span>
             )}
           </div>
 
-          {/* Details */}
-          <div className="bg-[#18191A] rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-4 text-sm text-[#B0B3B8]">
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {new Date(incident.created_at).toLocaleString()}
-              </span>
-              {incident.table_number && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  Table {incident.table_number}
-                </span>
-              )}
-            </div>
+          {/* Info grid */}
+          <div style={{ background: '#18191A', borderRadius: 10, padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <p className="text-sm text-[#B0B3B8]">Reported By</p>
-              <p className="font-medium text-white">{incident.reported_by_name || 'Staff Member'}</p>
+              <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>When</div>
+              <div style={{ fontSize: 13, color: 'white', fontWeight: 600 }}>{new Date(incident.created_at).toLocaleString()}</div>
+            </div>
+            {incident.table_number && (
+              <div>
+                <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Table</div>
+                <div style={{ fontSize: 13, color: 'white', fontWeight: 600 }}>Table {incident.table_number}</div>
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Reported By</div>
+              <div style={{ fontSize: 13, color: 'white', fontWeight: 600 }}>{incident.reported_by_name || 'Staff Member'}</div>
             </div>
             {incident.players_involved?.length > 0 && (
               <div>
-                <p className="text-sm text-[#B0B3B8]">Players Involved</p>
-                <p className="font-medium text-white">{incident.players_involved.join(', ')}</p>
+                <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Players</div>
+                <div style={{ fontSize: 13, color: 'white', fontWeight: 600 }}>{incident.players_involved.join(', ')}</div>
               </div>
             )}
           </div>
 
           {/* Description */}
           <div>
-            <p className="text-sm text-[#B0B3B8] mb-1">Description</p>
-            <p className="text-white">{incident.description}</p>
+            <div style={{ fontSize: 10, color: '#65676B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Description</div>
+            <div style={{ fontSize: 14, color: '#E4E6EB', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{incident.description}</div>
           </div>
 
           {/* Resolution */}
           {incident.resolved ? (
-            <div className="bg-[#31A24C]/5 border border-[#31A24C]/20 rounded-xl p-4">
-              <p className="text-sm text-[#B0B3B8] mb-1">Resolution</p>
-              <p className="text-white">{incident.resolution}</p>
-              <p className="text-sm text-[#3A3B3C] mt-2">
+            <div style={{ background: '#31A24C10', border: '1px solid #31A24C20', borderRadius: 10, padding: 14 }}>
+              <div style={{ fontSize: 10, color: '#31A24C', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Resolution</div>
+              <div style={{ fontSize: 14, color: '#E4E6EB', lineHeight: 1.5 }}>{incident.resolution}</div>
+              <div style={{ fontSize: 11, color: '#65676B', marginTop: 8 }}>
                 Resolved {new Date(incident.resolved_at).toLocaleString()}
-              </p>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-white">
-                Resolution
-              </label>
-              <textarea
-                value={resolution}
-                onChange={(e) => setResolution(e.target.value)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#B0B3B8' }}>Resolution</label>
+              <textarea value={resolution} onChange={(e) => setResolution(e.target.value)}
                 placeholder="Describe How This Incident Was Resolved..."
                 rows={3}
-                className="w-full px-4 py-3 cmd-input resize-none"
-              />
-              <button
-                onClick={handleResolve}
-                disabled={loading || !resolution}
-                className="w-full h-12 bg-[#31A24C] text-white font-semibold rounded-xl hover:bg-[#059669] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-5 h-5" />
-                    Mark as Resolved
-                  </>
-                )}
+                style={{ width: '100%', padding: '10px 12px', background: '#18191A', border: '2px solid #3A3B3C', borderRadius: 8, color: 'white', fontSize: 14, resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <button onClick={handleResolve} disabled={loading || !resolution}
+                style={{ width: '100%', height: 44, background: '#31A24C', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: (loading || !resolution) ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16} /> Mark As Resolved</>}
               </button>
             </div>
           )}
 
-          <button
-            onClick={onClose}
-            className="w-full h-12 cmd-btn cmd-btn-secondary"
-          >
+          <button onClick={onClose}
+            style={{ width: '100%', height: 44, background: '#3A3B3C', color: '#B0B3B8', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Close
           </button>
         </div>
@@ -394,40 +366,28 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
 
 export default function IncidentsPage() {
   const router = useRouter();
-
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState([]);
-  const [filter, setFilter] = useState('all'); // all, open, resolved
+  const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
-    if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
-      return;
-    }
-
+    if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const staffData = JSON.parse(storedStaff);
-      if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => { });
-        return;
-      }
+      if (!staffData.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
-    } catch {
-      router.push('/commander/login').catch(() => { });
-    }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, [router]);
 
   useEffect(() => {
-    if (venueId) {
-      fetchIncidents();
-    }
+    if (venueId) fetchIncidents();
   }, [venueId]);
 
   async function fetchIncidents() {
@@ -439,15 +399,11 @@ export default function IncidentsPage() {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const data = await res.json();
-      if (data.success) {
-        setIncidents(data.data?.incidents || []);
-      }
+      if (data.success) setIncidents(data.data?.incidents || []);
     } catch (err) {
       console.error('Fetch incidents failed:', err);
       setIncidents([]);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function handleCreateIncident(data) {
@@ -457,21 +413,14 @@ export default function IncidentsPage() {
       const res = await fetch('/api/commander/incidents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({
-          venue_id: venueId,
-          reported_by: staff.id,
-          ...data
-        })
+        body: JSON.stringify({ venue_id: venueId, reported_by: staff.id, ...data })
       });
-
       const result = await res.json();
       if (result.success) {
         setShowCreateModal(false);
         fetchIncidents();
       }
-    } catch (err) {
-      console.error('Create incident failed:', err);
-    }
+    } catch (err) { console.error('Create incident failed:', err); }
   }
 
   async function handleResolveIncident(incidentId, resolution) {
@@ -485,9 +434,7 @@ export default function IncidentsPage() {
       });
       setSelectedIncident(null);
       fetchIncidents();
-    } catch (err) {
-      console.error('Resolve incident failed:', err);
-    }
+    } catch (err) { console.error('Resolve incident failed:', err); }
   }
 
   const filteredIncidents = incidents
@@ -497,64 +444,89 @@ export default function IncidentsPage() {
       return true;
     })
     .filter(i =>
-      i.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.incident_type.toLowerCase().includes(searchQuery.toLowerCase())
+      i.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      i.incident_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      i.reported_by_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
   const openCount = incidents.filter(i => !i.resolved).length;
+  const resolvedCount = incidents.filter(i => i.resolved).length;
+  const criticalCount = incidents.filter(i => !i.resolved && (i.severity === 'critical' || i.severity === 'high')).length;
 
   if (!staff) {
     return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
-      </div>
+      <CommanderLayout title="Incidents" backHref="/commander/dashboard?card=staff">
+        <div style={{ minHeight: '100vh', background: '#18191A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Loader2 size={28} className="animate-spin" color="#1877F2" />
+        </div>
+      </CommanderLayout>
     );
   }
 
   return (
-    <CommanderLayout title="Incidents" backHref="/commander/dashboard">
-      <div className="cmd-page">
-        {/* Action Bar */}
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          {openCount > 0 && (
-            <p className="text-sm text-[#EF4444]">{openCount} open incident{openCount !== 1 ? 's' : ''}</p>
-          )}
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#EF4444] text-white rounded-lg hover:bg-[#DC2626] transition-colors ml-auto"
-          >
-            <Plus className="w-4 h-4" />
-            Report
+    <CommanderLayout title="Incidents" backHref="/commander/dashboard?card=staff">
+      <SEOHead title="Commander — Incidents" description="Incident management." noindex={true} />
+      <div style={{ minHeight: '100vh', background: '#18191A', fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+        {/* Header */}
+        <div style={{ background: '#242526', borderBottom: '2px solid #3A3B3C', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: '#EF444415', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AlertTriangle size={20} color="#EF4444" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Incident Log</div>
+            <div style={{ color: '#B0B3B8', fontSize: 12 }}>Track Disputes, Violations, And Safety Issues</div>
+          </div>
+          <button onClick={() => setShowCreateModal(true)}
+            style={{ background: '#EF4444', color: 'white', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Plus size={16} /> Report
           </button>
         </div>
 
-        <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#3A3B3C]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Incidents..."
-                className="w-full h-12 pl-12 pr-4 cmd-input"
-              />
+        <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
+
+          {/* Stats Dashboard */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+            <div style={{ background: '#242526', borderRadius: 10, padding: 12, textAlign: 'center', border: openCount > 0 ? '1px solid #EF444430' : '1px solid #3A3B3C' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: openCount > 0 ? '#EF4444' : '#65676B' }}>{openCount}</div>
+              <div style={{ fontSize: 10, color: '#B0B3B8', fontWeight: 600 }}>Open</div>
             </div>
-            <div className="flex gap-2">
+            <div style={{ background: '#242526', borderRadius: 10, padding: 12, textAlign: 'center', border: criticalCount > 0 ? '1px solid #7C3AED30' : '1px solid #3A3B3C' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: criticalCount > 0 ? '#7C3AED' : '#65676B' }}>{criticalCount}</div>
+              <div style={{ fontSize: 10, color: '#B0B3B8', fontWeight: 600 }}>High / Critical</div>
+            </div>
+            <div style={{ background: '#242526', borderRadius: 10, padding: 12, textAlign: 'center', border: '1px solid #3A3B3C' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: resolvedCount > 0 ? '#31A24C' : '#65676B' }}>{resolvedCount}</div>
+              <div style={{ fontSize: 10, color: '#B0B3B8', fontWeight: 600 }}>Resolved</div>
+            </div>
+          </div>
+
+          {/* Search + Filter */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+              <Search size={16} color="#65676B" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <input type="text" value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search incidents..."
+                style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, background: '#242526', border: '2px solid #3A3B3C', borderRadius: 10, color: 'white', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
               {[
                 { value: 'all', label: 'All' },
                 { value: 'open', label: 'Open' },
-                { value: 'resolved', label: 'Resolved' }
+                { value: 'resolved', label: 'Done' }
               ].map(f => (
-                <button
-                  key={f.value}
-                  onClick={() => setFilter(f.value)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f.value
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-[#242526] border border-[#3A3B3C] text-[#B0B3B8] hover:border-[#1877F2]'
-                    }`}
-                >
+                <button key={f.value} onClick={() => setFilter(f.value)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: filter === f.value ? '#1877F2' : '#242526',
+                    color: filter === f.value ? 'white' : '#B0B3B8',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}>
                   {f.label}
                 </button>
               ))}
@@ -563,45 +535,40 @@ export default function IncidentsPage() {
 
           {/* Incidents List */}
           {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+            <div style={{ textAlign: 'center', padding: 48 }}>
+              <Loader2 size={28} className="animate-spin" color="#1877F2" style={{ margin: '0 auto' }} />
             </div>
           ) : filteredIncidents.length > 0 ? (
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filteredIncidents.map(incident => (
-                <IncidentCard
-                  key={incident.id}
-                  incident={incident}
-                  onClick={() => setSelectedIncident(incident)}
-                />
+                <IncidentCard key={incident.id} incident={incident} onClick={() => setSelectedIncident(incident)} />
               ))}
             </div>
           ) : (
-            <div className="cmd-panel p-8 text-center">
-              <FileText className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-              <p className="text-[#B0B3B8]">
-                {searchQuery ? 'No incidents match your search' : 'No incidents reported'}
+            <div style={{ background: '#242526', borderRadius: 12, padding: 48, textAlign: 'center', border: '2px solid #3A3B3C' }}>
+              <Shield size={36} color="#3A3B3C" style={{ margin: '0 auto 8px' }} />
+              <p style={{ color: '#65676B', fontSize: 14 }}>
+                {searchQuery ? 'No Incidents Match Your Search' : 'No Incidents Reported — All Clear'}
               </p>
             </div>
           )}
-        </main>
-
-        {/* Modals */}
-        {showCreateModal && (
-          <CreateIncidentModal
-            onSubmit={handleCreateIncident}
-            onClose={() => setShowCreateModal(false)}
-          />
-        )}
-
-        {selectedIncident && (
-          <IncidentDetailModal
-            incident={selectedIncident}
-            onResolve={handleResolveIncident}
-            onClose={() => setSelectedIncident(null)}
-          />
-        )}
+        </div>
       </div>
+
+      {/* Modals */}
+      {showCreateModal && (
+        <CreateIncidentModal
+          onSubmit={handleCreateIncident}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+      {selectedIncident && (
+        <IncidentDetailModal
+          incident={selectedIncident}
+          onResolve={handleResolveIncident}
+          onClose={() => setSelectedIncident(null)}
+        />
+      )}
     </CommanderLayout>
   );
 }
