@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import useClubBranding from '../../../src/lib/commander/useClubBranding';
 
 const PROMO_TYPE_STYLES = {
   high_hand: { bg: 'from-yellow-900/40 to-yellow-700/20', accent: '#F59E0B', label: 'HIGH HAND' },
@@ -33,13 +34,13 @@ export default function PromotionsDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
-  // Extract venue info for API calls, branding, and cross-device sync
+  // Extract venue info for API calls and cross-device sync
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
-  const [clubName] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_name || 'Poker Room'; } catch { return 'Poker Room'; }
-  });
+
+  // Central club branding — logo + name from Settings
+  const { clubName, logoUrl: clubLogoUrl } = useClubBranding();
 
   const fetchData = useCallback(async () => {
     try {
@@ -173,17 +174,25 @@ export default function PromotionsDisplay() {
           borderBottom: '3px solid rgba(255,255,255,0.15)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Club Logo Placeholder — uses first letter if no logo */}
+            {/* Club Logo — uploaded from Settings, or initial letter fallback */}
             <div style={{
               width: 56, height: 56, borderRadius: 14,
               background: 'rgba(255,255,255,0.15)',
               border: '2px solid rgba(255,255,255,0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, fontWeight: 900, color: '#fff',
-              fontFamily: "'Orbitron', sans-serif",
-              textTransform: 'uppercase',
+              overflow: 'hidden', flexShrink: 0,
             }}>
-              {clubName.charAt(0)}
+              {clubLogoUrl ? (
+                <img src={clubLogoUrl} alt={clubName} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { e.target.style.display = 'none'; }} />
+              ) : (
+                <span style={{
+                  fontSize: 28, fontWeight: 900, color: '#fff',
+                  fontFamily: "'Orbitron', sans-serif", textTransform: 'uppercase',
+                }}>
+                  {clubName.charAt(0)}
+                </span>
+              )}
             </div>
             <div>
               <h1 style={{

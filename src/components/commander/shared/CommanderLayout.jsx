@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
+import useClubBranding from '../../../lib/commander/useClubBranding';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/commander/dashboard', icon: Layout },
@@ -166,6 +167,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   const venueName = staff?.venue_name || 'Poker Room';
   const currentTierConfig = getTierConfig(currentTier);
   const currentTierLabel = currentTierConfig?.name || 'Home Game';
+  const { logoUrl: clubLogoUrl } = useClubBranding();
 
   return (
     <>
@@ -464,9 +466,19 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             )}
           </div>
           <div className="cmd-global-right">
-            <div>
-              <div className="cmd-global-title">Club Commander</div>
-              <div className="cmd-global-venue">{venueName}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {clubLogoUrl && (
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0,
+                }}>
+                  <img src={clubLogoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+              <div>
+                <div className="cmd-global-title">Club Commander</div>
+                <div className="cmd-global-venue">{venueName}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -477,7 +489,17 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             <div className="cmd-menu-overlay" onClick={() => setMenuOpen(false)} />
             <div className="cmd-menu-panel">
               <div className="cmd-menu-header">
-                <span className="cmd-menu-header-text">Menu</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {clubLogoUrl ? (
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 6, overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.15)', flexShrink: 0,
+                    }}>
+                      <img src={clubLogoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ) : null}
+                  <span className="cmd-menu-header-text">{venueName}</span>
+                </div>
                 <button className="cmd-menu-close" onClick={() => setMenuOpen(false)}>
                   <X size={18} />
                 </button>

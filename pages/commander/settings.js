@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package } from 'lucide-react';
+import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, Image, Upload, X as XIcon } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
@@ -19,6 +19,8 @@ export default function CommanderSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   // Settings state
   const [settings, setSettings] = useState({
@@ -89,6 +91,10 @@ export default function CommanderSettingsPage() {
               auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
               bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages
             }));
+            // Load logo URL
+            if (data.data.club_logo_url !== undefined) {
+              setLogoUrl(data.data.club_logo_url || null);
+            }
           }
         })
         .catch(() => { });
@@ -226,6 +232,116 @@ export default function CommanderSettingsPage() {
                 </p>
               </div>
             )}
+
+            {/* ── Club Branding (Logo Upload) ── */}
+            <section className="cmd-panel">
+              <div className="p-4 border-b border-[#3A3B3C]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#8B5CF6]/10 rounded-lg flex items-center justify-center">
+                    <Image className="w-5 h-5 text-[#8B5CF6]" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-white">Club Branding</h2>
+                    <p className="text-xs text-[#B0B3B8]">Logo appears on all TV displays and menus</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="flex items-center gap-6">
+                  {/* Logo Preview */}
+                  <div style={{
+                    width: 80, height: 80, borderRadius: 16, overflow: 'hidden',
+                    background: '#242526', border: '2px solid #3A3B3C',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Club Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                    ) : (
+                      <span style={{
+                        fontSize: 36, fontWeight: 900, color: '#4A5E78',
+                        fontFamily: "'Orbitron', sans-serif", textTransform: 'uppercase',
+                      }}>
+                        {(venue?.name || 'P').charAt(0)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Upload / Remove */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors
+                        ${canManageSettings ? 'bg-[#1877F2] text-white hover:bg-[#166FE5]' : 'bg-[#3A3B3C] text-[#B0B3B8] cursor-not-allowed'}`}>
+                        {logoUploading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                          className="hidden" disabled={!canManageSettings || logoUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setLogoUploading(true);
+                            try {
+                              const token = (() => {
+                                try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').token; } catch { return null; }
+                              })();
+                              const formData = new FormData();
+                              formData.append('logo', file);
+                              const res = await fetch('/api/commander/settings/logo', {
+                                method: 'POST',
+                                headers: { Authorization: `Bearer ${token}` },
+                                body: formData
+                              });
+                              const json = await res.json();
+                              if (json.success) {
+                                setLogoUrl(json.data.club_logo_url);
+                                localStorage.removeItem('commander_branding');
+                                setSuccess('Logo uploaded successfully!');
+                                setTimeout(() => setSuccess(null), 3000);
+                              } else {
+                                setError(json.error || 'Upload failed');
+                              }
+                            } catch { setError('Upload failed'); }
+                            setLogoUploading(false);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      {logoUrl && canManageSettings && (
+                        <button onClick={async () => {
+                          try {
+                            const token = (() => {
+                              try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').token; } catch { return null; }
+                            })();
+                            const res = await fetch('/api/commander/settings/logo', {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                            const json = await res.json();
+                            if (json.success) {
+                              setLogoUrl(null);
+                              localStorage.removeItem('commander_branding');
+                              setSuccess('Logo removed');
+                              setTimeout(() => setSuccess(null), 3000);
+                            }
+                          } catch { setError('Failed to remove logo'); }
+                        }}
+                          className="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+                        >
+                          <XIcon className="w-4 h-4" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#64748B]">PNG, JPG, WebP, or SVG. Max 5MB. Recommended: 200×200px square.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {/* Notifications */}
             <section className="cmd-panel">
