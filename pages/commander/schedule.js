@@ -1,12 +1,14 @@
 /**
  * Staff Schedule — Weekly Shift Planner
  * /commander/schedule
+ * Facebook Dark Theme
  * 
  * Full weekly scheduling system for all staff roles:
  * - Week grid view with day columns and staff rows
  * - Add/edit/delete shifts
- * - Role filter tabs (All, Dealers, Floor, Cashiers)
+ * - Role filter tabs (All, Dealers, Floor, Cashiers, Security, Managers)
  * - Send schedule to all staff via SMS/Email
+ * - 6 months of demo data for Dealers, Floor, Cashier, Security
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -14,7 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight,
   Loader2, RefreshCw, Trash2, MessageSquare, Mail, Filter, AlertCircle,
-  CheckCircle2
+  CheckCircle2, Shield
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -67,14 +69,140 @@ const ROLE_FILTERS = [
   { value: 'dealer', label: 'Dealers', color: '#6B7280' },
   { value: 'floor', label: 'Floor', color: '#059669' },
   { value: 'cashier', label: 'Cashiers', color: '#D97706' },
+  { value: 'security', label: 'Security', color: '#EF4444' },
   { value: 'manager', label: 'Managers', color: '#2563EB' },
-  { value: 'brush', label: 'Brush', color: '#D97706' },
+  { value: 'brush', label: 'Brush', color: '#8B5CF6' },
 ];
 
 const ROLE_COLORS = {
   owner: '#7C3AED', manager: '#2563EB', floor: '#059669',
-  cashier: '#D97706', brush: '#D97706', dealer: '#6B7280', staff: '#6B7280'
+  cashier: '#D97706', brush: '#8B5CF6', dealer: '#6B7280',
+  security: '#EF4444', staff: '#6B7280'
 };
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK DATA — 6 MONTHS OF SCHEDULES
+// ═══════════════════════════════════════════════════════════════
+
+const MOCK_STAFF = [
+  // Dealers
+  { id: 'demo-d1', display_name: 'Marcus Chen', role: 'dealer', is_active: true },
+  { id: 'demo-d2', display_name: 'Sarah Williams', role: 'dealer', is_active: true },
+  { id: 'demo-d3', display_name: 'Jake Morrison', role: 'dealer', is_active: true },
+  { id: 'demo-d4', display_name: 'Lisa Park', role: 'dealer', is_active: true },
+  { id: 'demo-d5', display_name: 'Tommy Nguyen', role: 'dealer', is_active: true },
+  { id: 'demo-d6', display_name: 'Rachel Adams', role: 'dealer', is_active: true },
+  // Floor
+  { id: 'demo-f1', display_name: 'Mike Torres', role: 'floor', is_active: true },
+  { id: 'demo-f2', display_name: 'Diana Reyes', role: 'floor', is_active: true },
+  { id: 'demo-f3', display_name: 'Chris Banks', role: 'floor', is_active: true },
+  // Cashier
+  { id: 'demo-c1', display_name: 'Amy Rodriguez', role: 'cashier', is_active: true },
+  { id: 'demo-c2', display_name: 'Kevin Patel', role: 'cashier', is_active: true },
+  { id: 'demo-c3', display_name: 'Nina Foster', role: 'cashier', is_active: true },
+  // Security
+  { id: 'demo-s1', display_name: 'Ray Johnson', role: 'security', is_active: true },
+  { id: 'demo-s2', display_name: 'Victor Cruz', role: 'security', is_active: true },
+  { id: 'demo-s3', display_name: 'Tony Martinez', role: 'security', is_active: true },
+  // Manager
+  { id: 'demo-m1', display_name: 'Daniel Bekavac', role: 'manager', is_active: true },
+];
+
+// Shift patterns by role — realistic poker room schedules
+const SHIFT_PATTERNS = {
+  dealer: [
+    { start: '10:00', end: '18:00' },  // Day
+    { start: '14:00', end: '22:00' },  // Swing
+    { start: '18:00', end: '02:00' },  // Night
+    { start: '08:00', end: '16:00' },  // Morning
+    { start: '12:00', end: '20:00' },  // Mid
+  ],
+  floor: [
+    { start: '10:00', end: '20:00' },  // Day (long)
+    { start: '14:00', end: '00:00' },  // Swing (long)
+    { start: '18:00', end: '04:00' },  // Night (long)
+  ],
+  cashier: [
+    { start: '09:00', end: '17:00' },  // Morning
+    { start: '13:00', end: '21:00' },  // Afternoon
+    { start: '17:00', end: '01:00' },  // Evening
+  ],
+  security: [
+    { start: '10:00', end: '22:00' },  // Day (12hr)
+    { start: '22:00', end: '10:00' },  // Night (12hr)
+    { start: '14:00', end: '02:00' },  // Swing (12hr)
+  ],
+  manager: [
+    { start: '10:00', end: '20:00' },
+    { start: '14:00', end: '00:00' },
+  ],
+};
+
+// Staff weekly schedule patterns (which days each person works)
+const STAFF_SCHEDULES = {
+  'demo-d1': [1, 2, 3, 4, 5],       // Mon—Fri
+  'demo-d2': [0, 1, 2, 3, 4],       // Sun—Thu
+  'demo-d3': [2, 3, 4, 5, 6],       // Tue—Sat
+  'demo-d4': [0, 3, 4, 5, 6],       // Sun, Wed—Sat
+  'demo-d5': [1, 2, 5, 6, 0],       // Mon, Tue, Fri—Sun
+  'demo-d6': [0, 1, 4, 5, 6],       // Sun, Mon, Thu—Sat
+  'demo-f1': [1, 2, 3, 4, 5],       // Mon—Fri
+  'demo-f2': [0, 2, 3, 5, 6],       // Sun, Tue, Wed, Fri, Sat
+  'demo-f3': [0, 1, 4, 5, 6],       // Sun, Mon, Thu—Sat
+  'demo-c1': [1, 2, 3, 4, 5],       // Mon—Fri
+  'demo-c2': [0, 2, 4, 5, 6],       // Sun, Tue, Thu—Sat
+  'demo-c3': [0, 1, 3, 5, 6],       // Sun, Mon, Wed, Fri, Sat
+  'demo-s1': [0, 1, 2, 3],          // Sun—Wed (security 12hr shifts, fewer days)
+  'demo-s2': [3, 4, 5, 6],          // Wed—Sat
+  'demo-s3': [0, 1, 5, 6],          // Sun, Mon, Fri, Sat
+  'demo-m1': [1, 2, 3, 4, 5],       // Mon—Fri
+};
+
+// Preferred shift index per staff member (which shift pattern they usually work)
+const STAFF_SHIFT_IDX = {
+  'demo-d1': 0, 'demo-d2': 1, 'demo-d3': 2, 'demo-d4': 0,
+  'demo-d5': 1, 'demo-d6': 2,
+  'demo-f1': 0, 'demo-f2': 1, 'demo-f3': 2,
+  'demo-c1': 0, 'demo-c2': 1, 'demo-c3': 2,
+  'demo-s1': 0, 'demo-s2': 1, 'demo-s3': 2,
+  'demo-m1': 0,
+};
+
+function generateMockShifts() {
+  const shifts = [];
+  const today = new Date();
+  // Generate 6 months: 3 months back + 3 months forward (26 weeks)
+  const startDate = new Date(today);
+  startDate.setMonth(startDate.getMonth() - 3);
+  startDate.setDate(startDate.getDate() - startDate.getDay()); // align to Sunday
+
+  for (let week = 0; week < 26; week++) {
+    for (const person of MOCK_STAFF) {
+      const workDays = STAFF_SCHEDULES[person.id] || [1, 2, 3, 4, 5];
+      const shiftIdx = STAFF_SHIFT_IDX[person.id] || 0;
+      const patterns = SHIFT_PATTERNS[person.role] || SHIFT_PATTERNS.dealer;
+      const shift = patterns[shiftIdx % patterns.length];
+
+      for (const dayOfWeek of workDays) {
+        const shiftDate = new Date(startDate);
+        shiftDate.setDate(shiftDate.getDate() + (week * 7) + dayOfWeek);
+        const dateStr = shiftDate.toISOString().split('T')[0];
+
+        shifts.push({
+          id: `mock-${person.id}-${dateStr}`,
+          staff_id: person.id,
+          staff_name: person.display_name,
+          staff_role: person.role,
+          shift_date: dateStr,
+          start_time: shift.start,
+          end_time: shift.end,
+          notes: null,
+        });
+      }
+    }
+  }
+  return shifts;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -94,6 +222,7 @@ export default function StaffSchedule() {
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState(null);
   const [toast, setToast] = useState(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -109,19 +238,43 @@ export default function StaffSchedule() {
   // Fetch shifts + staff
   const fetchData = useCallback(async () => {
     const venueId = getVenueId();
-    if (!venueId) return;
+    if (!venueId) {
+      // No venue — use mock data
+      setAllStaff(MOCK_STAFF);
+      setShifts(generateMockShifts());
+      setUsingMockData(true);
+      setLoading(false);
+      return;
+    }
     try {
       const headers = getHeaders();
       const [shiftsRes, staffRes] = await Promise.all([
         fetch(`/api/commander/schedule/shifts?venue_id=${venueId}&week_start=${weekStart}`, { headers }).then(r => r.json()),
         fetch(`/api/commander/staff?venue_id=${venueId}`, { headers }).then(r => r.json())
       ]);
-      if (shiftsRes.success) setShifts(shiftsRes.data || []);
-      if (staffRes.success) {
-        const list = Array.isArray(staffRes.data) ? staffRes.data : staffRes.data?.staff || [];
-        setAllStaff(list.filter(s => s.is_active !== false));
+      const realShifts = shiftsRes.success ? (shiftsRes.data || []) : [];
+      const rawStaff = staffRes.success
+        ? (Array.isArray(staffRes.data) ? staffRes.data : staffRes.data?.staff || [])
+        : [];
+      const activeStaff = rawStaff.filter(s => s.is_active !== false);
+
+      // If no real staff or shifts, use mock data as demo
+      if (activeStaff.length === 0 && realShifts.length === 0) {
+        setAllStaff(MOCK_STAFF);
+        setShifts(generateMockShifts());
+        setUsingMockData(true);
+      } else {
+        setAllStaff(activeStaff);
+        setShifts(realShifts);
+        setUsingMockData(false);
       }
-    } catch (err) { console.error('[Schedule] fetch error:', err); }
+    } catch (err) {
+      console.error('[Schedule] fetch error:', err);
+      // Fallback to mock data on error
+      setAllStaff(MOCK_STAFF);
+      setShifts(generateMockShifts());
+      setUsingMockData(true);
+    }
     finally { setLoading(false); }
   }, [weekStart]);
 
@@ -132,16 +285,25 @@ export default function StaffSchedule() {
     const d = new Date(weekStart + 'T12:00:00');
     d.setDate(d.getDate() + (delta * 7));
     setWeekStart(d.toISOString().split('T')[0]);
-    setLoading(true);
   };
 
   const goToday = () => {
     setWeekStart(getWeekStart(new Date()));
-    setLoading(true);
   };
 
   // Create shift
   const createShift = async (data) => {
+    if (usingMockData) {
+      // Add to mock shifts locally
+      const newShift = {
+        id: `mock-new-${Date.now()}`,
+        ...data,
+      };
+      setShifts(prev => [...prev, newShift]);
+      setShowAddModal(false);
+      showToast('Shift added', 'success');
+      return;
+    }
     try {
       const venueId = getVenueId();
       const res = await fetch('/api/commander/schedule/shifts', {
@@ -164,6 +326,11 @@ export default function StaffSchedule() {
 
   // Delete shift
   const deleteShift = async (shiftId) => {
+    if (usingMockData) {
+      setShifts(prev => prev.filter(s => s.id !== shiftId));
+      showToast('Shift deleted', 'success');
+      return;
+    }
     try {
       const venueId = getVenueId();
       const res = await fetch(`/api/commander/schedule/shifts?id=${shiftId}&venue_id=${venueId}`, {
@@ -209,162 +376,185 @@ export default function StaffSchedule() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Computed
+  // Computed — filter shifts for current week
   const weekDays = getWeekDays(weekStart);
   const weekLabel = `${weekDays[0].month} ${weekDays[0].dayNum} – ${weekDays[6].month} ${weekDays[6].dayNum}`;
+  const weekDates = new Set(weekDays.map(d => d.date));
+  const weekShifts = shifts.filter(s => weekDates.has(s.shift_date));
 
   const filteredStaff = roleFilter === 'all'
     ? allStaff
     : allStaff.filter(s => s.role === roleFilter);
 
-  // Stats
-  const totalShifts = shifts.length;
-  const totalHours = shifts.reduce((sum, s) => sum + shiftHours(s.start_time, s.end_time), 0);
-  const staffWithShifts = new Set(shifts.map(s => s.staff_id)).size;
+  // Stats (for current week only)
+  const totalShifts = weekShifts.length;
+  const totalHours = weekShifts.reduce((sum, s) => sum + shiftHours(s.start_time, s.end_time), 0);
+  const staffWithShifts = new Set(weekShifts.map(s => s.staff_id)).size;
 
   // Get shifts for a specific staff member on a specific date
-  const getShiftsFor = (staffId, date) => shifts.filter(s => s.staff_id === staffId && s.shift_date === date);
+  const getShiftsFor = (staffId, date) => weekShifts.filter(s => s.staff_id === staffId && s.shift_date === date);
 
   return (
     <CommanderLayout title="Staff Schedule" backHref="/commander/dashboard?card=staff">
       <SEOHead title="Commander — Staff Schedule" description="Weekly staff scheduling for Club Commander." noindex={true} />
 
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+
+        {/* Demo banner */}
+        {usingMockData && (
+          <div style={{ background: '#1877F215', borderBottom: '1px solid #1877F230', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertCircle size={14} color="#1877F2" />
+            <span style={{ fontSize: 12, color: '#1877F2', fontWeight: 600 }}>Demo Mode — Showing sample schedule data (6 months)</span>
+          </div>
+        )}
+
         {/* Header bar */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#1877F2]" />
-              <h1 className="text-lg font-bold text-white">Staff Schedule</h1>
+        <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '12px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={20} color="#1877F2" />
+              <h1 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: 0 }}>Staff Schedule</h1>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]" title="Refresh">
-                <RefreshCw className="w-4 h-4 text-[#B0B3B8]" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={fetchData} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }} title="Refresh">
+                <RefreshCw size={16} color="#B0B3B8" />
               </button>
               <button
                 onClick={() => setShowBroadcastModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1877F2] text-white text-sm font-medium active:bg-[#1564D4]"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: '#1877F2', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
-                <Send className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Send Schedule</span>
+                <Send size={14} />
+                <span>Send Schedule</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Week navigator */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-2">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <button onClick={() => changeWeek(-1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-              <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
+        <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '8px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1200, margin: '0 auto' }}>
+            <button onClick={() => changeWeek(-1)} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <ChevronLeft size={20} color="#B0B3B8" />
             </button>
-            <div className="text-center">
-              <p className="text-base font-semibold text-white">{weekLabel}</p>
-              <button onClick={goToday} className="text-xs text-[#1877F2] font-medium">Today</button>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: 'white', margin: 0 }}>{weekLabel}</p>
+              <button onClick={goToday} style={{ fontSize: 12, color: '#1877F2', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Today</button>
             </div>
-            <button onClick={() => changeWeek(1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-              <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
+            <button onClick={() => changeWeek(1)} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <ChevronRight size={20} color="#B0B3B8" />
             </button>
           </div>
         </div>
 
         {/* Stats bar */}
-        <div className="px-4 py-3 max-w-7xl mx-auto">
-          <div className="flex gap-2">
-            <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#1877F2]">{totalShifts}</p>
-              <p className="text-[10px] text-[#B0B3B8]">Shifts</p>
-            </div>
-            <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#31A24C]">{totalHours.toFixed(0)}h</p>
-              <p className="text-[10px] text-[#B0B3B8]">Hours</p>
-            </div>
-            <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#F59E0B]">{staffWithShifts}</p>
-              <p className="text-[10px] text-[#B0B3B8]">Scheduled</p>
-            </div>
-            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center">
-              <p className="text-lg font-bold text-white">{allStaff.length}</p>
-              <p className="text-[10px] text-[#B0B3B8]">Total Staff</p>
-            </div>
+        <div style={{ padding: '12px 16px', maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { value: totalShifts, label: 'Shifts', color: '#1877F2' },
+              { value: `${totalHours.toFixed(0)}h`, label: 'Hours', color: '#31A24C' },
+              { value: staffWithShifts, label: 'Scheduled', color: '#F59E0B' },
+              { value: allStaff.length, label: 'Total Staff', color: '#E4E6EB' },
+            ].map((stat, i) => (
+              <div key={i} style={{
+                flex: 1, background: `${stat.color}10`, border: `1px solid ${stat.color}30`,
+                borderRadius: 12, padding: '8px 12px', textAlign: 'center'
+              }}>
+                <p style={{ fontSize: 18, fontWeight: 800, color: stat.color, margin: 0 }}>{stat.value}</p>
+                <p style={{ fontSize: 10, color: '#B0B3B8', margin: 0 }}>{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Role filter */}
-        <div className="px-4 pb-3 max-w-7xl mx-auto overflow-x-auto">
-          <div className="flex gap-1.5 min-w-max">
-            {ROLE_FILTERS.map(f => (
-              <button
-                key={f.value}
-                onClick={() => setRoleFilter(f.value)}
-                className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-                style={{
-                  backgroundColor: roleFilter === f.value ? f.color + '20' : '#3A3B3C',
-                  color: roleFilter === f.value ? f.color : '#B0B3B8',
-                  border: roleFilter === f.value ? `1px solid ${f.color}50` : '1px solid transparent'
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+        <div style={{ padding: '0 16px 12px', maxWidth: 1200, margin: '0 auto', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: 6, minWidth: 'max-content' }}>
+            {ROLE_FILTERS.map(f => {
+              const count = f.value === 'all' ? allStaff.length : allStaff.filter(s => s.role === f.value).length;
+              if (f.value !== 'all' && count === 0) return null;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setRoleFilter(f.value)}
+                  style={{
+                    padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                    background: roleFilter === f.value ? `${f.color}25` : '#3A3B3C',
+                    color: roleFilter === f.value ? f.color : '#B0B3B8',
+                    outline: roleFilter === f.value ? `1px solid ${f.color}50` : 'none',
+                  }}
+                >
+                  {f.label} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Week Grid */}
         {loading ? (
-          <div className="py-20 flex justify-center">
-            <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+          <div style={{ padding: '80px 0', display: 'flex', justifyContent: 'center' }}>
+            <Loader2 size={32} color="#1877F2" style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : filteredStaff.length === 0 ? (
-          <div className="py-16 text-center px-4">
-            <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-            <p className="text-lg font-semibold text-white mb-1">No Staff Found</p>
-            <p className="text-sm text-[#B0B3B8]">
+          <div style={{ padding: '64px 16px', textAlign: 'center' }}>
+            <Users size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 18, fontWeight: 700, color: 'white', margin: '0 0 4px' }}>No Staff Found</p>
+            <p style={{ fontSize: 14, color: '#B0B3B8' }}>
               {roleFilter !== 'all' ? 'Try a different role filter or ' : ''}
-              Add staff on the <button onClick={() => router.push('/commander/staff')} className="text-[#1877F2] underline">Staff Management</button> page.
+              Add staff on the <button onClick={() => router.push('/commander/staff')} style={{ color: '#1877F2', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}>Staff Management</button> page.
             </p>
           </div>
         ) : (
-          <div className="px-2 pb-24 max-w-7xl mx-auto">
-            {/* Desktop week grid */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[700px]">
-                {/* Day headers */}
+          <div style={{ padding: '0 8px 96px', maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
                 <thead>
                   <tr>
-                    <th className="sticky left-0 bg-[#18191A] z-10 w-36 px-2 py-2 text-left text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider">
+                    <th style={{
+                      position: 'sticky', left: 0, background: '#18191A', zIndex: 10,
+                      width: 150, padding: '8px', textAlign: 'left', fontSize: 11,
+                      fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1
+                    }}>
                       Employee
                     </th>
                     {weekDays.map(day => (
-                      <th key={day.date} className={`px-1 py-2 text-center min-w-[100px] ${day.isToday ? 'bg-[#1877F2]/5' : ''}`}>
-                        <p className="text-xs font-semibold text-[#B0B3B8]">{day.label}</p>
-                        <p className={`text-sm font-bold ${day.isToday ? 'text-[#1877F2]' : 'text-white'}`}>{day.dayNum}</p>
+                      <th key={day.date} style={{
+                        padding: '8px 4px', textAlign: 'center', minWidth: 100,
+                        background: day.isToday ? '#1877F208' : 'transparent'
+                      }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', margin: 0 }}>{day.label}</p>
+                        <p style={{ fontSize: 14, fontWeight: 800, color: day.isToday ? '#1877F2' : 'white', margin: 0 }}>{day.dayNum}</p>
                       </th>
                     ))}
-                    <th className="px-2 py-2 text-center w-16">
-                      <p className="text-xs font-semibold text-[#B0B3B8]">Hours</p>
+                    <th style={{ padding: '8px', textAlign: 'center', width: 64 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', margin: 0 }}>Hours</p>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredStaff.map(person => {
-                    const personShifts = shifts.filter(s => s.staff_id === person.id);
-                    const personHours = personShifts.reduce((sum, s) => sum + shiftHours(s.start_time, s.end_time), 0);
+                    const personWeekShifts = weekShifts.filter(s => s.staff_id === person.id);
+                    const personHours = personWeekShifts.reduce((sum, s) => sum + shiftHours(s.start_time, s.end_time), 0);
                     const roleColor = ROLE_COLORS[person.role] || '#6B7280';
                     return (
-                      <tr key={person.id} className="border-t border-[#3A3B3C]/50 hover:bg-[#242526]/50">
+                      <tr key={person.id} style={{ borderTop: '1px solid #3A3B3C30' }}>
                         {/* Staff name */}
-                        <td className="sticky left-0 bg-[#18191A] z-10 px-2 py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                              style={{ backgroundColor: roleColor + '40' }}>
+                        <td style={{ position: 'sticky', left: 0, background: '#18191A', zIndex: 10, padding: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', fontSize: 10,
+                              fontWeight: 800, color: 'white', background: roleColor + '40',
+                              flexShrink: 0
+                            }}>
                               {(person.display_name || person.name || '?')[0]?.toUpperCase()}
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-white truncate max-w-[110px]">
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>
                                 {person.display_name || person.name || 'Staff'}
                               </p>
-                              <p className="text-[10px] capitalize" style={{ color: roleColor }}>
+                              <p style={{ fontSize: 10, color: roleColor, margin: 0, textTransform: 'capitalize', fontWeight: 600 }}>
                                 {person.role || 'staff'}
                               </p>
                             </div>
@@ -374,28 +564,37 @@ export default function StaffSchedule() {
                         {weekDays.map(day => {
                           const dayShifts = getShiftsFor(person.id, day.date);
                           return (
-                            <td key={day.date} className={`px-1 py-1 align-top ${day.isToday ? 'bg-[#1877F2]/5' : ''}`}>
+                            <td key={day.date} style={{
+                              padding: '4px', verticalAlign: 'top',
+                              background: day.isToday ? '#1877F208' : 'transparent'
+                            }}>
                               {dayShifts.length > 0 ? (
-                                <div className="space-y-0.5">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                   {dayShifts.map(s => (
                                     <div
                                       key={s.id}
-                                      className="group relative rounded-lg px-1.5 py-1 text-[10px] font-medium cursor-pointer border transition-colors"
                                       style={{
-                                        backgroundColor: roleColor + '15',
-                                        borderColor: roleColor + '40',
-                                        color: roleColor
+                                        position: 'relative', borderRadius: 8, padding: '4px 6px',
+                                        fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                                        background: roleColor + '15', border: `1px solid ${roleColor}40`,
+                                        color: roleColor, transition: 'all 0.15s'
                                       }}
                                     >
-                                      <p className="leading-tight">{formatTime12(s.start_time)}</p>
-                                      <p className="leading-tight">{formatTime12(s.end_time)}</p>
-                                      {/* Delete on hover */}
+                                      <p style={{ margin: 0, lineHeight: 1.3 }}>{formatTime12(s.start_time)}</p>
+                                      <p style={{ margin: 0, lineHeight: 1.3 }}>{formatTime12(s.end_time)}</p>
+                                      {/* Delete on hover — using CSS class isn't available, show always on mobile */}
                                       <button
                                         onClick={(e) => { e.stopPropagation(); deleteShift(s.id); }}
-                                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#EF4444] text-white hidden group-hover:flex items-center justify-center"
+                                        style={{
+                                          position: 'absolute', top: -6, right: -6, width: 16, height: 16,
+                                          borderRadius: '50%', background: '#EF4444', color: 'white',
+                                          border: 'none', cursor: 'pointer', display: 'flex',
+                                          alignItems: 'center', justifyContent: 'center', opacity: 0.7,
+                                          fontSize: 8
+                                        }}
                                         title="Delete shift"
                                       >
-                                        <X className="w-2.5 h-2.5" />
+                                        <X size={10} />
                                       </button>
                                     </div>
                                   ))}
@@ -403,17 +602,27 @@ export default function StaffSchedule() {
                               ) : (
                                 <button
                                   onClick={() => { setAddDate(day.date); setAddStaffId(person.id); setShowAddModal(true); }}
-                                  className="w-full h-10 rounded-lg border border-dashed border-[#3A3B3C]/50 hover:border-[#1877F2]/50 hover:bg-[#1877F2]/5 transition-colors flex items-center justify-center"
+                                  style={{
+                                    width: '100%', height: 40, borderRadius: 8,
+                                    border: '1px dashed #3A3B3C50', background: 'transparent',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', transition: 'all 0.15s'
+                                  }}
                                 >
-                                  <Plus className="w-3 h-3 text-[#3A3B3C] hover:text-[#1877F2]" />
+                                  <Plus size={12} color="#3A3B3C" />
                                 </button>
                               )}
                             </td>
                           );
                         })}
                         {/* Weekly hours */}
-                        <td className="px-2 py-2 text-center">
-                          <p className="text-sm font-bold text-white">{personHours > 0 ? `${personHours}h` : '—'}</p>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <p style={{
+                            fontSize: 14, fontWeight: 800, margin: 0,
+                            color: personHours >= 40 ? '#EF4444' : personHours > 0 ? 'white' : '#3A3B3C'
+                          }}>
+                            {personHours > 0 ? `${personHours}h` : '—'}
+                          </p>
                         </td>
                       </tr>
                     );
@@ -425,17 +634,26 @@ export default function StaffSchedule() {
             {/* Add shift FAB */}
             <button
               onClick={() => { setAddDate(null); setAddStaffId(null); setShowAddModal(true); }}
-              className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/30 flex items-center justify-center active:bg-[#1564D4] z-20"
+              style={{
+                position: 'fixed', bottom: 24, right: 24, width: 56, height: 56,
+                borderRadius: '50%', background: '#1877F2', color: 'white', border: 'none',
+                boxShadow: '0 4px 20px #1877F230', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'pointer', zIndex: 20
+              }}
             >
-              <Plus className="w-7 h-7" />
+              <Plus size={28} />
             </button>
           </div>
         )}
 
         {/* Toast */}
         {toast && (
-          <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl ${toast.type === 'success' ? 'bg-[#31A24C] text-white' : 'bg-[#EF4444] text-white'
-            }`}>
+          <div style={{
+            position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 50, padding: '10px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            background: toast.type === 'success' ? '#31A24C' : '#EF4444', color: 'white'
+          }}>
             {toast.msg}
           </div>
         )}
@@ -465,6 +683,10 @@ export default function StaffSchedule() {
           />
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </CommanderLayout>
   );
 }
@@ -500,7 +722,6 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
     setSaving(false);
   };
 
-  // Common shift presets
   const presets = [
     { label: 'Morning', start: '08:00', end: '16:00' },
     { label: 'Day', start: '10:00', end: '18:00' },
@@ -509,28 +730,28 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
     { label: 'Graveyard', start: '22:00', end: '06:00' },
   ];
 
+  const inputStyle = {
+    width: '100%', height: 48, padding: '0 12px', background: '#3A3B3C',
+    color: 'white', borderRadius: 8, border: '1px solid #4A4B4C', fontSize: 14,
+    outline: 'none', boxSizing: 'border-box'
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#242526] rounded-2xl w-full max-w-md border border-[#3A3B3C] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Plus className="w-5 h-5 text-[#1877F2]" />
-            Add Shift
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
+      <div style={{ background: '#242526', borderRadius: 16, width: '100%', maxWidth: 420, border: '1px solid #3A3B3C', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #3A3B3C' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Plus size={20} color="#1877F2" /> Add Shift
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#3A3B3C]">
-            <X className="w-5 h-5 text-[#B0B3B8]" />
+          <button onClick={onClose} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <X size={20} color="#B0B3B8" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Employee picker */}
           <div>
-            <label className="block text-sm font-medium text-white mb-1">Employee</label>
-            <select
-              value={staffId}
-              onChange={e => setStaffId(e.target.value)}
-              className="w-full h-12 px-3 bg-[#3A3B3C] text-white rounded-lg border border-[#4A4B4C] text-sm"
-              required
-            >
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 4 }}>Employee</label>
+            <select value={staffId} onChange={e => setStaffId(e.target.value)} style={inputStyle} required>
               <option value="">Select Employee...</option>
               {allStaff.map(s => (
                 <option key={s.id} value={s.id}>
@@ -542,22 +763,19 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
 
           {/* Date picker */}
           <div>
-            <label className="block text-sm font-medium text-white mb-1">Date</label>
-            <div className="grid grid-cols-7 gap-1">
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 4 }}>Date</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
               {weekDays.map(day => (
-                <button
-                  key={day.date}
-                  type="button"
-                  onClick={() => setDate(day.date)}
-                  className={`py-2 rounded-lg text-xs font-medium transition-colors ${date === day.date
-                    ? 'bg-[#1877F2] text-white'
-                    : day.isToday
-                      ? 'bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/30'
-                      : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
-                    }`}
-                >
-                  <p>{day.label}</p>
-                  <p className="text-sm font-bold">{day.dayNum}</p>
+                <button key={day.date} type="button" onClick={() => setDate(day.date)}
+                  style={{
+                    padding: '8px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    border: 'none', textAlign: 'center',
+                    background: date === day.date ? '#1877F2' : day.isToday ? '#1877F210' : '#3A3B3C',
+                    color: date === day.date ? 'white' : day.isToday ? '#1877F2' : '#B0B3B8',
+                    outline: day.isToday && date !== day.date ? '1px solid #1877F230' : 'none',
+                  }}>
+                  <p style={{ margin: 0 }}>{day.label}</p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>{day.dayNum}</p>
                 </button>
               ))}
             </div>
@@ -565,18 +783,17 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
 
           {/* Quick presets */}
           <div>
-            <label className="block text-sm font-medium text-white mb-1">Quick Presets</label>
-            <div className="flex gap-1.5 flex-wrap">
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 4 }}>Quick Presets</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {presets.map(p => (
-                <button
-                  key={p.label}
-                  type="button"
+                <button key={p.label} type="button"
                   onClick={() => { setStartTime(p.start); setEndTime(p.end); }}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${startTime === p.start && endTime === p.end
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
-                    }`}
-                >
+                  style={{
+                    padding: '4px 10px', borderRadius: 16, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: 'none',
+                    background: startTime === p.start && endTime === p.end ? '#1877F2' : '#3A3B3C',
+                    color: startTime === p.start && endTime === p.end ? 'white' : '#B0B3B8',
+                  }}>
                   {p.label}
                 </button>
               ))}
@@ -584,55 +801,39 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
           </div>
 
           {/* Time pickers */}
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="block text-xs font-medium text-[#B0B3B8] mb-1">Start Time</label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={e => setStartTime(e.target.value)}
-                className="w-full h-12 px-3 bg-[#3A3B3C] text-white rounded-lg border border-[#4A4B4C] text-sm"
-                required
-              />
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#B0B3B8', marginBottom: 4 }}>Start Time</label>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} required />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#B0B3B8] mb-1">End Time</label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={e => setEndTime(e.target.value)}
-                className="w-full h-12 px-3 bg-[#3A3B3C] text-white rounded-lg border border-[#4A4B4C] text-sm"
-                required
-              />
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#B0B3B8', marginBottom: 4 }}>End Time</label>
+              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} required />
             </div>
           </div>
 
           {hours > 0 && (
-            <p className="text-xs text-[#B0B3B8] text-center">
-              <Clock className="w-3 h-3 inline mr-1" />{hours} hours
+            <p style={{ fontSize: 12, color: '#B0B3B8', textAlign: 'center', margin: 0 }}>
+              <Clock size={12} style={{ display: 'inline', verticalAlign: -2, marginRight: 4 }} />{hours} hours
             </p>
           )}
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-[#B0B3B8] mb-1">Notes (optional)</label>
-            <input
-              type="text"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#B0B3B8', marginBottom: 4 }}>Notes (optional)</label>
+            <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="e.g., Training shift, Cover for John..."
-              className="w-full h-10 px-3 bg-[#3A3B3C] text-white rounded-lg border border-[#4A4B4C] text-sm"
-            />
+              style={{ ...inputStyle, height: 40 }} />
           </div>
 
           {/* Submit */}
-          <div className="flex gap-3 pt-1">
+          <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
             <button type="button" onClick={onClose}
-              className="flex-1 h-12 bg-[#3A3B3C] text-white rounded-xl font-medium text-sm hover:bg-[#4A4B4C]">
+              style={{ flex: 1, height: 48, background: '#3A3B3C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>
               Cancel
             </button>
             <button type="submit" disabled={saving || !staffId || !date}
-              className="flex-1 h-12 bg-[#1877F2] text-white rounded-xl font-medium text-sm disabled:opacity-50 active:bg-[#1564D4]">
+              style={{ flex: 1, height: 48, background: '#1877F2', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', opacity: (saving || !staffId || !date) ? 0.5 : 1 }}>
               {saving ? 'Adding...' : 'Add Shift'}
             </button>
           </div>
@@ -648,60 +849,49 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
 
 function BroadcastModal({ weekLabel, totalShifts, staffCount, broadcasting, result, onSend, onClose }) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#242526] rounded-2xl w-full max-w-sm border border-[#3A3B3C] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Send className="w-5 h-5 text-[#1877F2]" />
-            Send Schedule
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
+      <div style={{ background: '#242526', borderRadius: 16, width: '100%', maxWidth: 380, border: '1px solid #3A3B3C', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #3A3B3C' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Send size={20} color="#1877F2" /> Send Schedule
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#3A3B3C]">
-            <X className="w-5 h-5 text-[#B0B3B8]" />
+          <button onClick={onClose} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <X size={20} color="#B0B3B8" />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          <div className="bg-[#18191A] rounded-xl p-3 text-center space-y-1">
-            <p className="text-sm text-[#B0B3B8]">{weekLabel}</p>
-            <p className="text-2xl font-bold text-white">{totalShifts} shifts</p>
-            <p className="text-xs text-[#B0B3B8]">for {staffCount} employees</p>
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: '#18191A', borderRadius: 12, padding: 12, textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: '#B0B3B8', margin: '0 0 4px' }}>{weekLabel}</p>
+            <p style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: '0 0 4px' }}>{totalShifts} shifts</p>
+            <p style={{ fontSize: 12, color: '#B0B3B8', margin: 0 }}>for {staffCount} employees</p>
           </div>
 
-          <p className="text-sm text-[#B0B3B8] text-center">
+          <p style={{ fontSize: 13, color: '#B0B3B8', textAlign: 'center', margin: 0 }}>
             Each employee will receive their personal schedule.
           </p>
 
           {result ? (
-            <div className="bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl p-4 text-center space-y-2">
-              <CheckCircle2 className="w-8 h-8 text-[#31A24C] mx-auto" />
-              <p className="text-sm font-medium text-[#31A24C]">Schedule Sent!</p>
-              <p className="text-xs text-[#B0B3B8]">
+            <div style={{ background: '#31A24C15', border: '1px solid #31A24C30', borderRadius: 12, padding: 16, textAlign: 'center' }}>
+              <CheckCircle2 size={32} color="#31A24C" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#31A24C', margin: '0 0 4px' }}>Schedule Sent!</p>
+              <p style={{ fontSize: 12, color: '#B0B3B8', margin: 0 }}>
                 ✅ {result.sent} sent | ⏭️ {result.skipped} skipped | ❌ {result.failed} failed
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <button
-                onClick={() => onSend('sms')}
-                disabled={broadcasting}
-                className="w-full h-12 bg-[#31A24C] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 active:bg-[#28893E]"
-              >
-                {broadcasting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => onSend('sms')} disabled={broadcasting}
+                style={{ height: 48, background: '#31A24C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: broadcasting ? 0.5 : 1 }}>
+                {broadcasting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <MessageSquare size={16} />}
                 {broadcasting ? 'Sending...' : 'Send via Text (SMS)'}
               </button>
-              <button
-                onClick={() => onSend('email')}
-                disabled={broadcasting}
-                className="w-full h-12 bg-[#3A3B3C] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-[#4A4B4C]"
-              >
-                <Mail className="w-4 h-4" />
-                Send via Email
+              <button onClick={() => onSend('email')} disabled={broadcasting}
+                style={{ height: 48, background: '#3A3B3C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: broadcasting ? 0.5 : 1 }}>
+                <Mail size={16} /> Send via Email
               </button>
-              <button
-                onClick={() => onSend('both')}
-                disabled={broadcasting}
-                className="w-full h-10 bg-transparent text-[#B0B3B8] rounded-xl font-medium text-xs flex items-center justify-center gap-2 disabled:opacity-50 hover:text-white"
-              >
+              <button onClick={() => onSend('both')} disabled={broadcasting}
+                style={{ height: 40, background: 'transparent', color: '#B0B3B8', borderRadius: 12, fontWeight: 600, fontSize: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 Send Both (SMS + Email)
               </button>
             </div>
