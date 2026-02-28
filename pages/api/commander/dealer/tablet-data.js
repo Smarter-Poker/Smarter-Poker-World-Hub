@@ -80,7 +80,7 @@ export default async function handler(req, res) {
                 // Table doesn't exist — try fallback
                 if (error.message?.includes('schema cache')) {
                     let fallbackQuery = supabase
-                        .from('commander_time_sessions')
+                        .from('commander_table_sessions')
                         .select('*')
                         .eq('table_number', tableNum)
                         .eq('status', 'active')

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     if (table_number && venue_id) {
       // All active sessions at table with their cash totals
       const { data: sessions } = await supabase
-        .from('commander_time_sessions')
+        .from('commander_table_sessions')
         .select('id, player_name, seat_number, started_at')
         .eq('venue_id', venue_id)
         .eq('table_number', parseInt(table_number))

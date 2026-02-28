@@ -59,7 +59,7 @@ async function handleGet(req, res) {
     let playerCounts = {};
     if (gameIds.length > 0) {
       const { data: sessions } = await supabase
-        .from('commander_time_sessions')
+        .from('commander_table_sessions')
         .select('game_id')
         .in('game_id', gameIds)
         .eq('status', 'active');
@@ -128,7 +128,7 @@ async function handlePost(req, res) {
 
     // Get the must-move game's oldest active session (first in line to move)
     const { data: sessions } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .select('id, player_id, player_name, table_number, seat_number, started_at')
       .eq('game_id', must_move_game_id)
       .eq('status', 'active')
@@ -160,7 +160,7 @@ async function handlePost(req, res) {
 
     // Get occupied seats at main table
     const { data: mainSessions } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .select('seat_number')
       .eq('game_id', main_game_id)
       .eq('status', 'active');
@@ -177,7 +177,7 @@ async function handlePost(req, res) {
 
     // Move the player: update their session to main game/table
     const { error: moveError } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .update({
         game_id: main_game_id,
         table_number: mainTable.table_number,

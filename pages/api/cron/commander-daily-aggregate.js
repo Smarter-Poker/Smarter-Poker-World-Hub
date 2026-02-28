@@ -81,7 +81,7 @@ export default async function handler(req, res) {
             .eq('venue_id', venue.id)
             .gte('created_at', dayStart).lt('created_at', dayEnd),
           // Time billing sessions
-          supabase.from('commander_time_sessions')
+          supabase.from('commander_table_sessions')
             .select('id, duration_minutes, amount_charged')
             .eq('venue_id', venue.id)
             .gte('created_at', dayStart).lt('created_at', dayEnd),

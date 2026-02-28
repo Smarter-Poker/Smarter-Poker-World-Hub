@@ -188,14 +188,14 @@ export default async function handler(req, res) {
 
             // 3. End all active time billing sessions for this venue
             const { data: activeSessions } = await supabase
-                .from('commander_time_sessions')
+                .from('commander_table_sessions')
                 .select('id')
                 .eq('venue_id', venue.venue_id)
                 .eq('status', 'active');
 
             if (activeSessions && activeSessions.length > 0) {
                 await supabase
-                    .from('commander_time_sessions')
+                    .from('commander_table_sessions')
                     .update({
                         status: 'ended',
                         end_time: cst.isoNow,

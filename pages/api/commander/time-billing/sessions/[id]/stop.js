@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     const { id } = req.query;
 
     const { data: session } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .select('*')
       .eq('id', id)
       .single();
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     const totalCharge = (halfHours / 2) * session.rate_per_hour;
 
     const { data: updated, error } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .update({
         status: 'completed',
         ended_at: endedAt.toISOString(),

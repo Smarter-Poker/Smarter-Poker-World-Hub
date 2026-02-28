@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'Valid amount required' });
 
     const { data: session } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .select('amount_paid')
       .eq('id', id)
       .single();
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const newTotal = (session.amount_paid || 0) + parseFloat(amount);
 
     const { data: updated, error } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .update({ amount_paid: Math.round(newTotal * 100) / 100 })
       .eq('id', id)
       .select()

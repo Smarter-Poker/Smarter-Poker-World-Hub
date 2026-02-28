@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     if (session_id) {
       // Full session summary receipt (cash-out receipt with all transactions)
       const { data: session } = await supabase
-        .from('commander_time_sessions')
+        .from('commander_table_sessions')
         .select('*')
         .eq('id', session_id)
         .single();

@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
     // 1. Time billing revenue
     const { data: timeSessions } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .select('amount_charged, duration_minutes, created_at, status')
       .eq('venue_id', venue_id)
       .gte('created_at', start)

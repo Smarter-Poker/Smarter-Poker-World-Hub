@@ -65,7 +65,7 @@ async function handleGet(req, res, staff) {
 
   // Get active session counts per table
   const { data: sessions } = await supabase
-    .from('commander_time_sessions')
+    .from('commander_table_sessions')
     .select('table_number')
     .eq('venue_id', staff.venue_id)
     .eq('status', 'active');
@@ -181,7 +181,7 @@ async function handleClose(req, res, staff, user) {
 
   // End all active sessions at this table
   await supabase
-    .from('commander_time_sessions')
+    .from('commander_table_sessions')
     .update({ status: 'ended', ended_at: new Date().toISOString() })
     .eq('venue_id', staff.venue_id)
     .eq('table_number', table.table_number)

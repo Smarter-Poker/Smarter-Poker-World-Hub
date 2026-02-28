@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
     // Get all time sessions in range per table
     const { data: sessions } = await supabase
-      .from('commander_time_sessions')
+      .from('commander_table_sessions')
       .select('table_number, started_at, ended_at, duration_minutes, status')
       .eq('venue_id', venue_id)
       .gte('created_at', start)

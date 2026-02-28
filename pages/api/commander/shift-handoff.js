@@ -42,7 +42,7 @@ async function createHandoff(req, res) {
       supabase.from('commander_tables').select('id, table_number, table_name, status, current_game_type, current_stakes, max_seats').eq('venue_id', venue_id).eq('status', 'active'),
       supabase.from('commander_waitlist').select('id').eq('venue_id', venue_id).eq('status', 'waiting'),
       supabase.from('commander_incidents').select('id').eq('venue_id', venue_id).eq('status', 'open'),
-      supabase.from('commander_time_sessions').select('id, table_number, player_name, seat_number').eq('venue_id', venue_id).eq('status', 'active')
+      supabase.from('commander_table_sessions').select('id, table_number, player_name, seat_number').eq('venue_id', venue_id).eq('status', 'active')
     ]);
 
     const tables = tablesRes.data || [];

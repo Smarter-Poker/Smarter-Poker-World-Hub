@@ -20,7 +20,7 @@ const STATUS_COLORS = {
   active: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]' },
   completed: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]' },
   upcoming: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]' },
-  qualifying: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]' },
+  qualifying: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]' },
   closed: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]' },
   running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]' },
   cancelled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]' },
@@ -358,7 +358,7 @@ export default function LeaguesAndFreerollsManagement() {
             <button
               onClick={() => setActiveTab('freerolls')}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'freerolls'
-                ? 'bg-[#F59E0B] text-black shadow-lg shadow-[#F59E0B]/20'
+                ? 'bg-[#1877F2] text-white shadow-lg shadow-[#1877F2]/20'
                 : 'text-[#64748B] hover:text-white hover:bg-[#132240]'
                 }`}
             >
@@ -498,8 +498,8 @@ export default function LeaguesAndFreerollsManagement() {
                                 <p className="text-xs text-[#64748B] font-semibold uppercase tracking-wider mb-2">Standings</p>
                                 <div className="space-y-1">
                                   {leagueStandings.slice(0, 10).map((s, i) => (
-                                    <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${i < 3 ? 'bg-[#F59E0B]/5 border border-[#F59E0B]/20' : 'bg-[#0D192E]'}`}>
-                                      <span className={`font-bold text-base min-w-[24px] ${i === 0 ? 'text-[#F59E0B]' : i === 1 ? 'text-[#94A3B8]' : i === 2 ? 'text-[#CD7F32]' : 'text-[#64748B]'}`}>
+                                    <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${i < 3 ? 'bg-[#1877F2]/5 border border-[#1877F2]/20' : 'bg-[#0D192E]'}`}>
+                                      <span className={`font-bold text-base min-w-[24px] ${i === 0 ? 'text-[#1877F2]' : i === 1 ? 'text-[#94A3B8]' : i === 2 ? 'text-[#CD7F32]' : 'text-[#64748B]'}`}>
                                         {i + 1}
                                       </span>
                                       <span className="flex-1 font-medium text-white">{s.player_name || s.display_name || 'Player'}</span>
@@ -531,8 +531,8 @@ export default function LeaguesAndFreerollsManagement() {
               {/* Stats Row — clickable filters */}
               <div className="grid grid-cols-3 gap-3">
                 <button onClick={() => setFreerollFilter(freerollFilter === 'active' ? null : 'active')}
-                  className={`cmd-panel p-3 text-center transition-all cursor-pointer hover:bg-[#132240] ${freerollFilter === 'active' ? 'ring-2 ring-[#F59E0B] bg-[#F59E0B]/5' : ''}`}>
-                  <Gift className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
+                  className={`cmd-panel p-3 text-center transition-all cursor-pointer hover:bg-[#132240] ${freerollFilter === 'active' ? 'ring-2 ring-[#1877F2] bg-[#1877F2]/5' : ''}`}>
+                  <Gift className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
                   <p className="text-2xl font-bold text-white">{freerolls.filter(f => ['qualifying', 'running'].includes(f.status)).length}</p>
                   <p className="text-[10px] text-[#64748B] font-semibold uppercase">Active</p>
                 </button>
@@ -561,34 +561,34 @@ export default function LeaguesAndFreerollsManagement() {
               {/* Create button */}
               <div className="flex justify-end">
                 <button onClick={() => setShowCreateFreeroll(!showCreateFreeroll)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] text-black font-semibold rounded-lg hover:bg-[#E8A317] transition-colors">
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1565D0] transition-colors">
                   <Plus className="w-4 h-4" /> New Free Roll
                 </button>
               </div>
 
               {/* Create Freeroll Form */}
               {showCreateFreeroll && (
-                <div className="cmd-panel p-4 border-[#F59E0B]/30 space-y-3">
+                <div className="cmd-panel p-4 border-[#1877F2]/30 space-y-3">
                   <h2 className="font-semibold text-white">Create New Free Roll</h2>
 
                   <input value={freerollForm.name} onChange={e => setFreerollForm({ ...freerollForm, name: e.target.value })}
                     placeholder="Free Roll Name *"
-                    className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                    className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
 
                   <textarea value={freerollForm.description} onChange={e => setFreerollForm({ ...freerollForm, description: e.target.value })}
                     placeholder="Description (optional)" rows={2}
-                    className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none resize-vertical font-[inherit]" />
+                    className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none resize-vertical font-[inherit]" />
 
                   {/* Qualification Rules */}
                   <div className="p-3 bg-[#0D192E] rounded-lg border border-[#1E3A5F] space-y-3">
-                    <p className="text-xs text-[#F59E0B] font-semibold uppercase tracking-wider">Qualification Rules</p>
+                    <p className="text-xs text-[#1877F2] font-semibold uppercase tracking-wider">Qualification Rules</p>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs text-[#64748B] font-semibold block mb-1">Qualification Type</label>
                         <select value={freerollForm.qualification_type}
                           onChange={e => setFreerollForm({ ...freerollForm, qualification_type: e.target.value })}
-                          className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white focus:border-[#F59E0B] focus:outline-none">
+                          className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white focus:border-[#1877F2] focus:outline-none">
                           {QUAL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>
                       </div>
@@ -596,7 +596,7 @@ export default function LeaguesAndFreerollsManagement() {
                         <label className="text-xs text-[#64748B] font-semibold block mb-1">Period</label>
                         <select value={freerollForm.qualification_period}
                           onChange={e => setFreerollForm({ ...freerollForm, qualification_period: e.target.value })}
-                          className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white focus:border-[#F59E0B] focus:outline-none">
+                          className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white focus:border-[#1877F2] focus:outline-none">
                           {QUAL_PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                         </select>
                       </div>
@@ -612,14 +612,14 @@ export default function LeaguesAndFreerollsManagement() {
                           <input type="number" value={freerollForm.qualification_threshold}
                             onChange={e => setFreerollForm({ ...freerollForm, qualification_threshold: e.target.value })}
                             placeholder={freerollForm.qualification_type === 'cash_hours' ? 'e.g. 20' : 'e.g. 100'}
-                            className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                            className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                         </div>
                         <div>
                           <label className="text-xs text-[#64748B] font-semibold block mb-1">Min Stakes</label>
                           <input value={freerollForm.qualification_min_stakes}
                             onChange={e => setFreerollForm({ ...freerollForm, qualification_min_stakes: e.target.value })}
                             placeholder="e.g. 1/3"
-                            className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                            className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                         </div>
                       </div>
                     )}
@@ -629,7 +629,7 @@ export default function LeaguesAndFreerollsManagement() {
                         onChange={e => setFreerollForm({ ...freerollForm, qualification_rules_text: e.target.value })}
                         placeholder="Describe custom qualification rules..."
                         rows={2}
-                        className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none resize-vertical font-[inherit]" />
+                        className="w-full px-3 py-2.5 bg-[#0A1628] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none resize-vertical font-[inherit]" />
                     )}
                   </div>
 
@@ -639,14 +639,14 @@ export default function LeaguesAndFreerollsManagement() {
                       <label className="text-xs text-[#64748B] font-semibold block mb-1">Event Date</label>
                       <input type="datetime-local" value={freerollForm.scheduled_date}
                         onChange={e => setFreerollForm({ ...freerollForm, scheduled_date: e.target.value })}
-                        className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white focus:border-[#F59E0B] focus:outline-none" />
+                        className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white focus:border-[#1877F2] focus:outline-none" />
                     </div>
                     <div>
                       <label className="text-xs text-[#64748B] font-semibold block mb-1">Prize Pool $</label>
                       <input type="number" value={freerollForm.prize_pool}
                         onChange={e => setFreerollForm({ ...freerollForm, prize_pool: e.target.value })}
                         placeholder="500"
-                        className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                        className="w-full px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                     </div>
                   </div>
 
@@ -654,11 +654,11 @@ export default function LeaguesAndFreerollsManagement() {
                     <input value={freerollForm.prize_description}
                       onChange={e => setFreerollForm({ ...freerollForm, prize_description: e.target.value })}
                       placeholder="Prize description (optional)"
-                      className="px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                      className="px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                     <input type="number" value={freerollForm.max_qualifiers}
                       onChange={e => setFreerollForm({ ...freerollForm, max_qualifiers: e.target.value })}
                       placeholder="Max qualifiers"
-                      className="px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                      className="px-3 py-2.5 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                   </div>
 
                   {/* Actions */}
@@ -668,7 +668,7 @@ export default function LeaguesAndFreerollsManagement() {
                       Cancel
                     </button>
                     <button onClick={handleCreateFreeroll} disabled={freerollSubmitting}
-                      className="flex-[2] py-2.5 bg-[#F59E0B] text-black rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-[#E8A317] transition-colors">
+                      className="flex-[2] py-2.5 bg-[#1877F2] text-white rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-[#1565D0] transition-colors">
                       {freerollSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Create Free Roll
                     </button>
                   </div>
@@ -678,7 +678,7 @@ export default function LeaguesAndFreerollsManagement() {
               {/* Freerolls List */}
               {freerollsLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#F59E0B]" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[#1877F2]" />
                 </div>
               ) : freerolls.length === 0 ? (
                 <div className="cmd-panel p-8 text-center">
@@ -713,8 +713,8 @@ export default function LeaguesAndFreerollsManagement() {
                         <div key={fr.id} className="cmd-panel overflow-hidden">
                           <button onClick={() => handleFreerollExpand(fr.id)}
                             className="w-full p-4 flex items-center gap-3 text-left hover:bg-[#132240] transition-colors">
-                            <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center flex-shrink-0">
-                              <Gift className="w-5 h-5 text-[#F59E0B]" />
+                            <div className="w-10 h-10 rounded-xl bg-[#1877F2]/10 flex items-center justify-center flex-shrink-0">
+                              <Gift className="w-5 h-5 text-[#1877F2]" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-white truncate">{fr.name}</p>
@@ -738,7 +738,7 @@ export default function LeaguesAndFreerollsManagement() {
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
                                 <div className="bg-[#0D192E] rounded-lg p-3 text-center">
                                   <p className="text-[10px] text-[#64748B] font-semibold uppercase">Type</p>
-                                  <p className="text-xs font-bold text-[#F59E0B]">{qualLabel}</p>
+                                  <p className="text-xs font-bold text-[#1877F2]">{qualLabel}</p>
                                 </div>
                                 <div className="bg-[#0D192E] rounded-lg p-3 text-center">
                                   <p className="text-[10px] text-[#64748B] font-semibold uppercase">Threshold</p>
@@ -784,7 +784,7 @@ export default function LeaguesAndFreerollsManagement() {
                                       </button>
                                     )}
                                     <button onClick={() => setShowAddPlayer(showAddPlayer === fr.id ? null : fr.id)}
-                                      className="flex items-center gap-1 px-3 py-1.5 bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-semibold rounded-lg hover:bg-[#F59E0B]/20 transition-colors">
+                                      className="flex items-center gap-1 px-3 py-1.5 bg-[#1877F2]/10 text-[#1877F2] text-xs font-semibold rounded-lg hover:bg-[#1877F2]/20 transition-colors">
                                       <UserPlus className="w-3.5 h-3.5" /> Add Player
                                     </button>
                                   </div>
@@ -792,36 +792,36 @@ export default function LeaguesAndFreerollsManagement() {
 
                                 {/* Add Player Form */}
                                 {showAddPlayer === fr.id && (
-                                  <div className="mb-3 p-3 bg-[#0A1628] rounded-lg border border-[#F59E0B]/20 space-y-2">
+                                  <div className="mb-3 p-3 bg-[#0A1628] rounded-lg border border-[#1877F2]/20 space-y-2">
                                     <input value={addPlayerForm.player_name}
                                       onChange={e => setAddPlayerForm({ ...addPlayerForm, player_name: e.target.value })}
                                       placeholder="Player Name *"
-                                      className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                      className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                                     <div className="grid grid-cols-2 gap-2">
                                       {(fr.qualification_type === 'cash_hours' || fr.qualification_type === 'custom') && (
                                         <input type="number" step="0.5" value={addPlayerForm.hours_logged}
                                           onChange={e => setAddPlayerForm({ ...addPlayerForm, hours_logged: e.target.value })}
                                           placeholder="Hours logged"
-                                          className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                          className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                                       )}
                                       {(fr.qualification_type === 'tournament_points' || fr.qualification_type === 'custom') && (
                                         <input type="number" value={addPlayerForm.points_earned}
                                           onChange={e => setAddPlayerForm({ ...addPlayerForm, points_earned: e.target.value })}
                                           placeholder="Points earned"
-                                          className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                          className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                                       )}
                                     </div>
                                     {fr.qualification_type === 'custom' && (
                                       <input value={addPlayerForm.custom_value}
                                         onChange={e => setAddPlayerForm({ ...addPlayerForm, custom_value: e.target.value })}
                                         placeholder="Custom qualification value"
-                                        className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                        className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#1877F2] focus:outline-none" />
                                     )}
                                     <div className="flex items-center gap-2">
                                       <label className="flex items-center gap-2 text-xs text-[#94A3B8] cursor-pointer">
                                         <input type="checkbox" checked={addPlayerForm.manually_added}
                                           onChange={e => setAddPlayerForm({ ...addPlayerForm, manually_added: e.target.checked })}
-                                          className="w-4 h-4 rounded border-[#1E3A5F] bg-[#0D192E] text-[#F59E0B] focus:ring-[#F59E0B]" />
+                                          className="w-4 h-4 rounded border-[#1E3A5F] bg-[#0D192E] text-[#1877F2] focus:ring-[#1877F2]" />
                                         Auto-qualify (skip threshold)
                                       </label>
                                     </div>
@@ -829,7 +829,7 @@ export default function LeaguesAndFreerollsManagement() {
                                       <button onClick={() => setShowAddPlayer(null)}
                                         className="px-3 py-1.5 text-xs text-[#64748B] border border-[#4A5E78] rounded-lg hover:bg-[#132240]">Cancel</button>
                                       <button onClick={() => handleAddPlayer(fr.id)}
-                                        className="px-4 py-1.5 text-xs bg-[#F59E0B] text-black font-semibold rounded-lg hover:bg-[#E8A317]">Add</button>
+                                        className="px-4 py-1.5 text-xs bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1565D0]">Add</button>
                                     </div>
                                   </div>
                                 )}
@@ -859,7 +859,7 @@ export default function LeaguesAndFreerollsManagement() {
                                           <div className="flex-1 min-w-0">
                                             <p className="font-medium text-white text-sm truncate">
                                               {q.player_name || 'Unknown Player'}
-                                              {q.manually_added && <span className="ml-1 text-[10px] text-[#F59E0B]">(manual)</span>}
+                                              {q.manually_added && <span className="ml-1 text-[10px] text-[#1877F2]">(manual)</span>}
                                             </p>
                                             {fr.qualification_threshold > 0 && (
                                               <div className="mt-1 flex items-center gap-2">
@@ -867,7 +867,7 @@ export default function LeaguesAndFreerollsManagement() {
                                                   <div className="h-full rounded-full transition-all duration-500"
                                                     style={{
                                                       width: `${progress}%`,
-                                                      background: progress >= 100 ? '#31A24C' : '#F59E0B'
+                                                      background: progress >= 100 ? '#31A24C' : '#1877F2'
                                                     }} />
                                                 </div>
                                                 <span className="text-[10px] text-[#64748B] font-mono whitespace-nowrap">
@@ -886,7 +886,7 @@ export default function LeaguesAndFreerollsManagement() {
 
                                           <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${q.is_qualified
                                             ? 'bg-[#31A24C]/10 text-[#31A24C]'
-                                            : 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                                            : 'bg-[#1877F2]/10 text-[#1877F2]'
                                             }`}>
                                             {q.is_qualified ? 'Qualified' : 'In Progress'}
                                           </span>

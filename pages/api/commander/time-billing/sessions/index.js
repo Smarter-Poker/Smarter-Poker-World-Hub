@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const { data: sessions, error } = await supabase
-        .from('commander_time_sessions')
+        .from('commander_table_sessions')
         .select('*')
         .eq('venue_id', staff.venue_id)
         .order('started_at', { ascending: false })
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       if (!player_name) return res.status(400).json({ success: false, error: 'Player name required' });
 
       const { data: session, error } = await supabase
-        .from('commander_time_sessions')
+        .from('commander_table_sessions')
         .insert({
           venue_id: staff.venue_id,
           player_name,
