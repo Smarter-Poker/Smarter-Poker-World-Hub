@@ -121,7 +121,7 @@ export default function FloorCalls() {
   // Polling + clock
   useEffect(() => {
     fetchCalls();
-    const poll = setInterval(fetchCalls, 10000);
+    const poll = setInterval(fetchCalls, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);

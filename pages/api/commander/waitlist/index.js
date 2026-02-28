@@ -72,7 +72,7 @@ export default async function handler(req, res) {
       player_phone,
       signup_method = 'app'
     } = req.body;
-    const game_type = (rawGameType || '').toUpperCase();
+    const game_type = (rawGameType || '').toLowerCase();
 
     // Validation
     if (!venue_id || !game_type || !stakes) {

@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!VALID_GAME_TYPES.includes(game_type)) {
+    if (!VALID_GAME_TYPES.includes(game_type.toLowerCase())) {
       return res.status(400).json({
         success: false,
         error: {

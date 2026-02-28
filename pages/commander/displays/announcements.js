@@ -64,7 +64,7 @@ export default function AnnouncementsDisplay() {
 
   useEffect(() => {
     fetchData();
-    const poll = setInterval(fetchData, 5000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);

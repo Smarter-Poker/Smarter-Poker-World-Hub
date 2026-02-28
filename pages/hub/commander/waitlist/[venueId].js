@@ -4,10 +4,11 @@
  * Shows the SAME column-based layout as the Commander desk view
  * with per-game "Join List" buttons for online sign-up.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Clock, Users, MapPin, Loader2, Zap, ChevronDown, ChevronUp, X, AlertTriangle, Globe, CheckCircle } from 'lucide-react';
+import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -36,10 +37,13 @@ export default function PlayerWaitlistPage() {
   useEffect(() => {
     if (venueId) {
       fetchData();
-      const interval = setInterval(fetchData, 15000);
+      const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
       return () => clearInterval(interval);
     }
   }, [venueId]);
+
+  // Commander Data Bus — instant sync when waitlist/games change
+  useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });
 
   function getAuthToken() {
     // Try direct key first
@@ -58,7 +62,7 @@ export default function PlayerWaitlistPage() {
     }
   }
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       const [publicRes, waitlistRes] = await Promise.all([
         fetch(`/api/public/venue/${venueId}`),
@@ -129,7 +133,7 @@ export default function PlayerWaitlistPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [venueId]);
 
   // Join a single game
   async function handleJoinGame(gameType, stakes) {

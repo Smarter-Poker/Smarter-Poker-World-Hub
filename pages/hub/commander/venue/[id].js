@@ -3,7 +3,7 @@
  * Reference: SCOPE_LOCK.md - Phase 1 UI Pages
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ import {
   Plus,
   RefreshCw
 } from 'lucide-react';
+import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 
 export default function VenueDetail() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function VenueDetail() {
   const [message, setMessage] = useState(null);
 
   // Fetch venue data
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     if (!id) return;
 
     try {
@@ -62,7 +63,10 @@ export default function VenueDetail() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  // Commander Data Bus — instant sync when games/waitlist change
+  useCommanderSync(id || '', fetchData, { entities: ['games', 'tables', 'waitlist'] });
 
   useEffect(() => {
     fetchData();
@@ -140,20 +144,19 @@ export default function VenueDetail() {
   return (
     <>
       <SEOHead
-                title="Venue Details"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Venue Details"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Notification Banner */}
         {message && (
           <div
-            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
-              message.type === 'success'
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${message.type === 'success'
                 ? 'bg-[#0F172A] border-b border-[#10B981]/40 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                 : 'bg-[#0F172A] border-b border-[#EF4444]/40 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-            }`}
+              }`}
           >
             {message.text}
           </div>
@@ -248,11 +251,10 @@ export default function VenueDetail() {
                             <span className="font-semibold text-white">
                               {game.game_type?.toUpperCase()} {game.stakes}
                             </span>
-                            <span className={`cmd-badge ${
-                              game.status === 'running'
+                            <span className={`cmd-badge ${game.status === 'running'
                                 ? 'cmd-badge-live'
                                 : 'cmd-badge-warning'
-                            }`}>
+                              }`}>
                               {game.status === 'running' ? 'Running' : 'Waiting'}
                             </span>
                           </div>

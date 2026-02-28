@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
@@ -148,6 +149,7 @@ export default function TDControlCenter() {
       const json = await res.json();
       if (json.success) {
         await fetchFloor();
+        broadcastChange('tournaments');
       }
     } catch (err) {
       console.error('Clock action failed:', err);
@@ -185,6 +187,7 @@ export default function TDControlCenter() {
         body: JSON.stringify({ active: !isActive })
       });
       await fetchFloor();
+      broadcastChange('tournaments');
     } catch (err) {
       console.error('H4H toggle failed:', err);
     }

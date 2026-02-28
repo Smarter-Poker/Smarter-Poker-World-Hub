@@ -52,7 +52,8 @@ export default function TournamentDirector() {
     }, [router, fetchTournaments]);
 
     // Commander Data Bus — sync tournaments across tabs
-    useCommanderSync(getVenueId(), fetchTournaments, { entities: ['tournaments'] });
+    const [syncVenueId] = useState(() => getVenueId());
+    useCommanderSync(syncVenueId, fetchTournaments, { entities: ['tournaments'] });
 
     const currentStatuses = ['running', 'break', 'final_table', 'registration'];
     const currentTournaments = tournaments.filter(t => currentStatuses.includes(t.status));

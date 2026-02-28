@@ -335,7 +335,7 @@ export default function PlayerTableDisplay() {
   useEffect(() => {
     if (!tableNumber) return;
     fetchData();
-    const poll = setInterval(fetchData, 3000);
+    const poll = setInterval(fetchData, 15000); // fallback — real-time sync handles instant updates
     return () => clearInterval(poll);
   }, [tableNumber, fetchData]);
 

@@ -105,7 +105,7 @@ export default function OpenGame() {
       const venueId = getVenueId();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const gameTypeLower = selectedGame.type.toLowerCase();
+      const gameTypeLower = selectedGame.type.toUpperCase();
 
       // 1. Create the game record in commander_games
       const gameRes = await fetch('/api/commander/games', {

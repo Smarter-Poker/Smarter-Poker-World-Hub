@@ -55,7 +55,7 @@ export default function PlayerCheckIn() {
   useEffect(() => {
     if (!code) return;
     fetchMember();
-    const poll = setInterval(fetchMember, 10000);
+    const poll = setInterval(fetchMember, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(poll);
   }, [code]);
 

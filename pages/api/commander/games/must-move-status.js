@@ -87,7 +87,7 @@ async function handleGet(req, res) {
       table_number: tablesMap[g.table_id]?.table_number || null,
       table_name: tablesMap[g.table_id]?.table_name || null,
       max_seats: tablesMap[g.table_id]?.max_seats || g.max_players || 9,
-      player_count: g.current_players || 0,
+      player_count: (seatsMap[g.id] || []).length,
       seats: seatsMap[g.id] || [],
     }));
 

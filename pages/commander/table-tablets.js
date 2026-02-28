@@ -168,7 +168,7 @@ export default function TableTabletsPage() {
     // Auto-refresh every 10s
     useEffect(() => {
         if (!venueId) return;
-        const interval = setInterval(fetchAll, 10000);
+        const interval = setInterval(fetchAll, 30000); // fallback — real-time sync handles instant updates
         return () => clearInterval(interval);
     }, [venueId, fetchAll]);
 

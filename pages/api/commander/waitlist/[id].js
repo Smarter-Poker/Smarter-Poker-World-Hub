@@ -12,12 +12,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Guard: write methods (POST/PUT/PATCH/DELETE) require staff auth; GET passes through
-  const staff = await guardWriteStaff(req, res); if (!staff) return;
-
   const { id } = req.query;
 
-  // ── GET: Return a single waitlist entry ──────────────────────────
+  // ── GET: Return a single waitlist entry (public) ──────────────
   if (req.method === 'GET') {
     try {
       const { data, error } = await supabase
@@ -37,10 +34,10 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── DELETE: Remove player from waitlist ────────────────────────────
+  // ── DELETE: Remove player from waitlist (staff OR entry owner) ─
   if (req.method === 'DELETE') {
     try {
-      // Fetch entry
+      // Fetch entry first
       const { data: entry, error: fetchErr } = await supabase
         .from('commander_waitlist')
         .select('*')
@@ -49,6 +46,49 @@ export default async function handler(req, res) {
 
       if (fetchErr || !entry) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' } });
+      }
+
+      // Auth: Allow staff OR entry owner (player with matching player_id)
+      let authorized = false;
+
+      // Check staff auth first
+      const staffSession = req.headers['x-staff-session'];
+      if (staffSession) {
+        try {
+          const sessionData = JSON.parse(staffSession);
+          if (sessionData.id) {
+            const { data: staffCheck } = await supabase
+              .from('commander_staff')
+              .select('id')
+              .eq('id', sessionData.id)
+              .eq('is_active', true)
+              .single();
+            if (staffCheck) authorized = true;
+          }
+        } catch { /* invalid session */ }
+      }
+
+      // Check player ownership via Bearer token
+      if (!authorized) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.replace('Bearer ', '').trim();
+          let accessToken = token;
+          try { const p = JSON.parse(token); if (p.access_token) accessToken = p.access_token; } catch { /* raw JWT */ }
+
+          const supabaseAnon = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          );
+          const { data: { user } } = await supabaseAnon.auth.getUser(accessToken);
+          if (user && entry.player_id && user.id === entry.player_id) {
+            authorized = true;
+          }
+        }
+      }
+
+      if (!authorized) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Not authorized to remove this entry' } });
       }
 
       // Log to history (non-blocking)
@@ -76,6 +116,9 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
     }
   }
+
+  // ── PATCH and other write methods: require staff auth ──────────
+  const staff = await guardWriteStaff(req, res); if (!staff) return;
 
   // ── PATCH: Update waitlist entry fields (e.g. check-in) ─────────
   if (req.method === 'PATCH') {
@@ -129,7 +172,7 @@ export default async function handler(req, res) {
       const updates = {};
       for (const key of allowedFields) {
         if (req.body[key] !== undefined) {
-          updates[key] = key === 'game_type' ? (req.body[key] || '').toUpperCase() : req.body[key];
+          updates[key] = key === 'game_type' ? (req.body[key] || '').toLowerCase() : req.body[key];
         }
       }
 

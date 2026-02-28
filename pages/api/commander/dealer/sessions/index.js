@@ -24,20 +24,26 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { table } = req.query;
+  const { table, venue_id } = req.query;
 
   if (!table) {
     return res.status(400).json({ success: false, error: 'table parameter is required' });
   }
 
   try {
-    const { data: sessions, error } = await supabase
+    let query = supabase
       .from('commander_table_sessions')
       .select('*')
       .eq('table_number', parseInt(table))
       .eq('status', 'active')
       .order('seat_number', { ascending: true });
 
+    // Filter by venue_id if provided (security: prevents cross-venue leakage)
+    if (venue_id) {
+      query = query.eq('venue_id', parseInt(venue_id));
+    }
+
+    const { data: sessions, error } = await query;
     if (error) throw error;
 
     const now = new Date();

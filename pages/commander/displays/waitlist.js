@@ -109,7 +109,7 @@ export default function WaitlistDisplay() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000); // 5s refresh for display
+    const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(interval);
   }, [fetchData]);
 

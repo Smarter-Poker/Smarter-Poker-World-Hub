@@ -141,7 +141,7 @@ export default function DealerTablet() {
     finally { setLoading(false); }
   }, [tableNumber]);
 
-  useEffect(() => { fetchTable(); const i = setInterval(fetchTable, 10000); return () => clearInterval(i); }, [fetchTable]);
+  useEffect(() => { fetchTable(); const i = setInterval(fetchTable, 30000); return () => clearInterval(i); }, [fetchTable]); // fallback — real-time sync handles instant updates
 
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {
