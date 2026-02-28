@@ -2,7 +2,7 @@
    CLUB ARENA — Agent Dashboard | FULLY WIRED
    Facebook Dark Theme | Downline, Cashouts, Chips, Commissions, Clawback
    ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -251,6 +251,7 @@ export default function AgentDashboard() {
         { id: 'transactions', label: 'Transactions', icon: '📋' },
         { id: 'commissions', label: 'Commissions', icon: '💰' },
         { id: 'subagents', label: 'Sub-Agents', icon: '🔗' },
+        { id: 'promo', label: 'Promo Wallet', icon: '🎁' },
     ];
 
     // Get clawback-eligible transactions (within last 10 minutes, type=send, from current user)
@@ -375,6 +376,18 @@ export default function AgentDashboard() {
                             </div>
                         ))}
                     </div>
+                )}
+
+                {activeTab === 'promo' && (
+                    <PromoWalletTab
+                        dashboard={dashboard}
+                        clubId={dashboard?.clubId}
+                        userId={user?.id}
+                        apiCall={apiCall}
+                        showToast={showToast}
+                        players={players}
+                        FB={FB}
+                    />
                 )}
             </div>
 
@@ -822,6 +835,191 @@ function ModalOverlay({ children, onClose }) {
                 border: `1px solid ${FB.border}`, maxWidth: 420, width: '100%',
             }}>
                 {children}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROMO WALLET TAB — Manage promo balance & distribute to players
+// ═══════════════════════════════════════════════════════════════
+
+function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players, FB }) {
+    const [promoBalance, setPromoBalance] = React.useState(0);
+    const [promoTarget, setPromoTarget] = React.useState('');
+    const [promoAmount, setPromoAmount] = React.useState('');
+    const [promoSending, setPromoSending] = React.useState(false);
+    const [promoHistory, setPromoHistory] = React.useState([]);
+    const [loaded, setLoaded] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!clubId || !userId) return;
+        (async () => {
+            try {
+                const r = await apiCall('/api/club-arena/agent-dashboard', { clubId, userId });
+                setPromoBalance(r?.agent?.promo_balance || 0);
+                setLoaded(true);
+            } catch (e) {
+                console.error('Promo load error:', e);
+                setLoaded(true);
+            }
+        })();
+    }, [clubId, userId]);
+
+    const handleSendPromo = async () => {
+        if (!promoTarget || !promoAmount || parseFloat(promoAmount) <= 0) {
+            showToast('Select a player and amount', 'error');
+            return;
+        }
+        if (parseFloat(promoAmount) > promoBalance) {
+            showToast('Insufficient promo balance', 'error');
+            return;
+        }
+        setPromoSending(true);
+        try {
+            await apiCall('/api/club-arena/distribute-chips', {
+                clubId,
+                targetUserId: promoTarget,
+                amount: parseFloat(promoAmount),
+                type: 'promo',
+                note: 'Agent promo distribution',
+            });
+            showToast(`Sent ${parseFloat(promoAmount).toLocaleString()} promo chips!`, 'success');
+            setPromoBalance(prev => prev - parseFloat(promoAmount));
+            setPromoAmount('');
+            setPromoTarget('');
+        } catch (e) {
+            showToast(e.message || 'Failed to send promo', 'error');
+        } finally {
+            setPromoSending(false);
+        }
+    };
+
+    return (
+        <div>
+            {/* Promo Balance Card */}
+            <div style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+                borderRadius: 16, padding: 24, marginBottom: 16,
+                border: '1px solid rgba(147,51,234,0.3)',
+            }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+                    Your Promo Balance
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 800, color: '#fff' }}>
+                    {promoBalance.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+                    Received from club/union. Distribute to players as bonuses.
+                </div>
+            </div>
+
+            {/* Send Promo to Player */}
+            <div style={{
+                background: FB.cardBg, borderRadius: 12, padding: 16,
+                border: `1px solid ${FB.border}`, marginBottom: 16,
+            }}>
+                <h3 style={{ color: FB.textPrimary, fontSize: 15, fontWeight: 700, marginTop: 0, marginBottom: 12 }}>
+                    🎁 Distribute Promo to Player
+                </h3>
+
+                <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
+                        Select Player
+                    </label>
+                    <select
+                        value={promoTarget}
+                        onChange={e => setPromoTarget(e.target.value)}
+                        style={{
+                            width: '100%', padding: '10px 14px', background: FB.background,
+                            border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary,
+                            fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                        }}
+                    >
+                        <option value="">-- Choose Player --</option>
+                        {(players || []).map(p => (
+                            <option key={p.user_id} value={p.user_id}>
+                                {p.profile?.display_name || p.profile?.username || p.user_id?.slice(0, 8)}
+                                {' '} (Balance: {(p.chip_balance || 0).toLocaleString()})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
+                        Amount
+                    </label>
+                    <input
+                        type="number"
+                        value={promoAmount}
+                        onChange={e => setPromoAmount(e.target.value)}
+                        placeholder="Enter amount..."
+                        min="1"
+                        max={promoBalance}
+                        style={{
+                            width: '100%', padding: '10px 14px', background: FB.background,
+                            border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary,
+                            fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                        }}
+                    />
+                </div>
+
+                {/* Quick amount buttons */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    {[50, 100, 500, 1000].filter(v => v <= promoBalance).map(v => (
+                        <button key={v} onClick={() => setPromoAmount(String(v))} style={{
+                            flex: 1, padding: '6px 0', fontSize: 12, borderRadius: 6, cursor: 'pointer',
+                            background: promoAmount === String(v) ? '#7c3aed' : FB.cardBg,
+                            color: promoAmount === String(v) ? '#fff' : FB.textSecondary,
+                            border: `1px solid ${promoAmount === String(v) ? '#7c3aed' : FB.border}`,
+                        }}>
+                            {v.toLocaleString()}
+                        </button>
+                    ))}
+                </div>
+
+                <button
+                    onClick={handleSendPromo}
+                    disabled={promoSending || !promoTarget || !promoAmount}
+                    style={{
+                        border: 'none', borderRadius: 10, padding: '12px', fontSize: 14,
+                        fontWeight: 700, color: '#fff', cursor: 'pointer', width: '100%',
+                        textAlign: 'center',
+                        background: promoSending || !promoTarget || !promoAmount
+                            ? FB.border : 'linear-gradient(135deg, #7c3aed, #9333ea)',
+                        opacity: promoSending || !promoTarget || !promoAmount ? 0.5 : 1,
+                    }}
+                >
+                    {promoSending ? 'Sending...' : `Send ${promoAmount ? parseInt(promoAmount).toLocaleString() : '0'} Promo Chips`}
+                </button>
+            </div>
+
+            {/* Info */}
+            <div style={{
+                background: FB.cardBg, borderRadius: 12, padding: 16,
+                border: `1px solid ${FB.border}`,
+            }}>
+                <h4 style={{ color: FB.textPrimary, fontSize: 14, fontWeight: 600, marginTop: 0, marginBottom: 8 }}>
+                    How Promo Wallets Work
+                </h4>
+                <div style={{ fontSize: 12, color: FB.textSecondary, lineHeight: 1.6 }}>
+                    <p style={{ margin: '0 0 6px' }}>
+                        Promo chips are bonus funds distributed through the hierarchy:
+                    </p>
+                    <p style={{ margin: '0 0 4px' }}>
+                        <strong style={{ color: FB.textPrimary }}>Union → Club → Agent → Player</strong>
+                    </p>
+                    <p style={{ margin: '0 0 4px' }}>
+                        • Your promo balance is funded by your club or union
+                    </p>
+                    <p style={{ margin: '0 0 4px' }}>
+                        • Players can redeem promo chips into playable chips
+                    </p>
+                    <p style={{ margin: 0 }}>
+                        • Use promos for sign-up bonuses, loyalty rewards, and rakeback
+                    </p>
+                </div>
             </div>
         </div>
     );

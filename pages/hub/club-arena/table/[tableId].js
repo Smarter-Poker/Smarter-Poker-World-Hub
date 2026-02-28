@@ -1,27 +1,22 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CLUB ARENA — Live Poker Table
-   Bridges Club Arena tables to the poker engine via LivePokerTable component
+   CLUB ARENA — Live Poker Table (Multi-Table Support)
+   Supports up to 4 simultaneous tables via MultiTableView
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 
-// Dynamic import to avoid SSR issues with LivePokerTable
-const LivePokerTable = dynamic(
-  () => import('../../../../src/components/poker/LivePokerTable'),
+const MultiTableView = dynamic(
+  () => import('../../../../src/components/poker/MultiTableView'),
   { ssr: false }
 );
 
-// Facebook Dark Theme
 const FB = {
   background: '#18191A',
-  cardBg: '#242526',
-  textPrimary: '#E4E6EB',
   textSecondary: '#B0B3B8',
-  border: '#3E4042',
   primary: '#2374E1',
   danger: '#FA383E',
 };
@@ -29,14 +24,11 @@ const FB = {
 export default function ClubArenaTable() {
   const router = useRouter();
   const { tableId } = router.query;
-
   const [user, setUser] = useState(null);
-  const [tableInfo, setTableInfo] = useState(null);
-  const [engineReady, setEngineReady] = useState(false);
+  const [initialTable, setInitialTable] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
@@ -44,117 +36,59 @@ export default function ClubArenaTable() {
     });
   }, []);
 
-  // Load table info from Club Arena DB + connect to engine
   useEffect(() => {
     if (!tableId || !user) return;
-
-    async function connectTable() {
-      setLoading(true);
-      setError(null);
-
+    (async () => {
+      setLoading(true); setError(null);
       try {
-        // 1. Fetch table info from Club Arena 'tables' DB
-        const { data: tableData, error: fetchErr } = await supabase
-          .from('tables')
-          .select('*, clubs(name, logo_url)')
-          .eq('id', tableId)
-          .single();
+        const { data: td, error: fe } = await supabase
+          .from('tables').select('*, clubs(name, logo_url)').eq('id', tableId).single();
+        if (fe || !td) { setError('Table not found'); setLoading(false); return; }
 
-        if (fetchErr || !tableData) {
-          setError('Table not found');
-          setLoading(false);
-          return;
-        }
-
-        setTableInfo(tableData);
-
-        // 2. Connect engine to this club table
         const res = await fetch('/api/poker/engine/club-connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tableId }),
         });
+        const r = await res.json();
+        if (!r.success) { setError(r.error || 'Engine connect failed'); setLoading(false); return; }
 
-        const result = await res.json();
+        const vl = { nlh:"NLH", plo4:'PLO4', plo5:'PLO5', plo6:'PLO6',
+          plo8:'PLO Hi/Lo', short_deck:'Short Deck', ofc:'OFC' }[td.game_variant] || 'NLH';
 
-        if (!result.success) {
-          setError(result.error || 'Failed to connect to game engine');
-          setLoading(false);
-          return;
-        }
-
-        setEngineReady(true);
-      } catch (err) {
-        console.error('Table connect error:', err);
-        setError('Connection failed');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    connectTable();
+        setInitialTable({
+          tableId: td.id, name: td.name, stakes: `${td.small_blind}/${td.big_blind}`,
+          variant: vl, clubName: td.clubs?.name || '', clubId: td.club_id,
+        });
+      } catch (e) { setError('Connection failed'); }
+      finally { setLoading(false); }
+    })();
   }, [tableId, user]);
 
-  // Loading state
-  if (loading || !user) {
-    return (
-      <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <SEOHead title="Loading Table..." />
-        <div style={{ color: FB.textSecondary, fontSize: 16 }}>
-          Connecting to table...
-        </div>
-      </div>
-    );
-  }
+  const handleExit = useCallback(() => {
+    const cid = initialTable?.clubId;
+    router.push(cid ? `/hub/club-arena/lobby?club=${cid}` : '/hub/club-arena');
+  }, [router, initialTable?.clubId]);
 
-  // Error state
-  if (error) {
-    return (
-      <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <SEOHead title="Table Error" />
-        <div style={{ color: FB.danger, fontSize: 18, fontWeight: 700 }}>
-          {error}
-        </div>
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: FB.primary, color: '#fff', border: 'none',
-            padding: '10px 24px', borderRadius: 8, fontSize: 14, cursor: 'pointer',
-          }}
-        >
-          Go Back
-        </button>
-      </div>
-    );
-  }
+  if (loading || !user) return (
+    <div style={{ background: '#18191A', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <SEOHead title="Loading Table..." />
+      <div style={{ color: FB.textSecondary, fontSize: 16 }}>Connecting to table...</div>
+    </div>
+  );
 
-  // Render LivePokerTable
-  if (engineReady && tableInfo) {
-    const variantLabel = {
-      nlh: "NL Hold'em", plo4: 'PLO4', plo5: 'PLO5', plo6: 'PLO6',
-      plo8: 'PLO Hi/Lo', short_deck: 'Short Deck', ofc: 'OFC',
-    }[tableInfo.game_variant] || tableInfo.game_variant?.toUpperCase() || 'NLH';
+  if (error) return (
+    <div style={{ background:'#18191A', minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
+      <SEOHead title="Table Error" />
+      <div style={{ color: FB.danger, fontSize: 18, fontWeight: 700 }}>{error}</div>
+      <button onClick={() => router.back()} style={{ background: FB.primary, color:'#fff', border:'none', padding:'10px 24px', borderRadius:8, cursor:'pointer' }}>Go Back</button>
+    </div>
+  );
 
-    return (
-      <>
-        <SEOHead
-          title={`${tableInfo.name} | ${variantLabel} ${tableInfo.small_blind}/${tableInfo.big_blind}`}
-          description={`Live poker: ${variantLabel} at ${tableInfo.clubs?.name || 'Club Arena'}`}
-        />
-        <LivePokerTable
-          supabase={supabase}
-          tableId={tableId}
-          userId={user.id}
-          tableName={tableInfo.name}
-          clubName={tableInfo.clubs?.name}
-          onLeave={() => {
-            const clubId = tableInfo.club_id;
-            router.push(clubId ? `/hub/club-arena/lobby?club=${clubId}` : '/hub/club-arena');
-          }}
-        />
-      </>
-    );
-  }
-
+  if (initialTable) return (
+    <>
+      <SEOHead title={`${initialTable.name} | ${initialTable.variant} ${initialTable.stakes}`} />
+      <MultiTableView supabase={supabase} userId={user.id} initialTable={initialTable} onExit={handleExit} />
+    </>
+  );
   return null;
 }

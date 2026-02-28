@@ -158,6 +158,34 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'table_error':
         setError(data.error); setTimeout(() => setError(null), 4000);
         break;
+      case 'bbj_won':
+        // BBJ jackpot was won! Pass to parent for overlay display
+        setResult(prev => ({
+          ...prev,
+          bbj: data,
+        }));
+        break;
+      case 'insurance_offered':
+        // Insurance offer for leading player when all-in
+        setResult(prev => ({ ...prev, insuranceOffer: data }));
+        break;
+      case 'insurance_purchased':
+      case 'insurance_declined':
+      case 'insurance_payout':
+      case 'insurance_expired':
+        setResult(prev => ({ ...prev, insurance: data }));
+        break;
+      case 'run_it_multiple':
+      case 'run_it_twice':
+      case 'run_it_thrice':
+        // Multi-board runout data
+        setResult(prev => ({ ...prev, runItMultiple: data }));
+        requestState();
+        break;
+      case 'emoji_thrown':
+        // Emoji/sticker thrown between players (handled by LivePokerTable)
+        setChatMessages(prev => [...prev.slice(-100), { type: 'emoji', ...data }]);
+        break;
       case 'cards_dealt':
       case 'street_start':
       case 'blinds_posted':
@@ -184,7 +212,11 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'timer_update', 'showdown', 'payout', 'hand_complete',
       'player_seated', 'player_left', 'player_sitting_out',
       'player_sitting_in', 'player_disconnected', 'player_reconnected',
-      'chat_message', 'table_error', 'seat_offered',
+      'chat_message', 'table_error', 'seat_offered', 'bbj_won',
+      'insurance_offered', 'insurance_purchased', 'insurance_declined',
+      'insurance_payout', 'insurance_expired',
+      'run_it_multiple', 'run_it_twice', 'run_it_thrice',
+      'emoji_thrown',
     ];
 
     for (const evt of events) {
@@ -239,6 +271,9 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'request_state': return requestState();
       case 'join_waitlist': return joinWaitlist(payload);
       case 'leave_waitlist': return leaveWaitlist();
+      case 'throw_emoji': return apiPost('action', { tableId, playerId: userId, type: 'throw_emoji', ...payload });
+      case 'buy_insurance': return apiPost('action', { tableId, playerId: userId, type: 'buy_insurance', amount: payload.amount });
+      case 'decline_insurance': return apiPost('action', { tableId, playerId: userId, type: 'decline_insurance' });
       default: console.warn('[useTableConnection] Unknown event:', event);
     }
   }, [sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat, requestState, joinWaitlist, leaveWaitlist]);

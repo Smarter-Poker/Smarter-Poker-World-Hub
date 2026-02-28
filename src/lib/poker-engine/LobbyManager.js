@@ -388,6 +388,137 @@ class LobbyManager {
       history._currentHand.pots = data.pots || [];
       history._currentHand.rake = data.rake || 0;
     });
+
+    // ── BBJ TRIGGERED — Award jackpot when qualifying hand detected ──
+    table.on('bbj_triggered', async (bbjData) => {
+      const clubId = config.clubId;
+      if (!clubId || !bbjData?.triggered) return;
+
+      try {
+        const sb = ChipBridge.getSupabase();
+        const { getRakeConfig } = require('./RakeConfig');
+        const tierConfig = getRakeConfig(config.bigBlind, config.variant || 'nlh');
+
+        // Look up club's union (if any) for BBJ pool
+        const { data: unionClub } = await sb
+          .from('union_clubs')
+          .select('union_id')
+          .eq('club_id', clubId)
+          .eq('status', 'active')
+          .single();
+
+        if (!unionClub?.union_id) {
+          console.log('[BBJ] Club not in union — standalone clubs handle BBJ manually');
+          return;
+        }
+
+        console.log(`[BBJ] 🎰 BAD BEAT JACKPOT TRIGGERED! Hand #${bbjData.handNumber}`);
+        console.log(`[BBJ]   Loser: ${bbjData.loserId} (${bbjData.loserHand})`);
+        console.log(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
+
+        // Call award_bbj RPC
+        const { data: awardResult, error: awardErr } = await sb.rpc('award_bbj', {
+          p_union_id: unionClub.union_id,
+          p_club_id: clubId,
+          p_loser_id: bbjData.loserId,
+          p_winner_id: bbjData.winnerId,
+          p_table_share_ids: bbjData.tableSharePlayerIds || [],
+          p_payout_total_pct: tierConfig.bbjPayoutTotal,
+          p_payout_loser_pct: tierConfig.bbjPayoutLoser,
+          p_payout_winner_pct: tierConfig.bbjPayoutWinner,
+          p_payout_table_pct: tierConfig.bbjPayoutTable,
+          p_hand_description: `${bbjData.loserHand} loses to ${bbjData.winnerHand}`,
+        });
+
+        if (awardErr) {
+          console.error('[BBJ] Award error:', awardErr.message);
+        } else if (awardResult?.success) {
+          console.log(`[BBJ] ✅ Jackpot paid! Total: ${awardResult.total_payout}`);
+
+          // Broadcast BBJ win to the table channel
+          if (sync?.channel) {
+            sync.channel.send({
+              type: 'broadcast',
+              event: 'bbj_won',
+              payload: {
+                loserId: bbjData.loserId,
+                loserHand: bbjData.loserHand,
+                winnerId: bbjData.winnerId,
+                winnerHand: bbjData.winnerHand,
+                loserPayout: awardResult.loser_payout,
+                winnerPayout: awardResult.winner_payout,
+                tableSharePayout: awardResult.table_share_payout,
+                totalPayout: awardResult.total_payout,
+                handNumber: bbjData.handNumber,
+              },
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[BBJ] Trigger error:', err.message);
+      }
+    });
+
+    // ── INSURANCE EVENTS ────────────────────────────────────────
+    table.on('insurance_offered', (data) => {
+      if (sync?.channel) {
+        // Send insurance offer only to the leading player
+        sync.channel.send({
+          type: 'broadcast',
+          event: `insurance_offered:${data.leaderId}`,
+          payload: data,
+        });
+        // Also broadcast general event for spectators
+        sync.channel.send({
+          type: 'broadcast',
+          event: 'insurance_offered',
+          payload: data,
+        });
+      }
+    });
+
+    table.on('insurance_purchased', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'insurance_purchased', payload: data });
+      }
+    });
+
+    table.on('insurance_declined', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'insurance_declined', payload: data });
+      }
+    });
+
+    table.on('insurance_payout', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'insurance_payout', payload: data });
+      }
+    });
+
+    table.on('insurance_expired', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'insurance_expired', payload: data });
+      }
+    });
+
+    // ── RUN IT MULTIPLE (2x / 3x boards) ────────────────────────
+    table.on('run_it_multiple', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'run_it_multiple', payload: data });
+      }
+    });
+
+    table.on('run_it_twice', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'run_it_twice', payload: data });
+      }
+    });
+
+    table.on('run_it_thrice', (data) => {
+      if (sync?.channel) {
+        sync.channel.send({ type: 'broadcast', event: 'run_it_thrice', payload: data });
+      }
+    });
     
     table.on('hand_complete', async (data) => {
       const finalStacks = table.seats

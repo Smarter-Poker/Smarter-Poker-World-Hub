@@ -11,6 +11,7 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
 
 const getAuthToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -51,34 +52,39 @@ export default function ClubLobby() {
     const [activeFilter, setActiveFilter] = useState('ALL');
     const [chipBalance, setChipBalance] = useState(0);
     const [membership, setMembership] = useState(null);
-    const [showCreateTable, setShowCreateTable] = useState(false);
+    const [showCreateGame, setShowCreateGame] = useState(null); // null | { tab?, variant? }
     const [creatingTable, setCreatingTable] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [newDescription, setNewDescription] = useState('');
     const [announcements, setAnnouncements] = useState([]);
-    const [newTable, setNewTable] = useState({
-        name: '',
-        variant: 'nlh',
-        maxPlayers: '9',
-        smallBlind: '1',
-        bigBlind: '2',
-        rakePercent: '5',
-        rakeCap: '',
-        bbjPercent: '0',
-        straddle: true,
-        runItTwice: true,
-        bombPots: false,
-        autoMuck: true
-    });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState('players'); // players | stakes | name
 
-    // Filter tables by game type
+    // Filter tables by game type, search, and sort
     const filteredTables = tables.filter(table => {
-        if (activeFilter === 'ALL') return true;
-        if (activeFilter === 'nlh') return table.game_variant === 'nlh' || table.game_variant === 'short_deck';
-        if (activeFilter === 'plo') return table.game_variant?.startsWith('plo');
-        if (activeFilter === 'tournament') return table.table_type === 'tournament';
-        if (activeFilter === 'sng') return table.table_type === 'sng';
+        // Type filter
+        if (activeFilter !== 'ALL') {
+            if (activeFilter === 'nlh' && table.game_variant !== 'nlh' && table.game_variant !== 'short_deck') return false;
+            if (activeFilter === 'plo' && !table.game_variant?.startsWith('plo')) return false;
+            if (activeFilter === 'tournament' && table.table_type !== 'tournament') return false;
+            if (activeFilter === 'sng' && table.table_type !== 'sng') return false;
+        }
+        // Search filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const name = (table.name || '').toLowerCase();
+            const stakes = (table.stakes || '').toLowerCase();
+            const variant = (table.game_variant || '').toLowerCase();
+            if (!name.includes(q) && !stakes.includes(q) && !variant.includes(q)) return false;
+        }
         return true;
+    }).sort((a, b) => {
+        switch (sortBy) {
+            case 'players': return (b.current_players || 0) - (a.current_players || 0);
+            case 'stakes': return (b.big_blind || 0) - (a.big_blind || 0);
+            case 'name': return (a.name || '').localeCompare(b.name || '');
+            default: return 0;
+        }
     });
 
     // Save description
@@ -97,56 +103,16 @@ export default function ClubLobby() {
         }
     }
 
-    // Handler for creating a new table
-    async function handleCreateTable() {
-        if (!club) return;
-        if (membership?.role !== 'owner' && membership?.role !== 'admin') {
-            alert('Only admins and owners can create tables.');
-            return;
-        }
-        setCreatingTable(true);
-        try {
-            const result = await apiCall('/api/club-arena/create-table', {
-                clubId: club.id,
-                name: newTable.name || `New ${newTable.variant.toUpperCase()} Table`,
-                gameType: 'cash',
-                variant: newTable.variant,
-                smallBlind: parseFloat(newTable.smallBlind),
-                bigBlind: parseFloat(newTable.bigBlind),
-                maxPlayers: parseInt(newTable.maxPlayers),
-                settings: {
-                    rakePercent: parseFloat(newTable.rakePercent) || 5,
-                    rakeCap: parseFloat(newTable.rakeCap) || (parseFloat(newTable.bigBlind) * 3),
-                    bbjPercent: parseFloat(newTable.bbjPercent) || 0,
-                    straddle: newTable.straddle,
-                    runItTwice: newTable.runItTwice,
-                    bombPots: newTable.bombPots,
-                    autoMuck: newTable.autoMuck,
-                },
-            });
-
-            if (result.table) {
-                setTables(prev => [...prev, result.table]);
+    // Handler: game/table/tournament created callback
+    function handleGameCreated(result) {
+        if (result?.id || result?.table) {
+            const table = result?.table || result;
+            if (table.game_type === 'cash' || (!table.type && !table.game_type?.includes('tournament'))) {
+                setTables(prev => [...prev, table]);
             }
-            setShowCreateTable(false);
-            setNewTable({
-                name: '',
-                variant: 'nlh',
-                maxPlayers: '9',
-                smallBlind: '1',
-                bigBlind: '2',
-                straddle: true,
-                runItTwice: true,
-                bombPots: false,
-                autoMuck: true
-            });
-            alert('Table created successfully!');
-        } catch (err) {
-            console.error('Failed to create table:', err);
-            alert('Failed to create table: ' + err.message);
-        } finally {
-            setCreatingTable(false);
         }
+        setShowCreateGame(null);
+        alert('Created successfully!');
     }
 
     useEffect(() => {
@@ -338,12 +304,67 @@ export default function ClubLobby() {
                                 ))}
                             </div>
 
+                            {/* Search + Sort + Tournament Link */}
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Search tables..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    style={{
+                                        flex: 1, minWidth: 150, padding: '8px 12px',
+                                        background: '#3A3B3C', border: '1px solid #4E4F50',
+                                        borderRadius: 8, color: '#E4E6EB', fontSize: 13,
+                                        outline: 'none',
+                                    }}
+                                />
+                                <select
+                                    value={sortBy}
+                                    onChange={e => setSortBy(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px', background: '#3A3B3C',
+                                        border: '1px solid #4E4F50', borderRadius: 8,
+                                        color: '#E4E6EB', fontSize: 13, cursor: 'pointer',
+                                    }}
+                                >
+                                    <option value="players">Sort: Players</option>
+                                    <option value="stakes">Sort: Stakes</option>
+                                    <option value="name">Sort: Name</option>
+                                </select>
+                                {club && (membership?.role === 'owner' || membership?.role === 'admin') && (
+                                    <button
+                                        onClick={() => setShowCreateGame({ tab: 'mtt' })}
+                                        style={{
+                                            padding: '8px 14px', background: 'linear-gradient(135deg, #9333ea, #7c3aed)',
+                                            border: 'none', borderRadius: 8, color: '#fff',
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        🏆 New Tournament
+                                    </button>
+                                )}
+                                {club && (
+                                    <button
+                                        onClick={() => router.push(`/hub/club-arena/tournaments?club=${club.id}`)}
+                                        style={{
+                                            padding: '8px 14px', background: 'rgba(255,255,255,0.08)',
+                                            border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#B0B3B8',
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        📋 View Tournaments
+                                    </button>
+                                )}
+                            </div>
+
                             {/* Quick Actions */}
                             <div style={styles.heroActions}>
                                 {(membership?.role === 'owner' || membership?.role === 'admin') && (
                                     <button
                                         style={{ ...styles.heroActionBtn, ...styles.heroActionPrimary }}
-                                        onClick={() => setShowCreateTable(true)}
+                                        onClick={() => setShowCreateGame({})}
                                     >
                                         <span style={styles.heroActionLabel}>Create Table</span>
                                     </button>
@@ -379,7 +400,7 @@ export default function ClubLobby() {
                             <div style={styles.iconGrid}>
                                 {/* Create New Table Icon */}
                                 {(membership?.role === 'owner' || membership?.role === 'admin') && (
-                                    <div style={styles.iconItemWrapper} onClick={() => setShowCreateTable(true)}>
+                                    <div style={styles.iconItemWrapper} onClick={() => setShowCreateGame({})}>
                                         <div style={{ ...styles.pillOuter, background: 'linear-gradient(180deg, #7A7A7A 0%, #3B3B3B 40%, #5C5C5C 60%, #292929 100%)' }}>
                                             <div style={{ ...styles.pillInner, background: 'radial-gradient(ellipse at center, #2C2C35 0%, #15151A 100%)' }}>
                                                 <div style={styles.createPlus}>+</div>
@@ -480,132 +501,16 @@ export default function ClubLobby() {
                     )}
                 </div>
 
-                {/* Create Table Modal */}
-                {showCreateTable && (
-                    <div style={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && setShowCreateTable(false)}>
-                        <div style={styles.modalContent}>
-                            <div style={styles.modalHeader}>
-                                <h2 style={styles.modalTitle}>Create New Table</h2>
-                                <button style={styles.modalClose} onClick={() => setShowCreateTable(false)}>✕</button>
-                            </div>
-                            <div style={styles.modalBody}>
-                                <div style={styles.formGroup}>
-                                    <label style={styles.formLabel}>Table Name</label>
-                                    <input
-                                        style={styles.formInput}
-                                        type="text"
-                                        placeholder="e.g. Friday Night High Stakes"
-                                        value={newTable.name}
-                                        onChange={e => setNewTable({ ...newTable, name: e.target.value })}
-                                    />
-                                </div>
-
-                                <div style={styles.formRow}>
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.formLabel}>Game Type</label>
-                                        <select
-                                            style={styles.formSelect}
-                                            value={newTable.variant}
-                                            onChange={e => setNewTable({ ...newTable, variant: e.target.value })}
-                                        >
-                                            <option value="nlh">No Limit Hold'em</option>
-                                            <option value="plo4">PLO (4-Card)</option>
-                                            <option value="plo5">PLO 5-Card</option>
-                                            <option value="plo6">PLO 6-Card</option>
-                                            <option value="plo8">PLO Hi/Lo (8-or-Better)</option>
-                                            <option value="short_deck">Short Deck (6+)</option>
-                                            <option value="ofc">Open Face Chinese</option>
-                                        </select>
-                                    </div>
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.formLabel}>Players</label>
-                                        <select
-                                            style={styles.formSelect}
-                                            value={newTable.maxPlayers}
-                                            onChange={e => setNewTable({ ...newTable, maxPlayers: e.target.value })}
-                                        >
-                                            <option value="2">Heads Up (2)</option>
-                                            <option value="6">6-Max</option>
-                                            <option value="9">Full Ring (9)</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div style={styles.formRow}>
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.formLabel}>Small Blind ($)</label>
-                                        <input
-                                            style={styles.formInput}
-                                            type="number"
-                                            min="0.01"
-                                            step="0.01"
-                                            value={newTable.smallBlind}
-                                            onChange={e => setNewTable({ ...newTable, smallBlind: e.target.value })}
-                                        />
-                                    </div>
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.formLabel}>Big Blind ($)</label>
-                                        <input
-                                            style={styles.formInput}
-                                            type="number"
-                                            min="0.02"
-                                            step="0.01"
-                                            value={newTable.bigBlind}
-                                            onChange={e => setNewTable({ ...newTable, bigBlind: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div style={styles.formGroup}>
-                                    <label style={styles.formLabel}>Table Options</label>
-                                    <div style={styles.settingsGrid}>
-                                        <label style={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={newTable.straddle}
-                                                onChange={e => setNewTable({ ...newTable, straddle: e.target.checked })}
-                                            />
-                                            Enable Straddle
-                                        </label>
-                                        <label style={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={newTable.runItTwice}
-                                                onChange={e => setNewTable({ ...newTable, runItTwice: e.target.checked })}
-                                            />
-                                            Run It Twice (RIT)
-                                        </label>
-                                        <label style={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={newTable.bombPots}
-                                                onChange={e => setNewTable({ ...newTable, bombPots: e.target.checked })}
-                                            />
-                                            Bomb Pots
-                                        </label>
-                                        <label style={styles.checkboxLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={newTable.autoMuck}
-                                                onChange={e => setNewTable({ ...newTable, autoMuck: e.target.checked })}
-                                            />
-                                            Auto Muck
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style={styles.modalFooter}>
-                                <button style={styles.modalBtnGhost} onClick={() => setShowCreateTable(false)}>Cancel</button>
-                                <button
-                                    style={styles.modalBtnPrimary}
-                                    onClick={handleCreateTable}
-                                    disabled={creatingTable}
-                                >
-                                    {creatingTable ? 'Creating...' : 'Create Table'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                {/* ═══ UNIFIED CREATE GAME MODAL — Regular/SNG/MTT (PokerBros-complete) ═══ */}
+                {showCreateGame && (
+                    <CreateGameModal
+                        club={club}
+                        onClose={() => setShowCreateGame(null)}
+                        onCreated={handleGameCreated}
+                        apiCall={apiCall}
+                        initialTab={showCreateGame?.tab}
+                        initialVariant={showCreateGame?.variant}
+                    />
                 )}
 
                 {/* Hamburger Menu */}

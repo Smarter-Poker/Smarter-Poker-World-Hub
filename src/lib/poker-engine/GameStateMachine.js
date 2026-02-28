@@ -58,6 +58,8 @@ class GameStateMachine {
    * @param {number} [config.rakePercent] - Rake percentage
    * @param {number} [config.rakeCap] - Maximum rake per pot
    * @param {boolean} [config.runItTwice] - Allow run-it-twice
+   * @param {boolean} [config.runItThrice] - Allow run-it-three-times
+   * @param {boolean} [config.insurance] - Allow insurance when all-in
    * @param {boolean} [config.bombPot] - Bomb pot mode
    * @param {boolean} [config.straddle] - Allow straddle
    */
@@ -71,6 +73,8 @@ class GameStateMachine {
       rakePercent: config.rakePercent || 0,
       rakeCap: config.rakeCap || Infinity,
       runItTwice: config.runItTwice || false,
+      runItThrice: config.runItThrice || false,
+      insurance: config.insurance || false,
       bombPot: config.bombPot || false,
       straddle: config.straddle || false,
     };
@@ -509,9 +513,32 @@ class GameStateMachine {
 
   /**
    * Run out remaining community cards when all players are all-in.
+   * Supports Run It Twice (2 boards), Run It Thrice (3 boards), and Insurance.
    * @private
    */
   _runOutBoard(fromStreet) {
+    const activePlayers = this.currentHand.players.filter(p => !p.folded);
+    
+    // Determine number of runouts:
+    // - runItThrice: 3 boards (heads-up all-in only)
+    // - runItTwice: 2 boards (heads-up all-in only)
+    // Both require community cards still to be dealt
+    const headsUpAllIn = activePlayers.length === 2 && fromStreet !== 'river';
+    
+    if (headsUpAllIn && this.config.runItThrice) {
+      this._runItMultiple(fromStreet, activePlayers, 3);
+      return;
+    }
+    if (headsUpAllIn && this.config.runItTwice) {
+      this._runItMultiple(fromStreet, activePlayers, 2);
+      return;
+    }
+
+    // Check for insurance offer before standard runout
+    if (this.config.insurance && activePlayers.length >= 2 && fromStreet !== 'river') {
+      this._offerInsurance(fromStreet, activePlayers);
+    }
+    
     const streets = STREETS.slice(STREETS.indexOf(fromStreet));
     
     for (const street of streets) {
@@ -528,6 +555,319 @@ class GameStateMachine {
     
     // Go to showdown
     this._handleShowdown();
+  }
+
+  /**
+   * Run It Multiple — deal N separate boards from the current point,
+   * splitting the pot evenly and awarding each portion separately.
+   * Supports 2 (RIT) or 3 (RI3) runouts.
+   * @private
+   * @param {string} fromStreet - Street to start dealing from
+   * @param {Array} activePlayers - Players still in the hand
+   * @param {number} numBoards - Number of boards to run (2 or 3)
+   */
+  _runItMultiple(fromStreet, activePlayers, numBoards) {
+    const boardBefore = [...this.currentHand.communityCards];
+    const streetsRemaining = STREETS.slice(STREETS.indexOf(fromStreet));
+    
+    const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
+    const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
+    
+    // Helper: evaluate a board for all active players
+    const evalBoard = (board) => {
+      const results = [];
+      for (const p of activePlayers) {
+        let hand;
+        if (isOmaha) {
+          hand = this.handEvaluator.evaluateOmaha(p.holeCards, board);
+        } else if (isShortDeck) {
+          hand = this.handEvaluator.evaluateShortDeck(p.holeCards, board);
+        } else {
+          hand = this.handEvaluator.evaluateHoldem(p.holeCards, board);
+        }
+        results.push({ playerId: p.id, hand, score: hand.score });
+      }
+      results.sort((a, b) => b.score - a.score);
+      return results;
+    };
+    
+    // Helper: deal a fresh board from deck
+    const dealBoard = () => {
+      const cards = [...boardBefore];
+      for (const street of streetsRemaining) {
+        switch (street) {
+          case 'flop':
+            cards.push(...this.deck.dealFlop());
+            break;
+          case 'turn':
+            cards.push(this.deck.dealTurn());
+            break;
+          case 'river':
+            cards.push(this.deck.dealRiver());
+            break;
+        }
+      }
+      return cards;
+    };
+    
+    // Board 1: deal using the standard community card methods
+    for (const street of streetsRemaining) {
+      this._dealCommunityCards(street);
+    }
+    const boards = [{ board: [...this.currentHand.communityCards] }];
+    
+    // Boards 2..N: deal from remaining deck
+    for (let i = 1; i < numBoards; i++) {
+      boards.push({ board: dealBoard() });
+    }
+    
+    this.phase = GAME_PHASE.SHOWDOWN;
+    
+    // Evaluate all boards
+    const allResults = boards.map(b => {
+      b.results = evalBoard(b.board);
+      b.winner = b.results[0];
+      return b;
+    });
+    
+    // Split pot evenly across boards
+    const totalPot = this.potCalculator.totalPot;
+    const basePortion = Math.floor(totalPot / numBoards);
+    const remainder = totalPot - (basePortion * numBoards);
+    
+    // Build payouts — first board gets the remainder
+    const payouts = {};
+    allResults.forEach((b, i) => {
+      const portion = basePortion + (i === 0 ? remainder : 0);
+      b.payout = portion;
+      payouts[b.winner.playerId] = (payouts[b.winner.playerId] || 0) + portion;
+    });
+    
+    // Apply payouts to player stacks
+    for (const [pid, amount] of Object.entries(payouts)) {
+      const player = this.currentHand.players.find(p => p.id === pid);
+      if (player) player.stack += amount;
+    }
+    
+    // Store multi-runout results
+    const runoutData = {
+      numBoards,
+      boards: allResults.map((b, i) => ({
+        boardIndex: i + 1,
+        cards: b.board,
+        results: b.results,
+        winner: b.winner.playerId,
+        payout: b.payout,
+      })),
+      payouts,
+      totalPot,
+    };
+    
+    this.currentHand.runItMultiple = runoutData;
+    
+    // Backwards-compatible: also set runItTwice for 2-board runs
+    if (numBoards === 2) {
+      this.currentHand.runItTwice = {
+        board1: allResults[0].board, board2: allResults[1].board,
+        results1: allResults[0].results, results2: allResults[1].results,
+        winner1: allResults[0].winner.playerId, winner2: allResults[1].winner.playerId,
+        payout1: allResults[0].payout, payout2: allResults[1].payout,
+      };
+    }
+    
+    // Set hand result for _finishHand
+    this.currentHand.result = {
+      winners: Object.entries(payouts).map(([playerId, amount]) => ({
+        playerId,
+        amount,
+        hand: allResults[0].results.find(r => r.playerId === playerId)?.hand ||
+              allResults[1].results.find(r => r.playerId === playerId)?.hand,
+      })),
+      runItMultiple: runoutData,
+      potTotal: totalPot,
+    };
+    
+    const eventName = numBoards === 2 ? 'run_it_twice' : 'run_it_thrice';
+    this.emit(eventName, runoutData);
+    
+    // Also emit generic event for UI
+    this.emit('run_it_multiple', runoutData);
+    
+    console.log(`🃏 Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}: ${numBoards} boards dealt`);
+    
+    // Finish hand normally
+    this._finishHand();
+  }
+
+  /**
+   * ═══════════════════════════════════════════════════════════════
+   * INSURANCE SYSTEM
+   * ═══════════════════════════════════════════════════════════════
+   * When players are all-in, the player who is ahead can buy insurance
+   * against their opponent's outs. Insurance pays out if the behind
+   * player catches up, reducing variance.
+   *
+   * Insurance pricing: Based on opponent's equity (outs/remaining cards).
+   * Premium = insuranceAmount * (opponentEquity / (1 - opponentEquity))
+   * Payout = insuranceAmount if opponent wins
+   *
+   * The insurance pool is taken from the pot and paid to a virtual house.
+   * ═══════════════════════════════════════════════════════════════
+   */
+  _offerInsurance(fromStreet, activePlayers) {
+    const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
+    const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
+    
+    // Evaluate current hand strengths
+    const board = [...this.currentHand.communityCards];
+    const evaluations = activePlayers.map(p => {
+      let hand;
+      if (isOmaha) {
+        hand = this.handEvaluator.evaluateOmaha(p.holeCards, board);
+      } else if (isShortDeck) {
+        hand = this.handEvaluator.evaluateShortDeck(p.holeCards, board);
+      } else {
+        hand = this.handEvaluator.evaluateHoldem(p.holeCards, board);
+      }
+      return { playerId: p.id, hand, score: hand.score, holeCards: p.holeCards };
+    }).sort((a, b) => b.score - a.score);
+    
+    // Count remaining cards and approximate outs for trailing player
+    const cardsDealt = board.length + activePlayers.reduce((sum, p) => sum + p.holeCards.length, 0);
+    const deckSize = isShortDeck ? 36 : 52;
+    const remainingCards = deckSize - cardsDealt;
+    const streetsLeft = STREETS.slice(STREETS.indexOf(fromStreet)).length;
+    
+    // Approximate equity: trailing player has roughly (outs / remaining) per street
+    // For simplicity, use a fixed approximation based on street
+    const leader = evaluations[0];
+    const trailer = evaluations[evaluations.length - 1];
+    
+    // Rough out estimation based on hand category gap
+    const categoryGap = Math.floor(leader.score / 1e10) - Math.floor(trailer.score / 1e10);
+    let estimatedOuts;
+    if (categoryGap === 0) estimatedOuts = Math.min(remainingCards - 2, 15); // same category, many outs
+    else if (categoryGap === 1) estimatedOuts = Math.min(10, remainingCards - 5);
+    else if (categoryGap === 2) estimatedOuts = Math.min(6, remainingCards - 5);
+    else estimatedOuts = Math.max(2, Math.min(4, remainingCards - 10));
+    
+    // Equity approximation (rule of 2 and 4)
+    const trailerEquity = Math.min(0.45, Math.max(0.02,
+      (estimatedOuts * (streetsLeft >= 2 ? 4 : 2)) / 100
+    ));
+    
+    const totalPot = this.potCalculator.totalPot;
+    const maxInsurance = Math.floor(totalPot * 0.5); // Can insure up to 50% of pot
+    
+    // Insurance premium calculation: fair odds + house edge (10%)
+    const fairPremiumRate = trailerEquity / (1 - trailerEquity);
+    const premiumRate = fairPremiumRate * 1.10; // 10% house edge
+    
+    // Emit insurance offer for the leading player
+    this.emit('insurance_offered', {
+      leaderId: leader.playerId,
+      trailerId: trailer.playerId,
+      leaderHand: leader.hand,
+      trailerHand: trailer.hand,
+      trailerEquity: Math.round(trailerEquity * 100),
+      maxInsurance,
+      premiumRate: Math.round(premiumRate * 100) / 100,
+      estimatedOuts,
+      streetsLeft,
+      totalPot,
+    });
+    
+    // Store insurance data for when player responds
+    this.currentHand.insuranceOffer = {
+      leaderId: leader.playerId,
+      trailerId: trailer.playerId,
+      trailerEquity,
+      maxInsurance,
+      premiumRate,
+      totalPot,
+    };
+  }
+
+  /**
+   * Process insurance purchase. Called when leading player accepts insurance.
+   * @param {string} playerId - Player buying insurance
+   * @param {number} amount - Insurance amount (what they want to protect)
+   */
+  processInsurance(playerId, amount) {
+    const offer = this.currentHand?.insuranceOffer;
+    if (!offer || offer.leaderId !== playerId) {
+      this.emit('error', { message: 'No insurance offer available' });
+      return;
+    }
+    
+    const clampedAmount = Math.max(0, Math.min(amount, offer.maxInsurance));
+    if (clampedAmount <= 0) {
+      // Declined insurance
+      this.currentHand.insurance = { declined: true };
+      this.emit('insurance_declined', { playerId });
+      return;
+    }
+    
+    const premium = Math.ceil(clampedAmount * offer.premiumRate);
+    
+    // Deduct premium from the leader's potential winnings
+    this.currentHand.insurance = {
+      buyerId: playerId,
+      amount: clampedAmount,
+      premium,
+      trailerEquity: offer.trailerEquity,
+      trailerId: offer.trailerId,
+      accepted: true,
+    };
+    
+    this.emit('insurance_purchased', {
+      buyerId: playerId,
+      amount: clampedAmount,
+      premium,
+      trailerEquity: Math.round(offer.trailerEquity * 100),
+    });
+    
+    console.log(`🛡️ Insurance purchased: ${clampedAmount} coverage for ${premium} premium`);
+  }
+
+  /**
+   * Settle insurance after showdown. Called from _handlePayout.
+   * @private
+   */
+  _settleInsurance(showdownResult) {
+    const ins = this.currentHand?.insurance;
+    if (!ins || !ins.accepted) return null;
+    
+    // Check if the trailer won (insurance should pay out)
+    const trailerWon = showdownResult?.winners?.some(w => w.playerId === ins.trailerId);
+    
+    if (trailerWon) {
+      // Insurance pays out: buyer gets their insured amount
+      const payout = ins.amount;
+      const player = this.currentHand.players.find(p => p.id === ins.buyerId);
+      if (player) player.stack += payout;
+      
+      this.emit('insurance_payout', {
+        buyerId: ins.buyerId,
+        payout,
+        premium: ins.premium,
+        netGain: payout - ins.premium,
+        reason: 'Trailer won — insurance pays out',
+      });
+      
+      console.log(`🛡️ Insurance payout: ${payout} to ${ins.buyerId}`);
+      return { buyerId: ins.buyerId, payout, premium: ins.premium };
+    } else {
+      // Leader won — insurance not needed, premium lost
+      this.emit('insurance_expired', {
+        buyerId: ins.buyerId,
+        premiumLost: ins.premium,
+        reason: 'Leader won — no payout',
+      });
+      
+      console.log(`🛡️ Insurance expired: ${ins.buyerId} loses ${ins.premium} premium`);
+      return { buyerId: ins.buyerId, payout: 0, premiumLost: ins.premium };
+    }
   }
 
   /**
@@ -575,6 +915,13 @@ class GameStateMachine {
     for (const player of activePlayers) {
       player.showCards = true;
     }
+
+    // ── BBJ DETECTION ───────────────────────────────────────
+    // Check if this hand qualifies for Bad Beat Jackpot
+    const bbjResult = this._checkBBJ(activePlayers, showdownResult, board);
+    if (bbjResult) {
+      this.emit('bbj_triggered', bbjResult);
+    }
     
     this.emit('showdown', {
       players: activePlayers.map(p => ({
@@ -586,6 +933,7 @@ class GameStateMachine {
       })),
       communityCards: board,
       winners: (showdownResult.hiWinners || showdownResult.winners).map(w => w.playerId),
+      bbj: bbjResult || null,
     });
     
     // Distribute pots
@@ -672,12 +1020,16 @@ class GameStateMachine {
         });
       }
     }
+
+    // ── INSURANCE SETTLEMENT ────────────────────────────────
+    const insuranceResult = this._settleInsurance(showdownResult);
     
     this.currentHand.result = {
       type: 'showdown',
       winners: winnerDetails,
       pots,
       rake,
+      insurance: insuranceResult || null,
     };
     
     this.emit('payout', {
@@ -712,6 +1064,144 @@ class GameStateMachine {
   }
 
   // ============ PRIVATE: POSITION MANAGEMENT ============
+
+  /**
+   * Check if a showdown qualifies for Bad Beat Jackpot.
+   * 
+   * BBJ Rules (from RakeConfig):
+   *   - Pot must be ≥ 10 BB
+   *   - 4+ players must have been dealt in preflop
+   *   - Not available for Double/Triple Board games
+   *   - If run it multiple times, only first runout counts
+   * 
+   * Qualifying hands:
+   *   NLH/FLH: AAAJJ+ must LOSE to Quads or Straight Flush
+   *            Loser must have at least one Ace in hole cards
+   *   PLO4/FLO4: KKKK+ (Four Kings) must LOSE
+   *   PLO5/FLO5: 8-high Straight Flush must LOSE
+   * 
+   * @returns {Object|null} BBJ result or null if not qualified
+   */
+  _checkBBJ(activePlayers, showdownResult, board) {
+    // Only check if BBJ is enabled for this table
+    if (!this.config.bbjEnabled) return null;
+
+    const totalDealt = this.currentHand.players.length;
+    const bb = this.config.bigBlind || 2;
+    const potTotal = this.potCalculator.totalPot;
+
+    // Must have 4+ players dealt and pot ≥ 10 BB
+    if (totalDealt < 4) return null;
+    if (potTotal < bb * 10) return null;
+
+    // Must have 2+ active players at showdown
+    if (activePlayers.length < 2) return null;
+
+    const rankings = showdownResult.hiRankings || showdownResult.rankings;
+    if (!rankings || rankings.length < 2) return null;
+
+    // Rankings are sorted best→worst. Winner = [0], Loser = [1]
+    const winner = rankings[0];
+    const loser = rankings[1];
+    if (!winner?.hand || !loser?.hand) return null;
+
+    const variant = this.config.variant || 'holdem';
+    const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6].includes(variant);
+
+    // ── NLH / FLH: Loser needs AAAJJ+, beaten by Quads or SF ──
+    if (variant === GAME_VARIANT.HOLDEM || variant === GAME_VARIANT.SHORT_DECK) {
+      const loserCat = loser.hand.category;
+      const winnerCat = winner.hand.category;
+
+      // Winner must have Quads (8) or Straight Flush (9)
+      if (winnerCat < 8) return null;
+
+      // Loser must have Full House (7) or better
+      if (loserCat < 7) return null;
+
+      // If loser has Full House, must be Aces full of Jacks or better
+      // Full House tiebreaker = trips_rank * 13 + pair_rank
+      // Aces (rank 12) full of Jacks (rank 9) = 12*13 + 9 = 165
+      if (loserCat === 7) {
+        const loserTiebreaker = loser.hand.score % 1e10;
+        const tripsRank = Math.floor(loserTiebreaker / 13);
+        const pairRank = loserTiebreaker % 13;
+        // Must be Aces (12) as trips, Jacks (9) or better as pair
+        if (tripsRank !== 12 || pairRank < 9) return null;
+      }
+      // If loser has Quads (8) or SF (9), they auto-qualify (beaten by better quads/SF)
+
+      // Loser must have at least one Ace in their hole cards
+      const loserPlayer = activePlayers.find(p => String(p.id) === String(loser.playerId));
+      if (!loserPlayer?.holeCards) return null;
+      const { getRank } = require('./Deck');
+      const hasAceInHole = loserPlayer.holeCards.some(c => getRank(c) === 12); // 12 = Ace
+      if (!hasAceInHole) return null;
+
+      // BBJ QUALIFIED!
+      return this._buildBBJResult(winner, loser, activePlayers, rankings, board, 'nlh');
+    }
+
+    // ── PLO4 / FLO4: Loser needs KKKK+ (Four Kings or better) ──
+    if (variant === GAME_VARIANT.OMAHA4) {
+      const loserCat = loser.hand.category;
+      if (loserCat < 8) return null; // Must have at least Quads
+
+      if (loserCat === 8) {
+        // Four of a Kind — check if Kings (rank 11) or Aces (rank 12)
+        const loserTiebreaker = loser.hand.score % 1e10;
+        const quadsRank = Math.floor(loserTiebreaker / 13);
+        if (quadsRank < 11) return null; // Must be Kings (11) or Aces (12)
+      }
+      // If SF (9), they auto-qualify
+
+      return this._buildBBJResult(winner, loser, activePlayers, rankings, board, 'plo4');
+    }
+
+    // ── PLO5 / PLO6 / FLO5: Loser needs 8-high Straight Flush or better ──
+    if ([GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6].includes(variant)) {
+      const loserCat = loser.hand.category;
+      if (loserCat < 9) return null; // Must be Straight Flush
+
+      // Straight Flush tiebreaker = high card rank. 8-high = rank 6 (0=2,1=3,...6=8)
+      const loserTiebreaker = loser.hand.score % 1e10;
+      if (loserTiebreaker < 6) return null; // Must be 8-high (6) or better
+
+      return this._buildBBJResult(winner, loser, activePlayers, rankings, board, 'plo5');
+    }
+
+    return null; // No BBJ for other variants (Hi/Lo, OFC, etc.)
+  }
+
+  /**
+   * Build the BBJ result object.
+   * @private
+   */
+  _buildBBJResult(winner, loser, activePlayers, rankings, board, qualifyingVariant) {
+    // Table share = all active players at showdown except winner/loser
+    const tableSharePlayerIds = activePlayers
+      .filter(p => String(p.id) !== String(winner.playerId) && String(p.id) !== String(loser.playerId))
+      .map(p => p.id);
+
+    // All players dealt into this hand (for BBJ eligibility)
+    const allDealtPlayerIds = this.currentHand.players.map(p => p.id);
+
+    return {
+      triggered: true,
+      variant: qualifyingVariant,
+      loserId: loser.playerId,
+      loserHand: loser.hand.description,
+      loserCards: activePlayers.find(p => String(p.id) === String(loser.playerId))?.holeCards || [],
+      winnerId: winner.playerId,
+      winnerHand: winner.hand.description,
+      winnerCards: activePlayers.find(p => String(p.id) === String(winner.playerId))?.holeCards || [],
+      communityCards: board,
+      tableSharePlayerIds,
+      allDealtPlayerIds,
+      potTotal: this.potCalculator.totalPot,
+      handNumber: this.handNumber,
+    };
+  }
 
   /**
    * Rotate the button to the next player.

@@ -29,6 +29,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTableConnection } from '../../hooks/useTableConnection';
+import { PokerSoundManager } from './PokerSoundManager';
+import EmojiThrower from './EmojiThrower';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -422,6 +424,10 @@ function CommunityCards({ cards = [] }) {
 function PotDisplay({ potTotal, pots = [] }) {
   if (!potTotal || potTotal <= 0) return null;
 
+  // Generate chip stack visualization based on pot size
+  const chipColors = ['#e53935', '#1e88e5', '#43a047', '#000000', '#9c27b0'];
+  const chipCount = Math.min(Math.ceil(potTotal / 100), 8);
+
   return (
     <div
       style={{
@@ -436,10 +442,29 @@ function PotDisplay({ potTotal, pots = [] }) {
         zIndex: 15,
       }}
     >
+      {/* Animated chip stack */}
+      <div style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+        {Array.from({ length: Math.min(chipCount, 5) }).map((_, i) => (
+          <motion.div
+            key={`chip-${i}`}
+            initial={{ y: -20, opacity: 0, scale: 0.5 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.06, type: 'spring', stiffness: 300 }}
+            style={{
+              width: 14, height: 14, borderRadius: '50%',
+              background: `radial-gradient(circle at 40% 35%, ${chipColors[i % chipColors.length]}dd, ${chipColors[i % chipColors.length]})`,
+              border: '1.5px solid rgba(255,255,255,0.4)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            }}
+          />
+        ))}
+      </div>
+
       <motion.div
         key={potTotal}
-        initial={{ scale: 0.8 }}
-        animate={{ scale: 1 }}
+        initial={{ scale: 0.8, y: 5 }}
+        animate={{ scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200 }}
         style={{
           background: 'rgba(0,0,0,0.7)',
           border: `1px solid ${T.accentDim}`,
@@ -459,8 +484,11 @@ function PotDisplay({ potTotal, pots = [] }) {
       {pots.length > 1 && (
         <div style={{ display: 'flex', gap: 6 }}>
           {pots.map((pot, i) => (
-            <div
+            <motion.div
               key={i}
+              initial={{ opacity: 0, x: i % 2 === 0 ? -10 : 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
               style={{
                 background: 'rgba(0,0,0,0.5)',
                 color: T.textSecondary,
@@ -471,7 +499,7 @@ function PotDisplay({ potTotal, pots = [] }) {
               }}
             >
               {i === 0 ? 'Main' : `Side ${i}`}: {(pot.amount || 0).toLocaleString()}
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -1077,6 +1105,56 @@ export default function LivePokerTable({
     chatMessages, result, error, connected, send,
   } = useTableConnection({ supabase, tableId, userId });
 
+  // Sound manager
+  const soundRef = useRef(null);
+  if (!soundRef.current && typeof window !== 'undefined') {
+    soundRef.current = new PokerSoundManager();
+  }
+
+  // Sound triggers based on game events
+  const prevPhaseRef = useRef(null);
+  const prevResultRef = useRef(null);
+  useEffect(() => {
+    const sm = soundRef.current;
+    if (!sm || !tableState?.game) return;
+    const phase = tableState.game.phase;
+    const prev = prevPhaseRef.current;
+    if (prev !== phase) {
+      if (phase === 'preflop' && prev === 'idle') sm.play('deal');
+      if (phase === 'flop' && prev === 'preflop') sm.play('deal');
+      if (phase === 'turn' && prev === 'flop') sm.play('deal');
+      if (phase === 'river' && prev === 'turn') sm.play('deal');
+      if (phase === 'showdown') sm.play('showdown');
+      prevPhaseRef.current = phase;
+    }
+  }, [tableState?.game?.phase]);
+
+  // Sound for results (win/lose)
+  useEffect(() => {
+    const sm = soundRef.current;
+    if (!sm || !result || result === prevResultRef.current) return;
+    prevResultRef.current = result;
+    if (result.bbj) { sm.play('bbj'); return; }
+    const isWinner = result.winners?.some(w => String(w.playerId) === String(userId));
+    sm.play(isWinner ? 'win' : 'lose');
+  }, [result, userId]);
+
+  // Sound for your turn
+  useEffect(() => {
+    const sm = soundRef.current;
+    if (!sm || !legalActions || legalActions.length === 0) return;
+    sm.play('yourTurn');
+  }, [legalActions]);
+
+  // Sound for timer warning
+  useEffect(() => {
+    const sm = soundRef.current;
+    if (!sm || !timerState) return;
+    if (timerState.remaining <= 5 && timerState.remaining > 0 && String(timerState.playerId) === String(userId)) {
+      sm.play('timer');
+    }
+  }, [timerState?.remaining, timerState?.playerId, userId]);
+
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
   const [clubChipBalance, setClubChipBalance] = useState(null);
@@ -1120,6 +1198,12 @@ export default function LivePokerTable({
   // ═══════════════════════════════════════════════════════════════════
 
   const handleAction = useCallback((action) => {
+    // Play action sound
+    const sm = soundRef.current;
+    if (sm && action?.type) {
+      const soundMap = { fold: 'fold', check: 'check', call: 'call', bet: 'bet', raise: 'raise', all_in: 'allIn' };
+      if (soundMap[action.type]) sm.play(soundMap[action.type]);
+    }
     send('player_action', { action });
   }, [send]);
 
@@ -1131,7 +1215,10 @@ export default function LivePokerTable({
   const handleStandUp = useCallback(() => send('stand_up', {}), [send]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
   const handleSitIn = useCallback(() => send('sit_in', {}), [send]);
-  const handleChat = useCallback((message) => send('send_chat', { message }), [send]);
+  const handleChat = useCallback((message) => {
+    soundRef.current?.play('chat');
+    send('send_chat', { message });
+  }, [send]);
   const handleAddChips = useCallback(() => {
     const amount = prompt('Amount to add:');
     if (amount) send('add_chips', { amount: parseInt(amount) });
@@ -1290,6 +1377,217 @@ export default function LivePokerTable({
           />
         )}
       </AnimatePresence>
+
+      {/* ═══════════ BBJ TICKER (top of table) ═══════════ */}
+      {tableState?.bbjPool > 0 && (
+        <div style={{
+          position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
+          background: 'linear-gradient(90deg, rgba(255,215,0,0.15), rgba(255,215,0,0.25), rgba(255,215,0,0.15))',
+          border: '1px solid rgba(255,215,0,0.4)',
+          borderRadius: 20, padding: '3px 16px', zIndex: 55,
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <span style={{ fontSize: 12 }}>🎰</span>
+          <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 700 }}>
+            BAD BEAT JACKPOT
+          </span>
+          <span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>
+            {Number(tableState.bbjPool).toLocaleString()}
+          </span>
+        </div>
+      )}
+
+      {/* ═══════════ BBJ WIN CELEBRATION ═══════════ */}
+      <AnimatePresence>
+        {result?.bbj && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'rgba(0,0,0,0.85)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 100,
+            }}
+          >
+            <div style={{
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              border: '3px solid #FFD700', borderRadius: 16,
+              padding: '32px 48px', textAlign: 'center', maxWidth: 460,
+            }}>
+              <div style={{ fontSize: 48, marginBottom: 8 }}>🎰💰🎰</div>
+              <h2 style={{ color: '#FFD700', fontSize: 26, margin: '0 0 8px', fontWeight: 800 }}>
+                BAD BEAT JACKPOT!
+              </h2>
+              <p style={{ color: '#fff', fontSize: 15, margin: '4px 0' }}>
+                {result.bbj.loserHand} <span style={{ color: '#FA383E' }}>loses to</span> {result.bbj.winnerHand}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 20, margin: '16px 0' }}>
+                <div>
+                  <div style={{ color: '#B0B3B8', fontSize: 11 }}>Loser Wins</div>
+                  <div style={{ color: '#FFD700', fontSize: 20, fontWeight: 700 }}>
+                    {Number(result.bbj.loserPayout || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: '#B0B3B8', fontSize: 11 }}>Winner Wins</div>
+                  <div style={{ color: '#4ade80', fontSize: 20, fontWeight: 700 }}>
+                    {Number(result.bbj.winnerPayout || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: '#B0B3B8', fontSize: 11 }}>Table Share</div>
+                  <div style={{ color: '#60a5fa', fontSize: 20, fontWeight: 700 }}>
+                    {Number(result.bbj.tableSharePayout || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              <p style={{ color: '#B0B3B8', fontSize: 11 }}>
+                Total: {Number(result.bbj.totalPayout || 0).toLocaleString()}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ EMOJI THROWER ═══════════ */}
+      <EmojiThrower
+        userId={userId}
+        seats={seats}
+        seatPositions={positions}
+        chatMessages={chatMessages}
+        onThrow={(emoji, targetId) => {
+          soundRef.current?.play('chat');
+          send('throw_emoji', { emoji, targetId });
+        }}
+      />
+
+      {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
+      <AnimatePresence>
+        {result?.insuranceOffer && result.insuranceOffer.leaderId === userId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            style={{
+              position: 'absolute', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(36,37,38,0.97)', border: '1px solid rgba(24,119,242,0.5)',
+              borderRadius: 14, padding: '16px 24px', zIndex: 85, width: 320,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            }}
+          >
+            <div style={{ textAlign: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 24 }}>🛡️</span>
+              <h3 style={{ color: '#fff', fontSize: 15, fontWeight: 700, margin: '4px 0' }}>Insurance Available</h3>
+              <p style={{ color: '#B0B3B8', fontSize: 12, margin: 0 }}>
+                You&apos;re ahead! Protect against {result.insuranceOffer.trailerEquity}% equity ({result.insuranceOffer.estimatedOuts} outs)
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 10 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#65676B', fontSize: 10 }}>Pot</div>
+                <div style={{ color: '#FFD700', fontSize: 16, fontWeight: 700 }}>{(result.insuranceOffer.totalPot || 0).toLocaleString()}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#65676B', fontSize: 10 }}>Max Insure</div>
+                <div style={{ color: '#4ade80', fontSize: 16, fontWeight: 700 }}>{(result.insuranceOffer.maxInsurance || 0).toLocaleString()}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#65676B', fontSize: 10 }}>Premium Rate</div>
+                <div style={{ color: '#60a5fa', fontSize: 16, fontWeight: 700 }}>{((result.insuranceOffer.premiumRate || 0) * 100).toFixed(0)}%</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[0.25, 0.5, 1].map(pct => {
+                const amt = Math.floor((result.insuranceOffer.maxInsurance || 0) * pct);
+                return (
+                  <button key={pct} onClick={() => send('buy_insurance', { amount: amt })} style={{
+                    flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none',
+                    background: '#1877F2', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    {amt.toLocaleString()} ({Math.round(pct * 100)}%)
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => send('decline_insurance')}
+              style={{
+                width: '100%', marginTop: 8, padding: '8px', borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.2)', background: 'transparent',
+                color: '#B0B3B8', fontSize: 12, cursor: 'pointer',
+              }}
+            >
+              No Insurance
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ RUN IT MULTIPLE OVERLAY ═══════════ */}
+      <AnimatePresence>
+        {result?.runItMultiple && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            style={{
+              position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(36,37,38,0.95)', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 14, padding: '12px 20px', zIndex: 75, minWidth: 300,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            }}
+          >
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 700 }}>
+                🃏 Run It {result.runItMultiple.numBoards === 2 ? 'Twice' : 'Three Times'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              {(result.runItMultiple.boards || []).map((b, i) => (
+                <div key={i} style={{
+                  background: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: '8px 12px',
+                  border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', minWidth: 80,
+                }}>
+                  <div style={{ color: '#B0B3B8', fontSize: 10, marginBottom: 4 }}>Board {b.boardIndex}</div>
+                  <div style={{ display: 'flex', gap: 3, justifyContent: 'center', marginBottom: 4 }}>
+                    {(b.cards || []).slice(-5).map((card, ci) => (
+                      <span key={ci} style={{
+                        display: 'inline-block', background: '#fff', color: card?.includes('h') || card?.includes('d') ? '#e53935' : '#000',
+                        borderRadius: 3, padding: '1px 3px', fontSize: 10, fontWeight: 700,
+                        border: '1px solid #ddd',
+                      }}>
+                        {typeof card === 'string' ? card : card?.display || '?'}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 700 }}>
+                    {(b.payout || 0).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ SOUND TOGGLE ═══════════ */}
+      <button
+        onClick={() => {
+          if (soundRef.current) {
+            soundRef.current.setEnabled(!soundRef.current.enabled);
+          }
+        }}
+        style={{
+          position: 'absolute', bottom: 8, right: 8, zIndex: 55,
+          background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)',
+          color: '#fff', borderRadius: 20, padding: '4px 10px',
+          fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+        }}
+      >
+        {soundRef.current?.enabled !== false ? '🔊' : '🔇'} Sound
+      </button>
 
       {/* Error toast */}
       <AnimatePresence>

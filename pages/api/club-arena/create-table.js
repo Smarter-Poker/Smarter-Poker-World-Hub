@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const VALID_VARIANTS = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'ofc'];
+const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'flo', 'mixed', 'ofc'];
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 
 export default async function handler(req, res) {
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-    const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, settings } = req.body;
+    const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
     try {
@@ -49,6 +49,10 @@ export default async function handler(req, res) {
         const { getRakeConfig } = require('../../src/lib/poker-engine/RakeConfig');
         const tierConfig = getRakeConfig(bb, gv);
 
+        // Buy-in defaults: min=40BB, max=200BB (or custom)
+        const resolvedMinBuyIn = minBuyIn ? parseFloat(minBuyIn) : bb * 40;
+        const resolvedMaxBuyIn = maxBuyIn ? parseFloat(maxBuyIn) : bb * 200;
+
         const { data: table, error: createErr } = await supabaseAdmin
             .from('tables')
             .insert({
@@ -61,25 +65,70 @@ export default async function handler(req, res) {
                 max_players: seats,
                 small_blind: sb,
                 big_blind: bb,
-                min_buy_in: sb * 40,
-                max_buy_in: bb * 200,
+                min_buy_in: resolvedMinBuyIn,
+                max_buy_in: resolvedMaxBuyIn,
+                ante: parseFloat(ante) || 0,
+                action_time_seconds: Math.min(Math.max(parseInt(actionTime) || 30, 10), 120),
                 rake_percent: Math.min(Math.max(
                   parseFloat(settings?.rakePercent) || tierConfig.rakePercent, 0), 33),
                 rake_cap_bb: Math.max(
                   parseFloat(settings?.rakeCap) || tierConfig.rakeCapBB, 0),
                 bbj_percent: tierConfig.bbjEnabled
-                  ? parseFloat(settings?.bbjFeeBB) || tierConfig.bbjFeeBB
+                  ? parseFloat(settings?.bbjPercent) || tierConfig.bbjFeeBB
                   : 0,
                 current_players: 0,
                 status: 'waiting',
                 settings: {
-                    straddle_enabled: settings?.straddle || false,
-                    run_it_twice: settings?.runItTwice || false,
-                    bomb_pot_enabled: settings?.bombPots || false,
-                    auto_muck: settings?.autoMuck !== false,
-                    // Tier info for reference
+                    // ── Core Game Options ──
+                    straddle_enabled: settings?.straddle_enabled || settings?.auto_utg_straddle || settings?.voluntary_straddle || false,
+                    auto_utg_straddle: settings?.auto_utg_straddle || false,
+                    voluntary_straddle: settings?.voluntary_straddle || false,
+                    run_it_twice: settings?.run_it_twice || false,
+                    run_it_thrice: settings?.run_it_thrice || false,
+                    run_it_mode: settings?.run_it_mode || 'none',
+                    insurance: settings?.insurance || false,
+                    bomb_pot_enabled: settings?.bomb_pot || settings?.bomb_pots || false,
+                    auto_muck: settings?.auto_muck !== false,
+                    // ── Game Modes (PokerBros Image 1) ──
+                    private_game: settings?.private_game || false,
+                    vip_only: settings?.vip_only || false,
+                    double_board: settings?.double_board || false,
+                    triple_board: settings?.triple_board || false,
+                    pineapple: settings?.pineapple || false,
+                    seven_deuce: settings?.seven_deuce || false,
+                    nit_game: settings?.nit_game || false,
+                    anonymous_table: settings?.anonymous_table || false,
+                    cap: settings?.cap || false,
+                    cap_amount: settings?.cap_amount || 0,
+                    ban_chat: settings?.ban_chat || false,
+                    label_new: settings?.label_new || false,
+                    featured_table: settings?.featured_table || false,
+                    no_rathole: settings?.no_rathole || false,
+                    // ── Player Requirements (Image 3) ──
+                    calltime: settings?.calltime || false,
+                    career_percent: settings?.career_percent || 0,
+                    maintain_percent: settings?.maintain_percent || 0,
+                    maintain_hands: settings?.maintain_hands || 10,
+                    // ── Auto Settings (Image 4) ──
+                    auto_start_players: settings?.auto_start_players || 2,
+                    auto_extension: settings?.auto_extension || false,
+                    auto_restart: settings?.auto_restart || false,
+                    auto_create_table: settings?.auto_create_table || false,
+                    // ── Rake/Fee (Image 5) ──
+                    fee_cap_bb: settings?.fee_cap_bb || 3,
+                    same_agent_downline_limit: settings?.same_agent_downline_limit || 0,
+                    buy_in_authorization: settings?.buy_in_authorization || false,
+                    // ── Security/Restrictions (Image 5-6) ──
+                    restrict_device: settings?.restrict_device !== false,
+                    restrict_observers: settings?.restrict_observers || false,
+                    gps_restriction: settings?.gps_restriction !== false,
+                    ip_restriction: settings?.ip_restriction !== false,
+                    emulator_restriction: settings?.emulator_restriction || false,
+                    photo_rotation_verification: settings?.photo_rotation_verification || false,
+                    hide_club_name: settings?.hide_club_name || false,
+                    game_length_hours: settings?.game_length_hours || 12,
+                    // ── Tier/BBJ info ──
                     stakes_tier: tierConfig.tier,
-                    // BBJ payout config (% of main pool when hit)
                     bbj_payout_total: tierConfig.bbjPayoutTotal,
                     bbj_payout_loser: tierConfig.bbjPayoutLoser,
                     bbj_payout_winner: tierConfig.bbjPayoutWinner,

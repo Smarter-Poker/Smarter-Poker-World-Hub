@@ -23,10 +23,58 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   try {
-    const { tableId, playerId, action } = req.body;
+    const { tableId, playerId, action, type, ...extra } = req.body;
 
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
     if (!playerId) return res.status(400).json({ error: 'playerId required' });
+
+    const controller = await getController();
+
+    // ── SPECIAL ACTIONS (non-game) ─────────────────────────────
+    // These are handled outside the standard game action flow
+
+    // Emoji Throwing: broadcast to table channel
+    if (type === 'throw_emoji' || action?.type === 'throw_emoji') {
+      const emoji = extra.emoji || action?.emoji;
+      const targetId = extra.targetId || action?.targetId;
+      if (!emoji) return res.status(400).json({ error: 'emoji required' });
+      
+      const table = controller.lobby?.tables?.get(tableId);
+      if (!table) return res.status(404).json({ error: 'Table not found' });
+      
+      // Broadcast emoji event to all players at the table
+      const channel = controller.supabase?.channel(`table:${tableId}`);
+      if (channel) {
+        channel.send({
+          type: 'broadcast',
+          event: 'emoji_thrown',
+          payload: { 
+            fromId: playerId, 
+            targetId: targetId || null, 
+            emoji, 
+            timestamp: Date.now() 
+          },
+        });
+      }
+      return res.json({ success: true });
+    }
+
+    // Insurance: buy or decline
+    if (type === 'buy_insurance' || action?.type === 'buy_insurance') {
+      const amount = extra.amount || action?.amount || 0;
+      const table = controller.lobby?.tables?.get(tableId);
+      if (!table?.table?.game) return res.status(404).json({ error: 'No active game' });
+      table.table.game.processInsurance(playerId, amount);
+      return res.json({ success: true });
+    }
+    if (type === 'decline_insurance' || action?.type === 'decline_insurance') {
+      const table = controller.lobby?.tables?.get(tableId);
+      if (!table?.table?.game) return res.status(404).json({ error: 'No active game' });
+      table.table.game.processInsurance(playerId, 0); // amount=0 means decline
+      return res.json({ success: true });
+    }
+
+    // ── STANDARD GAME ACTIONS ──────────────────────────────────
     if (!action || !action.type) return res.status(400).json({ error: 'action.type required' });
     if (!VALID_ACTIONS.has(action.type)) {
       return res.status(400).json({ error: `Invalid action: ${action.type}` });

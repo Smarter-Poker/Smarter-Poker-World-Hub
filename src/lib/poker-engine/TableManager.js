@@ -58,6 +58,8 @@ class TableManager {
    * @param {number} [config.rakePercent]
    * @param {number} [config.rakeCap]
    * @param {boolean} [config.runItTwice]
+   * @param {boolean} [config.runItThrice]
+   * @param {boolean} [config.insurance]
    * @param {boolean} [config.bombPot]
    * @param {boolean} [config.straddle]
    * @param {number} [config.autoStartDelay] - ms delay before auto-starting hand
@@ -98,6 +100,8 @@ class TableManager {
       rakePercent: config.rakePercent || 0,
       rakeCap: config.rakeCap || Infinity,
       runItTwice: config.runItTwice || false,
+      runItThrice: config.runItThrice || false,
+      insurance: config.insurance || false,
       bombPot: config.bombPot || false,
       straddle: config.straddle || false,
     });

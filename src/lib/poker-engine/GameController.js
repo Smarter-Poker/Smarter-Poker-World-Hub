@@ -47,12 +47,18 @@ const VARIANT_MAP = {
   'nlh': GAME_VARIANT.HOLDEM,
   'no_limit_holdem': GAME_VARIANT.HOLDEM,
   'texas_holdem': GAME_VARIANT.HOLDEM,
+  // Fixed Limit Hold'em (plays same engine, betting structure differs)
+  'flh': GAME_VARIANT.HOLDEM,
+  'fixed_limit_holdem': GAME_VARIANT.HOLDEM,
   // Omaha 4-card
   'omaha': GAME_VARIANT.OMAHA4,
   'omaha4': GAME_VARIANT.OMAHA4,
   'plo': GAME_VARIANT.OMAHA4,
   'plo4': GAME_VARIANT.OMAHA4,
   'pot_limit_omaha': GAME_VARIANT.OMAHA4,
+  // Fixed Limit Omaha (plays same engine, betting structure differs)
+  'flo': GAME_VARIANT.OMAHA4,
+  'fixed_limit_omaha': GAME_VARIANT.OMAHA4,
   // Omaha 5-card
   'omaha5': GAME_VARIANT.OMAHA5,
   'plo5': GAME_VARIANT.OMAHA5,
@@ -67,6 +73,31 @@ const VARIANT_MAP = {
   // Short Deck
   'short_deck': GAME_VARIANT.SHORT_DECK,
   '6plus': GAME_VARIANT.SHORT_DECK,
+  // Mixed Game (alternates between Hold'em and Omaha, starts as Hold'em)
+  'mixed': GAME_VARIANT.HOLDEM,
+  'mixed_game': GAME_VARIANT.HOLDEM,
+  // OFC (Open Face Chinese — uses separate scoring, mapped to Holdem engine base)
+  'ofc': GAME_VARIANT.HOLDEM,
+  'open_face_chinese': GAME_VARIANT.HOLDEM,
+};
+
+// Auto-detect betting structure from variant name
+const VARIANT_STRUCTURE_MAP = {
+  'flh': 'fixed_limit',
+  'fixed_limit_holdem': 'fixed_limit',
+  'flo': 'fixed_limit',
+  'fixed_limit_omaha': 'fixed_limit',
+  'plo': 'pot_limit',
+  'plo4': 'pot_limit',
+  'plo5': 'pot_limit',
+  'plo6': 'pot_limit',
+  'plo8': 'pot_limit',
+  'omaha': 'pot_limit',
+  'omaha4': 'pot_limit',
+  'omaha5': 'pot_limit',
+  'omaha6': 'pot_limit',
+  'omaha_hilo': 'pot_limit',
+  'pot_limit_omaha': 'pot_limit',
 };
 
 const STRUCTURE_MAP = {
@@ -172,7 +203,8 @@ class GameController {
       minBuyIn, maxBuyIn,
       clubId = null, createdBy = null,
       ante = 0, rakePercent = 0, rakeCap = 0,
-      runItTwice = false, straddle = false, bombPot = false,
+      runItTwice = false, runItThrice = false, insurance = false,
+      straddle = false, bombPot = false,
     } = config;
 
     const sb = parseInt(smallBlind) || 1;
@@ -220,7 +252,7 @@ class GameController {
       name: name || `${sb}/${bb} ${variant === 'holdem' ? 'NLH' : variant.toUpperCase()}`,
       tableName: name,
       variant: VARIANT_MAP[variant] || GAME_VARIANT.HOLDEM,
-      bettingStructure: STRUCTURE_MAP[config.bettingStructure] || BETTING_STRUCTURES.NO_LIMIT,
+      bettingStructure: STRUCTURE_MAP[config.bettingStructure] || STRUCTURE_MAP[VARIANT_STRUCTURE_MAP[variant]] || BETTING_STRUCTURES.NO_LIMIT,
       maxSeats: Math.min(Math.max(parseInt(maxSeats) || 9, 2), 10),
       smallBlind: sb,
       bigBlind: bb,
@@ -230,6 +262,8 @@ class GameController {
       rakePercent,
       rakeCap,
       runItTwice,
+      runItThrice,
+      insurance,
       straddle,
       bombPot,
     };
@@ -279,6 +313,9 @@ class GameController {
 
       // Map Club Arena columns → engine config
       const variant = row.game_variant || row.game_type || 'nlh';
+      const { getRakeConfig } = require('./RakeConfig');
+      const tierConfig = getRakeConfig(row.big_blind || 2, variant);
+
       const config = {
         tableId: row.id,
         name: row.name,
@@ -291,11 +328,16 @@ class GameController {
         minBuyIn: row.min_buy_in || row.min_buyin || (row.big_blind || 2) * 40,
         maxBuyIn: row.max_buy_in || row.max_buyin || (row.big_blind || 2) * 200,
         ante: row.ante || 0,
-        rakePercent: row.rake_percent || 0,
-        rakeCap: row.rake_cap_bb || 0,
-        bbjPercent: row.bbj_percent || 0,
+        rakePercent: row.rake_percent || tierConfig.rakePercent,
+        rakeCap: row.rake_cap_bb || tierConfig.rakeCapBB,
+        bbjPercent: row.bbj_percent || tierConfig.bbjFeeBB,
+        bbjEnabled: tierConfig.bbjEnabled && (row.bbj_percent || tierConfig.bbjFeeBB) > 0,
         clubId: row.club_id || null,
         actionTime: row.action_time_seconds || 30,
+        straddleEnabled: row.settings?.straddle_enabled || false,
+        runItTwice: row.settings?.run_it_twice || false,
+        runItThrice: row.settings?.run_it_thrice || false,
+        insurance: row.settings?.insurance || false,
       };
 
       await this.lobby.createTable(config);

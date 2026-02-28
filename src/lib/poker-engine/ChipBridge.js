@@ -311,6 +311,7 @@ module.exports = {
   rebuyChips,
   recordRake,
   getChipBalance,
+  getSupabase,
   checkLockExists,
   getSupabase,
 };
