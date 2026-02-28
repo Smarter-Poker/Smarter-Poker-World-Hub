@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 
 function getSeatPositions(count) {
   const positions = [];
@@ -25,6 +26,11 @@ export default function TablesDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
+  // Extract venueId from staff session for BroadcastChannel sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -39,6 +45,15 @@ export default function TablesDisplay() {
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);
+
+  // BroadcastChannel listener — instant cross-tab sync
+  useCommanderSync(venueId, async () => {
+    try {
+      const res = await fetch('/api/commander/tables');
+      const json = await res.json();
+      if (json.success) setTables(json.data || []);
+    } catch (err) { console.error(err); }
+  });
 
   // Wake lock
   useEffect(() => {

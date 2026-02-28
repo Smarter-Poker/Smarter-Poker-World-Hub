@@ -16,6 +16,7 @@ import {
   Clock, DollarSign, Play, AlertTriangle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const GAME_TYPES = [
   { type: 'NLH', name: "No Limit Hold'em", color: '#1877F2' },
@@ -138,6 +139,9 @@ export default function OpenGame() {
 
       const json = await res.json();
       if (json.success || gameJson.success) {
+        // Broadcast to all other tabs so they update instantly
+        broadcastChange('games');
+        broadcastChange('tables');
         const tNum = selectedTable.table_number || selectedTable.number;
         // Navigate to dealer view for this table
         router.push(`/commander/dealer/${tNum}`);
@@ -227,7 +231,7 @@ export default function OpenGame() {
                 <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 text-center">
                   <AlertTriangle className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
                   <p className="text-[#F59E0B] font-medium">No Available Tables</p>
-                  <p className="text-sm text-[#B0B3B8] mt-1">All Tables Are Currently In Use Or Need To Be Added In Table Management.</p>
+                  <p className="text-sm text-[#B0B3B8] mt-1">All Tables Are Currently In Use Or Need To Be Added In Tables & Floor.</p>
                 </div>
               ) : (
                 <div className="space-y-2">

@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 import {
   AlertTriangle, Check, Clock, Loader2, RefreshCw,
   Bell, Plus, X, ChevronDown, Volume2, VolumeX,
@@ -115,8 +116,9 @@ export default function FloorCalls() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  // Realtime updates
+  // Realtime updates — Layer 2 (Supabase) + Layer 1 (BroadcastChannel)
   useRealtimeUpdates(venueId, () => fetchCalls(), !!venueId);
+  useCommanderSync(venueId, fetchCalls);
 
   // Polling + clock
   useEffect(() => {

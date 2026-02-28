@@ -308,9 +308,9 @@ export default function CommanderTablesPage() {
   const idleTables = tables.filter(t => !getGameForTable(t));
 
   return (
-    <CommanderLayout title={`Tables | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=floor">
+    <CommanderLayout title={`Table Management | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=floor">
       <>
-        <SEOHead title="Commander — Table Management" description="Club Commander Poker Room Management Tool." noindex={true} />
+        <SEOHead title="Commander — Tables & Floor" description="Club Commander Poker Room Management Tool." noindex={true} />
         <div className="cmd-page" style={{ minHeight: '100vh', background: '#18191A', fontFamily: 'Inter, sans-serif' }}>
 
           {/* Header */}

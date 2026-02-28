@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Send, Bell, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const QUICK_MESSAGES = [
   { label: 'Game Starting', message: 'New Game Starting! Check In At The Desk.' },
@@ -90,6 +91,7 @@ export default function CommanderAnnouncementsPage() {
           ...prev
         ].slice(0, 10));
         setMessage('');
+        broadcastChange('settings');
         setTimeout(() => setSuccess(null), 3000);
       } else {
         setError(data.error?.message || 'Failed to send announcement');

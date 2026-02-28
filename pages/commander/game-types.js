@@ -11,6 +11,7 @@ import {
   DollarSign, Users, Percent, Clock, GripVertical, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PRESET_GAMES = [
   { name: 'No Limit Hold\'em', short_code: 'NLH', max_players: 9, color: '#1877F2' },
@@ -119,6 +120,7 @@ export default function GameTypesPage() {
       });
       const json = await res.json();
       if (json.success) {
+        broadcastChange('games');
         setSuccess(editingId ? 'Game type updated' : 'Game type created');
         setTimeout(() => setSuccess(null), 3000);
         resetForm();
@@ -139,6 +141,7 @@ export default function GameTypesPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !gt.is_active })
       });
+      broadcastChange('games');
       fetchGameTypes();
     } catch (err) { console.error(err); }
   }
@@ -152,6 +155,7 @@ export default function GameTypesPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
+      broadcastChange('games');
       fetchGameTypes();
     } catch (err) { console.error(err); }
   }

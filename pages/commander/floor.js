@@ -542,7 +542,7 @@ export default function FloorMap() {
             <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
               <button onClick={() => router.push(`/commander/tables`)}
                 style={{ flex: 1, padding: '10px 16px', borderRadius: 10, background: '#1877F2', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-                Open Table Management
+                Open Tables & Floor
               </button>
               <button onClick={() => router.push(`/commander/table-tablets`)}
                 style={{ flex: 1, padding: '10px 16px', borderRadius: 10, background: '#242526', color: '#B0B3B8', fontSize: 13, fontWeight: 600, border: '1px solid #3A3B3C', cursor: 'pointer' }}>

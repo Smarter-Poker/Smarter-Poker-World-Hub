@@ -18,6 +18,7 @@ import {
   Power, X, Check, AlertTriangle, Users
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const MODE_COLORS = {
   inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', label: 'Inactive', icon: Power },
@@ -101,6 +102,7 @@ export default function TableAssignments() {
       });
       const json = await res.json();
       if (json.success) {
+        broadcastChange('tables');
         setSuccess(`Table ${selectedTable.table_number} → ${assignMode === 'inactive' ? 'Inactive' : assignMode === 'cash' ? 'Cash Game' : 'Tournament'}`);
         setTimeout(() => setSuccess(null), 3000);
         setSelectedTable(null);
@@ -131,6 +133,7 @@ export default function TableAssignments() {
       });
       const json = await res.json();
       if (json.success) {
+        broadcastChange('tables');
         setSuccess(`Table ${table.table_number} closed`);
         setTimeout(() => setSuccess(null), 3000);
         await fetchData();

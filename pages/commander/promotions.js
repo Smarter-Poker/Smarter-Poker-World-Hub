@@ -32,6 +32,7 @@ import PromotionEditor from '../../src/components/commander/promotions/Promotion
 import PromotionBuilder from '../../src/components/commander/promotions/PromotionBuilder';
 import HighHandDisplay from '../../src/components/commander/promotions/HighHandDisplay';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -483,6 +484,7 @@ export default function PromotionsPage() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !promo.is_active })
       });
+      broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
       console.error('Toggle failed:', error);
@@ -494,6 +496,7 @@ export default function PromotionsPage() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { 'x-staff-session': staffSession } });
+      broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
       console.error('Delete failed:', error);
@@ -726,6 +729,7 @@ export default function PromotionsPage() {
                       });
                       const result = await res.json();
                       if (result.success) {
+                        broadcastChange('settings');
                         fetchPromotions();
                         setShowCreateModal(false);
                         setUseWizard(false);
@@ -751,6 +755,7 @@ export default function PromotionsPage() {
                   });
                   const result = await res.json();
                   if (result.success) {
+                    broadcastChange('settings');
                     fetchPromotions();
                     setShowCreateModal(false);
                   }

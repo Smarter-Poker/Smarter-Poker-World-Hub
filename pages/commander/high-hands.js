@@ -11,6 +11,7 @@ import {
   Trash2, Star, X, Crown, Clock
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',
@@ -83,6 +84,7 @@ export default function HighHands() {
         setMessage({ type: 'success', text: 'High Hand Recorded!' });
         setShowForm(false);
         setForm({ player_name: '', hand_description: '', hand_rank: '', table_number: '', prize_amount: '' });
+        broadcastChange('settings');
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error || 'Failed to record' });
@@ -99,6 +101,7 @@ export default function HighHands() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ action: 'verify' })
       });
+      broadcastChange('settings');
       fetchData();
     } catch (err) { console.error(err); }
   };
@@ -111,6 +114,7 @@ export default function HighHands() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
+      broadcastChange('settings');
       fetchData();
     } catch (err) { console.error(err); }
   };

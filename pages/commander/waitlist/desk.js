@@ -14,8 +14,9 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import {
-  RefreshCw, Loader2, Users, UserPlus, ArrowLeft,
+  RefreshCw, Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, Clock,
   PhoneCall, Armchair, SkipForward, Trash2,
   MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical,
   Globe, CheckCircle, AlertTriangle
@@ -75,6 +76,8 @@ export default function WaitlistDesk() {
   const [newGameType, setNewGameType] = useState('');
   const [newGameStakes, setNewGameStakes] = useState('');
   const [newGameTable, setNewGameTable] = useState('');
+  const [mustMoveData, setMustMoveData] = useState(null); // Must-move groups from the API
+  const [moveLoading, setMoveLoading] = useState(null);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -127,13 +130,16 @@ export default function WaitlistDesk() {
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const vid = staffData.venue_id || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const [tabRes, wlRes] = await Promise.all([
+      const [tabRes, wlRes, mmRes] = await Promise.all([
         fetch(`/api/commander/tables?venue_id=${vid}`, { headers }),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers })
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }),
+        fetch(`/api/commander/games/must-move-status?venue_id=${vid}`, { headers }).catch(() => ({ json: async () => ({ success: false }) }))
       ]);
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
+      const mmJson = await mmRes.json();
       if (tabJson.success) setTables(tabJson.data?.tables || tabJson.data || []);
+      if (mmJson.success) setMustMoveData(mmJson.data);
       if (wlJson.success) {
         const entries = wlJson.data || [];
         // Auto-delete called entries older than 10 minutes
@@ -170,6 +176,7 @@ export default function WaitlistDesk() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
   useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
+  useCommanderSync(venueId, fetchData);
 
   // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
@@ -690,6 +697,147 @@ export default function WaitlistDesk() {
                       );
                     })}
                   </div>
+
+                  {/* ═══ MUST MOVE LIST ═══ */}
+                  {(() => {
+                    // Find must-move group matching this game column
+                    const mmGroups = mustMoveData?.must_move_groups || [];
+                    const parts = gameLabel.split(' ');
+                    const colGameType = parts[0].toLowerCase();
+                    const colStakes = parts.slice(1).join(' ');
+                    const mmGroup = mmGroups.find(g => {
+                      const gt = (g.game_type || '').toLowerCase();
+                      const st = (g.stakes || '').trim();
+                      return gt === colGameType && st === colStakes;
+                    });
+                    if (!mmGroup || !mmGroup.must_moves || mmGroup.must_moves.length === 0) return null;
+                    const mainGame = mmGroup.main;
+                    const mainOpenSeats = mainGame ? (mainGame.max_seats - mainGame.player_count) : 0;
+
+                    return mmGroup.must_moves.map(mmGame => {
+                      const seats = mmGame.seats || [];
+                      if (seats.length === 0) return null;
+                      const nextPlayer = seats[0];
+                      const canMove = mainOpenSeats > 0;
+                      const mmTimeAgo = (dateStr) => {
+                        if (!dateStr) return '';
+                        const diff = Date.now() - new Date(dateStr).getTime();
+                        const mins = Math.floor(diff / 60000);
+                        if (mins < 60) return `${mins}m`;
+                        return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                      };
+
+                      return (
+                        <div key={mmGame.id} style={{
+                          borderTop: `2px solid ${c.accentColor}44`,
+                          background: `${c.accentColor}08`,
+                        }}>
+                          <div style={{
+                            padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '6px',
+                            background: `linear-gradient(180deg, ${c.accentColor}15, ${c.accentColor}08)`,
+                            borderBottom: `1px solid ${c.accentColor}22`,
+                          }}>
+                            <ArrowRightLeft size={14} color={c.accentColor} />
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: c.accentColor, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                              Must Move List
+                            </span>
+                            <span style={{ fontSize: '11px', color: `${c.textColor}77`, marginLeft: 'auto' }}>
+                              T{mmGame.table_number} → T{mainGame?.table_number}
+                            </span>
+                          </div>
+                          {seats.map((seat, idx) => {
+                            const isNext = idx === 0;
+                            return (
+                              <div key={seat.id} style={{
+                                padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px',
+                                borderBottom: `1px solid ${c.bgColor === '#000000' ? '#1a1a1a' : c.borderColor + '22'}`,
+                                background: isNext ? `${c.accentColor}12` : 'transparent',
+                              }}>
+                                <span style={{
+                                  width: '22px', height: '22px', borderRadius: '4px',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: '11px', fontWeight: 800,
+                                  background: isNext ? c.accentColor : `${c.textColor}15`,
+                                  color: isNext ? c.bgColor : `${c.textColor}66`,
+                                }}>
+                                  {idx + 1}
+                                </span>
+                                <span style={{ flex: 1 }}>
+                                  <span style={{
+                                    fontSize: `${Math.max(16, c.playerFontSize - 6)}px`,
+                                    fontWeight: isNext ? 700 : 500,
+                                    color: isNext ? c.accentColor : `${c.textColor}99`,
+                                  }}>
+                                    {titleCase(seat.player_name || 'Unknown')}
+                                  </span>
+                                  {seat.seated_at && (
+                                    <span style={{ fontSize: '11px', color: `${c.textColor}55`, marginLeft: '6px' }}>
+                                      {mmTimeAgo(seat.seated_at)}
+                                    </span>
+                                  )}
+                                </span>
+                                {isNext && (
+                                  <span style={{
+                                    padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 800,
+                                    letterSpacing: '0.5px',
+                                    background: canMove ? c.accentColor : '#EF4444',
+                                    color: canMove ? c.bgColor : '#fff',
+                                  }}>
+                                    {canMove ? 'NEXT' : 'FULL'}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {/* Move button for position #1 */}
+                          {canMove && nextPlayer && (
+                            <div style={{ padding: '6px 10px' }}>
+                              <button
+                                disabled={moveLoading === mmGame.id}
+                                onClick={async () => {
+                                  setMoveLoading(mmGame.id);
+                                  try {
+                                    const token = getToken();
+                                    const staffSession = getStaffSession();
+                                    const res = await fetch('/api/commander/games/must-move-status', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                                      body: JSON.stringify({ must_move_game_id: mmGame.id, main_game_id: mainGame.id })
+                                    });
+                                    const json = await res.json();
+                                    if (json.success) {
+                                      setSmsStatus({ type: 'sent', text: json.data.message });
+                                      setTimeout(() => setSmsStatus(null), 4000);
+                                      await fetchData();
+                                    } else {
+                                      setSmsStatus({ type: 'none', text: json.error || 'Move failed' });
+                                      setTimeout(() => setSmsStatus(null), 4000);
+                                    }
+                                  } catch { setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 4000); }
+                                  finally { setMoveLoading(null); }
+                                }}
+                                style={{
+                                  width: '100%', padding: '8px', fontSize: '13px', fontWeight: 800,
+                                  letterSpacing: '0.5px', textTransform: 'uppercase',
+                                  background: `linear-gradient(180deg, ${lighten(c.headerColor, 10)}, ${darken(c.headerColor, 10)})`,
+                                  border: `1px solid ${c.accentColor}`, borderRadius: '4px',
+                                  color: '#fff', cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                  opacity: moveLoading === mmGame.id ? 0.6 : 1,
+                                }}
+                              >
+                                {moveLoading === mmGame.id
+                                  ? <Loader2 size={14} className="animate-spin" />
+                                  : <ArrowRight size={14} />}
+                                Move {titleCase(nextPlayer.player_name || 'Next')} → T{mainGame?.table_number}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+
                   {/* Join Wait List Button */}
                   <div style={{ padding: '8px', background: c.cardBgColor, borderTop: `1px solid ${c.borderColor}44`, marginTop: 'auto' }}>
                     <button

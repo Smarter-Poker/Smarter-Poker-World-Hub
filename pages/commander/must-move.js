@@ -198,7 +198,7 @@ export default function MustMoveManager() {
               <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, lineHeight: 1.6 }}>
                 <span style={{ color: '#F59E0B', fontWeight: 700 }}>How it works:</span> When 2+ tables run the same game,
                 the newer table becomes <strong style={{ color: '#F59E0B' }}>must-move</strong>.
-                The longest-sitting player at the must-move table moves to the main game when a seat opens (FIFO order).
+                The longest-sitting player at the must-move table moves to the main game when a seat opens (seated first → moves first).
               </p>
             </div>
 
@@ -358,7 +358,7 @@ export default function MustMoveManager() {
                                 textTransform: 'uppercase', letterSpacing: 1,
                                 marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4,
                               }}>
-                                <Users size={12} /> Move Order (First In → First Out)
+                                <Users size={12} /> Move Order (Seated First → Moves First)
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {game.seats.map((seat, idx) => {

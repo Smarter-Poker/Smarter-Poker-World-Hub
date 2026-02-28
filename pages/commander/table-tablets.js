@@ -487,7 +487,7 @@ export default function TableTabletsPage() {
                             <p style={{ color: '#64748B', marginBottom: 16 }}>No tables configured</p>
                             <button onClick={() => router.push('/commander/tables')}
                                 style={{ padding: '10px 20px', background: '#1877F2', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}>
-                                Go to Table Management
+                                Go to Tables & Floor
                             </button>
                         </div>
                     ) : (

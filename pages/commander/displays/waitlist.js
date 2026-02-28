@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
+import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import {
   Loader2, Users, ArrowLeft,
   MessageSquare, Phone,
@@ -117,6 +118,7 @@ export default function WaitlistDisplay() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
   useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
+  useCommanderSync(venueId, fetchData);
 
   // ── GROUP & SORT (identical to desk.js) ──────────────────────────
   const waitlistByGame = {};

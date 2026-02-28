@@ -17,6 +17,7 @@ import {
   Users, DollarSign, Clock, Lock, FileText, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function CloseDay() {
   const router = useRouter();
@@ -96,6 +97,9 @@ export default function CloseDay() {
         });
       }
 
+      // Broadcast to all other tabs
+      broadcastChange('tables');
+      broadcastChange('games');
       await fetchStatus();
     } catch (err) { console.error(err); }
     finally { setClosing(false); }

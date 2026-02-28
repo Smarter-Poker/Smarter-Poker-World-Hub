@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -135,6 +136,7 @@ export default function CommanderSettingsPage() {
 
       const data = await res.json();
       if (data.success) {
+        broadcastChange('settings');
         setSuccess('Settings saved successfully');
         setTimeout(() => setSuccess(null), 3000);
       } else {
