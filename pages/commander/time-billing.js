@@ -11,9 +11,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  Clock, DollarSign, Play, Square, Users, Search,
-  Plus, Minus, ChevronDown, Loader2, RefreshCw, CheckCircle2,
-  AlertTriangle, X, Timer, Receipt, Settings, Package, Save, Trash2, Lock, Delete
+  Timer, DollarSign, Clock, Loader2, Search, Square, Settings, Lock,
+  Package, Trash2, Plus, Save, Delete, CheckCircle2
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -61,6 +60,13 @@ export default function TimeBilling() {
   const [pinVerifying, setPinVerifying] = useState(false);
   const [verifiedStaff, setVerifiedStaff] = useState(null);
   const [pendingAction, setPendingAction] = useState(null); // { type: 'payment'|'stop', session }
+  const [pinCacheExpiry, setPinCacheExpiry] = useState(0);
+
+  // Check if PIN is still cached
+  const isPinCached = () => verifiedStaff && Date.now() < pinCacheExpiry;
+
+  // Clear PIN cache
+  const lockPin = () => { setVerifiedStaff(null); setPinCacheExpiry(0); };
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -173,6 +179,16 @@ export default function TimeBilling() {
   // PIN gate: request PIN before a financial action
   const requestPinFor = (type, session = null) => {
     if (type === 'payment' && (!payAmount || parseFloat(payAmount) <= 0)) return;
+    // If PIN is cached, skip keypad
+    if (isPinCached()) {
+      setPendingAction({ type, session });
+      if (type === 'payment') {
+        doRecordPayment(verifiedStaff);
+      } else if (type === 'stop') {
+        doStopSession(session?.id, verifiedStaff);
+      }
+      return;
+    }
     setPinDigits('');
     setPinError('');
     setPendingAction({ type, session });
@@ -199,6 +215,8 @@ export default function TimeBilling() {
         return;
       }
       setVerifiedStaff(pinJson.data.staff);
+      // Cache PIN for 5 minutes
+      setPinCacheExpiry(Date.now() + 5 * 60 * 1000);
       setPinStep(false); // Close PIN modal
 
       // Execute the pending action
