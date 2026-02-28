@@ -31,15 +31,19 @@ export default function CommanderLogin() {
         // Verify Supabase session is still valid
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // Session valid — go straight to dashboard
-          router.push('/commander/dashboard').catch(() => {});
+          // Session valid — go straight to dashboard (replace to avoid invariant error)
+          if (router.pathname !== '/commander/dashboard') {
+            router.replace('/commander/dashboard').catch(() => { });
+          }
           return;
         }
 
         // Session expired — try to refresh
         const { data: { session: refreshed } } = await supabase.auth.refreshSession();
         if (refreshed) {
-          router.push('/commander/dashboard').catch(() => {});
+          if (router.pathname !== '/commander/dashboard') {
+            router.replace('/commander/dashboard').catch(() => { });
+          }
           return;
         }
 
@@ -120,7 +124,7 @@ export default function CommanderLogin() {
         localStorage.removeItem('commander_remember');
       }
 
-      router.push('/commander/dashboard').catch(() => {});
+      router.replace('/commander/dashboard').catch(() => { });
 
     } catch (err) {
       console.error('Login error:', err);
@@ -143,10 +147,10 @@ export default function CommanderLogin() {
   return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
       <SEOHead
-                title="Club Commander — Sign In"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Club Commander — Sign In"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div className="max-w-md w-full">
         {/* Logo */}

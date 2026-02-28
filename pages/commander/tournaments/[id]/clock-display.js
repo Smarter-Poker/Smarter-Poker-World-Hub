@@ -351,7 +351,7 @@ export default function ClockDisplay() {
     controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 10000);
   };
 
-  const goFullscreen = () => { document.documentElement.requestFullscreen?.(); };
+  const goFullscreen = () => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* Fullscreen not granted — user gesture or permission denied */ } };
 
   if (!data) return (
     <div style={S.loading}><p style={{ color: '#fff', fontSize: 24, fontFamily: 'Inter, sans-serif' }}>Loading Tournament Clock...</p></div>

@@ -37,11 +37,13 @@ export default function DailyPresetsPage() {
   const [hardStopTime, setHardStopTime] = useState('23:00');
   const [hardStopSaving, setHardStopSaving] = useState(false);
   const [hardStopSuccess, setHardStopSuccess] = useState(null);
+  const [hardStopDirty, setHardStopDirty] = useState(false);
 
   // Auto Comp state
   const [autoCompRate, setAutoCompRate] = useState(0);
   const [autoCompSaving, setAutoCompSaving] = useState(false);
   const [autoCompSuccess, setAutoCompSuccess] = useState(null);
+  const [autoCompDirty, setAutoCompDirty] = useState(false);
 
   // Form state — now includes promotions, tournaments, and schedule
   const [form, setForm] = useState({
@@ -101,6 +103,7 @@ export default function DailyPresetsPage() {
       });
       const data = await res.json();
       if (data.success) {
+        setHardStopDirty(false);
         setHardStopSuccess('Hard Stop settings saved');
         setTimeout(() => setHardStopSuccess(null), 3000);
       }
@@ -121,6 +124,7 @@ export default function DailyPresetsPage() {
       });
       const data = await res.json();
       if (data.success) {
+        setAutoCompDirty(false);
         setAutoCompSuccess('Hourly comp rate saved');
         setTimeout(() => setAutoCompSuccess(null), 3000);
       }
@@ -374,10 +378,12 @@ export default function DailyPresetsPage() {
                       <p className="text-xs text-[#B0B3B8]">Auto-Close All Cash Games At A Set Time</p>
                     </div>
                   </div>
-                  <button onClick={handleHardStopSave} disabled={hardStopSaving}
-                    className="px-4 py-2 bg-[#1877F2] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
-                    {hardStopSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
-                  </button>
+                  {hardStopDirty && (
+                    <button onClick={handleHardStopSave} disabled={hardStopSaving}
+                      className="px-4 py-2 bg-[#1877F2] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                      {hardStopSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+                    </button>
+                  )}
                 </div>
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between">
@@ -385,7 +391,7 @@ export default function DailyPresetsPage() {
                       <p className="font-medium text-white">Enable Hard Stop</p>
                       <p className="text-sm text-[#B0B3B8]">Automatically Close All Games And Log Out Players At The Scheduled Time</p>
                     </div>
-                    <button onClick={() => setHardStopEnabled(!hardStopEnabled)}
+                    <button onClick={() => { setHardStopEnabled(!hardStopEnabled); setHardStopDirty(true); }}
                       className={`w-12 h-7 rounded-full transition-colors relative ${hardStopEnabled ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`}>
                       <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${hardStopEnabled ? 'right-1' : 'left-1'}`} />
                     </button>
@@ -397,7 +403,7 @@ export default function DailyPresetsPage() {
                           <p className="font-medium text-white">Stop Time</p>
                           <p className="text-sm text-[#B0B3B8]">All Cash Games End At This Time</p>
                         </div>
-                        <input type="time" value={hardStopTime} onChange={(e) => setHardStopTime(e.target.value)}
+                        <input type="time" value={hardStopTime} onChange={(e) => { setHardStopTime(e.target.value); setHardStopDirty(true); }}
                           className="h-10 px-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white text-center focus:outline-none focus:border-[#1877F2]"
                           style={{ colorScheme: 'dark' }} />
                       </div>
@@ -426,17 +432,19 @@ export default function DailyPresetsPage() {
                       <p className="text-xs text-[#B0B3B8]">Auto-Award Comps To All Seated Players Per Hour</p>
                     </div>
                   </div>
-                  <button onClick={handleAutoCompSave} disabled={autoCompSaving}
-                    className="px-4 py-2 bg-[#31A24C] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
-                    {autoCompSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
-                  </button>
+                  {autoCompDirty && (
+                    <button onClick={handleAutoCompSave} disabled={autoCompSaving}
+                      className="px-4 py-2 bg-[#31A24C] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                      {autoCompSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+                    </button>
+                  )}
                 </div>
                 <div className="p-4 space-y-4">
                   <div>
                     <p className="text-sm text-[#B0B3B8] mb-2">Select Rate Per Hour Of Play</p>
                     <div className="flex flex-wrap gap-2">
                       {[0, 0.5, 1, 1.5, 2].map(rate => (
-                        <button key={rate} onClick={() => setAutoCompRate(rate)}
+                        <button key={rate} onClick={() => { setAutoCompRate(rate); setAutoCompDirty(true); }}
                           className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${autoCompRate === rate
                             ? 'bg-[#31A24C]/20 border-[#31A24C] text-[#31A24C]'
                             : 'bg-[#3A3B3C] border-[#4A4B4C] text-[#B0B3B8] hover:border-[#31A24C]/50'
@@ -450,7 +458,7 @@ export default function DailyPresetsPage() {
                     <p className="text-sm text-[#B0B3B8]">Custom:</p>
                     <div className="flex items-center bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl overflow-hidden">
                       <span className="pl-3 text-sm text-[#B0B3B8]">$</span>
-                      <input type="number" value={autoCompRate || ''} onChange={(e) => setAutoCompRate(parseFloat(e.target.value) || 0)}
+                      <input type="number" value={autoCompRate || ''} onChange={(e) => { setAutoCompRate(parseFloat(e.target.value) || 0); setAutoCompDirty(true); }}
                         step="0.25" min="0" max="50" placeholder="0.00"
                         className="w-20 px-2 py-2 bg-transparent text-sm text-white focus:outline-none" />
                       <span className="pr-3 text-sm text-[#B0B3B8]">/hr</span>
@@ -829,6 +837,139 @@ export default function DailyPresetsPage() {
                 })}
               </div>
             )}
+
+            {/* ════════════════════════════════════════════════════════════════
+                STARTER PRESET TEMPLATES — 6 unique configurations
+            ════════════════════════════════════════════════════════════════ */}
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-[#3A3B3C]" />
+                <span className="text-xs text-[#B0B3B8] font-semibold uppercase tracking-wider">Starter Templates</span>
+                <div className="flex-1 h-px bg-[#3A3B3C]" />
+              </div>
+              <p className="text-sm text-[#B0B3B8] text-center mb-4">Quick-Start Configurations — Click To Use As A Starting Point</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  {
+                    name: 'Weeknight Cash',
+                    description: 'Standard evening session — 3 tables for regular weeknight traffic',
+                    icon: '🌙',
+                    color: '#1877F2',
+                    tables: [
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '1/3', count: 2, max_players: 9 },
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '2/5', count: 1, max_players: 9 }
+                    ],
+                    promotions: [],
+                    tournaments: []
+                  },
+                  {
+                    name: 'Weekend Warriors',
+                    description: 'Peak hours — 6 tables across NLH and PLO for maximum action',
+                    icon: '🔥',
+                    color: '#EF4444',
+                    tables: [
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '1/3', count: 3, max_players: 9 },
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '2/5', count: 2, max_players: 9 },
+                      { game_type_name: 'Pot Limit Omaha', short_code: 'PLO', stakes: '2/5', count: 1, max_players: 9 }
+                    ],
+                    promotions: [],
+                    tournaments: []
+                  },
+                  {
+                    name: 'Tournament Thursday',
+                    description: 'Cash game + weekly freezeout tournament combo',
+                    icon: '🏆',
+                    color: '#F59E0B',
+                    tables: [
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '1/2', count: 2, max_players: 9 }
+                    ],
+                    promotions: [],
+                    tournaments: [
+                      { name: '$100 NLH Freezeout', tournament_type: 'freezeout', buyin_amount: 100, buyin_fee: 20, starting_chips: 15000, start_time: '19:00', guaranteed_pool: 2000, max_entries: null, allows_rebuys: false, allows_addon: false }
+                    ]
+                  },
+                  {
+                    name: 'High Stakes Night',
+                    description: '3 premium tables for high-roller action',
+                    icon: '💎',
+                    color: '#8B5CF6',
+                    tables: [
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '5/10', count: 2, max_players: 9 },
+                      { game_type_name: 'Pot Limit Omaha', short_code: 'PLO', stakes: '5/10', count: 1, max_players: 9 }
+                    ],
+                    promotions: [],
+                    tournaments: []
+                  },
+                  {
+                    name: 'Sunday Special',
+                    description: 'Full day — cash games + bounty tournament for the Sunday crowd',
+                    icon: '☀️',
+                    color: '#31A24C',
+                    tables: [
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '1/3', count: 2, max_players: 9 },
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '2/5', count: 1, max_players: 9 }
+                    ],
+                    promotions: [],
+                    tournaments: [
+                      { name: '$200 Bounty Special', tournament_type: 'bounty', buyin_amount: 200, buyin_fee: 30, starting_chips: 20000, start_time: '14:00', guaranteed_pool: 5000, max_entries: null, allows_rebuys: false, allows_addon: false }
+                    ]
+                  },
+                  {
+                    name: 'Minimal Monday',
+                    description: 'Single table for slow nights — low overhead, easy to manage',
+                    icon: '🎯',
+                    color: '#6B7280',
+                    tables: [
+                      { game_type_name: 'No Limit Hold\'em', short_code: 'NLH', stakes: '1/2', count: 1, max_players: 9 }
+                    ],
+                    promotions: [],
+                    tournaments: []
+                  }
+                ].map((tmpl, idx) => (
+                  <div key={idx} className="bg-[#242526] rounded-2xl border border-[#3A3B3C] p-4 flex flex-col">
+                    <div className="flex items-start gap-3 mb-3">
+                      <span className="text-2xl">{tmpl.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-white text-sm">{tmpl.name}</h4>
+                        <p className="text-xs text-[#B0B3B8] mt-0.5 line-clamp-2">{tmpl.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {tmpl.tables.map((t, i) => (
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-md font-medium" style={{ background: `${tmpl.color}15`, color: tmpl.color }}>
+                          {t.count}× {t.short_code} {t.stakes}
+                        </span>
+                      ))}
+                      {tmpl.tournaments.map((t, i) => (
+                        <span key={`t${i}`} className="text-[10px] px-2 py-0.5 rounded-md bg-[#F59E0B]/10 text-[#F59E0B] font-medium">
+                          🏆 {t.name}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setForm({
+                          name: tmpl.name,
+                          description: tmpl.description,
+                          tables: tmpl.tables.map(t => ({ ...t })),
+                          promotions: [],
+                          tournaments: tmpl.tournaments.map(t => ({ ...t })),
+                          start_time: '',
+                          day_of_week: []
+                        });
+                        setEditingId(null);
+                        setShowForm(true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="mt-auto w-full py-2 rounded-xl text-xs font-semibold border transition-all hover:opacity-80"
+                      style={{ borderColor: `${tmpl.color}66`, color: tmpl.color, background: `${tmpl.color}08` }}
+                    >
+                      Use This Template
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </main>
         </div>
         <style jsx>{``}</style>

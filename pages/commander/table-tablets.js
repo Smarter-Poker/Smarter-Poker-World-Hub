@@ -348,8 +348,7 @@ export default function TableTabletsPage() {
                                                             const isOccupied = seatInfo ? true : (seatNum <= seatedCount && seatData.length === 0);
                                                             const timerColor = isOccupied && seatInfo?.time_remaining != null ? getTimerColor(seatInfo.time_remaining) : null;
                                                             const playerName = seatInfo?.player_name || (isOccupied ? `P${seatNum}` : '');
-                                                            const tierColors = { daily: '#22D3EE', weekly: '#31A24C', monthly: '#F59E0B', yearly: '#8B5CF6' };
-                                                            const memberTierColor = seatInfo?.membership_tier ? tierColors[seatInfo.membership_tier] : null;
+                                                            const memberActive = seatInfo?.membership_status === 'active';
 
                                                             return (
                                                                 <div key={idx} style={{
@@ -365,9 +364,9 @@ export default function TableTabletsPage() {
                                                                 }}>
                                                                     {isOccupied ? (
                                                                         <>
-                                                                            {/* Membership tier dot */}
-                                                                            {memberTierColor && (
-                                                                                <div style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', background: memberTierColor, border: '1px solid #242526' }} />
+                                                                            {/* Membership active/inactive dot */}
+                                                                            {seatInfo?.membership_status && (
+                                                                                <div style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', background: memberActive ? '#31A24C' : '#EF4444', border: '1px solid #242526' }} />
                                                                             )}
                                                                             <span style={{ color: '#fff', fontSize: 9, lineHeight: 1, maxWidth: 42, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
                                                                                 {playerName.substring(0, 6)}
@@ -391,20 +390,17 @@ export default function TableTabletsPage() {
                                                         })}
                                                     </div>
 
-                                                    {/* Footer — countdown + membership summary */}
+                                                    {/* Footer — countdown summary */}
                                                     {hasTimed && (
                                                         <div style={{ padding: '8px 16px', borderTop: '1px solid #3A3B3C', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                                                             {seatData.filter(s => s.time_remaining !== undefined).map((s, i) => {
                                                                 const tColor = getTimerColor(s.time_remaining);
-                                                                const tierColors = { daily: '#22D3EE', weekly: '#31A24C', monthly: '#F59E0B', yearly: '#8B5CF6' };
-                                                                const mColor = s.membership_tier ? tierColors[s.membership_tier] : null;
                                                                 return (
                                                                     <span key={i} style={{
                                                                         fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
                                                                         background: `${tColor}20`, color: tColor,
                                                                         display: 'inline-flex', alignItems: 'center', gap: 3,
                                                                     }}>
-                                                                        {mColor && <span style={{ width: 5, height: 5, borderRadius: '50%', background: mColor, display: 'inline-block' }} />}
                                                                         S{s.seat_number}: {formatTime(s.time_remaining)}
                                                                         {s.time_balance_minutes > 0 && <span style={{ fontSize: 8, opacity: 0.7 }}>({Math.floor(s.time_balance_minutes / 60)}h)</span>}
                                                                     </span>
