@@ -25,8 +25,10 @@ import { calculateICM, calculateChipChop, formatPrize } from '../../../../src/li
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
-  const m = Math.floor(seconds / 60);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
@@ -376,8 +378,28 @@ export default function ClockDisplay() {
   const avgStack = playersIn > 0 ? Math.round(totalChips / playersIn) : 0;
   const prizePool = stats.prize_pool || 0;
   const payouts = t.payout_structure || t.custom_payouts || stats.payouts || [];
+  const numPaid = payouts.length;
 
+  // Next Break — compute wall-clock time (TD-style: "Next break at 3:26 PM")
   const nextBreakSec = clockState.next_break_seconds;
+  let nextBreakDisplay = '--:--';
+  if (nextBreakSec && nextBreakSec > 0) {
+    const breakTime = new Date(Date.now() + nextBreakSec * 1000);
+    nextBreakDisplay = 'at ' + breakTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } else {
+    // Compute from blind structure — find next break level
+    const currentLevelIdx = clock.current_level || 0;
+    let secsUntilBreak = displaySeconds;
+    for (let i = currentLevelIdx + 1; i < blindStructure.length; i++) {
+      const lvl = blindStructure[i];
+      if (lvl.is_break) {
+        const breakWallTime = new Date(Date.now() + secsUntilBreak * 1000);
+        nextBreakDisplay = 'at ' + breakWallTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        break;
+      }
+      secsUntilBreak += (lvl.duration_minutes || lvl.duration || 15) * 60;
+    }
+  }
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
   const blindStructure = t.blind_structure || [];
 
@@ -484,7 +506,14 @@ export default function ClockDisplay() {
           </div>
         </div>
 
-        {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}
+        {/* ===== TD-STYLE SUB-HEADER INFO ROW ===== */}
+        <div style={S.subHeader}>
+          <span style={{ fontWeight: 700 }}>Round: {isBreak ? 'Break' : currentLevel}</span>
+          <span>Next Break {nextBreakDisplay}</span>
+          <span style={{ color: '#31A24C', fontWeight: 700 }}>Players Remaining: {playersIn}</span>
+        </div>
+
+        {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}}
         {activeScreen === SCREENS.CLOCK && (
           <div style={isPortrait ? S.mainPortrait : S.main}>
             {/* LEFT — Stats (portrait: horizontal bar) */}
@@ -558,7 +587,7 @@ export default function ClockDisplay() {
                 <>
                   <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
                   <StatCell label="Elapsed Time" value={elapsedDisplay} />
-                  <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+                  <StatCell label="Next Break" value={nextBreakDisplay} />
                 </>
               )}
               {displayOpts.show_chip_colors && (
@@ -663,20 +692,10 @@ export default function ClockDisplay() {
         {/* ===== FOOTER — Payouts (on clock screen only) ===== */}
         {activeScreen === SCREENS.CLOCK && displayOpts.show_payouts && (
           <div style={S.footer}>
-            {payouts.length > 0 ? (
-              payouts.slice(0, 7).map((p, i) => {
-                const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-                const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                return (
-                  <span key={i} style={S.payoutItem}>
-                    <span style={{ opacity: 0.6 }}>{place} Place:</span>{' '}
-                    <span style={{ fontWeight: 700 }}>{formatMoney(amount)}</span>
-                  </span>
-                );
-              })
-            ) : (
-              <span style={{ opacity: 0.4 }}>Payouts TBD</span>
-            )}
+            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}># Entries:</span> <span style={{ fontWeight: 700 }}>{totalEntries}</span></span>
+            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}># Paid:</span> <span style={{ fontWeight: 700 }}>{numPaid}</span></span>
+            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}># Chips:</span> <span style={{ fontWeight: 700 }}>{formatChipCount(totalChips)}</span></span>
+            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}>Prize Pool:</span> <span style={{ fontWeight: 700 }}>{formatMoney(prizePool)}</span></span>
           </div>
         )}
 

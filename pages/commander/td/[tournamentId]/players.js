@@ -250,12 +250,17 @@ export default function TDPlayers() {
               onClick={() => setSelectedPlayer(player)}
               className="w-full flex items-center gap-3 px-4 py-3 bg-[#242526] rounded-xl border border-[#3A3B3C] active:bg-[#3A3B3C] text-left"
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-                player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
-                  'bg-[#B0B3B8]/20 text-[#B0B3B8]'
-                }`}>
-                {player.table_number ? `${player.table_number}-${player.seat_number}` : '--'}
-              </div>
+              {player.avatar_url ? (
+                <img src={player.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2"
+                  style={{ borderColor: player.status === 'active' ? '#1877F2' : player.status === 'eliminated' ? '#EF4444' : '#B0B3B8' }} />
+              ) : (
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
+                  player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                    'bg-[#B0B3B8]/20 text-[#B0B3B8]'
+                  }`}>
+                  {player.player_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??'}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[#E4E6EB] truncate">{player.player_name}</p>
                 <p className="text-xs text-[#B0B3B8]">
@@ -417,8 +422,8 @@ export default function TDPlayers() {
                           <button key={s} onClick={() => !isOccupied && setMoveSeat(String(s))}
                             disabled={isOccupied}
                             className={`relative rounded-xl p-2 text-center border-2 transition-all ${isSelected ? 'bg-[#1877F2]/20 border-[#1877F2] text-[#1877F2]' :
-                                isOccupied ? 'bg-[#3A3B3C]/40 border-[#3A3B3C] text-[#666] cursor-not-allowed' :
-                                  'bg-[#31A24C]/10 border-[#31A24C]/40 text-[#31A24C] active:bg-[#31A24C]/20'
+                              isOccupied ? 'bg-[#3A3B3C]/40 border-[#3A3B3C] text-[#666] cursor-not-allowed' :
+                                'bg-[#31A24C]/10 border-[#31A24C]/40 text-[#31A24C] active:bg-[#31A24C]/20'
                               }`}>
                             <div className="text-lg font-bold">{s}</div>
                             <div className="text-[9px] truncate">

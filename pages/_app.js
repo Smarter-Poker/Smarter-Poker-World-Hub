@@ -24,6 +24,7 @@ import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import dynamic from 'next/dynamic';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, createContext, useState, useContext } from 'react';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';

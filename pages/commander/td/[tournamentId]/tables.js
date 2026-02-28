@@ -311,10 +311,14 @@ export default function TDTablesMap() {
                     return (
                       <div key={pos.seat} className="absolute flex flex-col items-center"
                         style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${player ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                          }`}>
-                          {pos.seat}
-                        </div>
+                        {player?.avatar_url ? (
+                          <img src={player.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-white/30" />
+                        ) : (
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${player ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                            }`}>
+                            {player ? (player.player_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || pos.seat) : pos.seat}
+                          </div>
+                        )}
                         {player && (
                           <span className="text-[8px] text-[#B0B3B8] mt-0.5 max-w-[50px] truncate text-center">
                             {player.player_name?.split(' ')[0]}
@@ -334,9 +338,13 @@ export default function TDTablesMap() {
                     .map(player => (
                       <div key={player.entry_id}
                         className="flex items-center gap-3 px-3 py-3 bg-[#3A3B3C]/50 rounded-xl">
-                        <span className="w-7 h-7 rounded-full bg-[#1877F2]/20 text-[#1877F2] flex items-center justify-center text-xs font-bold">
-                          {player.seat_number}
-                        </span>
+                        {player.avatar_url ? (
+                          <img src={player.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-[#1877F2]/40 flex-shrink-0" />
+                        ) : (
+                          <span className="w-7 h-7 rounded-full bg-[#1877F2]/20 text-[#1877F2] flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {player.seat_number}
+                          </span>
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[#E4E6EB] truncate">{player.player_name}</p>
                           <p className="text-xs text-[#B0B3B8]">

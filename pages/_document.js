@@ -36,17 +36,10 @@ export default function Document() {
                 <meta name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
                 <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
 
-                {/* PWA Manifest — Required for iOS Safari Push Notifications */}
-                <link rel="manifest" href="/manifest.json" />
-                <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
-                <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-                <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
-
-                {/* PWA / Mobile App settings */}
+                {/* PWA settings — manifest/icons are in _app.js for route-based switching */}
                 <meta name="mobile-web-app-capable" content="Yes" />
                 <meta name="apple-mobile-web-app-capable" content="Yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="Black-translucent" />
-                <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
 
                 {/* Theme color for mobile browsers */}
                 <meta name="theme-color" content="#0a0a15" />

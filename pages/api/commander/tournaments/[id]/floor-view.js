@@ -52,6 +52,19 @@ export default async function handler(req, res) {
     const eliminatedEntries = entries.filter(e => e.status === 'eliminated');
     const registeredEntries = entries.filter(e => e.status === 'registered');
 
+    // Batch fetch profile avatars for linked players
+    const avatarMap = {};
+    const playerIds = [...new Set(entries.map(e => e.player_id).filter(Boolean))];
+    if (playerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, avatar_url, display_name')
+        .in('id', playerIds);
+      if (profiles) {
+        profiles.forEach(p => { avatarMap[p.id] = { avatar_url: p.avatar_url, display_name: p.display_name }; });
+      }
+    }
+
     // Build table map — get real max_seats from commander_tables
     const tableNumbers = [...new Set(activeEntries.map(e => e.table_number).filter(Boolean))].sort((a, b) => a - b);
 
@@ -89,7 +102,8 @@ export default async function handler(req, res) {
           current_chips: e.current_chips,
           rebuy_count: e.rebuy_count || 0,
           addon_taken: e.addon_taken || false,
-          locked: e.metadata?.locked_seat || false
+          locked: e.metadata?.locked_seat || false,
+          avatar_url: avatarMap[e.player_id]?.avatar_url || null
         }));
 
       const count = tableCounts[tn];
@@ -255,6 +269,7 @@ export default async function handler(req, res) {
           registered_at: e.created_at,
           phone: e.phone,
           metadata: e.metadata,
+          avatar_url: avatarMap[e.player_id]?.avatar_url || null,
         })),
         eliminated: eliminatedEntries
           .sort((a, b) => (b.finish_position || 999) - (a.finish_position || 999))
