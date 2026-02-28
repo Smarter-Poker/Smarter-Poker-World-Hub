@@ -3,8 +3,9 @@
  * Create and manage venue promotions (bad beat, high hand, etc.)
  * Dark industrial sci-fi gaming theme
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
+import { createClient } from '@supabase/supabase-js';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Gift,
@@ -25,14 +26,18 @@ import {
   Award,
   Spade,
   CheckCircle,
-  User
+  User,
+  Copy,
+  BarChart3,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import PromotionCard from '../../src/components/commander/promotions/PromotionCard';
 import PromotionEditor from '../../src/components/commander/promotions/PromotionEditor';
 import PromotionBuilder from '../../src/components/commander/promotions/PromotionBuilder';
 import HighHandDisplay from '../../src/components/commander/promotions/HighHandDisplay';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -531,6 +536,84 @@ export default function PromotionsPage() {
     }
   }, [venueId, fetchPromotions, fetchHighHands]);
 
+  // Commander Data Bus — sync promotions across tabs
+  useCommanderSync(venueId, () => { fetchPromotions(); fetchHighHands(); }, { entities: ['settings'] });
+
+  // ── Supabase Realtime — auto-refresh on promotion changes ──
+  useEffect(() => {
+    if (!venueId) return;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) return;
+    const sb = createClient(supabaseUrl, supabaseKey);
+    const channel = sb.channel('promotions-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
+        () => { fetchPromotions(); }
+      )
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, [venueId, fetchPromotions]);
+
+  // ── Bulk selection state ──
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const selectAll = () => {
+    if (selectedIds.size === filteredPromos.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredPromos.map(p => p.id)));
+    }
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+  async function bulkToggle(activate) {
+    const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+    const staffSession = localStorage.getItem('commander_staff') || '';
+    await Promise.all([...selectedIds].map(id =>
+      fetch(`/api/commander/promotions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
+      })
+    ));
+    clearSelection();
+    broadcastChange('settings');
+    fetchPromotions();
+  }
+  async function bulkDelete() {
+    if (!confirm(`Delete ${selectedIds.size} promotion(s)?`)) return;
+    const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+    const staffSession = localStorage.getItem('commander_staff') || '';
+    await Promise.all([...selectedIds].map(id =>
+      fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+    ));
+    clearSelection();
+    broadcastChange('settings');
+    fetchPromotions();
+  }
+
+  // ── Analytics computed data ──
+  const analytics = useMemo(() => {
+    if (!promotions.length) return null;
+    const totalAwarded = promotions.reduce((s, p) => s + (p.total_awarded || 0), 0);
+    const totalValue = promotions.reduce((s, p) => s + (p.total_value_awarded || 0), 0);
+    const activeCount = promotions.filter(p => p.status === 'active' || p.is_active).length;
+    const byType = {};
+    promotions.forEach(p => {
+      const t = p.promotion_type || 'other';
+      if (!byType[t]) byType[t] = { count: 0, awarded: 0, value: 0 };
+      byType[t].count++;
+      byType[t].awarded += p.total_awarded || 0;
+      byType[t].value += p.total_value_awarded || 0;
+    });
+    return { totalAwarded, totalValue, activeCount, total: promotions.length, byType };
+  }, [promotions]);
+
   useEffect(() => {
     if (activeTab === 'promo-codes' && promoCodes.length === 0) {
       fetchPromoCodes();
@@ -574,10 +657,11 @@ export default function PromotionsPage() {
 
   async function handleToggle(promo) {
     try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !promo.is_active })
       });
       broadcastChange('settings');
@@ -590,8 +674,9 @@ export default function PromotionsPage() {
   async function handleDelete(promo) {
     if (!confirm(`Delete "${promo.name}"?`)) return;
     try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { 'x-staff-session': staffSession } });
+      await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
@@ -602,6 +687,53 @@ export default function PromotionsPage() {
   function handleEdit(promo) {
     setEditingPromo(promo);
     setShowEditModal(true);
+  }
+
+  async function handleDuplicate(promo) {
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const cloneData = {
+        venue_id: venueId,
+        name: `${promo.name} (Copy)`,
+        description: promo.description,
+        promotion_type: promo.promotion_type,
+        prize_type: promo.prize_type,
+        prize_value: promo.prize_value,
+        prize_description: promo.prize_description,
+        start_date: promo.start_date,
+        end_date: promo.end_date,
+        days_of_week: promo.days_of_week,
+        start_time: promo.start_time,
+        end_time: promo.end_time,
+        is_recurring: promo.is_recurring,
+        min_stakes: promo.min_stakes,
+        min_hours_played: promo.min_hours_played,
+        min_buyin: promo.min_buyin,
+        game_types: promo.game_types,
+        qualifying_hands: promo.qualifying_hands,
+        is_featured: false,
+        image_url: promo.image_url,
+        terms_conditions: promo.terms_conditions,
+        settings: promo.settings,
+        status: 'draft'
+      };
+      const res = await fetch('/api/commander/promotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify(cloneData)
+      });
+      const result = await res.json();
+      if (result.promotion || result.success) {
+        broadcastChange('settings');
+        fetchPromotions();
+      } else {
+        alert('Duplicate failed: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Duplicate promo failed:', error);
+      alert('Duplicate failed: ' + error.message);
+    }
   }
 
   const filteredPromos = promotions.filter(p => {
@@ -722,6 +854,7 @@ export default function PromotionsPage() {
                 { key: 'promotions', label: 'Promotions', icon: Gift, color: '#1877F2' },
                 { key: 'high-hands', label: 'High Hands', icon: Trophy, color: '#F59E0B' },
                 { key: 'promo-codes', label: 'Promo Codes', icon: Target, color: '#31A24C' },
+                { key: 'analytics', label: 'Analytics', icon: BarChart3, color: '#8B5CF6' },
               ].map(tab => {
                 const isActive = activeTab === tab.key;
                 const TabIcon = tab.icon;
@@ -775,6 +908,53 @@ export default function PromotionsPage() {
                   })}
                 </div>
 
+                {/* Bulk Action Toolbar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: selectedIds.size > 0 ? 16 : 0 }}>
+                  <button
+                    onClick={selectAll}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '6px 12px', borderRadius: 8,
+                      background: selectedIds.size > 0 ? 'rgba(24,119,242,0.1)' : '#3A3B3C',
+                      color: selectedIds.size > 0 ? '#1877F2' : '#8A8D91',
+                      border: `1px solid ${selectedIds.size > 0 ? 'rgba(24,119,242,0.3)' : '#4E4F50'}`,
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {selectedIds.size > 0 ? <CheckSquare size={14} /> : <Square size={14} />}
+                    {selectedIds.size > 0 ? `${selectedIds.size} Selected` : 'Select'}
+                  </button>
+                  {selectedIds.size > 0 && (
+                    <>
+                      <button
+                        onClick={() => bulkToggle(true)}
+                        style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(49,162,76,0.1)', color: '#4ADE80', border: '1px solid rgba(49,162,76,0.3)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Activate All
+                      </button>
+                      <button
+                        onClick={() => bulkToggle(false)}
+                        style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', color: '#FBBF24', border: '1px solid rgba(245,158,11,0.3)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Deactivate All
+                      </button>
+                      <button
+                        onClick={bulkDelete}
+                        style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        <Trash2 size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                        Delete
+                      </button>
+                      <button
+                        onClick={clearSelection}
+                        style={{ padding: '6px 12px', borderRadius: 8, background: '#3A3B3C', color: '#B0B3B8', border: '1px solid #4E4F50', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+
                 {loading ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
                     <Loader2 size={32} color="#1877F2" className="animate-spin" />
@@ -806,12 +986,29 @@ export default function PromotionsPage() {
                     gap: 16,
                   }}>
                     {filteredPromos.map((promo) => (
-                      <PromotionCard
-                        key={promo.id}
-                        promotion={promo}
-                        onEdit={handleEdit}
-                        onViewAwards={handleViewAwards}
-                      />
+                      <div key={promo.id} style={{ position: 'relative' }}>
+                        {selectedIds.size > 0 && (
+                          <button
+                            onClick={() => toggleSelect(promo.id)}
+                            style={{
+                              position: 'absolute', top: 8, right: 8, zIndex: 10,
+                              background: selectedIds.has(promo.id) ? '#1877F2' : '#3A3B3C',
+                              border: '2px solid ' + (selectedIds.has(promo.id) ? '#1877F2' : '#4E4F50'),
+                              borderRadius: 6, width: 24, height: 24,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', transition: 'all 0.15s',
+                            }}
+                          >
+                            {selectedIds.has(promo.id) && <Check size={14} color="#fff" />}
+                          </button>
+                        )}
+                        <PromotionCard
+                          promotion={promo}
+                          onEdit={handleEdit}
+                          onViewAwards={handleViewAwards}
+                          onDuplicate={handleDuplicate}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1017,6 +1214,77 @@ export default function PromotionsPage() {
                 )}
               </>
             )}
+
+            {/* ── Analytics Tab ── */}
+            {activeTab === 'analytics' && (
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#E4E6EB', marginBottom: 20 }}>Promotions Analytics</h2>
+
+                {analytics ? (
+                  <>
+                    {/* Summary Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+                      {[
+                        { label: 'Total Promotions', value: analytics.total, color: '#1877F2', icon: Gift },
+                        { label: 'Active Now', value: analytics.activeCount, color: '#4ADE80', icon: CheckCircle },
+                        { label: 'Total Awarded', value: analytics.totalAwarded, color: '#F59E0B', icon: Award },
+                        { label: 'Total Value', value: `$${analytics.totalValue.toLocaleString()}`, color: '#8B5CF6', icon: DollarSign },
+                      ].map((card, i) => {
+                        const CardIcon = card.icon;
+                        return (
+                          <div key={i} style={{
+                            background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12,
+                            padding: 18, display: 'flex', flexDirection: 'column', gap: 8,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${card.color}15`, border: `1px solid ${card.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <CardIcon size={16} color={card.color} />
+                              </div>
+                              <span style={{ fontSize: 12, color: '#8A8D91', fontWeight: 500 }}>{card.label}</span>
+                            </div>
+                            <span style={{ fontSize: 24, fontWeight: 800, color: '#E4E6EB' }}>{card.value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Per-Type Breakdown */}
+                    <div style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ padding: '14px 18px', borderBottom: '1px solid #3A3B3C' }}>
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>By Promotion Type</h3>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #3A3B3C' }}>
+                            <th style={{ textAlign: 'left', padding: '10px 18px', fontSize: 12, fontWeight: 600, color: '#8A8D91' }}>Type</th>
+                            <th style={{ textAlign: 'center', padding: '10px 18px', fontSize: 12, fontWeight: 600, color: '#8A8D91' }}>Count</th>
+                            <th style={{ textAlign: 'center', padding: '10px 18px', fontSize: 12, fontWeight: 600, color: '#8A8D91' }}>Awarded</th>
+                            <th style={{ textAlign: 'right', padding: '10px 18px', fontSize: 12, fontWeight: 600, color: '#8A8D91' }}>Total Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(analytics.byType).map(([type, data]) => (
+                            <tr key={type} style={{ borderBottom: '1px solid rgba(58,59,60,0.5)' }}>
+                              <td style={{ padding: '10px 18px', fontSize: 13, color: '#E4E6EB', fontWeight: 600 }}>
+                                {type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                              </td>
+                              <td style={{ padding: '10px 18px', fontSize: 13, color: '#B0B3B8', textAlign: 'center' }}>{data.count}</td>
+                              <td style={{ padding: '10px 18px', fontSize: 13, color: '#B0B3B8', textAlign: 'center' }}>{data.awarded}</td>
+                              <td style={{ padding: '10px 18px', fontSize: 13, color: '#4ADE80', fontWeight: 600, textAlign: 'right' }}>${data.value.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A8D91' }}>
+                    <BarChart3 size={48} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                    <p>No promotion data available</p>
+                  </div>
+                )}
+              </div>
+            )}
           </main>
         </div>
 
@@ -1196,27 +1464,32 @@ export default function PromotionsPage() {
             venueId={venueId}
             onSave={async (data) => {
               try {
+                const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                 const staffSession = localStorage.getItem('commander_staff') || '';
                 const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
-                  headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                   body: JSON.stringify(data)
                 });
                 const result = await res.json();
-                if (result.success) {
+                if (result.success || result.promotion) {
                   fetchPromotions();
                   setShowEditModal(false);
                   setEditingPromo(null);
+                } else {
+                  alert('Update failed: ' + (result.error || 'Unknown error'));
                 }
               } catch (error) {
                 console.error('Update promo failed:', error);
+                alert('Update failed: ' + error.message);
               }
             }}
             onDelete={async (id) => {
               if (!confirm('Delete this promotion?')) return;
               try {
+                const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                 const staffSession = localStorage.getItem('commander_staff') || '';
-                await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { 'x-staff-session': staffSession } });
+                await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
                 fetchPromotions();
                 setShowEditModal(false);
                 setEditingPromo(null);

@@ -5,12 +5,11 @@
  * Horizontal card layout — must-move lists displayed beside the game
  */
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   ArrowRightLeft, Loader2, RefreshCw, Users, Unlink,
   CheckCircle2, AlertTriangle, Crown, ArrowRight,
-  Clock, Hash, List, ChevronRight
+  Hash, List, ChevronRight
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -34,7 +33,7 @@ function ordinal(n) {
 }
 
 export default function MustMoveManager() {
-  const router = useRouter();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
@@ -75,7 +74,7 @@ export default function MustMoveManager() {
   }, [venueId, fetchData]);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['games', 'tables'] });
 
   // Unlink must-move
   const unlinkMustMove = async (gameId) => {

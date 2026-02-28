@@ -72,7 +72,7 @@ export default function CombinedDisplay() {
 
   useEffect(() => {
     fetchData();
-    const poll = setInterval(fetchData, 10000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => {
       setNow(new Date());
       setClockSeconds(s => s !== null && s > 0 ? s - 1 : s);
@@ -80,8 +80,13 @@ export default function CombinedDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Commander Data Bus — instant sync for TV display
-  useCommanderSync('', fetchData, { entities: ['tables', 'waitlist', 'tournaments', 'settings'] });
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'tournaments', 'settings'] });
 
   // Wake lock
   useEffect(() => {

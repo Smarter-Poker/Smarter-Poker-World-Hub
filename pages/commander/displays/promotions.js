@@ -32,13 +32,18 @@ export default function PromotionsDisplay() {
 
   useEffect(() => {
     fetchData();
-    const poll = setInterval(fetchData, 10000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Commander Data Bus — instant sync when settings/promotions change
-  useCommanderSync('', fetchData, { entities: ['settings'] });
+  useCommanderSync(venueId, fetchData, { entities: ['settings'] });
 
   // Auto-rotate promotions every 8 seconds
   useEffect(() => {

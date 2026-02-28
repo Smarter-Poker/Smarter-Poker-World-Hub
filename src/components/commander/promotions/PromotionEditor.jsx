@@ -75,7 +75,8 @@ export default function PromotionEditor({
     qualifying_hands: '',
     status: 'draft',
     is_featured: false,
-    terms_conditions: ''
+    terms_conditions: '',
+    image_url: ''
   });
 
   useEffect(() => {
@@ -100,7 +101,8 @@ export default function PromotionEditor({
         qualifying_hands: promotion.qualifying_hands || '',
         status: promotion.status || 'draft',
         is_featured: promotion.is_featured || false,
-        terms_conditions: promotion.terms_conditions || ''
+        terms_conditions: promotion.terms_conditions || '',
+        image_url: promotion.image_url || ''
       });
     }
   }, [promotion]);
@@ -134,7 +136,8 @@ export default function PromotionEditor({
       venue_id: venueId,
       prize_value: formData.prize_value ? parseInt(formData.prize_value) : null,
       min_hours_played: formData.min_hours_played ? parseFloat(formData.min_hours_played) : null,
-      min_buyin: formData.min_buyin ? parseInt(formData.min_buyin) : null
+      min_buyin: formData.min_buyin ? parseInt(formData.min_buyin) : null,
+      image_url: formData.image_url || null
     };
     onSave(data);
   };
@@ -319,11 +322,10 @@ export default function PromotionEditor({
                     key={day.value}
                     type="button"
                     onClick={() => handleDayToggle(day.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      formData.days_of_week.includes(day.value)
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${formData.days_of_week.includes(day.value)
                         ? 'bg-[#22D3EE] text-white'
                         : 'bg-[#0D192E] text-[#64748B]'
-                    }`}
+                      }`}
                   >
                     {day.label}
                   </button>
@@ -390,11 +392,10 @@ export default function PromotionEditor({
                     key={game.value}
                     type="button"
                     onClick={() => handleGameTypeToggle(game.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      formData.game_types.includes(game.value)
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${formData.game_types.includes(game.value)
                         ? 'bg-[#22D3EE] text-white'
                         : 'bg-[#0D192E] text-[#64748B]'
-                    }`}
+                      }`}
                   >
                     {game.label}
                   </button>
@@ -437,6 +438,24 @@ export default function PromotionEditor({
                 rows={3}
                 placeholder="Enter Any Terms And Conditions..."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[#64748B] mb-1">Image URL (optional)</label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => handleChange('image_url', e.target.value)}
+                  className="cmd-input flex-1 px-3 py-2"
+                  placeholder="https://example.com/promo-image.jpg"
+                />
+                {formData.image_url && (
+                  <div style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid #4A5E78', flexShrink: 0 }}>
+                    <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

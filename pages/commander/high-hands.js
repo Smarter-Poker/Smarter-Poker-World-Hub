@@ -11,7 +11,7 @@ import {
   Trash2, Star, X, Crown, Clock
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',
@@ -60,6 +60,9 @@ export default function HighHands() {
   }, [venueId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Commander Data Bus — sync high hands across tabs
+  useCommanderSync(venueId, fetchData, { entities: ['settings'] });
 
   const handleSubmit = async () => {
     if (!form.player_name || !form.hand_rank) return;

@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
+
 import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import {
   Loader2, Users, ArrowLeft,
@@ -109,7 +109,7 @@ export default function WaitlistDisplay() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000); // 5s refresh for display
+    const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -117,8 +117,7 @@ export default function WaitlistDisplay() {
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
-  useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 
   // ── GROUP & SORT (identical to desk.js) ──────────────────────────
   const waitlistByGame = {};

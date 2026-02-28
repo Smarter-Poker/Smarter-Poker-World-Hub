@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
+import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderSync';
 
 export default function TournamentClockDisplay() {
   const router = useRouter();
@@ -42,9 +43,15 @@ export default function TournamentClockDisplay() {
 
   useEffect(() => {
     fetchTournament();
-    const interval = setInterval(fetchTournament, 5000);
+    const interval = setInterval(fetchTournament, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(interval);
   }, [fetchTournament]);
+
+  // Commander Data Bus — instant sync when tournament state changes (clock, entries, etc.)
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+  useCommanderSync(venueId || '', fetchTournament, { entities: ['tournaments'] });
 
   // Countdown timer
   useEffect(() => {
@@ -101,10 +108,10 @@ export default function TournamentClockDisplay() {
   return (
     <>
       <SEOHead
-                title="Tournament Clock"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Tournament Clock"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="min-h-screen bg-[#0B1426] text-white p-8 flex flex-col">
         {/* Header */}
@@ -132,11 +139,10 @@ export default function TournamentClockDisplay() {
               </p>
 
               {/* Time Remaining */}
-              <div className={`text-[12rem] font-bold leading-none ${
-                clockState.secondsRemaining <= 60 ? 'text-[#EF4444]' :
-                clockState.secondsRemaining <= 300 ? 'text-[#F59E0B]' :
-                'text-white'
-              }`}>
+              <div className={`text-[12rem] font-bold leading-none ${clockState.secondsRemaining <= 60 ? 'text-[#EF4444]' :
+                  clockState.secondsRemaining <= 300 ? 'text-[#F59E0B]' :
+                    'text-white'
+                }`}>
                 {formatTime(clockState.secondsRemaining)}
               </div>
 

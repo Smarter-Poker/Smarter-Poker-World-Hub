@@ -6,7 +6,7 @@
  * Color-coded: green = open seats, blue = full, grey = inactive
  * Auto-refreshes every 5 seconds
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
@@ -31,29 +31,24 @@ export default function TablesDisplay() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/commander/tables');
-        const json = await res.json();
-        if (json.success) setTables(json.data || []);
-      } catch (err) { console.error(err); }
-      setNow(new Date());
-    };
-    fetchData();
-    const poll = setInterval(fetchData, 5000);
-    const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
-
-  // BroadcastChannel listener — instant cross-tab sync
-  useCommanderSync(venueId, async () => {
+  const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/commander/tables');
       const json = await res.json();
       if (json.success) setTables(json.data || []);
     } catch (err) { console.error(err); }
-  });
+    setNow(new Date());
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+    const clock = setInterval(() => setNow(new Date()), 1000);
+    return () => { clearInterval(poll); clearInterval(clock); };
+  }, [fetchData]);
+
+  // Commander Data Bus — instant sync when tables change
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'games'] });
 
   // Wake lock
   useEffect(() => {

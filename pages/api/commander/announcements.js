@@ -1,34 +1,135 @@
+/**
+ * Announcements API — Full CRUD
+ * GET    /api/commander/announcements?venue_id=X  — List active announcements
+ * POST   /api/commander/announcements             — Create announcement
+ * PATCH  /api/commander/announcements              — Update announcement
+ * DELETE /api/commander/announcements?id=X         — Delete announcement
+ */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../src/lib/commander/auth';
+import { guardWriteStaff, verifyStaffSession } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
-
-  const { venue_id } = req.query;
+  // For GET requests we try staff session first, then allow unauthenticated (display pages)
+  // For write requests, guardWriteStaff handles auth
+  let venueId = req.query.venue_id;
 
   if (req.method === 'GET') {
-    if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
-    const { data, error } = await supabase
-      .from('commander_club_announcements')
-      .select('*')
-      .eq('venue_id', venue_id)
-      .order('created_at', { ascending: false });
-    if (error) return res.status(500).json({ success: false, error: error.message });
-    return res.json({ success: true, data: { announcements: data } });
+    // Try to get venue_id from staff session if not in query
+    if (!venueId) {
+      try {
+        const result = await verifyStaffSession(req);
+        if (result.staff) venueId = result.staff.venue_id;
+      } catch { }
+    }
+    if (!venueId) return res.status(400).json({ success: false, error: 'venue_id required' });
+
+    try {
+      const { data, error } = await supabase
+        .from('commander_club_announcements')
+        .select('*')
+        .eq('venue_id', venueId)
+        .order('priority', { ascending: true }) // urgent first
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      // Filter expired
+      const now = new Date();
+      const active = (data || []).filter(a => {
+        if (a.expires_at && new Date(a.expires_at) < now) return false;
+        return true;
+      });
+
+      return res.json({ success: true, data: active });
+    } catch (err) {
+      console.error('Get announcements error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
+  // Write operations require staff auth
+  const staff = await guardWriteStaff(req, res);
+  if (!staff) return;
+
+  // POST — Create announcement
   if (req.method === 'POST') {
-    const { venue_id: vid, title, message, type, priority } = req.body;
-    if (!vid || !message) return res.status(400).json({ success: false, error: 'venue_id and message required' });
-    const { data, error } = await supabase
-      .from('commander_club_announcements')
-      .insert({ venue_id: vid, title, message, type: type || 'general', priority: priority || 'normal' })
-      .select()
-      .single();
-    if (error) return res.status(500).json({ success: false, error: error.message });
-    return res.json({ success: true, data: { announcement: data } });
+    const { venue_id: vid, title, message, type, priority, expires_at } = req.body;
+    const targetVenueId = vid || staff.venue_id;
+    if (!targetVenueId || !message) {
+      return res.status(400).json({ success: false, error: 'venue_id and message required' });
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('commander_club_announcements')
+        .insert({
+          venue_id: targetVenueId,
+          title: title || '',
+          message,
+          type: type || 'general',
+          priority: priority || 'normal',
+          expires_at: expires_at || null,
+          author_id: staff.user_id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return res.json({ success: true, data: { announcement: data } });
+    } catch (err) {
+      console.error('Create announcement error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  // PATCH — Update announcement
+  if (req.method === 'PATCH') {
+    const { id, title, message, type, priority, expires_at } = req.body;
+    if (!id) return res.status(400).json({ success: false, error: 'id required' });
+
+    try {
+      const updates = {};
+      if (title !== undefined) updates.title = title;
+      if (message !== undefined) updates.message = message;
+      if (type !== undefined) updates.type = type;
+      if (priority !== undefined) updates.priority = priority;
+      if (expires_at !== undefined) updates.expires_at = expires_at || null;
+      updates.updated_at = new Date().toISOString();
+
+      if (Object.keys(updates).length <= 1) {
+        return res.status(400).json({ success: false, error: 'No updates provided' });
+      }
+
+      const { data, error } = await supabase
+        .from('commander_club_announcements')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return res.json({ success: true, data: { announcement: data } });
+    } catch (err) {
+      console.error('Update announcement error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  // DELETE — Remove announcement
+  if (req.method === 'DELETE') {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ success: false, error: 'id required' });
+
+    try {
+      const { error } = await supabase
+        .from('commander_club_announcements')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Delete announcement error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
   return res.status(405).json({ success: false, error: 'Method not allowed' });

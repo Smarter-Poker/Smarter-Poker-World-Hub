@@ -15,7 +15,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
+
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import {
   AlertTriangle, Check, Clock, Loader2, RefreshCw,
@@ -115,14 +115,13 @@ export default function FloorCalls() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  // Realtime updates — Layer 2 (Supabase) + Layer 1 (BroadcastChannel)
-  useRealtimeUpdates(venueId, () => fetchCalls(), !!venueId);
-  useCommanderSync(venueId, fetchCalls);
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(venueId, fetchCalls, { entities: ['floor_calls', 'tables'] });
 
   // Polling + clock
   useEffect(() => {
     fetchCalls();
-    const poll = setInterval(fetchCalls, 10000);
+    const poll = setInterval(fetchCalls, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);

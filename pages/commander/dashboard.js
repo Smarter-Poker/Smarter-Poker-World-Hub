@@ -90,7 +90,6 @@ const CARDS = [
     glow: '#8B5CF6',
     features: [
       { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/mg-tv-displays.png' },
-      { label: 'Display: Tables', href: '/commander/displays/tables', icon: '/images/commander/icons/mg-display-tables.png' },
       { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps.png' },
       { label: 'Display: Announcements', href: '/commander/displays/announcements', icon: '/images/commander/icons/mg-display-announcements.png' },
       { label: 'Display: Promotions', href: '/commander/displays/promotions', icon: '/images/commander/icons/mg-display-promotions.png' },

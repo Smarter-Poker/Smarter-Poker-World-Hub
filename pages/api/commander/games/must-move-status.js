@@ -87,7 +87,7 @@ async function handleGet(req, res) {
       table_number: tablesMap[g.table_id]?.table_number || null,
       table_name: tablesMap[g.table_id]?.table_name || null,
       max_seats: tablesMap[g.table_id]?.max_seats || g.max_players || 9,
-      player_count: g.current_players || 0,
+      player_count: (seatsMap[g.id] || []).length,
       seats: seatsMap[g.id] || [],
     }));
 
@@ -267,12 +267,9 @@ async function handlePost(req, res) {
       .eq('id', mmGame?.table_id)
       .single();
 
-    // Move the player:
-    // 1. Delete their seat at the must-move table
-    await supabase.from('commander_seats').delete().eq('id', playerToMove.id);
-
-    // 2. Insert a new seat at the target game
-    await supabase.from('commander_seats').insert({
+    // Move the player (INSERT FIRST, THEN DELETE — if insert fails, player stays at source):
+    // 1. Insert a new seat at the target game FIRST
+    const { error: insertError } = await supabase.from('commander_seats').insert({
       game_id: actualTargetId,
       seat_number: openSeat,
       player_id: playerToMove.player_id,
@@ -281,15 +278,35 @@ async function handlePost(req, res) {
       seated_at: new Date().toISOString(),
     });
 
-    // 3. Update player counts
+    if (insertError) {
+      console.error('Must-move insert error:', insertError);
+      return res.status(500).json({ success: false, error: 'Failed to seat player at target table' });
+    }
+
+    // 2. Delete their seat at the must-move table (safe — player already seated at target)
+    await supabase.from('commander_seats').delete().eq('id', playerToMove.id);
+
+    // 3. Update player counts using actual seat counts (not stale fields)
+    const { count: sourceCount } = await supabase
+      .from('commander_seats')
+      .select('id', { count: 'exact', head: true })
+      .eq('game_id', must_move_game_id)
+      .eq('status', 'occupied');
+
+    const { count: targetCount } = await supabase
+      .from('commander_seats')
+      .select('id', { count: 'exact', head: true })
+      .eq('game_id', actualTargetId)
+      .eq('status', 'occupied');
+
     await supabase
       .from('commander_games')
-      .update({ current_players: Math.max(0, (mmGame?.current_players || 1) - 1) })
+      .update({ current_players: sourceCount ?? 0 })
       .eq('id', must_move_game_id);
 
     await supabase
       .from('commander_games')
-      .update({ current_players: (targetGame.current_players || 0) + 1 })
+      .update({ current_players: targetCount ?? 0 })
       .eq('id', actualTargetId);
 
     const fromTable = mmTable?.table_number || '?';

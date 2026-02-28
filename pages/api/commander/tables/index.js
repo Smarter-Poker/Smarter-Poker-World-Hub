@@ -195,7 +195,7 @@ async function handlePost(req, res) {
       position_x,
       position_y
     };
-    if (game_type) insertData.game_type = game_type.toLowerCase();
+    if (game_type) insertData.game_type = game_type.toUpperCase();
     if (stakes) insertData.stakes = stakes;
 
     const { data: table, error } = await supabase

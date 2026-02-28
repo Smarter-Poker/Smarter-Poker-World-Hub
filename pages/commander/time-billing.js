@@ -135,8 +135,11 @@ export default function TimeBilling() {
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, [fetchData]);
 
+  // Memoized venueId for Supabase sync (avoid function call per render)
+  const [syncVenueId] = useState(() => getVenueId());
+
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(getVenueId(), fetchData);
+  useCommanderSync(syncVenueId, fetchData, { entities: ['tables', 'settings'] });
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
 
   // Load pricing settings
@@ -193,6 +196,7 @@ export default function TimeBilling() {
       const json = await res.json();
       if (json.success) {
         setPricingDirty(false);
+        broadcastChange('settings');
       }
     } catch (err) { console.error(err); }
     finally { setPricingSaving(false); }
@@ -382,6 +386,7 @@ export default function TimeBilling() {
       if (json.success) {
         setMemberPlans(prev => prev.map(p => p.id === plan.id ? { ...p, [field]: parseFloat(value) || 0 } : p));
         setMemberDirty(prev => ({ ...prev, [plan.id]: false }));
+        broadcastChange('settings');
       }
     } catch (err) { console.error(err); }
     finally { setMemberSaving(null); }

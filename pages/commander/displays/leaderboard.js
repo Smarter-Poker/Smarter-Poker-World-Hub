@@ -35,8 +35,13 @@ export default function LeaderboardDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); clearInterval(rotate); };
   }, [leaderboards.length]);
 
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Commander Data Bus — instant sync when members change
-  useCommanderSync('', fetchData, { entities: ['members'] });
+  useCommanderSync(venueId, fetchData, { entities: ['members'] });
 
   useEffect(() => {
     const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };

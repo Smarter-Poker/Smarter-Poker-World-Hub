@@ -55,12 +55,17 @@ export default function PlayerCheckIn() {
   useEffect(() => {
     if (!code) return;
     fetchMember();
-    const poll = setInterval(fetchMember, 10000);
+    const poll = setInterval(fetchMember, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(poll);
   }, [code]);
 
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Commander Data Bus — sync member status in real-time
-  useCommanderSync('', fetchMember, { entities: ['members', 'tables'] });
+  useCommanderSync(venueId, fetchMember, { entities: ['members', 'tables'] });
 
   // Local countdown ticker
   useEffect(() => {
@@ -163,8 +168,8 @@ export default function PlayerCheckIn() {
 
         {/* Membership Status */}
         <div className={`rounded-2xl p-4 mb-3 border ${membershipActive
-            ? 'bg-[#31A24C]/10 border-[#31A24C]/30'
-            : 'bg-[#EF4444]/10 border-[#EF4444]/30'
+          ? 'bg-[#31A24C]/10 border-[#31A24C]/30'
+          : 'bg-[#EF4444]/10 border-[#EF4444]/30'
           }`}>
           <div className="flex items-center gap-3">
             <Shield className="w-6 h-6" style={{ color: membershipActive ? '#31A24C' : '#EF4444' }} />
@@ -181,8 +186,8 @@ export default function PlayerCheckIn() {
 
         {/* Time Balance */}
         <div className={`rounded-2xl p-5 mb-3 border text-center ${timeBalance > 0
-            ? 'bg-[#1877F2]/10 border-[#1877F2]/30'
-            : 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
+          ? 'bg-[#1877F2]/10 border-[#1877F2]/30'
+          : 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
           }`}>
           <Timer className="w-8 h-8 mx-auto mb-2" style={{ color: timeBalance > 0 ? '#1877F2' : '#F59E0B' }} />
           <p className="text-3xl font-bold text-white">{timeBalance} min</p>

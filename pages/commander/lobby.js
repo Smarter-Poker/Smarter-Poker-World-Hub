@@ -31,13 +31,13 @@ export default function LobbyDisplay() {
 
   useEffect(() => {
     fetchData();
-    const poll = setInterval(fetchData, 8000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
 
   // Wake lock
   useEffect(() => {

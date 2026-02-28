@@ -52,18 +52,20 @@ export default async function handler(req, res) {
 
     if (wlError) return res.status(500).json({ success: false, error: wlError.message });
 
-    // Update table seat status (non-fatal if table_seats doesn't exist)
+    // Update actual seat in commander_seats (if game_id is available)
     try {
-      await supabase
-        .from('commander_table_seats')
-        .upsert({
-          venue_id: entry.venue_id,
-          table_number,
-          seat_number,
-          status: 'occupied',
-          player_name: entry.player_name,
-          seated_at: new Date().toISOString()
-        }, { onConflict: 'venue_id,table_number,seat_number' });
+      if (entry.game_id) {
+        await supabase
+          .from('commander_seats')
+          .upsert({
+            game_id: entry.game_id,
+            seat_number,
+            status: 'occupied',
+            player_name: entry.player_name,
+            player_id: entry.player_id || null,
+            seated_at: new Date().toISOString()
+          }, { onConflict: 'game_id,seat_number' });
+      }
     } catch { /* seat update is non-critical */ }
 
     return res.status(200).json({

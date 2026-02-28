@@ -11,7 +11,7 @@ import {
   DollarSign, Users, Percent, Clock, GripVertical, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PRESET_GAMES = [
   { name: 'No Limit Hold\'em', short_code: 'NLH', max_players: 9, color: '#1877F2' },
@@ -71,6 +71,9 @@ export default function GameTypesPage() {
   }, [venueId]);
 
   useEffect(() => { fetchGameTypes(); }, [fetchGameTypes]);
+
+  // Commander Data Bus — sync game types across tabs
+  useCommanderSync(venueId, fetchGameTypes, { entities: ['games'] });
 
   function resetForm() {
     setForm({
