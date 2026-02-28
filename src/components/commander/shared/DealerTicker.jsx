@@ -54,8 +54,8 @@ export default function DealerTicker({
             const [dRes, rRes, pRes, aRes, sRes] = await Promise.all([
                 fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
                 fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
-                fetch('/api/commander/promotions', { headers }).then(r => r.json()).catch(() => ({})),
-                fetch('/api/commander/announcements', { headers }).then(r => r.json()).catch(() => ({})),
+                fetch(`/api/commander/promotions?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+                fetch(`/api/commander/announcements?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
                 fetch('/api/commander/settings', { headers }).then(r => r.json()).catch(() => ({})),
             ]);
 
@@ -66,12 +66,16 @@ export default function DealerTicker({
             setRotations(rotationsArr.filter(r => !r.ended_at));
 
             // Promotions — only active ones
-            const promos = (pRes.data || []).filter(p => p.is_active !== false);
+            // API returns { data: { promotions: [...] } }
+            const promosArr = pRes.data?.promotions || (Array.isArray(pRes.data) ? pRes.data : []);
+            const promos = promosArr.filter(p => p.is_active !== false && p.status !== 'ended');
             setPromotions(promos);
 
             // Announcements — only non-expired
+            // API returns { data: { announcements: [...] } }
             const now = new Date();
-            const anns = (aRes.data || []).filter(a => {
+            const annsArr = aRes.data?.announcements || (Array.isArray(aRes.data) ? aRes.data : []);
+            const anns = annsArr.filter(a => {
                 if (!a.expires_at) return true;
                 return new Date(a.expires_at) > now;
             });
@@ -135,18 +139,21 @@ export default function DealerTicker({
     // ── CLUB PROMOTIONS ───────────────────────────────────────────
     promotions.forEach(p => {
         const name = p.name || p.title || '';
-        const amount = p.prize_amount || p.jackpot_amount || 0;
-        const type = p.type || 'promotion';
+        const amount = p.prize_value || p.prize_amount || p.jackpot_amount || 0;
+        const type = p.promotion_type || p.type || 'promotion';
         const typeLabels = {
             high_hand: '🏆 HIGH HAND',
             bad_beat: '💥 BAD BEAT JACKPOT',
+            bad_beat_jackpot: '💥 BAD BEAT JACKPOT',
             splash_pot: '💦 SPLASH POT',
             bonus: '🎁 BONUS',
             freeroll: '🎰 FREEROLL',
+            progressive: '📈 PROGRESSIVE',
+            mystery_bounty: '🎭 MYSTERY BOUNTY',
         };
         const label = typeLabels[type] || '🎯 PROMO';
         if (amount > 0) {
-            parts.push(`${label}: ${name} — $${amount.toLocaleString()}`);
+            parts.push(`${label}: ${name} — $${Number(amount).toLocaleString()}`);
         } else if (name) {
             parts.push(`${label}: ${name}`);
         }

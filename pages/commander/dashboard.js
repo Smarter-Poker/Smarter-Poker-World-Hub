@@ -49,6 +49,7 @@ const CARDS = [
   {
     id: 'floor',
     title: 'Table Management',
+    headerTitle: 'Tables & Floor',
     subtitle: 'Tables, Dealers, Floor Ops',
     image: '/images/commander/card-floor.jpg?v=4',
     glow: '#10B981',
@@ -552,7 +553,7 @@ export default function CommanderDashboard() {
                   <ArrowLeft size={16} /> Back
                 </button>
                 <div className="cmd-open-title" style={{ color: openCard.glow }}>
-                  {openCard.title}
+                  {openCard.headerTitle || openCard.title}
                 </div>
               </div>
               <div className={`cmd-features ${openCard.features.length > 12 ? 'cmd-features-4col' : openCard.features.length > 6 ? 'cmd-features-3col' : ''}`}>
