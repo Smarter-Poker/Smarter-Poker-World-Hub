@@ -48,6 +48,7 @@ export default function TDPlayers() {
   const [moveModal, setMoveModal] = useState(null);
   const [moveTable, setMoveTable] = useState('');
   const [moveSeat, setMoveSeat] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null); // { type, player, message }
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
@@ -109,23 +110,47 @@ export default function TDPlayers() {
     return res.json();
   };
 
-  const handleEliminate = async (player) => {
-    setActionLoading('eliminate');
-    await apiCall(`/api/commander/tournaments/${tournamentId}/eliminate`, {
-      entry_id: player.entry_id, finish_position: floor?.stats?.players_remaining || 0
+  const confirmEliminate = (player) => {
+    setConfirmAction({
+      type: 'eliminate', player,
+      message: `Eliminate ${player.player_name}?`,
+      detail: `Position #${floor?.stats?.players_remaining || '?'} — This cannot be undone.`,
+      color: '#EF4444',
     });
+  };
+
+  const confirmRebuy = (player) => {
+    setConfirmAction({
+      type: 'rebuy', player,
+      message: `Rebuy for ${player.player_name}?`,
+      detail: floor?.tournament?.rebuy_cost ? `Cost: $${floor.tournament.rebuy_cost} — Chips: ${formatChips(floor.tournament.rebuy_chips || floor.tournament.starting_chips)}` : 'Process rebuy for this player.',
+      color: '#31A24C',
+    });
+  };
+
+  const executeConfirmedAction = async () => {
+    if (!confirmAction) return;
+    const { type, player } = confirmAction;
+    setActionLoading(type);
+    setConfirmAction(null);
+    try {
+      if (type === 'eliminate') {
+        await apiCall(`/api/commander/tournaments/${tournamentId}/eliminate`, {
+          entry_id: player.entry_id, finish_position: floor?.stats?.players_remaining || 0
+        });
+      } else if (type === 'rebuy') {
+        await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
+      } else if (type === 'addon') {
+        await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
+      }
+    } catch (err) { console.error(err); }
     setSelectedPlayer(null);
     setActionLoading(null);
     fetchFloor();
   };
 
-  const handleRebuy = async (player) => {
-    setActionLoading('rebuy');
-    await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
-    setSelectedPlayer(null);
-    setActionLoading(null);
-    fetchFloor();
-  };
+  const handleEliminate = (player) => confirmEliminate(player);
+  const handleRebuy = (player) => confirmRebuy(player);
 
   const handleAddon = async (player) => {
     setActionLoading('addon');
@@ -383,6 +408,33 @@ export default function TDPlayers() {
                   disabled={!moveTable || !moveSeat || actionLoading === 'move'}
                   className="flex-1 py-3 rounded-xl bg-[#1877F2] text-white font-medium active:bg-[#1565D8] disabled:opacity-50">
                   {actionLoading === 'move' ? 'Moving...' : 'Move'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== CONFIRMATION MODAL ===== */}
+        {confirmAction && (
+          <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center px-4" onClick={() => setConfirmAction(null)}>
+            <div className="bg-[#242526] rounded-2xl w-full max-w-sm p-6 border border-[#3A3B3C]" onClick={e => e.stopPropagation()}>
+              <div className="text-center mb-4">
+                <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${confirmAction.color}20` }}>
+                  {confirmAction.type === 'eliminate'
+                    ? <UserX className="w-7 h-7" style={{ color: confirmAction.color }} />
+                    : <RotateCcw className="w-7 h-7" style={{ color: confirmAction.color }} />
+                  }
+                </div>
+                <h3 className="text-lg font-bold text-white">{confirmAction.message}</h3>
+                <p className="text-sm text-[#B0B3B8] mt-1">{confirmAction.detail}</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmAction(null)}
+                  className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium active:bg-[#4A4B4C]">Cancel</button>
+                <button onClick={executeConfirmedAction}
+                  className="flex-1 py-3 rounded-xl text-white font-bold active:opacity-80"
+                  style={{ backgroundColor: confirmAction.color }}>
+                  Confirm
                 </button>
               </div>
             </div>
