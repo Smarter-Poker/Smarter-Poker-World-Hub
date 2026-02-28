@@ -108,6 +108,11 @@ export default function CommanderStaffPage() {
       if (data.success) {
         fetchStaff();
         setShowAddModal(false);
+        // Auto-print QR badge
+        const staff = data.data?.staff;
+        if (staff?.qr_code) {
+          printQRBadge(staff);
+        }
         return { success: true };
       }
       return { success: false, error: data.error?.message || 'Failed to add staff' };
@@ -115,6 +120,91 @@ export default function CommanderStaffPage() {
       console.error('Failed to add staff:', err);
       return { success: false, error: 'Network error' };
     }
+  }
+
+  function printQRBadge(staff) {
+    const qrCode = staff.qr_code || '';
+    const name = staff.display_name || 'Staff';
+    const role = (staff.role || 'employee').charAt(0).toUpperCase() + (staff.role || 'employee').slice(1);
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode)}`;
+
+    const printWindow = window.open('', '_blank', 'width=400,height=500');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Staff QR Badge — ${name}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f5f5f5;
+          }
+          .badge {
+            width: 3in;
+            padding: 20px;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 12px;
+            text-align: center;
+          }
+          .badge-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+          }
+          .badge-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 4px;
+          }
+          .badge-role {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1877F2;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+          }
+          .badge-qr { margin-bottom: 8px; }
+          .badge-qr img { width: 160px; height: 160px; }
+          .badge-code {
+            font-family: monospace;
+            font-size: 10px;
+            color: #999;
+            word-break: break-all;
+          }
+          @media print {
+            body { background: #fff; }
+            .badge { border: 2px solid #000; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="badge">
+          <div class="badge-header">Club Commander</div>
+          <div class="badge-name">${name}</div>
+          <div class="badge-role">${role}</div>
+          <div class="badge-qr">
+            <img src="${qrImageUrl}" alt="QR Code" onload="window.print();" />
+          </div>
+          <div class="badge-code">${qrCode}</div>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
 
   async function handleUpdateStaff(staffId, staffData) {

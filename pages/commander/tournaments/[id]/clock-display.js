@@ -90,6 +90,7 @@ export default function ClockDisplay() {
   const [preset, setPreset] = useState(null);
   const [activeScreen, setActiveScreen] = useState(SCREENS.CLOCK);
   const [handTimerActive, setHandTimerActive] = useState(false);
+  const [levelFlash, setLevelFlash] = useState(false);
   const [handTimerSeconds, setHandTimerSeconds] = useState(60);
   const [burnInOffset, setBurnInOffset] = useState({ x: 0, y: 0 });
   const [isPortrait, setIsPortrait] = useState(false);
@@ -200,6 +201,9 @@ export default function ClockDisplay() {
           const displayOpts = preset?.display_options || {};
           if (prevLevelRef.current !== null && currentLevel !== prevLevelRef.current) {
             if (displayOpts.sound_level_change) playAlert('level');
+            // Trigger level-change flash
+            setLevelFlash(true);
+            setTimeout(() => setLevelFlash(false), 600);
           }
           if (json.data.alerts?.on_break && displayOpts.sound_break) playAlert('break');
           if (json.data.alerts?.final_table && displayOpts.sound_final_table) playAlert('final');
@@ -426,6 +430,12 @@ export default function ClockDisplay() {
   const icmResults = playerStacks.length > 1 ? calculateICM(playerStacks.map(p => p.chips), prizeAmounts) : [];
   const chipChopResults = playerStacks.length > 1 ? calculateChipChop(playerStacks.map(p => p.chips), prizePool) : [];
 
+  // Top 3 chip leaders (sorted by chips descending)
+  const chipLeaders = [...playerStacks]
+    .filter(p => p.chips > 0)
+    .sort((a, b) => b.chips - a.chips)
+    .slice(0, 3);
+
   const bgStyle = displayOpts.background_image_url
     ? { backgroundImage: `url(${displayOpts.background_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: `linear-gradient(180deg, ${theme.background} 0%, ${adjustColor(theme.background, -20)} 100%)` };
@@ -439,12 +449,17 @@ export default function ClockDisplay() {
         transform: `translate(${burnInOffset.x}px, ${burnInOffset.y}px)`,
       }} onClick={goFullscreen}>
 
+        {/* ===== LEVEL CHANGE FLASH OVERLAY ===== */}
+        {levelFlash && (
+          <div style={S.levelFlashOverlay} />
+        )}
+
         {/* ===== HAND TIMER OVERLAY ===== */}
         {handTimerActive && (
           <div style={S.handTimerOverlay} onClick={(e) => { e.stopPropagation(); setHandTimerActive(false); }}>
             <div style={S.handTimerBox}>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 2, opacity: 0.7, marginBottom: 4 }}>PLAYER ON THE CLOCK</div>
-              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', monospace", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
+              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', 'Segoe UI', sans-serif", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
                 {handTimerSeconds}
               </div>
               <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>Click to dismiss</div>
@@ -532,6 +547,22 @@ export default function ClockDisplay() {
             <div style={S.centerPanel}>
               {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
               {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
+
+              {/* Chip Leaders on Break */}
+              {isBreak && chipLeaders.length > 0 && (
+                <div style={S.chipLeadersPanel}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, opacity: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>Chip Leaders</div>
+                  {chipLeaders.map((p, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, marginBottom: 2 }}>
+                      <span style={{ color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : '#CD7F32', fontSize: 18 }}>
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                      </span>
+                      <span style={{ flex: 1, textAlign: 'left' }}>{p.name || `Player ${i + 1}`}</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums', color: '#31A24C' }}>{formatChipCount(p.chips)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Color-up banner */}
               {colorUpChips.length > 0 && !isBreak && !isH4H && (
@@ -843,6 +874,16 @@ const S = {
     position: 'absolute', top: 8, background: 'rgba(245,158,11,0.2)',
     border: '2px solid rgba(245,158,11,0.5)', padding: '8px 32px', borderRadius: 8,
     color: '#F59E0B', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10
+  },
+  chipLeadersPanel: {
+    position: 'absolute', top: 52, background: 'rgba(0,0,0,0.6)',
+    border: '1px solid rgba(255,255,255,0.15)', padding: '10px 20px', borderRadius: 8,
+    zIndex: 10, minWidth: 220, backdropFilter: 'blur(4px)'
+  },
+  levelFlashOverlay: {
+    position: 'absolute', inset: 0, zIndex: 200, pointerEvents: 'none',
+    background: 'rgba(255,255,255,0.35)',
+    animation: 'levelFlash 0.6s ease-out forwards'
   },
   h4hBanner: {
     position: 'absolute', top: 8, background: 'rgba(239,68,68,0.2)',

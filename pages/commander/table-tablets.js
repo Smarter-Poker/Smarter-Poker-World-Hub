@@ -7,12 +7,12 @@
  * - Charity / Home games: player names + open seat indicators
  * Tapping a table opens the full dealer tablet at /commander/dealer/[tableNumber]
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Monitor, Users, Loader2, ChevronRight, Power, DollarSign, Trophy,
-    Clock, Timer, UserPlus, Armchair
+    Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -59,6 +59,15 @@ export default function TableTabletsPage() {
     const [sessions, setSessions] = useState({});
     const [loading, setLoading] = useState(true);
     const [venueId, setVenueId] = useState(null);
+    // Dealer scan state
+    const [scanningTable, setScanningTable] = useState(null); // table number being scanned
+    const [scanCameraActive, setScanCameraActive] = useState(false);
+    const [scanResult, setScanResult] = useState(null);
+    const [scanError, setScanError] = useState('');
+    const [manualDealerQR, setManualDealerQR] = useState('');
+    const videoRef = useRef(null);
+    const streamRef = useRef(null);
+    const scanIntervalRef = useRef(null);
 
     useEffect(() => {
         try {
@@ -154,6 +163,83 @@ export default function TableTabletsPage() {
     const activeTables = tables.filter(t => t.status === 'in_use');
     const idleTables = tables.filter(t => t.status !== 'in_use');
 
+    // Dealer scan functions
+    const openDealerScan = (tableNumber) => {
+        setScanningTable(tableNumber);
+        setScanResult(null);
+        setScanError('');
+        setManualDealerQR('');
+    };
+
+    const closeDealerScan = () => {
+        stopDealerCamera();
+        setScanningTable(null);
+        setScanResult(null);
+        setScanError('');
+    };
+
+    const startDealerCamera = async () => {
+        setScanError('');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+            });
+            streamRef.current = stream;
+            if (videoRef.current) videoRef.current.srcObject = stream;
+            setScanCameraActive(true);
+
+            if ('BarcodeDetector' in window) {
+                const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                const interval = setInterval(async () => {
+                    if (!videoRef.current || videoRef.current.readyState < 2) return;
+                    try {
+                        const barcodes = await detector.detect(videoRef.current);
+                        if (barcodes.length > 0) {
+                            stopDealerCamera();
+                            handleDealerScan(barcodes[0].rawValue);
+                        }
+                    } catch { }
+                }, 300);
+                scanIntervalRef.current = interval;
+            }
+        } catch {
+            setScanError('Camera access denied. Use manual entry.');
+        }
+    };
+
+    const stopDealerCamera = () => {
+        if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+        if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+        setScanCameraActive(false);
+    };
+
+    const handleDealerScan = async (qrCode) => {
+        setScanError('');
+        setScanResult(null);
+        try {
+            const res = await fetch('/api/commander/tables/dealer-scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ venue_id: venueId, qr_code: qrCode, table_number: scanningTable }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setScanResult(data.data);
+                fetchAll(); // refresh tables to show new dealer
+                setTimeout(() => closeDealerScan(), 3000);
+            } else {
+                setScanError(data.error || 'Failed to assign dealer');
+            }
+        } catch {
+            setScanError('Network error');
+        }
+    };
+
+    const handleManualDealerScan = (e) => {
+        e.preventDefault();
+        if (manualDealerQR.trim()) handleDealerScan(manualDealerQR.trim());
+    };
+
     return (
         <CommanderLayout title="Table Tablets | Commander" backHref="/commander/dashboard?card=floor">
             <SEOHead title="Commander — Table Tablets" description="Dealer tablet view for all tables." noindex={true} />
@@ -219,10 +305,23 @@ export default function TableTabletsPage() {
                                                                 <p style={{ margin: 0, fontWeight: 600, color: '#fff', fontSize: 14 }}>Table {tNum}</p>
                                                                 <p style={{ margin: 0, fontSize: 11, color: '#B0B3B8' }}>
                                                                     {game ? `${game.game_type?.toUpperCase() || 'NLH'} ${game.stakes || ''}` : table.game_type ? `${table.game_type} ${table.stakes || ''}` : 'Cash Game'}
+                                                                    {game?.dealer_staff_id && ` — Dealer assigned`}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); openDealerScan(tNum); }}
+                                                                style={{
+                                                                    background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                                                                    borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
+                                                                    display: 'flex', alignItems: 'center', gap: 4,
+                                                                    fontSize: 10, fontWeight: 700, color: '#10B981',
+                                                                }}
+                                                                title="Scan dealer QR code"
+                                                            >
+                                                                <ScanLine size={12} /> Dealer
+                                                            </button>
                                                             <span style={{ fontSize: 12, color: seatedCount > 0 ? '#31A24C' : '#B0B3B8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                                                                 <Users size={13} /> {seatedCount}/{maxSeats}
                                                             </span>
@@ -349,6 +448,86 @@ export default function TableTabletsPage() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         button:hover { border-color: rgba(24,119,242,0.4) !important; }
       `}</style>
+
+            {/* ── DEALER SCAN-IN MODAL ── */}
+            {scanningTable && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div onClick={closeDealerScan} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)' }} />
+                    <div style={{
+                        position: 'relative', background: '#242526', borderRadius: 16,
+                        width: '90%', maxWidth: 400, padding: 24,
+                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>Dealer Scan-In</h3>
+                                <p style={{ margin: 0, fontSize: 12, color: '#B0B3B8' }}>Table {scanningTable}</p>
+                            </div>
+                            <button onClick={closeDealerScan} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                                <X size={20} color="#B0B3B8" />
+                            </button>
+                        </div>
+
+                        {scanResult ? (
+                            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                                <CheckCircle size={48} color="#10B981" style={{ margin: '0 auto 12px' }} />
+                                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>{scanResult.dealer_name}</p>
+                                <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, margin: 0 }}>
+                                    Assigned to Table {scanResult.table_number}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {scanError && (
+                                    <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#EF4444' }}>
+                                        {scanError}
+                                    </div>
+                                )}
+
+                                {scanCameraActive ? (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <video
+                                            ref={(el) => { videoRef.current = el; if (el && streamRef.current) el.srcObject = streamRef.current; }}
+                                            autoPlay playsInline
+                                            style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 12 }}
+                                        />
+                                        <button onClick={stopDealerCamera}
+                                            style={{ padding: '8px 20px', background: '#3A3B3C', color: '#E4E6EB', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                            <ScanLine size={32} color="#10B981" />
+                                        </div>
+                                        <p style={{ fontSize: 13, color: '#B0B3B8', marginBottom: 16 }}>Scan dealer QR code to assign</p>
+                                        <button onClick={startDealerCamera}
+                                            style={{ padding: '10px 24px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                            <Camera size={16} /> Open Scanner
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #3A3B3C' }}>
+                                    <p style={{ fontSize: 11, color: '#8A8D91', marginBottom: 6, textAlign: 'center' }}>Or enter QR code manually</p>
+                                    <form onSubmit={handleManualDealerScan} style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="text" value={manualDealerQR} onChange={(e) => setManualDealerQR(e.target.value)}
+                                            placeholder="STAFF-1996-abc123"
+                                            style={{ flex: 1, padding: '8px 12px', background: '#3A3B3C', border: '1px solid #4E4F50', borderRadius: 8, color: '#E4E6EB', fontSize: 13, outline: 'none' }}
+                                        />
+                                        <button type="submit" disabled={!manualDealerQR.trim()}
+                                            style={{ padding: '8px 14px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+                                            Assign
+                                        </button>
+                                    </form>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </CommanderLayout>
     );
 }

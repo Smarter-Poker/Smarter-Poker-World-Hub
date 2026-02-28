@@ -96,7 +96,7 @@ async function handlePost(req, res) {
             .eq('is_active', true)
             .limit(1);
 
-        const staff = staffList?.[0];
+        let staff = staffList?.[0] || null;
         if (!staff) {
             // Also try looking up via commander_members QR code
             const { data: memberList } = await supabase
@@ -118,15 +118,14 @@ async function handlePost(req, res) {
                 if (!linkedStaff?.[0]) {
                     return res.status(404).json({ success: false, error: 'No active staff member found for this QR code' });
                 }
-                // Use the linked staff
-                Object.assign(staff || {}, linkedStaff[0]);
+                staff = linkedStaff[0];
             } else {
                 return res.status(404).json({ success: false, error: 'Invalid QR code or staff not found' });
             }
         }
 
-        const staffId = staff?.id || staffList?.[0]?.id;
-        const staffName = staff?.display_name || staffList?.[0]?.display_name || 'Unknown';
+        const staffId = staff.id;
+        const staffName = staff.display_name || 'Unknown';
 
         // Check for open shift (clocked in but not out)
         const { data: openShift } = await supabase
