@@ -188,7 +188,7 @@ export default function DealerTicker({
     return (
         <>
             <div style={{
-                padding: '8px 0',
+                padding: '16px 0',
                 borderTop: showBorder ? `2px solid ${borderColor}55` : 'none',
                 background: bgColor,
                 overflow: 'hidden',
