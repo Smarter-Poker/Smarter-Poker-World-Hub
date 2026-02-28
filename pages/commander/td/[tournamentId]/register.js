@@ -308,24 +308,23 @@ export default function TDRegister() {
               <button onClick={async () => {
                 setRegistering(true);
                 try {
-                  const res = await fetch(`/api/commander/tournaments/${tournamentId}/register`, {
+                  const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
                     body: JSON.stringify({
                       player_name: playerName.trim(),
-                      phone: playerPhone.trim() || undefined,
+                      player_phone: playerPhone.trim() || undefined,
                       status: 'alternate'
                     })
                   });
                   const json = await res.json();
-                  setLastResult(json.success
-                    ? { success: true, data: { alternate: true } }
-                    : json
-                  );
-                  if (json.success) {
+                  if (res.ok) {
+                    setLastResult({ success: true, data: { alternate: true } });
                     setPlayerName('');
                     setPlayerPhone('');
                     await fetchFloor();
+                  } else {
+                    setLastResult({ success: false, error: json.error || 'Failed to add alternate' });
                   }
                 } catch { setLastResult({ success: false, error: 'Failed to add alternate' }); }
                 finally { setRegistering(false); }

@@ -52,9 +52,21 @@ export default async function handler(req, res) {
     const eliminatedEntries = entries.filter(e => e.status === 'eliminated');
     const registeredEntries = entries.filter(e => e.status === 'registered');
 
-    // Build table map
+    // Build table map — get real max_seats from commander_tables
     const tableNumbers = [...new Set(activeEntries.map(e => e.table_number).filter(Boolean))].sort((a, b) => a - b);
-    const maxSeats = 9; // default
+
+    // Query actual table configs for max_seats
+    let tableConfigs = {};
+    if (tableNumbers.length > 0) {
+      const { data: dbTables } = await supabase
+        .from('commander_tables')
+        .select('table_number, max_seats')
+        .eq('venue_id', tournament.venue_id)
+        .in('table_number', tableNumbers);
+      if (dbTables) {
+        dbTables.forEach(t => { tableConfigs[t.table_number] = t.max_seats || 9; });
+      }
+    }
 
     const tableCounts = {};
     tableNumbers.forEach(tn => { tableCounts[tn] = 0; });
@@ -67,6 +79,7 @@ export default async function handler(req, res) {
     const minCount = countValues.length > 0 ? Math.min(...countValues) : 0;
 
     const tables = tableNumbers.map(tn => {
+      const maxSeats = tableConfigs[tn] || 9;
       const players = activeEntries
         .filter(e => e.table_number === tn)
         .map(e => ({
@@ -112,7 +125,10 @@ export default async function handler(req, res) {
 
     // Imbalance check
     const imbalanced = tableNumbers.length >= 2 && (maxCount - minCount >= 2);
-    const canBreakTable = tableNumbers.length > Math.ceil(activeEntries.length / maxSeats);
+    const avgMaxSeats = tableNumbers.length > 0
+      ? Math.round(tableNumbers.reduce((sum, tn) => sum + (tableConfigs[tn] || 9), 0) / tableNumbers.length)
+      : 9;
+    const canBreakTable = tableNumbers.length > Math.ceil(activeEntries.length / avgMaxSeats);
 
     // Clock info
     const blindStructure = tournament.blind_structure || [];
@@ -179,6 +195,8 @@ export default async function handler(req, res) {
           custom_payouts: tournament.custom_payouts,
           clock_color: tournament.settings?.clock_color,
           max_entries: tournament.max_entries,
+          blind_structure: blindStructure,
+          settings: tournament.settings || {},
         },
         clock: {
           current_level: currentLevel,
@@ -206,7 +224,10 @@ export default async function handler(req, res) {
           late_reg_open: lateRegOpen,
           levels_until_late_reg_closes: lateRegOpen
             ? (tournament.late_registration_levels || 0) - currentLevel
-            : 0
+            : 0,
+          player_stacks: activeEntries
+            .filter(e => e.current_chips > 0)
+            .map(e => ({ name: e.player_name, chips: e.current_chips }))
         },
         alerts: {
           imbalanced,
