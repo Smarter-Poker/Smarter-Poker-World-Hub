@@ -287,12 +287,33 @@ export default function TableTabletsPage() {
         const hasTimed = seatData.some(s => s.time_remaining !== undefined && s.time_remaining !== null);
         const { dealerPos, seatPositions } = computeSeatPositions(maxSeats);
 
-        // Build seat array from session data
+        // Build seat array — merge session data, table_seats data, then fill with anonymous badges
         const seatArr = Array.from({ length: maxSeats }, (_, i) => {
-            const session = seatData.find(s => s.seat_number === i + 1);
-            return { number: i + 1, taken: session || null };
+            const seatNum = i + 1;
+            // Priority 1: session data (from dealer sessions API — has time_remaining)
+            const session = seatData.find(s => s.seat_number === seatNum);
+            if (session) return { number: seatNum, taken: session };
+            // Priority 2: table_seats data (from tables API — has player_name)
+            const tableSeat = (table.seats || []).find(s => s.seat_number === seatNum && s.status === 'occupied');
+            if (tableSeat) return { number: seatNum, taken: { player_name: tableSeat.player_name, seat_number: seatNum } };
+            return { number: seatNum, taken: null };
         });
-        const occupiedCount = seatArr.filter(s => s.taken).length || seatedCount;
+
+        // If game has current_players but few/no seat records, fill with anonymous players
+        const gamePlayers = game?.current_players || 0;
+        const actuallySeated = seatArr.filter(s => s.taken).length;
+        if (gamePlayers > actuallySeated) {
+            let toFill = gamePlayers - actuallySeated;
+            let pNum = 1;
+            for (let i = 0; i < seatArr.length && toFill > 0; i++) {
+                if (!seatArr[i].taken) {
+                    seatArr[i].taken = { player_name: `P${pNum}`, seat_number: seatArr[i].number, _anonymous: true };
+                    pNum++;
+                    toFill--;
+                }
+            }
+        }
+        const occupiedCount = seatArr.filter(s => s.taken).length;
 
         const avatarSize = isFullscreen ? 64 : 52;
         const fontSize = isFullscreen ? 14 : 13;
