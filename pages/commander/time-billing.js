@@ -15,6 +15,7 @@ import {
   Package, Trash2, Plus, Save, Delete, CheckCircle2, RefreshCw, Receipt
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 function formatDuration(startTime) {
   if (!startTime) return '0:00';
@@ -133,6 +134,9 @@ export default function TimeBilling() {
   }, [filter, pricing.time_billing_rate]);
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, [fetchData]);
+
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(getVenueId(), fetchData);
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
 
   // Load pricing settings
@@ -280,6 +284,7 @@ export default function TimeBilling() {
         });
       }
       await fetchData();
+      broadcastChange('tables');
     } catch (err) { console.error(err); }
     finally { setStopping(null); }
   };
@@ -347,6 +352,7 @@ export default function TimeBilling() {
 
       setPayModal(null); setPayAmount('');
       await fetchData();
+      broadcastChange('tables');
     } catch (err) { console.error(err); }
   };
 
