@@ -262,6 +262,7 @@ export default function WaitlistDesk() {
         return prev.map(e => e.id === entry.id ? { ...e, position: maxPos + 1, status: 'waiting' } : e);
       });
       await fetchData();
+      broadcastChange('waitlist');
     } catch (err) { console.error('Pass error:', err); await fetchData(); }
   };
 
@@ -307,6 +308,7 @@ export default function WaitlistDesk() {
         setTimeout(() => setSmsStatus(null), 3000);
       }
       setSelectedPlayer(null); await fetchData();
+      broadcastChange('waitlist');
     } catch (err) { console.error(err); setSmsStatus({ type: 'none', text: 'Check-in failed: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
   };
 
@@ -375,6 +377,7 @@ export default function WaitlistDesk() {
       ));
       setEditGame(null);
       await fetchData();
+      broadcastChange('waitlist');
     } catch (err) { console.error('Rename game error:', err); }
   };
 
@@ -405,6 +408,7 @@ export default function WaitlistDesk() {
       await fetchData();
     }
     setNewGameType(''); setNewGameStakes(''); setNewGameTable(''); setShowAddGame(false);
+    broadcastChange('waitlist');
   };
 
   // ── REMOVE GAME: Delete all waitlist entries for a game + remove from custom ──
@@ -433,6 +437,7 @@ export default function WaitlistDesk() {
       saveCustomization({ ...custom, gameTypes: updatedGameTypes });
       setEditGame(null);
       await fetchData();
+      broadcastChange('waitlist');
     } catch (err) { console.error('Remove game error:', err); }
   };
 

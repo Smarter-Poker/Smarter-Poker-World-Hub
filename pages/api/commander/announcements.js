@@ -61,17 +61,21 @@ export default async function handler(req, res) {
     }
 
     try {
+      const insertRow = {
+        venue_id: targetVenueId,
+        title: title || null,
+        message,
+        type: type || 'general',
+        priority: priority || 'normal',
+        expires_at: expires_at || null,
+      };
+      // author_id references profiles(id) — only set if user_id is available
+      // (PIN-based staff auth returns commander_staff.id, not profiles.id)
+      if (staff.user_id) insertRow.author_id = staff.user_id;
+
       const { data, error } = await supabase
         .from('commander_club_announcements')
-        .insert({
-          venue_id: targetVenueId,
-          title: title || '',
-          message,
-          type: type || 'general',
-          priority: priority || 'normal',
-          expires_at: expires_at || null,
-          author_id: staff.user_id,
-        })
+        .insert(insertRow)
         .select()
         .single();
       if (error) throw error;

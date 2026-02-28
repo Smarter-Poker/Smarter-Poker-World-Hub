@@ -15,7 +15,7 @@
  * 
  * No staff login required for viewing.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
@@ -23,6 +23,7 @@ import {
   ChevronDown, ChevronUp, Timer, Share2, CheckCircle2,
   Copy, Award
 } from 'lucide-react';
+import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 
 // Prefer real name from profiles over manually typed player_name (alias)
 function getName(e) {
@@ -72,9 +73,12 @@ export default function TournamentPublic() {
   useEffect(() => {
     if (!id) return;
     fetchData();
-    const poll = setInterval(fetchData, 10000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(poll);
-  }, [id]);
+  }, [id, fetchData]);
+
+  // Supabase Realtime — instant sync when tournament data changes
+  useTournamentRealtime(id, fetchData);
 
   // Local clock tick
   useEffect(() => {
@@ -88,7 +92,7 @@ export default function TournamentPublic() {
     return () => clearInterval(tick);
   }, [clock?.is_running, clock?.current_level]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [tRes, cRes, eRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
@@ -122,7 +126,7 @@ export default function TournamentPublic() {
       else if (eRes.data) setEntries(eRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [id]);
 
   // Share button handler
   const handleShare = async () => {

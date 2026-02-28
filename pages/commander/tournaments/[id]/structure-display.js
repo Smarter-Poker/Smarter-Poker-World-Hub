@@ -6,10 +6,11 @@
  * Shows all levels, current level highlighted, upcoming blinds.
  * Auto-refreshes to stay in sync with clock state.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
+import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 
 export default function StructureDisplay() {
   const router = useRouter();
@@ -20,24 +21,29 @@ export default function StructureDisplay() {
   const wakeLockRef = useRef(null);
   const currentRef = useRef(null);
 
+  const fetchData = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [tRes, cRes] = await Promise.all([
+        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
+        fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json())
+      ]);
+      if (tRes.success) setTournament(tRes.data);
+      if (cRes.success) setClockData(cRes.data);
+    } catch (err) { console.error(err); }
+    setNow(new Date());
+  }, [id]);
+
+  // Supabase Realtime — instant sync when level changes
+  useTournamentRealtime(id, fetchData);
+
   useEffect(() => {
     if (!id) return;
-    const fetchData = async () => {
-      try {
-        const [tRes, cRes] = await Promise.all([
-          fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
-          fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json())
-        ]);
-        if (tRes.success) setTournament(tRes.data);
-        if (cRes.success) setClockData(cRes.data);
-      } catch (err) { console.error(err); }
-      setNow(new Date());
-    };
     fetchData();
-    const poll = setInterval(fetchData, 5000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, [id]);
+  }, [id, fetchData]);
 
   // Scroll current level into view
   useEffect(() => {
