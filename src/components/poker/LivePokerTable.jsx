@@ -30,7 +30,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTableConnection } from '../../hooks/useTableConnection';
 import { PokerSoundManager } from './PokerSoundManager';
-import EmojiThrower from './EmojiThrower';
+import ThrowableEmojis from './ThrowableEmojis';
 import BBJTicker from './BBJTicker';
 import { getHandStrength } from '../../lib/handStrength';
 
@@ -1726,15 +1726,15 @@ export default function LivePokerTable({
         )}
       </AnimatePresence>
 
-      {/* ═══════════ EMOJI THROWER ═══════════ */}
-      <EmojiThrower
+      {/* ═══════════ ANIMATED THROWABLES (PokerBros-style) ═══════════ */}
+      <ThrowableEmojis
         userId={userId}
         seats={seats}
         seatPositions={positions}
         chatMessages={chatMessages}
-        onThrow={(emoji, targetId) => {
+        onThrow={(throwable, targetId) => {
           soundRef.current?.play('chat');
-          send('throw_emoji', { emoji, targetId });
+          send('throw_emoji', { emoji: throwable, throwable, targetId });
         }}
       />
 
