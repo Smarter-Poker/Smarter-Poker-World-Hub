@@ -42,7 +42,6 @@ const CARDS = [
       { label: 'Tournament Clocks', href: '/commander/tournament-clocks', icon: '/images/commander/icons/tn-clock.png' },
       { label: 'Tournament Maintenance', href: '/commander/tournament-maintenance', icon: '/images/commander/icons/tn-maintenance.png' },
       { label: 'Clock Setup', href: '/commander/clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
-      { label: 'Leagues & Free Rolls', href: '/commander/leagues', icon: '/images/commander/icons/tn-leagues-freerolls.png?v=2' },
       { label: 'Tournament Director', href: '/commander/tournament-controls', icon: '/images/commander/icons/tn-controls.png' },
     ],
   },

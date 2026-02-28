@@ -127,7 +127,7 @@ export default function TournamentMaintenance() {
                         <div className="grid grid-cols-7 gap-1">
                             {/* Empty cells for days before 1st */}
                             {Array(firstDay).fill(null).map((_, i) => (
-                                <div key={`empty-${i}`} className="h-12"></div>
+                                <div key={`empty-${i}`} className="min-h-[72px]"></div>
                             ))}
                             {/* Day cells */}
                             {Array(daysInMonth).fill(null).map((_, i) => {
@@ -136,21 +136,43 @@ export default function TournamentMaintenance() {
                                 const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year;
                                 const isSelected = selectedDate === day;
 
+                                const STATUS_DOT = {
+                                    scheduled: 'text-[#1877F2]',
+                                    registration: 'text-[#22D3EE]',
+                                    running: 'text-[#31A24C]',
+                                    completed: 'text-[#64748B]',
+                                    cancelled: 'text-[#EF4444]',
+                                    paused: 'text-[#F59E0B]',
+                                    final_table: 'text-[#8B5CF6]',
+                                };
+
                                 return (
                                     <button
                                         key={day}
                                         onClick={() => setSelectedDate(isSelected ? null : day)}
-                                        className={`h-12 rounded-lg flex flex-col items-center justify-center transition-all relative ${isSelected ? 'bg-[#1877F2] text-white ring-2 ring-[#1877F2]/50'
-                                                : isToday ? 'bg-[#1877F2]/10 text-white border border-[#1877F2]/30'
-                                                    : 'text-[#94A3B8] hover:bg-[#132240]'
+                                        className={`min-h-[72px] rounded-lg flex flex-col items-start p-1.5 transition-all relative text-left ${isSelected ? 'bg-[#1877F2] text-white ring-2 ring-[#1877F2]/50'
+                                            : isToday ? 'bg-[#1877F2]/10 text-white border border-[#1877F2]/30'
+                                                : 'text-[#94A3B8] hover:bg-[#132240]'
                                             }`}
                                     >
-                                        <span className="text-sm font-medium">{day}</span>
+                                        <span className="text-xs font-semibold">{day}</span>
                                         {dayTournaments.length > 0 && (
-                                            <div className="flex gap-0.5 mt-0.5">
-                                                {dayTournaments.slice(0, 3).map((_, j) => (
-                                                    <span key={j} className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-[#1877F2]'}`}></span>
-                                                ))}
+                                            <div className="mt-0.5 w-full space-y-px overflow-hidden flex-1">
+                                                {dayTournaments.slice(0, 3).map((t, j) => {
+                                                    const dotColor = isSelected ? 'text-white/70' : (STATUS_DOT[t.status] || 'text-[#1877F2]');
+                                                    // Abbreviate: take first ~8 chars of name
+                                                    const shortName = t.name.length > 10 ? t.name.slice(0, 9) + '…' : t.name;
+                                                    return (
+                                                        <div key={j} className={`text-[8px] leading-[11px] font-medium truncate ${isSelected ? 'text-white/90' : dotColor}`}>
+                                                            {shortName}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {dayTournaments.length > 3 && (
+                                                    <div className={`text-[7px] leading-[10px] font-semibold ${isSelected ? 'text-white/60' : 'text-[#64748B]'}`}>
+                                                        +{dayTournaments.length - 3} more
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </button>
