@@ -326,6 +326,22 @@ export const DEFAULT_PERMISSIONS = {
     manage_settings: false,
     view_analytics: false,
     send_notifications: false
+  },
+  cashier: {
+    manage_staff: false,
+    manage_games: false,
+    manage_waitlist: false,
+    manage_settings: false,
+    view_analytics: false,
+    send_notifications: false
+  },
+  security: {
+    manage_staff: false,
+    manage_games: false,
+    manage_waitlist: false,
+    manage_settings: false,
+    view_analytics: false,
+    send_notifications: false
   }
 };
 

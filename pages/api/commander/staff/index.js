@@ -12,7 +12,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-const VALID_ROLES = ['owner', 'manager', 'floor', 'cashier', 'brush', 'dealer'];
+const VALID_ROLES = ['owner', 'manager', 'floor', 'cashier', 'brush', 'dealer', 'security'];
 
 export default async function handler(req, res) {
   switch (req.method) {

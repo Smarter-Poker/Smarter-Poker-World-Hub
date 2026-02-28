@@ -15,7 +15,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Loader2, RefreshCw, Table2, Trophy, DollarSign,
-  Power, X, Check, AlertTriangle, Users, ChevronDown
+  Power, X, Check, AlertTriangle, Users
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -58,9 +58,16 @@ export default function TableAssignments() {
 
   const fetchData = useCallback(async () => {
     try {
+      // Get venue_id from staff session for game types query
+      let venueId = '';
+      try {
+        const sess = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        venueId = sess.venue_id || '';
+      } catch { }
+
       const [tablesRes, gameTypesRes] = await Promise.all([
         fetch('/api/commander/table-assignments', { headers: getHeaders() }),
-        fetch(`/api/commander/game-types?venue_id=1`, { headers: getHeaders() }).catch(() => null)
+        venueId ? fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers: getHeaders() }).catch(() => null) : Promise.resolve(null)
       ]);
 
       const tablesJson = await tablesRes.json();
@@ -145,6 +152,11 @@ export default function TableAssignments() {
   };
 
   const closeTable = async (table) => {
+    // Safety check: warn if players are still seated
+    if ((table.active_players || 0) > 0) {
+      const confirmed = confirm(`Table ${table.table_number} has ${table.active_players} player${table.active_players !== 1 ? 's' : ''} seated. Close anyway?`);
+      if (!confirmed) return;
+    }
     setClosing(table.id);
     try {
       const res = await fetch('/api/commander/table-assignments', {
