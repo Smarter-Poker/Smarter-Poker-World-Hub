@@ -1,20 +1,25 @@
 /**
  * Card.tsx
  * =========
- * Visual playing card component with suit symbols and animations.
- *
- * Features:
- * - White rounded rectangle with shadow
- * - Red text for Hearts/Diamonds, Black for Spades/Clubs
- * - Suit symbols in corners and center
- * - Flip and slide-in animations via framer-motion
- * - Facedown state with card back pattern
+ * Playing card component using Smarter.Poker's CUSTOM-BUILT card deck.
+ * 
+ * Uses the 52 hand-designed PNG images at /public/cards/
+ * Uploaded Jan 22, 2026 — commit 67ad8744
+ * 
+ * Card backs from /public/images/card-backs/ (black, blue, red, white)
+ * 
+ * Image format: /cards/{suit}_{rank}.png
+ *   Suits: clubs, diamonds, hearts, spades
+ *   Ranks: 2, 3, 4, 5, 6, 7, 8, 9, 10, j, q, k, a
+ *   Optimized: /cards/optimized/{suit}_{rank}.png
+ * 
+ * Native card dimensions: 150 x 210 px
  *
  * @author Smarter.Poker Engineering
  */
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 
 // ============================================================================
 // TYPES
@@ -27,44 +32,109 @@ interface CardProps {
     rank?: Rank | string;
     suit?: Suit | string;
     faceDown?: boolean;
-    size?: 'small' | 'medium' | 'large';
+    size?: 'tiny' | 'small' | 'medium' | 'large' | 'xlarge';
     animate?: 'none' | 'flip' | 'slide' | 'deal';
     delay?: number;
     highlighted?: boolean;
+    dimmed?: boolean;
     onClick?: () => void;
+    cardBack?: 'black' | 'blue' | 'red' | 'white';
+    optimized?: boolean;
+    className?: string;
+    style?: React.CSSProperties;
 }
 
 // ============================================================================
-// CONSTANTS
+// CONSTANTS — CUSTOM DECK ASSET MAPPING
 // ============================================================================
 
-const SUIT_SYMBOLS: Record<string, string> = {
-    h: '♥',
-    d: '♦',
-    s: '♠',
-    c: '♣',
-    hearts: '♥',
-    diamonds: '♦',
-    spades: '♠',
-    clubs: '♣',
+/** Map single-char suit codes to the filename suit word */
+const SUIT_TO_FILENAME: Record<string, string> = {
+    h: 'hearts',
+    d: 'diamonds',
+    s: 'spades',
+    c: 'clubs',
+    hearts: 'hearts',
+    diamonds: 'diamonds',
+    spades: 'spades',
+    clubs: 'clubs',
 };
 
-const SUIT_COLORS: Record<string, string> = {
-    h: '#ff2d55',
-    d: '#ff2d55',
-    s: '#1a1a2e',
-    c: '#1a1a2e',
-    hearts: '#ff2d55',
-    diamonds: '#ff2d55',
-    spades: '#1a1a2e',
-    clubs: '#1a1a2e',
+/** Map rank characters to the filename rank */
+const RANK_TO_FILENAME: Record<string, string> = {
+    'A': 'a',
+    'K': 'k',
+    'Q': 'q',
+    'J': 'j',
+    'T': '10',
+    '10': '10',
+    '9': '9',
+    '8': '8',
+    '7': '7',
+    '6': '6',
+    '5': '5',
+    '4': '4',
+    '3': '3',
+    '2': '2',
 };
 
+/** Card sizes — maintain 150:210 aspect ratio (5:7) */
 const SIZES = {
-    small: { width: 45, height: 63, fontSize: 12, suitSize: 14 },
-    medium: { width: 60, height: 84, fontSize: 16, suitSize: 20 },
-    large: { width: 80, height: 112, fontSize: 22, suitSize: 28 },
+    tiny:   { width: 36,  height: 50  },
+    small:  { width: 50,  height: 70  },
+    medium: { width: 75,  height: 105 },
+    large:  { width: 100, height: 140 },
+    xlarge: { width: 150, height: 210 },
 };
+
+// ============================================================================
+// ASSET PATH HELPERS
+// ============================================================================
+
+/**
+ * Get the image path for a card face.
+ * @example getCardImagePath('A', 'h') → '/cards/hearts_a.png'
+ * @example getCardImagePath('T', 's') → '/cards/spades_10.png'
+ */
+function getCardImagePath(rank: string, suit: string, optimized: boolean = false): string {
+    const suitName = SUIT_TO_FILENAME[suit] || SUIT_TO_FILENAME[suit.toLowerCase()] || 'hearts';
+    const rankName = RANK_TO_FILENAME[rank] || RANK_TO_FILENAME[rank.toUpperCase()] || rank.toLowerCase();
+    const dir = optimized ? '/cards/optimized' : '/cards';
+    return `${dir}/${suitName}_${rankName}.png`;
+}
+
+/**
+ * Get the image path for a card back.
+ * @example getCardBackPath('blue') → '/images/card-backs/blue.jpg'
+ */
+function getCardBackPath(color: string = 'blue'): string {
+    const validColors = ['black', 'blue', 'red', 'white'];
+    const safeColor = validColors.includes(color) ? color : 'blue';
+    return `/images/card-backs/${safeColor}.jpg`;
+}
+
+/**
+ * Convert engine card integer (0-51) to rank + suit for image lookup.
+ * Engine format: card = rank * 4 + suit
+ *   rank: 0=2, 1=3, ..., 8=T, 9=J, 10=Q, 11=K, 12=A
+ *   suit: 0=c, 1=d, 2=h, 3=s
+ */
+const ENGINE_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const ENGINE_SUITS = ['c', 'd', 'h', 's'];
+
+export function cardIntToProps(cardInt: number): { rank: string; suit: string } {
+    const rankIdx = Math.floor(cardInt / 4);
+    const suitIdx = cardInt % 4;
+    return {
+        rank: ENGINE_RANKS[rankIdx] || 'A',
+        suit: ENGINE_SUITS[suitIdx] || 'h',
+    };
+}
+
+export function cardIntToImagePath(cardInt: number, optimized: boolean = false): string {
+    const { rank, suit } = cardIntToProps(cardInt);
+    return getCardImagePath(rank, suit, optimized);
+}
 
 // ============================================================================
 // ANIMATIONS
@@ -94,7 +164,7 @@ const animations = {
 };
 
 // ============================================================================
-// CARD COMPONENT
+// CARD COMPONENT — CUSTOM PNG DECK
 // ============================================================================
 
 const Card: React.FC<CardProps> = ({
@@ -105,79 +175,62 @@ const Card: React.FC<CardProps> = ({
     animate = 'none',
     delay = 0,
     highlighted = false,
+    dimmed = false,
     onClick,
+    cardBack = 'blue',
+    optimized = false,
+    className = '',
+    style: customStyle,
 }) => {
-    const dims = SIZES[size];
-    const suitSymbol = SUIT_SYMBOLS[suit] || '?';
-    const suitColor = SUIT_COLORS[suit] || '#1a1a2e';
-    const anim = animations[animate];
+    const dims = SIZES[size] || SIZES.medium;
+    const anim = animations[animate] || animations.none;
 
-    const cardStyle: React.CSSProperties = {
+    // Build the image source
+    const imageSrc = faceDown
+        ? getCardBackPath(cardBack)
+        : getCardImagePath(rank, suit, optimized);
+
+    const containerStyle: React.CSSProperties = {
         width: dims.width,
         height: dims.height,
-        borderRadius: 8,
-        background: faceDown
-            ? 'linear-gradient(135deg, #1a4ca0 0%, #0d2a5c 100%)'
-            : '#fff',
-        boxShadow: highlighted
-            ? `0 4px 20px rgba(255, 215, 0, 0.5), 0 0 0 3px #ffd700`
-            : '0 2px 8px rgba(0, 0, 0, 0.3)',
-        display: 'flex',
-        flexDirection: 'column',
+        borderRadius: Math.max(4, dims.width * 0.08),
+        overflow: 'hidden',
         position: 'relative',
         cursor: onClick ? 'pointer' : 'default',
-        overflow: 'hidden',
+        boxShadow: highlighted
+            ? '0 4px 20px rgba(255, 215, 0, 0.5), 0 0 0 3px #ffd700'
+            : '0 2px 8px rgba(0, 0, 0, 0.3)',
+        opacity: dimmed ? 0.4 : 1,
+        ...customStyle,
     };
 
     return (
         <motion.div
-            style={cardStyle}
+            style={containerStyle}
+            className={className}
             onClick={onClick}
             initial={anim.initial}
             animate={anim.animate}
             transition={{ ...anim.transition, delay }}
             whileHover={onClick ? { scale: 1.05, y: -5 } : {}}
         >
-            {faceDown ? (
-                // Card back
-                <div style={styles.cardBack}>
-                    <div style={styles.cardBackPattern}>
-                        <div style={styles.cardBackInner}>
-                            <span style={styles.cardBackLogo}>SP</span>
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                // Card face
-                <>
-                    {/* Top left corner */}
-                    <div style={{ ...styles.corner, ...styles.topLeft }}>
-                        <span style={{ ...styles.cornerRank, color: suitColor, fontSize: dims.fontSize }}>
-                            {rank}
-                        </span>
-                        <span style={{ ...styles.cornerSuit, color: suitColor, fontSize: dims.suitSize * 0.7 }}>
-                            {suitSymbol}
-                        </span>
-                    </div>
-
-                    {/* Center suit */}
-                    <div style={styles.center}>
-                        <span style={{ ...styles.centerSuit, color: suitColor, fontSize: dims.suitSize * 1.5 }}>
-                            {suitSymbol}
-                        </span>
-                    </div>
-
-                    {/* Bottom right corner (inverted) */}
-                    <div style={{ ...styles.corner, ...styles.bottomRight }}>
-                        <span style={{ ...styles.cornerRank, color: suitColor, fontSize: dims.fontSize }}>
-                            {rank}
-                        </span>
-                        <span style={{ ...styles.cornerSuit, color: suitColor, fontSize: dims.suitSize * 0.7 }}>
-                            {suitSymbol}
-                        </span>
-                    </div>
-                </>
-            )}
+            <img
+                src={imageSrc}
+                alt={faceDown ? 'Card (face down)' : `${rank} of ${SUIT_TO_FILENAME[suit] || suit}`}
+                width={dims.width}
+                height={dims.height}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                    draggable: false,
+                } as React.CSSProperties}
+                draggable={false}
+                loading="lazy"
+            />
         </motion.div>
     );
 };
@@ -188,10 +241,11 @@ const Card: React.FC<CardProps> = ({
 
 interface CardGroupProps {
     cards: Array<{ rank: string; suit: string }>;
-    size?: 'small' | 'medium' | 'large';
+    size?: 'tiny' | 'small' | 'medium' | 'large' | 'xlarge';
     spacing?: number;
     animate?: 'none' | 'deal';
     stagger?: number;
+    cardBack?: 'black' | 'blue' | 'red' | 'white';
 }
 
 export const CardGroup: React.FC<CardGroupProps> = ({
@@ -200,17 +254,19 @@ export const CardGroup: React.FC<CardGroupProps> = ({
     spacing = -20,
     animate = 'deal',
     stagger = 0.1,
+    cardBack = 'blue',
 }) => {
     return (
         <div style={{ display: 'flex', marginLeft: -spacing }}>
             {cards.map((card, idx) => (
-                <div key={idx} style={{ marginLeft: spacing }}>
+                <div key={idx} style={{ marginLeft: spacing, zIndex: idx }}>
                     <Card
                         rank={card.rank as Rank}
                         suit={card.suit as Suit}
                         size={size}
                         animate={animate}
                         delay={idx * stagger}
+                        cardBack={cardBack}
                     />
                 </div>
             ))}
@@ -219,13 +275,55 @@ export const CardGroup: React.FC<CardGroupProps> = ({
 };
 
 // ============================================================================
+// CARD FROM ENGINE INTEGER
+// ============================================================================
+
+interface EngineCardProps extends Omit<CardProps, 'rank' | 'suit'> {
+    /** Card integer from the poker engine (0-51), or null for face-down */
+    cardInt: number | null;
+}
+
+export const EngineCard: React.FC<EngineCardProps> = ({ cardInt, ...props }) => {
+    if (cardInt === null || cardInt === undefined) {
+        return <Card {...props} faceDown={true} />;
+    }
+    const { rank, suit } = cardIntToProps(cardInt);
+    return <Card rank={rank} suit={suit} {...props} />;
+};
+
+// ============================================================================
+// PRELOAD HELPER — Call when player sits at table
+// ============================================================================
+
+export function preloadCardDeck(optimized: boolean = true): void {
+    const dir = optimized ? '/cards/optimized' : '/cards';
+    const suits = ['clubs', 'diamonds', 'hearts', 'spades'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k', 'a'];
+
+    suits.forEach(suit => {
+        ranks.forEach(rank => {
+            const img = new Image();
+            img.src = `${dir}/${suit}_${rank}.png`;
+        });
+    });
+
+    // Preload default card back
+    const back = new Image();
+    back.src = '/images/card-backs/blue.jpg';
+}
+
+// ============================================================================
 // HELPER: Parse cards from string
 // ============================================================================
 
 export const parseCards = (cardString: string): Array<{ rank: string; suit: string }> => {
-    // Parse formats like "AhKd" or "Ah Kd" or "A♥ K♦"
     const cards: Array<{ rank: string; suit: string }> = [];
-    const cleanStr = cardString.replace(/\s+/g, '').replace(/♥/g, 'h').replace(/♦/g, 'd').replace(/♠/g, 's').replace(/♣/g, 'c');
+    const cleanStr = cardString
+        .replace(/\s+/g, '')
+        .replace(/♥/g, 'h')
+        .replace(/♦/g, 'd')
+        .replace(/♠/g, 's')
+        .replace(/♣/g, 'c');
 
     for (let i = 0; i < cleanStr.length - 1; i += 2) {
         cards.push({
@@ -238,76 +336,8 @@ export const parseCards = (cardString: string): Array<{ rank: string; suit: stri
 };
 
 // ============================================================================
-// STYLES
+// EXPORTS
 // ============================================================================
 
-const styles: Record<string, React.CSSProperties> = {
-    corner: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        position: 'absolute',
-        padding: 3,
-    },
-    topLeft: {
-        top: 2,
-        left: 4,
-    },
-    bottomRight: {
-        bottom: 2,
-        right: 4,
-        transform: 'rotate(180deg)',
-    },
-    cornerRank: {
-        fontWeight: 700,
-        lineHeight: 1,
-    },
-    cornerSuit: {
-        lineHeight: 1,
-    },
-    center: {
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    centerSuit: {
-        opacity: 0.8,
-    },
-    cardBack: {
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 4,
-    },
-    cardBackPattern: {
-        width: '100%',
-        height: '100%',
-        border: '2px solid rgba(255, 255, 255, 0.3)',
-        borderRadius: 4,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.05) 2px, rgba(255,255,255,0.05) 4px)',
-    },
-    cardBackInner: {
-        width: '60%',
-        height: '60%',
-        borderRadius: '50%',
-        background: 'rgba(255, 215, 0, 0.2)',
-        border: '2px solid rgba(255, 215, 0, 0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cardBackLogo: {
-        color: '#ffd700',
-        fontWeight: 800,
-        fontSize: 14,
-        letterSpacing: 1,
-    },
-};
-
+export { getCardImagePath, getCardBackPath, SIZES, SUIT_TO_FILENAME, RANK_TO_FILENAME };
 export default Card;
