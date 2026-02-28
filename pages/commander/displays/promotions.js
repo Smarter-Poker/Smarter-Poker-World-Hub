@@ -57,7 +57,8 @@ export default function PromotionsDisplay() {
         const promos = json.data?.promotions || json.data || [];
         const arr = Array.isArray(promos) ? promos : [];
         // API already filters by status=active, but double-check client-side
-        const active = arr.filter(p => p.status === 'active' || p.is_active);
+        const active = arr.filter(p => p.status === 'active' || p.is_active)
+          .sort((a, b) => ((a.settings?.display_order ?? 999) - (b.settings?.display_order ?? 999)));
         setPromotions(active);
       }
     } catch (err) { console.error('Display fetch error:', err); }

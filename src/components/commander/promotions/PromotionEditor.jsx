@@ -17,6 +17,7 @@ const PROMOTION_TYPES = [
   { value: 'tournament_bonus', label: 'Tournament Bonus' },
   { value: 'cash_back', label: 'Cash Back' },
   { value: 'drawing', label: 'Drawing' },
+  { value: 'custom', label: 'Custom' },
   { value: 'other', label: 'Other' }
 ];
 
@@ -131,9 +132,12 @@ export default function PromotionEditor({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Sync is_active with status to keep both fields consistent
+    const isActive = formData.status === 'active';
     const data = {
       ...formData,
       venue_id: venueId,
+      is_active: isActive,
       prize_value: formData.prize_value ? parseInt(formData.prize_value) : null,
       min_hours_played: formData.min_hours_played ? parseFloat(formData.min_hours_played) : null,
       min_buyin: formData.min_buyin ? parseInt(formData.min_buyin) : null,
@@ -323,8 +327,8 @@ export default function PromotionEditor({
                     type="button"
                     onClick={() => handleDayToggle(day.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${formData.days_of_week.includes(day.value)
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-[#64748B]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-[#64748B]'
                       }`}
                   >
                     {day.label}
@@ -393,8 +397,8 @@ export default function PromotionEditor({
                     type="button"
                     onClick={() => handleGameTypeToggle(game.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${formData.game_types.includes(game.value)
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-[#64748B]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-[#64748B]'
                       }`}
                   >
                     {game.label}
