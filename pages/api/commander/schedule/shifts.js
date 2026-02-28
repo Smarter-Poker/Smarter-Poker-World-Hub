@@ -1,0 +1,119 @@
+/**
+ * Staff Schedule Shifts API — GET/POST/DELETE /api/commander/schedule/shifts
+ * Manages weekly shift assignments for all staff roles
+ */
+import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../src/lib/commander/auth';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+    if (req.method === 'GET') return handleGet(req, res);
+    if (req.method === 'POST') return handlePost(req, res);
+    if (req.method === 'DELETE') return handleDelete(req, res);
+    return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
+}
+
+/** GET — fetch shifts for a week (7 days from week_start) */
+async function handleGet(req, res) {
+    const { venue_id, week_start } = req.query;
+    if (!venue_id || !week_start) {
+        return res.status(400).json({ success: false, error: { message: 'venue_id and week_start required' } });
+    }
+
+    const staff = await requireStaff(req, res, venue_id);
+    if (!staff) return;
+
+    try {
+        // Calculate week end (7 days)
+        const start = new Date(week_start + 'T00:00:00');
+        const end = new Date(start);
+        end.setDate(end.getDate() + 7);
+        const endStr = end.toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+            .from('commander_staff_shifts')
+            .select('*')
+            .eq('venue_id', venue_id)
+            .gte('shift_date', week_start)
+            .lt('shift_date', endStr)
+            .order('shift_date')
+            .order('start_time');
+
+        if (error) throw error;
+
+        return res.status(200).json({ success: true, data: data || [] });
+    } catch (err) {
+        console.error('[Schedule Shifts] GET error:', err);
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch shifts' } });
+    }
+}
+
+/** POST — create a new shift */
+async function handlePost(req, res) {
+    const { venue_id, staff_id, staff_name, staff_role, shift_date, start_time, end_time, notes } = req.body;
+
+    if (!venue_id || !staff_id || !shift_date || !start_time || !end_time) {
+        return res.status(400).json({
+            success: false,
+            error: { message: 'venue_id, staff_id, shift_date, start_time, and end_time required' }
+        });
+    }
+
+    const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
+    if (!staff) return;
+
+    try {
+        const { data, error } = await supabase
+            .from('commander_staff_shifts')
+            .insert({
+                venue_id,
+                staff_id,
+                staff_name: staff_name || '',
+                staff_role: staff_role || 'staff',
+                shift_date,
+                start_time,
+                end_time,
+                notes: notes || null,
+                created_by: staff.display_name || staff.name || 'Manager'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return res.status(201).json({ success: true, data });
+    } catch (err) {
+        console.error('[Schedule Shifts] POST error:', err);
+        return res.status(500).json({ success: false, error: { message: 'Failed to create shift' } });
+    }
+}
+
+/** DELETE — remove a shift */
+async function handleDelete(req, res) {
+    const { id, venue_id } = req.query;
+    if (!id || !venue_id) {
+        return res.status(400).json({ success: false, error: { message: 'id and venue_id required' } });
+    }
+
+    const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
+    if (!staff) return;
+
+    try {
+        const { error } = await supabase
+            .from('commander_staff_shifts')
+            .delete()
+            .eq('id', id)
+            .eq('venue_id', venue_id);
+
+        if (error) throw error;
+
+        return res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('[Schedule Shifts] DELETE error:', err);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete shift' } });
+    }
+}

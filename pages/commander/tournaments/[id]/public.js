@@ -48,6 +48,7 @@ export default function TournamentPublic() {
   const [loading, setLoading] = useState(true);
   const [showStructure, setShowStructure] = useState(false);
   const [showPayouts, setShowPayouts] = useState(false);
+  const [showChipCounts, setShowChipCounts] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -105,10 +106,10 @@ export default function TournamentPublic() {
   return (
     <>
       <SEOHead
-                title="Commander — Public"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Public"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] pb-12">
 
         {/* Header */}
@@ -223,7 +224,7 @@ export default function TournamentPublic() {
                       const isBreak = level.is_break;
                       return (
                         <tr key={i} className={`border-b border-[#3A3B3C]/50 ${isCurrent ? 'bg-[#1877F2]/10 text-[#1877F2]' :
-                            isBreak ? 'bg-[#F59E0B]/5 text-[#F59E0B]' : 'text-white'
+                          isBreak ? 'bg-[#F59E0B]/5 text-[#F59E0B]' : 'text-white'
                           }`}>
                           <td className="px-3 py-2 font-medium">
                             {isBreak ? 'Break' : i + 1}{isCurrent ? ' *' : ''}
@@ -274,6 +275,36 @@ export default function TournamentPublic() {
             )}
           </div>
         )}
+
+        {/* Chip Counts Leaderboard (for players to see updated stacks) */}
+        {['running', 'break', 'final_table'].includes(t.status) && (() => {
+          const chipEntries = entries
+            .filter(e => (e.status === 'active' || e.status === 'playing' || e.status === 'seated') && e.current_chips > 0)
+            .sort((a, b) => (b.current_chips || 0) - (a.current_chips || 0));
+          if (chipEntries.length === 0) return null;
+          return (
+            <div className="px-4 mt-3">
+              <button onClick={() => setShowChipCounts(!showChipCounts)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+                <span className="text-sm font-semibold text-white">Chip Counts ({chipEntries.length} players)</span>
+                {showChipCounts ? <ChevronUp className="w-4 h-4 text-[#B0B3B8]" /> : <ChevronDown className="w-4 h-4 text-[#B0B3B8]" />}
+              </button>
+              {showChipCounts && (
+                <div className="mt-1 space-y-1">
+                  {chipEntries.map((e, i) => (
+                    <div key={e.id || i} className="flex items-center gap-3 px-4 py-2 bg-[#242526] border border-[#3A3B3C] rounded-lg">
+                      <span className="w-8 text-center text-sm font-bold">
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="text-[#B0B3B8]">{i + 1}</span>}
+                      </span>
+                      <span className="flex-1 text-sm font-medium text-white">{e.player_name}</span>
+                      <span className="text-sm font-bold text-[#31A24C] tabular-nums">{(e.current_chips || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Branding */}
         <div className="mt-8 text-center">
