@@ -65,9 +65,12 @@ class TableManager {
   constructor(config) {
     this.tableId = config.tableId;
     this.clubId = config.clubId;
+    this.tableName = config.name || config.tableName || config.tableId;
     this.maxSeats = Math.min(Math.max(config.maxSeats || DEFAULT_SEATS, 2), MAX_SEATS);
     this.minBuyIn = config.minBuyIn;
     this.maxBuyIn = config.maxBuyIn;
+    this.smallBlind = config.smallBlind;
+    this.bigBlind = config.bigBlind;
     this.autoStartDelay = config.autoStartDelay || 3000;
     
     // Seats array (indexed by seat number 0..maxSeats-1)
@@ -687,6 +690,15 @@ class TableManager {
         currentPlayerId: gameState.currentPlayerId,
         buttonSeat: gameState.buttonSeat,
         result: gameState.result,
+      },
+      config: {
+        variant: this.game.config.variant,
+        bettingStructure: this.game.config.bettingStructure,
+        smallBlind: this.smallBlind,
+        bigBlind: this.bigBlind,
+        minBuyIn: this.minBuyIn,
+        maxBuyIn: this.maxBuyIn,
+        tableName: this.tableName,
       },
     };
   }
