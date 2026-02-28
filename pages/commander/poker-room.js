@@ -26,8 +26,12 @@ export default function PokerRoomFunctions() {
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getToken = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      return stored.token || stored.access_token || '';
+    } catch { return ''; }
+  };
 
   const fetchData = useCallback(async () => {
     try {

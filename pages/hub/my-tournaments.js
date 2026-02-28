@@ -37,7 +37,7 @@ export default function MyTournaments() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) {
-                router.push('/login?redirect=/hub/my-tournaments');
+                router.push('/auth/login?redirect=/hub/my-tournaments');
                 setLoading(false);
                 return;
             }

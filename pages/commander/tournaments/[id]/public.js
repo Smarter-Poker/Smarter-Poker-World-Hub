@@ -124,7 +124,7 @@ export default function TournamentPublic() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('sb-access-token') : null;
     if (!token) {
       // Redirect to login if not authenticated
-      router.push(`/login?redirect=${encodeURIComponent(router.asPath)}`);
+      router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
       return;
     }
 
@@ -332,9 +332,9 @@ export default function TournamentPublic() {
               <div className="mt-1 space-y-1">
                 {finalStandings.map((e, i) => (
                   <div key={e.id || i} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border ${i === 0 ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30' :
-                      i === 1 ? 'bg-[#B0B3B8]/10 border-[#B0B3B8]/20' :
-                        i === 2 ? 'bg-[#CD7F32]/10 border-[#CD7F32]/20' :
-                          'bg-[#242526] border-[#3A3B3C]'
+                    i === 1 ? 'bg-[#B0B3B8]/10 border-[#B0B3B8]/20' :
+                      i === 2 ? 'bg-[#CD7F32]/10 border-[#CD7F32]/20' :
+                        'bg-[#242526] border-[#3A3B3C]'
                     }`}>
                     <span className={`w-8 text-center text-sm font-bold ${i === 0 ? 'text-[#F59E0B]' : i === 1 ? 'text-[#B0B3B8]' : i === 2 ? 'text-[#CD7F32]' : 'text-[#B0B3B8]'
                       }`}>
