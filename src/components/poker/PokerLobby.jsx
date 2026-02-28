@@ -356,21 +356,41 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
   const [filterOpenOnly, setFilterOpenOnly] = useState(false);
   const [search, setSearch] = useState('');
   
-  // Subscribe to lobby channel
+  // Fetch tables via HTTP + subscribe to Realtime for live updates
   useEffect(() => {
-    if (!supabase) return;
-    
-    const channel = supabase.channel('lobby');
-    
-    channel.on('broadcast', { event: 'lobby_update' }, (payload) => {
-      setTables(payload.payload.tables || []);
-      setTotalPlayers(payload.payload.totalPlayers || 0);
-    });
-    
-    channel.subscribe();
-    
+    let pollTimer;
+
+    // HTTP fetch (primary source)
+    const fetchTables = async () => {
+      try {
+        const res = await fetch('/api/poker/engine/tables');
+        const data = await res.json();
+        if (data.tables) {
+          setTables(data.tables);
+          setTotalPlayers(data.tables.reduce((sum, t) => sum + (t.playerCount || 0), 0));
+        }
+      } catch (err) {
+        console.warn('[Lobby] HTTP fetch failed:', err.message);
+      }
+    };
+
+    fetchTables();
+    pollTimer = setInterval(fetchTables, 8000); // Poll every 8s as fallback
+
+    // Realtime supplement (instant updates when available)
+    let channel;
+    if (supabase) {
+      channel = supabase.channel('lobby');
+      channel.on('broadcast', { event: 'lobby_update' }, (payload) => {
+        setTables(payload.payload.tables || []);
+        setTotalPlayers(payload.payload.totalPlayers || 0);
+      });
+      channel.subscribe();
+    }
+
     return () => {
-      supabase.removeChannel(channel);
+      if (pollTimer) clearInterval(pollTimer);
+      if (channel && supabase) supabase.removeChannel(channel);
     };
   }, [supabase]);
   
