@@ -37,9 +37,29 @@ async function getRotations(req, res) {
     });
   }
 
-  // Require staff auth
-  const staff = await requireStaff(req, res, venue_id);
-  if (!staff) return;
+  // Light auth for GET (read-only) — matches tables API pattern
+  const staffSession = req.headers['x-staff-session'];
+  if (!staffSession) {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
+    });
+  }
+  let sessionData;
+  try {
+    sessionData = JSON.parse(staffSession);
+    if (String(sessionData.venue_id) !== String(venue_id)) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Venue mismatch' }
+      });
+    }
+  } catch {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'INVALID_SESSION', message: 'Invalid session format' }
+    });
+  }
 
   try {
     // Get active dealer assignments — only dealer_id FK exists in rotations table

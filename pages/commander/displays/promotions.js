@@ -33,20 +33,41 @@ export default function PromotionsDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
+  // Extract venueId for API calls and cross-device sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/commander/promotions');
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || '';
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      // Pass venue_id + status=active so API only returns this venue's active promos
+      const url = venueId
+        ? `/api/commander/promotions?venue_id=${venueId}&status=active`
+        : '/api/commander/promotions?status=active';
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-staff-session': staffSession
+        }
+      });
       const json = await res.json();
       if (json.success) {
-        // API returns { data: { promotions: [...] } }
         const promos = json.data?.promotions || json.data || [];
         const arr = Array.isArray(promos) ? promos : [];
+        // API already filters by status=active, but double-check client-side
         const active = arr.filter(p => p.status === 'active' || p.is_active);
         setPromotions(active);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error('Display fetch error:', err); }
     setNow(new Date());
-  }, []);
+  }, [venueId]);
+
+  // Reset currentIndex when promotions list changes size to prevent blank screen
+  useEffect(() => {
+    setCurrentIndex(prev => (promotions.length === 0 ? 0 : prev >= promotions.length ? 0 : prev));
+  }, [promotions.length]);
 
   useEffect(() => {
     fetchData();
@@ -55,21 +76,16 @@ export default function PromotionsDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
-  // Extract venueId for cross-device sync
-  const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
-
   // Commander Data Bus
   useCommanderSync(venueId, fetchData, { entities: ['settings'] });
 
   // Supabase realtime — instant push notification when promos change
   useEffect(() => {
     if (!venueId) return;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
-    const sb = createClient(supabaseUrl, supabaseKey);
+    const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!sbUrl || !sbKey) return;
+    const sb = createClient(sbUrl, sbKey);
     const channel = sb.channel('display-promotions-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
         () => { fetchData(); }
@@ -87,7 +103,7 @@ export default function PromotionsDisplay() {
     return () => clearInterval(rotate);
   }, [promotions.length]);
 
-  // Wake lock
+  // Wake lock — properly clean up the visibilitychange listener
   useEffect(() => {
     const requestWakeLock = async () => {
       try {
@@ -95,10 +111,12 @@ export default function PromotionsDisplay() {
       } catch (err) { }
     };
     requestWakeLock();
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    });
-    return () => { wakeLockRef.current?.release(); };
+    const onVisChange = () => { if (document.visibilityState === 'visible') requestWakeLock(); };
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => {
+      wakeLockRef.current?.release();
+      document.removeEventListener('visibilitychange', onVisChange);
+    };
   }, []);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
