@@ -120,6 +120,19 @@ export default async function handler(req, res) {
     const currentBlinds = blindStructure[currentLevel] || {};
     const nextBlinds = blindStructure[currentLevel + 1] || null;
 
+    // Compute remaining_seconds dynamically (mirrors clock.js logic)
+    let remaining_seconds = 0;
+    const clockState = tournament.clock_state || null;
+    if (currentBlinds && currentBlinds.duration && clockState && clockState.levelStartedAt) {
+      const levelDuration = currentBlinds.duration * 60 * 1000;
+      const elapsed = clockState.isRunning
+        ? Date.now() - new Date(clockState.levelStartedAt).getTime() - (clockState.pausedDuration || 0)
+        : clockState.pausedAt
+          ? new Date(clockState.pausedAt).getTime() - new Date(clockState.levelStartedAt).getTime() - (clockState.pausedDuration || 0)
+          : 0;
+      remaining_seconds = Math.max(0, Math.floor((levelDuration - elapsed) / 1000));
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -139,13 +152,25 @@ export default async function handler(req, res) {
           addon_cost: tournament.addon_cost,
           addon_chips: tournament.addon_chips,
           late_registration_levels: tournament.late_registration_levels,
-          guaranteed_pool: tournament.guaranteed_pool
+          guaranteed_pool: tournament.guaranteed_pool,
+          started_at: tournament.actual_start || tournament.started_at,
+          actual_start: tournament.actual_start,
+          scheduled_start: tournament.scheduled_start,
+          game_type: tournament.game_type,
+          payout_structure: tournament.payout_structure,
+          custom_payouts: tournament.custom_payouts,
+          clock_color: tournament.settings?.clock_color,
         },
         clock: {
           current_level: currentLevel,
           current_blinds: currentBlinds,
           next_blinds: nextBlinds,
-          clock_state: tournament.clock_state,
+          clock_state: {
+            ...(tournament.clock_state || {}),
+            remaining_seconds,
+            status: clockState?.isRunning ? 'running' : 'paused',
+            started_at: tournament.actual_start,
+          },
           total_levels: blindStructure.length
         },
         stats: {

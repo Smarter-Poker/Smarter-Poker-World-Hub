@@ -107,8 +107,15 @@ export default function TournamentClockSetup() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-white truncate">{t.name}</p>
-                                            <div className="flex items-center gap-2 mt-1">
+                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${sc.bg} ${sc.text}`}>{sc.label}</span>
+                                                {t.scheduled_start && (
+                                                    <span className="text-xs text-[#64748B]">
+                                                        {new Date(t.scheduled_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        {' '}
+                                                        {new Date(t.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                                    </span>
+                                                )}
                                                 {t.blind_structure && (
                                                     <span className="text-xs text-[#64748B]">{t.blind_structure.length} levels</span>
                                                 )}

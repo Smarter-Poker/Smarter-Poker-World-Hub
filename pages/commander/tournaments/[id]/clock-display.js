@@ -164,6 +164,9 @@ export default function ClockDisplay() {
         <div style={{ ...S.header, borderBottomColor: theme.accent + '26' }}>
           <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
           <div style={S.headerSub}>
+            {t.scheduled_start && (
+              <span>{new Date(t.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} — </span>
+            )}
             {formatMoney(t.buyin_amount || 0)} Buy-in
             {t.rebuy_allowed ? `, ${formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy (Through Round ${t.late_registration_level || 6}, Max ${t.max_rebuys || 1} per player)` : ''}
             , {t.addon_allowed ? 'Add-ons allowed' : 'No add-ons'}
