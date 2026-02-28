@@ -780,7 +780,8 @@ const S = {
   timer: {
     fontSize: 'min(28vw, 28vh)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 6px 30px rgba(0,0,0,0.6)', letterSpacing: -4,
-    fontFamily: "'Inter', monospace", textAlign: 'center', width: '100%', flexShrink: 0
+    fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", fontFeatureSettings: '"zero" 0',
+    textAlign: 'center', width: '100%', flexShrink: 0
   },
   blindsZone: {
     flex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',

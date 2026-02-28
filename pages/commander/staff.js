@@ -5,8 +5,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, Lock, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, Lock, AlertTriangle, CreditCard, QrCode } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+
+const ID_TYPES = [
+  { value: 'drivers_license', label: "Driver's License" },
+  { value: 'state_id', label: 'State ID' },
+  { value: 'passport', label: 'Passport' },
+  { value: 'military_id', label: 'Military ID' },
+];
+
+const US_STATES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA',
+  'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT',
+  'VA', 'WA', 'WV', 'WI', 'WY', 'DC'
+];
 
 const ROLES = [
   { value: 'owner', label: 'Owner', color: 'bg-[#7C3AED] text-white' },
@@ -306,6 +320,11 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
   const [role, setRole] = useState(staff?.role || 'floor');
   const [pinCode, setPinCode] = useState(staff?.pin_code || '');
   const [isActive, setIsActive] = useState(staff?.is_active !== false);
+  const [idType, setIdType] = useState(staff?.id_type || 'drivers_license');
+  const [idNumber, setIdNumber] = useState(staff?.id_number || '');
+  const [idState, setIdState] = useState(staff?.id_state || '');
+  const [idExpiry, setIdExpiry] = useState(staff?.id_expiry || '');
+  const [dateOfBirth, setDateOfBirth] = useState(staff?.date_of_birth || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -336,7 +355,12 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
       phone: phone.trim() || null,
       role,
       pin_code: pinCode || null,
-      is_active: isActive
+      is_active: isActive,
+      id_type: idType || null,
+      id_number: idNumber.trim() || null,
+      id_state: idState || null,
+      id_expiry: idExpiry || null,
+      date_of_birth: dateOfBirth || null,
     });
     if (result && !result.success) {
       setError(result.error || 'Failed to save');
@@ -407,6 +431,77 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
               className="w-full h-12 px-3 cmd-input"
             />
           </div>
+
+          {/* Government ID */}
+          <div className="border border-[#3A3B3C] rounded-lg p-3 space-y-3">
+            <p className="text-sm font-medium text-[#B0B3B8] flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5" /> Government ID
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-[#B0B3B8] mb-1">ID Type</label>
+                <select
+                  value={idType}
+                  onChange={(e) => setIdType(e.target.value)}
+                  className="w-full h-10 px-2 cmd-input text-sm"
+                >
+                  {ID_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-[#B0B3B8] mb-1">ID Number</label>
+                <input
+                  type="text"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(e.target.value)}
+                  placeholder="DL12345678"
+                  className="w-full h-10 px-2 cmd-input text-sm"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-[#B0B3B8] mb-1">State</label>
+                <select
+                  value={idState}
+                  onChange={(e) => setIdState(e.target.value)}
+                  className="w-full h-10 px-2 cmd-input text-sm"
+                >
+                  <option value="">--</option>
+                  {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-[#B0B3B8] mb-1">ID Expiry</label>
+                <input
+                  type="date"
+                  value={idExpiry}
+                  onChange={(e) => setIdExpiry(e.target.value)}
+                  className="w-full h-10 px-2 cmd-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#B0B3B8] mb-1">DOB</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="w-full h-10 px-2 cmd-input text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* QR Code (show when editing) */}
+          {isEditing && staff?.qr_code && (
+            <div className="flex items-center gap-3 p-3 bg-[#18191A] rounded-lg">
+              <QrCode className="w-5 h-5 text-[#10B981]" />
+              <div>
+                <p className="text-xs text-[#B0B3B8]">Staff QR Code</p>
+                <p className="text-sm text-white font-mono">{staff.qr_code}</p>
+              </div>
+            </div>
+          )}
 
           {/* Role */}
           <div>

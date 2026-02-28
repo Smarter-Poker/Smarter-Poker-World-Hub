@@ -3,6 +3,7 @@
  * List or add staff members
  * Reference: API_REFERENCE.md - Staff Management section
  */
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 
@@ -103,7 +104,13 @@ async function handlePost(req, res) {
       phone,
       role,
       permissions = {},
-      pin_code
+      pin_code,
+      id_type,
+      id_number,
+      id_state,
+      id_expiry,
+      photo_url,
+      date_of_birth,
     } = req.body;
 
     // Validation — require venue_id, role, and either user_id or display_name
@@ -140,7 +147,7 @@ async function handlePost(req, res) {
     // Verify venue exists
     const { data: venue, error: venueError } = await supabase
       .from('poker_venues')
-      .select('id')
+      .select('id, name')
       .eq('id', venue_id)
       .single();
 
@@ -199,6 +206,50 @@ async function handlePost(req, res) {
       }
     }
 
+    // Generate unique QR code for this staff member
+    const qrCode = `STAFF-${venue_id}-${crypto.randomUUID().split('-')[0]}`;
+
+    // Auto-create a member record (dual-registration: staff = player)
+    let memberId = null;
+    try {
+      const prefix = (venue?.name || 'CLUB').replace(/[^A-Za-z]/g, '').substring(0, 4).toUpperCase();
+      const { count } = await supabase
+        .from('commander_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('venue_id', venue_id);
+      const memberNumber = `${prefix}-${String((count || 0) + 1).padStart(5, '0')}`;
+
+      const nameParts = (display_name || '').trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      const { data: member } = await supabase
+        .from('commander_members')
+        .insert({
+          venue_id,
+          member_number: memberNumber,
+          qr_code: qrCode,
+          first_name: firstName,
+          last_name: lastName,
+          email: email?.trim() || null,
+          phone: phone?.trim() || null,
+          date_of_birth: date_of_birth || null,
+          id_type: id_type || null,
+          id_number: id_number?.trim() || null,
+          id_state: id_state || null,
+          id_expiry: id_expiry || null,
+          photo_url: photo_url || null,
+          membership_tier: 'staff',
+          membership_status: 'active',
+          notes: `Staff member — ${role}`,
+        })
+        .select('id')
+        .single();
+      if (member) memberId = member.id;
+    } catch (err) {
+      console.warn('Auto-create member failed (non-critical):', err.message);
+    }
+
     const staffRecord = {
       venue_id,
       role,
@@ -207,7 +258,15 @@ async function handlePost(req, res) {
       is_active: true,
       display_name: display_name || null,
       email: email || null,
-      phone: phone || null
+      phone: phone || null,
+      qr_code: qrCode,
+      member_id: memberId,
+      id_type: id_type || null,
+      id_number: id_number?.trim() || null,
+      id_state: id_state || null,
+      id_expiry: id_expiry || null,
+      photo_url: photo_url || null,
+      date_of_birth: date_of_birth || null,
     };
     if (user_id) {
       staffRecord.user_id = user_id;
