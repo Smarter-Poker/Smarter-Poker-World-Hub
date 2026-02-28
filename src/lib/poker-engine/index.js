@@ -22,6 +22,9 @@ const { HandHistoryRecorder, HandHistoryQuery, MIGRATION_SQL } = require('./Hand
 const { LobbyManager, createLobbyClient } = require('./LobbyManager');
 const CardAssets = require('./CardAssets');
 
+// Phase 4
+const { GameController, getController, getControllerSync } = require('./GameController');
+
 module.exports = {
   // Phase 1: Spread all Deck and HandEval exports (includes classes + helpers)
   ...DeckModule,
@@ -39,4 +42,7 @@ module.exports = {
   LobbyManager, createLobbyClient,
   CardAssets,
   ...CardAssets,
+  
+  // Phase 4
+  GameController, getController, getControllerSync,
 };
