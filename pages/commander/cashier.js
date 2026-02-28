@@ -828,15 +828,25 @@ export default function Cashier() {
                 <h3 className="text-lg font-bold text-white">Update Membership</h3>
                 <button onClick={() => setShowMembership(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
               </div>
-              <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#B0B3B8]" />
-                  <span className="text-sm text-white font-medium">{selectedPlayer?.player_name}</span>
+              {selectedPlayer ? (
+                <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#B0B3B8]" />
+                    <span className="text-sm text-white font-medium">{selectedPlayer.player_name}</span>
+                  </div>
+                  <span className="text-xs text-[#B0B3B8]">
+                    Current: {selectedPlayer.membership_tier ? selectedPlayer.membership_tier.charAt(0).toUpperCase() + selectedPlayer.membership_tier.slice(1) : 'None'}
+                  </span>
                 </div>
-                <span className="text-xs text-[#B0B3B8]">
-                  Current: {selectedPlayer?.membership_tier ? selectedPlayer.membership_tier.charAt(0).toUpperCase() + selectedPlayer.membership_tier.slice(1) : 'None'}
-                </span>
-              </div>
+              ) : (
+                <div className="mb-4">
+                  <p className="text-xs text-[#8B5CF6] font-semibold mb-2">Select a player first:</p>
+                  <button onClick={() => { setShowMembership(false); setShowPlayerSearch(true); }}
+                    className="w-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                    <Search className="w-4 h-4" /> Scan or Search for Player
+                  </button>
+                </div>
+              )}
               <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Tier</p>
               <div className="space-y-2 mb-4">
                 {MEMBERSHIP_TIERS.map(t => {
@@ -858,7 +868,7 @@ export default function Cashier() {
               </div>
               <PinSubmitButton action="membership" color="#8B5CF6"
                 label={`Update To ${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.label : '...'}`}
-                disabled={!selectedTier} />
+                disabled={!selectedTier || !selectedPlayer?.id} />
             </div>
           </div>
         )}

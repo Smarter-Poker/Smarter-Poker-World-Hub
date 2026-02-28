@@ -71,12 +71,12 @@ const CARDS = [
     image: '/images/commander/card-staff.jpg',
     glow: '#EF4444',
     features: [
+      { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/mg-cashier.png' },
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Clock In / Out', href: '/commander/time-clock', icon: '/images/commander/icons/mg-time-clock.png' },
       { label: 'Poker Room Functions', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/mg-staff-schedule.png' },
       { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-shift-handoff.png' },
-      { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/mg-cashier.png' },
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-time-billing.png' },
       { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/mg-incidents.png' },
       { label: 'Daily Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-room-presets.png' },
