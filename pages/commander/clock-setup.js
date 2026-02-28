@@ -18,6 +18,15 @@ const DEFAULT_THEME = {
 };
 
 const DEFAULT_DISPLAY_OPTIONS = {
+    chip_denominations: [
+        { value: 25, color: '#2E7D32', label: '25' },
+        { value: 100, color: '#1A1A1A', label: '100' },
+        { value: 500, color: '#6B2D8B', label: '500' },
+        { value: 1000, color: '#DAA520', label: '1,000' },
+        { value: 5000, color: '#E65100', label: '5,000' },
+        { value: 25000, color: '#880E4F', label: '25,000' },
+    ],
+    sound_pack: 'classic',
     show_prize_pool: true,
     show_payouts: true,
     show_icm: false,
@@ -35,6 +44,14 @@ const DEFAULT_DISPLAY_OPTIONS = {
     logo_url: '',
     background_image_url: '',
 };
+
+const SOUND_PACKS = [
+    { value: 'classic', label: 'Classic', desc: 'Single clean tones' },
+    { value: 'chime', label: 'Chime', desc: 'Ascending arpeggio' },
+    { value: 'bell', label: 'Bell', desc: 'Long resonant ring' },
+    { value: 'arcade', label: 'Arcade', desc: 'Sweep effects' },
+    { value: 'voice', label: 'Voice (Chime)', desc: 'Chime fallback' },
+];
 
 const STARTER_THEMES = [
     { name: 'Midnight Blue', theme: { background: '#0D192E', text: '#ffffff', accent: '#1877F2', blinds: '#ffffff', headerBg: 'rgba(0,0,0,0.3)' } },
@@ -321,6 +338,18 @@ export default function ClockSetup() {
                         {/* Sound & Display */}
                         <div style={panelStyle}>
                             <p style={sectionTitle}>Sound Alerts</p>
+                            <div style={{ marginBottom: 12 }}>
+                                <label style={labelStyle}>Sound Pack</label>
+                                <select
+                                    value={formDisplay.sound_pack || 'classic'}
+                                    onChange={e => setFormDisplay({ ...formDisplay, sound_pack: e.target.value })}
+                                    style={{ ...inputStyle, cursor: 'pointer' }}
+                                >
+                                    {SOUND_PACKS.map(sp => (
+                                        <option key={sp.value} value={sp.value}>{sp.label} — {sp.desc}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {[
                                     { key: 'sound_level_change', label: 'Level Change Alert' },
@@ -343,11 +372,79 @@ export default function ClockSetup() {
                             </label>
                         </div>
 
+                        {/* Chip Denominations */}
+                        <div style={panelStyle}>
+                            <p style={sectionTitle}>Chip Denominations</p>
+                            <p style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>Configure chip values and colors shown on the clock display. Obsolete chips auto-dim based on current blinds.</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {(formDisplay.chip_denominations || DEFAULT_DISPLAY_OPTIONS.chip_denominations).map((chip, idx) => (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <input
+                                            type="color" value={chip.color || '#333'}
+                                            onChange={e => {
+                                                const updated = [...(formDisplay.chip_denominations || DEFAULT_DISPLAY_OPTIONS.chip_denominations)];
+                                                updated[idx] = { ...updated[idx], color: e.target.value };
+                                                setFormDisplay({ ...formDisplay, chip_denominations: updated });
+                                            }}
+                                            style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid #1E3A5F', cursor: 'pointer', background: 'transparent' }}
+                                        />
+                                        <input
+                                            type="number" value={chip.value}
+                                            onChange={e => {
+                                                const updated = [...(formDisplay.chip_denominations || DEFAULT_DISPLAY_OPTIONS.chip_denominations)];
+                                                const val = parseInt(e.target.value) || 0;
+                                                updated[idx] = { ...updated[idx], value: val, label: val.toLocaleString() };
+                                                setFormDisplay({ ...formDisplay, chip_denominations: updated });
+                                            }}
+                                            style={{ ...inputStyle, width: 100, padding: '6px 8px', fontSize: 13 }}
+                                            placeholder="Value"
+                                        />
+                                        <span style={{ fontSize: 12, color: '#94A3B8', flex: 1 }}>{chip.label}</span>
+                                        <button
+                                            onClick={() => {
+                                                const updated = [...(formDisplay.chip_denominations || DEFAULT_DISPLAY_OPTIONS.chip_denominations)];
+                                                updated.splice(idx, 1);
+                                                setFormDisplay({ ...formDisplay, chip_denominations: updated });
+                                            }}
+                                            style={{ ...iconBtn, color: '#EF4444' }}
+                                            title="Remove"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const updated = [...(formDisplay.chip_denominations || DEFAULT_DISPLAY_OPTIONS.chip_denominations)];
+                                    const maxVal = updated.length > 0 ? Math.max(...updated.map(c => c.value)) : 0;
+                                    const newVal = maxVal > 0 ? maxVal * 5 : 100;
+                                    updated.push({ value: newVal, color: '#555555', label: newVal.toLocaleString() });
+                                    updated.sort((a, b) => a.value - b.value);
+                                    setFormDisplay({ ...formDisplay, chip_denominations: updated });
+                                }}
+                                style={{ ...btnSecondary, marginTop: 8, fontSize: 12, padding: '6px 12px' }}
+                            >
+                                <Plus size={14} /> Add Chip
+                            </button>
+                        </div>
+
                         {/* Custom Branding */}
                         <div style={panelStyle}>
                             <p style={sectionTitle}>Custom Branding</p>
                             <label style={labelStyle}>Logo URL</label>
                             <input type="text" value={formDisplay.logo_url} onChange={e => setFormDisplay({ ...formDisplay, logo_url: e.target.value })} placeholder="https://your-venue.com/logo.png" style={inputStyle} />
+                            {formDisplay.logo_url && (
+                                <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <img
+                                        src={formDisplay.logo_url}
+                                        alt="Logo preview"
+                                        style={{ height: 36, maxWidth: 200, objectFit: 'contain', borderRadius: 4 }}
+                                        onError={e => { e.target.style.display = 'none'; }}
+                                    />
+                                    <span style={{ fontSize: 11, color: '#64748B' }}>Logo preview</span>
+                                </div>
+                            )}
                             <label style={{ ...labelStyle, marginTop: 12 }}>Background Image URL</label>
                             <input type="text" value={formDisplay.background_image_url} onChange={e => setFormDisplay({ ...formDisplay, background_image_url: e.target.value })} placeholder="https://your-venue.com/background.jpg" style={inputStyle} />
                         </div>

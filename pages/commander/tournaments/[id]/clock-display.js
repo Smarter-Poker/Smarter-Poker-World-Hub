@@ -49,14 +49,36 @@ function formatElapsed(startTime) {
   return `0:${m.toString().padStart(2, '0')}`;
 }
 
-const CHIP_DENOMS = [
-  { value: 25, bg: '#2E7D32', border: '#1B5E20', textColor: '#fff', label: '25' },
-  { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '100' },
-  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '500' },
-  { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '1,000' },
-  { value: 5000, bg: '#E65100', border: '#BF360C', textColor: '#fff', label: '5,000' },
-  { value: 25000, bg: '#880E4F', border: '#6A0036', textColor: '#fff', label: '25,000' },
+const DEFAULT_CHIP_DENOMS = [
+  { value: 25, color: '#2E7D32', label: '25' },
+  { value: 100, color: '#1A1A1A', label: '100' },
+  { value: 500, color: '#6B2D8B', label: '500' },
+  { value: 1000, color: '#DAA520', label: '1,000' },
+  { value: 5000, color: '#E65100', label: '5,000' },
+  { value: 25000, color: '#880E4F', label: '25,000' },
 ];
+
+// Darken a hex color for chip border
+function darkenColor(hex, amount = 40) {
+  try {
+    const h = hex.replace('#', '');
+    const r = Math.max(0, parseInt(h.substring(0, 2), 16) - amount);
+    const g = Math.max(0, parseInt(h.substring(2, 4), 16) - amount);
+    const b = Math.max(0, parseInt(h.substring(4, 6), 16) - amount);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  } catch { return hex; }
+}
+
+// Check if a color is light (for text contrast)
+function isLightColor(hex) {
+  try {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
+  } catch { return false; }
+}
 
 const DEFAULT_THEME = {
   background: '#0D192E', text: '#ffffff', accent: '#1877F2',
@@ -79,6 +101,7 @@ export default function ClockDisplay() {
   const [handTimerActive, setHandTimerActive] = useState(false);
   const [handTimerSeconds, setHandTimerSeconds] = useState(60);
   const [burnInOffset, setBurnInOffset] = useState({ x: 0, y: 0 });
+  const [isPortrait, setIsPortrait] = useState(false);
   const timerRef = useRef(null);
   const handTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
@@ -87,6 +110,30 @@ export default function ClockDisplay() {
   const cycleRef = useRef(null);
   const prevLevelRef = useRef(null);
   const audioRef = useRef(null);
+  const storageKey = `td_clock_${id}`;
+
+  // Restore from sessionStorage on mount (eliminates flash on refresh)
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const cached = sessionStorage.getItem(`td_clock_${id}`);
+      if (cached) {
+        const { seconds: cachedSec, timestamp } = JSON.parse(cached);
+        const elapsed = Math.floor((Date.now() - timestamp) / 1000);
+        const restored = Math.max(0, cachedSec - elapsed);
+        if (restored > 0) setSeconds(restored);
+      }
+    } catch { }
+  }, [id]);
+
+  // Responsive portrait detection
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)');
+    setIsPortrait(mq.matches);
+    const handler = (e) => setIsPortrait(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   // Wake lock
   useEffect(() => {
@@ -196,25 +243,50 @@ export default function ClockDisplay() {
     } catch (err) { console.error(err); }
   };
 
-  // Sound alert playback
+  // Sound alert playback — 5 distinct packs
   const playAlert = (type) => {
+    const pack = preset?.display_options?.sound_pack || 'classic';
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-      if (type === 'break') { osc.frequency.setValueAtTime(660, ctx.currentTime); }
-      else if (type === 'final') { osc.frequency.setValueAtTime(880, ctx.currentTime); }
-      else { osc.frequency.setValueAtTime(523, ctx.currentTime); }
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.8);
+      const playTone = (freq, start, duration, vol = 0.3) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(vol, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+
+      if (pack === 'chime') {
+        if (type === 'break') { playTone(440, 0, 0.6); playTone(523, 0.3, 0.6); }
+        else if (type === 'final') { playTone(880, 0, 0.4); playTone(1047, 0.2, 0.4); playTone(1319, 0.4, 0.6); }
+        else { playTone(523, 0, 0.3); playTone(659, 0.15, 0.3); playTone(784, 0.3, 0.5); }
+      } else if (pack === 'bell') {
+        if (type === 'break') { playTone(600, 0, 1.5, 0.25); }
+        else if (type === 'final') { playTone(1000, 0, 0.5, 0.3); playTone(1000, 0.6, 0.5, 0.2); playTone(1200, 1.2, 0.8, 0.3); }
+        else { playTone(800, 0, 1.2, 0.25); }
+      } else if (pack === 'arcade') {
+        if (type === 'break') {
+          for (let i = 0; i < 5; i++) playTone(800 - i * 80, i * 0.08, 0.15, 0.25);
+        } else if (type === 'final') {
+          playTone(523, 0, 0.15, 0.3); playTone(659, 0.15, 0.15, 0.3);
+          playTone(784, 0.3, 0.15, 0.3); playTone(1047, 0.45, 0.4, 0.35);
+        } else {
+          for (let i = 0; i < 5; i++) playTone(400 + i * 80, i * 0.08, 0.15, 0.25);
+        }
+      } else {
+        // Classic (default)
+        if (type === 'break') { playTone(660, 0, 0.8); }
+        else if (type === 'final') { playTone(880, 0, 0.8); }
+        else { playTone(523, 0, 0.8); }
+      }
     } catch { }
   };
 
-  // Countdown tick
+  // Countdown tick + sessionStorage persistence
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     const status = data?.clock?.clock_state?.status;
@@ -222,12 +294,19 @@ export default function ClockDisplay() {
     if (status === 'running') {
       timerRef.current = setInterval(() => {
         if (isRunningRef.current) {
-          setSeconds(prev => (prev > 0 ? prev - 1 : 0));
+          setSeconds(prev => {
+            const next = prev > 0 ? prev - 1 : 0;
+            // Persist to sessionStorage for refresh resilience
+            try {
+              if (id) sessionStorage.setItem(`td_clock_${id}`, JSON.stringify({ seconds: next, level: data?.clock?.current_level, timestamp: Date.now() }));
+            } catch { }
+            return next;
+          });
         }
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [data?.clock?.clock_state?.status]);
+  }, [data?.clock?.clock_state?.status, id]);
 
   // Hand timer tick
   useEffect(() => {
@@ -311,6 +390,23 @@ export default function ClockDisplay() {
   const nextBreakSec = clockState.next_break_seconds;
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
   const blindStructure = t.blind_structure || [];
+
+  // Dynamic chip denominations from preset (fallback to defaults)
+  const chipDenoms = (displayOpts.chip_denominations && displayOpts.chip_denominations.length > 0)
+    ? displayOpts.chip_denominations
+    : DEFAULT_CHIP_DENOMS;
+
+  // Color-up detection: chips whose value * 20 <= current small blind are obsolete
+  const smallBlind = blinds.small_blind || 0;
+  const colorUpChips = chipDenoms.filter(c => smallBlind >= c.value * 20);
+  const activeChips = chipDenoms.filter(c => smallBlind < c.value * 20);
+
+  // Rebuy/Add-on countdown
+  const rebuyEndLevel = t.rebuy_end_level || t.rebuy_levels || null;
+  const allowsRebuys = t.allows_rebuys || t.rebuy_allowed;
+  const allowsAddon = t.allows_addon || t.addon_allowed;
+  const rebuyLevelsRemaining = rebuyEndLevel ? Math.max(0, rebuyEndLevel - (clock.current_level || 0)) : null;
+  const rebuysClosed = rebuyEndLevel && (clock.current_level || 0) >= rebuyEndLevel;
 
   // ICM / Chop calculations
   const playerStacks = stats.player_stacks || [];
@@ -401,24 +497,44 @@ export default function ClockDisplay() {
 
         {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}
         {activeScreen === SCREENS.CLOCK && (
-          <div style={S.main}>
-            {/* LEFT — Stats */}
-            <div style={S.leftPanel}>
-              <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
-              <StatCell label="Entries" value={totalEntries} />
-              <StatCell label="Players In" value={playersIn} />
-              <StatCell label="Rebuys" value={totalRebuys} />
-              <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
-              <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
-              <StatCell label="Total Pot" value={formatMoney(prizePool)} />
+          <div style={isPortrait ? S.mainPortrait : S.main}>
+            {/* LEFT — Stats (portrait: horizontal bar) */}
+            <div style={isPortrait ? S.leftPanelPortrait : S.leftPanel}>
+              <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} portrait={isPortrait} />
+              <StatCell label="Entries" value={totalEntries} portrait={isPortrait} />
+              <StatCell label="Players In" value={playersIn} portrait={isPortrait} />
+              <StatCell label="Rebuys" value={totalRebuys} portrait={isPortrait} />
+              {!isPortrait && <StatCell label="Chip Count" value={formatChipCount(totalChips)} />}
+              <StatCell label="Avg Stack" value={formatChipCount(avgStack)} portrait={isPortrait} />
+              <StatCell label="Total Pot" value={formatMoney(prizePool)} portrait={isPortrait} />
             </div>
 
-            {/* CENTER — Clock + Blinds */}
+            {/* CENTER — Clock + Blinds (TD-style: timer fills upper area, blinds below) */}
             <div style={S.centerPanel}>
               {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
               {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
 
-              {/* Timer fills available space, text centered inside */}
+              {/* Color-up banner */}
+              {colorUpChips.length > 0 && !isBreak && !isH4H && (
+                <div style={S.colorUpBanner}>
+                  COLOR UP — Remove {colorUpChips.map(c => c.label || c.value.toLocaleString()).join(', ')} chips
+                </div>
+              )}
+
+              {/* Rebuy countdown banner */}
+              {allowsRebuys && !rebuysClosed && rebuyLevelsRemaining !== null && rebuyLevelsRemaining > 0 && (
+                <div style={S.rebuyBanner}>
+                  Rebuys close after Level {rebuyEndLevel} — {rebuyLevelsRemaining} level{rebuyLevelsRemaining !== 1 ? 's' : ''} remaining
+                </div>
+              )}
+              {allowsRebuys && rebuysClosed && (
+                <div style={S.rebuyClosedBanner}>Rebuy period closed</div>
+              )}
+              {allowsAddon && !rebuysClosed && (
+                <div style={S.addonBanner}>Add-on period open</div>
+              )}
+
+              {/* TIMER — fills all available space, text centered inside */}
               <div style={S.timerZone} onClick={toggleControls}>
                 <div style={{ ...S.timer, color: '#FFFFFF' }}>
                   {formatClock(displaySeconds)}
@@ -426,7 +542,7 @@ export default function ClockDisplay() {
                 {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
               </div>
 
-              {/* Blinds + Next Round pinned at bottom */}
+              {/* BLINDS — pinned at bottom, no flex growth */}
               <div style={S.blindsBlock}>
                 <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
                 <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
@@ -445,21 +561,29 @@ export default function ClockDisplay() {
               )}
             </div>
 
-            {/* RIGHT — Time + Chips */}
-            <div style={S.rightPanel}>
-              <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
-              <StatCell label="Elapsed Time" value={elapsedDisplay} />
-              <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+            {/* RIGHT — Time + Chips (portrait: below center) */}
+            <div style={isPortrait ? S.rightPanelPortrait : S.rightPanel}>
+              {!isPortrait && (
+                <>
+                  <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
+                  <StatCell label="Elapsed Time" value={elapsedDisplay} />
+                  <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+                </>
+              )}
               {displayOpts.show_chip_colors && (
-                <div style={S.chipStack}>
-                  {CHIP_DENOMS.map(chip => (
-                    <div key={chip.value} style={S.chipRow}>
-                      <div style={{ ...S.chipCircle, backgroundColor: chip.bg, borderColor: chip.border }}>
-                        <div style={S.chipInner} />
+                <div style={isPortrait ? S.chipStackPortrait : S.chipStack}>
+                  {chipDenoms.map(chip => {
+                    const isObsolete = smallBlind >= chip.value * 20;
+                    const chipColor = chip.color || chip.bg || '#333';
+                    return (
+                      <div key={chip.value} style={{ ...S.chipRow, opacity: isObsolete ? 0.25 : 1, textDecoration: isObsolete ? 'line-through' : 'none' }}>
+                        <div style={{ ...S.chipCircle, backgroundColor: chipColor, borderColor: darkenColor(chipColor) }}>
+                          <div style={S.chipInner} />
+                        </div>
+                        <span style={{ ...S.chipLabel, color: isObsolete ? '#666' : '#fff' }}>{chip.label || chip.value.toLocaleString()}</span>
                       </div>
-                      <span style={S.chipLabel}>{chip.label}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -585,11 +709,11 @@ function adjustColor(hex, amount) {
   } catch { return hex; }
 }
 
-function StatCell({ label, value }) {
+function StatCell({ label, value, portrait }) {
   return (
-    <div style={S.statCell}>
-      <div style={S.statLabel}>{label}</div>
-      <div style={S.statValue}>{value}</div>
+    <div style={portrait ? S.statCellPortrait : S.statCell}>
+      <div style={portrait ? S.statLabelPortrait : S.statLabel}>{label}</div>
+      <div style={portrait ? S.statValuePortrait : S.statValue}>{value}</div>
     </div>
   );
 }
@@ -609,11 +733,14 @@ const S = {
   headerTitle: { fontSize: 28, fontWeight: 700 },
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
   main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 200px', minHeight: 0 },
+  mainPortrait: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
   leftPanel: { display: 'flex', flexDirection: 'column' },
+  leftPanelPortrait: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', borderBottom: '2px solid rgba(255,255,255,0.15)' },
   rightPanel: { display: 'flex', flexDirection: 'column' },
+  rightPanelPortrait: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', borderTop: '2px solid rgba(255,255,255,0.15)', padding: '8px 0' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    position: 'relative', padding: 0, flex: 1, minHeight: 0
+    position: 'relative', padding: 0, flex: 1, minHeight: 0, overflow: 'hidden'
   },
   timerZone: {
     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -624,10 +751,17 @@ const S = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '4px 8px', textAlign: 'center'
   },
+  statCellPortrait: {
+    flex: 1, minWidth: 80, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    padding: '6px 4px', textAlign: 'center'
+  },
   statLabel: { fontSize: 13, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
+  statLabelPortrait: { fontSize: 10, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
   statValue: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
+  statValuePortrait: { fontSize: 16, fontWeight: 700, lineHeight: 1.3 },
   timer: {
-    fontSize: 'min(25vw, 28vh)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+    fontSize: 'min(28vw, 30vh)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 6px 30px rgba(0,0,0,0.6)', letterSpacing: -4,
     fontFamily: "'Inter', monospace", textAlign: 'center', width: '100%', flexShrink: 0
   },
@@ -643,8 +777,30 @@ const S = {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
   },
+  colorUpBanner: {
+    position: 'absolute', top: 8, background: 'rgba(168,85,247,0.2)',
+    border: '2px solid rgba(168,85,247,0.5)', padding: '6px 24px', borderRadius: 8,
+    color: '#A855F7', fontSize: 18, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
+    animation: 'pulse 2s infinite', zIndex: 10
+  },
+  rebuyBanner: {
+    background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)',
+    padding: '4px 20px', borderRadius: 6, color: '#F59E0B', fontSize: 13,
+    fontWeight: 600, marginBottom: 4
+  },
+  rebuyClosedBanner: {
+    background: 'rgba(100,100,100,0.15)', border: '1px solid rgba(100,100,100,0.3)',
+    padding: '4px 20px', borderRadius: 6, color: '#888', fontSize: 13,
+    fontWeight: 600, marginBottom: 4
+  },
+  addonBanner: {
+    background: 'rgba(24,119,242,0.15)', border: '1px solid rgba(24,119,242,0.4)',
+    padding: '4px 20px', borderRadius: 6, color: '#1877F2', fontSize: 13,
+    fontWeight: 600, marginBottom: 4
+  },
   chipStack: { flex: 3, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, justifyContent: 'center' },
-  chipRow: { display: 'flex', alignItems: 'center', gap: 10 },
+  chipStackPortrait: { display: 'flex', flexDirection: 'row', gap: 12, padding: '8px 12px', justifyContent: 'center', flexWrap: 'wrap' },
+  chipRow: { display: 'flex', alignItems: 'center', gap: 10, transition: 'opacity 0.3s' },
   chipCircle: {
     width: 44, height: 44, borderRadius: '50%', border: '3px solid',
     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)',
