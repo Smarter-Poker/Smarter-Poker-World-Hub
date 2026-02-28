@@ -378,10 +378,13 @@ export default function DealerTablet() {
     setFloorRequested(true);
     try {
       const token = getToken();
-      await fetch('/api/commander/incidents', {
+      const staffSession = getStaffSession();
+      let vid = '';
+      try { vid = JSON.parse(staffSession).venue_id || ''; } catch { }
+      await fetch('/api/commander/floor-calls', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ type: 'floor_call', table_number: parseInt(tableNumber), description: `Floor requested at Table ${tableNumber}`, priority: 'normal' })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({ venue_id: vid, table_number: parseInt(tableNumber), reason: 'floor_assistance', description: `Floor requested at Table ${tableNumber}`, priority: 'normal', called_by: 'dealer' })
       });
     } catch (err) { console.error(err); }
     setTimeout(() => setFloorRequested(false), 30000);

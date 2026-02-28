@@ -1,7 +1,7 @@
 /**
  * Floor Calls API
  * POST /api/commander/floor-calls - Create a new floor call
- * GET  /api/commander/floor-calls - List active floor calls
+ * GET  /api/commander/floor-calls - List floor calls (with filters)
  * PUT  /api/commander/floor-calls - Acknowledge/resolve a floor call
  */
 import { createClient } from '@supabase/supabase-js';
@@ -12,19 +12,47 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const VALID_REASONS = [
+  'dispute', 'chip_fill', 'buyin', 'player_issue',
+  'security', 'maintenance', 'dealer_relief', 'floor_assistance', 'other'
+];
+
+const VALID_PRIORITIES = ['urgent', 'high', 'normal', 'low'];
+const VALID_STATUSES = ['pending', 'acknowledged', 'en_route', 'resolved', 'cancelled'];
+
 export default async function handler(req, res) {
-  // Auth guard: require staff auth for write operations
-  const _authResult = await guardWriteStaff(req, res);
-  if (!_authResult) return;
+  // Auth guard: require staff auth for all operations
+  const staffResult = await guardWriteStaff(req, res);
+  if (!staffResult) return;
 
   try {
-    // GET - List floor calls
+    // GET - List floor calls with filters
     if (req.method === 'GET') {
-      const { venue_id, status } = req.query;
-      let query = supabase.from('commander_floor_calls').select('*').order('created_at', { ascending: false }).limit(50);
+      const { venue_id, status, reason, priority, responded_by, limit = '50' } = req.query;
+
+      let query = supabase
+        .from('commander_floor_calls')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(parseInt(limit));
+
       if (venue_id) query = query.eq('venue_id', venue_id);
-      if (status) query = query.eq('status', status);
-      else query = query.in('status', ['pending', 'acknowledged', 'en_route']);
+
+      if (status) {
+        // Support comma-separated statuses: status=pending,acknowledged
+        const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+        if (statuses.length === 1) {
+          query = query.eq('status', statuses[0]);
+        } else if (statuses.length > 1) {
+          query = query.in('status', statuses);
+        }
+      } else {
+        query = query.in('status', ['pending', 'acknowledged', 'en_route']);
+      }
+
+      if (reason) query = query.eq('reason', reason);
+      if (priority) query = query.eq('priority', priority);
+      if (responded_by) query = query.eq('responded_by', responded_by);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -38,45 +66,77 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'table_number and reason required' });
       }
 
+      const safeReason = VALID_REASONS.includes(reason) ? reason : 'other';
+      const safePriority = VALID_PRIORITIES.includes(priority) ? priority : 'normal';
+
       const { data, error } = await supabase.from('commander_floor_calls').insert({
-        venue_id: venue_id || '00000000-0000-0000-0000-000000000000',
+        venue_id: venue_id || null,
         table_number,
-        reason,
+        reason: safeReason,
         description: description || '',
-        priority: priority || 'normal',
-        called_by: called_by || 'dealer',
+        priority: safePriority,
+        called_by: called_by || 'staff',
         status: 'pending'
       }).select().single();
 
       if (error) throw error;
 
-      // Also log to activity feed
+      // Also log to activity feed (non-blocking)
       await supabase.from('commander_activity_log').insert({
-        venue_id: venue_id || '00000000-0000-0000-0000-000000000000',
-        event_type: priority === 'urgent' ? 'incident' : 'floor_call',
-        message: `Floor call at Table ${table_number}: ${reason}`,
-        detail: description,
+        venue_id: venue_id || null,
+        event_type: safePriority === 'urgent' ? 'incident' : 'floor_call',
+        message: `Floor call at Table ${table_number}: ${safeReason.replace(/_/g, ' ')}`,
+        detail: description || '',
         table_number
-      }).catch(() => {});
+      }).catch(() => { });
 
       return res.status(201).json({ success: true, data });
     }
 
-    // PUT - Acknowledge or resolve
+    // PUT - Acknowledge, en_route, resolve, or cancel
     if (req.method === 'PUT') {
       const { id, status, responded_by, resolution } = req.body;
       if (!id || !status) {
         return res.status(400).json({ success: false, error: 'id and status required' });
       }
-
-      const updates = { status };
-      if (status === 'acknowledged' || status === 'en_route') {
-        updates.responded_by = responded_by;
-        updates.responded_at = new Date().toISOString();
+      if (!VALID_STATUSES.includes(status)) {
+        return res.status(400).json({ success: false, error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
       }
+
+      // Fetch existing call for response time computation
+      const { data: existing } = await supabase
+        .from('commander_floor_calls')
+        .select('created_at, responded_at')
+        .eq('id', id)
+        .single();
+
+      const now = new Date().toISOString();
+      const updates = { status };
+
+      if (status === 'acknowledged' || status === 'en_route') {
+        if (responded_by) updates.responded_by = responded_by;
+        if (!existing?.responded_at) {
+          updates.responded_at = now;
+        }
+      }
+
       if (status === 'resolved') {
         updates.resolution = resolution || '';
-        if (!updates.responded_at) updates.responded_at = new Date().toISOString();
+        updates.resolved_at = now;
+        if (!existing?.responded_at) {
+          updates.responded_at = now;
+        }
+        // Compute response time (seconds from creation to resolution)
+        if (existing?.created_at) {
+          updates.response_time_seconds = Math.round(
+            (new Date(now) - new Date(existing.created_at)) / 1000
+          );
+        }
+      }
+
+      if (status === 'cancelled') {
+        updates.resolved_at = now;
+        updates.resolution = resolution || 'Cancelled';
       }
 
       const { data, error } = await supabase.from('commander_floor_calls')
