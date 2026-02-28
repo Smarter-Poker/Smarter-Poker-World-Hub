@@ -596,123 +596,184 @@ export default function PromotionsPage() {
           noindex={true}
         />
 
-        <div className="cmd-page">
-          <header className="cmd-header-bar sticky top-0 z-40">
-            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="font-bold text-white">Promotions</h1>
-                  <p className="text-sm text-[#B0B3B8]">
-                    {activeTab === 'promotions' ? `${promotions.length} promotions` : `${highHands.length} high hands today`}
-                  </p>
-                </div>
+        <div style={{ minHeight: '100vh', background: '#18191A', fontFamily: 'Inter, sans-serif' }}>
+          {/* ── Premium Header ── */}
+          <header style={{
+            position: 'sticky', top: 0, zIndex: 40,
+            background: '#242526', borderBottom: '1px solid #3A3B3C',
+          }}>
+            <div style={{
+              maxWidth: 960, margin: '0 auto', padding: '14px 20px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: '#E4E6EB', margin: 0 }}>
+                  Promotions
+                </h1>
+                <p style={{ fontSize: 13, color: '#8A8D91', margin: '2px 0 0' }}>
+                  {activeTab === 'promotions'
+                    ? `${promotions.length} Promotion${promotions.length !== 1 ? 's' : ''}`
+                    : activeTab === 'high-hands'
+                      ? `${highHands.length} High Hand${highHands.length !== 1 ? 's' : ''} Today`
+                      : `${promoCodes.length} Promo Code${promoCodes.length !== 1 ? 's' : ''}`}
+                </p>
               </div>
               {activeTab === 'promotions' ? (
-                <div className="flex items-center gap-2">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     onClick={() => { setUseWizard(true); setShowCreateModal(true); }}
-                    className="cmd-btn cmd-btn-secondary flex items-center gap-2"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '8px 16px', borderRadius: 8,
+                      background: 'rgba(24,119,242,0.1)', color: '#1877F2',
+                      border: '1px solid rgba(24,119,242,0.3)',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
                   >
-                    <Zap className="w-4 h-4" />
+                    <Zap size={15} />
                     Wizard
                   </button>
                   <button
                     onClick={() => { setUseWizard(false); setShowCreateModal(true); }}
-                    className="cmd-btn cmd-btn-primary flex items-center gap-2"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '8px 16px', borderRadius: 8,
+                      background: '#1877F2', color: '#fff',
+                      border: 'none',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus size={15} />
                     New Promo
                   </button>
                 </div>
               ) : activeTab === 'high-hands' ? (
                 <button
                   onClick={() => setShowHighHandModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg hover:bg-[#D97706]"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px', borderRadius: 8,
+                    background: '#F59E0B', color: '#fff',
+                    border: 'none',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
                 >
-                  <Trophy className="w-4 h-4" />
+                  <Trophy size={15} />
                   Record High Hand
                 </button>
               ) : (
                 <button
                   onClick={seedPremadePromos}
                   disabled={seedingPromos}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#31A24C] text-white font-medium rounded-lg hover:bg-[#2B8C42] disabled:opacity-50"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px', borderRadius: 8,
+                    background: '#31A24C', color: '#fff',
+                    border: 'none',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    opacity: seedingPromos ? 0.5 : 1,
+                  }}
                 >
-                  {seedingPromos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {seedingPromos ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                   Load 25 Pre-Made
                 </button>
               )}
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
-              <button
-                onClick={() => setActiveTab('promotions')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promotions'
-                  ? 'border-[#1877F2] text-[#1877F2]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
-                  }`}
-              >
-                <Gift className="w-4 h-4 inline-block mr-2" />
-                Promotions
-              </button>
-              <button
-                onClick={() => setActiveTab('high-hands')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'high-hands'
-                  ? 'border-[#F59E0B] text-[#F59E0B]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
-                  }`}
-              >
-                <Trophy className="w-4 h-4 inline-block mr-2" />
-                High Hands
-              </button>
-              <button
-                onClick={() => setActiveTab('promo-codes')}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promo-codes'
-                  ? 'border-[#31A24C] text-[#31A24C]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
-                  }`}
-              >
-                <Target className="w-4 h-4 inline-block mr-2" />
-                Promo Codes
-              </button>
+            {/* ── Tab Bar ── */}
+            <div style={{
+              maxWidth: 960, margin: '0 auto', padding: '0 20px',
+              display: 'flex', gap: 0, borderTop: '1px solid #3A3B3C',
+            }}>
+              {[
+                { key: 'promotions', label: 'Promotions', icon: Gift, color: '#1877F2' },
+                { key: 'high-hands', label: 'High Hands', icon: Trophy, color: '#F59E0B' },
+                { key: 'promo-codes', label: 'Promo Codes', icon: Target, color: '#31A24C' },
+              ].map(tab => {
+                const isActive = activeTab === tab.key;
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    style={{
+                      padding: '12px 18px', border: 'none', cursor: 'pointer',
+                      background: 'transparent',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 13, fontWeight: isActive ? 700 : 500,
+                      color: isActive ? tab.color : '#8A8D91',
+                      borderBottom: `2px solid ${isActive ? tab.color : 'transparent'}`,
+                      transition: 'color 0.15s, border-color 0.15s',
+                    }}
+                  >
+                    <TabIcon size={15} />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
           </header>
 
-          <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+          {/* ── Main Content ── */}
+          <main style={{ maxWidth: 960, margin: '0 auto', padding: '20px 20px 40px' }}>
             {activeTab === 'promotions' ? (
               <>
-                <div className="flex gap-2">
-                  {['all', 'active', 'inactive'].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setFilter(f)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
-                        ? 'bg-[#1877F2] text-white'
-                        : 'cmd-btn cmd-btn-secondary'
-                        }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
+                {/* Filter Pills */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  {['All', 'Active', 'Inactive'].map((f) => {
+                    const filterVal = f.toLowerCase();
+                    const isActive = filter === filterVal;
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(filterVal)}
+                        style={{
+                          padding: '7px 18px', borderRadius: 8,
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                          background: isActive ? '#1877F2' : '#3A3B3C',
+                          color: isActive ? '#fff' : '#B0B3B8',
+                          border: isActive ? '1px solid #1877F2' : '1px solid #4E4F50',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {f}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {loading ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                    <Loader2 size={32} color="#1877F2" className="animate-spin" />
                   </div>
                 ) : filteredPromos.length === 0 ? (
-                  <div className="cmd-panel p-8 text-center">
-                    <Gift className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                    <p className="text-[#B0B3B8]">No Promotions Found</p>
+                  <div style={{
+                    background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
+                    padding: '48px 24px', textAlign: 'center',
+                  }}>
+                    <Gift size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
+                    <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
+                      No Promotions Found
+                    </p>
                     <button
                       onClick={() => setShowCreateModal(true)}
-                      className="cmd-btn cmd-btn-primary mt-4"
+                      style={{
+                        padding: '10px 24px', borderRadius: 8,
+                        background: '#1877F2', color: '#fff',
+                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}
                     >
                       Create Promotion
                     </button>
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                    gap: 16,
+                  }}>
                     {filteredPromos.map((promo) => (
                       <PromotionCard
                         key={promo.id}
@@ -754,26 +815,39 @@ export default function PromotionsPage() {
                   }}
                 />
 
-                <CurrentHighHandBanner highHand={currentHighHand} />
+                <div style={{ marginTop: 16 }}>
+                  <CurrentHighHandBanner highHand={currentHighHand} />
+                </div>
 
                 {loading ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#F59E0B]" />
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                    <Loader2 size={32} color="#F59E0B" className="animate-spin" />
                   </div>
                 ) : highHands.length === 0 ? (
-                  <div className="cmd-panel p-8 text-center">
-                    <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                    <p className="text-[#B0B3B8]">No High Hands Recorded Today</p>
+                  <div style={{
+                    background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
+                    padding: '48px 24px', textAlign: 'center', marginTop: 16,
+                  }}>
+                    <Trophy size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
+                    <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
+                      No High Hands Recorded Today
+                    </p>
                     <button
                       onClick={() => setShowHighHandModal(true)}
-                      className="mt-4 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg"
+                      style={{
+                        padding: '10px 24px', borderRadius: 8,
+                        background: '#F59E0B', color: '#fff',
+                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}
                     >
                       Record High Hand
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-white">Recent High Hands</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>
+                      Recent High Hands
+                    </h3>
                     {highHands.map((hh) => (
                       <HighHandCard
                         key={hh.id}
@@ -788,62 +862,105 @@ export default function PromotionsPage() {
               /* === PROMO CODES TAB === */
               <>
                 {promoCodesLoading ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#31A24C]" />
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                    <Loader2 size={32} color="#31A24C" className="animate-spin" />
                   </div>
                 ) : promoCodes.length === 0 ? (
-                  <div className="cmd-panel p-8 text-center">
-                    <Target className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                    <p className="text-[#B0B3B8] mb-2">No Promo Codes Yet</p>
-                    <p className="text-sm text-[#B0B3B8] mb-4">Click "Load 25 Pre-Made" above to add 25 ready-to-use promo codes</p>
+                  <div style={{
+                    background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
+                    padding: '48px 24px', textAlign: 'center',
+                  }}>
+                    <Target size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
+                    <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
+                      No Promo Codes Yet
+                    </p>
+                    <p style={{ color: '#8A8D91', fontSize: 13, marginBottom: 16 }}>
+                      Click &quot;Load 25 Pre-Made&quot; Above To Add Ready-To-Use Promo Codes
+                    </p>
                     <button
                       onClick={seedPremadePromos}
                       disabled={seedingPromos}
-                      className="cmd-btn cmd-btn-primary flex items-center gap-2 mx-auto"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '10px 24px', borderRadius: 8,
+                        background: '#31A24C', color: '#fff',
+                        border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        opacity: seedingPromos ? 0.5 : 1,
+                      }}
                     >
-                      {seedingPromos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      {seedingPromos ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                       Load 25 Pre-Made Promo Codes
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm text-[#B0B3B8]">{promoCodes.length} promo codes • {promoCodes.filter(c => c.is_active).length} active</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <p style={{ fontSize: 13, color: '#8A8D91', margin: 0 }}>
+                        {promoCodes.length} Promo Codes · {promoCodes.filter(c => c.is_active).length} Active
+                      </p>
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                      gap: 14,
+                    }}>
                       {promoCodes.map(code => (
-                        <div key={code.id} className="cmd-panel p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="bg-[#31A24C]/20 text-[#31A24C] px-2 py-0.5 rounded font-mono text-sm font-bold">{code.code}</span>
-                              {code.is_active ? (
-                                <span className="text-[10px] bg-[#31A24C]/10 text-[#31A24C] px-2 py-0.5 rounded-full font-semibold">ACTIVE</span>
-                              ) : (
-                                <span className="text-[10px] bg-[#3A3B3C] text-[#B0B3B8] px-2 py-0.5 rounded-full font-semibold">INACTIVE</span>
-                              )}
+                        <div key={code.id} style={{
+                          background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12,
+                          padding: 16, transition: 'border-color 0.15s',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{
+                                background: 'rgba(49,162,76,0.15)', color: '#31A24C',
+                                padding: '3px 10px', borderRadius: 6,
+                                fontFamily: 'monospace', fontSize: 13, fontWeight: 700,
+                                border: '1px solid rgba(49,162,76,0.3)',
+                              }}>{code.code}</span>
+                              <span style={{
+                                fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                                padding: '3px 8px', borderRadius: 20,
+                                background: code.is_active ? 'rgba(49,162,76,0.12)' : '#3A3B3C',
+                                color: code.is_active ? '#4ADE80' : '#8A8D91',
+                                border: `1px solid ${code.is_active ? 'rgba(49,162,76,0.3)' : '#4E4F50'}`,
+                                textTransform: 'uppercase',
+                              }}>
+                                {code.is_active ? 'Active' : 'Inactive'}
+                              </span>
                             </div>
                             <button
                               onClick={() => togglePromoCode(code)}
-                              className={`p-1 rounded transition-colors ${code.is_active ? 'text-[#31A24C]' : 'text-[#3A3B3C]'}`}
+                              style={{
+                                background: 'none', border: 'none', padding: 2, cursor: 'pointer',
+                                color: code.is_active ? '#31A24C' : '#3A3B3C',
+                              }}
                             >
-                              {code.is_active ? <ToggleRight className="w-7 h-7" /> : <ToggleLeft className="w-7 h-7" />}
+                              {code.is_active ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
                             </button>
                           </div>
-                          <p className="text-sm text-[#E4E6EB] mb-1">{code.description}</p>
-                          <div className="flex items-center gap-3 text-xs text-[#B0B3B8]">
-                            <span>Type: {code.reward_type?.replace(/_/g, ' ')}</span>
+                          <p style={{ fontSize: 13, color: '#E4E6EB', marginBottom: 6, lineHeight: 1.4 }}>{code.description}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#8A8D91' }}>
+                            <span>Type: {(code.reward_type || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                             <span>Value: {code.reward_value}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-[#B0B3B8] mt-1">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#8A8D91', marginTop: 4 }}>
                             <span>Uses: {code.promo_code_redemptions?.[0]?.count || code.times_used || 0}{code.max_uses ? ` / ${code.max_uses}` : ' / ∞'}</span>
                             {code.expires_at && <span>Exp: {new Date(code.expires_at).toLocaleDateString()}</span>}
                           </div>
-                          <div className="flex gap-2 mt-3 pt-2 border-t border-[#3A3B3C]">
+                          <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #3A3B3C' }}>
                             <button
                               onClick={() => deletePromoCode(code)}
-                              className="flex-1 h-8 flex items-center justify-center gap-1 text-xs font-medium text-[#EF4444] hover:bg-[#EF4444]/5 rounded-lg transition-colors"
+                              style={{
+                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                padding: '8px 12px', borderRadius: 8,
+                                background: 'transparent', color: '#EF4444',
+                                border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                transition: 'background 0.15s',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 size={13} />
                               Remove
                             </button>
                           </div>
