@@ -42,10 +42,7 @@ export default function TimeBilling() {
   const [stopping, setStopping] = useState(null);
   const [payModal, setPayModal] = useState(null);
   const [payAmount, setPayAmount] = useState('');
-  const [payPinStep, setPayPinStep] = useState(false);
-  const [payPinDigits, setPayPinDigits] = useState('');
-  const [payPinError, setPayPinError] = useState('');
-  const [payPinVerifying, setPayPinVerifying] = useState(false);
+
   const [now, setNow] = useState(Date.now());
   const [filter, setFilter] = useState('active');
   const [search, setSearch] = useState('');
@@ -56,6 +53,14 @@ export default function TimeBilling() {
     auto_comp_rate: 1,
     bulk_time_packages: []
   });
+
+  // PIN verification state
+  const [pinStep, setPinStep] = useState(false);
+  const [pinDigits, setPinDigits] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinVerifying, setPinVerifying] = useState(false);
+  const [verifiedStaff, setVerifiedStaff] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null); // { type: 'payment'|'stop', session }
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -165,7 +170,60 @@ export default function TimeBilling() {
     finally { setPricingSaving(false); }
   };
 
-  const stopSession = async (sessionId) => {
+  // PIN gate: request PIN before a financial action
+  const requestPinFor = (type, session = null) => {
+    if (type === 'payment' && (!payAmount || parseFloat(payAmount) <= 0)) return;
+    setPinDigits('');
+    setPinError('');
+    setPendingAction({ type, session });
+    setPinStep(true);
+  };
+
+  // PIN gate: verify then execute the pending action
+  const verifyPinAndExecute = async (digits) => {
+    if (digits.length !== 4) return;
+    setPinVerifying(true);
+    setPinError('');
+    try {
+      const venueId = getVenueId();
+      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue_id: venueId, pin_code: digits })
+      });
+      const pinJson = await pinRes.json();
+      if (!pinJson.success || !pinJson.data?.valid) {
+        setPinError(pinJson.error?.message || 'Invalid PIN');
+        setPinDigits('');
+        setPinVerifying(false);
+        return;
+      }
+      setVerifiedStaff(pinJson.data.staff);
+      setPinStep(false); // Close PIN modal
+
+      // Execute the pending action
+      if (pendingAction?.type === 'payment') {
+        await doRecordPayment(pinJson.data.staff);
+      } else if (pendingAction?.type === 'stop') {
+        await doStopSession(pendingAction.session?.id, pinJson.data.staff);
+      }
+      setPendingAction(null); // Clear pending action
+    } catch (err) {
+      setPinError('Network Error');
+      setPinDigits('');
+    } finally {
+      setPinVerifying(false);
+    }
+  };
+
+  const handlePinDigit = (d) => {
+    const next = pinDigits + d;
+    setPinDigits(next);
+    setPinError('');
+    if (next.length === 4) verifyPinAndExecute(next);
+  };
+
+  const doStopSession = async (sessionId, staff) => {
     setStopping(sessionId);
     try {
       const token = getToken();
@@ -182,6 +240,7 @@ export default function TimeBilling() {
           ...session,
           duration_minutes: json.data.elapsed_minutes,
           total_charge: calculateCharge(session.started_at, session.rate_per_hour || 12),
+          staff_name: staff?.display_name || 'Staff',
         });
       }
       await fetchData();
@@ -229,42 +288,15 @@ export default function TimeBilling() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   };
 
-  const requestPayPin = () => {
+  const doRecordPayment = async (staff) => {
     if (!payModal || !payAmount) return;
-    setPayPinDigits('');
-    setPayPinError('');
-    setPayPinStep(true);
-  };
-
-  const verifyPayPinAndRecord = async (digits) => {
-    if (digits.length !== 4) return;
-    setPayPinVerifying(true);
-    setPayPinError('');
     try {
-      // Get venue_id
-      let venueId = null;
-      try { venueId = JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { }
-
-      const pinRes = await fetch('/api/commander/staff/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venue_id: venueId, pin_code: digits })
-      });
-      const pinJson = await pinRes.json();
-      if (!pinJson.success || !pinJson.data?.valid) {
-        setPayPinError(pinJson.error?.message || 'Invalid PIN');
-        setPayPinDigits('');
-        setPayPinVerifying(false);
-        return;
-      }
-
-      // PIN OK — record payment
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ amount: parseFloat(payAmount) })
+        body: JSON.stringify({ amount: parseFloat(payAmount), staff_name: staff?.display_name })
       });
 
       // Auto-print receipt
@@ -272,23 +304,16 @@ export default function TimeBilling() {
         player_name: payModal.player_name,
         table_number: payModal.table_number,
         seat_number: payModal.seat_number,
-        amount: parseFloat(payAmount),
+        total_charge: parseFloat(payAmount), // Use payAmount as total_charge for receipt
         type: 'time_payment',
-        staff_name: pinJson.data.staff?.display_name || 'Staff'
+        staff_name: staff?.display_name || 'Staff'
       });
 
-      setPayModal(null); setPayAmount(''); setPayPinStep(false);
+      setPayModal(null); setPayAmount('');
       await fetchData();
-    } catch (err) { console.error(err); setPayPinError('Network error'); }
-    finally { setPayPinVerifying(false); }
+    } catch (err) { console.error(err); }
   };
 
-  const handlePayPinDigit = (d) => {
-    const next = payPinDigits + d;
-    setPayPinDigits(next);
-    setPayPinError('');
-    if (next.length === 4) verifyPayPinAndRecord(next);
-  };
 
   const activeSessions = sessions.filter(s => s.status === 'active');
   const completedSessions = sessions.filter(s => s.status === 'completed');
@@ -512,12 +537,12 @@ export default function TimeBilling() {
                       className="flex-1 py-2.5 rounded-lg bg-[#31A24C]/10 text-[#31A24C] text-sm font-medium flex items-center justify-center gap-1.5 active:bg-[#31A24C]/20">
                       <DollarSign className="w-4 h-4" /> Collect
                     </button>
-                    <button onClick={() => stopSession(session.id)}
+                    <button onClick={() => requestPinFor('stop', session)}
                       disabled={stopping === session.id}
                       className="flex-1 py-2.5 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-sm font-medium flex items-center justify-center gap-1.5 active:bg-[#EF4444]/20 disabled:opacity-50">
                       {stopping === session.id
                         ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <Square className="w-4 h-4" />
+                        : <><Lock className="w-3 h-3" /><Square className="w-4 h-4" /></>
                       }
                       End Session
                     </button>
@@ -537,38 +562,36 @@ export default function TimeBilling() {
 
         {/* Payment Modal */}
         {payModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => { setPayModal(null); setPayPinStep(false); }}>
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => { setPayModal(null); setPinStep(false); setPendingAction(null); }}>
             <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-white">Collect Payment</h3>
               <p className="text-sm text-[#B0B3B8]">{payModal.player_name}</p>
-
-              {payPinStep ? (
+              {pinStep && pendingAction?.type === 'payment' ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 justify-center mb-2">
                     <Lock className="w-4 h-4 text-[#F59E0B]" />
                     <span className="text-sm font-bold text-white">Enter Employee PIN</span>
                   </div>
-                  <p className="text-center text-lg font-bold text-[#F59E0B]">${parseFloat(payAmount).toFixed(2)}</p>
                   <div className="flex justify-center gap-3 mb-3">
                     {[0, 1, 2, 3].map(i => (
-                      <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < payPinDigits.length ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#4A4B4C]'}`} />
+                      <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < pinDigits.length ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#4A4B4C]'}`} />
                     ))}
                   </div>
-                  {payPinError && <p className="text-xs text-[#EF4444] text-center">{payPinError}</p>}
-                  {payPinVerifying && <div className="flex justify-center"><Loader2 className="w-5 h-5 text-[#1877F2] animate-spin" /></div>}
-                  {!payPinVerifying && (
+                  {pinError && <p className="text-xs text-[#EF4444] text-center">{pinError}</p>}
+                  {pinVerifying && <div className="flex justify-center"><Loader2 className="w-5 h-5 text-[#1877F2] animate-spin" /></div>}
+                  {!pinVerifying && (
                     <div className="grid grid-cols-3 gap-2">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
-                        <button key={d} onClick={() => handlePayPinDigit(String(d))}
+                        <button key={d} onClick={() => handlePinDigit(String(d))}
                           className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">
                           {d}
                         </button>
                       ))}
-                      <button onClick={() => { setPayPinStep(false); setPayPinDigits(''); }}
+                      <button onClick={() => { setPinStep(false); setPendingAction(null); }}
                         className="py-3 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold">Cancel</button>
-                      <button onClick={() => handlePayPinDigit('0')}
+                      <button onClick={() => handlePinDigit('0')}
                         className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">0</button>
-                      <button onClick={() => { setPayPinDigits(payPinDigits.slice(0, -1)); setPayPinError(''); }}
+                      <button onClick={() => { setPinDigits(pinDigits.slice(0, -1)); setPinError(''); }}
                         className="py-3 rounded-xl bg-[#3A3B3C] text-[#B0B3B8] flex items-center justify-center active:bg-[#4A4B4C]">
                         <Delete className="w-5 h-5" />
                       </button>
@@ -583,12 +606,50 @@ export default function TimeBilling() {
                   <div className="flex gap-3">
                     <button onClick={() => setPayModal(null)}
                       className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium">Cancel</button>
-                    <button onClick={requestPayPin} disabled={!payAmount}
-                      className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                    <button onClick={() => requestPinFor('payment')} disabled={!payAmount}
+                      className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2">
                       <Lock className="w-4 h-4" /> Record Payment
                     </button>
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Standalone PIN Modal for Stop Session */}
+        {pinStep && pendingAction?.type === 'stop' && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center" onClick={() => { setPinStep(false); setPendingAction(null); }}>
+            <div className="bg-[#242526] rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-2 justify-center mb-1">
+                <Lock className="w-5 h-5 text-[#F59E0B]" />
+                <span className="text-base font-bold text-white">Enter Employee PIN</span>
+              </div>
+              <p className="text-xs text-[#B0B3B8] text-center">End session for {pendingAction.session?.player_name}</p>
+              <div className="flex justify-center gap-3 mb-2">
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < pinDigits.length ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#4A4B4C]'}`} />
+                ))}
+              </div>
+              {pinError && <p className="text-xs text-[#EF4444] text-center">{pinError}</p>}
+              {pinVerifying && <div className="flex justify-center"><Loader2 className="w-5 h-5 text-[#1877F2] animate-spin" /></div>}
+              {!pinVerifying && (
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
+                    <button key={d} onClick={() => handlePinDigit(String(d))}
+                      className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">
+                      {d}
+                    </button>
+                  ))}
+                  <button onClick={() => { setPinStep(false); setPendingAction(null); }}
+                    className="py-3 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold">Cancel</button>
+                  <button onClick={() => handlePinDigit('0')}
+                    className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">0</button>
+                  <button onClick={() => { setPinDigits(pinDigits.slice(0, -1)); setPinError(''); }}
+                    className="py-3 rounded-xl bg-[#3A3B3C] text-[#B0B3B8] flex items-center justify-center active:bg-[#4A4B4C]">
+                    <Delete className="w-5 h-5" />
+                  </button>
+                </div>
               )}
             </div>
           </div>

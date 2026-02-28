@@ -28,7 +28,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTableConnection } from '../hooks/useTableConnection';
+import { useTableConnection } from '../../hooks/useTableConnection';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -42,7 +42,7 @@ const T = {
   railGold: '#FFD700',
   railGoldDark: '#B8860B',
   edgeGlow: 'rgba(255,215,0,0.15)',
-  
+
   // UI
   bgDark: '#050505',
   bgCard: '#0e0e12',
@@ -52,7 +52,7 @@ const T = {
   textPrimary: '#f0f0f0',
   textSecondary: '#8a8a9a',
   textMuted: '#555566',
-  
+
   // Actions
   foldRed: '#dc2626',
   checkBlue: '#2563eb',
@@ -60,7 +60,7 @@ const T = {
   betOrange: '#ea580c',
   raiseYellow: '#eab308',
   allInPurple: '#9333ea',
-  
+
   // Status
   timerWarning: '#ef4444',
   timerNormal: '#22c55e',
@@ -168,7 +168,7 @@ function cardIntToPath(card) {
 function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0 }) {
   const height = Math.round(width * 1.4);
   const src = faceDown ? '/images/card-backs/blue.jpg' : cardIntToPath(card);
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20, rotateY: 180 }}
@@ -209,12 +209,12 @@ function PlayerSeat({
   const isSittingOut = status === 'sitting_out';
   const isDisconnected = status === 'disconnected';
   const avatarSize = isHero ? 80 : 65;
-  
+
   // Timer ring
   const showTimer = isCurrentActor && timerState;
   const timerPct = showTimer ? (timerState.remaining / 30) * 100 : 0;
   const timerColor = showTimer && timerState.remaining <= 10 ? T.timerWarning : T.timerNormal;
-  
+
   return (
     <div
       style={{
@@ -255,7 +255,7 @@ function PlayerSeat({
           {invested}
         </motion.div>
       )}
-      
+
       {/* Avatar + Timer ring */}
       <div style={{ position: 'relative' }}>
         {showTimer && (
@@ -290,7 +290,7 @@ function PlayerSeat({
             />
           </svg>
         )}
-        
+
         <div
           style={{
             width: avatarSize,
@@ -327,7 +327,7 @@ function PlayerSeat({
           )}
         </div>
       </div>
-      
+
       {/* Name + Stack badge */}
       {!isEmpty && (
         <div
@@ -354,7 +354,7 @@ function PlayerSeat({
           <div style={{ fontSize: 13 }}>{stack.toLocaleString()}</div>
         </div>
       )}
-      
+
       {/* Hole cards (hero or showdown) */}
       {holeCards && holeCards.length > 0 && (
         <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
@@ -363,7 +363,7 @@ function PlayerSeat({
           ))}
         </div>
       )}
-      
+
       {/* Face-down cards for non-hero active players */}
       {!holeCards && !isEmpty && !isFolded && seat.isInHand && (
         <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
@@ -371,7 +371,7 @@ function PlayerSeat({
           <CardImg card={null} width={28} faceDown delay={0.1} />
         </div>
       )}
-      
+
       {/* Empty seat label */}
       {isEmpty && (
         <div style={{ fontSize: 10, color: T.textMuted, marginTop: 2 }}>
@@ -388,7 +388,7 @@ function PlayerSeat({
 
 function CommunityCards({ cards = [] }) {
   if (cards.length === 0) return null;
-  
+
   return (
     <div
       style={{
@@ -414,7 +414,7 @@ function CommunityCards({ cards = [] }) {
 
 function PotDisplay({ potTotal, pots = [] }) {
   if (!potTotal || potTotal <= 0) return null;
-  
+
   return (
     <div
       style={{
@@ -448,7 +448,7 @@ function PotDisplay({ potTotal, pots = [] }) {
           {potTotal.toLocaleString()}
         </span>
       </motion.div>
-      
+
       {pots.length > 1 && (
         <div style={{ display: 'flex', gap: 6 }}>
           {pots.map((pot, i) => (
@@ -479,9 +479,9 @@ function PotDisplay({ potTotal, pots = [] }) {
 function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
-  
+
   if (!actions || actions.length === 0) return null;
-  
+
   const canFold = actions.some(a => a.type === 'fold');
   const canCheck = actions.some(a => a.type === 'check');
   const canCall = actions.find(a => a.type === 'call');
@@ -489,22 +489,22 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
   const canRaise = actions.find(a => a.type === 'raise');
   const canAllIn = actions.some(a => a.type === 'all_in');
   const betOrRaise = canBet || canRaise;
-  
+
   const minBet = betOrRaise?.minAmount || bigBlind;
   const maxBet = betOrRaise?.maxAmount || stack;
-  
+
   // Reset bet when actions change
   useEffect(() => {
     setBetAmount(minBet);
     setShowSlider(false);
   }, [actions, minBet]);
-  
+
   const presets = betOrRaise ? [
     { label: '½ Pot', amount: Math.max(minBet, Math.floor(currentBet * 0.5 || bigBlind)) },
     { label: '¾ Pot', amount: Math.max(minBet, Math.floor(currentBet * 0.75 || bigBlind * 1.5)) },
     { label: 'Pot', amount: Math.max(minBet, currentBet || bigBlind * 2) },
   ].filter(p => p.amount <= maxBet) : [];
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -545,7 +545,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
             <div style={{ fontSize: 22, fontWeight: 800, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>
               {betAmount.toLocaleString()}
             </div>
-            
+
             {/* Slider */}
             <input
               type="range"
@@ -559,7 +559,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
                 cursor: 'pointer',
               }}
             />
-            
+
             {/* Presets */}
             <div style={{ display: 'flex', gap: 6 }}>
               {presets.map((p) => (
@@ -599,7 +599,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: 8 }}>
         {canFold && (
@@ -609,7 +609,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
             onClick={() => onAction({ type: 'fold' })}
           />
         )}
-        
+
         {canCheck && (
           <ActionButton
             label="Check"
@@ -617,7 +617,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
             onClick={() => onAction({ type: 'check' })}
           />
         )}
-        
+
         {canCall && (
           <ActionButton
             label={`Call ${canCall.amount?.toLocaleString() || ''}`}
@@ -625,7 +625,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
             onClick={() => onAction({ type: 'call' })}
           />
         )}
-        
+
         {betOrRaise && (
           <ActionButton
             label={showSlider ? `${canRaise ? 'Raise' : 'Bet'} ${betAmount.toLocaleString()}` : (canRaise ? 'Raise' : 'Bet')}
@@ -639,7 +639,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind }) {
             }}
           />
         )}
-        
+
         {canAllIn && !betOrRaise && (
           <ActionButton
             label={`All-In ${stack.toLocaleString()}`}
@@ -685,7 +685,7 @@ function ActionButton({ label, color, onClick }) {
 
 function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
   const [amount, setAmount] = useState(Math.floor((minBuyIn + maxBuyIn) / 2));
-  
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -722,11 +722,11 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
         <p style={{ color: T.textSecondary, fontSize: 13, marginBottom: 20 }}>
           Buy-in: {minBuyIn.toLocaleString()} – {maxBuyIn.toLocaleString()} chips
         </p>
-        
+
         <div style={{ fontSize: 28, fontWeight: 800, color: T.textPrimary, marginBottom: 12, fontVariantNumeric: 'tabular-nums' }}>
           {amount.toLocaleString()}
         </div>
-        
+
         <input
           type="range"
           min={minBuyIn}
@@ -736,7 +736,7 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
           onChange={(e) => setAmount(parseInt(e.target.value))}
           style={{ width: '100%', accentColor: T.accent, marginBottom: 20 }}
         />
-        
+
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
           {[minBuyIn, Math.floor((minBuyIn + maxBuyIn) / 2), maxBuyIn].map((v) => (
             <button
@@ -757,7 +757,7 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
             </button>
           ))}
         </div>
-        
+
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={onCancel}
@@ -806,13 +806,13 @@ function ChatOverlay({ messages, onSend }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const listRef = useRef(null);
-  
+
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages]);
-  
+
   return (
     <div
       style={{
@@ -842,7 +842,7 @@ function ChatOverlay({ messages, onSend }) {
           <span style={{ color: T.accent, marginLeft: 4 }}>{messages.length}</span>
         )}
       </button>
-      
+
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -875,7 +875,7 @@ function ChatOverlay({ messages, onSend }) {
                 </div>
               ))}
             </div>
-            
+
             <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
               <input
                 type="text"
@@ -912,9 +912,9 @@ function ChatOverlay({ messages, onSend }) {
 
 function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut }) {
   if (!tableState) return null;
-  
+
   const { game } = tableState;
-  
+
   return (
     <div
       style={{
@@ -949,7 +949,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           {game?.phase?.toUpperCase() || 'WAITING'}
         </span>
       </div>
-      
+
       {isSitting && (
         <div style={{ display: 'flex', gap: 6 }}>
           <SmallButton
@@ -990,7 +990,7 @@ function SmallButton({ label, onClick, color }) {
 
 function ResultOverlay({ result }) {
   if (!result) return null;
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -1039,10 +1039,10 @@ export default function LivePokerTable({
     tableState, myCards, legalActions, timerState,
     chatMessages, result, error, connected, send,
   } = useTableConnection({ supabase, tableId, userId });
-  
+
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
-  
+
   // Derived state
   const isSitting = tableState?.seats.some(
     s => s.player?.id === userId && s.status !== 'empty'
@@ -1054,20 +1054,20 @@ export default function LivePokerTable({
   const isMyTurn = tableState?.game?.currentPlayerId === userId;
   const maxSeats = tableState?.maxSeats || 9;
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // ACTION HANDLERS (use send from hook)
   // ═══════════════════════════════════════════════════════════════════
-  
+
   const handleAction = useCallback((action) => {
     send('player_action', { action });
   }, [send]);
-  
+
   const handleSitDown = useCallback((amount) => {
     send('sit_down', { seatIndex: buyInSeat, buyIn: amount, displayName, avatarUrl });
     setBuyInSeat(null);
   }, [send, buyInSeat, displayName, avatarUrl]);
-  
+
   const handleStandUp = useCallback(() => send('stand_up', {}), [send]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
   const handleSitIn = useCallback(() => send('sit_in', {}), [send]);
@@ -1076,27 +1076,27 @@ export default function LivePokerTable({
     const amount = prompt('Amount to add:');
     if (amount) send('add_chips', { amount: parseInt(amount) });
   }, [send]);
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // BUILD SEAT DATA (merge server state with hero cards)
   // ═══════════════════════════════════════════════════════════════════
-  
+
   const seats = useMemo(() => {
     if (!tableState) return positions.map((_, i) => ({
       seatIndex: i, status: 'empty', player: null, stack: 0,
       holeCards: null, isInHand: false, isFolded: false, isCurrentActor: false, invested: 0,
     }));
-    
+
     return tableState.seats.slice(0, maxSeats).map((seat) => ({
       ...seat,
       holeCards: seat.player?.id === userId ? myCards : seat.holeCards,
     }));
   }, [tableState, myCards, userId, maxSeats, positions]);
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
-  
+
   return (
     <div
       style={{
@@ -1127,7 +1127,7 @@ export default function LivePokerTable({
             background: `radial-gradient(ellipse, transparent 60%, ${T.edgeGlow} 100%)`,
           }}
         />
-        
+
         {/* Gold rail */}
         <div
           style={{
@@ -1151,20 +1151,20 @@ export default function LivePokerTable({
           >
             {/* Community cards */}
             <CommunityCards cards={tableState?.game?.communityCards || []} />
-            
+
             {/* Pot */}
             <PotDisplay
               potTotal={tableState?.game?.potTotal || 0}
               pots={tableState?.game?.pots || []}
             />
-            
+
             {/* Result overlay */}
             <AnimatePresence>
               {result && <ResultOverlay result={result} />}
             </AnimatePresence>
           </div>
         </div>
-        
+
         {/* Seats */}
         {seats.map((seat, i) => (
           <PlayerSeat
@@ -1178,7 +1178,7 @@ export default function LivePokerTable({
           />
         ))}
       </div>
-      
+
       {/* Table info bar */}
       <TableInfoBar
         tableState={tableState}
@@ -1189,7 +1189,7 @@ export default function LivePokerTable({
         isSitting={isSitting}
         isSittingOut={isSittingOut}
       />
-      
+
       {/* Action panel (when it's hero's turn) */}
       <AnimatePresence>
         {isMyTurn && legalActions && (
@@ -1202,10 +1202,10 @@ export default function LivePokerTable({
           />
         )}
       </AnimatePresence>
-      
+
       {/* Chat */}
       <ChatOverlay messages={chatMessages} onSend={handleChat} />
-      
+
       {/* Buy-in dialog */}
       <AnimatePresence>
         {buyInSeat !== null && (
@@ -1218,7 +1218,7 @@ export default function LivePokerTable({
           />
         )}
       </AnimatePresence>
-      
+
       {/* Error toast */}
       <AnimatePresence>
         {error && (
@@ -1244,7 +1244,7 @@ export default function LivePokerTable({
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Waiting state */}
       {!tableState && !connected && (
         <div

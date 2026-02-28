@@ -20,7 +20,6 @@ import {
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', border: 'border-[#B0B3B8]/30', label: 'Scheduled' },
   registration: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', border: 'border-[#1877F2]/30', label: 'Registration' },
-  registering: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', border: 'border-[#1877F2]/30', label: 'Registration' },
   running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', border: 'border-[#31A24C]/30', label: 'Running' },
   paused: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30', label: 'Paused' },
   break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30', label: 'On Break' },

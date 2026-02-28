@@ -16,7 +16,7 @@ const STATUS_COLORS = {
     running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
     break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
     final_table: { bg: 'bg-[#8B5CF6]/10', text: 'text-[#8B5CF6]', label: 'Final Table' },
-    registering: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
+    registration: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
     scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Scheduled' },
 };
 
@@ -49,7 +49,7 @@ export default function TournamentDirector() {
         fetchTournaments();
     }, [router]);
 
-    const currentStatuses = ['running', 'break', 'final_table', 'registering'];
+    const currentStatuses = ['running', 'break', 'final_table', 'registration'];
     const currentTournaments = tournaments.filter(t => currentStatuses.includes(t.status));
     const upcomingTournaments = tournaments.filter(t => t.status === 'scheduled');
     const displayList = tab === 'current' ? currentTournaments : upcomingTournaments;
@@ -73,15 +73,15 @@ export default function TournamentDirector() {
                     <div className="flex gap-2">
                         <button onClick={() => setTab('current')}
                             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${tab === 'current'
-                                    ? 'bg-[#1877F2] text-white'
-                                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                                ? 'bg-[#1877F2] text-white'
+                                : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
                                 }`}>
                             Current ({currentTournaments.length})
                         </button>
                         <button onClick={() => setTab('upcoming')}
                             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${tab === 'upcoming'
-                                    ? 'bg-[#1877F2] text-white'
-                                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                                ? 'bg-[#1877F2] text-white'
+                                : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
                                 }`}>
                             Upcoming ({upcomingTournaments.length})
                         </button>
