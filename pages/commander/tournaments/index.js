@@ -93,17 +93,14 @@ export default function CommanderTournamentsPage() {
     }
   }, [router]);
 
-  // Fetch tournaments
+  // Fetch tournaments — always fetch all, filter client-side
+  // (filter categories like 'active'/'upcoming' are composites, not DB statuses)
   const fetchTournaments = useCallback(async (showRefreshing = false) => {
     if (!venueId) return;
     if (showRefreshing) setRefreshing(true);
 
     try {
       const params = new URLSearchParams({ venue_id: venueId, limit: '100' });
-
-      if (filter && filter !== 'all') {
-        params.set('status', filter);
-      }
 
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments?${params}`, {
@@ -120,11 +117,11 @@ export default function CommanderTournamentsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [venueId, filter]);
+  }, [venueId]);
 
   useEffect(() => {
     if (venueId) fetchTournaments();
-  }, [venueId, filter, fetchTournaments]);
+  }, [venueId, fetchTournaments]);
 
   // Handle tournament created
   function handleTournamentCreated(tournament) {
@@ -138,10 +135,10 @@ export default function CommanderTournamentsPage() {
 
   // Group tournaments
   const activeTournaments = tournaments.filter(t =>
-    ['running', 'paused', 'break', 'final_table', 'registration', 'registering'].includes(t.status)
+    ['running', 'paused', 'break', 'final_table'].includes(t.status)
   );
   const upcomingTournaments = tournaments.filter(t =>
-    t.status === 'scheduled' && isFuture(t.scheduled_start)
+    ['scheduled', 'registration', 'registering'].includes(t.status)
   );
   const completedTournaments = tournaments.filter(t =>
     ['completed', 'cancelled'].includes(t.status)
@@ -189,21 +186,21 @@ export default function CommanderTournamentsPage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="cmd-panel p-4 text-center">
+            <button onClick={() => setFilter(filter === 'active' ? 'all' : 'active')} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#31A24C]/40 ${filter === 'active' ? 'border-[#31A24C]/60 ring-1 ring-[#31A24C]/30' : ''}`}>
               <Play className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{activeTournaments.length}</p>
               <p className="text-xs text-[#B0B3B8]">Active</p>
-            </div>
-            <div className="cmd-panel p-4 text-center">
+            </button>
+            <button onClick={() => setFilter(filter === 'upcoming' ? 'all' : 'upcoming')} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#1877F2]/40 ${filter === 'upcoming' ? 'border-[#1877F2]/60 ring-1 ring-[#1877F2]/30' : ''}`}>
               <Calendar className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{upcomingTournaments.length}</p>
               <p className="text-xs text-[#B0B3B8]">Upcoming</p>
-            </div>
-            <div className="cmd-panel p-4 text-center">
+            </button>
+            <button onClick={() => setFilter(filter === 'completed' ? 'all' : 'completed')} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#F59E0B]/40 ${filter === 'completed' ? 'border-[#F59E0B]/60 ring-1 ring-[#F59E0B]/30' : ''}`}>
               <Trophy className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{completedTournaments.length}</p>
               <p className="text-xs text-[#B0B3B8]">Completed</p>
-            </div>
+            </button>
           </div>
 
           {/* Filter Bar */}
