@@ -2,17 +2,19 @@
  * Table Tablets — Dealer View Dashboard
  * /commander/table-tablets
  *
- * Shows all tables with inline dealer view:
- * - Texas-style (timed): countdown clocks per seated player
- * - Charity / Home games: player names + open seat indicators
- * Tapping a table opens the full dealer tablet at /commander/dealer/[tableNumber]
+ * Shows all tables with inline dealer view matching the Table Management visuals:
+ * - Poker table image with positioned seat badges (avatars, names, timers)
+ * - Dealer "D" badge on each table
+ * - Fullscreen popup when a table is clicked
+ * Tapping a table opens a fullscreen overlay with real-time seat data.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Monitor, Users, Loader2, ChevronRight, Power, DollarSign, Trophy,
-    Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle
+    Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle,
+    Maximize2, Minimize2
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -39,28 +41,48 @@ function getTimerColor(seconds) {
     return '#31A24C';                       // green
 }
 
-// Compute seat positions around an oval
+// Arc-length parameterized ellipse for equal visual spacing — matches tables.js
 function computeSeatPositions(maxSeats) {
-    const positions = [];
-    for (let i = 0; i < maxSeats; i++) {
-        const angle = (Math.PI * 2 * i) / maxSeats - Math.PI / 2;
-        const rx = 42, ry = 36;
-        positions.push({
-            left: `${50 + rx * Math.cos(angle)}%`,
-            top: `${50 + ry * Math.sin(angle)}%`,
+    const rx = 47, ry = 22, cxE = 50, cyE = 50;
+    const STEPS = 360;
+    const startAngle = Math.PI / 2;
+    const cumArc = [0];
+    for (let i = 1; i <= STEPS; i++) {
+        const t0 = startAngle + ((i - 1) / STEPS) * 2 * Math.PI;
+        const t1 = startAngle + (i / STEPS) * 2 * Math.PI;
+        const dx = rx * (Math.cos(t1) - Math.cos(t0));
+        const dy = ry * (Math.sin(t1) - Math.sin(t0));
+        cumArc.push(cumArc[i - 1] + Math.sqrt(dx * dx + dy * dy));
+    }
+    const totalArc = cumArc[STEPS];
+    const totalSlots = maxSeats + 1; // +1 for dealer
+    const allPos = [];
+    for (let p = 0; p < totalSlots; p++) {
+        const target = (p / totalSlots) * totalArc;
+        let idx = 1;
+        while (idx <= STEPS && cumArc[idx] < target) idx++;
+        const angle = startAngle + (idx / STEPS) * 2 * Math.PI;
+        allPos.push({
+            top: `${cyE + ry * Math.sin(angle)}%`,
+            left: `${cxE + rx * Math.cos(angle)}%`,
         });
     }
-    return positions;
+    const dealerPos = allPos[0];
+    const seatPositions = allPos.slice(1);
+    seatPositions.forEach(p => { const t = parseFloat(p.top); if (t < 30) p.top = '30%'; });
+    return { dealerPos, seatPositions };
 }
 
 export default function TableTabletsPage() {
     const router = useRouter();
     const [tables, setTables] = useState([]);
-    const [sessions, setSessions] = useState({});
     const [loading, setLoading] = useState(true);
     const [venueId, setVenueId] = useState(null);
+    const [venueName, setVenueName] = useState('');
+    // Fullscreen table popup
+    const [fullscreenTable, setFullscreenTable] = useState(null);
     // Dealer scan state
-    const [scanningTable, setScanningTable] = useState(null); // table number being scanned
+    const [scanningTable, setScanningTable] = useState(null);
     const [scanCameraActive, setScanCameraActive] = useState(false);
     const [scanResult, setScanResult] = useState(null);
     const [scanError, setScanError] = useState('');
@@ -75,6 +97,7 @@ export default function TableTabletsPage() {
             if (!staff) { router.push('/commander/login').catch(() => { }); return; }
             const parsed = JSON.parse(staff);
             setVenueId(parsed.venue_id);
+            if (parsed.venue_name) setVenueName(parsed.venue_name);
         } catch { router.push('/commander/login').catch(() => { }); }
     }, [router]);
 
@@ -144,10 +167,6 @@ export default function TableTabletsPage() {
         return () => clearInterval(interval);
     }, [venueId, fetchAll]);
 
-    const openTablet = (tableNumber) => {
-        router.push(`/commander/dealer/${tableNumber}`);
-    };
-
     // Helper: get game + player info from table data
     const getTableGame = (table) => {
         const games = Array.isArray(table.commander_games) ? table.commander_games : [];
@@ -156,7 +175,6 @@ export default function TableTabletsPage() {
 
     const getSeatedCount = (table) => {
         const game = getTableGame(table);
-        // Use seats array if available, otherwise fall back to game.current_players
         if (table.seats && table.seats.length > 0) return table.seats.length;
         if (game && game.current_players) return game.current_players;
         return 0;
@@ -227,7 +245,7 @@ export default function TableTabletsPage() {
             const data = await res.json();
             if (data.success) {
                 setScanResult(data.data);
-                fetchAll(); // refresh tables to show new dealer
+                fetchAll();
                 setTimeout(() => closeDealerScan(), 3000);
             } else {
                 setScanError(data.error || 'Failed to assign dealer');
@@ -240,6 +258,166 @@ export default function TableTabletsPage() {
     const handleManualDealerScan = (e) => {
         e.preventDefault();
         if (manualDealerQR.trim()) handleDealerScan(manualDealerQR.trim());
+    };
+
+    // ── Renders a single table visualization (reused in grid and fullscreen) ──
+    const renderTableVisual = (table, isFullscreen = false) => {
+        const tNum = table.table_number || table.number;
+        const maxSeats = table.max_seats || 9;
+        const game = getTableGame(table);
+        const seatedCount = getSeatedCount(table);
+        const seatData = table.seats || [];
+        const hasTimed = seatData.some(s => s.time_remaining !== undefined && s.time_remaining !== null);
+        const { dealerPos, seatPositions } = computeSeatPositions(maxSeats);
+
+        // Build seat array from session data
+        const seatArr = Array.from({ length: maxSeats }, (_, i) => {
+            const session = seatData.find(s => s.seat_number === i + 1);
+            return { number: i + 1, taken: session || null };
+        });
+        const occupiedCount = seatArr.filter(s => s.taken).length || seatedCount;
+
+        const avatarSize = isFullscreen ? 64 : 52;
+        const fontSize = isFullscreen ? 14 : 13;
+        const nameMaxWidth = isFullscreen ? 140 : 110;
+
+        return (
+            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '56%' : '64%', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: isFullscreen ? '-22%' : '-18%' }}>
+                    {/* Poker table image */}
+                    <img
+                        src="/images/poker-table-black-gold.png"
+                        alt="Poker Table"
+                        style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                        }}
+                    />
+
+                    {/* Game info in center */}
+                    <div style={{
+                        position: 'absolute', top: '48%', left: '50%',
+                        transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
+                    }}>
+                        <div style={{ fontSize: isFullscreen ? 15 : 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+                            {venueName || 'Table'} #{tNum}
+                        </div>
+                        <div style={{ fontSize: isFullscreen ? 24 : 20, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                            {game ? (game.game_type || table.game_type || '').toUpperCase() : table.game_type?.toUpperCase() || ''}
+                        </div>
+                        <div style={{ fontSize: isFullscreen ? 18 : 16, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: 700 }}>
+                            {game?.stakes || table.stakes || ''}
+                        </div>
+                    </div>
+
+                    {/* Dealer badge */}
+                    <div style={{
+                        position: 'absolute', top: dealerPos.top, left: dealerPos.left,
+                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: isFullscreen ? 90 : 80, zIndex: 3,
+                    }}>
+                        <div style={{
+                            width: isFullscreen ? 72 : 64, height: isFullscreen ? 72 : 64, borderRadius: '50%', margin: '0 auto 4px',
+                            background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                            border: '3px solid #E4E6EB',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                            fontSize: isFullscreen ? 32 : 28, fontWeight: 900, color: '#fff',
+                        }}>D</div>
+                        <div style={{ fontSize: isFullscreen ? 12 : 11, fontWeight: 700, color: '#1877F2', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {game?.dealer_name || game?.dealer_staff_id ? 'Dealer' : 'No Dealer'}
+                        </div>
+                    </div>
+
+                    {/* Seat badges — matching tables.js avatar style */}
+                    {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                        const pos = seatPositions[idx];
+                        const isOccupied = !!seat.taken;
+                        const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                        const fullName = seat.taken?.player_name || '';
+                        const memberActive = seat.taken?.membership_status === 'active';
+
+                        const leftPct = parseFloat(pos.left);
+                        const isLeftSide = leftPct < 25;
+                        const isRightSide = leftPct > 75;
+                        const badgeTransform = isLeftSide
+                            ? 'translate(-17px, -50%)'
+                            : isRightSide
+                                ? 'translate(calc(-100% + 17px), -50%)'
+                                : 'translate(-50%, -50%)';
+                        const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                        // Timer computation
+                        let timerText = null, timerColor = null;
+                        if (isOccupied && seat.taken) {
+                            if (seat.taken.time_remaining != null) {
+                                const rem = Math.max(0, seat.taken.time_remaining || 0);
+                                timerText = rem <= 0 ? 'EXPIRED' : formatTime(rem);
+                                timerColor = getTimerColor(rem);
+                            }
+                        }
+
+                        return (
+                            <div key={seat.number} style={{
+                                position: 'absolute', top: pos.top, left: pos.left,
+                                transform: badgeTransform, zIndex: 2,
+                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 8,
+                                background: 'rgba(36,37,38,0.9)',
+                                borderRadius: 12,
+                                padding: '5px 10px 5px 5px',
+                                border: `2px solid ${isOccupied
+                                    ? (memberActive ? 'rgba(49,162,76,0.7)' : seat.taken?.membership_status ? 'rgba(239,68,68,0.5)' : 'rgba(24,119,242,0.5)')
+                                    : 'rgba(62,64,66,0.6)'}`,
+                                backdropFilter: 'blur(6px)',
+                                minWidth: isFullscreen ? 80 : 70,
+                            }}>
+                                {/* Avatar circle */}
+                                <div style={{
+                                    width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: isOccupied
+                                        ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)'
+                                        : 'rgba(255,255,255,0.06)',
+                                    border: `2px solid ${isOccupied
+                                        ? (memberActive ? '#31A24C' : seat.taken?.membership_status ? '#EF4444' : '#1877F2')
+                                        : 'rgba(62,64,66,0.5)'}`,
+                                    overflow: 'hidden',
+                                }}>
+                                    {isOccupied ? (
+                                        <span style={{ fontSize: isFullscreen ? 24 : 20, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                                    ) : (
+                                        <span style={{ fontSize: isFullscreen ? 18 : 16, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                    )}
+                                </div>
+                                {/* Name + Timer */}
+                                <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                                    <div style={{
+                                        fontSize, fontWeight: 600, lineHeight: 1.2,
+                                        color: isOccupied ? '#E4E6EB' : '#B0B3B8',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        maxWidth: nameMaxWidth,
+                                    }}>
+                                        {isOccupied ? fullName : 'Open'}
+                                    </div>
+                                    {timerText && (
+                                        <div style={{
+                                            fontSize: isFullscreen ? 13 : 12, fontWeight: 700, color: timerColor,
+                                            fontFamily: 'monospace', lineHeight: 1.2,
+                                        }}>
+                                            {timerText}
+                                        </div>
+                                    )}
+                                    {isOccupied && seat.taken?.time_balance_minutes > 0 && (
+                                        <div style={{ fontSize: isFullscreen ? 11 : 10, color: '#1877F2', fontWeight: 600 }}>
+                                            {Math.floor(seat.taken.time_balance_minutes / 60)}h bal
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -256,7 +434,7 @@ export default function TableTabletsPage() {
                         <div>
                             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: 0 }}>Table Tablets</h1>
                             <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
-                                {tables.length} tables — {activeTables.length} active
+                                {tables.length} tables — {activeTables.length} active • Tap to expand
                             </p>
                         </div>
                     </div>
@@ -276,145 +454,71 @@ export default function TableTabletsPage() {
                         </div>
                     ) : (
                         <>
-                            {/* ACTIVE TABLES — expanded cards with seat view */}
+                            {/* ACTIVE TABLES — expanded cards with full table visual */}
                             {activeTables.length > 0 && (
                                 <>
                                     <h2 style={{ fontSize: 14, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <Timer size={14} /> Active Tables ({activeTables.length})
                                     </h2>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 12, marginBottom: 24 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 12, marginBottom: 24 }}>
                                         {activeTables.map(table => {
                                             const tNum = table.table_number || table.number;
                                             const maxSeats = table.max_seats || 9;
                                             const game = getTableGame(table);
                                             const seatedCount = getSeatedCount(table);
-                                            const seatPositions = computeSeatPositions(maxSeats);
-                                            const seatData = table.seats || [];
-                                            // Determine if this is timed (Texas-style)
-                                            const hasTimed = seatData.some(s => s.time_remaining !== undefined && s.time_remaining !== null);
 
                                             return (
-                                                <button key={table.id || tNum} onClick={() => openTablet(tNum)}
-                                                    style={{ background: '#242526', border: '2px solid rgba(49,162,76,0.3)', borderRadius: 16, padding: 0, cursor: 'pointer', textAlign: 'left', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                                                <div key={table.id || tNum}
+                                                    onClick={() => setFullscreenTable(table)}
+                                                    style={{
+                                                        background: '#1a1a2e', border: '2px solid rgba(49,162,76,0.3)', borderRadius: 16,
+                                                        cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
+                                                    }}>
 
-                                                    {/* Table header */}
-                                                    <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #3A3B3C' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                            <div style={{ width: 36, height: 36, background: 'rgba(49,162,76,0.15)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#31A24C' }}>
-                                                                {tNum}
+                                                    {/* Table header — game info bar */}
+                                                    <div style={{
+                                                        padding: '12px 16px',
+                                                        background: game?.status === 'running'
+                                                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                                            : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                        color: '#fff',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 16, fontWeight: 800 }}>
+                                                                {game ? `${(game.game_type || table.game_type || 'NLH').toUpperCase()} ${game.stakes || ''}` : table.game_type ? `${table.game_type} ${table.stakes || ''}` : 'Cash Game'}
                                                             </div>
-                                                            <div>
-                                                                <p style={{ margin: 0, fontWeight: 600, color: '#fff', fontSize: 14 }}>Table {tNum}</p>
-                                                                <p style={{ margin: 0, fontSize: 11, color: '#B0B3B8' }}>
-                                                                    {game ? `${game.game_type?.toUpperCase() || 'NLH'} ${game.stakes || ''}` : table.game_type ? `${table.game_type} ${table.stakes || ''}` : 'Cash Game'}
-                                                                    {game?.dealer_staff_id && ` — Dealer assigned`}
-                                                                </p>
+                                                            <div style={{ fontSize: 13, opacity: 0.9 }}>
+                                                                Table {tNum}{table.table_name && table.table_name !== `Table ${tNum}` ? ` · ${table.table_name}` : ''} · {maxSeats}-max
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); openDealerScan(tNum); }}
                                                                 style={{
-                                                                    background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                                                                    background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
                                                                     borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
                                                                     display: 'flex', alignItems: 'center', gap: 4,
-                                                                    fontSize: 10, fontWeight: 700, color: '#10B981',
+                                                                    fontSize: 10, fontWeight: 700, color: '#fff',
                                                                 }}
                                                                 title="Scan dealer QR code"
                                                             >
                                                                 <ScanLine size={12} /> Dealer
                                                             </button>
-                                                            <span style={{ fontSize: 12, color: seatedCount > 0 ? '#31A24C' : '#B0B3B8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            <span style={{
+                                                                padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                                                background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase',
+                                                                display: 'flex', alignItems: 'center', gap: 4,
+                                                            }}>
                                                                 <Users size={13} /> {seatedCount}/{maxSeats}
                                                             </span>
-                                                            <ChevronRight size={16} color="#64748B" />
+                                                            <Maximize2 size={14} color="rgba(255,255,255,0.7)" />
                                                         </div>
                                                     </div>
 
-                                                    {/* Oval table with seats */}
-                                                    <div style={{ position: 'relative', width: '100%', paddingBottom: '55%', overflow: 'hidden' }}>
-                                                        {/* Oval felt */}
-                                                        <div style={{
-                                                            position: 'absolute', top: '18%', left: '10%', right: '10%', bottom: '18%',
-                                                            background: 'radial-gradient(ellipse at center, #1a5c2a 0%, #0d3318 100%)',
-                                                            borderRadius: '50%', border: '3px solid #2d7a3d',
-                                                            boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5), 0 0 15px rgba(45,122,61,0.3)',
-                                                        }} />
-
-                                                        {/* Seat badges */}
-                                                        {seatPositions.map((pos, idx) => {
-                                                            const seatNum = idx + 1;
-                                                            const seatInfo = seatData.find(s => s.seat_number === seatNum);
-                                                            const isOccupied = seatInfo ? true : (seatNum <= seatedCount && seatData.length === 0);
-                                                            const timerColor = isOccupied && seatInfo?.time_remaining != null ? getTimerColor(seatInfo.time_remaining) : null;
-                                                            const playerName = seatInfo?.player_name || (isOccupied ? `P${seatNum}` : '');
-                                                            // Membership ring: green = active, red = inactive/expired/suspended
-                                                            const memberActive = seatInfo?.membership_status === 'active';
-                                                            const ringColor = isOccupied && seatInfo?.membership_status
-                                                                ? (memberActive ? '#31A24C' : '#EF4444')
-                                                                : (isOccupied ? '#31A24C' : null);
-
-                                                            return (
-                                                                <div key={idx} style={{
-                                                                    position: 'absolute', left: pos.left, top: pos.top,
-                                                                    transform: 'translate(-50%, -50%)',
-                                                                    width: 52, height: 52,
-                                                                    borderRadius: '50%',
-                                                                    background: isOccupied
-                                                                        ? (memberActive ? 'rgba(49,162,76,0.15)' : seatInfo?.membership_status ? 'rgba(239,68,68,0.1)' : 'rgba(49,162,76,0.15)')
-                                                                        : 'rgba(100,116,139,0.1)',
-                                                                    border: isOccupied
-                                                                        ? `3px solid ${ringColor}`
-                                                                        : '2px dashed #3A3B3C',
-                                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                                                    fontSize: 9, fontWeight: 600,
-                                                                    transition: 'all 0.3s',
-                                                                    boxShadow: isOccupied && !memberActive && seatInfo?.membership_status
-                                                                        ? '0 0 8px rgba(239,68,68,0.4)' : 'none',
-                                                                }}>
-                                                                    {isOccupied ? (
-                                                                        <>
-                                                                            <span style={{ color: '#fff', fontSize: 9, lineHeight: 1, maxWidth: 42, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                                                {playerName.substring(0, 6)}
-                                                                            </span>
-                                                                            {seatInfo?.time_remaining != null && (
-                                                                                <span style={{ color: timerColor, fontSize: 8, fontWeight: 700, marginTop: 1 }}>
-                                                                                    {formatTime(seatInfo.time_remaining)}
-                                                                                </span>
-                                                                            )}
-                                                                            {seatInfo?.time_balance_minutes > 0 && (
-                                                                                <span style={{ color: '#1877F2', fontSize: 7, fontWeight: 600, marginTop: 0 }}>
-                                                                                    {Math.floor(seatInfo.time_balance_minutes / 60)}h bal
-                                                                                </span>
-                                                                            )}
-                                                                        </>
-                                                                    ) : (
-                                                                        <span style={{ color: '#4A5E78', fontSize: 10 }}>{seatNum}</span>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Footer — countdown summary */}
-                                                    {hasTimed && (
-                                                        <div style={{ padding: '8px 16px', borderTop: '1px solid #3A3B3C', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                                            {seatData.filter(s => s.time_remaining !== undefined).map((s, i) => {
-                                                                const tColor = getTimerColor(s.time_remaining);
-                                                                return (
-                                                                    <span key={i} style={{
-                                                                        fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                                                                        background: `${tColor}20`, color: tColor,
-                                                                        display: 'inline-flex', alignItems: 'center', gap: 3,
-                                                                    }}>
-                                                                        S{s.seat_number}: {formatTime(s.time_remaining)}
-                                                                        {s.time_balance_minutes > 0 && <span style={{ fontSize: 8, opacity: 0.7 }}>({Math.floor(s.time_balance_minutes / 60)}h)</span>}
-                                                                    </span>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </button>
+                                                    {/* Full poker table visualization */}
+                                                    {renderTableVisual(table, false)}
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -433,7 +537,7 @@ export default function TableTabletsPage() {
                                             const maxSeats = table.max_seats || 9;
                                             const statusCfg = STATUS_BADGE[table.status] || STATUS_BADGE.available;
                                             return (
-                                                <button key={table.id || tNum} onClick={() => openTablet(tNum)}
+                                                <button key={table.id || tNum} onClick={() => setFullscreenTable(table)}
                                                     style={{
                                                         background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12,
                                                         padding: '14px 12px', cursor: 'pointer', textAlign: 'left',
@@ -468,11 +572,99 @@ export default function TableTabletsPage() {
             <style jsx>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         button:hover { border-color: rgba(24,119,242,0.4) !important; }
+        @keyframes fullscreenIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
       `}</style>
+
+            {/* ── FULLSCREEN TABLE POPUP ── */}
+            {fullscreenTable && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0A0A0A', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out' }}>
+                    {/* Fullscreen header */}
+                    <div style={{
+                        padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        background: fullscreenTable.status === 'in_use'
+                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                            : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                        color: '#fff', flexShrink: 0,
+                    }}>
+                        <div>
+                            <div style={{ fontSize: 22, fontWeight: 800 }}>
+                                Table {fullscreenTable.table_number}
+                                {fullscreenTable.table_name && fullscreenTable.table_name !== `Table ${fullscreenTable.table_number}` ? ` · ${fullscreenTable.table_name}` : ''}
+                            </div>
+                            <div style={{ fontSize: 14, opacity: 0.9, marginTop: 2 }}>
+                                {(() => {
+                                    const g = getTableGame(fullscreenTable);
+                                    return g
+                                        ? `${(g.game_type || '').toUpperCase()} ${g.stakes || ''} · ${getSeatedCount(fullscreenTable)}/${fullscreenTable.max_seats || 9} seated`
+                                        : `${(fullscreenTable.game_type || '').toUpperCase()} ${fullscreenTable.stakes || ''} · ${fullscreenTable.max_seats || 9} seats · ${STATUS_BADGE[fullscreenTable.status]?.label || fullscreenTable.status}`;
+                                })()}
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <button
+                                onClick={() => openDealerScan(fullscreenTable.table_number)}
+                                style={{
+                                    background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                                    borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    fontSize: 13, fontWeight: 700, color: '#fff',
+                                }}
+                            >
+                                <ScanLine size={14} /> Scan Dealer
+                            </button>
+                            <button
+                                onClick={() => setFullscreenTable(null)}
+                                style={{
+                                    background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                                    width: 40, height: 40, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >
+                                <X size={22} color="#fff" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Fullscreen table visual */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', overflow: 'hidden' }}>
+                        <div style={{ width: '100%', maxWidth: 1000 }}>
+                            {renderTableVisual(fullscreenTable, true)}
+                        </div>
+                    </div>
+
+                    {/* Fullscreen footer — timer summary */}
+                    {(() => {
+                        const seatData = fullscreenTable.seats || [];
+                        const timedSeats = seatData.filter(s => s.time_remaining !== undefined);
+                        if (timedSeats.length === 0) return null;
+                        return (
+                            <div style={{
+                                padding: '12px 20px', borderTop: '1px solid #3A3B3C',
+                                display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
+                                background: '#1a1a1a', flexShrink: 0,
+                            }}>
+                                {timedSeats.map((s, i) => {
+                                    const tColor = getTimerColor(s.time_remaining);
+                                    return (
+                                        <span key={i} style={{
+                                            fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 6,
+                                            background: `${tColor}20`, color: tColor,
+                                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                                        }}>
+                                            S{s.seat_number}: {formatTime(s.time_remaining)}
+                                            {s.player_name && <span style={{ fontSize: 10, opacity: 0.7 }}>({s.player_name.split(' ')[0]})</span>}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
 
             {/* ── DEALER SCAN-IN MODAL ── */}
             {scanningTable && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div onClick={closeDealerScan} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)' }} />
                     <div style={{
                         position: 'relative', background: '#242526', borderRadius: 16,

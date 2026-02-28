@@ -44,37 +44,62 @@ export default function MyTournamentStatus() {
                 return;
             }
 
-            const [tRes, cRes, eRes] = await Promise.all([
-                fetch(`/api/commander/tournaments/${id}`).then(r => r.json()).catch(() => ({})),
-                fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json()).catch(() => ({})),
-                fetch(`/api/commander/tournaments/${id}/entries`).then(r => r.json()).catch(() => ({ entries: [] }))
+            // Fetch all data directly from Supabase (tournament APIs require staff auth)
+            // RLS on commander_tournaments and commander_tournament_entries allows SELECT for all users
+            const [tResult, entryResult] = await Promise.all([
+                supabase
+                    .from('commander_tournaments')
+                    .select('*')
+                    .eq('id', id)
+                    .single(),
+                supabase
+                    .from('commander_tournament_entries')
+                    .select('*')
+                    .eq('tournament_id', id)
+                    .eq('player_id', session.user.id)
+                    .single()
             ]);
 
             // Parse tournament
-            if (tRes.data?.tournament) setTournament(tRes.data.tournament);
-            else if (tRes.data) setTournament(tRes.data);
+            if (tResult.data) {
+                setTournament(tResult.data);
 
-            // Parse clock
-            if (cRes.data?.clock) {
-                const cd = cRes.data;
-                setClock({
-                    current_level: cd.currentBlind?.level || null,
-                    time_remaining: cd.clock?.timeRemaining ?? null,
-                    is_running: cd.clock?.isRunning || false,
-                    small_blind: cd.currentBlind?.smallBlind,
-                    big_blind: cd.currentBlind?.bigBlind,
-                    ante: cd.currentBlind?.ante || 0,
-                    players_remaining: cd.tournament?.players_remaining,
-                    average_stack: cd.tournament?.average_stack
-                });
+                // Build clock from tournament data
+                const t = tResult.data;
+                const blindStructure = t.blind_structure || [];
+                const currentLevel = t.current_level || 0;
+                const currentBlind = blindStructure[currentLevel] || null;
+                const settings = t.settings || {};
+                const clockState = settings.clock_state || null;
+
+                if (currentBlind) {
+                    let timeRemaining = 0;
+                    if (clockState) {
+                        const levelDuration = (currentBlind.duration || 0) * 60 * 1000;
+                        const elapsed = clockState.isRunning
+                            ? Date.now() - new Date(clockState.levelStartedAt).getTime() - (clockState.pausedDuration || 0)
+                            : clockState.pausedAt
+                                ? new Date(clockState.pausedAt).getTime() - new Date(clockState.levelStartedAt).getTime() - (clockState.pausedDuration || 0)
+                                : 0;
+                        timeRemaining = Math.max(0, Math.floor((levelDuration - elapsed) / 1000));
+                    }
+                    setClock({
+                        current_level: currentLevel + 1,
+                        time_remaining: timeRemaining,
+                        is_running: clockState?.isRunning || false,
+                        small_blind: currentBlind.small_blind,
+                        big_blind: currentBlind.big_blind,
+                        ante: currentBlind.ante || 0,
+                        players_remaining: t.players_remaining,
+                        average_stack: t.average_stack
+                    });
+                }
             }
 
-            // Find my entry
-            const entries = eRes.entries || eRes.data || [];
-            const myE = entries.find(e => e.player_id === session.user.id);
-            if (myE) {
-                setMyEntry(myE);
-                setChipValue(String(myE.current_chips || ''));
+            // Parse my entry
+            if (entryResult.data) {
+                setMyEntry(entryResult.data);
+                setChipValue(String(entryResult.data.current_chips || ''));
             }
         } catch (err) { console.error(err); setError('Failed to load tournament data'); }
         finally { setLoading(false); }
