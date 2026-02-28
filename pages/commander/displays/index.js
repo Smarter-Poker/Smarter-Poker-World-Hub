@@ -184,17 +184,7 @@ export default function DisplayManagement() {
               onOpen={openDisplay}
               color="#31A24C"
             />
-            <DisplayCard
-              icon={Tv}
-              title="Table Status"
-              description="All Tables With Game Types, Stakes, Seat Counts, Open Seats"
-              url={`${getBaseUrl()}/commander/displays/tables`}
-              path="/commander/displays/tables"
-              copied={copied}
-              onCopy={copyUrl}
-              onOpen={openDisplay}
-              color="#1877F2"
-            />
+
           </div>
         </div>
 
@@ -345,10 +335,10 @@ export default function DisplayManagement() {
                 />
                 <DisplayCard
                   icon={Tv}
-                  title="4-Panel: Everything"
-                  description="Clock + Waitlist + Promotions + Tables On One Screen"
-                  url={`${getBaseUrl()}/commander/displays/combined?layout=clock+waitlist+promotions+tables&tournament=${activeTournaments[0]?.id}`}
-                  path={`/commander/displays/combined?layout=clock+waitlist+promotions+tables&tournament=${activeTournaments[0]?.id}`}
+                  title="3-Panel: Everything"
+                  description="Clock + Waitlist + Promotions On One Screen"
+                  url={`${getBaseUrl()}/commander/displays/combined?layout=clock+waitlist+promotions&tournament=${activeTournaments[0]?.id}`}
+                  path={`/commander/displays/combined?layout=clock+waitlist+promotions&tournament=${activeTournaments[0]?.id}`}
                   copied={copied}
                   onCopy={copyUrl}
                   onOpen={openDisplay}
@@ -358,21 +348,10 @@ export default function DisplayManagement() {
             )}
             <DisplayCard
               icon={Tv}
-              title="Waitlist + Tables"
-              description="Split-screen: Waitlist Board Left, Table Status Right"
-              url={`${getBaseUrl()}/commander/displays/combined?layout=waitlist+tables`}
-              path="/commander/displays/combined?layout=waitlist+tables"
-              copied={copied}
-              onCopy={copyUrl}
-              onOpen={openDisplay}
-              color="#B0B3B8"
-            />
-            <DisplayCard
-              icon={Tv}
-              title="Waitlist + Promotions + Tables"
-              description="3-panel: Waitlist, Promotions, And Table Status"
-              url={`${getBaseUrl()}/commander/displays/combined?layout=waitlist+promotions+tables`}
-              path="/commander/displays/combined?layout=waitlist+promotions+tables"
+              title="Waitlist + Promotions"
+              description="Split-screen: Waitlist Board Left, Promotions Right"
+              url={`${getBaseUrl()}/commander/displays/combined?layout=waitlist+promotions`}
+              path="/commander/displays/combined?layout=waitlist+promotions"
               copied={copied}
               onCopy={copyUrl}
               onOpen={openDisplay}
