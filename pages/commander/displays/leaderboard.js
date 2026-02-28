@@ -25,36 +25,17 @@ export default function LeaderboardDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
-  useEffect(() => {
-    fetchData();
-    const poll = setInterval(fetchData, 30000);
-    const clock = setInterval(() => setNow(new Date()), 1000);
-    const rotate = setInterval(() => {
-      setActiveIdx(prev => leaderboards.length > 1 ? (prev + 1) % leaderboards.length : 0);
-    }, 15000);
-    return () => { clearInterval(poll); clearInterval(clock); clearInterval(rotate); };
-  }, [leaderboards.length]);
-
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  // Commander Data Bus — instant sync when members change
-  useCommanderSync(venueId, fetchData, { entities: ['members'] });
-
-  useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
-    req();
-    return () => { wakeLockRef.current?.release(); };
-  }, []);
-
+  // fetchData MUST be defined before being referenced in useEffect / useCommanderSync
   const fetchData = async () => {
     try {
       const res = await fetch('/api/commander/leaderboards');
       const json = await res.json();
       if (json.success && json.data?.length > 0) {
-        // Fetch entries for each leaderboard
         const withEntries = await Promise.all(
           (json.data || []).slice(0, 5).map(async (lb) => {
             try {
@@ -66,7 +47,6 @@ export default function LeaderboardDisplay() {
         );
         setLeaderboards(withEntries.filter(lb => lb.entries.length > 0));
       } else {
-        // Demo data if no real leaderboards
         setLeaderboards([
           {
             id: 'demo-points', name: 'Monthly Points Leaders', type: 'points',
@@ -78,6 +58,25 @@ export default function LeaderboardDisplay() {
       }
     } catch (err) { console.error(err); }
   };
+
+  useEffect(() => {
+    fetchData();
+    const poll = setInterval(fetchData, 30000);
+    const clock = setInterval(() => setNow(new Date()), 1000);
+    const rotate = setInterval(() => {
+      setActiveIdx(prev => leaderboards.length > 1 ? (prev + 1) % leaderboards.length : 0);
+    }, 15000);
+    return () => { clearInterval(poll); clearInterval(clock); clearInterval(rotate); };
+  }, [leaderboards.length]);
+
+  // Commander Data Bus — instant sync when members change
+  useCommanderSync(venueId, fetchData, { entities: ['members'] });
+
+  useEffect(() => {
+    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
+    req();
+    return () => { wakeLockRef.current?.release(); };
+  }, []);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
   const current = leaderboards[activeIdx] || leaderboards[0];
