@@ -28,19 +28,26 @@ async function handleGet(req, res) {
     const { venue_id } = req.query;
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
-    // Get all active games with their table info
+    // Get all active games (no join — avoids FK ambiguity with commander_tables)
     const { data: games, error } = await supabase
       .from('commander_games')
-      .select(`
-        id, game_type, stakes, status, table_id, is_must_move, parent_game_id,
-        current_players, max_players, created_at, dealer_staff_id,
-        commander_tables ( id, table_number, table_name, max_seats )
-      `)
+      .select('id, game_type, stakes, status, table_id, is_must_move, parent_game_id, current_players, max_players, created_at, dealer_staff_id')
       .eq('venue_id', venue_id)
       .in('status', ['waiting', 'running'])
       .order('created_at', { ascending: true });
 
     if (error) throw error;
+
+    // Get table info separately
+    const tableIds = [...new Set((games || []).filter(g => g.table_id).map(g => g.table_id))];
+    let tablesMap = {};
+    if (tableIds.length > 0) {
+      const { data: tables } = await supabase
+        .from('commander_tables')
+        .select('id, table_number, table_name, max_seats')
+        .in('id', tableIds);
+      (tables || []).forEach(t => { tablesMap[t.id] = t; });
+    }
 
     // Get all seats for these games (for the must-move queue)
     const gameIds = (games || []).map(g => g.id);
@@ -76,9 +83,9 @@ async function handleGet(req, res) {
     // Enrich games
     const enriched = (games || []).map(g => ({
       ...g,
-      table_number: g.commander_tables?.table_number || null,
-      table_name: g.commander_tables?.table_name || null,
-      max_seats: g.commander_tables?.max_seats || g.max_players || 9,
+      table_number: tablesMap[g.table_id]?.table_number || null,
+      table_name: tablesMap[g.table_id]?.table_name || null,
+      max_seats: tablesMap[g.table_id]?.max_seats || g.max_players || 9,
       player_count: g.current_players || 0,
       seats: seatsMap[g.id] || [],
     }));

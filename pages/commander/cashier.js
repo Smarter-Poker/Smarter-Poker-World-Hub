@@ -20,7 +20,8 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
-const TIME_OPTIONS = [
+// Fallback time options — overridden by owner settings from Time Billing page
+const DEFAULT_TIME_OPTIONS = [
   { label: '1 Hour', minutes: 60 },
   { label: '2 Hours', minutes: 120 },
   { label: '3 Hours', minutes: 180 },
@@ -28,7 +29,8 @@ const TIME_OPTIONS = [
   { label: '5 Hr Pack', minutes: 300 },
   { label: '20 Hr Pack', minutes: 1200 },
 ];
-const MEMBERSHIP_TIERS = [
+// Fallback tiers — overridden by owner settings from membership-plans
+const DEFAULT_MEMBERSHIP_TIERS = [
   { tier: 'daily', label: 'Daily', color: '#22D3EE', duration: 1 },
   { tier: 'weekly', label: 'Weekly', color: '#31A24C', duration: 7 },
   { tier: 'monthly', label: 'Monthly', color: '#F59E0B', duration: 30 },
@@ -71,9 +73,18 @@ export default function Cashier() {
   // Add Time form
   const [selectedTime, setSelectedTime] = useState(null);
   const [customMinutes, setCustomMinutes] = useState('');
+  const [timePayMethod, setTimePayMethod] = useState('cash');
+  const [recentTimeTransactions, setRecentTimeTransactions] = useState([]);
 
   // Membership form
   const [selectedTier, setSelectedTier] = useState(null);
+  const [memberPayMethod, setMemberPayMethod] = useState('cash');
+  const [recentMemberTransactions, setRecentMemberTransactions] = useState([]);
+
+  // Dynamic pricing from Time Billing settings
+  const [timeBillingRate, setTimeBillingRate] = useState(0); // $/hour
+  const [bulkTimePackages, setBulkTimePackages] = useState([]); // [{name, hours, price}]
+  const [membershipPlans, setMembershipPlans] = useState([]); // from membership-plans API
 
   // PIN verification
   const [pinStep, setPinStep] = useState(false);
@@ -113,6 +124,62 @@ export default function Cashier() {
   }, [venueId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Fetch owner-configured pricing from Time Billing settings + membership plans
+  useEffect(() => {
+    if (!venueId) return;
+    const loadPricing = async () => {
+      try {
+        const token = getToken();
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+
+        // Time billing settings
+        const settingsRes = await fetch('/api/commander/settings', { headers });
+        const settingsJson = await settingsRes.json();
+        if (settingsJson.success && settingsJson.data) {
+          setTimeBillingRate(settingsJson.data.time_billing_rate || 0);
+          setBulkTimePackages(settingsJson.data.bulk_time_packages || []);
+        }
+
+        // Membership plans
+        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers });
+        const plansJson = await plansRes.json();
+        if (plansJson.success && plansJson.data?.plans) {
+          setMembershipPlans(plansJson.data.plans.filter(p => p.is_active !== false));
+        }
+      } catch (err) { console.error('Pricing load error:', err); }
+    };
+    loadPricing();
+  }, [venueId]);
+
+  // Build dynamic time options from owner settings
+  const TIME_OPTIONS = bulkTimePackages.length > 0
+    ? bulkTimePackages.map(pkg => ({
+      label: pkg.name || `${pkg.hours} Hr Pack`,
+      minutes: (pkg.hours || 0) * 60,
+      price: pkg.price || 0,
+    }))
+    : DEFAULT_TIME_OPTIONS.map(opt => ({
+      ...opt,
+      price: timeBillingRate > 0 ? Math.round(timeBillingRate * (opt.minutes / 60)) : 0,
+    }));
+
+  // Build dynamic membership tiers from owner settings
+  const MEMBERSHIP_TIERS = membershipPlans.length > 0
+    ? membershipPlans.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map(plan => {
+      const priceField = plan.tier === 'daily' ? 'price_daily' : plan.tier === 'weekly' ? 'price_weekly' : plan.tier === 'monthly' ? 'price_monthly' : 'price_yearly';
+      const durationMap = { daily: 1, weekly: 7, monthly: 30, yearly: 365 };
+      return {
+        tier: plan.tier,
+        label: plan.name || plan.tier.charAt(0).toUpperCase() + plan.tier.slice(1),
+        color: plan.color || '#1877F2',
+        duration: durationMap[plan.tier] || 30,
+        price: plan[priceField] || 0,
+        planId: plan.id,
+      };
+    })
+    : DEFAULT_MEMBERSHIP_TIERS.map(t => ({ ...t, price: 0 }));
 
   // QR Scanner
   const startScan = async () => {
@@ -310,31 +377,69 @@ export default function Cashier() {
     finally { setActionLoading(false); }
   };
 
+  // Calculate time price
+  const getTimePrice = () => {
+    if (selectedTime) {
+      const opt = TIME_OPTIONS.find(o => o.minutes === selectedTime);
+      return opt?.price || 0;
+    }
+    if (customMinutes) return Math.ceil(parseInt(customMinutes) * (timeBillingRate / 60));
+    return 0;
+  };
+
   // Add Time to Player
   const doAddTime = async (staff) => {
     const mins = selectedTime || parseInt(customMinutes) || 0;
     if (mins <= 0) { setMessage({ type: 'error', text: 'Select A Time Amount' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
+    const price = getTimePrice();
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
       const newBalance = (selectedPlayer.time_balance_minutes || 0) + mins;
+
+      // 1. Update member time balance
       const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ time_balance_minutes: newBalance })
+        method: 'PUT', headers, body: JSON.stringify({ time_balance_minutes: newBalance })
       });
       const json = await res.json();
-      if (json.success) {
-        const hours = Math.floor(mins / 60);
-        const remainMins = mins % 60;
-        const timeLabel = hours > 0 ? `${hours}h ${remainMins > 0 ? remainMins + 'm' : ''}` : `${mins}m`;
-        setMessage({ type: 'success', text: `Added ${timeLabel} — ${selectedPlayer.player_name} (New Balance: ${Math.floor(newBalance / 60)}h ${newBalance % 60}m)` });
-        setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
-        setShowAddTime(false);
-      } else {
-        setMessage({ type: 'error', text: json.error || 'Failed To Add Time' });
-      }
+      if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Add Time' }); setActionLoading(false); return; }
+
+      // 2. Record cash transaction
+      const txRes = await fetch('/api/commander/cashier', {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          venue_id: venueId,
+          player_name: selectedPlayer.player_name,
+          type: 'buy_in',
+          amount: price,
+          payment_method: timePayMethod,
+          notes: `Time Purchase: ${mins} minutes`,
+          pin_verified_by: staff?.id || null
+        })
+      });
+      const txJson = await txRes.json();
+
+      const hours = Math.floor(mins / 60);
+      const remainMins = mins % 60;
+      const timeLabel = hours > 0 ? `${hours}h ${remainMins > 0 ? remainMins + 'm' : ''}` : `${mins}m`;
+      setMessage({ type: 'success', text: `Added ${timeLabel} — $${price} — ${selectedPlayer.player_name}` });
+      setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
+      setShowAddTime(false);
+      fetchData();
+
+      // 3. Auto-print receipt
+      printTimeReceipt({
+        player_name: selectedPlayer.player_name,
+        minutes: mins,
+        timeLabel,
+        amount: price,
+        payment_method: timePayMethod,
+        new_balance_minutes: newBalance,
+        staff_name: staff?.display_name || 'Staff',
+        transaction_id: txJson?.data?.id || null,
+      });
     } catch { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setActionLoading(false); }
   };
@@ -343,36 +448,90 @@ export default function Cashier() {
   const doUpdateMembership = async (staff) => {
     if (!selectedTier) { setMessage({ type: 'error', text: 'Select A Membership Tier' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
+    const tierInfo = MEMBERSHIP_TIERS.find(t => t.tier === selectedTier);
+    const price = tierInfo?.price || 0;
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const tierInfo = MEMBERSHIP_TIERS.find(t => t.tier === selectedTier);
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
       const expires = new Date();
       expires.setDate(expires.getDate() + (tierInfo?.duration || 1));
 
+      // 1. Update member tier
       const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({
-          membership_tier: selectedTier,
-          membership_status: 'active',
-          membership_expires: expires.toISOString()
-        })
+        method: 'PUT', headers,
+        body: JSON.stringify({ membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() })
       });
       const json = await res.json();
-      if (json.success) {
-        setMessage({ type: 'success', text: `Membership Updated — ${selectedPlayer.player_name} → ${tierInfo?.label} (Expires ${expires.toLocaleDateString()})` });
-        setSelectedPlayer(prev => ({
-          ...prev,
-          membership_tier: selectedTier,
-          membership_status: 'active',
-          membership_expires: expires.toISOString()
-        }));
-        setShowMembership(false);
-      } else {
-        setMessage({ type: 'error', text: json.error || 'Failed To Update Membership' });
-      }
+      if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Update Membership' }); setActionLoading(false); return; }
+
+      // 2. Record cash transaction
+      const txRes = await fetch('/api/commander/cashier', {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          venue_id: venueId,
+          player_name: selectedPlayer.player_name,
+          type: 'buy_in',
+          amount: price,
+          payment_method: memberPayMethod,
+          notes: `Membership: ${tierInfo?.label} (Expires ${expires.toLocaleDateString()})`,
+          pin_verified_by: staff?.id || null
+        })
+      });
+      const txJson = await txRes.json();
+
+      setMessage({ type: 'success', text: `${tierInfo?.label} Membership — $${price} — ${selectedPlayer.player_name}` });
+      setSelectedPlayer(prev => ({ ...prev, membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() }));
+      setShowMembership(false);
+      fetchData();
+
+      // 3. Auto-print receipt
+      printMembershipReceipt({
+        player_name: selectedPlayer.player_name,
+        tier: tierInfo?.label,
+        amount: price,
+        payment_method: memberPayMethod,
+        expires: expires.toLocaleDateString(),
+        staff_name: staff?.display_name || 'Staff',
+        transaction_id: txJson?.data?.id || null,
+      });
     } catch { setMessage({ type: 'error', text: 'Network Error' }); }
+    finally { setActionLoading(false); }
+  };
+
+  // Void a transaction
+  const voidTransaction = async (txId, type, details) => {
+    if (!confirm(`Void this ${type} transaction?`)) return;
+    setActionLoading(true);
+    try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
+      // Record a negative (void) transaction
+      await fetch('/api/commander/cashier', {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          venue_id: venueId,
+          player_name: details.player_name || 'Unknown',
+          type: 'cash_out',
+          amount: details.amount || 0,
+          payment_method: details.payment_method || 'cash',
+          notes: `VOID — Original TX #${txId}: ${details.notes || type}`,
+        })
+      });
+
+      // If time void, subtract the minutes back
+      if (type === 'time' && selectedPlayer?.id && details.minutes) {
+        const newBal = Math.max(0, (selectedPlayer.time_balance_minutes || 0) - details.minutes);
+        await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ time_balance_minutes: newBal })
+        });
+        setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
+      }
+
+      setMessage({ type: 'success', text: `Transaction Voided` });
+      fetchData();
+    } catch { setMessage({ type: 'error', text: 'Void Failed' }); }
     finally { setActionLoading(false); }
   };
 
@@ -416,6 +575,62 @@ export default function Cashier() {
     printWindow.document.write(html);
     printWindow.document.close();
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
+
+  // Print Time Purchase Receipt
+  const printTimeReceipt = (tx) => {
+    const w = window.open('', '_blank', 'width=400,height=600');
+    if (!w) return;
+    const balH = Math.floor((tx.new_balance_minutes || 0) / 60);
+    const balM = (tx.new_balance_minutes || 0) % 60;
+    w.document.write(`<!DOCTYPE html><html><head><title>Time Receipt</title>
+<style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0;padding:0}.r{width:72mm;padding:4mm;margin:0 auto}.c{text-align:center}.b{font-weight:bold}.big{font-size:24px}.med{font-size:14px}.sm{font-size:11px}.d{border-top:1px dashed #000;margin:3mm 0}.row{display:flex;justify-content:space-between}</style></head><body>
+<div class="r">
+  <div class="c b med">SMARTER.POKER</div>
+  <div class="c sm">Time Purchase Receipt</div>
+  <div class="d"></div>
+  <div class="c b med">TIME ADDED</div>
+  <div class="d"></div>
+  <div class="row sm"><span>Player:</span><span class="b">${tx.player_name}</span></div>
+  <div class="row sm"><span>Time Added:</span><span class="b">${tx.timeLabel}</span></div>
+  <div class="row sm"><span>New Balance:</span><span class="b">${balH}h ${balM}m</span></div>
+  ${tx.staff_name ? `<div class="row sm"><span>Processed By:</span><span class="b">${tx.staff_name}</span></div>` : ''}
+  <div class="d"></div>
+  <div class="c b big">$${tx.amount.toLocaleString()}</div>
+  <div class="c sm">${(tx.payment_method || 'Cash').toUpperCase()}</div>
+  <div class="d"></div>
+  <div class="sm c" style="opacity:0.6">${new Date().toLocaleString()}</div>
+  <div class="sm c" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
+</div></body></html>`);
+    w.document.close();
+    setTimeout(() => { w.print(); w.close(); }, 500);
+  };
+
+  // Print Membership Receipt
+  const printMembershipReceipt = (tx) => {
+    const w = window.open('', '_blank', 'width=400,height=600');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>Membership Receipt</title>
+<style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0;padding:0}.r{width:72mm;padding:4mm;margin:0 auto}.c{text-align:center}.b{font-weight:bold}.big{font-size:24px}.med{font-size:14px}.sm{font-size:11px}.d{border-top:1px dashed #000;margin:3mm 0}.row{display:flex;justify-content:space-between}</style></head><body>
+<div class="r">
+  <div class="c b med">SMARTER.POKER</div>
+  <div class="c sm">Membership Receipt</div>
+  <div class="d"></div>
+  <div class="c b med">MEMBERSHIP</div>
+  <div class="d"></div>
+  <div class="row sm"><span>Player:</span><span class="b">${tx.player_name}</span></div>
+  <div class="row sm"><span>Tier:</span><span class="b">${tx.tier}</span></div>
+  <div class="row sm"><span>Expires:</span><span class="b">${tx.expires}</span></div>
+  ${tx.staff_name ? `<div class="row sm"><span>Processed By:</span><span class="b">${tx.staff_name}</span></div>` : ''}
+  <div class="d"></div>
+  <div class="c b big">$${tx.amount.toLocaleString()}</div>
+  <div class="c sm">${(tx.payment_method || 'Cash').toUpperCase()}</div>
+  <div class="d"></div>
+  <div class="sm c" style="opacity:0.6">${new Date().toLocaleString()}</div>
+  <div class="sm c" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
+</div></body></html>`);
+    w.document.close();
+    setTimeout(() => { w.print(); w.close(); }, 500);
   };
 
   // PIN Keypad Component
@@ -788,7 +1003,7 @@ export default function Cashier() {
                     <span className="text-sm text-white font-medium">{selectedPlayer.player_name}</span>
                   </div>
                   <span className="text-xs text-[#F59E0B] font-medium">
-                    Current: {Math.floor((selectedPlayer.time_balance_minutes || 0) / 60)}h {(selectedPlayer.time_balance_minutes || 0) % 60}m
+                    Balance: {Math.floor((selectedPlayer.time_balance_minutes || 0) / 60)}h {(selectedPlayer.time_balance_minutes || 0) % 60}m
                   </span>
                 </div>
               ) : (
@@ -800,12 +1015,15 @@ export default function Cashier() {
                   </button>
                 </div>
               )}
-              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Time</p>
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Time Package</p>
+              <div className="grid grid-cols-2 gap-2 mb-4">
                 {TIME_OPTIONS.map(opt => (
                   <button key={opt.minutes} onClick={() => { setSelectedTime(opt.minutes); setCustomMinutes(''); }}
-                    className={`py-3 rounded-xl text-sm font-bold ${selectedTime === opt.minutes ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
-                    {opt.label}
+                    className={`py-3 px-2 rounded-xl text-left ${selectedTime === opt.minutes ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
+                    <span className="text-sm font-bold block">{opt.label}</span>
+                    <span className={`text-xs font-semibold ${selectedTime === opt.minutes ? 'text-black/70' : 'text-[#31A24C]'}`}>
+                      {opt.price > 0 ? `$${opt.price}` : 'Free'}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -813,12 +1031,55 @@ export default function Cashier() {
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
                 <input type="number" value={customMinutes}
                   onChange={e => { setCustomMinutes(e.target.value); setSelectedTime(null); }}
-                  placeholder="Custom Minutes"
+                  placeholder={`Custom Minutes${timeBillingRate > 0 ? ` ($${(timeBillingRate / 60).toFixed(2)}/min)` : ''}`}
                   className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-white text-lg font-bold outline-none focus:border-[#F59E0B]" />
               </div>
+
+              {/* Total Due */}
+              {(selectedTime || customMinutes) && (
+                <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-[#F59E0B]">Total Due</span>
+                  <span className="text-2xl font-black text-[#F59E0B]">${getTimePrice()}</span>
+                </div>
+              )}
+
+              {/* Payment Method */}
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Payment Method</p>
+              <div className="flex gap-2 mb-4">
+                <button onClick={() => setTimePayMethod('cash')}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${timePayMethod === 'cash' ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                  <Banknote className="w-4 h-4" /> Cash
+                </button>
+                <button onClick={() => setTimePayMethod('card')}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${timePayMethod === 'card' ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                  <CreditCard className="w-4 h-4" /> Card
+                </button>
+              </div>
+
               <PinSubmitButton action="addtime" color="#F59E0B"
-                label={`Add ${selectedTime ? TIME_OPTIONS.find(o => o.minutes === selectedTime)?.label : customMinutes ? customMinutes + ' Minutes' : 'Time'}`}
+                label={`Collect $${getTimePrice()} — ${selectedTime ? TIME_OPTIONS.find(o => o.minutes === selectedTime)?.label : customMinutes ? customMinutes + ' Min' : 'Time'}`}
                 disabled={(!selectedTime && !customMinutes) || !selectedPlayer?.id} />
+
+              {/* Recent Time Transactions */}
+              {transactions.filter(tx => tx.notes?.includes('Time Purchase')).length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Recent Time Sales (Void If Mistake)</p>
+                  <div className="space-y-1">
+                    {transactions.filter(tx => tx.notes?.includes('Time Purchase')).slice(0, 5).map(tx => (
+                      <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-white">{tx.player_name}</p>
+                          <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <button onClick={() => voidTransaction(tx.id, 'time', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, minutes: parseInt((tx.notes || '').match(/(\d+)/)?.[1] || '0') })}
+                          className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
+                          VOID
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -850,18 +1111,21 @@ export default function Cashier() {
                   </button>
                 </div>
               )}
-              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Tier</p>
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Membership Tier</p>
               <div className="space-y-2 mb-4">
                 {MEMBERSHIP_TIERS.map(t => {
                   const expires = new Date();
                   expires.setDate(expires.getDate() + t.duration);
                   return (
                     <button key={t.tier} onClick={() => setSelectedTier(t.tier)}
-                      className={`w-full rounded-xl p-3 flex items-center gap-3 text-left border-2 transition-colors ${selectedTier === t.tier ? 'border-current bg-current/10' : 'border-[#3A3B3C] bg-[#3A3B3C]/30'
+                      className={`w-full rounded-xl p-3 flex items-center gap-3 text-left border-2 ${selectedTier === t.tier ? '' : 'border-[#3A3B3C] bg-[#3A3B3C]/30'
                         }`} style={selectedTier === t.tier ? { borderColor: t.color, backgroundColor: `${t.color}15` } : {}}>
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-white">{t.label}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-white">{t.label}</p>
+                          <span className="text-sm font-bold" style={{ color: t.color }}>{t.price > 0 ? `$${t.price}` : 'Free'}</span>
+                        </div>
                         <p className="text-[10px] text-[#B0B3B8]">Expires {expires.toLocaleDateString()}</p>
                       </div>
                       {selectedTier === t.tier && <CheckCircle2 className="w-5 h-5" style={{ color: t.color }} />}
@@ -869,9 +1133,55 @@ export default function Cashier() {
                   );
                 })}
               </div>
+
+              {/* Total Due */}
+              {selectedTier && (() => {
+                const tierInfo = MEMBERSHIP_TIERS.find(t => t.tier === selectedTier);
+                return tierInfo?.price > 0 ? (
+                  <div className="rounded-xl p-4 mb-4 flex items-center justify-between" style={{ background: `${tierInfo.color}15`, border: `1px solid ${tierInfo.color}40` }}>
+                    <span className="text-sm font-semibold" style={{ color: tierInfo.color }}>Total Due</span>
+                    <span className="text-2xl font-black" style={{ color: tierInfo.color }}>${tierInfo.price}</span>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Payment Method */}
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Payment Method</p>
+              <div className="flex gap-2 mb-4">
+                <button onClick={() => setMemberPayMethod('cash')}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${memberPayMethod === 'cash' ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                  <Banknote className="w-4 h-4" /> Cash
+                </button>
+                <button onClick={() => setMemberPayMethod('card')}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${memberPayMethod === 'card' ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                  <CreditCard className="w-4 h-4" /> Card
+                </button>
+              </div>
+
               <PinSubmitButton action="membership" color="#8B5CF6"
-                label={`Update To ${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.label : '...'}`}
+                label={`Collect $${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.price || 0 : 0} — ${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.label : '...'}`}
                 disabled={!selectedTier || !selectedPlayer?.id} />
+
+              {/* Recent Membership Transactions */}
+              {transactions.filter(tx => tx.notes?.includes('Membership')).length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Recent Membership Sales (Void If Mistake)</p>
+                  <div className="space-y-1">
+                    {transactions.filter(tx => tx.notes?.includes('Membership')).slice(0, 5).map(tx => (
+                      <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-white">{tx.player_name}</p>
+                          <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <button onClick={() => voidTransaction(tx.id, 'membership', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes })}
+                          className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
+                          VOID
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
