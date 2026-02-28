@@ -28,6 +28,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTableConnection } from '../hooks/useTableConnection';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -76,6 +77,24 @@ const SEAT_LAYOUTS = {
     { x: 50, y: 88 },  // Hero (bottom)
     { x: 50, y: 8 },   // Opponent (top)
   ],
+  3: [
+    { x: 50, y: 88 },
+    { x: 15, y: 30 },
+    { x: 85, y: 30 },
+  ],
+  4: [
+    { x: 50, y: 88 },
+    { x: 8, y: 50 },
+    { x: 50, y: 8 },
+    { x: 92, y: 50 },
+  ],
+  5: [
+    { x: 50, y: 88 },
+    { x: 10, y: 60 },
+    { x: 25, y: 10 },
+    { x: 75, y: 10 },
+    { x: 90, y: 60 },
+  ],
   6: [
     { x: 50, y: 88 },  // Bottom center (hero default)
     { x: 12, y: 65 },  // Left lower
@@ -83,6 +102,25 @@ const SEAT_LAYOUTS = {
     { x: 40, y: 6 },   // Top left
     { x: 60, y: 6 },   // Top right
     { x: 88, y: 32 },  // Right upper
+  ],
+  7: [
+    { x: 50, y: 88 },
+    { x: 14, y: 72 },
+    { x: 6, y: 42 },
+    { x: 25, y: 8 },
+    { x: 75, y: 8 },
+    { x: 94, y: 42 },
+    { x: 86, y: 72 },
+  ],
+  8: [
+    { x: 50, y: 88 },
+    { x: 18, y: 76 },
+    { x: 6, y: 48 },
+    { x: 18, y: 18 },
+    { x: 50, y: 6 },
+    { x: 82, y: 18 },
+    { x: 94, y: 48 },
+    { x: 82, y: 76 },
   ],
   9: [
     { x: 50, y: 88 },
@@ -996,20 +1034,14 @@ export default function LivePokerTable({
   displayName = 'Player',
   avatarUrl = null,
 }) {
-  // Game state
-  const [tableState, setTableState] = useState(null);
-  const [myCards, setMyCards] = useState(null);
-  const [legalActions, setLegalActions] = useState(null);
-  const [timerState, setTimerState] = useState(null);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [result, setResult] = useState(null);
+  // Connection via hook
+  const {
+    tableState, myCards, legalActions, timerState,
+    chatMessages, result, error, connected, send,
+  } = useTableConnection({ supabase, tableId, userId });
   
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
-  const [error, setError] = useState(null);
-  
-  // Client ref
-  const clientRef = useRef(null);
   
   // Derived state
   const isSitting = tableState?.seats.some(
@@ -1024,157 +1056,11 @@ export default function LivePokerTable({
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
   
   // ═══════════════════════════════════════════════════════════════════
-  // CONNECT TO TABLE
+  // ACTION HANDLERS (use send from hook)
   // ═══════════════════════════════════════════════════════════════════
-  
-  useEffect(() => {
-    if (!supabase || !tableId || !userId) return;
-    
-    const channelName = `table:${tableId}`;
-    const channel = supabase.channel(channelName);
-    
-    // Server events
-    const serverEvents = [
-      'table_state', 'hand_start', 'blinds_posted', 'cards_dealt',
-      'street_start', 'action_required', 'action_processed',
-      'timer_update', 'showdown', 'payout', 'hand_complete',
-      'player_seated', 'player_left', 'player_sitting_out',
-      'player_sitting_in', 'player_disconnected', 'player_reconnected',
-      'chat_message', 'table_error', 'seat_offered',
-    ];
-    
-    for (const event of serverEvents) {
-      channel.on('broadcast', { event }, (payload) => {
-        handleServerEvent(event, payload.payload);
-      });
-    }
-    
-    // Private events
-    for (const event of ['private_cards', 'your_turn', 'table_state', 'table_error']) {
-      channel.on('broadcast', { event: `${event}:${userId}` }, (payload) => {
-        handleServerEvent(event, payload.payload);
-      });
-    }
-    
-    // Subscribe
-    channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.track({ user_id: userId, online_at: new Date().toISOString() });
-        
-        // Request initial state
-        channel.send({
-          type: 'broadcast', event: 'request_state',
-          payload: { playerId: userId },
-        });
-        
-        // Heartbeat
-        const hb = setInterval(() => {
-          channel.send({ type: 'broadcast', event: 'heartbeat', payload: { playerId: userId } });
-        }, 10000);
-        channel._hb = hb;
-      }
-    });
-    
-    clientRef.current = channel;
-    
-    return () => {
-      if (channel._hb) clearInterval(channel._hb);
-      channel.untrack();
-      supabase.removeChannel(channel);
-      clientRef.current = null;
-    };
-  }, [supabase, tableId, userId]);
-  
-  // ═══════════════════════════════════════════════════════════════════
-  // EVENT HANDLERS
-  // ═══════════════════════════════════════════════════════════════════
-  
-  const handleServerEvent = useCallback((event, data) => {
-    switch (event) {
-      case 'table_state':
-        setTableState(data);
-        if (data.yourCards) setMyCards(data.yourCards);
-        break;
-        
-      case 'hand_start':
-        setResult(null);
-        setMyCards(null);
-        setLegalActions(null);
-        break;
-        
-      case 'private_cards':
-        setMyCards(data.holeCards);
-        break;
-        
-      case 'your_turn':
-        setLegalActions(data.legalActions);
-        break;
-        
-      case 'action_required':
-        if (data.playerId !== userId) setLegalActions(null);
-        break;
-        
-      case 'action_processed':
-        // Update state optimistically
-        if (data.playerId === userId) setLegalActions(null);
-        break;
-        
-      case 'timer_update':
-        setTimerState(data);
-        break;
-        
-      case 'showdown':
-      case 'hand_complete':
-        setResult(data);
-        setLegalActions(null);
-        // Clear result after delay
-        setTimeout(() => setResult(null), 5000);
-        break;
-        
-      case 'chat_message':
-        setChatMessages(prev => [...prev.slice(-50), data]);
-        break;
-        
-      case 'table_error':
-        setError(data.error);
-        setTimeout(() => setError(null), 3000);
-        break;
-        
-      case 'street_start':
-      case 'cards_dealt':
-      case 'blinds_posted':
-      case 'payout':
-      case 'player_seated':
-      case 'player_left':
-      case 'player_sitting_out':
-      case 'player_sitting_in':
-      case 'player_disconnected':
-      case 'player_reconnected':
-      case 'seat_offered':
-        // Request fresh state
-        clientRef.current?.send({
-          type: 'broadcast', event: 'request_state',
-          payload: { playerId: userId },
-        });
-        break;
-    }
-  }, [userId]);
-  
-  // ═══════════════════════════════════════════════════════════════════
-  // SEND ACTIONS
-  // ═══════════════════════════════════════════════════════════════════
-  
-  const send = useCallback((event, payload) => {
-    clientRef.current?.send({
-      type: 'broadcast',
-      event,
-      payload: { playerId: userId, ...payload },
-    });
-  }, [userId]);
   
   const handleAction = useCallback((action) => {
     send('player_action', { action });
-    setLegalActions(null);
   }, [send]);
   
   const handleSitDown = useCallback((amount) => {
@@ -1312,7 +1198,7 @@ export default function LivePokerTable({
             onAction={handleAction}
             stack={mySeat?.stack || 0}
             currentBet={tableState?.game?.currentBet || 0}
-            bigBlind={2}
+            bigBlind={tableState?.config?.bigBlind || tableState?.bigBlind || 2}
           />
         )}
       </AnimatePresence>
@@ -1324,9 +1210,9 @@ export default function LivePokerTable({
       <AnimatePresence>
         {buyInSeat !== null && (
           <BuyInDialog
-            minBuyIn={40}
-            maxBuyIn={200}
-            bigBlind={2}
+            minBuyIn={tableState?.config?.minBuyIn || 40}
+            maxBuyIn={tableState?.config?.maxBuyIn || 200}
+            bigBlind={tableState?.config?.bigBlind || tableState?.bigBlind || 2}
             onConfirm={handleSitDown}
             onCancel={() => setBuyInSeat(null)}
           />
@@ -1360,7 +1246,7 @@ export default function LivePokerTable({
       </AnimatePresence>
       
       {/* Waiting state */}
-      {!tableState && (
+      {!tableState && !connected && (
         <div
           style={{
             position: 'absolute',
