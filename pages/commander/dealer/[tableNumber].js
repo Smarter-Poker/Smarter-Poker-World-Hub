@@ -311,7 +311,7 @@ export default function DealerTablet() {
       // Also remove from table session if applicable
       if (player.session_id) {
         await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
-          method: 'POST', headers: { Authorization: `Bearer ${token}` }
+          method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }
         }).catch(() => { });
       }
       await fetchTable();

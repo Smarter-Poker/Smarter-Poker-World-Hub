@@ -88,11 +88,33 @@ export default function TournamentPublic() {
       const [tRes, cRes, eRes] = await Promise.all([
         fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
         fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json()).catch(() => ({})),
-        fetch(`/api/commander/tournaments/${id}/entries`).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/tournaments/${id}/entries`).then(r => r.json()).catch(() => ({ entries: [] }))
       ]);
-      if (tRes.data || tRes.success) setTournament(tRes.data || tRes);
-      if (cRes.data || cRes.success) setClock(cRes.data || cRes);
-      if (eRes.data) setEntries(eRes.data);
+
+      // Tournament API returns { success, data: { tournament } }
+      if (tRes.data?.tournament) setTournament(tRes.data.tournament);
+      else if (tRes.data) setTournament(tRes.data);
+      else if (tRes.success) setTournament(tRes);
+
+      // Clock API returns { success, data: { clock, currentBlind, nextBlind, tournament } }
+      // Normalize to flat clock object the render expects
+      if (cRes.data) {
+        const cd = cRes.data;
+        setClock({
+          current_level: cd.currentBlind?.level || cd.tournament?.current_level || null,
+          time_remaining: cd.clock?.timeRemaining ?? null,
+          is_running: cd.clock?.isRunning || false,
+          blinds: cd.currentBlind ? {
+            small_blind: cd.currentBlind.smallBlind,
+            big_blind: cd.currentBlind.bigBlind,
+            ante: cd.currentBlind.ante || 0
+          } : null
+        });
+      }
+
+      // Entries API returns { entries: [...] }
+      if (eRes.entries) setEntries(eRes.entries);
+      else if (eRes.data) setEntries(eRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };

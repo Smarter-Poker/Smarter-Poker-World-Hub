@@ -33,10 +33,19 @@ export default function PokerRoomFunctions() {
     } catch { return ''; }
   };
 
+  // Init venueId from localStorage
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      if (s.venue_id) setVenueId(s.venue_id);
+    } catch { }
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Get settings (room open/close state + venue_id)
       const vRes = await fetch('/api/commander/settings', { headers });
@@ -62,7 +71,7 @@ export default function PokerRoomFunctions() {
             try {
               await fetch('/api/commander/settings', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                 body: JSON.stringify({ room_open: true })
               });
               setRoomOpen(true);
@@ -80,9 +89,10 @@ export default function PokerRoomFunctions() {
     setToggling(true);
     try {
       const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ room_open: !roomOpen })
       });
       setRoomOpen(!roomOpen);

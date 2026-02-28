@@ -70,7 +70,7 @@ const CARDS = [
     title: 'Staff & Operations',
     subtitle: 'Employees, Schedule, Config',
     image: '/images/commander/card-staff.jpg',
-    glow: '#10B981',
+    glow: '#EF4444',
     features: [
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Clock In / Out', href: '/commander/time-clock', icon: '/images/commander/icons/mg-time-clock.png' },
