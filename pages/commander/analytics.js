@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import AnalyticsDashboard from '../../src/components/commander/analytics/AnalyticsDashboard';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 function StatCard({ title, value, change, icon: Icon, color = '#1877F2' }) {
   const hasChange = change !== undefined && change !== null;
@@ -267,6 +268,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (venueId) fetchAnalytics();
   }, [venueId, period, fetchAnalytics]);
+
+  // Commander Data Bus — refresh analytics on changes
+  useCommanderSync(venueId, fetchAnalytics, { entities: ['tables', 'members', 'waitlist'] });
 
   if (!staff) {
     return (
