@@ -9,7 +9,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import {
-    calculateEquity, fullDeck, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
+    calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
 
 const RANKS = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -110,32 +110,6 @@ export default function PokerToolsPage() {
         setResults(null);
     }, []);
 
-    const dealRandom = useCallback(() => {
-        const used = new Set();
-        const remaining = fullDeck().filter(c => !used.has(c.id));
-
-        const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; };
-        shuffle(remaining);
-
-        let idx = 0;
-        const newHands = hands.map(h => {
-            const cards = [];
-            for (let i = 0; i < config.holeCards; i++) {
-                cards.push(remaining[idx++]);
-            }
-            return cards;
-        });
-
-        let newBoard = [];
-        if (config.hasBoard) {
-            for (let i = 0; i < 5; i++) newBoard.push(remaining[idx++]);
-        }
-
-        setHands(newHands);
-        setBoard(newBoard);
-        setDeadCards([]);
-        setResults(null);
-    }, [hands.length, config]);
 
     const runCalculation = useCallback(() => {
         const validHands = hands.filter(h => h.length === config.holeCards);
@@ -186,7 +160,7 @@ export default function PokerToolsPage() {
 
             <div style={{
                 minHeight: '100vh', background: '#18191A', color: '#E4E6EB',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Inter', sans-serif", textTransform: 'capitalize',
             }}>
                 {/* ─── HEADER ─── */}
                 <div style={{
@@ -227,10 +201,7 @@ export default function PokerToolsPage() {
                     <div style={{
                         display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
                     }}>
-                        <button onClick={dealRandom}
-                            style={{ padding: '8px 16px', borderRadius: 8, background: '#31A24C', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                            🎲 Random Deal
-                        </button>
+
                         <button onClick={resetAll}
                             style={{ padding: '8px 16px', borderRadius: 8, background: '#3A3B3C', border: 'none', color: '#B0B3B8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                             ↺ Reset
