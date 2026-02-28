@@ -13,7 +13,7 @@ import { supabase } from '../../src/lib/supabase';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Trophy, DollarSign, Users, Calendar, Loader2,
-    ChevronRight, Award, Clock, ExternalLink
+    ChevronRight
 } from 'lucide-react';
 
 function ordinal(n) {
@@ -38,6 +38,7 @@ export default function MyTournaments() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) {
                 router.push('/login?redirect=/hub/my-tournaments');
+                setLoading(false);
                 return;
             }
 
@@ -50,7 +51,6 @@ export default function MyTournaments() {
                 const regs = json.data.registrations;
                 setTournaments(regs);
 
-                // Calculate stats
                 const played = regs.length;
                 const wins = regs.filter(r => r.finish_position === 1).length;
                 const itm = regs.filter(r => r.prize_amount > 0).length;
@@ -77,9 +77,7 @@ export default function MyTournaments() {
                 {/* Header */}
                 <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-4">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => router.back()} className="text-[#B0B3B8] active:text-white">
-                            ←
-                        </button>
+                        <button onClick={() => router.back()} className="text-[#B0B3B8] active:text-white">←</button>
                         <div>
                             <h1 className="text-xl font-bold text-white">My Tournaments</h1>
                             <p className="text-xs text-[#B0B3B8]">{stats.played} tournaments played</p>

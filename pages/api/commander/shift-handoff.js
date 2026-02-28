@@ -38,28 +38,30 @@ async function createHandoff(req, res) {
     }
 
     // Snapshot current floor state
-    const [tablesRes, waitlistRes, incidentsRes, sessionsRes] = await Promise.all([
+    const [tablesRes, waitlistRes, incidentsRes, gamesRes] = await Promise.all([
       supabase.from('commander_tables').select('id, table_number, table_name, status, current_game_type, current_stakes, max_seats').eq('venue_id', venue_id).eq('status', 'active'),
       supabase.from('commander_waitlist').select('id').eq('venue_id', venue_id).eq('status', 'waiting'),
       supabase.from('commander_incidents').select('id').eq('venue_id', venue_id).eq('status', 'open'),
-      supabase.from('commander_table_sessions').select('id, table_number, player_name, seat_number').eq('venue_id', venue_id).eq('status', 'active')
+      supabase.from('commander_games').select('id, table_number, game_type, stakes, current_players, max_players, status').eq('venue_id', venue_id).eq('status', 'active')
     ]);
 
     const tables = tablesRes.data || [];
     const waitlist = waitlistRes.data || [];
     const incidents = incidentsRes.data || [];
-    const sessions = sessionsRes.data || [];
+    const games = gamesRes.data || [];
 
-    // Build table snapshot with player counts
+    // Calculate total active players from games
+    const totalPlayers = games.reduce((sum, g) => sum + (g.current_players || 0), 0);
+
+    // Build table snapshot with player counts from games
     const tableSnapshot = tables.map(t => {
-      const playersAtTable = sessions.filter(s => String(s.table_number) === String(t.table_number));
+      const game = games.find(g => String(g.table_number) === String(t.table_number));
       return {
         table_number: t.table_number,
         table_name: t.table_name,
-        game: t.current_game_type ? `${t.current_game_type} ${t.current_stakes || ''}`.trim() : 'No game',
-        players: playersAtTable.length,
-        max_seats: t.max_seats || 9,
-        player_names: playersAtTable.map(p => p.player_name).filter(Boolean)
+        game: game ? `${game.game_type} ${game.stakes || ''}`.trim() : (t.current_game_type ? `${t.current_game_type} ${t.current_stakes || ''}`.trim() : 'No game'),
+        players: game ? (game.current_players || 0) : 0,
+        max_seats: game ? (game.max_players || t.max_seats || 9) : (t.max_seats || 9)
       };
     });
 
@@ -72,7 +74,7 @@ async function createHandoff(req, res) {
         incoming_staff_name: incoming_staff_name || null,
         shift_date: new Date().toISOString().split('T')[0],
         open_tables_count: tables.length,
-        active_players_count: sessions.length,
+        active_players_count: totalPlayers,
         waitlist_count: waitlist.length,
         open_incidents_count: incidents.length,
         notes: notes || null,

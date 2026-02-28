@@ -1,33 +1,28 @@
 /**
- * Cashier — Simplified Operations
+ * Cashier — Texas Club Style
  * /commander/cashier
- * Three primary functions:
- * 1. Scan Player Card (QR code scanner)
- * 2. Add Time (time billing)
- * 3. Update Membership
+ * Simple operations:
+ * 1. Scan Player Card (QR code)
+ * 2. Cash Game Buy-In Receipt (charity/club/home games)
+ * 3. Add Time
+ * 4. Update Membership
  * Collapsible transaction log at bottom
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  QrCode, Clock, CreditCard, Loader2, RefreshCw,
+  QrCode, Clock, CreditCard, Loader2,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
-  Receipt, ArrowDownToLine, ArrowUpFromLine, Lock, Delete,
-  DollarSign, Plus, Minus, Banknote, Users, Coins
+  Receipt, Lock, Delete, DollarSign, Banknote, Users
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
-const QUICK_AMOUNTS = [100, 200, 300, 500, 1000];
-const PAYMENT_METHODS = [
-  { id: 'cash', label: 'Cash', icon: Banknote },
-  { id: 'card', label: 'Card', icon: CreditCard },
-];
+const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 
 export default function Cashier() {
   const router = useRouter();
   const [transactions, setTransactions] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
   const [message, setMessage] = useState(null);
@@ -36,16 +31,16 @@ export default function Cashier() {
 
   // Scanner
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Transaction form
+  // Scanned player
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [txType, setTxType] = useState('buy_in');
-  const [amount, setAmount] = useState('');
+
+  // Buy-In Receipt form
+  const [showBuyIn, setShowBuyIn] = useState(false);
+  const [buyInAmount, setBuyInAmount] = useState('');
   const [payMethod, setPayMethod] = useState('cash');
-  const [showForm, setShowForm] = useState(false);
 
   // PIN verification
   const [pinStep, setPinStep] = useState(false);
@@ -78,9 +73,7 @@ export default function Cashier() {
       const today = new Date().toISOString().split('T')[0];
       const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=200`, { headers });
       const txJson = await txRes.json();
-
       setTransactions(txJson.data || []);
-      setSummary(txJson.summary || null);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [venueId]);
@@ -90,7 +83,6 @@ export default function Cashier() {
   // QR Scanner
   const startScan = async () => {
     setScanning(true);
-    setScanResult(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
@@ -100,7 +92,6 @@ export default function Cashier() {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-      // Use BarcodeDetector if available, otherwise fallback
       if ('BarcodeDetector' in window) {
         const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
         const scanLoop = async () => {
@@ -114,12 +105,11 @@ export default function Cashier() {
           } catch { }
           if (streamRef.current) requestAnimationFrame(scanLoop);
         };
-        // Wait for video to be ready
         setTimeout(scanLoop, 500);
       }
     } catch (err) {
-      console.error('Camera error:', err);
-      setMessage({ type: 'error', text: 'Camera access denied or unavailable' });
+      console.error('Camera Error:', err);
+      setMessage({ type: 'error', text: 'Camera Access Denied Or Unavailable' });
       setScanning(false);
     }
   };
@@ -134,8 +124,6 @@ export default function Cashier() {
 
   const handleScanResult = async (qrData) => {
     stopScan();
-    setScanResult(qrData);
-    // Look up the player by QR code data (user_id or member_id)
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
@@ -147,32 +135,26 @@ export default function Cashier() {
         setSelectedPlayer({
           player_name: member.display_name || member.name,
           user_id: member.user_id || member.id,
-          table_number: null,
-          seat_number: null,
-          id: null,
           membership: member.membership_tier || member.membership_type,
           membership_expires: member.membership_expires
         });
       } else {
-        setMessage({ type: 'error', text: 'Player not found — try manual search' });
+        setMessage({ type: 'error', text: 'Player Not Found — Try Manual Search' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Error looking up player' });
+      setMessage({ type: 'error', text: 'Error Looking Up Player' });
     }
   };
 
-  // Transaction form handlers
-  const openForm = (type) => {
-    const player = selectedPlayer || { player_name: 'Walk-up', table_number: null, seat_number: null, id: null };
-    setSelectedPlayer(player);
-    setTxType(type);
-    setAmount('');
+  // Buy-In Receipt
+  const openBuyIn = () => {
+    setBuyInAmount('');
     setPayMethod('cash');
-    setShowForm(true);
+    setShowBuyIn(true);
   };
 
   const requestPin = () => {
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!buyInAmount || parseFloat(buyInAmount) <= 0) {
       setMessage({ type: 'error', text: 'Enter A Valid Amount' });
       return;
     }
@@ -224,34 +206,27 @@ export default function Cashier() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
           venue_id: venueId,
-          session_id: selectedPlayer?.id,
-          player_name: selectedPlayer?.player_name || 'Walk-up',
-          table_number: selectedPlayer?.table_number,
-          seat_number: selectedPlayer?.seat_number,
-          type: txType,
-          amount: parseFloat(amount),
+          player_name: selectedPlayer?.player_name || 'Walk-Up',
+          type: 'buy_in',
+          amount: parseFloat(buyInAmount),
           payment_method: payMethod,
           pin_verified_by: staff?.id || null
         })
       });
       const json = await res.json();
       if (json.success) {
-        const label = txType === 'buy_in' ? 'Buy-in' : txType === 'add_on' ? 'Add-on' : 'Cash-out';
-        setMessage({ type: 'success', text: `${label} $${parseFloat(amount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-up'} (${staff?.display_name || 'Staff'})` });
-        setShowForm(false);
+        setMessage({ type: 'success', text: `Buy-In Receipt — $${parseFloat(buyInAmount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-Up'}` });
+        setShowBuyIn(false);
         printReceipt({
-          type: txType,
-          player_name: selectedPlayer?.player_name || 'Walk-up',
-          table_number: selectedPlayer?.table_number,
-          seat_number: selectedPlayer?.seat_number,
-          amount: parseFloat(amount),
+          player_name: selectedPlayer?.player_name || 'Walk-Up',
+          amount: parseFloat(buyInAmount),
           payment_method: payMethod,
           created_at: new Date().toISOString(),
           staff_name: staff?.display_name || 'Staff'
         });
         fetchData();
       } else {
-        setMessage({ type: 'error', text: json.error || 'Transaction failed' });
+        setMessage({ type: 'error', text: json.error || 'Transaction Failed' });
       }
     } catch { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setActionLoading(false); setPinVerifying(false); }
@@ -268,13 +243,11 @@ export default function Cashier() {
     if (message) { const t = setTimeout(() => setMessage(null), 4000); return () => clearTimeout(t); }
   }, [message]);
 
-  // Cleanup camera on unmount
   useEffect(() => () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); }, []);
 
   const printReceipt = (tx) => {
     const printWindow = window.open('', '_blank', 'width=400,height=600');
     if (!printWindow) return;
-    const typeLabel = tx.type === 'buy_in' ? 'BUY-IN' : tx.type === 'add_on' ? 'ADD-ON' : 'CASH OUT';
     const html = `<!DOCTYPE html><html><head><title>Receipt</title>
 <style>
   @page { margin: 0; size: 80mm auto; }
@@ -290,16 +263,15 @@ export default function Cashier() {
 </style></head><body>
 <div class="receipt">
   <div class="center bold med">SMARTER.POKER</div>
-  <div class="center sm">Cash Game Receipt</div>
+  <div class="center sm">Cash Game Buy-In Receipt</div>
   <div class="divider"></div>
-  <div class="center bold med">${typeLabel}</div>
+  <div class="center bold med">BUY-IN</div>
   <div class="divider"></div>
   <div class="row sm"><span>Player:</span><span class="bold">${tx.player_name}</span></div>
-  ${tx.table_number ? `<div class="row sm"><span>Table/Seat:</span><span class="bold">T${tx.table_number} S${tx.seat_number || '-'}</span></div>` : ''}
-  ${tx.staff_name ? `<div class="row sm"><span>Processed by:</span><span class="bold">${tx.staff_name}</span></div>` : ''}
+  ${tx.staff_name ? `<div class="row sm"><span>Processed By:</span><span class="bold">${tx.staff_name}</span></div>` : ''}
   <div class="divider"></div>
   <div class="center bold big">$${parseFloat(tx.amount).toLocaleString()}</div>
-  <div class="center sm">${(tx.payment_method || 'cash').toUpperCase()}</div>
+  <div class="center sm">${(tx.payment_method || 'Cash').toUpperCase()}</div>
   <div class="divider"></div>
   <div class="sm center" style="opacity:0.6">${new Date(tx.created_at || Date.now()).toLocaleString()}</div>
   <div class="sm center" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
@@ -346,9 +318,7 @@ export default function Cashier() {
         ) : (
           <div className="px-4 py-4 space-y-3">
 
-            {/* ========== PRIMARY ACTIONS ========== */}
-
-            {/* 1. Scan Player Card — Primary Button */}
+            {/* 1. Scan Player Card — Primary */}
             <button onClick={scanning ? stopScan : startScan}
               className={`w-full rounded-2xl border-2 p-5 flex items-center gap-4 active:scale-[0.99] transition-transform ${scanning
                   ? 'bg-[#EF4444]/10 border-[#EF4444]/40'
@@ -363,7 +333,7 @@ export default function Cashier() {
                   {scanning ? 'Stop Scanning' : 'Scan Player Card'}
                 </p>
                 <p className="text-sm text-[#B0B3B8]">
-                  {scanning ? 'Tap to stop camera' : 'Scan QR code to identify player'}
+                  {scanning ? 'Tap To Stop Camera' : 'Scan QR Code To Identify Player'}
                 </p>
               </div>
               {scanning && <div className="w-3 h-3 rounded-full bg-[#EF4444] animate-pulse" />}
@@ -379,20 +349,33 @@ export default function Cashier() {
               </div>
             )}
 
-            {/* 2. Add Time */}
-            <button onClick={() => router.push('/commander/time-billing')}
+            {/* 2. Cash Game Buy-In Receipt */}
+            <button onClick={openBuyIn}
               className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
               <div className="w-12 h-12 rounded-xl bg-[#31A24C]/15 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-[#31A24C]" />
+                <Receipt className="w-6 h-6 text-[#31A24C]" />
               </div>
               <div className="text-left flex-1">
-                <p className="text-base font-bold text-white">Add Time</p>
-                <p className="text-xs text-[#B0B3B8]">Process time billing for seated players</p>
+                <p className="text-base font-bold text-white">Cash Game Buy-In Receipt</p>
+                <p className="text-xs text-[#B0B3B8]">Issue Receipt For Cash Game Buy-Ins</p>
               </div>
               <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
             </button>
 
-            {/* 3. Update Membership */}
+            {/* 3. Add Time */}
+            <button onClick={() => router.push('/commander/time-billing')}
+              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
+              <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/15 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-[#F59E0B]" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-base font-bold text-white">Add Time</p>
+                <p className="text-xs text-[#B0B3B8]">Process Time Billing For Seated Players</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
+            </button>
+
+            {/* 4. Update Membership */}
             <button onClick={() => router.push('/commander/membership-plans')}
               className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
               <div className="w-12 h-12 rounded-xl bg-[#8B5CF6]/15 flex items-center justify-center">
@@ -400,54 +383,12 @@ export default function Cashier() {
               </div>
               <div className="text-left flex-1">
                 <p className="text-base font-bold text-white">Update Membership</p>
-                <p className="text-xs text-[#B0B3B8]">Renew or change membership plans</p>
+                <p className="text-xs text-[#B0B3B8]">Renew Or Change Membership Plans</p>
               </div>
               <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
             </button>
 
-            {/* Quick Cash Transaction (Walk-up) */}
-            <div className="pt-1">
-              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Quick Transaction</p>
-              <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => openForm('buy_in')}
-                  className="bg-[#31A24C]/10 border border-[#31A24C]/20 rounded-xl p-3 text-center active:bg-[#31A24C]/20">
-                  <Plus className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
-                  <p className="text-xs font-bold text-[#31A24C]">Buy-In</p>
-                </button>
-                <button onClick={() => openForm('add_on')}
-                  className="bg-[#1877F2]/10 border border-[#1877F2]/20 rounded-xl p-3 text-center active:bg-[#1877F2]/20">
-                  <Coins className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
-                  <p className="text-xs font-bold text-[#1877F2]">Add-On</p>
-                </button>
-                <button onClick={() => openForm('cash_out')}
-                  className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-3 text-center active:bg-[#EF4444]/20">
-                  <Minus className="w-5 h-5 text-[#EF4444] mx-auto mb-1" />
-                  <p className="text-xs font-bold text-[#EF4444]">Cash Out</p>
-                </button>
-              </div>
-            </div>
-
-            {/* Today's Summary */}
-            {summary && (
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-2.5 text-center">
-                  <p className="text-sm font-bold text-[#31A24C]">${summary.total_buy_ins?.toLocaleString() || '0'}</p>
-                  <p className="text-[9px] text-[#B0B3B8] uppercase">Buy-ins</p>
-                </div>
-                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-2.5 text-center">
-                  <p className="text-sm font-bold text-[#EF4444]">${summary.total_cash_outs?.toLocaleString() || '0'}</p>
-                  <p className="text-[9px] text-[#B0B3B8] uppercase">Cash-outs</p>
-                </div>
-                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-2.5 text-center">
-                  <p className={`text-sm font-bold ${(summary.net_drop || 0) >= 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
-                    ${Math.abs(summary.net_drop || 0).toLocaleString()}
-                  </p>
-                  <p className="text-[9px] text-[#B0B3B8] uppercase">Net Drop</p>
-                </div>
-              </div>
-            )}
-
-            {/* ========== TRANSACTION LOG (Collapsible) ========== */}
+            {/* Transaction Log (Collapsible) */}
             <div className="pt-2">
               <button onClick={() => setShowLog(!showLog)}
                 className="w-full bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between active:bg-[#3A3B3C]">
@@ -464,24 +405,21 @@ export default function Cashier() {
                   {transactions.slice(0, 50).map(tx => (
                     <div key={tx.id} className="px-4 py-2.5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${tx.type === 'cash_out' ? 'bg-[#EF4444]/15' : 'bg-[#31A24C]/15'}`}>
-                          {tx.type === 'cash_out'
-                            ? <ArrowUpFromLine className="w-3.5 h-3.5 text-[#EF4444]" />
-                            : <ArrowDownToLine className="w-3.5 h-3.5 text-[#31A24C]" />
-                          }
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[#31A24C]/15">
+                          <DollarSign className="w-3.5 h-3.5 text-[#31A24C]" />
                         </div>
                         <div>
                           <p className="text-xs font-medium text-white">{tx.player_name}</p>
                           <p className="text-[10px] text-[#B0B3B8]">
-                            {tx.type.replace('_', ' ')} • {tx.payment_method} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            Buy-In • {(tx.payment_method || 'Cash')} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${tx.type === 'cash_out' ? 'text-[#EF4444]' : 'text-[#31A24C]'}`}>
-                          {tx.type === 'cash_out' ? '-' : '+'}${parseFloat(tx.amount).toLocaleString()}
+                        <span className="text-sm font-bold text-[#31A24C]">
+                          ${parseFloat(tx.amount).toLocaleString()}
                         </span>
-                        <button onClick={() => printReceipt(tx)} className="w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
+                        <button onClick={() => printReceipt(tx)} className="w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]" title="Reprint Receipt">
                           <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
                         </button>
                       </div>
@@ -492,62 +430,62 @@ export default function Cashier() {
 
               {showLog && transactions.length === 0 && (
                 <div className="mt-1 bg-[#242526] border border-[#3A3B3C] rounded-xl p-6 text-center">
-                  <p className="text-sm text-[#B0B3B8]">No transactions today</p>
+                  <p className="text-sm text-[#B0B3B8]">No Transactions Today</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ========== TRANSACTION FORM MODAL ========== */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowForm(false)}>
+        {/* Buy-In Receipt Modal */}
+        {showBuyIn && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowBuyIn(false)}>
             <div className="bg-[#242526] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">
-                  {txType === 'buy_in' ? 'Buy-In' : txType === 'add_on' ? 'Add-On' : 'Cash Out'}
-                </h3>
-                <button onClick={() => setShowForm(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
+                <h3 className="text-lg font-bold text-white">Cash Game Buy-In</h3>
+                <button onClick={() => setShowBuyIn(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
               </div>
 
-              {/* Player info */}
+              {/* Player Info */}
               <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#B0B3B8]" />
-                <span className="text-sm text-white font-medium">{selectedPlayer?.player_name}</span>
-                {selectedPlayer?.table_number && (
-                  <span className="text-xs text-[#B0B3B8]">Table {selectedPlayer.table_number} Seat {selectedPlayer.seat_number}</span>
+                <span className="text-sm text-white font-medium">{selectedPlayer?.player_name || 'Walk-Up Player'}</span>
+                {!selectedPlayer && (
+                  <span className="text-xs text-[#B0B3B8] ml-auto">Scan Card First For Named Receipt</span>
                 )}
               </div>
 
-              {/* Quick amounts */}
-              <div className="flex flex-wrap gap-2 mb-4">
+              {/* Quick Amounts */}
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Amount</p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
                 {QUICK_AMOUNTS.map(qa => (
-                  <button key={qa} onClick={() => setAmount(String(qa))}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-bold ${amount === String(qa) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
+                  <button key={qa} onClick={() => setBuyInAmount(String(qa))}
+                    className={`py-3 rounded-xl text-sm font-bold ${buyInAmount === String(qa) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
                     ${qa}
                   </button>
                 ))}
               </div>
 
-              {/* Custom amount */}
+              {/* Custom Amount */}
               <div className="relative mb-4">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+                <input type="number" value={buyInAmount} onChange={e => setBuyInAmount(e.target.value)}
                   placeholder="Custom Amount"
                   className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-white text-lg font-bold outline-none focus:border-[#1877F2]" />
               </div>
 
-              {/* Payment method (buy-in only) */}
-              {txType !== 'cash_out' && (
-                <div className="flex gap-2 mb-4">
-                  {PAYMENT_METHODS.map(pm => (
-                    <button key={pm.id} onClick={() => setPayMethod(pm.id)}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${payMethod === pm.id ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'}`}>
-                      <pm.icon className="w-4 h-4" /> {pm.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Payment Method */}
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Payment Method</p>
+              <div className="flex gap-2 mb-4">
+                <button onClick={() => setPayMethod('cash')}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${payMethod === 'cash' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'}`}>
+                  <Banknote className="w-4 h-4" /> Cash
+                </button>
+                <button onClick={() => setPayMethod('card')}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${payMethod === 'card' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'}`}>
+                  <CreditCard className="w-4 h-4" /> Card
+                </button>
+              </div>
 
               {/* PIN Entry */}
               {pinStep ? (
@@ -586,26 +524,21 @@ export default function Cashier() {
                     <div className="flex items-center justify-between p-2 rounded-lg bg-[#31A24C]/10 mb-2">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-[#31A24C]" />
-                        <span className="text-xs text-[#31A24C] font-medium">Verified as {verifiedStaff?.display_name}</span>
+                        <span className="text-xs text-[#31A24C] font-medium">Verified As {verifiedStaff?.display_name}</span>
                       </div>
                       <button onClick={lockPin} className="text-xs text-[#B0B3B8] flex items-center gap-1">
                         <Lock className="w-3 h-3" /> Lock
                       </button>
                     </div>
                   )}
-                  <button onClick={requestPin} disabled={actionLoading || !amount}
-                    className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
-                      ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
-                      : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
-                      } disabled:opacity-50`}>
+                  <button onClick={requestPin} disabled={actionLoading || !buyInAmount}
+                    className="w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 bg-[#31A24C] text-white active:bg-[#2B8C42] disabled:opacity-50">
                     {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                       isPinCached()
-                        ? <>{txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}</>
-                        : <><Lock className="w-4 h-4 mr-1" />
-                          {txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}</>
+                        ? <Receipt className="w-5 h-5" />
+                        : <><Lock className="w-4 h-4 mr-1" /><Receipt className="w-5 h-5" /></>
                     )}
-                    {txType === 'cash_out' ? 'Process Cash Out' : txType === 'add_on' ? 'Process Add-On' : 'Process Buy-In'}
-                    {amount ? ` — $${parseFloat(amount).toLocaleString()}` : ''}
+                    Print Buy-In Receipt{buyInAmount ? ` — $${parseFloat(buyInAmount).toLocaleString()}` : ''}
                   </button>
                 </>
               )}

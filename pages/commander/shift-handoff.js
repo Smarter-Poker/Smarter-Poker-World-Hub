@@ -9,7 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   ArrowRightLeft, CheckCircle2, Clock, Users, AlertTriangle,
   Loader2, Send, FileText, Star, ListChecks, MessageSquare, LayoutGrid,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -135,16 +135,18 @@ export default function ShiftHandoff() {
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
-      <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="min-h-screen bg-[#18191A]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
-        <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <ArrowRightLeft size={22} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>Shift Handoff</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Pass Floor Context To Incoming Shift</div>
+        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#1877F2]/15 flex items-center justify-center">
+            <ArrowRightLeft size={20} className="text-[#1877F2]" />
+          </div>
+          <div className="flex-1">
+            <div className="text-white font-bold text-base">Shift Handoff</div>
+            <div className="text-[#B0B3B8] text-xs">Pass Floor Context To Incoming Shift</div>
           </div>
           {pendingHandoffs.length > 0 && (
-            <div style={{ marginLeft: 'auto', background: '#EF4444', borderRadius: 12, padding: '2px 10px', fontSize: 13, fontWeight: 700 }}>
+            <div className="bg-[#EF4444] text-white rounded-full px-3 py-0.5 text-xs font-bold animate-pulse">
               {pendingHandoffs.length} Pending
             </div>
           )}
@@ -152,31 +154,39 @@ export default function ShiftHandoff() {
 
         {/* Toast */}
         {toast && (
-          <div style={{ margin: 12, padding: '10px 14px', borderRadius: 8, background: toast.type === 'success' ? '#DEF7EC' : '#FEE2E2', color: toast.type === 'success' ? '#03543F' : '#991B1B', fontSize: 14, fontWeight: 600 }}>
+          <div className={`mx-4 mt-3 px-4 py-2.5 rounded-lg text-sm font-semibold ${toast.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C] border border-[#31A24C]/30' : 'bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30'}`}>
             {toast.msg}
           </div>
         )}
 
-        <div style={{ padding: 16, maxWidth: 600, margin: '0 auto' }}>
+        <div className="p-4 max-w-xl mx-auto">
+          {/* Back to Menu button in create/history modes */}
+          {mode !== 'menu' && (
+            <button onClick={() => setMode('menu')}
+              className="flex items-center gap-2 text-[#B0B3B8] hover:text-white text-sm font-medium mb-4 transition-colors">
+              <ArrowLeft size={16} /> Back to Menu
+            </button>
+          )}
+
           {/* Menu Mode */}
           {mode === 'menu' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {/* Pending alert */}
               {pendingHandoffs.length > 0 && (
-                <div style={{ background: '#FEF3C7', border: '2px solid #F59E0B', borderRadius: 10, padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <AlertTriangle size={18} color="#D97706" />
-                    <span style={{ fontWeight: 700, color: '#92400E', fontSize: 15 }}>Incoming Handoff Waiting</span>
+                <div className="bg-[#F59E0B]/10 border-2 border-[#F59E0B]/40 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle size={18} className="text-[#F59E0B]" />
+                    <span className="text-[#F59E0B] font-bold text-sm">Incoming Handoff Waiting</span>
                   </div>
                   {pendingHandoffs.map(h => (
-                    <div key={h.id} style={{ background: 'white', borderRadius: 8, padding: 12, marginTop: 8 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#1C2526' }}>From: {h.outgoing_staff_name}</div>
-                      <div style={{ fontSize: 12, color: '#65676B' }}>{formatTime(h.handoff_time)}</div>
-                      <div style={{ fontSize: 13, color: '#444', marginTop: 6 }}>
+                    <div key={h.id} className="bg-[#242526] rounded-lg p-3 mt-2 border border-[#3A3B3C]">
+                      <div className="text-white font-semibold text-sm">From: {h.outgoing_staff_name}</div>
+                      <div className="text-[#B0B3B8] text-xs">{formatTime(h.handoff_time || h.created_at)}</div>
+                      <div className="text-[#B0B3B8] text-xs mt-1">
                         {h.open_tables_count} tables, {h.active_players_count} players, {h.waitlist_count} waiting
                       </div>
                       <button onClick={() => { setExpandedId(h.id); setMode('history'); }}
-                        style={{ marginTop: 8, background: '#1877F2', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                        className="mt-3 w-full bg-[#1877F2] text-white rounded-lg py-2 text-sm font-bold">
                         Review & Acknowledge
                       </button>
                     </div>
@@ -185,24 +195,24 @@ export default function ShiftHandoff() {
               )}
 
               <button onClick={() => setMode('create')}
-                style={{ background: 'white', border: '2px solid #1877F2', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#EBF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Send size={22} color="#1877F2" />
+                className="bg-[#242526] border-2 border-[#1877F2]/40 rounded-xl p-5 flex items-center gap-4 text-left hover:border-[#1877F2] transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-[#1877F2]/15 flex items-center justify-center flex-shrink-0">
+                  <Send size={22} className="text-[#1877F2]" />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Create Handoff</div>
-                  <div style={{ fontSize: 13, color: '#65676B' }}>Document Floor State And Pass To Next Shift</div>
+                  <div className="text-white font-bold text-base">Create Handoff</div>
+                  <div className="text-[#B0B3B8] text-sm">Document Floor State And Pass To Next Shift</div>
                 </div>
               </button>
 
               <button onClick={() => setMode('history')}
-                style={{ background: 'white', border: '2px solid #E4E6EB', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={22} color="#65676B" />
+                className="bg-[#242526] border-2 border-[#3A3B3C] rounded-xl p-5 flex items-center gap-4 text-left hover:border-[#4A4B4C] transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-[#3A3B3C] flex items-center justify-center flex-shrink-0">
+                  <FileText size={22} className="text-[#B0B3B8]" />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Handoff History</div>
-                  <div style={{ fontSize: 13, color: '#65676B' }}>View Past Shift Handoffs And Notes</div>
+                  <div className="text-white font-bold text-base">Handoff History</div>
+                  <div className="text-[#B0B3B8] text-sm">View Past Shift Handoffs And Notes</div>
                 </div>
               </button>
             </div>
@@ -210,69 +220,69 @@ export default function ShiftHandoff() {
 
           {/* Create Mode */}
           {mode === 'create' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526', marginBottom: 4 }}>Outgoing Floor: {staff?.name || staff?.display_name || 'Staff'}</div>
-                <div style={{ fontSize: 13, color: '#65676B' }}>{new Date().toLocaleString()}</div>
+            <div className="flex flex-col gap-3">
+              <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C]">
+                <div className="text-white font-bold text-sm">Outgoing Floor: {staff?.name || staff?.display_name || 'Staff'}</div>
+                <div className="text-[#B0B3B8] text-xs mt-1">{new Date().toLocaleString()}</div>
               </div>
 
               {/* Incoming staff (optional) */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
-                <label style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', display: 'block', marginBottom: 6 }}>
-                  <Users size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Incoming Staff Name (optional)
+              <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C]">
+                <label className="text-[#B0B3B8] font-semibold text-xs flex items-center gap-1.5 mb-2">
+                  <Users size={14} /> Incoming Staff Name (optional)
                 </label>
                 <input value={incomingName} onChange={e => setIncomingName(e.target.value)}
                   placeholder="Who's Taking Over?"
-                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 15, boxSizing: 'border-box' }} />
+                  className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm focus:outline-none focus:border-[#1877F2] placeholder-[#65676B]" />
               </div>
 
               {/* General notes */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
-                <label style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', display: 'block', marginBottom: 6 }}>
-                  <MessageSquare size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Floor Notes *
+              <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C]">
+                <label className="text-[#B0B3B8] font-semibold text-xs flex items-center gap-1.5 mb-2">
+                  <MessageSquare size={14} /> Floor Notes *
                 </label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4}
                   placeholder="General Floor State — How The Room Is Running, Player Mood, Game Quality, Upcoming Events..."
-                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm resize-y focus:outline-none focus:border-[#1877F2] placeholder-[#65676B]" style={{ fontFamily: 'inherit' }} />
               </div>
 
               {/* Active issues */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
-                <label style={{ fontWeight: 600, fontSize: 14, color: '#EF4444', display: 'block', marginBottom: 6 }}>
-                  <AlertTriangle size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Active Issues
+              <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C]">
+                <label className="text-[#EF4444] font-semibold text-xs flex items-center gap-1.5 mb-2">
+                  <AlertTriangle size={14} /> Active Issues
                 </label>
                 <textarea value={issues} onChange={e => setIssues(e.target.value)} rows={3}
                   placeholder="Player Disputes, Equipment Problems, Short-staffed, Anything Needing Attention..."
-                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm resize-y focus:outline-none focus:border-[#EF4444]/50 placeholder-[#65676B]" style={{ fontFamily: 'inherit' }} />
               </div>
 
               {/* VIP alerts */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
-                <label style={{ fontWeight: 600, fontSize: 14, color: '#F59E0B', display: 'block', marginBottom: 6 }}>
-                  <Star size={15} style={{ display: 'inline', verticalAlign: -2 }} /> VIP / Player Alerts
+              <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C]">
+                <label className="text-[#F59E0B] font-semibold text-xs flex items-center gap-1.5 mb-2">
+                  <Star size={14} /> VIP / Player Alerts
                 </label>
                 <textarea value={vipAlerts} onChange={e => setVipAlerts(e.target.value)} rows={2}
                   placeholder="VIPs In The Room, Player To Watch, High Rollers Expected..."
-                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm resize-y focus:outline-none focus:border-[#F59E0B]/50 placeholder-[#65676B]" style={{ fontFamily: 'inherit' }} />
               </div>
 
               {/* Pending actions */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
-                <label style={{ fontWeight: 600, fontSize: 14, color: '#1877F2', display: 'block', marginBottom: 6 }}>
-                  <ListChecks size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Pending Actions
+              <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C]">
+                <label className="text-[#1877F2] font-semibold text-xs flex items-center gap-1.5 mb-2">
+                  <ListChecks size={14} /> Pending Actions
                 </label>
                 <textarea value={pendingActions} onChange={e => setPendingActions(e.target.value)} rows={2}
                   placeholder="Table Changes Planned, Games To Open/close, Promotions To Run..."
-                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm resize-y focus:outline-none focus:border-[#1877F2]/50 placeholder-[#65676B]" style={{ fontFamily: 'inherit' }} />
               </div>
 
               <button onClick={handleSubmit} disabled={submitting}
-                style={{ background: '#1877F2', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 16, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                {submitting ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+                className="w-full bg-[#1877F2] text-white rounded-xl py-3.5 text-base font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+                {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 Submit Handoff
               </button>
 
-              <div style={{ fontSize: 12, color: '#65676B', textAlign: 'center' }}>
+              <div className="text-[#65676B] text-xs text-center">
                 Floor snapshot (tables, players, waitlist) is captured automatically
               </div>
             </div>
@@ -280,64 +290,67 @@ export default function ShiftHandoff() {
 
           {/* History Mode */}
           {mode === 'history' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="flex flex-col gap-3">
               {loading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}><Loader2 size={28} color="#1877F2" className="spin" /></div>
+                <div className="text-center py-12"><Loader2 size={28} className="text-[#1877F2] animate-spin mx-auto" /></div>
               ) : handoffs.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 40, color: '#65676B' }}>No Handoffs Recorded Yet</div>
+                <div className="text-center py-12">
+                  <FileText size={32} className="text-[#3A3B3C] mx-auto mb-2" />
+                  <p className="text-[#65676B]">No Handoffs Recorded Yet</p>
+                </div>
               ) : handoffs.map(h => {
                 const isExpanded = expandedId === h.id;
                 const tables = h.table_snapshot || [];
                 return (
-                  <div key={h.id} style={{ background: 'white', borderRadius: 12, border: h.status === 'pending' ? '2px solid #F59E0B' : '2px solid #E4E6EB', overflow: 'hidden' }}>
+                  <div key={h.id} className={`bg-[#242526] rounded-xl border-2 overflow-hidden ${h.status === 'pending' ? 'border-[#F59E0B]/40' : 'border-[#3A3B3C]'}`}>
                     {/* Header */}
                     <button onClick={() => setExpandedId(isExpanded ? null : h.id)}
-                      style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: h.status === 'acknowledged' ? '#DEF7EC' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {h.status === 'acknowledged' ? <CheckCircle2 size={18} color="#03543F" /> : <Clock size={18} color="#D97706" />}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-left bg-transparent border-none cursor-pointer">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${h.status === 'acknowledged' ? 'bg-[#31A24C]/15' : 'bg-[#F59E0B]/15'}`}>
+                        {h.status === 'acknowledged' ? <CheckCircle2 size={18} className="text-[#31A24C]" /> : <Clock size={18} className="text-[#F59E0B]" />}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-bold text-sm truncate">
                           {h.outgoing_staff_name} {h.incoming_staff_name ? ` → ${h.incoming_staff_name}` : ''}
                         </div>
-                        <div style={{ fontSize: 12, color: '#65676B' }}>{formatTime(h.handoff_time)}</div>
+                        <div className="text-[#B0B3B8] text-xs">{formatTime(h.handoff_time || h.created_at)}</div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: h.status === 'acknowledged' ? '#DEF7EC' : '#FEF3C7', color: h.status === 'acknowledged' ? '#03543F' : '#92400E' }}>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${h.status === 'acknowledged' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'}`}>
                           {h.status === 'acknowledged' ? 'ACK' : 'PENDING'}
                         </span>
-                        {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
+                        {isExpanded ? <ChevronUp size={16} className="text-[#65676B]" /> : <ChevronDown size={16} className="text-[#65676B]" />}
                       </div>
                     </button>
 
                     {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '2px solid #E4E6EB' }}>
+                      <div className="px-4 pb-4 border-t border-[#3A3B3C]">
                         {/* Floor snapshot */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 12 }}>
+                        <div className="grid grid-cols-4 gap-2 mt-3">
                           {[
                             { label: 'Tables', val: h.open_tables_count, icon: LayoutGrid, color: '#1877F2' },
                             { label: 'Players', val: h.active_players_count, icon: Users, color: '#31A24C' },
                             { label: 'Waiting', val: h.waitlist_count, icon: Clock, color: '#F59E0B' },
                             { label: 'Incidents', val: h.open_incidents_count, icon: AlertTriangle, color: '#EF4444' },
                           ].map(s => (
-                            <div key={s.label} style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
-                              <s.icon size={16} color={s.color} style={{ margin: '0 auto 2px' }} />
-                              <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{s.val}</div>
-                              <div style={{ fontSize: 10, color: '#65676B' }}>{s.label}</div>
+                            <div key={s.label} className="text-center py-2 px-1 bg-[#18191A] rounded-lg">
+                              <s.icon size={14} color={s.color} style={{ margin: '0 auto 2px' }} />
+                              <div className="text-white text-lg font-extrabold">{s.val}</div>
+                              <div className="text-[#65676B] text-[10px]">{s.label}</div>
                             </div>
                           ))}
                         </div>
 
                         {/* Table detail */}
                         {tables.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>TABLE SNAPSHOT</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div className="mt-3">
+                            <div className="text-[#65676B] text-[10px] font-bold mb-2 tracking-wider">TABLE SNAPSHOT</div>
+                            <div className="flex flex-col gap-1">
                               {tables.map((t, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#F9FAFB', borderRadius: 6, fontSize: 13 }}>
-                                  <span style={{ fontWeight: 700, color: '#1877F2', minWidth: 24 }}>T{t.table_number}</span>
-                                  <span style={{ flex: 1, color: '#444' }}>{t.game}</span>
-                                  <span style={{ fontWeight: 600, color: t.players >= t.max_seats ? '#EF4444' : '#31A24C' }}>
+                                <div key={i} className="flex items-center gap-2 px-3 py-2 bg-[#18191A] rounded-lg text-xs">
+                                  <span className="text-[#1877F2] font-bold min-w-[24px]">T{t.table_number}</span>
+                                  <span className="flex-1 text-[#B0B3B8]">{t.game}</span>
+                                  <span className={`font-bold ${t.players >= t.max_seats ? 'text-[#EF4444]' : 'text-[#31A24C]'}`}>
                                     {t.players}/{t.max_seats}
                                   </span>
                                 </div>
@@ -348,40 +361,40 @@ export default function ShiftHandoff() {
 
                         {/* Notes sections */}
                         {h.notes && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>FLOOR NOTES</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.notes}</div>
+                          <div className="mt-3">
+                            <div className="text-[#65676B] text-[10px] font-bold mb-1 tracking-wider">FLOOR NOTES</div>
+                            <div className="text-[#E4E6EB] text-sm whitespace-pre-wrap leading-relaxed">{h.notes}</div>
                           </div>
                         )}
                         {h.issues && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', marginBottom: 4 }}>ACTIVE ISSUES</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5, background: '#FEF2F2', padding: 10, borderRadius: 8 }}>{h.issues}</div>
+                          <div className="mt-3">
+                            <div className="text-[#EF4444] text-[10px] font-bold mb-1 tracking-wider">ACTIVE ISSUES</div>
+                            <div className="text-[#E4E6EB] text-sm whitespace-pre-wrap leading-relaxed bg-[#EF4444]/10 p-3 rounded-lg border border-[#EF4444]/20">{h.issues}</div>
                           </div>
                         )}
                         {h.vip_alerts && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B', marginBottom: 4 }}>VIP / PLAYER ALERTS</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.vip_alerts}</div>
+                          <div className="mt-3">
+                            <div className="text-[#F59E0B] text-[10px] font-bold mb-1 tracking-wider">VIP / PLAYER ALERTS</div>
+                            <div className="text-[#E4E6EB] text-sm whitespace-pre-wrap leading-relaxed">{h.vip_alerts}</div>
                           </div>
                         )}
                         {h.pending_actions && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#1877F2', marginBottom: 4 }}>PENDING ACTIONS</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.pending_actions}</div>
+                          <div className="mt-3">
+                            <div className="text-[#1877F2] text-[10px] font-bold mb-1 tracking-wider">PENDING ACTIONS</div>
+                            <div className="text-[#E4E6EB] text-sm whitespace-pre-wrap leading-relaxed">{h.pending_actions}</div>
                           </div>
                         )}
 
                         {/* Acknowledge button */}
                         {h.status === 'pending' && (
                           <button onClick={() => handleAcknowledge(h.id)}
-                            style={{ marginTop: 14, width: '100%', background: '#31A24C', color: 'white', border: 'none', borderRadius: 8, padding: '12px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                            className="mt-4 w-full bg-[#31A24C] text-white rounded-lg py-3 text-sm font-bold flex items-center justify-center gap-2 active:bg-[#2a8f42]">
                             <CheckCircle2 size={18} /> Acknowledge Handoff
                           </button>
                         )}
 
                         {h.acknowledged_at && (
-                          <div style={{ marginTop: 10, fontSize: 12, color: '#31A24C', fontWeight: 600, textAlign: 'center' }}>
+                          <div className="mt-3 text-xs text-[#31A24C] font-semibold text-center">
                             Acknowledged by {h.incoming_staff_name} at {formatTime(h.acknowledged_at)}
                           </div>
                         )}
@@ -391,12 +404,9 @@ export default function ShiftHandoff() {
                 );
               })}
             </div>
-          )
-          }
+          )}
         </div>
       </div>
-      <style jsx global>{`
-.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </CommanderLayout>
   );
 }
