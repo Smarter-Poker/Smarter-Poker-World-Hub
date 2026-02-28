@@ -1,19 +1,27 @@
 /**
- * Tournament Clock Display — Traditional Layout
+ * Tournament Clock Display — Full Tournament Director Clone
  * /commander/tournaments/[id]/clock-display
  * 
- * Matches the industry-standard tournament clock format:
+ * Features matching TheTournamentDirector.net:
  * - LEFT: Round, Entries, Players In, Rebuys, Chip Count, Avg Stack, Total Pot
  * - CENTER: Big countdown timer, game type, blinds, ante, next round preview
  * - RIGHT: Current Time, Elapsed Time, Next Break, Chip denomination colors
- * - BOTTOM: Payout bar (1st through 5th+)
+ * - BOTTOM: Payout bar
+ * - ICM/Chop calculator panel (toggleable)
+ * - Multiple cycling screens (Clock -> Payouts -> Schedule -> ICM)
+ * - Custom background/logo from preset
+ * - Sound alerts on level change, break, final table
+ * - Hand timer overlay (put a player on the clock)
+ * - Burn-in prevention (subtle pixel shift)
+ * - Upcoming blind schedule preview (next 5 levels)
  * 
  * Full-screen for TV/projector via HDMI or browser cast.
  * Auto-refreshes, wake lock, click for fullscreen.
  */
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { calculateICM, calculateChipChop } from '../../../../src/lib/commander/icm-utils';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -42,23 +50,15 @@ function formatElapsed(startTime) {
 }
 
 const CHIP_DENOMS = [
-  { value: 25, bg: '#2E7D32', border: '#1B5E20', textColor: '#fff', label: '25' },
-  { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '100' },
-  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '500' },
-  { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '1,000' },
-  { value: 5000, bg: '#E65100', border: '#BF360C', textColor: '#fff', label: '5,000' },
-  { value: 25000, bg: '#880E4F', border: '#6A0036', textColor: '#fff', label: '25,000' },
+  { value: 25, bg: '#2E7D32', border: '#1B5E20', label: '25' },
+  { value: 100, bg: '#1A1A1A', border: '#444', label: '100' },
+  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', label: '500' },
+  { value: 1000, bg: '#DAA520', border: '#B8860B', label: '1,000' },
+  { value: 5000, bg: '#E65100', border: '#BF360C', label: '5,000' },
+  { value: 25000, bg: '#880E4F', border: '#6A0036', label: '25,000' },
 ];
 
-// Multi-tournament clock color themes — up to 6 concurrent tournaments
-const CLOCK_THEMES = {
-  navy: { gradient: 'linear-gradient(180deg, #2C3E6B 0%, #1E2D52 100%)', accent: '#FFFFFF', headerBg: 'rgba(0,0,0,0.3)' },
-  red: { gradient: 'linear-gradient(180deg, #6B2C2C 0%, #521E1E 100%)', accent: '#FF6B6B', headerBg: 'rgba(0,0,0,0.3)' },
-  green: { gradient: 'linear-gradient(180deg, #2C6B3E 0%, #1E522D 100%)', accent: '#6BFF8B', headerBg: 'rgba(0,0,0,0.3)' },
-  purple: { gradient: 'linear-gradient(180deg, #4B2C6B 0%, #351E52 100%)', accent: '#B06BFF', headerBg: 'rgba(0,0,0,0.3)' },
-  gold: { gradient: 'linear-gradient(180deg, #6B5C2C 0%, #52451E 100%)', accent: '#FFD76B', headerBg: 'rgba(0,0,0,0.3)' },
-  teal: { gradient: 'linear-gradient(180deg, #2C5F6B 0%, #1E4852 100%)', accent: '#6BFFEB', headerBg: 'rgba(0,0,0,0.3)' },
-};
+const SCREENS = { CLOCK: 'clock', PAYOUTS: 'payouts', SCHEDULE: 'schedule', ICM: 'icm' };
 
 export default function ClockDisplay() {
   const router = useRouter();
@@ -68,10 +68,18 @@ export default function ClockDisplay() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [preset, setPreset] = useState(null);
+  const [activeScreen, setActiveScreen] = useState(SCREENS.CLOCK);
+  const [handTimerActive, setHandTimerActive] = useState(false);
+  const [handTimerSeconds, setHandTimerSeconds] = useState(60);
+  const [burnInOffset, setBurnInOffset] = useState({ x: 0, y: 0 });
   const timerRef = useRef(null);
+  const handTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
   const isRunningRef = useRef(false);
   const controlsTimeoutRef = useRef(null);
+  const cycleRef = useRef(null);
+  const prevLevelRef = useRef(null);
 
   // Wake lock
   useEffect(() => {
@@ -90,7 +98,50 @@ export default function ClockDisplay() {
     return () => clearInterval(i);
   }, []);
 
-  // Fetch floor-view data
+  // Burn-in prevention pixel shift
+  useEffect(() => {
+    const dp = preset?.display_options || {};
+    if (!dp.burn_in_prevention) return;
+    const iv = setInterval(() => {
+      setBurnInOffset({ x: Math.random() * 4 - 2, y: Math.random() * 4 - 2 });
+    }, 30000);
+    return () => clearInterval(iv);
+  }, [preset]);
+
+  // Screen cycling
+  useEffect(() => {
+    if (cycleRef.current) clearInterval(cycleRef.current);
+    const dp = preset?.display_options || {};
+    if (!dp.screen_cycle_enabled) return;
+    const list = [SCREENS.CLOCK];
+    if (dp.show_payouts) list.push(SCREENS.PAYOUTS);
+    if (dp.show_schedule_preview) list.push(SCREENS.SCHEDULE);
+    if (dp.show_icm) list.push(SCREENS.ICM);
+    if (list.length <= 1) return;
+    const ms = (dp.screen_cycle_interval || 15) * 1000;
+    let idx = 0;
+    cycleRef.current = setInterval(() => {
+      idx = (idx + 1) % list.length;
+      setActiveScreen(list[idx]);
+    }, ms);
+    return () => { if (cycleRef.current) clearInterval(cycleRef.current); };
+  }, [preset]);
+
+  // Sound alert via Web Audio API
+  const playAlert = (type) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      osc.frequency.setValueAtTime(type === 'break' ? 660 : type === 'final' ? 880 : 523, ctx.currentTime);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.8);
+    } catch { }
+  };
+
+  // Fetch floor-view data + load preset
   useEffect(() => {
     if (!id) return;
     const fetchData = async () => {
@@ -106,71 +157,97 @@ export default function ClockDisplay() {
           if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
             setSeconds(cs.remaining_seconds);
           } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
-            // Fallback: use level duration from blind structure if clock hasn't started
-            const blindStructure = json.data.tournament?.blind_structure || [];
-            const currentLvl = json.data.clock?.current_level || 0;
-            const levelData = blindStructure[currentLvl];
-            if (levelData?.duration_minutes) {
-              setSeconds(levelData.duration_minutes * 60);
-            }
+            const bs = json.data.tournament?.blind_structure || [];
+            const lvl = json.data.clock?.current_level || 0;
+            if (bs[lvl]?.duration_minutes) setSeconds(bs[lvl].duration_minutes * 60);
           }
           isRunningRef.current = cs?.status === 'running';
+
+          // Sound alerts on level change
+          const curLvl = json.data.clock?.current_level;
+          const dp = preset?.display_options || {};
+          if (prevLevelRef.current !== null && curLvl !== prevLevelRef.current) {
+            if (dp.sound_level_change) playAlert('level');
+          }
+          if (json.data.alerts?.on_break && dp.sound_break) playAlert('break');
+          if (json.data.alerts?.final_table && dp.sound_final_table) playAlert('final');
+          prevLevelRef.current = curLvl;
+
+          // Load clock preset from tournament settings
+          const presetId = json.data.tournament?.settings?.clock_preset_id || json.data.tournament?.clock_preset_id;
+          if (!preset && presetId) {
+            try {
+              const pRes = await fetch('/api/commander/clock-presets', { headers: { 'x-staff-session': staffSession } });
+              const pJson = await pRes.json();
+              if (pJson.success) {
+                const found = (pJson.data || []).find(p => p.id === presetId);
+                if (found) setPreset(found);
+              }
+            } catch { }
+          }
         }
       } catch (err) { console.error(err); }
     };
     fetchData();
     const poll = setInterval(fetchData, 3000);
     return () => clearInterval(poll);
-  }, [id]);
+  }, [id, preset]);
 
-  // Countdown tick — uses ref to avoid re-creating interval on every tick
+  // Countdown tick
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     const status = data?.clock?.clock_state?.status;
     isRunningRef.current = status === 'running';
     if (status === 'running') {
       timerRef.current = setInterval(() => {
-        if (isRunningRef.current) {
-          setSeconds(prev => (prev > 0 ? prev - 1 : 0));
-        }
+        if (isRunningRef.current) setSeconds(prev => (prev > 0 ? prev - 1 : 0));
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [data?.clock?.clock_state?.status]);
 
-  // Clock action handler (pause, resume, next_level, previous_level)
+  // Hand timer tick
+  useEffect(() => {
+    if (handTimerRef.current) clearInterval(handTimerRef.current);
+    if (handTimerActive && handTimerSeconds > 0) {
+      handTimerRef.current = setInterval(() => {
+        setHandTimerSeconds(prev => {
+          if (prev <= 1) { setHandTimerActive(false); playAlert('break'); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => { if (handTimerRef.current) clearInterval(handTimerRef.current); };
+  }, [handTimerActive, handTimerSeconds]);
+
+  // Clock control action
   const clockAction = async (action) => {
     if (!id || actionLoading) return;
     setActionLoading(true);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+      const ss = localStorage.getItem('commander_staff') || '';
+      const r = await fetch(`/api/commander/tournaments/${id}/clock`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-staff-session': ss },
         body: JSON.stringify({ action })
       });
-      const json = await res.json();
-      if (json.success) {
-        // Re-fetch immediately to get updated state
-        const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-          headers: { 'x-staff-session': staffSession },
-        });
-        const json2 = await res2.json();
-        if (json2.success) {
-          setData(json2.data);
-          const cs = json2.data.clock?.clock_state;
+      const j = await r.json();
+      if (j.success) {
+        const r2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, { headers: { 'x-staff-session': ss } });
+        const j2 = await r2.json();
+        if (j2.success) {
+          setData(j2.data);
+          const cs = j2.data.clock?.clock_state;
           if (cs?.remaining_seconds !== undefined) setSeconds(cs.remaining_seconds);
           isRunningRef.current = cs?.status === 'running';
         }
       }
-    } catch (err) { console.error('Clock action error:', err); }
+    } catch (err) { console.error(err); }
     setActionLoading(false);
   };
 
   const toggleControls = (e) => {
     e.stopPropagation();
     setShowControls(prev => !prev);
-    // Auto-hide controls after 10 seconds
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 10000);
   };
@@ -182,7 +259,9 @@ export default function ClockDisplay() {
   );
 
   const { tournament: t = {}, clock = {}, stats = {}, alerts = {} } = data;
-  const theme = CLOCK_THEMES[t.settings?.clock_color || t.clock_color] || CLOCK_THEMES.navy;
+  const theme = preset?.theme || {};
+  const dp = preset?.display_options || { show_prize_pool: true, show_payouts: true, show_chip_colors: true, show_next_round: true };
+  const bgColor = theme.background || '#1E3A5F';
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
   const clockState = clock.clock_state || {};
@@ -191,7 +270,6 @@ export default function ClockDisplay() {
   const isH4H = alerts.hand_for_hand;
   const currentLevel = (clock.current_level || 0) + 1;
   const gameType = t.game_type || 'No Limit Texas Hold \'Em';
-
   const totalEntries = stats.total_entries || 0;
   const playersIn = stats.players_remaining || 0;
   const totalRebuys = stats.total_rebuys || 0;
@@ -199,199 +277,219 @@ export default function ClockDisplay() {
   const avgStack = playersIn > 0 ? Math.round(totalChips / playersIn) : 0;
   const prizePool = stats.prize_pool || 0;
   const payouts = t.payout_structure || t.custom_payouts || stats.payouts || [];
-
   const nextBreakSec = clockState.next_break_seconds;
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
+  const blindStructure = t.blind_structure || [];
 
-  // Show all tournament chip denominations
-  const activeChips = CHIP_DENOMS;
+  // ICM calculations
+  const playerStacks = stats.player_stacks || [];
+  const prizeAmounts = payouts.map(p => p.amount || (prizePool * (p.percentage || 0) / 100));
+  const icmResults = playerStacks.length > 1 ? calculateICM(playerStacks.map(p => p.chips), prizeAmounts) : [];
+  const chipChopResults = playerStacks.length > 1 ? calculateChipChop(playerStacks.map(p => p.chips), prizePool) : [];
+
+  const containerBg = dp.background_image_url
+    ? { backgroundImage: `url(${dp.background_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: `linear-gradient(180deg, ${bgColor} 0%, ${darken(bgColor, 25)} 100%)` };
 
   return (
     <>
-      <SEOHead
-        title="Commander — Clock Display"
-        description="Club Commander Poker Room Management Tool."
-        noindex={true}
-      />
+      <SEOHead title="Commander — Clock Display" description="Tournament Clock" noindex={true} />
+      <div style={{ ...S.container, ...containerBg, transform: `translate(${burnInOffset.x}px, ${burnInOffset.y}px)` }} onClick={goFullscreen}>
 
-      <div style={{ ...S.container, background: theme.gradient }} onClick={goFullscreen}>
-
-        {/* ===== MANAGEMENT CONTROLS (toggle with click on timer area) ===== */}
-        {showControls && (
-          <div style={S.controlBar} onClick={e => e.stopPropagation()}>
-            <button
-              style={{ ...S.controlBtn, background: 'rgba(239,68,68,0.3)', borderColor: '#EF4444' }}
-              onClick={() => clockAction('previous_level')}
-              disabled={actionLoading}
-            >
-              ← Prev Level
-            </button>
-            {data?.tournament?.status === 'running' ? (
-              <button
-                style={{ ...S.controlBtn, ...S.controlBtnPrimary, background: 'rgba(245,158,11,0.3)', borderColor: '#F59E0B' }}
-                onClick={() => clockAction('pause')}
-                disabled={actionLoading}
-              >
-                ⏸ Pause
-              </button>
-            ) : (
-              <button
-                style={{ ...S.controlBtn, ...S.controlBtnPrimary, background: 'rgba(49,162,76,0.3)', borderColor: '#31A24C' }}
-                onClick={() => clockAction('resume')}
-                disabled={actionLoading}
-              >
-                ▶ Resume
-              </button>
-            )}
-            <button
-              style={{ ...S.controlBtn, background: 'rgba(24,119,242,0.3)', borderColor: '#1877F2' }}
-              onClick={() => clockAction('next_level')}
-              disabled={actionLoading}
-            >
-              Next Level →
-            </button>
+        {/* HAND TIMER OVERLAY */}
+        {handTimerActive && (
+          <div style={S.handTimerOverlay} onClick={(e) => { e.stopPropagation(); setHandTimerActive(false); }}>
+            <div style={S.handTimerBox}>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 2, opacity: 0.7, marginBottom: 4 }}>PLAYER ON THE CLOCK</div>
+              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', monospace", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>{handTimerSeconds}</div>
+              <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>Click to dismiss</div>
+            </div>
           </div>
         )}
 
-        {/* ===== HEADER ===== */}
-        <div style={{ ...S.header, borderBottomColor: theme.accent + '26' }}>
-          <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
-          <div style={S.headerSub}>
-            {t.scheduled_start && (
-              <span>{new Date(t.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} — </span>
+        {/* MANAGEMENT CONTROLS */}
+        {showControls && (
+          <div style={S.controlBar} onClick={e => e.stopPropagation()}>
+            <button style={{ ...S.btn, background: 'rgba(239,68,68,0.3)', borderColor: '#EF4444' }} onClick={() => clockAction('previous_level')} disabled={actionLoading}>Prev Level</button>
+            {data?.tournament?.status === 'running' ? (
+              <button style={{ ...S.btn, ...S.btnLg, background: 'rgba(245,158,11,0.3)', borderColor: '#F59E0B' }} onClick={() => clockAction('pause')} disabled={actionLoading}>Pause</button>
+            ) : (
+              <button style={{ ...S.btn, ...S.btnLg, background: 'rgba(49,162,76,0.3)', borderColor: '#31A24C' }} onClick={() => clockAction('resume')} disabled={actionLoading}>Resume</button>
             )}
+            <button style={{ ...S.btn, background: 'rgba(24,119,242,0.3)', borderColor: '#1877F2' }} onClick={() => clockAction('next_level')} disabled={actionLoading}>Next Level</button>
+            <button style={{ ...S.btn, background: 'rgba(139,92,246,0.3)', borderColor: '#8B5CF6' }} onClick={() => { setHandTimerSeconds(60); setHandTimerActive(true); }}>Hand Timer</button>
+            <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
+              {Object.entries(SCREENS).map(([key, val]) => (
+                <button key={key} onClick={() => setActiveScreen(val)} style={{
+                  ...S.btn, padding: '6px 10px', fontSize: 11,
+                  background: activeScreen === val ? 'rgba(24,119,242,0.4)' : 'rgba(255,255,255,0.1)',
+                  borderColor: activeScreen === val ? '#1877F2' : 'rgba(255,255,255,0.2)',
+                }}>{key}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* HEADER */}
+        <div style={{ ...S.header, borderBottomColor: (theme.accent || '#1877F2') + '26' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            {dp.logo_url && <img src={dp.logo_url} alt="" style={{ height: 32 }} />}
+            <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
+          </div>
+          <div style={S.headerSub}>
+            {t.scheduled_start && <span>{new Date(t.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} — </span>}
             {formatMoney(t.buyin_amount || 0)} Buy-in
-            {t.rebuy_allowed ? `, ${formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy (Through Round ${t.late_registration_level || 6}, Max ${t.max_rebuys || 1} per player)` : ''}
+            {t.rebuy_allowed ? `, Rebuys available` : ''}
             , {t.addon_allowed ? 'Add-ons allowed' : 'No add-ons'}
           </div>
         </div>
 
-        {/* ===== MAIN 3-COLUMN ===== */}
-        <div style={S.main}>
-
-          {/* LEFT — Stats */}
-          <div style={S.leftPanel}>
-            <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
-            <StatCell label="Entries" value={totalEntries} />
-            <StatCell label="Players In" value={playersIn} />
-            <StatCell label="Rebuys" value={totalRebuys} />
-            <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
-            <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
-            <StatCell label="Total Pot" value={formatMoney(prizePool)} />
-          </div>
-
-          {/* CENTER — Clock + Blinds */}
-          <div style={S.centerPanel}>
-            {/* Break / H4H banners */}
-            {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
-            {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
-
-            {/* Countdown — click to toggle management controls */}
-            <div
-              style={{
-                ...S.timer,
-                color: '#FFFFFF',
-                cursor: 'pointer'
-              }}
-              onClick={toggleControls}
-            >
-              {formatClock(displaySeconds)}
+        {/* === CLOCK SCREEN === */}
+        {activeScreen === SCREENS.CLOCK && (
+          <div style={S.main}>
+            <div style={S.leftPanel}>
+              <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
+              <StatCell label="Entries" value={totalEntries} />
+              <StatCell label="Players In" value={playersIn} />
+              <StatCell label="Rebuys" value={totalRebuys} />
+              <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
+              <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
+              <StatCell label="Total Pot" value={formatMoney(prizePool)} />
             </div>
-
-            {/* Paused indicator */}
-            {data?.tournament?.status === 'paused' && (
-              <div style={S.pausedBanner}>PAUSED</div>
-            )}
-
-            {/* Blinds block */}
-            <div style={S.blindsBlock}>
-              <div style={S.blindsGame}>{gameType}</div>
-              <div style={S.blindsLabel}>Blinds</div>
-              <div style={S.blindsValue}>
-                {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+            <div style={S.centerPanel}>
+              {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
+              {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
+              <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>{formatClock(displaySeconds)}</div>
+              {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
+              <div style={S.blindsBlock}>
+                <div style={{ fontSize: 16, opacity: 0.8, fontWeight: 500, color: '#fff' }}>{gameType}</div>
+                <div style={{ fontSize: 28, fontWeight: 600, opacity: 0.5, color: '#fff' }}>Blinds</div>
+                <div style={{ fontSize: 48, fontWeight: 800, lineHeight: 1.15, color: '#fff' }}>{(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}</div>
+                {(blinds.ante || 0) > 0 && <div style={{ fontSize: 34, fontWeight: 700, color: '#fff' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
               </div>
-              {(blinds.ante || 0) > 0 && (
-                <div style={S.blindsAnte}>Ante: {(blinds.ante || 0).toLocaleString()}</div>
+              {dp.show_next_round !== false && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                <div style={S.nextRound}>
+                  <strong>Next Round:</strong> {gameType}<br />
+                  Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                  {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                </div>
               )}
             </div>
-
-            {/* Next round */}
-            {nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) ? (
-              <div style={S.nextRound}>
-                <strong>Next Round:</strong> {gameType}<br />
-                Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
-              </div>
-            ) : <div style={{ flex: 0 }} />}
-          </div>
-
-          {/* RIGHT — Time + Chips */}
-          <div style={S.rightPanel}>
-            <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
-            <StatCell label="Elapsed Time" value={elapsedDisplay} />
-            <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
-
-            {/* Chip colors */}
-            <div style={S.chipStack}>
-              {activeChips.map(chip => (
-                <div key={chip.value} style={S.chipRow}>
-                  <div style={{
-                    ...S.chipCircle,
-                    backgroundColor: chip.bg,
-                    borderColor: chip.border,
-                  }}>
-                    <div style={S.chipInner} />
-                  </div>
-                  <span style={S.chipLabel}>{chip.label}</span>
+            <div style={S.rightPanel}>
+              <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
+              <StatCell label="Elapsed Time" value={elapsedDisplay} />
+              <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+              {dp.show_chip_colors !== false && (
+                <div style={S.chipStack}>
+                  {CHIP_DENOMS.map(c => (
+                    <div key={c.value} style={S.chipRow}>
+                      <div style={{ ...S.chipCircle, backgroundColor: c.bg, borderColor: c.border }}><div style={S.chipInner} /></div>
+                      <span style={S.chipLabel}>{c.label}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* ===== FOOTER — Payouts ===== */}
-        <div style={S.footer}>
-          {payouts.length > 0 ? (
-            payouts.slice(0, 7).map((p, i) => {
-              const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-              const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-              return (
-                <span key={i} style={S.payoutItem}>
-                  <span style={{ opacity: 0.6 }}>{place} Place:</span>{' '}
-                  <span style={{ fontWeight: 700 }}>{formatMoney(amount)}</span>
-                </span>
-              );
-            })
-          ) : (
-            <span style={{ opacity: 0.4 }}>Payouts TBD</span>
-          )}
-        </div>
+        {/* === PAYOUTS SCREEN === */}
+        {activeScreen === SCREENS.PAYOUTS && (
+          <div style={S.screenCenter}>
+            <div style={S.screenTitle}>Prize Pool: {formatMoney(prizePool)}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto', gap: '8px 24px', fontSize: 24, fontWeight: 700 }}>
+              {payouts.slice(0, 10).map((p, i) => {
+                const amt = p.amount || (prizePool * (p.percentage || 0) / 100);
+                const pl = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+                return (<React.Fragment key={i}><span style={{ opacity: 0.5, textAlign: 'right' }}>{pl}</span><span>—</span><span style={{ color: i < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][i] : '#fff' }}>{formatMoney(amt)}</span></React.Fragment>);
+              })}
+            </div>
+            {payouts.length === 0 && <div style={{ opacity: 0.3, fontSize: 20, marginTop: 20 }}>Payouts TBD</div>}
+          </div>
+        )}
 
-        {/* Branding */}
-        <div style={{ position: 'absolute', bottom: 4, right: 12, opacity: 0.15, fontSize: 10, color: '#fff' }}>
-          Powered by Smarter.Poker
-        </div>
+        {/* === SCHEDULE SCREEN === */}
+        {activeScreen === SCREENS.SCHEDULE && (
+          <div style={S.screenCenter}>
+            <div style={S.screenTitle}>Blind Schedule</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto auto', gap: '6px 20px', fontSize: 18, fontWeight: 600 }}>
+              {['Level', 'Small', 'Big', 'Ante', 'Time'].map(h => <span key={h} style={{ fontWeight: 700, opacity: 0.5, fontSize: 13 }}>{h}</span>)}
+              {blindStructure.slice(Math.max(0, (clock.current_level || 0) - 1), (clock.current_level || 0) + 6).map((lv, i) => {
+                const num = Math.max(0, (clock.current_level || 0) - 1) + i + 1;
+                const cur = num === currentLevel;
+                const c = cur ? '#1877F2' : '#fff';
+                return (<React.Fragment key={i}>
+                  <span style={{ color: c, fontWeight: cur ? 800 : 600 }}>{lv.is_break ? 'Break' : num}</span>
+                  <span style={{ color: c }}>{lv.is_break ? '-' : (lv.small_blind || 0).toLocaleString()}</span>
+                  <span style={{ color: c }}>{lv.is_break ? '-' : (lv.big_blind || 0).toLocaleString()}</span>
+                  <span style={{ color: c }}>{lv.is_break ? '-' : (lv.ante || 0).toLocaleString()}</span>
+                  <span style={{ color: c }}>{lv.duration_minutes || '-'}m</span>
+                </React.Fragment>);
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* === ICM SCREEN === */}
+        {activeScreen === SCREENS.ICM && (
+          <div style={S.screenCenter}>
+            <div style={S.screenTitle}>ICM Chop Values — {playersIn} Players Remaining</div>
+            {icmResults.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto auto', gap: '6px 20px', fontSize: 16, fontWeight: 600 }}>
+                {['Player', 'Chips', 'ICM Value', 'Chip Chop', 'Equity %'].map(h => <span key={h} style={{ fontWeight: 700, opacity: 0.5, fontSize: 12 }}>{h}</span>)}
+                {playerStacks.map((p, i) => (
+                  <React.Fragment key={i}>
+                    <span>{p.name || `Player ${i + 1}`}</span>
+                    <span>{formatChipCount(p.chips)}</span>
+                    <span style={{ color: '#31A24C' }}>{formatMoney(icmResults[i]?.equity || 0)}</span>
+                    <span style={{ color: '#1877F2' }}>{formatMoney(chipChopResults[i]?.chop || 0)}</span>
+                    <span style={{ opacity: 0.7 }}>{icmResults[i]?.percentage || 0}%</span>
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.3, fontSize: 18, marginTop: 20 }}>ICM data available when 2+ players remain with chip counts</div>
+            )}
+          </div>
+        )}
+
+        {/* FOOTER — Payouts bar (clock screen only) */}
+        {activeScreen === SCREENS.CLOCK && dp.show_payouts !== false && (
+          <div style={S.footer}>
+            {payouts.length > 0 ? payouts.slice(0, 7).map((p, i) => {
+              const amt = p.amount || (prizePool * (p.percentage || 0) / 100);
+              const pl = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+              return <span key={i} style={S.payoutItem}><span style={{ opacity: 0.6 }}>{pl}:</span> <span style={{ fontWeight: 700 }}>{formatMoney(amt)}</span></span>;
+            }) : <span style={{ opacity: 0.4 }}>Payouts TBD</span>}
+          </div>
+        )}
+
+        <div style={{ position: 'absolute', bottom: 4, right: 12, opacity: 0.15, fontSize: 10, color: '#fff' }}>Powered by Smarter.Poker</div>
       </div>
     </>
   );
 }
 
-function StatCell({ label, value }) {
-  return (
-    <div style={S.statCell}>
-      <div style={S.statLabel}>{label}</div>
-      <div style={S.statValue}>{value}</div>
-    </div>
-  );
+function darken(hex, amt) {
+  try {
+    const h = hex.replace('#', '');
+    const r = Math.max(0, parseInt(h.substring(0, 2), 16) - amt);
+    const g = Math.max(0, parseInt(h.substring(2, 4), 16) - amt);
+    const b = Math.max(0, parseInt(h.substring(4, 6), 16) - amt);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  } catch { return hex; }
 }
 
-// Inline styles for zero-dependency TV rendering
+function StatCell({ label, value }) {
+  return <div style={S.statCell}><div style={S.statLabel}>{label}</div><div style={S.statValue}>{value}</div></div>;
+}
+
 const S = {
-  loading: { minHeight: '100vh', background: '#2C3E6B', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  loading: { minHeight: '100vh', background: '#1E3A5F', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   container: {
-    minHeight: '100vh', background: 'linear-gradient(180deg, #2C3E6B 0%, #1E2D52 100%)',
-    fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff', display: 'flex',
-    flexDirection: 'column', userSelect: 'none', position: 'relative', overflow: 'hidden'
+    minHeight: '100vh', fontFamily: "'Inter','Segoe UI',sans-serif", color: '#fff',
+    display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative', overflow: 'hidden',
+    transition: 'transform 0.5s ease',
   },
   header: {
     background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
@@ -399,87 +497,31 @@ const S = {
   },
   headerTitle: { fontSize: 28, fontWeight: 700 },
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
-  main: {
-    flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 200px',
-    minHeight: 0
-  },
+  main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 200px', minHeight: 0 },
   leftPanel: { display: 'flex', flexDirection: 'column' },
   rightPanel: { display: 'flex', flexDirection: 'column' },
-  centerPanel: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', position: 'relative', padding: '8px 0',
-    flex: 1
-  },
-  statCell: {
-    flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '4px 8px', textAlign: 'center'
-  },
+  centerPanel: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1 },
+  screenCenter: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  screenTitle: { fontSize: 14, fontWeight: 700, letterSpacing: 3, opacity: 0.5, marginBottom: 16, textTransform: 'uppercase' },
+  statCell: { flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4px 8px', textAlign: 'center' },
   statLabel: { fontSize: 13, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
   statValue: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
-  timer: {
-    fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
-    fontFamily: "'Inter', monospace", padding: '8px 0', textAlign: 'center', width: '100%'
-  },
-  blindsBlock: {
-    background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
-    width: '100%', textAlign: 'center', padding: '8px 16px'
-  },
-  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500, color: '#FFFFFF' },
-  blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5, color: '#FFFFFF' },
-  blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15, color: '#FFFFFF' },
-  blindsAnte: { fontSize: 34, fontWeight: 700, color: '#FFFFFF' },
-  nextRound: {
-    background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
-    width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
-  },
+  timer: { fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2, fontFamily: "'Inter',monospace", padding: '8px 0', textAlign: 'center', width: '100%' },
+  blindsBlock: { background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)', width: '100%', textAlign: 'center', padding: '8px 16px' },
+  nextRound: { background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)', width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5 },
   chipStack: { flex: 3, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, justifyContent: 'center' },
   chipRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  chipCircle: {
-    width: 44, height: 44, borderRadius: '50%', border: '3px solid',
-    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)',
-    position: 'relative', flexShrink: 0
-  },
-  chipInner: {
-    position: 'absolute', inset: 4, borderRadius: '50%',
-    border: '2px dashed rgba(255,255,255,0.3)'
-  },
+  chipCircle: { width: 44, height: 44, borderRadius: '50%', border: '3px solid', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)', position: 'relative', flexShrink: 0 },
+  chipInner: { position: 'absolute', inset: 4, borderRadius: '50%', border: '2px dashed rgba(255,255,255,0.3)' },
   chipLabel: { fontSize: 18, fontWeight: 700 },
-  footer: {
-    background: 'rgba(0,0,0,0.35)', borderTop: '2px solid rgba(255,255,255,0.15)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
-    padding: '10px 20px', fontSize: 15, fontWeight: 600, flexShrink: 0, flexWrap: 'wrap'
-  },
+  footer: { background: 'rgba(0,0,0,0.35)', borderTop: '2px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '10px 20px', fontSize: 15, fontWeight: 600, flexShrink: 0, flexWrap: 'wrap' },
   payoutItem: { whiteSpace: 'nowrap' },
-  breakBanner: {
-    position: 'absolute', top: 8, background: 'rgba(245,158,11,0.2)',
-    border: '2px solid rgba(245,158,11,0.5)', padding: '8px 32px', borderRadius: 8,
-    color: '#F59E0B', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10
-  },
-  h4hBanner: {
-    position: 'absolute', top: 8, background: 'rgba(239,68,68,0.2)',
-    border: '2px solid rgba(239,68,68,0.5)', padding: '8px 32px', borderRadius: 8,
-    color: '#EF4444', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10,
-    animation: 'pulse 1.5s infinite'
-  },
-  pausedBanner: {
-    background: 'rgba(245,158,11,0.2)', border: '2px solid rgba(245,158,11,0.5)',
-    padding: '6px 28px', borderRadius: 8, color: '#F59E0B', fontSize: 24,
-    fontWeight: 800, letterSpacing: 4, marginTop: 4
-  },
-  controlBar: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
-    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16,
-    padding: '12px 24px', borderBottom: '2px solid rgba(255,255,255,0.2)'
-  },
-  controlBtn: {
-    padding: '10px 24px', borderRadius: 8, border: '2px solid', color: '#fff',
-    fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-    transition: 'all 0.2s', opacity: 0.9
-  },
-  controlBtnPrimary: {
-    padding: '10px 32px', fontSize: 18
-  }
+  breakBanner: { position: 'absolute', top: 8, background: 'rgba(245,158,11,0.2)', border: '2px solid rgba(245,158,11,0.5)', padding: '8px 32px', borderRadius: 8, color: '#F59E0B', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10 },
+  h4hBanner: { position: 'absolute', top: 8, background: 'rgba(239,68,68,0.2)', border: '2px solid rgba(239,68,68,0.5)', padding: '8px 32px', borderRadius: 8, color: '#EF4444', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10, animation: 'pulse 1.5s infinite' },
+  pausedBanner: { background: 'rgba(245,158,11,0.2)', border: '2px solid rgba(245,158,11,0.5)', padding: '6px 28px', borderRadius: 8, color: '#F59E0B', fontSize: 24, fontWeight: 800, letterSpacing: 4, marginTop: 4 },
+  controlBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 24px', borderBottom: '2px solid rgba(255,255,255,0.2)', flexWrap: 'wrap' },
+  btn: { padding: '8px 16px', borderRadius: 8, border: '2px solid', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", transition: 'all 0.2s' },
+  btnLg: { padding: '10px 28px', fontSize: 15 },
+  handTimerOverlay: { position: 'absolute', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  handTimerBox: { textAlign: 'center', padding: 40, border: '4px solid rgba(239,68,68,0.5)', borderRadius: 24, background: 'rgba(239,68,68,0.1)' },
 };
