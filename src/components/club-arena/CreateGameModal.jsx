@@ -41,6 +41,7 @@ const GAME_VARIANTS = [
   { value: 'nlh',        label: 'NLH',    full: 'No Limit Hold\'em',          color: '#E74C3C', icon: '♠' },
   { value: 'flh',        label: 'FLH',    full: 'Fixed Limit Hold\'em',       color: '#2ECC71', icon: '♥' },
   { value: 'short_deck', label: '6+',     full: '6+ Hold\'em',                color: '#3498DB', icon: '🃏' },
+  { value: 'pineapple', label: '🍍',     full: 'Crazy Pineapple',            color: '#F1C40F', icon: '🍍' },
   { value: 'plo4',       label: 'OMAHA',  full: 'Pot Limit Omaha',            color: '#9B59B6', icon: '♦' },
   { value: 'plo5',       label: 'PLO5',   full: 'Pot Limit Omaha 5',          color: '#8E44AD', icon: '♦' },
   { value: 'plo6',       label: 'PLO6',   full: 'Pot Limit Omaha 6',          color: '#7D3C98', icon: '♦' },
@@ -326,8 +327,8 @@ function CashTab({ t, set, variant }) {
       <Toggle label="Bomb Pot" value={t.bombPot} onChange={v => set('bombPot', v)} help />
       <Toggle label="Double Board" value={t.doubleBoard} onChange={v => set('doubleBoard', v)} />
       <Toggle label="Triple Board" value={t.tripleBoard} onChange={v => set('tripleBoard', v)} />
-      {(variant === 'nlh' || variant === 'flh') && (
-        <Toggle label="Pineapple Hold'em" value={t.pineapple} onChange={v => set('pineapple', v)} help />
+      {(variant === 'nlh' || variant === 'flh' || variant === 'pineapple') && (
+        <Toggle label="Pineapple Hold'em" value={variant === 'pineapple' || t.pineapple} onChange={v => set('pineapple', v)} help disabled={variant === 'pineapple'} />
       )}
       <Toggle label="Seven-Deuce" value={t.sevenDeuce} onChange={v => set('sevenDeuce', v)} help />
       <Toggle label="NIT Game" value={t.nitGame} onChange={v => set('nitGame', v)} help />

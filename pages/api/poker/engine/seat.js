@@ -209,6 +209,24 @@ export default async function handler(req, res) {
         result = await controller.leaveWaitlist(tableId, playerId);
         break;
 
+      // ═══════════════════════════════════════════════════════════
+      // STRADDLE — Declare/cancel voluntary straddle for next hand
+      // ═══════════════════════════════════════════════════════════
+      case 'declare_straddle':
+        result = controller.declareStraddle(tableId, playerId);
+        break;
+
+      case 'cancel_straddle':
+        result = controller.cancelStraddle(tableId, playerId);
+        break;
+
+      // ═══════════════════════════════════════════════════════════
+      // PINEAPPLE DISCARD — Discard 1 of 3 hole cards after flop
+      // ═══════════════════════════════════════════════════════════
+      case 'discard':
+        result = controller.processDiscard(tableId, playerId, body.cardIndex);
+        break;
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

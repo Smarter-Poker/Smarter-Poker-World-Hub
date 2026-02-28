@@ -269,6 +269,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
         {F('Variant', 'variant', 'select', { options: [
           { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
           { value: 'plo5', label: 'PLO5' }, { value: 'short_deck', label: 'Short Deck' },
+          { value: 'pineapple', label: 'Crazy Pineapple' },
         ]})}
         {F('Buy-in', 'buyIn', 'number')}
         {F('Starting Chips', 'startingChips', 'number')}

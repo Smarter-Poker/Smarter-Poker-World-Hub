@@ -77,6 +77,9 @@ const VARIANT_MAP = {
   // Short Deck
   'short_deck': GAME_VARIANT.SHORT_DECK,
   '6plus': GAME_VARIANT.SHORT_DECK,
+  // Pineapple (Crazy Pineapple — 3 hole cards, discard 1 after flop)
+  'pineapple': GAME_VARIANT.PINEAPPLE,
+  'crazy_pineapple': GAME_VARIANT.PINEAPPLE,
   // Mixed Game (alternates between Hold'em and Omaha, starts as Hold'em)
   'mixed': GAME_VARIANT.HOLDEM,
   'mixed_game': GAME_VARIANT.HOLDEM,
@@ -282,6 +285,8 @@ class GameController {
       runItThrice,
       insurance,
       straddle,
+      autoUtgStraddle: config.autoUtgStraddle || false,
+      voluntaryStraddle: config.voluntaryStraddle || false,
       bombPot,
     };
 
@@ -515,6 +520,33 @@ class GameController {
 
     entry.table.sitIn(playerId);
     return { success: true };
+  }
+
+  /**
+   * Declare voluntary straddle for next hand.
+   */
+  declareStraddle(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.declareStraddle(playerId);
+  }
+
+  /**
+   * Cancel voluntary straddle declaration.
+   */
+  cancelStraddle(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.cancelStraddle(playerId);
+  }
+
+  /**
+   * Process Pineapple discard — player discards 1 of 3 hole cards after flop.
+   */
+  processDiscard(tableId, playerId, cardIndex) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.processDiscard(playerId, cardIndex);
   }
 
   /**

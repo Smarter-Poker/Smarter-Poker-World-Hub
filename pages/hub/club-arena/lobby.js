@@ -64,7 +64,7 @@ export default function ClubLobby() {
     const filteredTables = tables.filter(table => {
         // Type filter
         if (activeFilter !== 'ALL') {
-            if (activeFilter === 'nlh' && table.game_variant !== 'nlh' && table.game_variant !== 'short_deck') return false;
+            if (activeFilter === 'nlh' && table.game_variant !== 'nlh' && table.game_variant !== 'short_deck' && table.game_variant !== 'pineapple') return false;
             if (activeFilter === 'plo' && !table.game_variant?.startsWith('plo')) return false;
             if (activeFilter === 'tournament' && table.table_type !== 'tournament') return false;
             if (activeFilter === 'sng' && table.table_type !== 'sng') return false;

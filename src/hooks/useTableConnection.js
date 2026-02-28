@@ -299,6 +299,9 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'request_state': return requestState();
       case 'join_waitlist': return joinWaitlist(payload);
       case 'leave_waitlist': return leaveWaitlist();
+      case 'declare_straddle': return apiPost('seat', { tableId, playerId: userId, action: 'declare_straddle' });
+      case 'cancel_straddle': return apiPost('seat', { tableId, playerId: userId, action: 'cancel_straddle' });
+      case 'discard': return apiPost('seat', { tableId, playerId: userId, action: 'discard', cardIndex: data?.cardIndex });
       case 'throw_emoji': return apiPost('action', { tableId, playerId: userId, type: 'throw_emoji', ...payload });
       case 'buy_insurance': return apiPost('action', { tableId, playerId: userId, type: 'buy_insurance', amount: payload.amount });
       case 'decline_insurance': return apiPost('action', { tableId, playerId: userId, type: 'decline_insurance' });

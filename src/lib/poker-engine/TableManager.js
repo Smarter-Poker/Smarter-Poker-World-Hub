@@ -104,6 +104,8 @@ class TableManager {
       insurance: config.insurance || false,
       bombPot: config.bombPot || false,
       straddle: config.straddle || false,
+      autoUtgStraddle: config.autoUtgStraddle || false,
+      voluntaryStraddle: config.voluntaryStraddle || false,
     });
     
     // Table state
@@ -285,6 +287,39 @@ class TableManager {
     this._checkAutoStart();
     
     return { success: true };
+  }
+
+  /**
+   * Declare voluntary straddle for next hand.
+   * @param {string} playerId
+   */
+  declareStraddle(playerId) {
+    return this.game.declareStraddle(playerId);
+  }
+
+  /**
+   * Cancel voluntary straddle declaration.
+   * @param {string} playerId
+   */
+  cancelStraddle(playerId) {
+    return this.game.cancelStraddle(playerId);
+  }
+
+  /**
+   * Process Pineapple discard — player discards 1 of 3 hole cards after flop.
+   * @param {string} playerId
+   * @param {number} cardIndex - 0, 1, or 2
+   */
+  processDiscard(playerId, cardIndex) {
+    return this.game.processDiscard(playerId, cardIndex);
+  }
+
+  /**
+   * Auto-discard for timed-out player (Pineapple).
+   * @param {string} playerId
+   */
+  autoDiscard(playerId) {
+    return this.game.autoDiscard(playerId);
   }
 
   /**

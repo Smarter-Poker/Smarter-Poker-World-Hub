@@ -511,6 +511,76 @@ function PotDisplay({ potTotal, pots = [] }) {
 // ACTION PANEL — Fold / Check / Call / Bet / Raise / All-In
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// PINEAPPLE DISCARD PANEL
+// ═══════════════════════════════════════════════════════
+function DiscardPanel({ cards, onDiscard }) {
+  const [selected, setSelected] = useState(null);
+
+  if (!cards || cards.length !== 3) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.7))',
+        padding: '16px 20px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        zIndex: 200,
+      }}
+    >
+      <span style={{ color: '#FFD700', fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>
+        🍍 DISCARD ONE CARD
+      </span>
+      <div style={{ display: 'flex', gap: 12 }}>
+        {cards.map((card, i) => (
+          <div
+            key={i}
+            onClick={() => setSelected(i)}
+            style={{
+              cursor: 'pointer',
+              transform: selected === i ? 'translateY(-12px) scale(1.08)' : 'none',
+              border: selected === i ? '3px solid #FA383E' : '3px solid transparent',
+              borderRadius: 8,
+              transition: 'all 0.15s',
+              opacity: selected !== null && selected !== i ? 0.5 : 1,
+            }}
+          >
+            <CardImg card={card} width={64} />
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={() => { if (selected !== null) onDiscard(selected); }}
+        disabled={selected === null}
+        style={{
+          padding: '10px 32px',
+          background: selected !== null ? '#FA383E' : '#3E4042',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 8,
+          fontWeight: 700,
+          fontSize: 14,
+          cursor: selected !== null ? 'pointer' : 'default',
+          opacity: selected !== null ? 1 : 0.4,
+          transition: 'all 0.2s',
+        }}
+      >
+        Discard{selected !== null ? ` Card ${selected + 1}` : ''}
+      </button>
+    </motion.div>
+  );
+}
+
 function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal = 0 }) {
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
@@ -959,7 +1029,7 @@ function ChatOverlay({ messages, onSend }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle }) {
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -1021,6 +1091,13 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             label={isSittingOut ? 'Sit In' : 'Sit Out'}
             onClick={isSittingOut ? onSitIn : onSitOut}
           />
+          {straddleEnabled && (
+            <SmallButton
+              label={straddleOn ? '✓ Straddle' : 'Straddle'}
+              onClick={onToggleStraddle}
+              color={straddleOn ? '#4ECDC4' : undefined}
+            />
+          )}
           <SmallButton label="Add Chips" onClick={onAddChips} />
           <SmallButton label="Leave" onClick={onStandUp} color={T.foldRed} />
         </div>
@@ -1215,6 +1292,12 @@ export default function LivePokerTable({
   const handleStandUp = useCallback(() => send('stand_up', {}), [send]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
   const handleSitIn = useCallback(() => send('sit_in', {}), [send]);
+  const [straddleOn, setStraddleOn] = useState(false);
+  const handleToggleStraddle = useCallback(() => {
+    const newVal = !straddleOn;
+    setStraddleOn(newVal);
+    send(newVal ? 'declare_straddle' : 'cancel_straddle', {});
+  }, [send, straddleOn]);
   const handleChat = useCallback((message) => {
     soundRef.current?.play('chat');
     send('send_chat', { message });
@@ -1222,6 +1305,9 @@ export default function LivePokerTable({
   const handleAddChips = useCallback(() => {
     const amount = prompt('Amount to add:');
     if (amount) send('add_chips', { amount: parseInt(amount) });
+  }, [send]);
+  const handleDiscard = useCallback((cardIndex) => {
+    send('discard', { cardIndex });
   }, [send]);
 
   // ═══════════════════════════════════════════════════════════════════
@@ -1340,6 +1426,9 @@ export default function LivePokerTable({
         onAddChips={handleAddChips}
         isSitting={isSitting}
         isSittingOut={isSittingOut}
+        straddleEnabled={tableState?.config?.voluntaryStraddle || tableState?.config?.straddleEnabled}
+        straddleOn={straddleOn}
+        onToggleStraddle={handleToggleStraddle}
       />
 
       {/* Action panel (when it's hero's turn) */}
@@ -1353,6 +1442,13 @@ export default function LivePokerTable({
             bigBlind={tableState?.config?.bigBlind || tableState?.bigBlind || 2}
             potTotal={tableState?.game?.potTotal || 0}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Pineapple discard panel */}
+      <AnimatePresence>
+        {tableState?.game?.phase === 'discard' && myCards && myCards.length === 3 && (
+          <DiscardPanel cards={myCards} onDiscard={handleDiscard} />
         )}
       </AnimatePresence>
 

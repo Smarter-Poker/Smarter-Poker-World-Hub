@@ -28,6 +28,7 @@ const GAME_PHASE = {
   DEAL: 'deal',
   PREFLOP: 'preflop',
   FLOP: 'flop',
+  DISCARD: 'discard',   // Pineapple: discard 1 card after flop betting
   TURN: 'turn',
   RIVER: 'river',
   SHOWDOWN: 'showdown',
@@ -41,6 +42,7 @@ const GAME_VARIANT = {
   OMAHA6: 'omaha6',     // PLO 6-card
   SHORT_DECK: 'short_deck',
   OMAHA_HILO: 'omaha_hilo',
+  PINEAPPLE: 'pineapple', // Crazy Pineapple — 3 hole cards, discard 1 after flop
 };
 
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
@@ -77,6 +79,8 @@ class GameStateMachine {
       insurance: config.insurance || false,
       bombPot: config.bombPot || false,
       straddle: config.straddle || false,
+      autoUtgStraddle: config.autoUtgStraddle || false,
+      voluntaryStraddle: config.voluntaryStraddle || false,
     };
     
     // Engine components
@@ -94,6 +98,7 @@ class GameStateMachine {
     this.phase = GAME_PHASE.IDLE;
     this.handNumber = 0;
     this.buttonSeat = -1; // Will be set on first hand
+    this._pendingStraddles = new Set(); // Players who want to straddle next hand
     
     // Current hand state
     this.currentHand = null;
@@ -180,7 +185,8 @@ class GameStateMachine {
       communityCards: [],
       pot: 0,
       buttonSeat: this.buttonSeat,
-      blinds: { sb: null, bb: null },
+      blinds: { sb: null, bb: null, straddle: null },
+      straddleActive: false,
       actions: [],
       result: null,
     };
@@ -275,6 +281,150 @@ class GameStateMachine {
     return { success: true, state: this.getState() };
   }
 
+  /**
+   * Declare straddle for the next hand (voluntary straddle).
+   * Player must be UTG in the next hand for this to take effect.
+   * @param {string} playerId
+   */
+  declareStraddle(playerId) {
+    if (!this.config.voluntaryStraddle) {
+      return { success: false, error: 'Voluntary straddle not enabled at this table' };
+    }
+    this._pendingStraddles.add(String(playerId));
+    this.emit('straddle_declared', { playerId });
+    return { success: true };
+  }
+
+  /**
+   * Cancel straddle declaration for next hand.
+   * @param {string} playerId
+   */
+  cancelStraddle(playerId) {
+    this._pendingStraddles.delete(String(playerId));
+    return { success: true };
+  }
+
+  // ============ PINEAPPLE DISCARD ============
+
+  /**
+   * Process a player's discard choice (Pineapple variant).
+   * After flop betting, each player discards 1 of their 3 hole cards.
+   * @param {string} playerId
+   * @param {number} cardIndex - Index (0-2) of the card to discard from hole cards
+   */
+  processDiscard(playerId, cardIndex) {
+    if (this.phase !== GAME_PHASE.DISCARD) {
+      return { success: false, error: 'Not in discard phase' };
+    }
+
+    const pid = String(playerId);
+    if (!this._pendingDiscards?.has(pid)) {
+      return { success: false, error: 'Not waiting for your discard' };
+    }
+
+    const player = this.currentHand.players.find(p => String(p.id) === pid);
+    if (!player) return { success: false, error: 'Player not found' };
+
+    if (!player.holeCards || player.holeCards.length !== 3) {
+      return { success: false, error: 'Player does not have 3 hole cards' };
+    }
+
+    if (cardIndex < 0 || cardIndex >= 3) {
+      return { success: false, error: 'Card index must be 0, 1, or 2' };
+    }
+
+    // Remove the discarded card
+    const discardedCard = player.holeCards.splice(cardIndex, 1)[0];
+    this._pendingDiscards.delete(pid);
+
+    this.emit('card_discarded', {
+      playerId: pid,
+      remainingCards: 2,
+      // Don't broadcast which card — private info
+    });
+
+    // Check if all discards are in
+    if (this._pendingDiscards.size === 0) {
+      this._finishDiscardPhase();
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Auto-discard the worst card for all-in players (Pineapple).
+   * Uses hand evaluation to keep the best 2-card combo.
+   * @private
+   */
+  _autoDiscardWorstCard(player) {
+    if (!player.holeCards || player.holeCards.length !== 3) return;
+
+    const board = this.currentHand.communityCards;
+    let bestScore = -1;
+    let bestDiscardIdx = 0;
+
+    // Try discarding each card, keep the combo that makes the best hand
+    for (let i = 0; i < 3; i++) {
+      const twoCards = player.holeCards.filter((_, idx) => idx !== i);
+      try {
+        const result = evaluateHoldem(twoCards, board);
+        if (result.score > bestScore) {
+          bestScore = result.score;
+          bestDiscardIdx = i;
+        }
+      } catch (e) {
+        // If evaluation fails, discard first card
+        bestDiscardIdx = 0;
+      }
+    }
+
+    player.holeCards.splice(bestDiscardIdx, 1);
+  }
+
+  /**
+   * Finish the discard phase and continue to turn.
+   * @private
+   */
+  _finishDiscardPhase() {
+    this._pendingDiscards = null;
+
+    // Now continue as normal — deal turn card and start betting
+    this.phase = 'flop'; // Reset to flop so _getNextStreet returns 'turn'
+    const nextStreet = this._getNextStreet();
+
+    if (!nextStreet) {
+      this._handleShowdown();
+      return;
+    }
+
+    this._dealCommunityCards(nextStreet);
+
+    const activePlayers = this.currentHand.players.filter(p => !p.folded);
+    const actionablePlayers = activePlayers.filter(p => !p.allIn);
+    if (actionablePlayers.length <= 1) {
+      this._runOutBoard(nextStreet);
+      return;
+    }
+
+    this._startBettingRound(nextStreet);
+  }
+
+  /**
+   * Auto-discard for a player who times out during discard phase.
+   * @param {string} playerId
+   */
+  autoDiscard(playerId) {
+    const player = this.currentHand.players.find(p => String(p.id) === String(playerId));
+    if (player && player.holeCards?.length === 3) {
+      this._autoDiscardWorstCard(player);
+      this._pendingDiscards?.delete(String(playerId));
+      this.emit('card_discarded', { playerId: String(playerId), remainingCards: 2 });
+      if (this._pendingDiscards?.size === 0) {
+        this._finishDiscardPhase();
+      }
+    }
+  }
+
   // ============ PRIVATE: BLIND POSTING ============
 
   /**
@@ -331,9 +481,43 @@ class GameStateMachine {
     this.emit('blinds_posted', {
       smallBlind: this.currentHand.blinds.sb,
       bigBlind: this.currentHand.blinds.bb,
+      straddle: this.currentHand.blinds.straddle || null,
       ante: ante > 0 ? ante : null,
       potTotal: this.potCalculator.totalPot,
     });
+
+    // ── STRADDLE ──────────────────────────────────────────────
+    // If auto_utg_straddle: UTG always straddles (2x BB)
+    // If voluntary_straddle: UTG can opt in (handled via pendingStraddle flag)
+    // Straddle is posted AFTER blinds, BEFORE cards are dealt.
+    if (this.config.straddle) {
+      const utgPlayer = players.find(p => p.position === 'utg');
+      if (utgPlayer && utgPlayer.stack > 0) {
+        const isAuto = this.config.autoUtgStraddle;
+        const isVoluntary = this.config.voluntaryStraddle;
+        // Auto straddle: always post. Voluntary: check pending flag.
+        const shouldStraddle = isAuto || (isVoluntary && this._pendingStraddles?.has(utgPlayer.id));
+
+        if (shouldStraddle) {
+          const straddleAmount = Math.min(bigBlind * 2, utgPlayer.stack);
+          utgPlayer.stack -= straddleAmount;
+          this.potCalculator.addContribution(utgPlayer.id, straddleAmount);
+          this.currentHand.blinds.straddle = { playerId: utgPlayer.id, amount: straddleAmount };
+          this.currentHand.straddleActive = true;
+          if (utgPlayer.stack <= 0) {
+            utgPlayer.allIn = true;
+            this.potCalculator.markAllIn(utgPlayer.id);
+          }
+          this.emit('straddle_posted', {
+            playerId: utgPlayer.id,
+            amount: straddleAmount,
+            potTotal: this.potCalculator.totalPot,
+          });
+        }
+      }
+      // Clear pending straddles for next hand
+      this._pendingStraddles = new Set();
+    }
   }
 
   // ============ PRIVATE: DEALING ============
@@ -372,6 +556,8 @@ class GameStateMachine {
       case GAME_VARIANT.HOLDEM:
       case GAME_VARIANT.SHORT_DECK:
         return 2;
+      case GAME_VARIANT.PINEAPPLE:
+        return 3; // Deal 3, discard 1 after flop
       case GAME_VARIANT.OMAHA4:
       case GAME_VARIANT.OMAHA_HILO:
         return 4;
@@ -410,8 +596,10 @@ class GameStateMachine {
       blinds = [];
       const sb = this.currentHand.blinds.sb;
       const bb = this.currentHand.blinds.bb;
+      const straddle = this.currentHand.blinds.straddle;
       if (sb) blinds.push({ playerId: sb.playerId, amount: sb.amount });
       if (bb) blinds.push({ playerId: bb.playerId, amount: bb.amount });
+      if (straddle) blinds.push({ playerId: straddle.playerId, amount: straddle.amount });
     }
     
     this.bettingRound = new BettingRound({
@@ -463,6 +651,25 @@ class GameStateMachine {
     if (activePlayers.length <= 1) {
       // Everyone folded - award pot to last player
       this._handleFoldWin(activePlayers[0]);
+      return;
+    }
+
+    // ── PINEAPPLE DISCARD — After flop betting, players discard 1 of 3 cards ──
+    if (this.config.variant === GAME_VARIANT.PINEAPPLE && this.phase === 'flop') {
+      this.phase = GAME_PHASE.DISCARD;
+      this._pendingDiscards = new Set(activePlayers.filter(p => !p.allIn).map(p => String(p.id)));
+      // All-in players auto-discard their worst card
+      for (const p of activePlayers.filter(pl => pl.allIn)) {
+        this._autoDiscardWorstCard(p);
+      }
+      this.emit('discard_required', {
+        playerIds: [...this._pendingDiscards],
+        deadline: 15, // seconds to discard
+      });
+      // If all are all-in, no one needs to discard manually
+      if (this._pendingDiscards.size === 0) {
+        this._finishDiscardPhase();
+      }
       return;
     }
     
@@ -1109,7 +1316,7 @@ class GameStateMachine {
     const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6].includes(variant);
 
     // ── NLH / FLH: Loser needs AAAJJ+, beaten by Quads or SF ──
-    if (variant === GAME_VARIANT.HOLDEM || variant === GAME_VARIANT.SHORT_DECK) {
+    if (variant === GAME_VARIANT.HOLDEM || variant === GAME_VARIANT.SHORT_DECK || variant === GAME_VARIANT.PINEAPPLE) {
       const loserCat = loser.hand.category;
       const winnerCat = winner.hand.category;
 
@@ -1306,6 +1513,21 @@ class GameStateMachine {
    */
   _getPreflopOrder() {
     const players = this.currentHand.players.filter(p => !p.folded);
+
+    // If straddle is active, action starts from player AFTER straddler (UTG+1)
+    // and straddler acts last (like BB normally would).
+    if (this.currentHand.straddleActive && this.currentHand.blinds.straddle) {
+      const straddlerIdx = players.findIndex(p => p.id === this.currentHand.blinds.straddle.playerId);
+      if (straddlerIdx !== -1) {
+        const ordered = [];
+        for (let i = 1; i <= players.length; i++) {
+          const idx = (straddlerIdx + i) % players.length;
+          ordered.push(players[idx]);
+        }
+        return ordered;
+      }
+    }
+
     const bbIdx = players.findIndex(p => p.position === 'bb');
     
     if (bbIdx === -1) return players;

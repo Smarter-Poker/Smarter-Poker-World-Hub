@@ -47,13 +47,14 @@
 | 1.3.1 | Hand lifecycle (idle→blinds→deal→streets→showdown→payout) | ✅ | GameStateMachine.js | Full phase machine |
 | 1.3.2 | Blind posting (SB/BB) | ✅ | GameStateMachine.js | _postBlinds() with dead blinds |
 | 1.3.3 | Ante support | ✅ | GameStateMachine.js | config.ante per hand |
-| 1.3.4 | Straddle support | ⚠️ | GameStateMachine.js | Config flag exists, needs UI toggle per-hand |
+| 1.3.4 | Straddle support | ✅ | GameStateMachine.js | Auto UTG + voluntary straddle with UI toggle |
 | 1.3.5 | Button rotation | ✅ | TableManager.js | Moves clockwise each hand |
 | 1.3.6 | Heads-up button rule (SB=BTN posts first) | ✅ | GameStateMachine.js | 2-player special case |
 | 1.3.7 | Dead button / missed blind handling | ✅ | TableManager.js | Tracks missed blinds |
 | 1.3.8 | All-in showdown (skip remaining streets) | ✅ | GameStateMachine.js | Advances to showdown if all active are all-in |
 | 1.3.9 | Run it twice | ⚠️ | GameStateMachine.js | Config exists, engine logic needs completion |
-| 1.3.10 | Variant selection per table | ✅ | GameStateMachine.js | GAME_VARIANT enum: holdem/omaha4/5/6/short_deck/hilo |
+| 1.3.10 | Variant selection per table | ✅ | GameStateMachine.js | GAME_VARIANT enum: holdem/omaha4/5/6/short_deck/hilo/pineapple |
+| 1.3.11 | Crazy Pineapple variant | ✅ | GameStateMachine.js | 3 hole cards, discard 1 after flop, full discard UI + auto-discard |
 
 ### 1.4 Betting Engine
 | # | Feature | Status | File | Notes |
@@ -104,7 +105,7 @@
 | 2.1.8 | Auto-start when enough players | ✅ | TableManager.js | _checkAutoStart() — needs minPlayers |
 | 2.1.9 | Auto-sit from waitlist | ✅ | TableManager.js | Offers seat when available |
 | 2.1.10 | 2-10 player seat layouts | ✅ | LivePokerTable.jsx | SEAT_LAYOUTS with trig positioning |
-| 2.1.11 | Max tables per player (multi-table, up to 4) | ❌ | — | NOT BUILT — Critical missing feature |
+| 2.1.11 | Max tables per player (multi-table, up to 4) | ✅ | useMultiTable.js | MAX_TABLES=4, enforced in openTable() |
 | 2.1.12 | Table close / destroy | ✅ | LobbyManager.js | closeTable() with cleanup |
 
 ---
@@ -136,8 +137,8 @@
 | 3.2.12 | Payout calculation | ✅ | TournamentController.js | Standard structures by player count |
 | 3.2.13 | Prize distribution | ✅ | TournamentController.js | Atomic payout to club balances |
 | 3.2.14 | Pause / Resume | ✅ | TournamentController.js | Admin control |
-| 3.2.15 | Tournament lobby / registration UI | ⚠️ | lobby.js | Shows MTT tab filter, but NO dedicated tournament detail/register page |
-| 3.2.16 | Tournament create UI (club admin) | ❌ | — | No frontend form to create tournaments in Club Arena |
+| 3.2.15 | Tournament lobby / registration UI | ✅ | tournaments.js | 438 lines, browse/filter/register/detail modal |
+| 3.2.16 | Tournament create UI (club admin) | ✅ | tournaments.js | CreateTournamentModal with full form (MTT/SNG/Spin) |
 
 ---
 
@@ -185,7 +186,7 @@
 | 5.1.19 | Winning hand highlighting | ⚠️ | LivePokerTable.jsx | Shows result but no card highlight glow |
 | 5.1.20 | Showdown card reveal animation | ⚠️ | LivePokerTable.jsx | Cards show but flip animation basic |
 | 5.1.21 | Chip movement animations (pot collection) | ❌ | — | No animated chip stacks moving to pot/winner |
-| 5.1.22 | Sound effects (deal, check, call, fold, win) | ❌ | — | No audio system |
+| 5.1.22 | Sound effects (deal, check, call, fold, win) | ✅ | PokerSoundManager.js | Web Audio API, 317 lines, all game events |
 | 5.1.23 | Emote/sticker system | ❌ | — | No emotes like PokerBros |
 | 5.1.24 | Table themes / customization | ❌ | — | Single theme only |
 | 5.1.25 | Rabbit hunting (show undealt cards) | ❌ | — | Not implemented |
@@ -194,12 +195,12 @@
 ### 5.2 Multi-Table Play (CRITICAL MISSING FEATURE)
 | # | Feature | Status | File | Notes |
 |---|---------|--------|------|-------|
-| 5.2.1 | Open up to 4 tables simultaneously | ❌ | — | MUST BUILD — Core competitor feature |
-| 5.2.2 | Table tab bar / switcher | ❌ | — | Tab bar showing all active tables |
-| 5.2.3 | Action-required notification on inactive table | ❌ | — | Flash/highlight when it's your turn |
-| 5.2.4 | Tile view (show all tables at once) | ❌ | — | 2x2 grid view option |
-| 5.2.5 | Auto-switch to table requiring action | ❌ | — | Focus table where timer is running |
-| 5.2.6 | Per-table state isolation | ❌ | — | Each table independent connection |
+| 5.2.1 | Open up to 4 tables simultaneously | ✅ | MultiTableView.jsx | useMultiTable hook manages 4 slots |
+| 5.2.2 | Table tab bar / switcher | ✅ | MultiTableView.jsx | TabBar component with stakes/variant labels |
+| 5.2.3 | Action-required notification on inactive table | ✅ | MultiTableView.jsx | Pulsing red dot + sound on action needed |
+| 5.2.4 | Tile view (show all tables at once) | ✅ | MultiTableView.jsx | 2x2 grid view toggle |
+| 5.2.5 | Auto-switch to table requiring action | ✅ | useMultiTable.js | markActionNeeded auto-switches in single mode |
+| 5.2.6 | Per-table state isolation | ✅ | MultiTableView.jsx | Each TableSlot has own useTableConnection |
 
 ### 5.3 Lobby UI
 | # | Feature | Status | File | Notes |
@@ -252,8 +253,8 @@
 | 6.3.6 | Qualifying hand rules per variant | ✅ | bbj_qualifying_hands table | NLH=AAAJJ, PLO4=KKKK2, PLO5=87654 |
 | 6.3.7 | BBJ eligibility rules (pot≥10BB, 4+ dealt, etc.) | ✅ | RakeConfig.js + BBJ_RULES | All rules encoded |
 | 6.3.8 | BBJ award RPC | ✅ | award_bbj RPC | Payout + backup→main reseed |
-| 6.3.9 | BBJ detection during showdown | ❌ | — | Engine does NOT check if a hand qualifies for BBJ during showdown |
-| 6.3.10 | BBJ trigger + payout flow | ❌ | — | No automatic trigger when qualifying hand detected |
+| 6.3.9 | BBJ detection during showdown | ✅ | GameStateMachine.js | _checkBBJ() with NLH/PLO4/PLO5/PLO6 qualifying hands |
+| 6.3.10 | BBJ trigger + payout flow | ✅ | LobbyManager.js | bbj_triggered event → award_bbj RPC → broadcast |
 | 6.3.11 | BBJ history / audit log | ✅ | union_bbj_ledger table | Full contribution + payout tracking |
 | 6.3.12 | BBJ display in UI (current jackpot amount) | ❌ | — | No BBJ ticker on game table or lobby |
 
@@ -554,11 +555,11 @@
 
 ## WHAT MUST BE BUILT FOR LAUNCH
 
-❌ **Multi-table play (4 tables)** — #1 missing feature
-❌ **BBJ auto-detection** — System built but never fires
-❌ **Tournament creation UI** — Engine ready, no admin form
-❌ **Tournament registration flow** — No player-facing registration page
-❌ **Sound effects** — Silent gameplay
+✅ **Multi-table play (4 tables)** — Built: MultiTableView.jsx + useMultiTable.js
+✅ **BBJ auto-detection** — Built: _checkBBJ() in GameStateMachine + LobbyManager payout
+✅ **Tournament creation UI** — Built: CreateTournamentModal in tournaments.js
+✅ **Tournament registration flow** — Built: TournamentDetailModal in tournaments.js
+✅ **Sound effects** — Built: PokerSoundManager.js (317 lines)
 ❌ **Chip animations** — No visual chip movement
 
 ---

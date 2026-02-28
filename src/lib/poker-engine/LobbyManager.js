@@ -107,6 +107,11 @@ class LobbyManager {
       maxSeats: config.maxSeats,
       rakePercent: config.rakePercent,
       rakeCap: config.rakeCap,
+      straddle: config.straddle || config.straddleEnabled || false,
+      autoUtgStraddle: config.autoUtgStraddle || false,
+      voluntaryStraddle: config.voluntaryStraddle || config.straddleEnabled || false,
+      bbjEnabled: config.bbjEnabled || false,
+      bbjPercent: config.bbjPercent || 0,
     });
     
     // Create ActionTimer
