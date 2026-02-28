@@ -42,12 +42,12 @@ function formatElapsed(startTime) {
 }
 
 const CHIP_DENOMS = [
-  { value: 5, bg: '#FFFFFF', border: '#888', textColor: '#000', label: '5' },
-  { value: 10, bg: '#8B0000', border: '#5C0000', textColor: '#fff', label: '10' },
-  { value: 25, bg: '#1a3a8a', border: '#0d2060', textColor: '#fff', label: '25' },
+  { value: 25, bg: '#2E7D32', border: '#1B5E20', textColor: '#fff', label: '25' },
   { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '100' },
   { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '500' },
   { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '1,000' },
+  { value: 5000, bg: '#E65100', border: '#BF360C', textColor: '#fff', label: '5,000' },
+  { value: 25000, bg: '#880E4F', border: '#6A0036', textColor: '#fff', label: '25,000' },
 ];
 
 // Multi-tournament clock color themes — up to 6 concurrent tournaments
@@ -145,10 +145,8 @@ export default function ClockDisplay() {
   const nextBreakSec = clockState.next_break_seconds;
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
 
-  // Pick 4 chip denoms relevant to blind level
-  const maxBlind = (blinds.big_blind || 20) * 100;
-  let activeChips = CHIP_DENOMS.filter(c => c.value <= Math.max(maxBlind, 500)).slice(0, 4);
-  if (activeChips.length < 3) activeChips = CHIP_DENOMS.slice(0, 4);
+  // Show all tournament chip denominations
+  const activeChips = CHIP_DENOMS;
 
   return (
     <>
