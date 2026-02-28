@@ -22,6 +22,7 @@ import {
   Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign,
   ChevronUp, AlertCircle, User, Power
 } from 'lucide-react';
+import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
 
@@ -387,6 +388,7 @@ export default function DealerTablet() {
         body: JSON.stringify({ venue_id: vid, table_number: parseInt(tableNumber), reason: 'floor_assistance', description: `Floor requested at Table ${tableNumber}`, priority: 'normal', called_by: 'dealer' })
       });
     } catch (err) { console.error(err); }
+    broadcastChange('floor_calls');
     setTimeout(() => setFloorRequested(false), 30000);
   };
 

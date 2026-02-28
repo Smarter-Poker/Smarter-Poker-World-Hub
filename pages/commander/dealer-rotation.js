@@ -18,6 +18,7 @@ import {
   CheckCircle2, AlertTriangle, RotateCcw, ChevronDown, ChevronUp, History
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
 const PUSH_WARNING = 25;   // minutes before showing amber warning
@@ -100,6 +101,9 @@ export default function DealerRotation() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(getVenueId(), fetchData);
+
   // ── Actions ──────────────────────────────────────────
 
   const callAction = async (action, dealerId, tableId = null) => {
@@ -118,6 +122,7 @@ export default function DealerRotation() {
       });
       setPushTarget(null);
       await fetchData();
+      broadcastChange('tables');
     } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); }
     finally { setActionLoading(null); }
   };

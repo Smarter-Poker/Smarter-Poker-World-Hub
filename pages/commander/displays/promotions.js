@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 export default function PromotionsDisplay() {
   const [promotions, setPromotions] = useState([]);
@@ -164,6 +165,16 @@ export default function PromotionsDisplay() {
             ))}
           </div>
         )}
+
+        {/* Dealer Push/Break + Promo Ticker */}
+        <DealerTicker
+          accentColor="#1877F2"
+          bgColor="#000"
+          fontSize={18}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={22}
+          showBorder={true}
+        />
 
         {/* Branding */}
         <div className="absolute bottom-4 right-6">

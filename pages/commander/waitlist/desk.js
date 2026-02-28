@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
+import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import {
   RefreshCw, Loader2, Users, UserPlus, ArrowLeft,
   PhoneCall, Armchair, SkipForward, Trash2,
@@ -199,6 +200,7 @@ export default function WaitlistDesk() {
       else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
       else setSmsStatus({ type: 'none', text: 'Called — SMS Unavailable' });
       await fetchData();
+      broadcastChange('waitlist');
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
     finally { setCallLoading(null); }
@@ -223,6 +225,7 @@ export default function WaitlistDesk() {
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
       setSeatModal(null); setSelectedPlayer(null);
       await fetchData();
+      broadcastChange('waitlist');
     } catch (err) { console.error('Seat error:', err); alert('Seat failed: ' + err.message); await fetchData(); }
   };
 
@@ -273,6 +276,7 @@ export default function WaitlistDesk() {
       // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
       await fetchData();
+      broadcastChange('waitlist');
     } catch (err) { console.error('Remove error:', err); await fetchData(); }
   };
 
@@ -305,7 +309,7 @@ export default function WaitlistDesk() {
         })
       });
       const json = await res.json();
-      if (json.success) { setShowAddWalkIn(false); await fetchData(); }
+      if (json.success) { setShowAddWalkIn(false); await fetchData(); broadcastChange('waitlist'); }
     } catch (err) { console.error(err); }
   };
 

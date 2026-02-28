@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
 
 export default function SeatingDisplay() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function SeatingDisplay() {
 
   // Wake lock
   useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {} };
+    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
     req();
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') req(); });
     return () => { wakeLockRef.current?.release(); };
@@ -66,10 +67,10 @@ export default function SeatingDisplay() {
   return (
     <>
       <SEOHead
-                title="Commander — Seating Display"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Seating Display"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
@@ -91,20 +92,18 @@ export default function SeatingDisplay() {
 
         {/* Tables Grid */}
         <div className="flex-1 p-6 overflow-y-auto">
-          <div className={`grid gap-4 ${
-            tableNumbers.length <= 4 ? 'grid-cols-2' :
+          <div className={`grid gap-4 ${tableNumbers.length <= 4 ? 'grid-cols-2' :
             tableNumbers.length <= 6 ? 'grid-cols-3' :
-            tableNumbers.length <= 9 ? 'grid-cols-3' : 'grid-cols-4'
-          }`}>
+              tableNumbers.length <= 9 ? 'grid-cols-3' : 'grid-cols-4'
+            }`}>
             {tableNumbers.map(tableNum => {
               const players = byTable[tableNum];
               const isUnassigned = tableNum === 'Unassigned';
 
               return (
                 <div key={tableNum}
-                  className={`rounded-xl p-4 border ${
-                    isUnassigned ? 'bg-[#F59E0B]/5 border-[#F59E0B]/30' : 'bg-white/3 border-white/10'
-                  }`}>
+                  className={`rounded-xl p-4 border ${isUnassigned ? 'bg-[#F59E0B]/5 border-[#F59E0B]/30' : 'bg-white/3 border-white/10'
+                    }`}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className={`text-lg font-bold ${isUnassigned ? 'text-[#F59E0B]' : 'text-[#1877F2]'}`}>
                       {isUnassigned ? 'Unassigned' : `Table ${tableNum}`}
@@ -129,6 +128,16 @@ export default function SeatingDisplay() {
             })}
           </div>
         </div>
+
+        {/* Dealer Push/Break + Promo Ticker */}
+        <DealerTicker
+          accentColor="#1877F2"
+          bgColor="#000"
+          fontSize={16}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={22}
+          showBorder={true}
+        />
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between flex-shrink-0">

@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 function getSeatPositions(count) {
   const positions = [];
@@ -101,10 +102,10 @@ export default function TablesDisplay() {
             </div>
           ) : (
             <div className={`grid gap-4 h-full ${activeTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
-                activeTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
-                  activeTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
-                    activeTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
-                      'grid-cols-5 grid-rows-4'
+              activeTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
+                activeTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
+                  activeTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
+                    'grid-cols-5 grid-rows-4'
               }`}>
               {activeTables.map(table => {
                 const maxSeats = table.max_seats || 9;
@@ -118,8 +119,8 @@ export default function TablesDisplay() {
                 return (
                   <div key={table.id || table.table_number}
                     className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 ${isEmpty ? 'bg-white/3 border-white/10' :
-                        isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                          'bg-[#31A24C]/10 border-[#31A24C]/30'
+                      isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                        'bg-[#31A24C]/10 border-[#31A24C]/30'
                       }`}>
 
                     {/* Mini seat ring */}
@@ -166,6 +167,16 @@ export default function TablesDisplay() {
             </div>
           )}
         </div>
+
+        {/* Dealer Push/Break + Promo Ticker */}
+        <DealerTicker
+          accentColor="#1877F2"
+          bgColor="#000"
+          fontSize={18}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={22}
+          showBorder={true}
+        />
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">

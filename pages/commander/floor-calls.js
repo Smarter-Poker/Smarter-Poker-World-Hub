@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import {
   AlertTriangle, Check, Clock, Loader2, RefreshCw,
   Bell, Plus, X, ChevronDown, Volume2, VolumeX,
@@ -182,6 +183,7 @@ export default function FloorCalls() {
         body: JSON.stringify({ id, status, responded_by: respondedBy, resolution })
       });
       fetchCalls();
+      broadcastChange('floor_calls');
     } catch (err) { console.error(err); }
   };
 
@@ -205,6 +207,7 @@ export default function FloorCalls() {
       setShowNewCall(false);
       setNewTable(''); setNewReason('dispute'); setNewPriority('normal'); setNewDesc('');
       fetchCalls();
+      broadcastChange('floor_calls');
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };

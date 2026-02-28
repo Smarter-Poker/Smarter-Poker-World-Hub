@@ -14,6 +14,7 @@ import {
   Clock, User, Hash, List
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', NLH: 'NLH', PLO: 'PLO', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
 
@@ -67,6 +68,9 @@ export default function MustMoveManager() {
     return () => clearInterval(iv);
   }, [venueId, fetchData]);
 
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(venueId, fetchData);
+
   // Link a game as must-move to parent
   const linkMustMove = async (gameId, parentGameId) => {
     setActionLoading(gameId);
@@ -80,6 +84,7 @@ export default function MustMoveManager() {
       if (json.success) {
         setMessage({ type: 'success', text: 'Must-Move Link Created' });
         fetchData();
+        broadcastChange('games');
       } else {
         setMessage({ type: 'error', text: json.error?.message || 'Failed to link' });
       }
@@ -99,6 +104,7 @@ export default function MustMoveManager() {
       if (json.success) {
         setMessage({ type: 'success', text: 'Must-Move Removed' });
         fetchData();
+        broadcastChange('games');
       } else {
         setMessage({ type: 'error', text: json.error?.message || 'Failed to unlink' });
       }
@@ -119,6 +125,7 @@ export default function MustMoveManager() {
       if (json.success) {
         setMessage({ type: 'success', text: json.data.message });
         fetchData();
+        broadcastChange('games');
       } else {
         setMessage({ type: 'error', text: json.error || 'Failed to move player' });
       }

@@ -16,6 +16,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 export default function LobbyDisplay() {
   const router = useRouter();
@@ -34,6 +35,9 @@ export default function LobbyDisplay() {
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);
+
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(venueId, fetchData);
 
   // Wake lock
   useEffect(() => {

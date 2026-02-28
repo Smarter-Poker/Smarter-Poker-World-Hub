@@ -1,11 +1,14 @@
 /**
- * DealerTicker — Shared scrolling ticker for dealer push & break info
+ * DealerTicker — Shared scrolling ticker for dealer push/break + club promos
  * 
  * Drop into any display page (waitlist desk, tournament clock, etc.)
- * Fetches dealer rotation data and renders a scrolling marquee showing:
+ * Fetches dealer rotation data AND club promos/announcements, rendering
+ * a scrolling marquee showing:
  *   - Dealers at tables with time elapsed and push status
  *   - Dealers on break with time elapsed
  *   - Next push due (countdown)
+ *   - Active club promotions & announcements
+ *   - Custom ticker messages from venue settings
  * 
  * Props:
  *   accentColor: string (hex) — ticker text color (default: #D4AF37 gold)
@@ -34,8 +37,11 @@ export default function DealerTicker({
 }) {
     const [dealers, setDealers] = useState([]);
     const [rotations, setRotations] = useState([]);
+    const [promotions, setPromotions] = useState([]);
+    const [announcements, setAnnouncements] = useState([]);
+    const [tickerMessage, setTickerMessage] = useState('');
 
-    const fetchDealerData = useCallback(async () => {
+    const fetchAllData = useCallback(async () => {
         try {
             const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
             const venueId = staff.venue_id || '';
@@ -44,26 +50,49 @@ export default function DealerTicker({
                 Authorization: `Bearer ${staff.token || ''}`,
                 'x-staff-session': localStorage.getItem('commander_staff') || ''
             };
-            const [dRes, rRes] = await Promise.all([
+
+            const [dRes, rRes, pRes, aRes, sRes] = await Promise.all([
                 fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
-                fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({}))
+                fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+                fetch('/api/commander/promotions', { headers }).then(r => r.json()).catch(() => ({})),
+                fetch('/api/commander/announcements', { headers }).then(r => r.json()).catch(() => ({})),
+                fetch('/api/commander/settings', { headers }).then(r => r.json()).catch(() => ({})),
             ]);
+
+            // Dealers
             const dealersArr = dRes.data?.dealers || (Array.isArray(dRes.data) ? dRes.data : []);
             setDealers(dealersArr.filter(d => d.is_active !== false));
             const rotationsArr = rRes.data?.rotations || (Array.isArray(rRes.data) ? rRes.data : []);
             setRotations(rotationsArr.filter(r => !r.ended_at));
+
+            // Promotions — only active ones
+            const promos = (pRes.data || []).filter(p => p.is_active !== false);
+            setPromotions(promos);
+
+            // Announcements — only non-expired
+            const now = new Date();
+            const anns = (aRes.data || []).filter(a => {
+                if (!a.expires_at) return true;
+                return new Date(a.expires_at) > now;
+            });
+            setAnnouncements(anns);
+
+            // Custom ticker message from settings
+            const customMsg = sRes.data?.desk_customization?.tickerMessage || '';
+            setTickerMessage(customMsg);
         } catch (err) { /* silent */ }
     }, []);
 
     useEffect(() => {
-        fetchDealerData();
-        const poll = setInterval(fetchDealerData, 15000);
+        fetchAllData();
+        const poll = setInterval(fetchAllData, 15000);
         return () => clearInterval(poll);
-    }, [fetchDealerData]);
+    }, [fetchAllData]);
 
     // Build ticker message parts
     const parts = [];
 
+    // ── DEALER ROTATION INFO ──────────────────────────────────────
     // Dealers at tables
     const dealingParts = [];
     rotations.forEach(r => {
@@ -103,7 +132,41 @@ export default function DealerTicker({
         }
     }
 
-    // If no data, don't render
+    // ── CLUB PROMOTIONS ───────────────────────────────────────────
+    promotions.forEach(p => {
+        const name = p.name || p.title || '';
+        const amount = p.prize_amount || p.jackpot_amount || 0;
+        const type = p.type || 'promotion';
+        const typeLabels = {
+            high_hand: '🏆 HIGH HAND',
+            bad_beat: '💥 BAD BEAT JACKPOT',
+            splash_pot: '💦 SPLASH POT',
+            bonus: '🎁 BONUS',
+            freeroll: '🎰 FREEROLL',
+        };
+        const label = typeLabels[type] || '🎯 PROMO';
+        if (amount > 0) {
+            parts.push(`${label}: ${name} — $${amount.toLocaleString()}`);
+        } else if (name) {
+            parts.push(`${label}: ${name}`);
+        }
+    });
+
+    // ── CLUB ANNOUNCEMENTS ────────────────────────────────────────
+    announcements.forEach(a => {
+        const msg = a.message || a.title || a.content || '';
+        if (!msg) return;
+        const priority = a.priority || 'normal';
+        const prefix = priority === 'urgent' ? '🚨' : priority === 'high' ? '📢' : '📣';
+        parts.push(`${prefix} ${msg}`);
+    });
+
+    // ── CUSTOM TICKER MESSAGE ─────────────────────────────────────
+    if (tickerMessage) {
+        parts.push(tickerMessage);
+    }
+
+    // If no data at all, don't render
     if (parts.length === 0) return null;
 
     const message = parts.join('   \u00A0\u00A0\u00A0•\u00A0\u00A0\u00A0   ');

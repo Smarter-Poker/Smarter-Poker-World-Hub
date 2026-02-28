@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
 
 export default function StructureDisplay() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function StructureDisplay() {
   // Wake lock
   useEffect(() => {
     const requestWakeLock = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {}
+      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWakeLock(); });
@@ -62,10 +63,10 @@ export default function StructureDisplay() {
   return (
     <>
       <SEOHead
-                title="Commander — Structure Display"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Structure Display"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
@@ -105,10 +106,9 @@ export default function StructureDisplay() {
               if (level.is_break) {
                 return (
                   <div key={i} ref={isCurrent ? currentRef : null}
-                    className={`grid grid-cols-[60px_1fr_80px] gap-4 px-4 py-3 rounded-lg ${
-                      isCurrent ? 'bg-[#F59E0B]/20 border border-[#F59E0B]/50 current-level' :
+                    className={`grid grid-cols-[60px_1fr_80px] gap-4 px-4 py-3 rounded-lg ${isCurrent ? 'bg-[#F59E0B]/20 border border-[#F59E0B]/50 current-level' :
                       isPast ? 'opacity-30' : 'bg-[#F59E0B]/5'
-                    }`}>
+                      }`}>
                     <span className="text-[#F59E0B] font-bold">BRK</span>
                     <span className="text-[#F59E0B]">Break</span>
                     <span className="text-right text-[#F59E0B]">{level.duration}m</span>
@@ -118,10 +118,9 @@ export default function StructureDisplay() {
 
               return (
                 <div key={i} ref={isCurrent ? currentRef : null}
-                  className={`grid grid-cols-[60px_1fr_1fr_1fr_80px] gap-4 px-4 py-3 rounded-lg ${
-                    isCurrent ? 'bg-[#1877F2]/20 border-2 border-[#1877F2] current-level text-white' :
+                  className={`grid grid-cols-[60px_1fr_1fr_1fr_80px] gap-4 px-4 py-3 rounded-lg ${isCurrent ? 'bg-[#1877F2]/20 border-2 border-[#1877F2] current-level text-white' :
                     isPast ? 'opacity-30' : 'bg-white/2 hover:bg-white/5'
-                  }`}>
+                    }`}>
                   <span className={`font-bold ${isCurrent ? 'text-[#1877F2]' : 'text-white/60'}`}>{levelNum}</span>
                   <span className={`text-lg font-medium ${isCurrent ? 'text-white font-bold' : ''}`}>{level.small_blind?.toLocaleString()}</span>
                   <span className={`text-lg font-medium ${isCurrent ? 'text-white font-bold' : ''}`}>{level.big_blind?.toLocaleString()}</span>
@@ -134,6 +133,16 @@ export default function StructureDisplay() {
             })}
           </div>
         </div>
+
+        {/* Dealer Push/Break + Promo Ticker */}
+        <DealerTicker
+          accentColor="#1877F2"
+          bgColor="#000"
+          fontSize={16}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={22}
+          showBorder={true}
+        />
 
         {/* Footer with payout info if available */}
         <div className="border-t border-white/10 px-8 py-3 flex items-center justify-between flex-shrink-0">

@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 function formatClockTime(seconds) {
   if (!seconds || seconds <= 0) return '0:00';
@@ -136,6 +137,16 @@ export default function CombinedDisplay() {
             }
           })}
         </div>
+
+        {/* Dealer Push/Break + Promo Ticker */}
+        <DealerTicker
+          accentColor="#1877F2"
+          bgColor="#000"
+          fontSize={16}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={22}
+          showBorder={true}
+        />
       </div>
     </CommanderLayout>
   );
@@ -237,8 +248,8 @@ function TablesPanel({ tables }) {
             return (
               <div key={t.id || t.table_number}
                 className={`rounded-lg p-2 text-center border ${open > 0 ? 'bg-[#31A24C]/10 border-[#31A24C]/30' :
-                    seated > 0 ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                      'bg-white/5 border-white/10'
+                  seated > 0 ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                    'bg-white/5 border-white/10'
                   }`}>
                 <p className="text-base font-bold text-white">T{t.table_number}</p>
                 <p className="text-[10px] text-white/40">{t.game_type || 'NLH'}</p>

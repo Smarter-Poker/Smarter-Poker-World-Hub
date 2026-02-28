@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Trash2, Table2, Users, Loader2, Play, Square, X, Clock } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },
@@ -147,6 +148,9 @@ export default function CommanderTablesPage() {
     return () => clearInterval(interval);
   }, [venueId, fetchTables]);
 
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(venueId, fetchTables);
+
   // Get the game running on a table
   const getGameForTable = (table) => {
     if (Array.isArray(table.commander_games) && table.commander_games.length > 0) {
@@ -182,6 +186,7 @@ export default function CommanderTablesPage() {
         });
         setShowStartGame(false);
         await fetchTables();
+        broadcastChange('games');
       }
     } catch (err) { console.error('Start game error:', err); }
     finally { setActionLoading(false); }
@@ -205,6 +210,7 @@ export default function CommanderTablesPage() {
         });
       }
       await fetchTables();
+      broadcastChange('games');
     } catch (err) { console.error('Close game error:', err); }
     finally { setActionLoading(false); }
   };
@@ -225,6 +231,7 @@ export default function CommanderTablesPage() {
         body: JSON.stringify(updates)
       });
       await fetchTables();
+      broadcastChange('tables');
     } catch (err) { console.error('Set status error:', err); }
     finally { setActionLoading(false); }
   };
@@ -241,6 +248,7 @@ export default function CommanderTablesPage() {
       });
       setSelectedTableId(null);
       await fetchTables();
+      broadcastChange('tables');
     } catch (err) { console.error('Delete table error:', err); }
     finally { setActionLoading(false); }
   };
@@ -257,6 +265,7 @@ export default function CommanderTablesPage() {
       if (data.success) {
         setShowAddModal(false);
         await fetchTables();
+        broadcastChange('tables');
       }
     } catch (err) { console.error('Add table error:', err); }
   };
@@ -273,6 +282,7 @@ export default function CommanderTablesPage() {
         body: JSON.stringify({ table_purpose: purpose })
       });
       await fetchTables();
+      broadcastChange('tables');
     } catch (err) { console.error('Set purpose error:', err); }
     finally { setActionLoading(false); }
   };

@@ -55,10 +55,11 @@ async function handleGet(req, res) {
     if (gameIds.length > 0) {
       const { data: seats } = await supabase
         .from('commander_seats')
-        .select('id, game_id, seat_number, player_id, player_name, status, seated_at, buyin_amount')
+        .select('id, game_id, seat_number, player_id, player_name, status, seated_at, buyin_amount, created_at')
         .in('game_id', gameIds)
         .eq('status', 'occupied')
-        .order('seated_at', { ascending: true });
+        .order('seated_at', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true });
 
       (seats || []).forEach(s => {
         if (!seatsMap[s.game_id]) seatsMap[s.game_id] = [];
@@ -178,10 +179,11 @@ async function handlePost(req, res) {
     // Get the must-move game's oldest occupied seat (first in line to move)
     const { data: seats } = await supabase
       .from('commander_seats')
-      .select('id, game_id, seat_number, player_id, player_name, seated_at')
+      .select('id, game_id, seat_number, player_id, player_name, seated_at, created_at')
       .eq('game_id', must_move_game_id)
       .eq('status', 'occupied')
-      .order('seated_at', { ascending: true })
+      .order('seated_at', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
       .limit(1);
 
     if (!seats || seats.length === 0) {

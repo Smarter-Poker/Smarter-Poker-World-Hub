@@ -17,6 +17,7 @@ import {
   ArrowRightLeft, AlertTriangle, Zap, Trophy
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function PokerRoomFunctions() {
   const router = useRouter();
@@ -110,6 +111,9 @@ export default function PokerRoomFunctions() {
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 30000); return () => clearInterval(i); }, [fetchData]);
 
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(venueId, fetchData);
+
   const toggleRoom = async () => {
     setToggling(true);
     try {
@@ -121,6 +125,7 @@ export default function PokerRoomFunctions() {
         body: JSON.stringify({ room_open: !roomOpen })
       });
       setRoomOpen(!roomOpen);
+      broadcastChange('settings');
     } catch (err) { console.error(err); }
     finally { setToggling(false); }
   };
