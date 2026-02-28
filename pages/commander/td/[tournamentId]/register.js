@@ -113,12 +113,12 @@ export default function TDRegister() {
     }
 
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/register`, {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({
           player_name: playerName.trim(),
-          phone: playerPhone.trim() || undefined,
+          player_phone: playerPhone.trim() || undefined,
           table_number: tableNum,
           seat_number: seatNum
         })
