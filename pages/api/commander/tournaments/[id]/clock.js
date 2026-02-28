@@ -61,8 +61,9 @@ async function getClockState(req, res, tournamentId) {
     const currentLevel = tournament.current_level || 0;
     const currentBlind = blindStructure[currentLevel] || null;
 
-    // Read persisted clock state from the tournament row
-    let clockState = tournament.clock_state || null;
+    // Read persisted clock state from the settings JSONB (not the clock_state column which has schema cache issues)
+    const settings = tournament.settings || {};
+    let clockState = settings.clock_state || null;
 
     if (!clockState && tournament.status === 'running') {
       // Initialize clock state and persist it
@@ -72,9 +73,10 @@ async function getClockState(req, res, tournamentId) {
         pausedAt: null,
         pausedDuration: 0
       };
+      const updatedSettings = { ...settings, clock_state: clockState };
       await supabase
         .from('commander_tournaments')
-        .update({ clock_state: clockState })
+        .update({ settings: updatedSettings })
         .eq('id', tournamentId);
     }
 
@@ -167,8 +169,9 @@ async function handleClockAction(req, res, tournamentId) {
       });
     }
 
-    // Read persisted clock state
-    let clockState = tournament.clock_state || {
+    // Read persisted clock state from settings
+    const settings = tournament.settings || {};
+    let clockState = settings.clock_state || {
       isRunning: false,
       levelStartedAt: null,
       pausedAt: null,
@@ -338,50 +341,25 @@ async function handleClockAction(req, res, tournamentId) {
         });
     }
 
-    // Persist status/level updates first (these columns are in schema cache)
-    if (Object.keys(updates).length > 0) {
-      const { error: statusError } = await supabase
-        .from('commander_tournaments')
-        .update(updates)
-        .eq('id', tournamentId);
+    // Persist status/level updates AND clock_state together via settings
+    const currentSettings = tournament.settings || {};
+    const updatedSettings = { ...currentSettings, clock_state: clockState };
+    const updatePayload = {
+      ...updates,
+      settings: updatedSettings
+    };
 
-      if (statusError) {
-        console.error('[clock.js] Status update error:', JSON.stringify(statusError, null, 2));
-        return res.status(500).json({
-          success: false,
-          error: { code: 'DB_ERROR', message: statusError.message }
-        });
-      }
-    }
+    const { error: updateError } = await supabase
+      .from('commander_tournaments')
+      .update(updatePayload)
+      .eq('id', tournamentId);
 
-    // Persist clock_state separately using a raw PATCH to bypass schema cache issues
-    // The clock_state column may not be in PostgREST schema cache
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const patchRes = await fetch(
-        `${supabaseUrl}/rest/v1/commander_tournaments?id=eq.${tournamentId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': serviceKey,
-            'Authorization': `Bearer ${serviceKey}`,
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify({ clock_state: clockState })
-        }
-      );
-      if (!patchRes.ok) {
-        const errText = await patchRes.text();
-        console.error('[clock.js] Clock state PATCH error:', errText);
-        // If PATCH also fails, fall back to SQL
-        await supabase.rpc('exec_sql', {
-          sql: `UPDATE commander_tournaments SET clock_state = '${JSON.stringify(clockState).replace(/'/g, "''")}' WHERE id = '${tournamentId}'`
-        });
-      }
-    } catch (patchErr) {
-      console.error('[clock.js] Clock state persist error:', patchErr.message);
+    if (updateError) {
+      console.error('[clock.js] Update error:', JSON.stringify(updateError, null, 2));
+      return res.status(500).json({
+        success: false,
+        error: { code: 'DB_ERROR', message: updateError.message }
+      });
     }
 
     // Re-fetch the updated tournament

@@ -122,7 +122,8 @@ export default async function handler(req, res) {
 
     // Compute remaining_seconds dynamically (mirrors clock.js logic)
     let remaining_seconds = 0;
-    let clockState = tournament.clock_state || null;
+    const tournamentSettings = tournament.settings || {};
+    let clockState = tournamentSettings.clock_state || null;
 
     // Auto-initialize clock_state for running tournaments that were never properly started
     if (!clockState && ['running', 'break', 'final_table'].includes(tournament.status)) {
@@ -132,10 +133,11 @@ export default async function handler(req, res) {
         pausedAt: null,
         pausedDuration: 0
       };
-      // Persist so this only happens once
+      // Persist so this only happens once — store in settings to bypass schema cache issues
+      const updatedSettings = { ...tournamentSettings, clock_state: clockState };
       await supabase
         .from('commander_tournaments')
-        .update({ clock_state: clockState, actual_start: clockState.levelStartedAt })
+        .update({ settings: updatedSettings, actual_start: clockState.levelStartedAt })
         .eq('id', tournamentId);
     }
 
