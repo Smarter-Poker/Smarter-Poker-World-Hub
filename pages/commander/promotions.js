@@ -24,7 +24,6 @@ import {
   X,
   Check,
   Award,
-  Spade,
   CheckCircle,
   User,
   Copy,
@@ -305,71 +304,7 @@ function CurrentHighHandBanner({ highHand }) {
   );
 }
 
-function PromoCard({ promo, onToggle, onEdit, onDelete }) {
-  const typeConfig = PROMO_TYPES.find(t => t.value === promo.promo_type) || PROMO_TYPES[0];
-  const Icon = typeConfig.icon;
-
-  return (
-    <div className="cmd-panel p-4">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: `${typeConfig.color}20` }}
-          >
-            <Icon className="w-5 h-5" style={{ color: typeConfig.color }} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">{promo.name}</h3>
-            <p className="text-sm text-[#B0B3B8]">{typeConfig.label}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => onToggle?.(promo)}
-          className={`p-1 rounded transition-colors ${promo.is_active ? 'text-[#31A24C]' : 'text-[#3A3B3C]'}`}
-        >
-          {promo.is_active ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
-        </button>
-      </div>
-
-      <div className="flex items-center gap-4 text-sm text-[#B0B3B8] mb-3">
-        <span className="flex items-center gap-1">
-          <DollarSign className="w-4 h-4" />
-          ${promo.prize_amount}
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock className="w-4 h-4" />
-          {promo.frequency}
-        </span>
-        <span>
-          {promo.start_time?.slice(0, 5)} - {promo.end_time?.slice(0, 5)}
-        </span>
-      </div>
-
-      {promo.description && (
-        <p className="text-sm text-[#B0B3B8] mb-3 line-clamp-2">{promo.description}</p>
-      )}
-
-      <div className="flex gap-2 pt-3 border-t border-[#3A3B3C]">
-        <button
-          onClick={() => onEdit?.(promo)}
-          className="flex-1 h-9 flex items-center justify-center gap-1 text-sm font-medium text-[#1877F2] hover:bg-[#1877F2]/5 rounded-lg transition-colors"
-        >
-          <Edit className="w-4 h-4" />
-          Edit
-        </button>
-        <button
-          onClick={() => onDelete?.(promo)}
-          className="flex-1 h-9 flex items-center justify-center gap-1 text-sm font-medium text-[#EF4444] hover:bg-[#EF4444]/5 rounded-lg transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-}
+/* PromoCard removed — replaced by PromotionCard component */
 
 export default function PromotionsPage() {
   const router = useRouter();
@@ -438,7 +373,7 @@ export default function PromotionsPage() {
         setCurrentHighHand(data.current_high);
       }
       // Find active high hand promotion
-      const hhPromo = promotions.find(p => p.promo_type === 'high_hand' && p.is_active);
+      const hhPromo = promotions.find(p => p.promotion_type === 'high_hand' && (p.is_active || p.status === 'active'));
       if (hhPromo) setHighHandPromo(hhPromo);
     } catch (error) {
       console.error('Fetch high hands failed:', error);
@@ -543,10 +478,10 @@ export default function PromotionsPage() {
   // ── Supabase Realtime — auto-refresh on promotion changes ──
   useEffect(() => {
     if (!venueId) return;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
-    const sb = createClient(supabaseUrl, supabaseKey);
+    const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!sbUrl || !sbKey) return;
+    const sb = createClient(sbUrl, sbKey);
     const channel = sb.channel('promotions-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
         () => { fetchPromotions(); }
@@ -573,29 +508,43 @@ export default function PromotionsPage() {
   };
   const clearSelection = () => setSelectedIds(new Set());
   async function bulkToggle(activate) {
-    const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
-    const staffSession = localStorage.getItem('commander_staff') || '';
-    await Promise.all([...selectedIds].map(id =>
-      fetch(`/api/commander/promotions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
-      })
-    ));
-    clearSelection();
-    broadcastChange('settings');
-    fetchPromotions();
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const results = await Promise.allSettled([...selectedIds].map(id =>
+        fetch(`/api/commander/promotions/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
+        })
+      ));
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) alert(`${failed} of ${selectedIds.size} operations failed`);
+      clearSelection();
+      broadcastChange('settings');
+      fetchPromotions();
+    } catch (error) {
+      console.error('Bulk toggle failed:', error);
+      alert('Bulk operation failed: ' + error.message);
+    }
   }
   async function bulkDelete() {
     if (!confirm(`Delete ${selectedIds.size} promotion(s)?`)) return;
-    const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
-    const staffSession = localStorage.getItem('commander_staff') || '';
-    await Promise.all([...selectedIds].map(id =>
-      fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
-    ));
-    clearSelection();
-    broadcastChange('settings');
-    fetchPromotions();
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const results = await Promise.allSettled([...selectedIds].map(id =>
+        fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+      ));
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) alert(`${failed} of ${selectedIds.size} deletions failed`);
+      clearSelection();
+      broadcastChange('settings');
+      fetchPromotions();
+    } catch (error) {
+      console.error('Bulk delete failed:', error);
+      alert('Bulk delete failed: ' + error.message);
+    }
   }
 
   // ── Analytics computed data ──
@@ -612,7 +561,11 @@ export default function PromotionsPage() {
       byType[t].awarded += p.total_awarded || 0;
       byType[t].value += p.total_value_awarded || 0;
     });
-    return { totalAwarded, totalValue, activeCount, total: promotions.length, byType };
+    const draftCount = promotions.filter(p => p.status === 'draft').length;
+    const expiredCount = promotions.filter(p => p.status === 'expired').length;
+    const pausedCount = promotions.filter(p => p.status === 'paused').length;
+    const avgPerAward = totalAwarded > 0 ? Math.round(totalValue / totalAwarded) : 0;
+    return { totalAwarded, totalValue, activeCount, draftCount, expiredCount, pausedCount, total: promotions.length, byType, avgPerAward };
   }, [promotions]);
 
   useEffect(() => {
@@ -756,19 +709,30 @@ export default function PromotionsPage() {
     if (fromIdx < 0 || toIdx < 0) { setDraggedId(null); setDragOverId(null); return; }
     const [moved] = items.splice(fromIdx, 1);
     items.splice(toIdx, 0, moved);
-    // Persist order via settings.display_order
+    // Optimistic local update — shows instantly
+    const reorderedPromos = promotions.map(p => {
+      const idx = items.findIndex(i => i.id === p.id);
+      if (idx < 0) return p;
+      return { ...p, settings: { ...(p.settings || {}), display_order: idx } };
+    });
+    setPromotions(reorderedPromos);
+    setDraggedId(null); setDragOverId(null);
+    // Persist in background
     const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
     const staffSession = localStorage.getItem('commander_staff') || '';
-    await Promise.all(items.map((p, idx) =>
-      fetch(`/api/commander/promotions/${p.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
-      })
-    ));
-    setDraggedId(null); setDragOverId(null);
-    broadcastChange('settings');
-    fetchPromotions();
+    try {
+      await Promise.allSettled(items.map((p, idx) =>
+        fetch(`/api/commander/promotions/${p.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
+        })
+      ));
+      broadcastChange('settings');
+    } catch (err) {
+      console.error('Drag reorder save failed:', err);
+      fetchPromotions(); // Revert on failure
+    }
   }
 
   if (!staff) {
@@ -994,13 +958,26 @@ export default function PromotionsPage() {
                     padding: '48px 24px', textAlign: 'center',
                   }}>
                     <Gift size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
-                    <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 16 }}>
-                      No Promotions Found
+                    <p style={{ color: '#B0B3B8', fontSize: 15, fontWeight: 500, marginBottom: 8 }}>
+                      {filter !== 'all' ? `No ${filter} promotions found` : 'No Promotions Yet'}
                     </p>
+                    {filter !== 'all' ? (
+                      <button
+                        onClick={() => setFilter('all')}
+                        style={{
+                          padding: '8px 20px', borderRadius: 8,
+                          background: '#3A3B3C', color: '#E4E6EB',
+                          border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                          marginRight: 8,
+                        }}
+                      >
+                        Clear Filter
+                      </button>
+                    ) : null}
                     <button
                       onClick={() => setShowCreateModal(true)}
                       style={{
-                        padding: '10px 24px', borderRadius: 8,
+                        padding: '8px 20px', borderRadius: 8,
                         background: '#1877F2', color: '#fff',
                         border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       }}
@@ -1265,12 +1242,13 @@ export default function PromotionsPage() {
                 {analytics ? (
                   <>
                     {/* Summary Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 16 }}>
                       {[
                         { label: 'Total Promotions', value: analytics.total, color: '#1877F2', icon: Gift },
                         { label: 'Active Now', value: analytics.activeCount, color: '#4ADE80', icon: CheckCircle },
                         { label: 'Total Awarded', value: analytics.totalAwarded, color: '#F59E0B', icon: Award },
                         { label: 'Total Value', value: `$${analytics.totalValue.toLocaleString()}`, color: '#8B5CF6', icon: DollarSign },
+                        { label: 'Avg Per Award', value: analytics.avgPerAward > 0 ? `$${analytics.avgPerAward.toLocaleString()}` : '—', color: '#22D3EE', icon: BarChart3 },
                       ].map((card, i) => {
                         const CardIcon = card.icon;
                         return (
@@ -1288,6 +1266,21 @@ export default function PromotionsPage() {
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Status Breakdown */}
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+                      {[
+                        { label: 'Draft', value: analytics.draftCount, color: '#9CA3AF' },
+                        { label: 'Active', value: analytics.activeCount, color: '#4ADE80' },
+                        { label: 'Expired', value: analytics.expiredCount, color: '#F87171' },
+                        { label: 'Paused', value: analytics.pausedCount, color: '#FBBF24' },
+                      ].map((s, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 20, background: '#242526', border: '1px solid #3A3B3C' }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+                          <span style={{ fontSize: 12, color: '#B0B3B8', fontWeight: 500 }}>{s.label}: <strong style={{ color: '#E4E6EB' }}>{s.value}</strong></span>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Per-Type Breakdown */}

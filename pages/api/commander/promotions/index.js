@@ -31,7 +31,7 @@ async function listPromotions(req, res) {
   try {
     const {
       venue_id,
-      status = 'active',
+      status = 'all',
       promotion_type,
       limit = 50,
       offset = 0
@@ -84,15 +84,15 @@ async function listPromotions(req, res) {
 
     if (error) throw error;
 
-    // Auto-expire: flip any promo where end_date < today AND status = 'active'
+    // Auto-expire: batch-update any active promos past their end_date
     const now = new Date().toISOString().split('T')[0];
-    const expired = (data || []).filter(p => p.status === 'active' && p.end_date && p.end_date < now);
-    if (expired.length > 0) {
-      await Promise.all(expired.map(p =>
-        supabase.from('commander_promotions').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', p.id)
-      ));
-      // Update local data to reflect the change
-      expired.forEach(p => { p.status = 'expired'; });
+    const expiredIds = (data || []).filter(p => p.status === 'active' && p.end_date && p.end_date < now).map(p => p.id);
+    if (expiredIds.length > 0) {
+      await supabase.from('commander_promotions')
+        .update({ status: 'expired', updated_at: new Date().toISOString() })
+        .in('id', expiredIds);
+      // Reflect in response data
+      data.forEach(p => { if (expiredIds.includes(p.id)) p.status = 'expired'; });
     }
 
     return res.status(200).json({

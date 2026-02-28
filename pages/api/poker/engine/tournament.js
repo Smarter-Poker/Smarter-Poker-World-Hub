@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
   // Lazy import to avoid circular deps
-  const { getController } = require('@/lib/poker-engine/GameController');
+  const { getController } = require('../../../../src/lib/poker-engine/GameController');
 
   let controller;
   try {

@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getDeviceFingerprint, getGPSLocation } from '@/lib/anti-cheat/deviceFingerprint';
+import { getDeviceFingerprint, getGPSLocation } from '../lib/anti-cheat/deviceFingerprint';
 
 const HEARTBEAT_MS = 10000;
 const API_BASE = '/api/poker/engine';
@@ -256,14 +256,14 @@ export function useTableConnection({ supabase, tableId, userId }) {
       });
     }
 
-    channel.on('presence', { event: 'sync' }, () => {});
+    channel.on('presence', { event: 'sync' }, () => { });
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         setConnected(true);
         await channel.track({ user_id: userId, online_at: new Date().toISOString() });
         heartbeatRef.current = setInterval(() => {
-          apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
+          apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => { });
         }, HEARTBEAT_MS);
       }
     });
@@ -274,8 +274,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       setConnected(false);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
-      apiPost('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => {});
-      channel.untrack().catch(() => {});
+      apiPost('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => { });
+      channel.untrack().catch(() => { });
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
