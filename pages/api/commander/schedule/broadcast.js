@@ -3,7 +3,7 @@
  * Sends the week's schedule to all staff via SMS and/or email
  */
 import { createClient } from '@supabase/supabase-js';
-import { requireStaff } from '../../../../src/lib/commander/auth';
+import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import twilio from 'twilio';
 
 const supabase = createClient(
@@ -31,8 +31,14 @@ export default async function handler(req, res) {
         });
     }
 
-    const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
-    if (!staff) return;
+    // Auth: manager/owner only
+    const authResult = await verifyManagerSession(req, venue_id);
+    if (authResult.error) {
+        return res.status(authResult.error.status).json({
+            success: false,
+            error: { code: authResult.error.code, message: authResult.error.message }
+        });
+    }
 
     try {
         // Fetch shifts for the week
@@ -69,7 +75,11 @@ export default async function handler(req, res) {
         if (staffErr) throw staffErr;
 
         // Get venue name
-        const venueName = staff.venue_name || 'Your Venue';
+        let venueName = 'Your Venue';
+        try {
+            const { data: venueData } = await supabase.from('poker_venues').select('name').eq('id', venue_id).single();
+            if (venueData?.name) venueName = venueData.name;
+        } catch (e) { /* fallback */ }
 
         // Group shifts by staff_id
         const shiftsByStaff = {};

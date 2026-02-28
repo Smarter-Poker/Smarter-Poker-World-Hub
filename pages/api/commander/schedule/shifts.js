@@ -3,7 +3,7 @@
  * Manages weekly shift assignments for all staff roles
  */
 import { createClient } from '@supabase/supabase-js';
-import { requireStaff } from '../../../../src/lib/commander/auth';
+import { verifyStaffSession, verifyManagerSession } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,11 +24,16 @@ async function handleGet(req, res) {
         return res.status(400).json({ success: false, error: { message: 'venue_id and week_start required' } });
     }
 
-    const staff = await requireStaff(req, res, venue_id);
-    if (!staff) return;
+    // Auth: any staff can read shifts
+    const authResult = await verifyStaffSession(req);
+    if (authResult.error) {
+        return res.status(authResult.error.status).json({
+            success: false,
+            error: { code: authResult.error.code, message: authResult.error.message }
+        });
+    }
 
     try {
-        // Calculate week end (7 days)
         const start = new Date(week_start + 'T00:00:00');
         const end = new Date(start);
         end.setDate(end.getDate() + 7);
@@ -63,8 +68,14 @@ async function handlePost(req, res) {
         });
     }
 
-    const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
-    if (!staff) return;
+    // Auth: manager/owner only
+    const authResult = await verifyManagerSession(req, venue_id);
+    if (authResult.error) {
+        return res.status(authResult.error.status).json({
+            success: false,
+            error: { code: authResult.error.code, message: authResult.error.message }
+        });
+    }
 
     try {
         const { data, error } = await supabase
@@ -78,7 +89,7 @@ async function handlePost(req, res) {
                 start_time,
                 end_time,
                 notes: notes || null,
-                created_by: staff.display_name || staff.name || 'Manager'
+                created_by: authResult.staff?.display_name || 'Manager'
             })
             .select()
             .single();
@@ -99,8 +110,14 @@ async function handleDelete(req, res) {
         return res.status(400).json({ success: false, error: { message: 'id and venue_id required' } });
     }
 
-    const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
-    if (!staff) return;
+    // Auth: manager/owner only
+    const authResult = await verifyManagerSession(req, venue_id);
+    if (authResult.error) {
+        return res.status(authResult.error.status).json({
+            success: false,
+            error: { code: authResult.error.code, message: authResult.error.message }
+        });
+    }
 
     try {
         const { error } = await supabase
