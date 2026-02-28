@@ -542,23 +542,25 @@ export default function ClockDisplay() {
                 {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
               </div>
 
-              {/* BLINDS — pinned at bottom, no flex growth */}
-              <div style={S.blindsBlock}>
-                <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
-                <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
-                <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
-                  {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+              {/* BLINDS — fills lower half of center panel */}
+              <div style={S.blindsZone}>
+                <div style={S.blindsBlock}>
+                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
+                  <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
+                  <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
+                    {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                  </div>
+                  {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                 </div>
-                {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
-              </div>
 
-              {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
-                <div style={S.nextRound}>
-                  <strong>Next Round:</strong> {gameType}<br />
-                  Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                  {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
-                </div>
-              )}
+                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                  <div style={S.nextRound}>
+                    <strong>Next Round:</strong> {gameType}<br />
+                    Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                    {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* RIGHT — Time + Chips (portrait: below center) */}
@@ -743,7 +745,7 @@ const S = {
     position: 'relative', padding: 0, flex: 1, minHeight: 0, overflow: 'hidden'
   },
   timerZone: {
-    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+    flex: 3, display: 'flex', flexDirection: 'column', alignItems: 'center',
     justifyContent: 'center', width: '100%', cursor: 'pointer', minHeight: 0
   },
   statCell: {
@@ -761,18 +763,22 @@ const S = {
   statValue: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
   statValuePortrait: { fontSize: 16, fontWeight: 700, lineHeight: 1.3 },
   timer: {
-    fontSize: 'min(28vw, 30vh)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+    fontSize: 'min(28vw, 28vh)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 6px 30px rgba(0,0,0,0.6)', letterSpacing: -4,
     fontFamily: "'Inter', monospace", textAlign: 'center', width: '100%', flexShrink: 0
   },
+  blindsZone: {
+    flex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', width: '100%', minHeight: 0
+  },
   blindsBlock: {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
-    width: '100%', textAlign: 'center', padding: '8px 16px'
+    width: '100%', textAlign: 'center', padding: '12px 16px'
   },
-  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500 },
-  blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5 },
-  blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15 },
-  blindsAnte: { fontSize: 34, fontWeight: 700 },
+  blindsGame: { fontSize: 18, opacity: 0.8, fontWeight: 500 },
+  blindsLabel: { fontSize: 32, fontWeight: 600, opacity: 0.5 },
+  blindsValue: { fontSize: 56, fontWeight: 800, lineHeight: 1.15 },
+  blindsAnte: { fontSize: 40, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
