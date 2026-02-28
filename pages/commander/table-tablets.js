@@ -90,6 +90,9 @@ export default function TableTabletsPage() {
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const scanIntervalRef = useRef(null);
+    // Live countdown tick — tracks when API data was last fetched
+    const lastFetchAt = useRef(Date.now());
+    const [tickCounter, setTickCounter] = useState(0);
 
     useEffect(() => {
         try {
@@ -155,6 +158,7 @@ export default function TableTabletsPage() {
             }
         } catch (err) { console.error('Failed to fetch tables:', err); }
 
+        lastFetchAt.current = Date.now();
         setLoading(false);
     }, [venueId]);
 
@@ -166,6 +170,19 @@ export default function TableTabletsPage() {
         const interval = setInterval(fetchAll, 10000);
         return () => clearInterval(interval);
     }, [venueId, fetchAll]);
+
+    // 1-second tick for live countdown display
+    useEffect(() => {
+        const tick = setInterval(() => setTickCounter(c => c + 1), 1000);
+        return () => clearInterval(tick);
+    }, []);
+
+    // Compute adjusted time_remaining accounting for seconds elapsed since last API fetch
+    const adjustTime = useCallback((apiTimeRemaining) => {
+        if (apiTimeRemaining == null) return null;
+        const elapsed = Math.floor((Date.now() - lastFetchAt.current) / 1000);
+        return Math.max(0, apiTimeRemaining - elapsed);
+    }, [tickCounter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Helper: get game + player info from table data
     const getTableGame = (table) => {
@@ -346,11 +363,11 @@ export default function TableTabletsPage() {
                                 : 'translate(-50%, -50%)';
                         const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
-                        // Timer computation
+                        // Timer computation — live 1-second countdown
                         let timerText = null, timerColor = null;
                         if (isOccupied && seat.taken) {
                             if (seat.taken.time_remaining != null) {
-                                const rem = Math.max(0, seat.taken.time_remaining || 0);
+                                const rem = adjustTime(seat.taken.time_remaining);
                                 timerText = rem <= 0 ? 'EXPIRED' : formatTime(rem);
                                 timerColor = getTimerColor(rem);
                             }
@@ -644,14 +661,15 @@ export default function TableTabletsPage() {
                                 background: '#1a1a1a', flexShrink: 0,
                             }}>
                                 {timedSeats.map((s, i) => {
-                                    const tColor = getTimerColor(s.time_remaining);
+                                    const adjTime = adjustTime(s.time_remaining);
+                                    const tColor = getTimerColor(adjTime);
                                     return (
                                         <span key={i} style={{
                                             fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 6,
                                             background: `${tColor}20`, color: tColor,
                                             display: 'inline-flex', alignItems: 'center', gap: 4,
                                         }}>
-                                            S{s.seat_number}: {formatTime(s.time_remaining)}
+                                            S{s.seat_number}: {adjTime <= 0 ? 'EXPIRED' : formatTime(adjTime)}
                                             {s.player_name && <span style={{ fontSize: 10, opacity: 0.7 }}>({s.player_name.split(' ')[0]})</span>}
                                         </span>
                                     );
