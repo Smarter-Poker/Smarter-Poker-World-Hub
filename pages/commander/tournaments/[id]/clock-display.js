@@ -66,8 +66,12 @@ export default function ClockDisplay() {
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showControls, setShowControls] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const timerRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const isRunningRef = useRef(false);
+  const controlsTimeoutRef = useRef(null);
 
   // Wake lock
   useEffect(() => {
@@ -86,10 +90,10 @@ export default function ClockDisplay() {
     return () => clearInterval(i);
   }, []);
 
-  // Fetch
+  // Fetch floor-view data
   useEffect(() => {
     if (!id) return;
-    const fetch_ = async () => {
+    const fetchData = async () => {
       try {
         const staffSession = localStorage.getItem('commander_staff') || '';
         const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
@@ -99,23 +103,69 @@ export default function ClockDisplay() {
         if (json.success) {
           setData(json.data);
           const cs = json.data.clock?.clock_state;
-          if (cs?.remaining_seconds !== undefined) setSeconds(cs.remaining_seconds);
+          if (cs?.remaining_seconds !== undefined) {
+            setSeconds(cs.remaining_seconds);
+          }
+          isRunningRef.current = cs?.status === 'running';
         }
       } catch (err) { console.error(err); }
     };
-    fetch_();
-    const poll = setInterval(fetch_, 3000);
+    fetchData();
+    const poll = setInterval(fetchData, 3000);
     return () => clearInterval(poll);
   }, [id]);
 
-  // Countdown tick
+  // Countdown tick — uses ref to avoid re-creating interval on every tick
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (data?.clock?.clock_state?.status === 'running' && seconds > 0) {
-      timerRef.current = setInterval(() => setSeconds(prev => (prev > 0 ? prev - 1 : 0)), 1000);
+    const status = data?.clock?.clock_state?.status;
+    isRunningRef.current = status === 'running';
+    if (status === 'running') {
+      timerRef.current = setInterval(() => {
+        if (isRunningRef.current) {
+          setSeconds(prev => (prev > 0 ? prev - 1 : 0));
+        }
+      }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [data?.clock?.clock_state?.status, seconds]);
+  }, [data?.clock?.clock_state?.status]);
+
+  // Clock action handler (pause, resume, next_level, previous_level)
+  const clockAction = async (action) => {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+    try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        body: JSON.stringify({ action })
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Re-fetch immediately to get updated state
+        const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
+          headers: { 'x-staff-session': staffSession },
+        });
+        const json2 = await res2.json();
+        if (json2.success) {
+          setData(json2.data);
+          const cs = json2.data.clock?.clock_state;
+          if (cs?.remaining_seconds !== undefined) setSeconds(cs.remaining_seconds);
+          isRunningRef.current = cs?.status === 'running';
+        }
+      }
+    } catch (err) { console.error('Clock action error:', err); }
+    setActionLoading(false);
+  };
+
+  const toggleControls = (e) => {
+    e.stopPropagation();
+    setShowControls(prev => !prev);
+    // Auto-hide controls after 10 seconds
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 10000);
+  };
 
   const goFullscreen = () => { document.documentElement.requestFullscreen?.(); };
 
@@ -158,6 +208,43 @@ export default function ClockDisplay() {
 
       <div style={{ ...S.container, background: theme.gradient }} onClick={goFullscreen}>
 
+        {/* ===== MANAGEMENT CONTROLS (toggle with click on timer area) ===== */}
+        {showControls && (
+          <div style={S.controlBar} onClick={e => e.stopPropagation()}>
+            <button
+              style={{ ...S.controlBtn, background: 'rgba(239,68,68,0.3)', borderColor: '#EF4444' }}
+              onClick={() => clockAction('previous_level')}
+              disabled={actionLoading}
+            >
+              ← Prev Level
+            </button>
+            {data?.tournament?.status === 'running' ? (
+              <button
+                style={{ ...S.controlBtn, ...S.controlBtnPrimary, background: 'rgba(245,158,11,0.3)', borderColor: '#F59E0B' }}
+                onClick={() => clockAction('pause')}
+                disabled={actionLoading}
+              >
+                ⏸ Pause
+              </button>
+            ) : (
+              <button
+                style={{ ...S.controlBtn, ...S.controlBtnPrimary, background: 'rgba(49,162,76,0.3)', borderColor: '#31A24C' }}
+                onClick={() => clockAction('resume')}
+                disabled={actionLoading}
+              >
+                ▶ Resume
+              </button>
+            )}
+            <button
+              style={{ ...S.controlBtn, background: 'rgba(24,119,242,0.3)', borderColor: '#1877F2' }}
+              onClick={() => clockAction('next_level')}
+              disabled={actionLoading}
+            >
+              Next Level →
+            </button>
+          </div>
+        )}
+
         {/* ===== HEADER ===== */}
         <div style={{ ...S.header, borderBottomColor: theme.accent + '26' }}>
           <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
@@ -191,13 +278,22 @@ export default function ClockDisplay() {
             {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
             {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
 
-            {/* Countdown */}
-            <div style={{
-              ...S.timer,
-              color: isBreak ? '#F59E0B' : displaySeconds <= 60 ? '#EF4444' : theme.accent
-            }}>
+            {/* Countdown — click to toggle management controls */}
+            <div
+              style={{
+                ...S.timer,
+                color: isBreak ? '#F59E0B' : displaySeconds <= 60 ? '#EF4444' : theme.accent,
+                cursor: 'pointer'
+              }}
+              onClick={toggleControls}
+            >
               {formatClock(displaySeconds)}
             </div>
+
+            {/* Paused indicator */}
+            {data?.tournament?.status === 'paused' && (
+              <div style={S.pausedBanner}>PAUSED</div>
+            )}
 
             {/* Blinds block */}
             <div style={S.blindsBlock}>
@@ -358,5 +454,24 @@ const S = {
     border: '2px solid rgba(239,68,68,0.5)', padding: '8px 32px', borderRadius: 8,
     color: '#EF4444', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10,
     animation: 'pulse 1.5s infinite'
+  },
+  pausedBanner: {
+    background: 'rgba(245,158,11,0.2)', border: '2px solid rgba(245,158,11,0.5)',
+    padding: '6px 28px', borderRadius: 8, color: '#F59E0B', fontSize: 24,
+    fontWeight: 800, letterSpacing: 4, marginTop: 4
+  },
+  controlBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
+    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16,
+    padding: '12px 24px', borderBottom: '2px solid rgba(255,255,255,0.2)'
+  },
+  controlBtn: {
+    padding: '10px 24px', borderRadius: 8, border: '2px solid', color: '#fff',
+    fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+    transition: 'all 0.2s', opacity: 0.9
+  },
+  controlBtnPrimary: {
+    padding: '10px 32px', fontSize: 18
   }
 };
