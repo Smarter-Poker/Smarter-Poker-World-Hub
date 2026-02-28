@@ -848,6 +848,7 @@ BEGIN
       'is_prepaid', v_agent.is_prepaid,
       'business_balance', COALESCE(v_agent.business_balance, 0),
       'player_balance', COALESCE(v_agent.player_balance, 0),
+      'promo_balance', COALESCE(v_agent.promo_balance, 0),
       'credit_limit', COALESCE(v_agent.credit_limit, 0),
       'credit_used', COALESCE(v_agent.credit_used, 0),
       'lifetime_earnings', COALESCE(v_agent.lifetime_earnings, 0),
@@ -874,6 +875,8 @@ DECLARE
   v_club RECORD;
   v_total_member_chips NUMERIC;
   v_total_agent_balances NUMERIC;
+  v_total_agent_promo NUMERIC;
+  v_total_player_promo NUMERIC;
   v_pending_cashouts NUMERIC;
   v_agent_count INTEGER;
   v_player_count INTEGER;
@@ -889,6 +892,12 @@ BEGIN
   SELECT COALESCE(SUM(business_balance), 0) INTO v_total_agent_balances
   FROM agents WHERE club_id = p_club_id AND status = 'active';
 
+  SELECT COALESCE(SUM(promo_balance), 0) INTO v_total_agent_promo
+  FROM agents WHERE club_id = p_club_id AND status = 'active';
+
+  SELECT COALESCE(SUM(promo_balance), 0) INTO v_total_player_promo
+  FROM club_members WHERE club_id = p_club_id AND is_active = true;
+
   SELECT COALESCE(SUM(amount), 0) INTO v_pending_cashouts
   FROM cashout_requests WHERE club_id = p_club_id AND status IN ('pending', 'approved');
 
@@ -899,9 +908,12 @@ BEGIN
     'success', true,
     'club_name', v_club.name,
     'treasury', COALESCE(v_club.chip_treasury, 0),
+    'club_promo_balance', COALESCE(v_club.promo_balance, 0),
     'total_rake', COALESCE(v_club.total_rake, 0),
     'total_member_chips', v_total_member_chips,
     'total_agent_balances', v_total_agent_balances,
+    'total_agent_promo', v_total_agent_promo,
+    'total_player_promo', v_total_player_promo,
     'pending_cashouts', v_pending_cashouts,
     'agent_count', v_agent_count,
     'player_count', v_player_count,

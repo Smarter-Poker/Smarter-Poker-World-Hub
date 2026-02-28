@@ -95,9 +95,9 @@ export default function UnionDashboard() {
     const [unionHoldRate, setUnionHoldRate] = useState('');
     const [bbjData, setBbjData] = useState(null);
     const [bbjLoading, setBbjLoading] = useState(false);
-    const [bbjMainPct, setBbjMainPct] = useState('50');
-    const [bbjBackupPct, setBbjBackupPct] = useState('25');
-    const [bbjPromoPct, setBbjPromoPct] = useState('25');
+    const [bbjMainPct, setBbjMainPct] = useState('40');
+    const [bbjBackupPct, setBbjBackupPct] = useState('30');
+    const [bbjPromoPct, setBbjPromoPct] = useState('30');
 
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
@@ -123,9 +123,9 @@ export default function UnionDashboard() {
                 setUnionName(data.union.name || '');
                 setUnionDesc(data.union.description || '');
                 setUnionHoldRate(String(((data.union.settings?.union_rake_hold || 0.10) * 100).toFixed(0)));
-                setBbjMainPct(String(data.union.settings?.bbj_main_pct || 50));
-                setBbjBackupPct(String(data.union.settings?.bbj_backup_pct || 25));
-                setBbjPromoPct(String(data.union.settings?.bbj_promo_pct || 25));
+                setBbjMainPct(String(data.union.settings?.bbj_main_pct || 40));
+                setBbjBackupPct(String(data.union.settings?.bbj_backup_pct || 30));
+                setBbjPromoPct(String(data.union.settings?.bbj_promo_pct || 30));
             }
             if (data.clubs?.length > 0 && !mintClubId) {
                 setMintClubId(data.clubs[0].id);

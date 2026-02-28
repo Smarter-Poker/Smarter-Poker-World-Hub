@@ -14,6 +14,42 @@ DROP FUNCTION IF EXISTS record_rake(UUID, UUID, UUID, NUMERIC, NUMERIC, INTEGER,
 DROP FUNCTION IF EXISTS calculate_cascading_commission(UUID, UUID, UUID, NUMERIC);
 
 -- ─────────────────────────────────────────────────────────────
+-- 0. ADD PROMO WALLETS to clubs, agents, and players
+--    Every entity that handles money gets a promo_balance
+-- ─────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  -- CLUBS: promo wallet for club-level promotions
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'clubs' AND column_name = 'promo_balance') THEN
+    ALTER TABLE clubs ADD COLUMN promo_balance NUMERIC(14,2) DEFAULT 0;
+    COMMENT ON COLUMN clubs.promo_balance IS 'Club promo wallet — funded by union distributions or direct top-ups';
+  END IF;
+
+  -- AGENTS: promo wallet for agent-level player incentives
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agents' AND column_name = 'promo_balance') THEN
+    ALTER TABLE agents ADD COLUMN promo_balance NUMERIC(14,2) DEFAULT 0;
+    COMMENT ON COLUMN agents.promo_balance IS 'Agent promo wallet — for player bonuses, rakeback, incentives';
+  END IF;
+
+  -- Also ensure agents have business_balance and player_balance if missing
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agents' AND column_name = 'business_balance') THEN
+    ALTER TABLE agents ADD COLUMN business_balance NUMERIC(14,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agents' AND column_name = 'player_balance') THEN
+    ALTER TABLE agents ADD COLUMN player_balance NUMERIC(14,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agents' AND column_name = 'is_prepaid') THEN
+    ALTER TABLE agents ADD COLUMN is_prepaid BOOLEAN DEFAULT false;
+  END IF;
+
+  -- PLAYERS (club_members): promo wallet for player bonuses/rewards
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'club_members' AND column_name = 'promo_balance') THEN
+    ALTER TABLE club_members ADD COLUMN promo_balance NUMERIC(14,2) DEFAULT 0;
+    COMMENT ON COLUMN club_members.promo_balance IS 'Player promo wallet — bonuses, rakeback, rewards from club/agent/union';
+  END IF;
+END $$;
+
+-- ─────────────────────────────────────────────────────────────
 -- 1. ADD BBJ POOL COLUMNS TO UNIONS
 -- ─────────────────────────────────────────────────────────────
 DO $$
@@ -45,10 +81,10 @@ BEGIN
 END $$;
 
 -- BBJ split config lives in unions.settings JSONB:
---   "bbj_main_pct": 50      (% of BBJ drop going to main pool)
---   "bbj_backup_pct": 25    (% going to backup pool) 
---   "bbj_promo_pct": 25     (% going to promo fund)
--- Default: 50/25/25
+--   "bbj_main_pct": 40      (% of BBJ drop going to main pool)
+--   "bbj_backup_pct": 30    (% going to backup pool) 
+--   "bbj_promo_pct": 30     (% going to promo fund)
+-- Default: 40/30/30
 
 COMMENT ON COLUMN unions.main_bbj_balance IS 'Main bad beat jackpot pool - pays on qualifying hands';
 COMMENT ON COLUMN unions.backup_bbj_balance IS 'Backup BBJ pool - seeds next jackpot after payout';
@@ -204,12 +240,12 @@ BEGIN
 
     -- BBJ split into 3 pools
     IF COALESCE(p_bbj_contribution, 0) > 0 THEN
-      v_bbj_main_pct := COALESCE((v_union_settings->>'bbj_main_pct')::NUMERIC, 50);
-      v_bbj_backup_pct := COALESCE((v_union_settings->>'bbj_backup_pct')::NUMERIC, 25);
-      v_bbj_promo_pct := COALESCE((v_union_settings->>'bbj_promo_pct')::NUMERIC, 25);
+      v_bbj_main_pct := COALESCE((v_union_settings->>'bbj_main_pct')::NUMERIC, 40);
+      v_bbj_backup_pct := COALESCE((v_union_settings->>'bbj_backup_pct')::NUMERIC, 30);
+      v_bbj_promo_pct := COALESCE((v_union_settings->>'bbj_promo_pct')::NUMERIC, 30);
       
       IF v_bbj_main_pct + v_bbj_backup_pct + v_bbj_promo_pct != 100 THEN
-        v_bbj_main_pct := 50; v_bbj_backup_pct := 25; v_bbj_promo_pct := 25;
+        v_bbj_main_pct := 40; v_bbj_backup_pct := 30; v_bbj_promo_pct := 30;
       END IF;
 
       v_bbj_main := ROUND(p_bbj_contribution * (v_bbj_main_pct / 100.0), 2);
@@ -350,9 +386,9 @@ BEGIN
                  COALESCE(v_union.backup_bbj_balance, 0) + 
                  COALESCE(v_union.promo_fund_balance, 0),
     'split_config', jsonb_build_object(
-      'main_pct', COALESCE((v_union.settings->>'bbj_main_pct')::NUMERIC, 50),
-      'backup_pct', COALESCE((v_union.settings->>'bbj_backup_pct')::NUMERIC, 25),
-      'promo_pct', COALESCE((v_union.settings->>'bbj_promo_pct')::NUMERIC, 25)
+      'main_pct', COALESCE((v_union.settings->>'bbj_main_pct')::NUMERIC, 40),
+      'backup_pct', COALESCE((v_union.settings->>'bbj_backup_pct')::NUMERIC, 30),
+      'promo_pct', COALESCE((v_union.settings->>'bbj_promo_pct')::NUMERIC, 30)
     ),
     'recent_entries', v_recent_entries
   );
@@ -599,6 +635,318 @@ BEGIN
     'club_keeps', p_rake_amount - v_total_commission,
     'chain_depth', v_depth,
     'commissions', v_commission_chain
+  );
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────
+-- 10. PROMO WALLET OPERATIONS
+--     Distribute promo funds down the chain:
+--     Union → Club, Union → Agent, Club → Agent, Agent → Player
+--     Also: direct top-ups and player redemptions
+-- ─────────────────────────────────────────────────────────────
+
+-- Transfer promo funds: union → club
+CREATE OR REPLACE FUNCTION transfer_promo_union_to_club(
+  p_union_id UUID,
+  p_club_id UUID,
+  p_amount NUMERIC,
+  p_note TEXT DEFAULT NULL,
+  p_performed_by UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_union RECORD;
+  v_new_union_promo NUMERIC;
+  v_new_club_promo NUMERIC;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Amount must be positive');
+  END IF;
+
+  -- Lock union row
+  SELECT * INTO v_union FROM unions WHERE id = p_union_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Union not found');
+  END IF;
+
+  IF COALESCE(v_union.promo_fund_balance, 0) < p_amount THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient union promo funds');
+  END IF;
+
+  -- Debit union promo fund
+  UPDATE unions SET
+    promo_fund_balance = COALESCE(promo_fund_balance, 0) - p_amount,
+    updated_at = NOW()
+  WHERE id = p_union_id
+  RETURNING promo_fund_balance INTO v_new_union_promo;
+
+  -- Credit club promo wallet
+  UPDATE clubs SET
+    promo_balance = COALESCE(promo_balance, 0) + p_amount,
+    updated_at = NOW()
+  WHERE id = p_club_id
+  RETURNING promo_balance INTO v_new_club_promo;
+
+  -- Log in BBJ ledger
+  INSERT INTO union_bbj_ledger (
+    union_id, club_id, entry_type,
+    main_amount, backup_amount, promo_amount,
+    main_balance_after, backup_balance_after, promo_balance_after,
+    note, created_by
+  ) VALUES (
+    p_union_id, p_club_id, 'promo_debit',
+    0, 0, -p_amount,
+    COALESCE(v_union.main_bbj_balance, 0),
+    COALESCE(v_union.backup_bbj_balance, 0),
+    v_new_union_promo,
+    COALESCE(p_note, 'Promo transfer to club'),
+    p_performed_by
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'amount', p_amount,
+    'union_promo_after', v_new_union_promo,
+    'club_promo_after', v_new_club_promo
+  );
+END;
+$$;
+
+-- Transfer promo funds: club → agent
+CREATE OR REPLACE FUNCTION transfer_promo_club_to_agent(
+  p_club_id UUID,
+  p_agent_user_id UUID,
+  p_amount NUMERIC,
+  p_note TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_club_promo NUMERIC;
+  v_agent_promo NUMERIC;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Amount must be positive');
+  END IF;
+
+  -- Check club balance
+  SELECT COALESCE(promo_balance, 0) INTO v_club_promo
+  FROM clubs WHERE id = p_club_id FOR UPDATE;
+
+  IF v_club_promo < p_amount THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient club promo funds');
+  END IF;
+
+  -- Debit club
+  UPDATE clubs SET
+    promo_balance = promo_balance - p_amount,
+    updated_at = NOW()
+  WHERE id = p_club_id;
+
+  -- Credit agent
+  UPDATE agents SET
+    promo_balance = COALESCE(promo_balance, 0) + p_amount,
+    updated_at = NOW()
+  WHERE club_id = p_club_id AND user_id = p_agent_user_id
+  RETURNING promo_balance INTO v_agent_promo;
+
+  IF v_agent_promo IS NULL THEN
+    -- Rollback: re-credit club
+    UPDATE clubs SET promo_balance = promo_balance + p_amount WHERE id = p_club_id;
+    RETURN jsonb_build_object('success', false, 'error', 'Agent not found in this club');
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'amount', p_amount,
+    'club_promo_after', v_club_promo - p_amount,
+    'agent_promo_after', v_agent_promo
+  );
+END;
+$$;
+
+-- Transfer promo funds: agent → player
+CREATE OR REPLACE FUNCTION transfer_promo_agent_to_player(
+  p_club_id UUID,
+  p_agent_user_id UUID,
+  p_player_user_id UUID,
+  p_amount NUMERIC,
+  p_note TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_agent_promo NUMERIC;
+  v_player_promo NUMERIC;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Amount must be positive');
+  END IF;
+
+  -- Check agent balance
+  SELECT COALESCE(promo_balance, 0) INTO v_agent_promo
+  FROM agents WHERE club_id = p_club_id AND user_id = p_agent_user_id FOR UPDATE;
+
+  IF v_agent_promo IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Agent not found');
+  END IF;
+
+  IF v_agent_promo < p_amount THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient agent promo funds');
+  END IF;
+
+  -- Debit agent
+  UPDATE agents SET
+    promo_balance = promo_balance - p_amount,
+    updated_at = NOW()
+  WHERE club_id = p_club_id AND user_id = p_agent_user_id;
+
+  -- Credit player
+  UPDATE club_members SET
+    promo_balance = COALESCE(promo_balance, 0) + p_amount
+  WHERE club_id = p_club_id AND user_id = p_player_user_id
+  RETURNING promo_balance INTO v_player_promo;
+
+  IF v_player_promo IS NULL THEN
+    -- Rollback
+    UPDATE agents SET promo_balance = promo_balance + p_amount
+    WHERE club_id = p_club_id AND user_id = p_agent_user_id;
+    RETURN jsonb_build_object('success', false, 'error', 'Player not found in this club');
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'amount', p_amount,
+    'agent_promo_after', v_agent_promo - p_amount,
+    'player_promo_after', v_player_promo
+  );
+END;
+$$;
+
+-- Transfer promo funds: union → agent (direct, bypasses club)
+CREATE OR REPLACE FUNCTION transfer_promo_union_to_agent(
+  p_union_id UUID,
+  p_club_id UUID,
+  p_agent_user_id UUID,
+  p_amount NUMERIC,
+  p_note TEXT DEFAULT NULL,
+  p_performed_by UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_union RECORD;
+  v_new_union_promo NUMERIC;
+  v_agent_promo NUMERIC;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Amount must be positive');
+  END IF;
+
+  SELECT * INTO v_union FROM unions WHERE id = p_union_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Union not found');
+  END IF;
+
+  IF COALESCE(v_union.promo_fund_balance, 0) < p_amount THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient union promo funds');
+  END IF;
+
+  -- Debit union
+  UPDATE unions SET
+    promo_fund_balance = COALESCE(promo_fund_balance, 0) - p_amount,
+    updated_at = NOW()
+  WHERE id = p_union_id
+  RETURNING promo_fund_balance INTO v_new_union_promo;
+
+  -- Credit agent
+  UPDATE agents SET
+    promo_balance = COALESCE(promo_balance, 0) + p_amount,
+    updated_at = NOW()
+  WHERE club_id = p_club_id AND user_id = p_agent_user_id
+  RETURNING promo_balance INTO v_agent_promo;
+
+  IF v_agent_promo IS NULL THEN
+    UPDATE unions SET promo_fund_balance = promo_fund_balance + p_amount WHERE id = p_union_id;
+    RETURN jsonb_build_object('success', false, 'error', 'Agent not found');
+  END IF;
+
+  -- Log
+  INSERT INTO union_bbj_ledger (
+    union_id, club_id, entry_type,
+    main_amount, backup_amount, promo_amount,
+    main_balance_after, backup_balance_after, promo_balance_after,
+    note, created_by
+  ) VALUES (
+    p_union_id, p_club_id, 'promo_debit',
+    0, 0, -p_amount,
+    COALESCE(v_union.main_bbj_balance, 0),
+    COALESCE(v_union.backup_bbj_balance, 0),
+    v_new_union_promo,
+    COALESCE(p_note, 'Promo transfer to agent'),
+    p_performed_by
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'amount', p_amount,
+    'union_promo_after', v_new_union_promo,
+    'agent_promo_after', v_agent_promo
+  );
+END;
+$$;
+
+-- Player redeems promo balance → chip_balance (converts promo to playable chips)
+CREATE OR REPLACE FUNCTION redeem_promo_to_chips(
+  p_club_id UUID,
+  p_player_user_id UUID,
+  p_amount NUMERIC
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_promo NUMERIC;
+  v_new_promo NUMERIC;
+  v_new_chips NUMERIC;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Amount must be positive');
+  END IF;
+
+  SELECT COALESCE(promo_balance, 0) INTO v_promo
+  FROM club_members WHERE club_id = p_club_id AND user_id = p_player_user_id FOR UPDATE;
+
+  IF v_promo IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Player not found');
+  END IF;
+
+  IF v_promo < p_amount THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient promo balance');
+  END IF;
+
+  UPDATE club_members SET
+    promo_balance = promo_balance - p_amount,
+    chip_balance = COALESCE(chip_balance, 0) + p_amount
+  WHERE club_id = p_club_id AND user_id = p_player_user_id
+  RETURNING promo_balance, chip_balance INTO v_new_promo, v_new_chips;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'amount', p_amount,
+    'promo_after', v_new_promo,
+    'chips_after', v_new_chips
   );
 END;
 $$;
