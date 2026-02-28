@@ -188,7 +188,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           font-family: 'Orbitron', sans-serif;
           font-size: 11px;
           font-weight: 700;
-          color: #22D3EE;
+          color: #FFFFFF;
           letter-spacing: 1.5px;
           text-transform: uppercase;
           white-space: nowrap;

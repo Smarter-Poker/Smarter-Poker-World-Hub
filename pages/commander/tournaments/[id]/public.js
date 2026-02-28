@@ -367,7 +367,7 @@ export default function TournamentPublic() {
                       }`}>
                       {ordinal(e.finish_position)}
                     </span>
-                    <span className="flex-1 text-sm font-medium text-white">{e.player_name}</span>
+                    <span className="flex-1 text-sm font-medium text-white">{getName(e)}</span>
                     {e.payout_amount > 0 && (
                       <span className="text-sm font-bold text-[#31A24C]">${e.payout_amount.toLocaleString()}</span>
                     )}
