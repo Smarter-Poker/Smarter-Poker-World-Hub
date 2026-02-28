@@ -479,131 +479,151 @@ export default function Cashier() {
         {loading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>
         ) : (
-          <div className="px-4 py-4 space-y-3">
+          <div className="px-2 py-2">
 
-            {/* 1. Scan Player Card */}
-            <button onClick={scanning ? stopScan : startScan}
-              className={`w-full rounded-2xl border-2 p-5 flex items-center gap-4 active:scale-[0.99] transition-transform ${scanning ? 'bg-[#EF4444]/10 border-[#EF4444]/40' : 'bg-[#1877F2]/10 border-[#1877F2]/40'
-                }`}>
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${scanning ? 'bg-[#EF4444]/20' : 'bg-[#1877F2]/20'}`}>
-                <QrCode className={`w-7 h-7 ${scanning ? 'text-[#EF4444]' : 'text-[#1877F2]'}`} />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-lg font-bold text-white">{scanning ? 'Stop Scanning' : 'Scan Player Card'}</p>
-                <p className="text-sm text-[#B0B3B8]">{scanning ? 'Tap To Stop Camera' : 'Scan QR Code To Identify Player'}</p>
-              </div>
-              {scanning && <div className="w-3 h-3 rounded-full bg-[#EF4444] animate-pulse" />}
-            </button>
-
+            {/* Camera view — shown above panel when scanning */}
             {scanning && (
-              <div className="rounded-2xl overflow-hidden border-2 border-[#3A3B3C] bg-black relative">
+              <div className="mx-2 mb-2 rounded-2xl overflow-hidden border-2 border-[#3A3B3C] bg-black relative">
                 <video ref={videoRef} className="w-full aspect-[4/3] object-cover" playsInline muted />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="w-48 h-48 border-2 border-white/30 rounded-2xl" />
                 </div>
+                <button onClick={stopScan}
+                  className="absolute top-3 right-3 bg-[#EF4444] text-white px-4 py-2 rounded-xl text-sm font-bold z-10">
+                  Stop Scanning
+                </button>
               </div>
             )}
 
-            {/* 2. Add Time */}
-            <button onClick={() => {
-              if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
-              setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
-            }}
-              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
-              <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/15 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-[#F59E0B]" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-base font-bold text-white">Add Time</p>
-                <p className="text-xs text-[#B0B3B8]">Add Time To Player's Balance</p>
-              </div>
-              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
-            </button>
+            {/* ═══ METAL PANEL IMAGE WITH CLICKABLE HOTSPOTS ═══ */}
+            <div style={{ position: 'relative', width: '100%', maxWidth: 520, margin: '0 auto' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/commander/cashier-panel.png"
+                alt="Cashier Panel"
+                style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
+                draggable={false}
+              />
 
-            {/* 3. Update Membership */}
-            <button onClick={() => {
-              if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
-              setSelectedTier(selectedPlayer.membership_tier || null); setShowMembership(true);
-            }}
-              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
-              <div className="w-12 h-12 rounded-xl bg-[#8B5CF6]/15 flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-[#8B5CF6]" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-base font-bold text-white">Update Membership</p>
-                <p className="text-xs text-[#B0B3B8]">Change Or Renew Player Membership</p>
-              </div>
-              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
-            </button>
+              {/* Hotspot 1: Scan Player Card — top row */}
+              <button
+                onClick={scanning ? stopScan : startScan}
+                style={{
+                  position: 'absolute', top: '5%', left: '8%', width: '84%', height: '12%',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 8, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(24,119,242,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                aria-label="Scan Player Card"
+              />
 
-            {/* 4. Tournament Registration */}
-            <button onClick={() => router.push('/commander/tournament-registration')}
-              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
-              <div className="w-12 h-12 rounded-xl bg-[#EF4444]/15 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-[#EF4444]" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-base font-bold text-white">Tournament Registration</p>
-                <p className="text-xs text-[#B0B3B8]">Register Players For Tournaments (Cage Backup)</p>
-              </div>
-              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
-            </button>
+              {/* Hotspot 2: Add Time To Player's Balance */}
+              <button
+                onClick={() => {
+                  if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
+                  setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
+                }}
+                style={{
+                  position: 'absolute', top: '19%', left: '8%', width: '84%', height: '13.5%',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 8, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,158,11,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                aria-label="Add Time To Player Balance"
+              />
 
-            {/* 5. Cash Game Buy-In Receipt */}
-            <button onClick={() => { setBuyInAmount(''); setPayMethod('cash'); setShowBuyIn(true); }}
-              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
-              <div className="w-12 h-12 rounded-xl bg-[#31A24C]/15 flex items-center justify-center">
-                <Receipt className="w-6 h-6 text-[#31A24C]" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-base font-bold text-white">Cash Game Buy-In Receipt</p>
-                <p className="text-xs text-[#B0B3B8]">Issue Receipt For Cash Game Buy-Ins</p>
-              </div>
-              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
-            </button>
+              {/* Hotspot 3: Update Membership */}
+              <button
+                onClick={() => {
+                  if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
+                  setSelectedTier(selectedPlayer.membership_tier || null); setShowMembership(true);
+                }}
+                style={{
+                  position: 'absolute', top: '34.5%', left: '8%', width: '84%', height: '13.5%',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 8, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(139,92,246,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                aria-label="Update Membership"
+              />
 
-            {/* Transaction Log (Collapsible) */}
-            <div className="pt-2">
-              <button onClick={() => setShowLog(!showLog)}
-                className="w-full bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between active:bg-[#3A3B3C]">
-                <div className="flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-[#B0B3B8]" />
-                  <span className="text-sm font-semibold text-white">Transaction Log</span>
-                  <span className="text-xs text-[#B0B3B8]">({transactions.length})</span>
-                </div>
-                {showLog ? <ChevronUp className="w-4 h-4 text-[#B0B3B8]" /> : <ChevronDown className="w-4 h-4 text-[#B0B3B8]" />}
-              </button>
-              {showLog && transactions.length > 0 && (
-                <div className="mt-1 bg-[#242526] border border-[#3A3B3C] rounded-xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-[#3A3B3C]">
-                  {transactions.slice(0, 50).map(tx => (
-                    <div key={tx.id} className="px-4 py-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[#31A24C]/15">
-                          <DollarSign className="w-3.5 h-3.5 text-[#31A24C]" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-white">{tx.player_name}</p>
-                          <p className="text-[10px] text-[#B0B3B8]">
-                            Buy-In • {tx.payment_method || 'Cash'} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#31A24C]">${parseFloat(tx.amount).toLocaleString()}</span>
-                        <button onClick={() => printReceipt(tx)} className="w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
-                          <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {showLog && transactions.length === 0 && (
-                <div className="mt-1 bg-[#242526] border border-[#3A3B3C] rounded-xl p-6 text-center">
-                  <p className="text-sm text-[#B0B3B8]">No Transactions Today</p>
-                </div>
-              )}
+              {/* Hotspot 4: Tournament Registration */}
+              <button
+                onClick={() => router.push('/commander/tournament-registration')}
+                style={{
+                  position: 'absolute', top: '50%', left: '8%', width: '84%', height: '13.5%',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 8, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                aria-label="Tournament Registration"
+              />
+
+              {/* Hotspot 5: Cash Game Buy-In Receipt */}
+              <button
+                onClick={() => { setBuyInAmount(''); setPayMethod('cash'); setShowBuyIn(true); }}
+                style={{
+                  position: 'absolute', top: '65.5%', left: '8%', width: '84%', height: '13.5%',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 8, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(49,162,76,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                aria-label="Cash Game Buy-In Receipt"
+              />
+
+              {/* Hotspot 6: Transaction Log */}
+              <button
+                onClick={() => setShowLog(!showLog)}
+                style={{
+                  position: 'absolute', top: '81%', left: '8%', width: '84%', height: '13%',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 8, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(180,180,180,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                aria-label="Transaction Log"
+              />
             </div>
+
+            {/* Transaction Log — rendered below metal panel */}
+            {showLog && (
+              <div className="mx-2 mt-2">
+                {transactions.length > 0 ? (
+                  <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-[#3A3B3C]">
+                    {transactions.slice(0, 50).map(tx => (
+                      <div key={tx.id} className="px-4 py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[#31A24C]/15">
+                            <DollarSign className="w-3.5 h-3.5 text-[#31A24C]" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-white">{tx.player_name}</p>
+                            <p className="text-[10px] text-[#B0B3B8]">
+                              Buy-In • {tx.payment_method || 'Cash'} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-[#31A24C]">${parseFloat(tx.amount).toLocaleString()}</span>
+                          <button onClick={() => printReceipt(tx)} className="w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
+                            <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-6 text-center">
+                    <p className="text-sm text-[#B0B3B8]">No Transactions Today</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
