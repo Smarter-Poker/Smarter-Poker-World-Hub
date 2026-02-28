@@ -9,7 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   DollarSign, Plus, Minus, Loader2, RefreshCw, Users,
   CheckCircle2, AlertTriangle, Banknote, CreditCard, ArrowDownToLine,
-  ArrowUpFromLine, Coins, Receipt
+  ArrowUpFromLine, Coins, Receipt, Lock, Delete
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -35,6 +35,13 @@ export default function Cashier() {
   const [amount, setAmount] = useState('');
   const [payMethod, setPayMethod] = useState('cash');
   const [showForm, setShowForm] = useState(false);
+
+  // PIN verification
+  const [pinStep, setPinStep] = useState(false);
+  const [pinDigits, setPinDigits] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinVerifying, setPinVerifying] = useState(false);
+  const [verifiedStaff, setVerifiedStaff] = useState(null);
 
   useEffect(() => {
     try {
@@ -80,13 +87,40 @@ export default function Cashier() {
     setShowForm(true);
   };
 
-  const submitTransaction = async () => {
+  // Step 1: validate amount, then show PIN prompt
+  const requestPin = () => {
     if (!amount || parseFloat(amount) <= 0) {
       setMessage({ type: 'error', text: 'Enter A Valid Amount' });
       return;
     }
-    setActionLoading(true);
+    setPinDigits('');
+    setPinError('');
+    setPinStep(true);
+  };
+
+  // Step 2: verify PIN then submit
+  const verifyPinAndSubmit = async (digits) => {
+    if (digits.length !== 4) return;
+    setPinVerifying(true);
+    setPinError('');
     try {
+      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue_id: venueId, pin_code: digits })
+      });
+      const pinJson = await pinRes.json();
+      if (!pinJson.success || !pinJson.data?.valid) {
+        setPinError(pinJson.error?.message || 'Invalid PIN');
+        setPinDigits('');
+        setPinVerifying(false);
+        return;
+      }
+      setVerifiedStaff(pinJson.data.staff);
+      setPinStep(false);
+
+      // Now submit the actual transaction
+      setActionLoading(true);
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/cashier', {
         method: 'POST',
@@ -105,7 +139,7 @@ export default function Cashier() {
       const json = await res.json();
       if (json.success) {
         const label = txType === 'buy_in' ? 'Buy-in' : txType === 'add_on' ? 'Add-on' : 'Cash-out';
-        setMessage({ type: 'success', text: `${label} $${parseFloat(amount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-up'}` });
+        setMessage({ type: 'success', text: `${label} $${parseFloat(amount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-up'} (${pinJson.data.staff?.display_name || 'Staff'})` });
         setShowForm(false);
         // Auto-print receipt
         printReceipt({
@@ -115,14 +149,22 @@ export default function Cashier() {
           seat_number: selectedPlayer?.seat_number,
           amount: parseFloat(amount),
           payment_method: payMethod,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          staff_name: pinJson.data.staff?.display_name || 'Staff'
         });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction failed' });
       }
     } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
-    finally { setActionLoading(false); }
+    finally { setActionLoading(false); setPinVerifying(false); }
+  };
+
+  const handlePinDigit = (d) => {
+    const next = pinDigits + d;
+    setPinDigits(next);
+    setPinError('');
+    if (next.length === 4) verifyPinAndSubmit(next);
   };
 
   useEffect(() => {
@@ -154,6 +196,7 @@ export default function Cashier() {
   <div class="divider"></div>
   <div class="row sm"><span>Player:</span><span class="bold">${tx.player_name}</span></div>
   ${tx.table_number ? `<div class="row sm"><span>Table/Seat:</span><span class="bold">T${tx.table_number} S${tx.seat_number || '-'}</span></div>` : ''}
+  ${tx.staff_name ? `<div class="row sm"><span>Processed by:</span><span class="bold">${tx.staff_name}</span></div>` : ''}
   <div class="divider"></div>
   <div class="center bold big">$${parseFloat(tx.amount).toLocaleString()}</div>
   <div class="center sm">${(tx.payment_method || 'cash').toUpperCase()}</div>
@@ -394,18 +437,54 @@ export default function Cashier() {
                 </div>
               )}
 
-              {/* Submit */}
-              <button onClick={submitTransaction} disabled={actionLoading || !amount}
-                className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
-                  ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
-                  : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
-                  } disabled:opacity-50`}>
-                {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />
-                )}
-                {txType === 'cash_out' ? 'Process Cash Out' : txType === 'add_on' ? 'Process Add-On' : 'Process Buy-In'}
-                {amount ? ` — $${parseFloat(amount).toLocaleString()}` : ''}
-              </button>
+              {/* PIN Entry */}
+              {pinStep ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 justify-center mb-2">
+                    <Lock className="w-4 h-4 text-[#F59E0B]" />
+                    <span className="text-sm font-bold text-white">Enter Employee PIN</span>
+                  </div>
+                  {/* PIN dots */}
+                  <div className="flex justify-center gap-3 mb-3">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < pinDigits.length ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#4A4B4C]'}`} />
+                    ))}
+                  </div>
+                  {pinError && <p className="text-xs text-[#EF4444] text-center">{pinError}</p>}
+                  {pinVerifying && <div className="flex justify-center"><Loader2 className="w-5 h-5 text-[#1877F2] animate-spin" /></div>}
+                  {!pinVerifying && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
+                        <button key={d} onClick={() => handlePinDigit(String(d))}
+                          className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">
+                          {d}
+                        </button>
+                      ))}
+                      <button onClick={() => setPinStep(false)}
+                        className="py-3 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold">Cancel</button>
+                      <button onClick={() => handlePinDigit('0')}
+                        className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">0</button>
+                      <button onClick={() => { setPinDigits(pinDigits.slice(0, -1)); setPinError(''); }}
+                        className="py-3 rounded-xl bg-[#3A3B3C] text-[#B0B3B8] flex items-center justify-center active:bg-[#4A4B4C]">
+                        <Delete className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button onClick={requestPin} disabled={actionLoading || !amount}
+                  className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
+                    ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
+                    : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
+                    } disabled:opacity-50`}>
+                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                    <><Lock className="w-4 h-4 mr-1" />
+                      {txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}</>
+                  )}
+                  {txType === 'cash_out' ? 'Process Cash Out' : txType === 'add_on' ? 'Process Add-On' : 'Process Buy-In'}
+                  {amount ? ` — $${parseFloat(amount).toLocaleString()}` : ''}
+                </button>
+              )}
             </div>
           </div>
         )}

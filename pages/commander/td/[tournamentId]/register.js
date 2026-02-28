@@ -342,7 +342,7 @@ export default function TDRegister() {
                 {lastResult.success
                   ? lastResult.data?.alternate
                     ? <><ListOrdered className="w-4 h-4" /> Added to alternate list</>
-                    : <><CheckCircle2 className="w-4 h-4" /> Registered — T{lastResult.data?.table_number || '?'} S{lastResult.data?.seat_number || '?'}</>
+                    : <><CheckCircle2 className="w-4 h-4" /> Registered — T{lastResult.entry?.table_number || '?'} S{lastResult.entry?.seat_number || '?'}</>
                   : <><AlertTriangle className="w-4 h-4" /> {lastResult.error || 'Failed'}</>
                 }
               </div>

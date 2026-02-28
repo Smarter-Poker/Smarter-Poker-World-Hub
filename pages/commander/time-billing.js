@@ -13,7 +13,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Clock, DollarSign, Play, Square, Users, Search,
   Plus, Minus, ChevronDown, Loader2, RefreshCw, CheckCircle2,
-  AlertTriangle, X, Timer, Receipt, Settings, Package, Save, Trash2
+  AlertTriangle, X, Timer, Receipt, Settings, Package, Save, Trash2, Lock, Delete
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -42,6 +42,10 @@ export default function TimeBilling() {
   const [stopping, setStopping] = useState(null);
   const [payModal, setPayModal] = useState(null);
   const [payAmount, setPayAmount] = useState('');
+  const [payPinStep, setPayPinStep] = useState(false);
+  const [payPinDigits, setPayPinDigits] = useState('');
+  const [payPinError, setPayPinError] = useState('');
+  const [payPinVerifying, setPayPinVerifying] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [filter, setFilter] = useState('active');
   const [search, setSearch] = useState('');
@@ -215,6 +219,7 @@ export default function TimeBilling() {
   <div class="divider"></div>
   <div class="center bold big">$${charge.toFixed(2)}</div>
   <div class="center sm">AMOUNT DUE</div>
+  ${session.staff_name ? `<div class="divider"></div><div class="row sm"><span>Processed by:</span><span class="bold">${session.staff_name}</span></div>` : ''}
   <div class="divider"></div>
   <div class="sm center" style="opacity:0.6">${new Date().toLocaleString()}</div>
   <div class="sm center" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
@@ -224,9 +229,36 @@ export default function TimeBilling() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   };
 
-  const recordPayment = async () => {
+  const requestPayPin = () => {
     if (!payModal || !payAmount) return;
+    setPayPinDigits('');
+    setPayPinError('');
+    setPayPinStep(true);
+  };
+
+  const verifyPayPinAndRecord = async (digits) => {
+    if (digits.length !== 4) return;
+    setPayPinVerifying(true);
+    setPayPinError('');
     try {
+      // Get venue_id
+      let venueId = null;
+      try { venueId = JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { }
+
+      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue_id: venueId, pin_code: digits })
+      });
+      const pinJson = await pinRes.json();
+      if (!pinJson.success || !pinJson.data?.valid) {
+        setPayPinError(pinJson.error?.message || 'Invalid PIN');
+        setPayPinDigits('');
+        setPayPinVerifying(false);
+        return;
+      }
+
+      // PIN OK — record payment
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
@@ -234,9 +266,28 @@ export default function TimeBilling() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ amount: parseFloat(payAmount) })
       });
-      setPayModal(null); setPayAmount('');
+
+      // Auto-print receipt
+      printTimeBillingReceipt({
+        player_name: payModal.player_name,
+        table_number: payModal.table_number,
+        seat_number: payModal.seat_number,
+        amount: parseFloat(payAmount),
+        type: 'time_payment',
+        staff_name: pinJson.data.staff?.display_name || 'Staff'
+      });
+
+      setPayModal(null); setPayAmount(''); setPayPinStep(false);
       await fetchData();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); setPayPinError('Network error'); }
+    finally { setPayPinVerifying(false); }
+  };
+
+  const handlePayPinDigit = (d) => {
+    const next = payPinDigits + d;
+    setPayPinDigits(next);
+    setPayPinError('');
+    if (next.length === 4) verifyPayPinAndRecord(next);
   };
 
   const activeSessions = sessions.filter(s => s.status === 'active');
@@ -486,21 +537,59 @@ export default function TimeBilling() {
 
         {/* Payment Modal */}
         {payModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setPayModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => { setPayModal(null); setPayPinStep(false); }}>
             <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-white">Collect Payment</h3>
               <p className="text-sm text-[#B0B3B8]">{payModal.player_name}</p>
-              <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)}
-                placeholder="Amount" step="0.01" autoFocus
-                className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-2xl font-mono text-center focus:outline-none focus:border-[#1877F2]" />
-              <div className="flex gap-3">
-                <button onClick={() => setPayModal(null)}
-                  className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium">Cancel</button>
-                <button onClick={recordPayment} disabled={!payAmount}
-                  className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium disabled:opacity-50">
-                  Record Payment
-                </button>
-              </div>
+
+              {payPinStep ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 justify-center mb-2">
+                    <Lock className="w-4 h-4 text-[#F59E0B]" />
+                    <span className="text-sm font-bold text-white">Enter Employee PIN</span>
+                  </div>
+                  <p className="text-center text-lg font-bold text-[#F59E0B]">${parseFloat(payAmount).toFixed(2)}</p>
+                  <div className="flex justify-center gap-3 mb-3">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < payPinDigits.length ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#4A4B4C]'}`} />
+                    ))}
+                  </div>
+                  {payPinError && <p className="text-xs text-[#EF4444] text-center">{payPinError}</p>}
+                  {payPinVerifying && <div className="flex justify-center"><Loader2 className="w-5 h-5 text-[#1877F2] animate-spin" /></div>}
+                  {!payPinVerifying && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
+                        <button key={d} onClick={() => handlePayPinDigit(String(d))}
+                          className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">
+                          {d}
+                        </button>
+                      ))}
+                      <button onClick={() => { setPayPinStep(false); setPayPinDigits(''); }}
+                        className="py-3 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold">Cancel</button>
+                      <button onClick={() => handlePayPinDigit('0')}
+                        className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">0</button>
+                      <button onClick={() => { setPayPinDigits(payPinDigits.slice(0, -1)); setPayPinError(''); }}
+                        className="py-3 rounded-xl bg-[#3A3B3C] text-[#B0B3B8] flex items-center justify-center active:bg-[#4A4B4C]">
+                        <Delete className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)}
+                    placeholder="Amount" step="0.01" autoFocus
+                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-2xl font-mono text-center focus:outline-none focus:border-[#1877F2]" />
+                  <div className="flex gap-3">
+                    <button onClick={() => setPayModal(null)}
+                      className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium">Cancel</button>
+                    <button onClick={requestPayPin} disabled={!payAmount}
+                      className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                      <Lock className="w-4 h-4" /> Record Payment
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
