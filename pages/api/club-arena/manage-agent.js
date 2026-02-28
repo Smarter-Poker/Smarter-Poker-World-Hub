@@ -225,13 +225,14 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'reassign') {
       const { playerId, fromAgentId, toAgentId } = params;
-      if (!playerId || !toAgentId) {
-        return res.status(400).json({ error: 'playerId and toAgentId required' });
+      if (!playerId) {
+        return res.status(400).json({ error: 'playerId required' });
       }
 
+      // toAgentId can be null (un-assign from agent)
       await supabaseAdmin
         .from('club_members')
-        .update({ agent_id: toAgentId })
+        .update({ agent_id: toAgentId || null })
         .eq('club_id', clubId)
         .eq('user_id', playerId);
 
@@ -297,6 +298,166 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId);
 
       return res.status(200).json({ success: true, action, targetUserId, newStatus });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CHANGE_ROLE: General role change (owner/admin/agent/player)
+    // Handles agent promotion/demotion transitions automatically
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'change_role') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+
+      const { newRole } = params;
+      if (!newRole || !['admin', 'agent', 'player'].includes(newRole)) {
+        return res.status(400).json({ error: 'newRole must be admin, agent, or player' });
+      }
+
+      const { data: targetMember } = await supabaseAdmin
+        .from('club_members')
+        .select('user_id, role, agent_id')
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId)
+        .single();
+
+      if (!targetMember) return res.status(404).json({ error: 'Member not found' });
+      if (targetMember.role === 'owner') {
+        return res.status(403).json({ error: 'Cannot change the owner\'s role' });
+      }
+
+      const oldRole = targetMember.role;
+      const updates = { role: newRole };
+
+      // If demoting FROM agent → clear downline assignments
+      if (oldRole === 'agent' && newRole !== 'agent') {
+        await supabaseAdmin
+          .from('club_members')
+          .update({ agent_id: null })
+          .eq('club_id', clubId)
+          .eq('agent_id', targetUserId);
+
+        // Deactivate agent record
+        await supabaseAdmin
+          .from('agents')
+          .update({ status: 'inactive', active_player_count: 0 })
+          .eq('user_id', targetUserId)
+          .eq('club_id', clubId);
+      }
+
+      // If promoting TO agent → create agent record if needed
+      if (newRole === 'agent' && oldRole !== 'agent') {
+        const { data: existingAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .eq('club_id', clubId)
+          .single();
+
+        if (existingAgent) {
+          await supabaseAdmin
+            .from('agents')
+            .update({ status: 'active', role: 'agent' })
+            .eq('id', existingAgent.id);
+        } else {
+          await supabaseAdmin
+            .from('agents')
+            .insert({
+              user_id: targetUserId,
+              club_id: clubId,
+              role: 'agent',
+              status: 'active',
+              commission_rate: params.commissionRate || 0.50,
+              is_prepaid: params.isPrepaid || false,
+              business_balance: 0,
+              active_player_count: 0,
+              total_players: 0,
+            });
+        }
+      }
+
+      // Non-player roles shouldn't have an agent_id
+      if (newRole !== 'player') {
+        updates.agent_id = null;
+      }
+
+      await supabaseAdmin
+        .from('club_members')
+        .update(updates)
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId);
+
+      return res.status(200).json({
+        success: true,
+        action: 'role_changed',
+        targetUserId,
+        oldRole,
+        newRole,
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // REMOVE: Remove a member from the club entirely
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'remove') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+
+      const { data: targetMember } = await supabaseAdmin
+        .from('club_members')
+        .select('user_id, role')
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId)
+        .single();
+
+      if (!targetMember) return res.status(404).json({ error: 'Member not found' });
+      if (targetMember.role === 'owner') {
+        return res.status(403).json({ error: 'Cannot remove the club owner' });
+      }
+
+      // Only owner can remove admins
+      if (targetMember.role === 'admin' && club.owner_id !== user.id) {
+        return res.status(403).json({ error: 'Only the club owner can remove admins' });
+      }
+
+      // If removing an agent, clear downline + deactivate agent record
+      if (targetMember.role === 'agent') {
+        await supabaseAdmin
+          .from('club_members')
+          .update({ agent_id: null })
+          .eq('club_id', clubId)
+          .eq('agent_id', targetUserId);
+
+        await supabaseAdmin
+          .from('agents')
+          .update({ status: 'inactive', active_player_count: 0 })
+          .eq('user_id', targetUserId)
+          .eq('club_id', clubId);
+      }
+
+      // Delete membership
+      const { error: delErr } = await supabaseAdmin
+        .from('club_members')
+        .delete()
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId);
+
+      if (delErr) throw delErr;
+
+      // Update club member count
+      const { count } = await supabaseAdmin
+        .from('club_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('club_id', clubId);
+
+      await supabaseAdmin
+        .from('clubs')
+        .update({ member_count: count || 0 })
+        .eq('id', clubId);
+
+      return res.status(200).json({
+        success: true,
+        action: 'removed',
+        targetUserId,
+        remainingMembers: count || 0,
+      });
     }
 
     return res.status(400).json({ error: `Unknown action: ${action}` });

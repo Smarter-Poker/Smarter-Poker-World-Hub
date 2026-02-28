@@ -25,6 +25,26 @@ const FB = {
 
 const ROLES = ['owner', 'admin', 'agent', 'player'];
 
+// Helper: get auth token for API calls
+const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+};
+
+// Helper: make authenticated API call
+const apiCall = async (endpoint, body) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
+
 export default function Admin() {
     const router = useRouter();
     const { club: clubIdParam } = router.query;
@@ -141,22 +161,18 @@ export default function Admin() {
     // MEMBER MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════════
     const updateMemberRole = async (memberUserId, newRole) => {
-        // Hierarchy enforcement: prevent unauthorized role changes
         const currentMember = members.find(m => m.user_id === user?.id);
         const targetMember = members.find(m => m.user_id === memberUserId);
         if (!currentMember || !targetMember) return;
 
-        // Only owner can promote to admin
         if (newRole === 'admin' && currentMember.role !== 'owner') {
             showToast('Only the club owner can promote to admin', 'error');
             return;
         }
-        // Only owner can demote admins
         if (targetMember.role === 'admin' && currentMember.role !== 'owner') {
             showToast('Only the club owner can change admin roles', 'error');
             return;
         }
-        // Never allow changing the owner's role
         if (targetMember.role === 'owner') {
             showToast('Cannot change the owner\'s role', 'error');
             return;
@@ -164,38 +180,22 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            const updates = { role: newRole };
-            // If changing from agent to another role, clear agent_id on their downline
-            if (targetMember.role === 'agent' && newRole !== 'agent') {
-                await supabase
-                    .from('club_members')
-                    .update({ agent_id: null })
-                    .eq('club_id', club.id)
-                    .eq('agent_id', memberUserId);
-            }
-            // If changing from player/agent to non-player, clear their own agent_id
-            if (newRole !== 'player') {
-                updates.agent_id = null;
-            }
-
-            const { error } = await supabase
-                .from('club_members')
-                .update(updates)
-                .eq('club_id', club.id)
-                .eq('user_id', memberUserId);
-
-            if (error) throw error;
+            await apiCall('/api/club-arena/manage-agent', {
+                clubId: club.id,
+                action: 'change_role',
+                targetUserId: memberUserId,
+                newRole,
+            });
             showToast(`Role updated to ${newRole}`);
             loadData();
         } catch (e) {
-            showToast('Failed to update role', 'error');
+            showToast(e.message || 'Failed to update role', 'error');
         } finally {
             setProcessing(false);
         }
     };
 
     const assignAgent = async (memberUserId, agentUserId) => {
-        // Validate: if assigning, verify the agent actually has the agent role
         if (agentUserId) {
             const agentMember = members.find(m => m.user_id === agentUserId);
             if (!agentMember || agentMember.role !== 'agent') {
@@ -206,34 +206,32 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            const { error } = await supabase
-                .from('club_members')
-                .update({ agent_id: agentUserId || null })
-                .eq('club_id', club.id)
-                .eq('user_id', memberUserId);
-
-            if (error) throw error;
+            const currentAgent = members.find(m => m.user_id === memberUserId)?.agent_id;
+            await apiCall('/api/club-arena/manage-agent', {
+                clubId: club.id,
+                action: 'reassign',
+                playerId: memberUserId,
+                fromAgentId: currentAgent || null,
+                toAgentId: agentUserId || null,
+            });
             showToast(agentUserId ? 'Agent assigned' : 'Agent removed');
             loadData();
         } catch (e) {
-            showToast('Failed to assign agent', 'error');
+            showToast(e.message || 'Failed to assign agent', 'error');
         } finally {
             setProcessing(false);
         }
     };
 
     const removeMember = async (memberUserId, memberName) => {
-        // Hierarchy enforcement
         const currentMember = members.find(m => m.user_id === user?.id);
         const targetMember = members.find(m => m.user_id === memberUserId);
         if (!currentMember || !targetMember) return;
 
-        // Can't remove the owner
         if (targetMember.role === 'owner') {
             showToast('Cannot remove the club owner', 'error');
             return;
         }
-        // Admins can't remove other admins (only owner can)
         if (targetMember.role === 'admin' && currentMember.role !== 'owner') {
             showToast('Only the club owner can remove admins', 'error');
             return;
@@ -242,26 +240,15 @@ export default function Admin() {
         if (!confirm(`Remove ${memberName} from the club?`)) return;
         setProcessing(true);
         try {
-            // If removing an agent, clear agent_id on their downline first
-            if (targetMember.role === 'agent') {
-                await supabase
-                    .from('club_members')
-                    .update({ agent_id: null })
-                    .eq('club_id', club.id)
-                    .eq('agent_id', memberUserId);
-            }
-
-            const { error } = await supabase
-                .from('club_members')
-                .delete()
-                .eq('club_id', club.id)
-                .eq('user_id', memberUserId);
-
-            if (error) throw error;
+            await apiCall('/api/club-arena/manage-agent', {
+                clubId: club.id,
+                action: 'remove',
+                targetUserId: memberUserId,
+            });
             showToast('Member removed');
             loadData();
         } catch (e) {
-            showToast('Failed to remove member', 'error');
+            showToast(e.message || 'Failed to remove member', 'error');
         } finally {
             setProcessing(false);
         }
@@ -279,41 +266,20 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            // Read fresh balance to prevent stale-state overwrites
-            const { data: freshMember, error: fetchError } = await supabase
-                .from('club_members')
-                .select('chip_balance')
-                .eq('club_id', club.id)
-                .eq('user_id', selectedMember.user_id)
-                .single();
-
-            if (fetchError) throw fetchError;
-
-            const currentBalance = freshMember?.chip_balance || 0;
-            const { error } = await supabase
-                .from('club_members')
-                .update({ chip_balance: currentBalance + amount })
-                .eq('club_id', club.id)
-                .eq('user_id', selectedMember.user_id);
-
-            if (error) throw error;
-
-            // Record transaction
-            await supabase.from('chip_transactions').insert({
-                from_user_id: user.id,
-                to_user_id: selectedMember.user_id,
-                club_id: club?.id,
-                transaction_type: 'admin_credit',
-                amount: amount,
+            const result = await apiCall('/api/club-arena/distribute-chips', {
+                clubId: club.id,
+                playerId: selectedMember.user_id,
+                amount,
                 notes: `Admin distribution by ${user?.email || 'admin'}`,
             });
 
-            showToast(`${amount.toLocaleString()} chips sent to ${selectedMember.profiles?.display_name || selectedMember.profiles?.username}`);
+            const name = selectedMember.profiles?.display_name || selectedMember.profiles?.username;
+            showToast(`${amount.toLocaleString()} chips sent to ${name}`);
             setSelectedMember(null);
             setChipAmount('');
             loadData();
         } catch (e) {
-            showToast('Failed to distribute chips', 'error');
+            showToast(e.message || 'Failed to distribute chips', 'error');
         } finally {
             setProcessing(false);
         }
@@ -353,7 +319,6 @@ export default function Admin() {
     // DELETE CLUB
     // ═══════════════════════════════════════════════════════════════════════════
     const deleteClub = async () => {
-        // Only the owner can delete the club
         const currentMember = members.find(m => m.user_id === user?.id);
         if (!currentMember || currentMember.role !== 'owner') {
             showToast('Only the club owner can delete the club', 'error');
@@ -368,27 +333,14 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            // Clean up related data first (order matters due to foreign keys)
-            try { await supabase.from('chip_transactions').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('club_announcements').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('club_activity').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('club_shop_purchases').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('club_shop_items').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('hand_history').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('tables').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-            try { await supabase.from('union_clubs').delete().eq('club_id', club.id); } catch (e) { /* may not exist */ }
-
-            // Delete members
-            await supabase.from('club_members').delete().eq('club_id', club.id);
-
-            // Delete club
-            const { error } = await supabase.from('clubs').delete().eq('id', club.id);
-
-            if (error) throw error;
+            await apiCall('/api/club-arena/delete-club', {
+                clubId: club.id,
+                confirmName: confirmText,
+            });
             showToast('Club deleted');
             router.push('/hub/club-arena');
         } catch (e) {
-            showToast('Failed to delete club', 'error');
+            showToast(e.message || 'Failed to delete club', 'error');
         } finally {
             setProcessing(false);
         }
