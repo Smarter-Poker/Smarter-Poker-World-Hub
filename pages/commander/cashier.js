@@ -1,15 +1,20 @@
 /**
- * Cashier - Buy-In / Cash-Out Tracking
+ * Cashier — Simplified Operations
  * /commander/cashier
- * Process chip purchases and redemptions for active cash game players
+ * Three primary functions:
+ * 1. Scan Player Card (QR code scanner)
+ * 2. Add Time (time billing)
+ * 3. Update Membership
+ * Collapsible transaction log at bottom
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  DollarSign, Plus, Minus, Loader2, RefreshCw, Users,
-  CheckCircle2, AlertTriangle, Banknote, CreditCard, ArrowDownToLine,
-  ArrowUpFromLine, Coins, Receipt, Lock, Delete
+  QrCode, Clock, CreditCard, Loader2, RefreshCw,
+  CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
+  Receipt, ArrowDownToLine, ArrowUpFromLine, Lock, Delete,
+  DollarSign, Plus, Minus, Banknote, Users, Coins
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -21,13 +26,19 @@ const PAYMENT_METHODS = [
 
 export default function Cashier() {
   const router = useRouter();
-  const [sessions, setSessions] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showLog, setShowLog] = useState(false);
+
+  // Scanner
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   // Transaction form
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -42,12 +53,9 @@ export default function Cashier() {
   const [pinError, setPinError] = useState('');
   const [pinVerifying, setPinVerifying] = useState(false);
   const [verifiedStaff, setVerifiedStaff] = useState(null);
-  const [pinCacheExpiry, setPinCacheExpiry] = useState(0); // timestamp when cache expires
+  const [pinCacheExpiry, setPinCacheExpiry] = useState(0);
 
-  // Check if PIN is still cached
   const isPinCached = () => verifiedStaff && Date.now() < pinCacheExpiry;
-
-  // Clear PIN cache
   const lockPin = () => { setVerifiedStaff(null); setPinCacheExpiry(0); };
 
   useEffect(() => {
@@ -67,17 +75,10 @@ export default function Cashier() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
-      // Get active sessions
-      const sessRes = await fetch(`/api/commander/dealer/sessions?venue_id=${venueId}&status=active`, { headers });
-      const sessJson = await sessRes.json();
-      const activeSessions = sessJson.success ? (sessJson.data || []) : [];
-
-      // Get today's cash transactions
       const today = new Date().toISOString().split('T')[0];
       const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=200`, { headers });
       const txJson = await txRes.json();
 
-      setSessions(activeSessions);
       setTransactions(txJson.data || []);
       setSummary(txJson.summary || null);
     } catch (err) { console.error(err); }
@@ -86,21 +87,95 @@ export default function Cashier() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const openForm = (session, type) => {
-    setSelectedPlayer(session);
+  // QR Scanner
+  const startScan = async () => {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      // Use BarcodeDetector if available, otherwise fallback
+      if ('BarcodeDetector' in window) {
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const scanLoop = async () => {
+          if (!streamRef.current || !videoRef.current) return;
+          try {
+            const barcodes = await detector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              handleScanResult(barcodes[0].rawValue);
+              return;
+            }
+          } catch { }
+          if (streamRef.current) requestAnimationFrame(scanLoop);
+        };
+        // Wait for video to be ready
+        setTimeout(scanLoop, 500);
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      setMessage({ type: 'error', text: 'Camera access denied or unavailable' });
+      setScanning(false);
+    }
+  };
+
+  const stopScan = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setScanning(false);
+  };
+
+  const handleScanResult = async (qrData) => {
+    stopScan();
+    setScanResult(qrData);
+    // Look up the player by QR code data (user_id or member_id)
+    try {
+      const token = getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
+      const json = await res.json();
+      if (json.success && json.data?.length > 0) {
+        const member = json.data[0];
+        setMessage({ type: 'success', text: `Found: ${member.display_name || member.name}` });
+        setSelectedPlayer({
+          player_name: member.display_name || member.name,
+          user_id: member.user_id || member.id,
+          table_number: null,
+          seat_number: null,
+          id: null,
+          membership: member.membership_tier || member.membership_type,
+          membership_expires: member.membership_expires
+        });
+      } else {
+        setMessage({ type: 'error', text: 'Player not found — try manual search' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Error looking up player' });
+    }
+  };
+
+  // Transaction form handlers
+  const openForm = (type) => {
+    const player = selectedPlayer || { player_name: 'Walk-up', table_number: null, seat_number: null, id: null };
+    setSelectedPlayer(player);
     setTxType(type);
     setAmount('');
     setPayMethod('cash');
     setShowForm(true);
   };
 
-  // Step 1: validate amount, then show PIN prompt (or use cache)
   const requestPin = () => {
     if (!amount || parseFloat(amount) <= 0) {
       setMessage({ type: 'error', text: 'Enter A Valid Amount' });
       return;
     }
-    // If PIN is cached, skip keypad and go straight to submit
     if (isPinCached()) {
       verifyPinAndSubmit(null, verifiedStaff);
       return;
@@ -110,7 +185,6 @@ export default function Cashier() {
     setPinStep(true);
   };
 
-  // Step 2: verify PIN then submit (or use cached staff)
   const verifyPinAndSubmit = async (digits, cachedStaff = null) => {
     let staff = cachedStaff;
     if (!staff) {
@@ -131,19 +205,17 @@ export default function Cashier() {
           return;
         }
         staff = pinJson.data.staff;
-      } catch (err) {
+      } catch {
         setPinError('Network Error');
         setPinDigits('');
         setPinVerifying(false);
         return;
       }
     }
-    // Cache PIN for 5 minutes
     setVerifiedStaff(staff);
     setPinCacheExpiry(Date.now() + 5 * 60 * 1000);
     setPinStep(false);
 
-    // Now submit the actual transaction
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -167,7 +239,6 @@ export default function Cashier() {
         const label = txType === 'buy_in' ? 'Buy-in' : txType === 'add_on' ? 'Add-on' : 'Cash-out';
         setMessage({ type: 'success', text: `${label} $${parseFloat(amount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-up'} (${staff?.display_name || 'Staff'})` });
         setShowForm(false);
-        // Auto-print receipt
         printReceipt({
           type: txType,
           player_name: selectedPlayer?.player_name || 'Walk-up',
@@ -182,7 +253,7 @@ export default function Cashier() {
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction failed' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Network Error' }); }
+    } catch { setMessage({ type: 'error', text: 'Network Error' }); }
     finally { setActionLoading(false); setPinVerifying(false); }
   };
 
@@ -194,8 +265,11 @@ export default function Cashier() {
   };
 
   useEffect(() => {
-    if (message) { const t = setTimeout(() => setMessage(null), 3000); return () => clearTimeout(t); }
+    if (message) { const t = setTimeout(() => setMessage(null), 4000); return () => clearTimeout(t); }
   }, [message]);
+
+  // Cleanup camera on unmount
+  useEffect(() => () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); }, []);
 
   const printReceipt = (tx) => {
     const printWindow = window.open('', '_blank', 'width=400,height=600');
@@ -235,156 +309,162 @@ export default function Cashier() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   };
 
-  // Group sessions by table
-  const tables = {};
-  sessions.forEach(s => {
-    const tn = s.table_number || 0;
-    if (!tables[tn]) tables[tn] = [];
-    tables[tn].push(s);
-  });
-
-  // Get player tx totals from today's transactions
-  const playerTotals = {};
-  transactions.forEach(t => {
-    const key = t.session_id || t.player_name;
-    if (!playerTotals[key]) playerTotals[key] = { bought: 0, cashed: 0 };
-    if (t.type === 'buy_in' || t.type === 'add_on') playerTotals[key].bought += parseFloat(t.amount);
-    if (t.type === 'cash_out') playerTotals[key].cashed += parseFloat(t.amount);
-  });
-
   return (
     <CommanderLayout title="Cashier" backHref="/commander/dashboard">
-      <SEOHead
-        title="Commander — Cashier Operations"
-        description="Club Commander Poker Room Management Tool."
-        noindex={true}
-      />
+      <SEOHead title="Commander — Cashier" description="Club Commander Poker Room Management Tool." noindex={true} />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
-        {/* Sub-header */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <div className="flex-1">
-            <p className="text-xs text-[#B0B3B8]">{sessions.length} active players</p>
-          </div>
-          <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
-        </div>
 
-        {/* Message */}
+        {/* Message Toast */}
         {message && (
-          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
-            }`}>
+          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'}`}>
             {message.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
             {message.text}
+          </div>
+        )}
+
+        {/* Scanned Player Banner */}
+        {selectedPlayer && (
+          <div className="mx-4 mt-3 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-[#1877F2]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">{selectedPlayer.player_name}</p>
+                {selectedPlayer.membership && (
+                  <p className="text-xs text-[#1877F2]">{selectedPlayer.membership} Member</p>
+                )}
+              </div>
+            </div>
+            <button onClick={() => setSelectedPlayer(null)}
+              className="text-xs text-[#B0B3B8] px-2 py-1 rounded-lg active:bg-[#3A3B3C]">Clear</button>
           </div>
         )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>
         ) : (
-          <div className="px-4 py-4 space-y-4">
+          <div className="px-4 py-4 space-y-3">
+
+            {/* ========== PRIMARY ACTIONS ========== */}
+
+            {/* 1. Scan Player Card — Primary Button */}
+            <button onClick={scanning ? stopScan : startScan}
+              className={`w-full rounded-2xl border-2 p-5 flex items-center gap-4 active:scale-[0.99] transition-transform ${scanning
+                  ? 'bg-[#EF4444]/10 border-[#EF4444]/40'
+                  : 'bg-[#1877F2]/10 border-[#1877F2]/40'
+                }`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${scanning ? 'bg-[#EF4444]/20' : 'bg-[#1877F2]/20'
+                }`}>
+                <QrCode className={`w-7 h-7 ${scanning ? 'text-[#EF4444]' : 'text-[#1877F2]'}`} />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-lg font-bold text-white">
+                  {scanning ? 'Stop Scanning' : 'Scan Player Card'}
+                </p>
+                <p className="text-sm text-[#B0B3B8]">
+                  {scanning ? 'Tap to stop camera' : 'Scan QR code to identify player'}
+                </p>
+              </div>
+              {scanning && <div className="w-3 h-3 rounded-full bg-[#EF4444] animate-pulse" />}
+            </button>
+
+            {/* Camera Preview */}
+            {scanning && (
+              <div className="rounded-2xl overflow-hidden border-2 border-[#3A3B3C] bg-black relative">
+                <video ref={videoRef} className="w-full aspect-[4/3] object-cover" playsInline muted />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-48 h-48 border-2 border-white/30 rounded-2xl" />
+                </div>
+              </div>
+            )}
+
+            {/* 2. Add Time */}
+            <button onClick={() => router.push('/commander/time-billing')}
+              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
+              <div className="w-12 h-12 rounded-xl bg-[#31A24C]/15 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-[#31A24C]" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-base font-bold text-white">Add Time</p>
+                <p className="text-xs text-[#B0B3B8]">Process time billing for seated players</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
+            </button>
+
+            {/* 3. Update Membership */}
+            <button onClick={() => router.push('/commander/membership-plans')}
+              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
+              <div className="w-12 h-12 rounded-xl bg-[#8B5CF6]/15 flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-[#8B5CF6]" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-base font-bold text-white">Update Membership</p>
+                <p className="text-xs text-[#B0B3B8]">Renew or change membership plans</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
+            </button>
+
+            {/* Quick Cash Transaction (Walk-up) */}
+            <div className="pt-1">
+              <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Quick Transaction</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => openForm('buy_in')}
+                  className="bg-[#31A24C]/10 border border-[#31A24C]/20 rounded-xl p-3 text-center active:bg-[#31A24C]/20">
+                  <Plus className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
+                  <p className="text-xs font-bold text-[#31A24C]">Buy-In</p>
+                </button>
+                <button onClick={() => openForm('add_on')}
+                  className="bg-[#1877F2]/10 border border-[#1877F2]/20 rounded-xl p-3 text-center active:bg-[#1877F2]/20">
+                  <Coins className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
+                  <p className="text-xs font-bold text-[#1877F2]">Add-On</p>
+                </button>
+                <button onClick={() => openForm('cash_out')}
+                  className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-3 text-center active:bg-[#EF4444]/20">
+                  <Minus className="w-5 h-5 text-[#EF4444] mx-auto mb-1" />
+                  <p className="text-xs font-bold text-[#EF4444]">Cash Out</p>
+                </button>
+              </div>
+            </div>
+
             {/* Today's Summary */}
             {summary && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-3 text-center">
-                  <ArrowDownToLine className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
-                  <p className="text-lg font-bold text-[#31A24C]">${summary.total_buy_ins.toLocaleString()}</p>
-                  <p className="text-[10px] text-[#B0B3B8] uppercase">Buy-ins ({summary.buy_in_count})</p>
+                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-2.5 text-center">
+                  <p className="text-sm font-bold text-[#31A24C]">${summary.total_buy_ins?.toLocaleString() || '0'}</p>
+                  <p className="text-[9px] text-[#B0B3B8] uppercase">Buy-ins</p>
                 </div>
-                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-3 text-center">
-                  <ArrowUpFromLine className="w-5 h-5 text-[#EF4444] mx-auto mb-1" />
-                  <p className="text-lg font-bold text-[#EF4444]">${summary.total_cash_outs.toLocaleString()}</p>
-                  <p className="text-[10px] text-[#B0B3B8] uppercase">Cash-outs ({summary.cash_out_count})</p>
+                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-2.5 text-center">
+                  <p className="text-sm font-bold text-[#EF4444]">${summary.total_cash_outs?.toLocaleString() || '0'}</p>
+                  <p className="text-[9px] text-[#B0B3B8] uppercase">Cash-outs</p>
                 </div>
-                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-3 text-center">
-                  <Coins className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
-                  <p className={`text-lg font-bold ${summary.net_drop >= 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
-                    ${Math.abs(summary.net_drop).toLocaleString()}
+                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-2.5 text-center">
+                  <p className={`text-sm font-bold ${(summary.net_drop || 0) >= 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
+                    ${Math.abs(summary.net_drop || 0).toLocaleString()}
                   </p>
-                  <p className="text-[10px] text-[#B0B3B8] uppercase">Net Drop</p>
+                  <p className="text-[9px] text-[#B0B3B8] uppercase">Net Drop</p>
                 </div>
               </div>
             )}
 
-            {/* Walk-up transaction */}
-            <button onClick={() => { setSelectedPlayer({ player_name: 'Walk-up', table_number: null, seat_number: null, id: null }); setTxType('buy_in'); setAmount(''); setPayMethod('cash'); setShowForm(true); }}
-              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-xl p-4 flex items-center gap-3 active:bg-[#3A3B3C]">
-              <div className="w-10 h-10 rounded-full bg-[#1877F2]/15 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-[#1877F2]" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-white">Walk-up Transaction</p>
-                <p className="text-xs text-[#B0B3B8]">Buy-In Or Cash-Out Without A Seat</p>
-              </div>
-            </button>
-
-            {/* Active Tables */}
-            {Object.entries(tables).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([tableNum, tableSessions]) => (
-              <div key={tableNum} className="bg-[#242526] border border-[#3A3B3C] rounded-2xl overflow-hidden">
-                <div className="bg-[#3A3B3C]/30 px-4 py-2.5 border-b border-[#3A3B3C] flex items-center justify-between">
-                  <p className="text-sm font-bold text-white">Table {tableNum}</p>
-                  <span className="text-xs text-[#B0B3B8]">{tableSessions.length} players</span>
+            {/* ========== TRANSACTION LOG (Collapsible) ========== */}
+            <div className="pt-2">
+              <button onClick={() => setShowLog(!showLog)}
+                className="w-full bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between active:bg-[#3A3B3C]">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-[#B0B3B8]" />
+                  <span className="text-sm font-semibold text-white">Transaction Log</span>
+                  <span className="text-xs text-[#B0B3B8]">({transactions.length})</span>
                 </div>
-                <div className="divide-y divide-[#3A3B3C]">
-                  {tableSessions.sort((a, b) => (a.seat_number || 0) - (b.seat_number || 0)).map(session => {
-                    const totals = playerTotals[session.id] || { bought: 0, cashed: 0 };
-                    return (
-                      <>
-                        <div key={session.id} className="px-4 py-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-full bg-[#3A3B3C] text-xs font-bold text-white flex items-center justify-center">
-                                {session.seat_number || '?'}
-                              </span>
-                              <span className="text-sm font-medium text-white">{session.player_name}</span>
-                            </div>
-                            {totals.bought > 0 && (
-                              <span className="text-xs text-[#B0B3B8]">
-                                In: ${totals.bought.toLocaleString()}{totals.cashed > 0 ? ` / Out: $${totals.cashed.toLocaleString()}` : ''}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => openForm(session, 'buy_in')}
-                              className="flex-1 py-2 rounded-lg bg-[#31A24C]/10 text-[#31A24C] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#31A24C]/20">
-                              <Plus className="w-3 h-3" /> Buy-In
-                            </button>
-                            <button onClick={() => openForm(session, 'add_on')}
-                              className="flex-1 py-2 rounded-lg bg-[#1877F2]/10 text-[#1877F2] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#1877F2]/20">
-                              <Plus className="w-3 h-3" /> Add-On
-                            </button>
-                            <button onClick={() => openForm(session, 'cash_out')}
-                              className="flex-1 py-2 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#EF4444]/20">
-                              <Minus className="w-3 h-3" /> Cash Out
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                {showLog ? <ChevronUp className="w-4 h-4 text-[#B0B3B8]" /> : <ChevronDown className="w-4 h-4 text-[#B0B3B8]" />}
+              </button>
 
-            {sessions.length === 0 && (
-              <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-8 text-center">
-                <Users className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
-                <p className="text-[#B0B3B8] text-sm">No Active Sessions</p>
-                <p className="text-[#6A6B6D] text-xs mt-1">Players Need To Be Seated At A Table First</p>
-              </div>
-            )}
-
-            {/* Recent Transactions */}
-            {transactions.length > 0 && (
-              <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-[#3A3B3C] flex items-center justify-between">
-                  <p className="text-sm font-bold text-white">Today's Transactions</p>
-                  <span className="text-xs text-[#B0B3B8]">{transactions.length} total</span>
-                </div>
-                <div className="max-h-64 overflow-y-auto divide-y divide-[#3A3B3C]">
-                  {transactions.slice(0, 30).map(tx => (
+              {showLog && transactions.length > 0 && (
+                <div className="mt-1 bg-[#242526] border border-[#3A3B3C] rounded-xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-[#3A3B3C]">
+                  {transactions.slice(0, 50).map(tx => (
                     <div key={tx.id} className="px-4 py-2.5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${tx.type === 'cash_out' ? 'bg-[#EF4444]/15' : 'bg-[#31A24C]/15'
-                          }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${tx.type === 'cash_out' ? 'bg-[#EF4444]/15' : 'bg-[#31A24C]/15'}`}>
                           {tx.type === 'cash_out'
                             ? <ArrowUpFromLine className="w-3.5 h-3.5 text-[#EF4444]" />
                             : <ArrowDownToLine className="w-3.5 h-3.5 text-[#31A24C]" />
@@ -393,25 +473,33 @@ export default function Cashier() {
                         <div>
                           <p className="text-xs font-medium text-white">{tx.player_name}</p>
                           <p className="text-[10px] text-[#B0B3B8]">
-                            {tx.type.replace('_', ' ')} • T{tx.table_number || '-'} S{tx.seat_number || '-'} • {tx.payment_method}
+                            {tx.type.replace('_', ' ')} • {tx.payment_method} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
-                      <span className={`text-sm font-bold ${tx.type === 'cash_out' ? 'text-[#EF4444]' : 'text-[#31A24C]'}`}>
-                        {tx.type === 'cash_out' ? '-' : '+'}${parseFloat(tx.amount).toLocaleString()}
-                      </span>
-                      <button onClick={() => printReceipt(tx)} className="ml-2 w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]" title="Print Receipt">
-                        <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${tx.type === 'cash_out' ? 'text-[#EF4444]' : 'text-[#31A24C]'}`}>
+                          {tx.type === 'cash_out' ? '-' : '+'}${parseFloat(tx.amount).toLocaleString()}
+                        </span>
+                        <button onClick={() => printReceipt(tx)} className="w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
+                          <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+
+              {showLog && transactions.length === 0 && (
+                <div className="mt-1 bg-[#242526] border border-[#3A3B3C] rounded-xl p-6 text-center">
+                  <p className="text-sm text-[#B0B3B8]">No transactions today</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Transaction Form Modal */}
+        {/* ========== TRANSACTION FORM MODAL ========== */}
         {showForm && (
           <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowForm(false)}>
             <div className="bg-[#242526] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5" onClick={e => e.stopPropagation()}>
@@ -435,8 +523,7 @@ export default function Cashier() {
               <div className="flex flex-wrap gap-2 mb-4">
                 {QUICK_AMOUNTS.map(qa => (
                   <button key={qa} onClick={() => setAmount(String(qa))}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-bold ${amount === String(qa) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'
-                      }`}>
+                    className={`px-4 py-2.5 rounded-lg text-sm font-bold ${amount === String(qa) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
                     ${qa}
                   </button>
                 ))}
@@ -455,8 +542,7 @@ export default function Cashier() {
                 <div className="flex gap-2 mb-4">
                   {PAYMENT_METHODS.map(pm => (
                     <button key={pm.id} onClick={() => setPayMethod(pm.id)}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${payMethod === pm.id ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                        }`}>
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${payMethod === pm.id ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'}`}>
                       <pm.icon className="w-4 h-4" /> {pm.label}
                     </button>
                   ))}
@@ -470,7 +556,6 @@ export default function Cashier() {
                     <Lock className="w-4 h-4 text-[#F59E0B]" />
                     <span className="text-sm font-bold text-white">Enter Employee PIN</span>
                   </div>
-                  {/* PIN dots */}
                   <div className="flex justify-center gap-3 mb-3">
                     {[0, 1, 2, 3].map(i => (
                       <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < pinDigits.length ? 'bg-[#1877F2] border-[#1877F2]' : 'border-[#4A4B4C]'}`} />
@@ -482,9 +567,7 @@ export default function Cashier() {
                     <div className="grid grid-cols-3 gap-2">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
                         <button key={d} onClick={() => handlePinDigit(String(d))}
-                          className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">
-                          {d}
-                        </button>
+                          className="py-3 rounded-xl bg-[#3A3B3C] text-white text-lg font-bold active:bg-[#4A4B4C]">{d}</button>
                       ))}
                       <button onClick={() => setPinStep(false)}
                         className="py-3 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold">Cancel</button>
@@ -505,7 +588,7 @@ export default function Cashier() {
                         <CheckCircle2 className="w-4 h-4 text-[#31A24C]" />
                         <span className="text-xs text-[#31A24C] font-medium">Verified as {verifiedStaff?.display_name}</span>
                       </div>
-                      <button onClick={lockPin} className="text-xs text-[#B0B3B8] hover:text-white flex items-center gap-1">
+                      <button onClick={lockPin} className="text-xs text-[#B0B3B8] flex items-center gap-1">
                         <Lock className="w-3 h-3" /> Lock
                       </button>
                     </div>
@@ -530,8 +613,6 @@ export default function Cashier() {
           </div>
         )}
       </div>
-      <style jsx>{`
-`}</style>
     </CommanderLayout>
   );
 }
