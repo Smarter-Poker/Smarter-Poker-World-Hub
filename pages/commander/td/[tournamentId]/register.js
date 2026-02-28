@@ -124,13 +124,15 @@ export default function TDRegister() {
         })
       });
       const json = await res.json();
-      setLastResult(json);
-      if (json.success) {
+      if (res.ok) {
+        setLastResult({ success: true, entry: json.entry });
         setPlayerName('');
         setPlayerPhone('');
         setManualTable('');
         setManualSeat('');
         await fetchFloor();
+      } else {
+        setLastResult({ success: false, error: json.error || 'Registration failed' });
       }
     } catch (err) {
       setLastResult({ success: false, error: 'Registration failed' });
