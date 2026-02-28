@@ -365,7 +365,7 @@ export default function DealerTablet() {
       const token = getToken();
       await fetch('/api/commander/table-assignments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ table_id: table?.id })
       });
       // Redirect back to poker room — table is now inactive

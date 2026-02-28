@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   RefreshCw, Users, Loader2, Lock, Unlock,
-  Save, AlertTriangle, Activity, X, Clock, Maximize2, ZoomIn, ZoomOut
+  Save, AlertTriangle, Activity, X, Clock, Maximize2, ZoomIn, ZoomOut, RotateCw
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -55,6 +55,7 @@ export default function FloorMap() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [positions, setPositions] = useState({}); // { table_id: { x, y } }
   const [hasChanges, setHasChanges] = useState(false);
+  const [rotations, setRotations] = useState({}); // { table_id: degrees }
 
   // Auth
   useEffect(() => {
@@ -130,6 +131,11 @@ export default function FloorMap() {
         return prev;
       });
 
+      // Load saved rotations
+      const rotMap = {};
+      rawTables.forEach(t => { rotMap[t.id] = t.rotation || 0; });
+      setRotations(prev => Object.keys(prev).length === 0 ? rotMap : prev);
+
       if (waitlistRes.success) {
         const grouped = {};
         const arr = Array.isArray(waitlistRes.data) ? waitlistRes.data : [];
@@ -159,9 +165,10 @@ export default function FloorMap() {
       await Promise.all(tables.map(t => {
         const pos = positions[t.id];
         if (!pos) return Promise.resolve();
+        const rot = rotations[t.id] || 0;
         return fetch(`/api/commander/tables/${t.id}`, {
           method: 'PATCH', headers,
-          body: JSON.stringify({ position_x: pos.x, position_y: pos.y }),
+          body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot }),
         });
       }));
       setHasChanges(false);
@@ -277,16 +284,12 @@ export default function FloorMap() {
 
             {/* Edit/View toggle */}
             <button onClick={() => { setEditMode(!editMode); setSelectedTable(null); }}
+              title={editMode ? 'Lock layout' : 'Unlock to edit'}
               style={{
-                ...btnStyle,
-                background: editMode ? '#F59E0B20' : '#242526',
-                border: editMode ? '1px solid #F59E0B50' : '1px solid #3A3B3C',
-                padding: '6px 12px', display: 'flex', gap: 6, alignItems: 'center',
+                background: 'none', border: 'none', padding: 6,
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
               }}>
-              {editMode ? <Unlock size={14} color="#F59E0B" /> : <Lock size={14} color="#B0B3B8" />}
-              <span style={{ fontSize: 11, fontWeight: 600, color: editMode ? '#F59E0B' : '#B0B3B8' }}>
-                {editMode ? 'Editing' : 'Locked'}
-              </span>
+              {editMode ? <Unlock size={22} color="#F59E0B" /> : <Lock size={22} color="#8A8D91" />}
             </button>
 
             {/* Save button (only in edit mode with changes) */}
@@ -328,6 +331,7 @@ export default function FloorMap() {
         ) : (
           <div ref={canvasRef} style={{
             flex: 1, overflow: 'auto', position: 'relative',
+            touchAction: editMode ? 'none' : 'auto', overscrollBehavior: 'none',
             background: `
               radial-gradient(circle at 50% 50%, rgba(24,119,242,0.03) 0%, transparent 70%),
               linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
@@ -348,6 +352,7 @@ export default function FloorMap() {
                 const occupied = table.current_players || 0;
                 const isActive = status === 'in_use';
                 const pos = positions[table.id] || { x: 0, y: 0 };
+                const rot = rotations[table.id] || 0;
                 const isDragging = draggingId === table.id;
                 const elapsed = isActive ? getElapsed(table.game_started_at) : '';
 
@@ -362,9 +367,11 @@ export default function FloorMap() {
                       top: pos.y * zoom,
                       width: TABLE_WIDTH * zoom,
                       height: TABLE_HEIGHT * zoom,
+                      transform: rot ? `rotate(${rot}deg)` : undefined,
+                      transformOrigin: 'center center',
                       cursor: editMode ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
                       zIndex: isDragging ? 100 : isActive ? 2 : 1,
-                      transition: isDragging ? 'none' : 'box-shadow 0.2s',
+                      transition: isDragging ? 'none' : 'box-shadow 0.2s, transform 0.3s',
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
                     }}>
@@ -418,14 +425,30 @@ export default function FloorMap() {
                       </div>
                     </div>
 
-                    {/* Edit mode handle indicator */}
+                    {/* Edit mode: drag handle + rotate button */}
                     {editMode && (
-                      <div style={{
-                        position: 'absolute', top: -4, right: -4,
-                        width: 12, height: 12, borderRadius: 6,
-                        background: '#F59E0B', border: '2px solid #0D0E10',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                      }} />
+                      <>
+                        <div style={{
+                          position: 'absolute', top: -4, right: -4,
+                          width: 12, height: 12, borderRadius: 6,
+                          background: '#F59E0B', border: '2px solid #0D0E10',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                        }} />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setRotations(prev => ({ ...prev, [table.id]: ((prev[table.id] || 0) + 90) % 360 })); setHasChanges(true); }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'absolute', bottom: -8, left: '50%', transform: 'translateX(-50%)',
+                            width: 22, height: 22, borderRadius: 11,
+                            background: '#1877F2', border: '2px solid #0D0E10',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', zIndex: 10, padding: 0,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                          }}>
+                          <RotateCw size={11} color="#fff" />
+                        </button>
+                      </>
                     )}
                   </div>
                 );
