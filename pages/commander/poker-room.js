@@ -112,7 +112,7 @@ export default function PokerRoomFunctions() {
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 30000); return () => clearInterval(i); }, [fetchData]);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist', 'settings'] });
 
   const toggleRoom = async () => {
     setToggling(true);

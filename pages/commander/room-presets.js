@@ -13,6 +13,7 @@ import {
   StopCircle, AlertTriangle, DollarSign
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -155,6 +156,10 @@ export default function DailyPresetsPage() {
 
   useEffect(() => { if (staff) fetchData(); }, [staff, fetchData]);
 
+  // Commander Data Bus — sync settings/tables across tabs
+  const venueId = staff?.venue_id || '';
+  useCommanderSync(venueId, fetchData, { entities: ['settings', 'tables', 'tournaments'] });
+
   async function handleApply(preset) {
     const tableCount = getTotalTables(preset.tables);
     const promoCount = (preset.promotions || []).length;
@@ -183,6 +188,8 @@ export default function DailyPresetsPage() {
         setSuccess(`"${preset.name}" launched — ${results.join(', ') || 'preset applied'}`);
         setTimeout(() => setSuccess(null), 5000);
         fetchData();
+        broadcastChange('tables');
+        broadcastChange('settings');
       } else {
         setError(json.error || 'Failed to apply preset');
       }

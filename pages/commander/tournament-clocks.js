@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Clock, Monitor, Play, Pause, ExternalLink, Loader2, Plus, Tv } from 'lucide-react';
 
 export default function TournamentClocks() {
@@ -47,6 +48,9 @@ export default function TournamentClocks() {
     }, []);
 
     useEffect(() => { if (staff) fetchTournaments(); }, [staff, fetchTournaments]);
+
+    // Commander Data Bus — sync tournaments across tabs
+    useCommanderSync(staff?.venue_id || '', fetchTournaments, { entities: ['tournaments'] });
 
     if (!staff) {
         return (

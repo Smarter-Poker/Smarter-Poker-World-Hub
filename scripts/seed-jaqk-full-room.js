@@ -73,13 +73,13 @@ const NEW_PLAYERS = [
     { first: 'Gavin', last: 'Sharp' }, { first: 'Jade', last: 'Estrada' },
 ];
 
-const TIERS = ['standard', 'standard', 'standard', 'gold', 'gold', 'gold', 'gold', 'platinum', 'platinum', 'vip'];
+const TIERS = ['daily', 'daily', 'weekly', 'monthly', 'monthly', 'monthly', 'monthly', 'monthly', 'yearly', 'yearly'];
 
 const TIER_CONFIG = {
-    standard: { expiryRange: [30, 365], visitRange: [5, 30], hoursRange: [10, 100] },
-    gold: { expiryRange: [60, 180], visitRange: [20, 80], hoursRange: [50, 400] },
-    platinum: { expiryRange: [90, 365], visitRange: [40, 120], hoursRange: [100, 600] },
-    vip: { expiryRange: [180, 730], visitRange: [80, 200], hoursRange: [200, 1000] },
+    daily: { expiryRange: [1, 7], visitRange: [1, 10], hoursRange: [5, 30] },
+    weekly: { expiryRange: [7, 30], visitRange: [3, 20], hoursRange: [10, 80] },
+    monthly: { expiryRange: [30, 180], visitRange: [10, 60], hoursRange: [30, 300] },
+    yearly: { expiryRange: [180, 730], visitRange: [50, 200], hoursRange: [100, 1000] },
 };
 
 // Games for the running tables

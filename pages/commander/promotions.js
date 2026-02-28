@@ -874,21 +874,25 @@ export default function PromotionsPage() {
                   venueId={venueId}
                   onSubmit={async (data) => {
                     try {
+                      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                       const staffSession = localStorage.getItem('commander_staff') || '';
                       const res = await fetch('/api/commander/promotions', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                         body: JSON.stringify(data)
                       });
                       const result = await res.json();
-                      if (result.success) {
+                      if (result.promotion || result.success) {
                         broadcastChange('settings');
                         fetchPromotions();
                         setShowCreateModal(false);
                         setUseWizard(false);
+                      } else {
+                        alert('Create failed: ' + (result.error || 'Unknown error'));
                       }
                     } catch (error) {
                       console.error('Create promo failed:', error);
+                      alert('Create failed: ' + error.message);
                     }
                   }}
                   onCancel={() => { setUseWizard(false); setShowCreateModal(false); }}
@@ -900,20 +904,24 @@ export default function PromotionsPage() {
               venueId={venueId}
               onSave={async (data) => {
                 try {
+                  const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                   const staffSession = localStorage.getItem('commander_staff') || '';
                   const res = await fetch('/api/commander/promotions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                     body: JSON.stringify(data)
                   });
                   const result = await res.json();
-                  if (result.success) {
+                  if (result.promotion || result.success) {
                     broadcastChange('settings');
                     fetchPromotions();
                     setShowCreateModal(false);
+                  } else {
+                    alert('Create failed: ' + (result.error || 'Unknown error'));
                   }
                 } catch (error) {
                   console.error('Create promo failed:', error);
+                  alert('Create failed: ' + error.message);
                 }
               }}
               onClose={() => setShowCreateModal(false)}

@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, Lock, AlertTriangle, CreditCard, QrCode } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const ID_TYPES = [
   { value: 'drivers_license', label: "Driver's License" },
@@ -95,6 +96,9 @@ export default function CommanderStaffPage() {
     if (venueId) fetchStaff();
   }, [venueId, fetchStaff]);
 
+  // Commander Data Bus — sync staff changes across tabs
+  useCommanderSync(venueId, fetchStaff, { entities: ['staff'] });
+
   async function handleAddStaff(staffData) {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -107,6 +111,7 @@ export default function CommanderStaffPage() {
       const data = await res.json();
       if (data.success) {
         fetchStaff();
+        broadcastChange('staff');
         setShowAddModal(false);
         // Auto-print QR badge
         const staff = data.data?.staff;
@@ -219,6 +224,7 @@ export default function CommanderStaffPage() {
       const data = await res.json();
       if (data.success) {
         fetchStaff();
+        broadcastChange('staff');
         setEditingStaff(null);
         return { success: true };
       }
@@ -242,6 +248,7 @@ export default function CommanderStaffPage() {
       const data = await res.json();
       if (data.success) {
         fetchStaff();
+        broadcastChange('staff');
       }
     } catch (err) {
       console.error('Failed to delete staff:', err);

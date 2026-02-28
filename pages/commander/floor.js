@@ -159,7 +159,7 @@ export default function FloorMap() {
   }, [venueId, fetchAll]);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchAll);
+  useCommanderSync(venueId, fetchAll, { entities: ['tables', 'games', 'waitlist', 'dealers'] });
 
   // Save positions to API
   const savePositions = async () => {

@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Calendar, ChevronLeft, ChevronRight, Edit2, Loader2, Clock, DollarSign, Users, Trash2 } from 'lucide-react';
 
 export default function TournamentMaintenance() {
@@ -46,6 +47,9 @@ export default function TournamentMaintenance() {
     }, []);
 
     useEffect(() => { if (staff) fetchTournaments(); }, [staff, fetchTournaments]);
+
+    // Commander Data Bus — sync tournaments across tabs
+    useCommanderSync(staff?.venue_id || '', fetchTournaments, { entities: ['tournaments'] });
 
     // Calendar helpers
     const year = currentMonth.getFullYear();

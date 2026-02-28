@@ -109,9 +109,24 @@ export default function PromotionBuilder({
   const handleSubmit = () => {
     onSubmit?.({
       venue_id: venueId,
-      ...formData,
-      prize_amount: formData.prize_amount ? parseFloat(formData.prize_amount) : null,
-      max_winners: parseInt(formData.max_winners) || 1
+      name: formData.name,
+      description: formData.description,
+      promotion_type: formData.promotion_type,
+      prize_type: formData.prize_type,
+      prize_value: formData.prize_amount ? parseFloat(formData.prize_amount) : null,
+      prize_description: formData.prize_description,
+      start_date: formData.start_date || null,
+      end_date: formData.end_date || null,
+      start_time: formData.start_time || null,
+      end_time: formData.end_time || null,
+      is_recurring: formData.is_recurring,
+      days_of_week: formData.recurring_days.length > 0 ? formData.recurring_days : null,
+      game_types: formData.game_types,
+      min_stakes: formData.min_stakes || null,
+      qualifying_hands: formData.qualifying_hand || null,
+      is_featured: formData.is_featured,
+      status: 'active',
+      settings: { max_winners: parseInt(formData.max_winners) || 1 }
     });
   };
 
@@ -132,13 +147,12 @@ export default function PromotionBuilder({
                 <button
                   onClick={() => i < step && setStep(i)}
                   disabled={i > step}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive
                       ? 'bg-[#22D3EE]/20 text-[#22D3EE]'
                       : isDone
-                      ? 'text-[#10B981] hover:bg-[#132240]'
-                      : 'text-[#4A5E78]'
-                  }`}
+                        ? 'text-[#10B981] hover:bg-[#132240]'
+                        : 'text-[#4A5E78]'
+                    }`}
                 >
                   {isDone ? (
                     <Check size={16} className="text-[#10B981]" />
@@ -171,11 +185,10 @@ export default function PromotionBuilder({
                   <button
                     key={type.value}
                     onClick={() => updateField('promotion_type', type.value)}
-                    className={`p-4 rounded-lg border text-left transition-colors ${
-                      isSelected
+                    className={`p-4 rounded-lg border text-left transition-colors ${isSelected
                         ? 'border-[#22D3EE] bg-[#22D3EE]/10'
                         : 'border-[#4A5E78] hover:border-[#64748B]'
-                    }`}
+                      }`}
                   >
                     <Icon size={24} style={{ color: type.color }} />
                     <p className="font-medium text-white mt-2">{type.label}</p>
@@ -222,11 +235,10 @@ export default function PromotionBuilder({
                   <button
                     key={opt.value}
                     onClick={() => toggleGameType(opt.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                      formData.game_types.includes(opt.value)
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${formData.game_types.includes(opt.value)
                         ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                         : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
-                    }`}
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -273,11 +285,10 @@ export default function PromotionBuilder({
                   <button
                     key={opt.value}
                     onClick={() => updateField('prize_type', opt.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                      formData.prize_type === opt.value
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${formData.prize_type === opt.value
                         ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                         : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
-                    }`}
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -405,11 +416,10 @@ export default function PromotionBuilder({
                     <button
                       key={day}
                       onClick={() => toggleDay(i)}
-                      className={`w-10 h-10 rounded-lg text-xs font-medium border transition-colors ${
-                        formData.recurring_days.includes(i)
+                      className={`w-10 h-10 rounded-lg text-xs font-medium border transition-colors ${formData.recurring_days.includes(i)
                           ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                           : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
-                      }`}
+                        }`}
                     >
                       {day}
                     </button>

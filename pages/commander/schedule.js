@@ -19,6 +19,7 @@ import {
   CheckCircle2, Shield
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -279,6 +280,9 @@ export default function StaffSchedule() {
   }, [weekStart]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Commander Data Bus — sync staff/schedule across tabs
+  useCommanderSync(getVenueId(), fetchData, { entities: ['staff'] });
 
   // Navigation
   const changeWeek = (delta) => {

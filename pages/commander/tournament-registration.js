@@ -12,6 +12,7 @@ import {
     AlertTriangle, Clock, DollarSign, ChevronDown
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function TournamentRegistration() {
     const router = useRouter();
@@ -50,6 +51,9 @@ export default function TournamentRegistration() {
 
     useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
 
+    // Commander Data Bus — sync tournaments + members across tabs
+    useCommanderSync(venueId || '', fetchTournaments, { entities: ['tournaments', 'members'] });
+
     // Player search
     const searchPlayers = async (query) => {
         setSearchQuery(query);
@@ -79,6 +83,7 @@ export default function TournamentRegistration() {
             return;
         }
         setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}` });
+        broadcastChange('tournaments');
         setSelectedPlayer(null);
         setSelectedTournament(null);
     };

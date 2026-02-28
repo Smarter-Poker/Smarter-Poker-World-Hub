@@ -12,6 +12,7 @@ import {
     DollarSign, Layers, Users, Coffee
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import BlindStructureEditor from '../../src/components/commander/tournaments/BlindStructureEditor';
 import {
     TOURNAMENT_TEMPLATES,
@@ -109,6 +110,7 @@ export default function TournamentSettingsPage() {
             const data = await res.json();
             if (data.success) {
                 setCreateSuccess(template.name);
+                broadcastChange('tournaments');
                 // Auto-sync to Club Page
                 try {
                     await fetch('/api/commander/sync-tournament-to-club', {

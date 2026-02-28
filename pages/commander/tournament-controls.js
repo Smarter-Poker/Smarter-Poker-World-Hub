@@ -6,11 +6,12 @@
  *   - Edit Settings (blind structure, configuration)
  * Route: /commander/tournament-controls
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Users, Clock, Loader2, Play, Monitor, Settings, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 const STATUS_COLORS = {
     running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
@@ -26,28 +27,32 @@ export default function TournamentDirector() {
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('current'); // 'current' or 'upcoming'
 
+    const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
+
+    const fetchTournaments = useCallback(async () => {
+        try {
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            const res = await fetch('/api/commander/tournaments', {
+                headers: { 'x-staff-session': staffSession },
+            });
+            const data = await res.json();
+            if (data.success) {
+                const active = (data.data?.tournaments || [])
+                    .filter(t => !['completed', 'cancelled'].includes(t.status));
+                setTournaments(active);
+            }
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
+    }, []);
+
     useEffect(() => {
         const staff = localStorage.getItem('commander_staff');
         if (!staff) { router.push('/commander/login').catch(() => { }); return; }
-
-        const fetchTournaments = async () => {
-            try {
-                const staffSession = localStorage.getItem('commander_staff') || '';
-                const res = await fetch('/api/commander/tournaments', {
-                    headers: { 'x-staff-session': staffSession },
-                });
-                const data = await res.json();
-                if (data.success) {
-                    // Exclude completed/cancelled entirely — they belong in Tournament Manager
-                    const active = (data.data?.tournaments || [])
-                        .filter(t => !['completed', 'cancelled'].includes(t.status));
-                    setTournaments(active);
-                }
-            } catch (err) { console.error(err); }
-            finally { setLoading(false); }
-        };
         fetchTournaments();
-    }, [router]);
+    }, [router, fetchTournaments]);
+
+    // Commander Data Bus — sync tournaments across tabs
+    useCommanderSync(getVenueId(), fetchTournaments, { entities: ['tournaments'] });
 
     const currentStatuses = ['running', 'break', 'final_table', 'registration'];
     const currentTournaments = tournaments.filter(t => currentStatuses.includes(t.status));

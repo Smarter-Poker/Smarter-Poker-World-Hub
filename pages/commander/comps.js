@@ -17,6 +17,7 @@ import {
   Plus, Loader2, RefreshCw, Check, Star, TrendingUp, Lock, X, Shield
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 export default function CompSystem() {
   const router = useRouter();
@@ -48,6 +49,9 @@ export default function CompSystem() {
   };
 
   useEffect(() => { fetchData(); }, [tab]);
+
+  // Commander Data Bus — sync members/comps across tabs
+  useCommanderSync(getVenueId(), fetchData, { entities: ['members'] });
 
   const fetchData = async () => {
     setLoading(true);
