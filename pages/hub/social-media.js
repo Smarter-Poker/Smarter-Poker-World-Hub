@@ -1872,9 +1872,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const [metaSaving, setMetaSaving] = useState(false);
     const [metaSaved, setMetaSaved] = useState('');
 
-    // Fetch live tournaments from DB when Tournaments tab is active
+    // Fetch tournaments on mount (always, so floating Live Event button works on all tabs)
     useEffect(() => {
-        if (activeTab !== 'tournaments') return;
         let cancelled = false;
         (async () => {
             try {
@@ -1886,7 +1885,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             } catch (err) { console.error('Failed to load tournaments:', err); }
         })();
         return () => { cancelled = true; };
-    }, [activeTab, page.id]);
+    }, [page.id]);
 
     // Live Games state
     const [liveGames, setLiveGames] = useState([]);
