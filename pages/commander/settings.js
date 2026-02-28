@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Bell, Clock, Users, Save, Loader2, ChevronRight } from 'lucide-react';
+import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function CommanderSettingsPage() {
@@ -27,21 +27,25 @@ export default function CommanderSettingsPage() {
     push_notifications_enabled: true,
     max_waitlist_size: 50,
     call_timeout_minutes: 5,
-    show_player_names_on_display: false
+    show_player_names_on_display: false,
+    venue_type: 'texas',
+    time_billing_rate: 12,
+    auto_comp_rate: 1,
+    bulk_time_packages: []
   });
 
   // Check staff session
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => {});
+        router.push('/commander/login').catch(() => { });
         return;
       }
       setStaff(staffData);
@@ -51,7 +55,7 @@ export default function CommanderSettingsPage() {
       }
       setLoading(false);
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(() => { });
     }
   }, [router]);
 
@@ -78,7 +82,11 @@ export default function CommanderSettingsPage() {
               push_notifications_enabled: data.data.push_notifications_enabled ?? prev.push_notifications_enabled,
               max_waitlist_size: data.data.max_waitlist_size ?? prev.max_waitlist_size,
               call_timeout_minutes: data.data.call_timeout_minutes ?? prev.call_timeout_minutes,
-              default_wait_time_per_player: data.data.default_wait_time_per_player ?? prev.default_wait_time_per_player
+              default_wait_time_per_player: data.data.default_wait_time_per_player ?? prev.default_wait_time_per_player,
+              venue_type: data.data.venue_type ?? prev.venue_type,
+              time_billing_rate: data.data.time_billing_rate ?? prev.time_billing_rate,
+              auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
+              bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages
             }));
           }
         })
@@ -117,7 +125,11 @@ export default function CommanderSettingsPage() {
           push_notifications_enabled: settings.push_notifications_enabled,
           max_waitlist_size: settings.max_waitlist_size,
           call_timeout_minutes: settings.call_timeout_minutes,
-          default_wait_time_per_player: settings.default_wait_time_per_player
+          default_wait_time_per_player: settings.default_wait_time_per_player,
+          venue_type: settings.venue_type,
+          time_billing_rate: settings.time_billing_rate,
+          auto_comp_rate: settings.auto_comp_rate,
+          bulk_time_packages: settings.bulk_time_packages
         })
       });
 
@@ -158,10 +170,10 @@ export default function CommanderSettingsPage() {
     <CommanderLayout title="Settings | {venue?.name || 'Commander'}" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
-                title="Commander — Settings"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Settings"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <div className="cmd-page">
           {/* Header */}
