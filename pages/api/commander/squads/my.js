@@ -39,49 +39,52 @@ export default async function handler(req, res) {
     const { status } = req.query;
 
     // Get waitlist groups where user is a member
+    // Note: no FK constraint exists from group_members→groups, so we use two queries
     const { data: memberships, error } = await supabase
       .from('commander_waitlist_group_members')
-      .select(`
-        id,
-        player_id,
-        joined_at,
-        commander_waitlist_groups:group_id (
-          id,
-          game_type,
-          stakes,
-          status,
-          prefer_same_table,
-          accept_split,
-          created_at,
-          poker_venues:venue_id (id, name, city, state),
-          profiles:leader_id (id, display_name, avatar_url)
-        )
-      `)
+      .select('id, player_id, group_id, joined_at')
       .eq('player_id', user.id)
       .order('joined_at', { ascending: false });
 
     if (error) throw error;
+
+    // Fetch group details for each membership
+    const groupIds = [...new Set((memberships || []).map(m => m.group_id).filter(Boolean))];
+
+    let groupsMap = {};
+    if (groupIds.length > 0) {
+      const { data: groups } = await supabase
+        .from('commander_waitlist_groups')
+        .select(`
+          id, game_type, stakes, status, prefer_same_table, accept_split, created_at,
+          poker_venues:venue_id (id, name, city, state),
+          profiles:leader_id (id, display_name, avatar_url)
+        `)
+        .in('id', groupIds);
+      (groups || []).forEach(g => { groupsMap[g.id] = g; });
+    }
 
     // Separate active squads and completed ones
     const activeSquads = [];
     const completedSquads = [];
 
     memberships?.forEach(m => {
-      if (!m.commander_waitlist_groups) return;
+      const g = groupsMap[m.group_id];
+      if (!g) return;
 
       const squad = {
-        id: m.commander_waitlist_groups.id,
-        game_type: m.commander_waitlist_groups.game_type,
-        stakes: m.commander_waitlist_groups.stakes,
-        squad_status: m.commander_waitlist_groups.status,
-        prefer_same_table: m.commander_waitlist_groups.prefer_same_table,
-        accept_split: m.commander_waitlist_groups.accept_split,
-        venue: m.commander_waitlist_groups.poker_venues,
-        leader: m.commander_waitlist_groups.profiles,
+        id: g.id,
+        game_type: g.game_type,
+        stakes: g.stakes,
+        squad_status: g.status,
+        prefer_same_table: g.prefer_same_table,
+        accept_split: g.accept_split,
+        venue: g.poker_venues,
+        leader: g.profiles,
         joined_at: m.joined_at
       };
 
-      if (m.commander_waitlist_groups.status === 'waiting') {
+      if (g.status === 'waiting') {
         activeSquads.push(squad);
       } else {
         completedSquads.push(squad);

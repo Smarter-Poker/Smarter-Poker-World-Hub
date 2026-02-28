@@ -40,8 +40,7 @@ async function handleGet(req, res, id) {
       .select(`
         *,
         reported_by_staff:commander_staff!reported_by (id, name, role),
-        resolved_by_staff:commander_staff!resolved_by (id, name, role),
-        involved_player:profiles!player_id (id, display_name, avatar_url)
+        resolved_by_staff:commander_staff!resolved_by (id, name, role)
       `)
       .eq('id', id)
       .single();
@@ -133,8 +132,7 @@ async function handlePatch(req, res, id) {
       .select(`
         *,
         reported_by_staff:commander_staff!reported_by (id, name, role),
-        resolved_by_staff:commander_staff!resolved_by (id, name, role),
-        involved_player:profiles!player_id (id, display_name, avatar_url)
+        resolved_by_staff:commander_staff!resolved_by (id, name, role)
       `)
       .single();
 

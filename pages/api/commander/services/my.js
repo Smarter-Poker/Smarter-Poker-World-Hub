@@ -43,7 +43,6 @@ export default async function handler(req, res) {
       .select(`
         *,
         poker_venues:venue_id (id, name),
-        commander_tables:table_id (id, table_number),
         commander_staff:assigned_to (id, display_name)
       `, { count: 'exact' })
       .eq('player_id', user.id)
