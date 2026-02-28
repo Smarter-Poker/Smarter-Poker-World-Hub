@@ -361,6 +361,39 @@ export default async function handler(req, res) {
       });
     }
 
+    // ─── 5.5 Auto-provision tables ─────────────────────────────────
+    const tableCount = parseInt(clubInfo.tables) || 0;
+    if (tableCount > 0) {
+      try {
+        // Check how many tables already exist for this venue
+        const { data: existingTables } = await supabase
+          .from('commander_tables')
+          .select('table_number')
+          .eq('venue_id', venueId);
+        const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
+
+        // Create missing tables (default 9-max, available status)
+        const tablesToInsert = [];
+        for (let i = 1; i <= tableCount; i++) {
+          if (!existingNumbers.has(i)) {
+            tablesToInsert.push({
+              venue_id: venueId,
+              table_number: i,
+              table_name: `Table ${i}`,
+              max_seats: 9,
+              status: 'available',
+            });
+          }
+        }
+        if (tablesToInsert.length > 0) {
+          await supabase.from('commander_tables').insert(tablesToInsert);
+          console.log(`Auto-provisioned ${tablesToInsert.length} tables for venue ${venueId}`);
+        }
+      } catch (e) {
+        console.error('Table auto-provision error (non-critical):', e.message);
+      }
+    }
+
     // ─── 6. Social Hub page (best-effort) ────────────────────────────
     try {
       await fetch(`${process.env.SOCIAL_HUB_API_URL}/api/create-club-page`, {

@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         // Get tournament details
         const { data: tournament, error: tErr } = await supabase
             .from('commander_tournaments')
-            .select('*, venues:venue_id (name)')
+            .select('*, poker_venues:venue_id (name)')
             .eq('id', tournamentId)
             .single();
 
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
             return res.status(404).json({ success: false, error: 'Tournament not found' });
         }
 
-        const venueName = tournament.venues?.name || 'Venue';
+        const venueName = tournament.poker_venues?.name || 'Venue';
         const tournamentName = tournament.name || 'Tournament';
 
         // Build notification content based on type

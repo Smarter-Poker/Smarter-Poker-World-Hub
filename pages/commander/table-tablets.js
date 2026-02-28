@@ -348,7 +348,11 @@ export default function TableTabletsPage() {
                                                             const isOccupied = seatInfo ? true : (seatNum <= seatedCount && seatData.length === 0);
                                                             const timerColor = isOccupied && seatInfo?.time_remaining != null ? getTimerColor(seatInfo.time_remaining) : null;
                                                             const playerName = seatInfo?.player_name || (isOccupied ? `P${seatNum}` : '');
+                                                            // Membership ring: green = active, red = inactive/expired/suspended
                                                             const memberActive = seatInfo?.membership_status === 'active';
+                                                            const ringColor = isOccupied && seatInfo?.membership_status
+                                                                ? (memberActive ? '#31A24C' : '#EF4444')
+                                                                : (isOccupied ? '#31A24C' : null);
 
                                                             return (
                                                                 <div key={idx} style={{
@@ -356,18 +360,20 @@ export default function TableTabletsPage() {
                                                                     transform: 'translate(-50%, -50%)',
                                                                     width: 52, height: 52,
                                                                     borderRadius: '50%',
-                                                                    background: isOccupied ? 'rgba(49,162,76,0.15)' : 'rgba(100,116,139,0.1)',
-                                                                    border: isOccupied ? `2px solid ${timerColor || '#31A24C'}` : '2px dashed #3A3B3C',
+                                                                    background: isOccupied
+                                                                        ? (memberActive ? 'rgba(49,162,76,0.15)' : seatInfo?.membership_status ? 'rgba(239,68,68,0.1)' : 'rgba(49,162,76,0.15)')
+                                                                        : 'rgba(100,116,139,0.1)',
+                                                                    border: isOccupied
+                                                                        ? `3px solid ${ringColor}`
+                                                                        : '2px dashed #3A3B3C',
                                                                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                                                     fontSize: 9, fontWeight: 600,
                                                                     transition: 'all 0.3s',
+                                                                    boxShadow: isOccupied && !memberActive && seatInfo?.membership_status
+                                                                        ? '0 0 8px rgba(239,68,68,0.4)' : 'none',
                                                                 }}>
                                                                     {isOccupied ? (
                                                                         <>
-                                                                            {/* Membership active/inactive dot */}
-                                                                            {seatInfo?.membership_status && (
-                                                                                <div style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', background: memberActive ? '#31A24C' : '#EF4444', border: '1px solid #242526' }} />
-                                                                            )}
                                                                             <span style={{ color: '#fff', fontSize: 9, lineHeight: 1, maxWidth: 42, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
                                                                                 {playerName.substring(0, 6)}
                                                                             </span>
