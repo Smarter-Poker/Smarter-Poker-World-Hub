@@ -179,9 +179,28 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           align-items: center;
           gap: 10px;
         }
+        .cmd-global-center {
+          flex: 1;
+          text-align: center;
+          min-width: 0;
+        }
+        .cmd-global-page-title {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          color: #22D3EE;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        @media (min-width: 640px) {
+          .cmd-global-page-title { font-size: 13px; }
+        }
         .cmd-global-right {
-          margin-left: auto;
           text-align: right;
+          flex-shrink: 0;
         }
         .cmd-global-title {
           font-family: 'Orbitron', sans-serif;
@@ -414,6 +433,13 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               >
                 <img src="/images/commander/btn-back.png" alt="Back" />
               </button>
+            )}
+          </div>
+          <div className="cmd-global-center">
+            {title && !hideBack && (
+              <div className="cmd-global-page-title">
+                {title.replace(/\s*\|.*$/, '').replace(/^Commander\s*—\s*/, '')}
+              </div>
             )}
           </div>
           <div className="cmd-global-right">

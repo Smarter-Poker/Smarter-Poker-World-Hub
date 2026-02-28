@@ -51,6 +51,19 @@ export default function PokerRoomFunctions() {
         if (tabJson.success) {
           const tList = tabJson.data?.tables || (Array.isArray(tabJson.data) ? tabJson.data : []);
           setTables(tList);
+
+          // Auto-open room if there are active tables/games but room shows closed
+          const hasActiveGames = tList.some(t => t.status === 'active' || t.is_active);
+          if (hasActiveGames && !vJson.data?.room_open) {
+            try {
+              await fetch('/api/commander/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ room_open: true })
+              });
+              setRoomOpen(true);
+            } catch { /* non-fatal auto-open */ }
+          }
         }
       }
     } catch (err) { console.error(err); }

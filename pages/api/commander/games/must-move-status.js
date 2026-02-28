@@ -96,6 +96,27 @@ async function handleGet(req, res) {
 
     // Only return groups with 2+ tables (must-move candidates)
     const candidates = Object.values(groups).filter(g => g.all.length >= 2);
+
+    // ── Auto-link unlinked games as must-move when 2+ share the same type+stakes ──
+    for (const group of candidates) {
+      if (!group.main) continue;
+      const unlinked = group.all.filter(g => g.id !== group.main.id && !g.is_must_move);
+      if (unlinked.length > 0) {
+        const unlinkedIds = unlinked.map(g => g.id);
+        await supabase
+          .from('commander_games')
+          .update({ is_must_move: true, parent_game_id: group.main.id })
+          .in('id', unlinkedIds);
+
+        // Update local data so the response reflects the new links
+        unlinked.forEach(g => {
+          g.is_must_move = true;
+          g.parent_game_id = group.main.id;
+          group.must_moves.push(g);
+        });
+      }
+    }
+
     // Also return all singles for reference
     const singles = Object.values(groups).filter(g => g.all.length === 1);
 
