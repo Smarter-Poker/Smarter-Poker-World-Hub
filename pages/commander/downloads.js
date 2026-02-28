@@ -82,10 +82,10 @@ export default function DownloadsPage() {
     <CommanderLayout title="Download Club Commander - Desktop App" backHref="/commander/dashboard?card=reports">
       <div className="min-h-screen bg-[#18191A]">
         <SEOHead
-                title="Commander — Downloads"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Downloads"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
 
         <div className="container mx-auto px-4 py-12">
           {/* Header */}
@@ -188,6 +188,23 @@ export default function DownloadsPage() {
                 <p className="text-[#B0B3B8] text-sm">{feature.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* Tablet / Phone Install */}
+          <div className="max-w-2xl mx-auto bg-[#242526] rounded-xl p-6 border border-[#3A3B3C] mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-[#31A24C]/15 flex items-center justify-center shrink-0">
+                <span className="text-3xl">📱</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-[#E4E6EB] font-bold text-lg mb-1">iPad & Android</h3>
+                <p className="text-[#B0B3B8] text-sm">Add Commander to your tablet home screen — no app store needed. Perfect for front-desk kiosks and dealer stations.</p>
+              </div>
+            </div>
+            <Link href="/commander/install"
+              className="mt-4 w-full py-3 rounded-xl bg-[#31A24C] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#2B8C42] transition-colors">
+              📲 View iPad & Android Install Guide
+            </Link>
           </div>
 
           {/* All Downloads Link */}

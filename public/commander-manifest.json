@@ -1,0 +1,30 @@
+{
+    "name": "Club Commander",
+    "short_name": "Commander",
+    "description": "Professional Poker Room Management System",
+    "start_url": "/commander/dashboard",
+    "scope": "/commander",
+    "display": "standalone",
+    "background_color": "#18191A",
+    "theme_color": "#1877F2",
+    "orientation": "any",
+    "categories": [
+        "business",
+        "productivity"
+    ],
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
