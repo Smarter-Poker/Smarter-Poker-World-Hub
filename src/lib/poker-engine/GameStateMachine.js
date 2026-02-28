@@ -246,6 +246,7 @@ class GameStateMachine {
     this.emit('action_processed', {
       playerId,
       action: result.action,
+      street: this.phase,
       potTotal: this.potCalculator.totalPot,
       currentBet: this.bettingRound.currentBet,
     });
@@ -279,7 +280,9 @@ class GameStateMachine {
     const { smallBlind, bigBlind, ante } = this.config;
     
     // Find SB and BB players
-    const sbPlayer = players.find(p => p.position === 'sb');
+    // In heads-up, the button player is also the SB
+    const sbPlayer = players.find(p => p.position === 'sb') 
+      || (players.length === 2 ? players.find(p => p.position === 'btn') : null);
     const bbPlayer = players.find(p => p.position === 'bb');
     
     // Post antes first
