@@ -97,21 +97,25 @@ export default async function handler(req, res) {
       throw addErr;
     }
 
-    // 5. Record transaction
-    await supabaseAdmin.from('chip_transactions').insert({
+    // 5. Record transaction (keep ID for 10-min clawback window)
+    const { data: txn } = await supabaseAdmin.from('chip_transactions').insert({
       club_id: clubId,
       from_user_id: user.id,
       to_user_id: playerId,
       amount,
       transaction_type: 'send',
       notes: notes || `Chips from ${agentMember.nickname || 'agent'} to ${playerMember.nickname || 'player'}`,
-    });
+    }).select('id, created_at').single();
 
     return res.status(200).json({
       success: true,
+      transactionId: txn?.id,
       agentBalance: agentMember.chip_balance - amount,
       playerBalance: playerMember.chip_balance + amount,
       amount,
+      clawbackExpiresAt: txn?.created_at
+        ? new Date(new Date(txn.created_at).getTime() + 10 * 60 * 1000).toISOString()
+        : null,
     });
   } catch (err) {
     console.error('[distribute-chips]', err);

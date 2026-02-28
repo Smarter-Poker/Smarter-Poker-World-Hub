@@ -1,10 +1,22 @@
 /**
  * POST /api/club-arena/request-cashout
  * 
- * Player requests to cash out chips. Creates a cashout_request record
- * that the player's agent (or club owner) must approve.
+ * Player requests to cash out chips.
  * 
- * Body: { clubId, amount }
+ * FLOW:
+ *   1. Validate player has enough chips
+ *   2. HOLD chips (deduct from balance → escrow)
+ *   3. Create cashout_request (status: 'pending')
+ *   4. Send in-app message to agent via messenger
+ *   5. Send push notification to agent
+ * 
+ * RULES:
+ *   - Chips are HELD immediately so player can't play them
+ *   - Only the assigned agent (or club owner) can approve/cancel
+ *   - If agent cancels, held chips return to player's balance
+ *   - One pending request per player per club at a time
+ * 
+ * Body: { clubId, amount, note? }
  * Auth: Bearer token (player requesting cashout)
  */
 import { createClient } from '@supabase/supabase-js';
@@ -23,13 +35,15 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, amount } = req.body;
+  const { clubId, amount, note } = req.body;
   if (!clubId || !amount || amount <= 0) {
     return res.status(400).json({ error: 'clubId and positive amount required' });
   }
 
   try {
+    // ═════════════════════════════════════════════════════════════
     // 1. Get player's membership
+    // ═════════════════════════════════════════════════════════════
     const { data: member, error: memErr } = await supabaseAdmin
       .from('club_members')
       .select('user_id, role, chip_balance, agent_id, nickname')
@@ -47,7 +61,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Check for existing pending cashout
+    if (!member.agent_id) {
+      return res.status(400).json({ error: 'No agent assigned. Contact club owner.' });
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // 2. One pending request at a time
+    // ═════════════════════════════════════════════════════════════
     const { data: existing } = await supabaseAdmin
       .from('cashout_requests')
       .select('id')
@@ -60,7 +80,10 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'You already have a pending cashout request' });
     }
 
-    // 3. Hold the chips (deduct from balance, mark as pending)
+    // ═════════════════════════════════════════════════════════════
+    // 3. HOLD chips — deduct from balance (escrow)
+    //    Player can't play or spend these while pending
+    // ═════════════════════════════════════════════════════════════
     const { error: holdErr } = await supabaseAdmin
       .from('club_members')
       .update({ chip_balance: member.chip_balance - amount })
@@ -69,16 +92,18 @@ export default async function handler(req, res) {
 
     if (holdErr) throw holdErr;
 
+    // ═════════════════════════════════════════════════════════════
     // 4. Create cashout_request
+    // ═════════════════════════════════════════════════════════════
     const { data: cashout, error: cashoutErr } = await supabaseAdmin
       .from('cashout_requests')
       .insert({
         club_id: clubId,
         player_id: user.id,
-        agent_id: member.agent_id || '00000000-0000-0000-0000-000000000000',
+        agent_id: member.agent_id,
         amount,
         status: 'pending',
-        player_note: `Cashout request: ${amount.toLocaleString()} chips`,
+        player_note: note || `Cashout request: ${amount.toLocaleString()} chips`,
       })
       .select()
       .single();
@@ -93,35 +118,73 @@ export default async function handler(req, res) {
       throw cashoutErr;
     }
 
-    // 5. Record chip_transaction (hold)
+    // ═════════════════════════════════════════════════════════════
+    // 5. Record chip_transaction (escrow hold)
+    // ═════════════════════════════════════════════════════════════
     await supabaseAdmin.from('chip_transactions').insert({
       club_id: clubId,
       from_user_id: user.id,
       to_user_id: user.id,
       amount: -amount,
       transaction_type: 'send',
-      notes: `Cashout hold: ${amount.toLocaleString()} chips (pending approval)`,
-      related_cashout_id: cashout.id,
+      notes: `Cashout hold (escrow): ${amount.toLocaleString()} chips pending agent approval`,
     });
 
-    // 6. Notify agent (if assigned)
-    if (member.agent_id) {
-      try {
-        const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
-          p_user_id: user.id,
-          p_other_user_id: member.agent_id,
+    // ═════════════════════════════════════════════════════════════
+    // 6. Get player display name for notifications
+    // ═════════════════════════════════════════════════════════════
+    const { data: playerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('username, display_name, full_name')
+      .eq('id', user.id)
+      .single();
+
+    const playerName = playerProfile?.display_name
+      || playerProfile?.full_name
+      || playerProfile?.username
+      || member.nickname
+      || 'A player';
+
+    // ═════════════════════════════════════════════════════════════
+    // 7. Send in-app message to agent via messenger
+    // ═════════════════════════════════════════════════════════════
+    try {
+      const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
+        p_user_id: user.id,
+        p_other_user_id: member.agent_id,
+      });
+      if (convId) {
+        await supabaseAdmin.rpc('fn_send_message', {
+          p_conversation_id: convId,
+          p_sender_id: user.id,
+          p_content: `💰 Cashout Request\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
         });
-        if (convId) {
-          await supabaseAdmin.rpc('fn_send_message', {
-            p_conversation_id: convId,
-            p_sender_id: user.id,
-            p_content: `💰 Cashout request: ${amount.toLocaleString()} chips. Please approve or deny.`,
-          });
-        }
-      } catch (msgErr) {
-        // Non-critical: notification failure shouldn't block cashout
-        console.warn('[request-cashout] Notification failed:', msgErr.message);
       }
+    } catch (msgErr) {
+      console.warn('[request-cashout] Messenger notification failed:', msgErr.message);
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // 8. Send push notification to agent
+    // ═════════════════════════════════════════════════════════════
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+
+      if (baseUrl) {
+        await fetch(`${baseUrl}/api/notifications/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: member.agent_id,
+            title: '💰 Cashout Request',
+            message: `${playerName} wants to cash out ${amount.toLocaleString()} chips`,
+            url: '/hub/club-arena/admin?tab=cashouts',
+          }),
+        });
+      }
+    } catch (pushErr) {
+      console.warn('[request-cashout] Push notification failed:', pushErr.message);
     }
 
     return res.status(200).json({
@@ -130,6 +193,8 @@ export default async function handler(req, res) {
       amount,
       status: 'pending',
       remainingBalance: member.chip_balance - amount,
+      agentNotified: true,
+      message: `${amount.toLocaleString()} chips held. Your agent has been notified.`,
     });
   } catch (err) {
     console.error('[request-cashout]', err);
