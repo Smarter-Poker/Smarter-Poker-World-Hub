@@ -308,6 +308,10 @@ function StaffModal({ staff, onClose, onSubmit }) {
       setError('Employee name is required');
       return;
     }
+    if (pinCode && pinCode.length !== 4) {
+      setError('PIN must be exactly 4 digits');
+      return;
+    }
     setSubmitting(true);
     await onSubmit({
       display_name: displayName.trim(),
@@ -409,16 +413,21 @@ function StaffModal({ staff, onClose, onSubmit }) {
           {/* PIN Code */}
           <div>
             <label className="block text-sm font-medium text-white mb-1">
-              PIN Code
+              4-Digit PIN <span className="text-[#EF4444]">*</span>
             </label>
             <input
               type="text"
+              inputMode="numeric"
               value={pinCode}
-              onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="4-6 Digits"
-              className="w-full h-12 px-3 cmd-input"
+              onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="e.g. 1234"
+              maxLength={4}
+              className="w-full h-12 px-3 cmd-input text-center text-2xl tracking-[0.5em] font-mono"
             />
-            <p className="text-xs text-[#B0B3B8] mt-1">Used For Terminal Login And Comp Authorization</p>
+            <p className="text-xs text-[#F59E0B] mt-1">🔒 Required for all financial transactions, terminal login, and comp authorization</p>
+            {pinCode && pinCode.length < 4 && (
+              <p className="text-xs text-[#EF4444] mt-0.5">PIN must be exactly 4 digits</p>
+            )}
           </div>
 
           {/* Active Toggle */}
