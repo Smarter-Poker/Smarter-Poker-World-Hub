@@ -248,7 +248,7 @@ export default function AnnouncementsDisplay() {
 
       <div onClick={goFullscreen}
         style={{
-          minHeight: '100vh', background: '#18191A', color: '#E4E6EB',
+          height: '100vh', background: '#18191A', color: '#E4E6EB',
           fontFamily: "'Inter', sans-serif", userSelect: 'none',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}>
@@ -529,7 +529,7 @@ export default function AnnouncementsDisplay() {
         </div>
 
         {/* Dealer Ticker */}
-        <DealerTicker accentColor="#1877F2" bgColor="#242526" fontSize={18} borderColor="#3A3B3C" speed={22} showBorder={true} />
+        <DealerTicker accentColor="#1877F2" bgColor="#242526" fontSize={16} borderColor="#3A3B3C" speed={10} showBorder={true} />
 
         {/* Bottom bar */}
         <div style={{
