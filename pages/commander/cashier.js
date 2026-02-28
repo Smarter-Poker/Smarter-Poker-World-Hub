@@ -154,16 +154,24 @@ export default function Cashier() {
   }, [venueId]);
 
   // Build dynamic time options from owner settings
-  const TIME_OPTIONS = bulkTimePackages.length > 0
-    ? bulkTimePackages.map(pkg => ({
-      label: pkg.name || `${pkg.hours} Hr Pack`,
-      minutes: (pkg.hours || 0) * 60,
-      price: pkg.price || 0,
-    }))
-    : DEFAULT_TIME_OPTIONS.map(opt => ({
-      ...opt,
-      price: timeBillingRate > 0 ? Math.round(timeBillingRate * (opt.minutes / 60)) : 0,
-    }));
+  const TIME_OPTIONS = (() => {
+    const hourlyOpt = timeBillingRate > 0
+      ? [{ label: '1 Hour', minutes: 60, price: Math.round(timeBillingRate) }]
+      : [];
+    if (bulkTimePackages.length > 0) {
+      const pkgOpts = bulkTimePackages.map(pkg => ({
+        label: pkg.name || `${pkg.hours} Hr Pack`,
+        minutes: (pkg.hours || 0) * 60,
+        price: pkg.price || 0,
+      }));
+      return [...hourlyOpt, ...pkgOpts];
+    }
+    return hourlyOpt.length > 0
+      ? [...hourlyOpt, ...DEFAULT_TIME_OPTIONS.slice(1).map(opt => ({
+        ...opt, price: Math.round(timeBillingRate * (opt.minutes / 60)),
+      }))]
+      : DEFAULT_TIME_OPTIONS.map(opt => ({ ...opt, price: 0 }));
+  })();
 
   // Build dynamic membership tiers from owner settings
   const MEMBERSHIP_TIERS = membershipPlans.length > 0

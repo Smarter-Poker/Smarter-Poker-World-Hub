@@ -14,7 +14,7 @@ import {
   Power, PowerOff, Users, DollarSign,
   Settings, ChevronRight, Loader2, RefreshCw,
   LayoutGrid, Wifi, WifiOff, Clock,
-  ArrowRightLeft, AlertTriangle, Zap
+  ArrowRightLeft, AlertTriangle, Zap, Trophy
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -126,19 +126,35 @@ export default function PokerRoomFunctions() {
   };
 
   const activeTables = tables.filter(t => t.status === 'in_use');
-  const totalSeated = tables.reduce((sum, t) => sum + (t.current_players || t.seated_count || 0), 0);
+  // Split by table_purpose
+  const cashTables = activeTables.filter(t => (t.table_purpose || 'cash_game') !== 'tournament');
+  const tournamentTables = activeTables.filter(t => t.table_purpose === 'tournament');
+  const cashSeated = cashTables.reduce((sum, t) => sum + (t.current_players || t.seated_count || 0), 0);
+  const tournamentSeated = tournamentTables.reduce((sum, t) => sum + (t.current_players || t.seated_count || 0), 0);
+  const totalSeated = cashSeated + tournamentSeated;
   const totalCapacity = tables.reduce((sum, t) => sum + (t.max_seats || 9), 0);
   const occupancyPct = totalCapacity > 0 ? Math.round((totalSeated / totalCapacity) * 100) : 0;
 
-  // Group tables by game type
-  const gameGroups = {};
-  activeTables.forEach(t => {
+  // Group cash tables by game type
+  const cashGameGroups = {};
+  cashTables.forEach(t => {
     const game = t.game_type || t.commander_games?.game_type || 'Cash Game';
     const stakes = t.stakes || t.commander_games?.stakes || '';
     const key = `${game}${stakes ? ` ${stakes}` : ''}`;
-    if (!gameGroups[key]) gameGroups[key] = { tables: 0, players: 0 };
-    gameGroups[key].tables++;
-    gameGroups[key].players += (t.current_players || t.seated_count || 0);
+    if (!cashGameGroups[key]) cashGameGroups[key] = { tables: 0, players: 0 };
+    cashGameGroups[key].tables++;
+    cashGameGroups[key].players += (t.current_players || t.seated_count || 0);
+  });
+
+  // Group tournament tables by game type
+  const tournamentGameGroups = {};
+  tournamentTables.forEach(t => {
+    const game = t.game_type || t.commander_games?.game_type || 'Tournament';
+    const stakes = t.stakes || t.commander_games?.stakes || '';
+    const key = `${game}${stakes ? ` ${stakes}` : ''}`;
+    if (!tournamentGameGroups[key]) tournamentGameGroups[key] = { tables: 0, players: 0 };
+    tournamentGameGroups[key].tables++;
+    tournamentGameGroups[key].players += (t.current_players || t.seated_count || 0);
   });
 
   if (loading) {
@@ -197,20 +213,20 @@ export default function PokerRoomFunctions() {
           {/* Live Stats Bar */}
           <div className="px-4 py-2">
             <div className="grid grid-cols-4 gap-2">
-              <StatCard value={activeTables.length} label="Active" icon={LayoutGrid} color="#1877F2" />
-              <StatCard value={totalSeated} label="Players" icon={Users} color="#31A24C" />
-              <StatCard value={tables.length} label="Total" icon={LayoutGrid} color="#B0B3B8" />
+              <StatCard value={cashTables.length} label="Cash" icon={LayoutGrid} color="#31A24C" />
+              <StatCard value={tournamentTables.length} label="Tourney" icon={Trophy} color="#F59E0B" />
+              <StatCard value={totalSeated} label="Players" icon={Users} color="#1877F2" />
               <StatCard value={`${occupancyPct}%`} label="Full" icon={Zap}
                 color={occupancyPct > 80 ? '#EF4444' : occupancyPct > 50 ? '#F59E0B' : '#31A24C'} />
             </div>
           </div>
 
-          {/* Active Games Breakdown */}
-          {Object.keys(gameGroups).length > 0 && (
+          {/* Active Cash Games Breakdown */}
+          {Object.keys(cashGameGroups).length > 0 && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Active Games</h3>
+              <h3 className="text-xs font-semibold text-[#31A24C] uppercase tracking-wider mb-2">Cash Games ({cashTables.length})</h3>
               <div className="space-y-1.5">
-                {Object.entries(gameGroups).map(([game, data]) => (
+                {Object.entries(cashGameGroups).map(([game, data]) => (
                   <div key={game} className="bg-[#242526] rounded-xl border border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-[#31A24C] animate-pulse" />
@@ -219,6 +235,27 @@ export default function PokerRoomFunctions() {
                     <div className="flex items-center gap-4">
                       <span className="text-xs text-[#B0B3B8]">{data.tables} table{data.tables !== 1 ? 's' : ''}</span>
                       <span className="text-sm font-bold text-[#1877F2]">{data.players} <span className="text-[#B0B3B8] font-normal text-xs">players</span></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tournament Tables Breakdown */}
+          {Object.keys(tournamentGameGroups).length > 0 && (
+            <div className="px-4 py-2">
+              <h3 className="text-xs font-semibold text-[#F59E0B] uppercase tracking-wider mb-2">Tournament Tables ({tournamentTables.length})</h3>
+              <div className="space-y-1.5">
+                {Object.entries(tournamentGameGroups).map(([game, data]) => (
+                  <div key={game} className="bg-[#242526] rounded-xl border border-[#F59E0B]/20 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse" />
+                      <span className="text-sm font-medium text-white">{game}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-[#B0B3B8]">{data.tables} table{data.tables !== 1 ? 's' : ''}</span>
+                      <span className="text-sm font-bold text-[#F59E0B]">{data.players} <span className="text-[#B0B3B8] font-normal text-xs">players</span></span>
                     </div>
                   </div>
                 ))}
@@ -250,10 +287,17 @@ export default function PokerRoomFunctions() {
                     return (
                       <button key={table.id || table.table_number}
                         onClick={() => router.push(`/commander/table/${table.id || table.table_number}`)}
-                        className={`rounded-xl border p-3 text-center active:scale-[0.97] transition-transform ${isActive
-                          ? 'bg-[#242526] border-[#31A24C]/30'
+                        className={`rounded-xl border p-3 text-center active:scale-[0.97] transition-transform relative ${isActive
+                          ? table.table_purpose === 'tournament'
+                            ? 'bg-[#242526] border-[#F59E0B]/30'
+                            : 'bg-[#242526] border-[#31A24C]/30'
                           : 'bg-[#1E1F20] border-[#3A3B3C]/50 opacity-50'
                           }`}>
+                        {/* Purpose badge */}
+                        <div className={`absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-md ${table.table_purpose === 'tournament'
+                          ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'
+                          : 'bg-[#31A24C]/15 text-[#31A24C] border border-[#31A24C]/30'
+                          }`}>{table.table_purpose === 'tournament' ? 'T' : 'C'}</div>
                         <div className="text-lg font-bold text-white">T{table.table_number}</div>
                         {isActive ? (
                           <>
@@ -263,7 +307,7 @@ export default function PokerRoomFunctions() {
                               {players}/{maxSeats}
                             </div>
                             {game && <div className="text-[9px] text-[#B0B3B8] truncate mt-0.5">{game}</div>}
-                            {stakes && <div className="text-[10px] text-[#31A24C] font-medium">{stakes}</div>}
+                            {stakes && <div className={`text-[10px] font-medium ${table.table_purpose === 'tournament' ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>{stakes}</div>}
                             {/* Fill bar */}
                             <div className="mt-1.5 h-1 bg-[#3A3B3C] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${fillPct >= 90 ? 'bg-[#EF4444]' :

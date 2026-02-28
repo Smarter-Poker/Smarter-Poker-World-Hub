@@ -109,6 +109,22 @@ async function handleGet(req, res) {
     // Only return groups with 2+ tables (must-move candidates)
     const candidates = Object.values(groups).filter(g => g.all.length >= 2);
 
+    // ── Defensive: fix orphaned must-move flags ──
+    // Games flagged is_must_move=true but with null parent, or parent no longer active
+    const activeGameIds = new Set(enriched.map(g => g.id));
+    const orphans = enriched.filter(g =>
+      g.is_must_move && (!g.parent_game_id || !activeGameIds.has(g.parent_game_id))
+    );
+    if (orphans.length > 0) {
+      const orphanIds = orphans.map(g => g.id);
+      await supabase
+        .from('commander_games')
+        .update({ is_must_move: false, parent_game_id: null })
+        .in('id', orphanIds);
+      // Fix local data
+      orphans.forEach(g => { g.is_must_move = false; g.parent_game_id = null; });
+    }
+
     // Auto-link unlinked games as must-move when 2+ share the same type+stakes
     for (const group of candidates) {
       if (!group.main) continue;

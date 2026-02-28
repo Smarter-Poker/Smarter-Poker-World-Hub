@@ -237,7 +237,10 @@ export default function FloorMap() {
   }, [draggingId, handleDragMove, handleDragEnd]);
 
   // Computed stats
-  const activeCount = tables.filter(t => t.status === 'in_use').length;
+  const activeTables = tables.filter(t => t.status === 'in_use');
+  const activeCount = activeTables.length;
+  const cashActive = activeTables.filter(t => (t.table_purpose || 'cash_game') !== 'tournament').length;
+  const tournamentActive = activeTables.filter(t => t.table_purpose === 'tournament').length;
   const openCount = tables.filter(t => t.status === 'available').length;
   const totalSeats = tables.reduce((s, t) => s + (t.max_seats || 9), 0);
   const occupiedSeats = tables.reduce((s, t) => s + (t.current_players || 0), 0);
@@ -312,7 +315,8 @@ export default function FloorMap() {
 
         {/* Stats strip */}
         <div style={{ padding: '8px 16px', display: 'flex', gap: 12, background: '#18191A', borderBottom: '1px solid #2A2B2D', flexShrink: 0 }}>
-          <StatPill label="Active" value={activeCount} color="#31A24C" />
+          <StatPill label="Cash" value={cashActive} color="#31A24C" />
+          <StatPill label="Tourney" value={tournamentActive} color="#F59E0B" />
           <StatPill label="Open" value={openCount} color="#1877F2" />
           <StatPill label="Seats" value={`${occupiedSeats}/${totalSeats}`} color="#E4E6EB" />
           {totalWaiting > 0 && <StatPill label="Waiting" value={totalWaiting} color="#F59E0B" />}
@@ -423,6 +427,18 @@ export default function FloorMap() {
                       <div style={{ fontSize: Math.max(8, 10 * zoom), color: isActive ? '#fff' : '#8A8D91', fontWeight: 600, marginTop: 2 * zoom, display: 'flex', alignItems: 'center', gap: 2 * zoom }}>
                         <Users size={Math.max(7, 9 * zoom)} /> {occupied}/{maxSeats}
                       </div>
+
+                      {/* Purpose badge */}
+                      {table.table_purpose === 'tournament' && (
+                        <div style={{
+                          position: 'absolute', top: 2 * zoom, right: 6 * zoom,
+                          fontSize: Math.max(7, 8 * zoom), fontWeight: 800,
+                          color: '#F59E0B', background: 'rgba(245,158,11,0.15)',
+                          padding: `${1 * zoom}px ${3 * zoom}px`, borderRadius: 3 * zoom,
+                          border: '1px solid rgba(245,158,11,0.3)',
+                          lineHeight: 1, letterSpacing: 0.5,
+                        }}>T</div>
+                      )}
                     </div>
 
                     {/* Edit mode: drag handle + rotate button */}
