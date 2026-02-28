@@ -25,6 +25,10 @@ const CardAssets = require('./CardAssets');
 // Phase 4
 const { GameController, getController, getControllerSync } = require('./GameController');
 
+// Phase 10
+const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS, DEFAULT_BLIND_STRUCTURE, SNG_BLIND_STRUCTURE, SPIN_BLIND_STRUCTURE, SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES } = require('./TournamentController');
+const { ClubLedger, TRANSACTION_TYPE } = require('./ClubLedger');
+
 module.exports = {
   // Phase 1: Spread all Deck and HandEval exports (includes classes + helpers)
   ...DeckModule,
@@ -45,4 +49,10 @@ module.exports = {
   
   // Phase 4
   GameController, getController, getControllerSync,
+  
+  // Phase 10: Tournament Engine + Club Ledger
+  TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS,
+  DEFAULT_BLIND_STRUCTURE, SNG_BLIND_STRUCTURE, SPIN_BLIND_STRUCTURE,
+  SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES,
+  ClubLedger, TRANSACTION_TYPE,
 };
