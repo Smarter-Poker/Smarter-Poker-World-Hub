@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown, StopCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+// Dashboard is a static navigation menu — no live data to sync
 import { canAccessRoute, getUpgradeTier, getTierConfig, hasFeature } from '../../src/lib/commander/tierConfig';
 
 /* ─────────────────────────────────────────────────

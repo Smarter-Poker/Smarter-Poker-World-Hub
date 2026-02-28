@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -33,6 +34,9 @@ export default function LeaderboardDisplay() {
     }, 15000);
     return () => { clearInterval(poll); clearInterval(clock); clearInterval(rotate); };
   }, [leaderboards.length]);
+
+  // Commander Data Bus — instant sync when members change
+  useCommanderSync('', fetchData, { entities: ['members'] });
 
   useEffect(() => {
     const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };

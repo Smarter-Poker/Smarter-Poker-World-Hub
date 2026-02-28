@@ -5,9 +5,10 @@
  * Shows: current table assignments, on-break dealers, next rotation time
  * Auto-refreshes every 10 seconds
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 export default function DealerRotationDisplay() {
@@ -16,25 +17,29 @@ export default function DealerRotationDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [dealerRes, rotRes] = await Promise.all([
+        fetch('/api/commander/dealers'),
+        fetch('/api/commander/dealers/rotations')
+      ]);
+      const dealerJson = await dealerRes.json();
+      const rotJson = await rotRes.json();
+      if (dealerJson.success) setDealers(dealerJson.data || []);
+      if (rotJson.success) setRotations(rotJson.data || []);
+    } catch (err) { console.error(err); }
+    setNow(new Date());
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [dealerRes, rotRes] = await Promise.all([
-          fetch('/api/commander/dealers'),
-          fetch('/api/commander/dealers/rotations')
-        ]);
-        const dealerJson = await dealerRes.json();
-        const rotJson = await rotRes.json();
-        if (dealerJson.success) setDealers(dealerJson.data || []);
-        if (rotJson.success) setRotations(rotJson.data || []);
-      } catch (err) { console.error(err); }
-      setNow(new Date());
-    };
     fetchData();
     const poll = setInterval(fetchData, 10000);
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  }, [fetchData]);
+
+  // Commander Data Bus — instant sync when dealers change
+  useCommanderSync('', fetchData, { entities: ['dealers'] });
 
   // Wake lock
   useEffect(() => {

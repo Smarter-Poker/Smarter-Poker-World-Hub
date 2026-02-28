@@ -5,9 +5,10 @@
  * Shows: current announcements, scrolling messages, room status
  * Auto-refreshes every 5 seconds, auto-dismisses expired messages
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 export default function AnnouncementsDisplay() {
@@ -16,34 +17,37 @@ export default function AnnouncementsDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/commander/announcements');
+      const json = await res.json();
+      if (json.success) {
+        const active = (json.data || []).filter(a => {
+          if (!a.expires_at) return true;
+          return new Date(a.expires_at) > new Date();
+        });
+        setAnnouncements(active);
+      }
+    } catch (err) { console.error(err); }
+
+    try {
+      const settingsRes = await fetch('/api/commander/settings');
+      const settingsJson = await settingsRes.json();
+      if (settingsJson.success) setRoomOpen(settingsJson.data?.room_open ?? true);
+    } catch (err) { }
+
+    setNow(new Date());
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/commander/announcements');
-        const json = await res.json();
-        if (json.success) {
-          // Filter to non-expired announcements
-          const active = (json.data || []).filter(a => {
-            if (!a.expires_at) return true;
-            return new Date(a.expires_at) > new Date();
-          });
-          setAnnouncements(active);
-        }
-      } catch (err) { console.error(err); }
-
-      try {
-        const settingsRes = await fetch('/api/commander/settings');
-        const settingsJson = await settingsRes.json();
-        if (settingsJson.success) setRoomOpen(settingsJson.data?.room_open ?? true);
-      } catch (err) { }
-
-      setNow(new Date());
-    };
     fetchData();
     const poll = setInterval(fetchData, 5000);
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  }, [fetchData]);
+
+  // Commander Data Bus — instant sync when settings change
+  useCommanderSync('', fetchData, { entities: ['settings'] });
 
   // Wake lock
   useEffect(() => {

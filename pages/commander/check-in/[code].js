@@ -19,6 +19,7 @@ import {
   Clock, Shield, Timer, Users, ChevronRight, Loader2,
   CheckCircle2, AlertTriangle, XCircle, CreditCard
 } from 'lucide-react';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined || seconds < 0) return '--:--';
@@ -57,6 +58,9 @@ export default function PlayerCheckIn() {
     const poll = setInterval(fetchMember, 10000);
     return () => clearInterval(poll);
   }, [code]);
+
+  // Commander Data Bus — sync member status in real-time
+  useCommanderSync('', fetchMember, { entities: ['members', 'tables'] });
 
   // Local countdown ticker
   useEffect(() => {
@@ -137,10 +141,10 @@ export default function PlayerCheckIn() {
   return (
     <>
       <SEOHead
-                title="Commander — Details"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Details"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] p-4 pb-12 max-w-md mx-auto">
 
         {/* Header */}
@@ -158,11 +162,10 @@ export default function PlayerCheckIn() {
         </div>
 
         {/* Membership Status */}
-        <div className={`rounded-2xl p-4 mb-3 border ${
-          membershipActive
+        <div className={`rounded-2xl p-4 mb-3 border ${membershipActive
             ? 'bg-[#31A24C]/10 border-[#31A24C]/30'
             : 'bg-[#EF4444]/10 border-[#EF4444]/30'
-        }`}>
+          }`}>
           <div className="flex items-center gap-3">
             <Shield className="w-6 h-6" style={{ color: membershipActive ? '#31A24C' : '#EF4444' }} />
             <div>
@@ -177,11 +180,10 @@ export default function PlayerCheckIn() {
         </div>
 
         {/* Time Balance */}
-        <div className={`rounded-2xl p-5 mb-3 border text-center ${
-          timeBalance > 0
+        <div className={`rounded-2xl p-5 mb-3 border text-center ${timeBalance > 0
             ? 'bg-[#1877F2]/10 border-[#1877F2]/30'
             : 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
-        }`}>
+          }`}>
           <Timer className="w-8 h-8 mx-auto mb-2" style={{ color: timeBalance > 0 ? '#1877F2' : '#F59E0B' }} />
           <p className="text-3xl font-bold text-white">{timeBalance} min</p>
           <p className="text-sm text-[#B0B3B8]">Time Balance On Card</p>
@@ -206,9 +208,9 @@ export default function PlayerCheckIn() {
             </p>
             <p className="text-sm" style={{ color: getTimeColor(t) }}>
               {t <= 0 ? 'Time Expired — Add more time' :
-               t <= 300 ? 'Time is running out!' :
-               t <= 900 ? 'Time is getting low' :
-               'Time remaining'}
+                t <= 300 ? 'Time is running out!' :
+                  t <= 900 ? 'Time is getting low' :
+                    'Time remaining'}
             </p>
             {t <= 900 && t > 0 && (
               <p className="text-xs text-[#F59E0B] mt-3">

@@ -389,6 +389,8 @@ export default function PromotionsPage() {
   const [promoCodes, setPromoCodes] = useState([]);
   const [promoCodesLoading, setPromoCodesLoading] = useState(false);
   const [seedingPromos, setSeedingPromos] = useState(false);
+  const [editingPromoCode, setEditingPromoCode] = useState(null);
+  const [editCodeForm, setEditCodeForm] = useState({ code: '', description: '', max_uses: '' });
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
@@ -491,6 +493,35 @@ export default function PromotionsPage() {
       });
       fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); }
+  };
+
+  const openEditPromoCode = (code) => {
+    setEditCodeForm({ code: code.code, description: code.description || '', max_uses: code.max_uses ?? '' });
+    setEditingPromoCode(code);
+  };
+
+  const savePromoCode = async () => {
+    if (!editingPromoCode) return;
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const res = await fetch('/api/promo/admin-promo-codes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          id: editingPromoCode.id,
+          code: editCodeForm.code,
+          description: editCodeForm.description,
+          max_uses: editCodeForm.max_uses === '' ? null : parseInt(editCodeForm.max_uses),
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingPromoCode(null);
+        fetchPromoCodes();
+      } else {
+        alert(data.error || 'Failed to save');
+      }
+    } catch (err) { console.error('Save promo code error:', err); alert('Failed to save'); }
   };
 
   useEffect(() => {
@@ -949,6 +980,21 @@ export default function PromotionsPage() {
                           </div>
                           <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #3A3B3C' }}>
                             <button
+                              onClick={() => openEditPromoCode(code)}
+                              style={{
+                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                padding: '8px 12px', borderRadius: 8,
+                                background: 'transparent', color: '#1877F2',
+                                border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                transition: 'background 0.15s',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(24,119,242,0.08)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <Edit size={13} />
+                              Edit
+                            </button>
+                            <button
                               onClick={() => deletePromoCode(code)}
                               style={{
                                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -973,6 +1019,104 @@ export default function PromotionsPage() {
             )}
           </main>
         </div>
+
+        {/* === EDIT PROMO CODE MODAL === */}
+        {editingPromoCode && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16,
+          }}>
+            <div style={{
+              background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
+              width: '100%', maxWidth: 440, padding: 24,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#E4E6EB' }}>Edit Promo Code</h3>
+                <button
+                  onClick={() => setEditingPromoCode(null)}
+                  style={{ background: 'none', border: 'none', color: '#8A8D91', cursor: 'pointer', padding: 4 }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Code Name
+                </label>
+                <input
+                  value={editCodeForm.code}
+                  onChange={e => setEditCodeForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 8,
+                    background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
+                    fontSize: 15, fontFamily: 'monospace', fontWeight: 700,
+                    outline: 'none',
+                  }}
+                  placeholder="e.g. WELCOME50"
+                />
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Description
+                </label>
+                <input
+                  value={editCodeForm.description}
+                  onChange={e => setEditCodeForm(f => ({ ...f, description: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 8,
+                    background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
+                    fontSize: 14, outline: 'none',
+                  }}
+                  placeholder="Promotion description"
+                />
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Max Uses <span style={{ fontWeight: 400, textTransform: 'none' }}>(leave blank for unlimited)</span>
+                </label>
+                <input
+                  type="number"
+                  value={editCodeForm.max_uses}
+                  onChange={e => setEditCodeForm(f => ({ ...f, max_uses: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 8,
+                    background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
+                    fontSize: 15, outline: 'none',
+                  }}
+                  placeholder="∞ Unlimited"
+                  min="0"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setEditingPromoCode(null)}
+                  style={{
+                    flex: 1, padding: '10px 16px', borderRadius: 8,
+                    background: '#3A3B3C', color: '#E4E6EB', border: 'none',
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={savePromoCode}
+                  style={{
+                    flex: 1, padding: '10px 16px', borderRadius: 8,
+                    background: '#1877F2', color: '#fff', border: 'none',
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <Check size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showCreateModal && (
           useWizard ? (

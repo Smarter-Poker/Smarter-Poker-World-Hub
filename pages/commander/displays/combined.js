@@ -9,10 +9,11 @@
  *   4-panel: clock+waitlist+promotions+tables
  * Auto-refreshes all panels, no interaction needed
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 function formatClockTime(seconds) {
@@ -36,47 +37,51 @@ export default function CombinedDisplay() {
 
   const panels = layout.split('+').filter(Boolean);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const fetches = [];
+  const fetchData = useCallback(async () => {
+    try {
+      const fetches = [];
 
-        if (panels.includes('clock') && tournament) {
-          fetches.push(
-            fetch(`/api/commander/tournaments/${tournament}/clock`).then(r => r.json())
-              .then(json => { if (json.success) { setClockData(json.data); setClockSeconds(json.data?.remaining_seconds); } })
-          );
-        }
-        if (panels.includes('waitlist')) {
-          fetches.push(
-            fetch('/api/commander/waitlist').then(r => r.json())
-              .then(json => { if (json.success) setWaitlists((json.data || []).filter(w => ['waiting', 'called'].includes(w.status))); })
-          );
-        }
-        if (panels.includes('tables')) {
-          fetches.push(
-            fetch('/api/commander/tables').then(r => r.json())
-              .then(json => { if (json.success) setTables(json.data || []); })
-          );
-        }
-        if (panels.includes('promotions')) {
-          fetches.push(
-            fetch('/api/commander/promotions').then(r => r.json())
-              .then(json => { if (json.success) setPromotions((json.data || []).filter(p => p.is_active !== false)); })
-          );
-        }
-        await Promise.allSettled(fetches);
-      } catch (err) { console.error(err); }
-      setNow(new Date());
-    };
+      if (panels.includes('clock') && tournament) {
+        fetches.push(
+          fetch(`/api/commander/tournaments/${tournament}/clock`).then(r => r.json())
+            .then(json => { if (json.success) { setClockData(json.data); setClockSeconds(json.data?.remaining_seconds); } })
+        );
+      }
+      if (panels.includes('waitlist')) {
+        fetches.push(
+          fetch('/api/commander/waitlist').then(r => r.json())
+            .then(json => { if (json.success) setWaitlists((json.data || []).filter(w => ['waiting', 'called'].includes(w.status))); })
+        );
+      }
+      if (panels.includes('tables')) {
+        fetches.push(
+          fetch('/api/commander/tables').then(r => r.json())
+            .then(json => { if (json.success) setTables(json.data || []); })
+        );
+      }
+      if (panels.includes('promotions')) {
+        fetches.push(
+          fetch('/api/commander/promotions').then(r => r.json())
+            .then(json => { if (json.success) setPromotions((json.data || []).filter(p => p.is_active !== false)); })
+        );
+      }
+      await Promise.allSettled(fetches);
+    } catch (err) { console.error(err); }
+    setNow(new Date());
+  }, [panels, tournament]);
+
+  useEffect(() => {
     fetchData();
-    const poll = setInterval(fetchData, 10000); // 10s refresh for TV display
+    const poll = setInterval(fetchData, 10000);
     const clock = setInterval(() => {
       setNow(new Date());
       setClockSeconds(s => s !== null && s > 0 ? s - 1 : s);
     }, 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, [layout, tournament]);
+  }, [fetchData]);
+
+  // Commander Data Bus — instant sync for TV display
+  useCommanderSync('', fetchData, { entities: ['tables', 'waitlist', 'tournaments', 'settings'] });
 
   // Wake lock
   useEffect(() => {

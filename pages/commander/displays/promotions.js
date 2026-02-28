@@ -6,9 +6,10 @@
  * Auto-rotates between promotions, no interaction needed
  * Auto-refreshes every 10 seconds
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 export default function PromotionsDisplay() {
@@ -17,23 +18,27 @@ export default function PromotionsDisplay() {
   const [now, setNow] = useState(new Date());
   const wakeLockRef = useRef(null);
 
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/commander/promotions');
+      const json = await res.json();
+      if (json.success) {
+        const active = (json.data || []).filter(p => p.is_active !== false);
+        setPromotions(active);
+      }
+    } catch (err) { console.error(err); }
+    setNow(new Date());
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/commander/promotions');
-        const json = await res.json();
-        if (json.success) {
-          const active = (json.data || []).filter(p => p.is_active !== false);
-          setPromotions(active);
-        }
-      } catch (err) { console.error(err); }
-      setNow(new Date());
-    };
     fetchData();
     const poll = setInterval(fetchData, 10000);
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  }, [fetchData]);
+
+  // Commander Data Bus — instant sync when settings/promotions change
+  useCommanderSync('', fetchData, { entities: ['settings'] });
 
   // Auto-rotate promotions every 8 seconds
   useEffect(() => {

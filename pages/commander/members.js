@@ -14,6 +14,7 @@ import AddMemberModal from '../../src/components/commander/members/AddMemberModa
 import ScanMemberModal from '../../src/components/commander/members/ScanMemberModal';
 import MemberDetailPanel from '../../src/components/commander/members/MemberDetailPanel';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const TIER_COLORS = { daily: '#3B82F6', weekly: '#F59E0B', monthly: '#10B981', yearly: '#A855F7' };
 const TIER_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -77,6 +78,9 @@ export default function MembersPage() {
 
     useEffect(() => { fetchMembers(); }, [fetchMembers]);
 
+    // Commander Data Bus — sync members across tabs
+    useCommanderSync(venueId, fetchMembers, { entities: ['members'] });
+
     // Search debounce
     const [searchInput, setSearchInput] = useState('');
     useEffect(() => {
@@ -88,11 +92,13 @@ export default function MembersPage() {
         setMembers(prev => [newMember, ...prev]);
         setTotal(prev => prev + 1);
         setSelectedMember(newMember);
+        broadcastChange('members');
     };
 
     const handleMemberUpdated = (updatedMember) => {
         setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
         setSelectedMember(updatedMember);
+        broadcastChange('members');
     };
 
     if (!staff) {

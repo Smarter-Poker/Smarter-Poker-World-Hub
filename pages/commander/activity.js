@@ -22,6 +22,7 @@ import {
   Users, DollarSign, Bell, Play, Pause, Timer, XCircle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 const EVENT_TYPES = {
   check_in: { icon: UserCheck, color: '#31A24C', label: 'Check In' },
@@ -82,6 +83,10 @@ export default function ActivityFeed() {
       clearInterval(clock);
     };
   }, []);
+
+  // Commander Data Bus — sync activity feed across tabs
+  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
+  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
 
   const fetchEvents = async () => {
     try {

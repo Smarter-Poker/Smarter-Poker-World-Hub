@@ -10,7 +10,7 @@
  * - Promotions: /commander/displays/promotions (future)
  * - Combined: /commander/displays/combined (future)
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 
 import {
@@ -19,6 +19,7 @@ import {
   Loader2, RefreshCw, Wifi, Timer
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 
 export default function DisplayManagement() {
   const router = useRouter();
@@ -29,23 +30,27 @@ export default function DisplayManagement() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = getToken();
-        const res = await fetch('/api/commander/tournaments', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const json = await res.json();
-        if (json.success) {
-          const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
-          setTournaments(list);
-        }
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    try {
+      const token = getToken();
+      const res = await fetch('/api/commander/tournaments', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) {
+        const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
+        setTournaments(list);
+      }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Commander Data Bus — sync tournament list
+  useCommanderSync('', fetchData, { entities: ['tournaments'] });
 
   const getBaseUrl = () => {
     if (typeof window !== 'undefined') return window.location.origin;

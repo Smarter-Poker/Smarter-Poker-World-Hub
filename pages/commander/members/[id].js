@@ -18,6 +18,7 @@ import {
   Shield, AlertTriangle, Loader2, Edit, Plus, Ban, Check
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 export default function MemberProfile() {
   const router = useRouter();
@@ -41,6 +42,9 @@ export default function MemberProfile() {
     if (!id) return;
     fetchMember();
   }, [id]);
+
+  // Commander Data Bus — sync member across tabs
+  useCommanderSync(getVenueId(), fetchMember, { entities: ['members'] });
 
   const fetchMember = async () => {
     setLoading(true);
@@ -78,6 +82,7 @@ export default function MemberProfile() {
       setShowAddTime(false);
       setAddTimeAmount('');
       fetchMember();
+      broadcastChange('members');
     } catch (err) { console.error(err); }
   };
 
@@ -90,6 +95,7 @@ export default function MemberProfile() {
         body: JSON.stringify({ membership_status: newStatus })
       });
       fetchMember();
+      broadcastChange('members');
     } catch (err) { console.error(err); }
   };
 

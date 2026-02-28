@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Loader2, Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -66,6 +67,9 @@ export default function MembershipPlansPage() {
   }, [router]);
 
   useEffect(() => { if (venueId) fetchPlans(); }, [venueId]);
+
+  // Commander Data Bus — sync plans
+  useCommanderSync(venueId, fetchPlans, { entities: ['settings'] });
 
   async function fetchPlans() {
     setLoading(true);
@@ -137,6 +141,7 @@ export default function MembershipPlansPage() {
       setTimeout(() => setSuccess(null), 3000);
       closeEditor();
       fetchPlans();
+      broadcastChange('settings');
     } catch (err) { setError(err.message || 'Failed To Save'); }
     setSaving(null);
   }
