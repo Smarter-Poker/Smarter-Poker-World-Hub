@@ -128,6 +128,28 @@ class TableManager {
     this.game.on('showdown', (d) => this.emit('showdown', d));
     this.game.on('payout', (d) => this.emit('payout', d));
     this.game.on('hand_complete', (d) => this._onHandComplete(d));
+
+    // Run-it-twice/thrice events
+    this.game.on('run_it_offer', (d) => this.emit('run_it_offer', d));
+    this.game.on('run_it_response', (d) => this.emit('run_it_response', d));
+    this.game.on('run_it_agreed', (d) => this.emit('run_it_agreed', d));
+    this.game.on('run_it_declined', (d) => this.emit('run_it_declined', d));
+    this.game.on('run_it_multiple', (d) => this.emit('run_it_multiple', d));
+    this.game.on('run_it_twice', (d) => this.emit('run_it_twice', d));
+    this.game.on('run_it_thrice', (d) => this.emit('run_it_thrice', d));
+
+    // Straddle events
+    this.game.on('straddle_posted', (d) => this.emit('straddle_posted', d));
+    this.game.on('straddle_declared', (d) => this.emit('straddle_declared', d));
+
+    // All-in equity percentages
+    this.game.on('all_in_equity', (d) => this.emit('all_in_equity', d));
+
+    // BBJ
+    this.game.on('bbj_triggered', (d) => this.emit('bbj_triggered', d));
+
+    // Discard (Pineapple)
+    this.game.on('discard_required', (d) => this.emit('discard_required', d));
   }
 
   // ============ EVENT SYSTEM ============
@@ -303,6 +325,15 @@ class TableManager {
    */
   cancelStraddle(playerId) {
     return this.game.cancelStraddle(playerId);
+  }
+
+  /**
+   * Respond to a run-it-twice/thrice offer.
+   * @param {string} playerId
+   * @param {string} choice — 'twice' | 'thrice' | 'decline'
+   */
+  respondRunIt(playerId, choice) {
+    return this.game.respondRunIt(playerId, choice);
   }
 
   /**

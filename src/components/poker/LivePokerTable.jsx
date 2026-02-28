@@ -204,7 +204,7 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0 }) 
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PlayerSeat({
-  seat, position, isHero, isCurrentActor, timerState, onClick, numHoleCards = 2,
+  seat, position, isHero, isCurrentActor, timerState, onClick, numHoleCards = 2, isWinner = false, equity = null,
 }) {
   const { status, player, stack, holeCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
@@ -309,14 +309,16 @@ function PlayerSeat({
               : `linear-gradient(135deg, ${T.railGold}, ${T.railGoldDark})`,
             border: isEmpty
               ? '2px dashed rgba(255,255,255,0.2)'
-              : isCurrentActor
-                ? `3px solid ${T.accent}`
-                : `2px solid ${T.railGoldDark}`,
+              : isWinner
+                ? '3px solid #FFD700'
+                : isCurrentActor
+                  ? `3px solid ${T.accent}`
+                  : `2px solid ${T.railGoldDark}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            boxShadow: isCurrentActor ? `0 0 20px ${T.accent}40` : 'none',
+            boxShadow: isWinner ? '0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.2)' : isCurrentActor ? `0 0 20px ${T.accent}40` : 'none',
             filter: isDisconnected ? 'grayscale(1)' : isSittingOut ? 'brightness(0.5)' : 'none',
           }}
         >
@@ -335,6 +337,37 @@ function PlayerSeat({
           )}
         </div>
       </div>
+
+      {/* All-in equity percentage badge */}
+      {equity != null && !isEmpty && !isFolded && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{
+            background: equity >= 60
+              ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+              : equity >= 40
+                ? 'linear-gradient(135deg, #eab308, #ca8a04)'
+                : 'linear-gradient(135deg, #ef4444, #dc2626)',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 800,
+            padding: '2px 10px',
+            borderRadius: 10,
+            textAlign: 'center',
+            minWidth: 44,
+            letterSpacing: -0.5,
+            boxShadow: equity >= 60
+              ? '0 0 12px rgba(34,197,94,0.5)'
+              : equity >= 40
+                ? '0 0 12px rgba(234,179,8,0.5)'
+                : '0 0 12px rgba(239,68,68,0.5)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+          }}
+        >
+          {equity.toFixed(1)}%
+        </motion.div>
+      )}
 
       {/* Name + Stack badge */}
       {!isEmpty && (
@@ -365,7 +398,13 @@ function PlayerSeat({
 
       {/* Hole cards (hero or showdown) */}
       {holeCards && holeCards.length > 0 && (
-        <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
+        <div style={{
+          display: 'flex', gap: 3, marginTop: 2,
+          ...(isWinner ? {
+            filter: 'drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 16px rgba(255,215,0,0.4))',
+            animation: 'winGlow 1.2s ease-in-out infinite alternate',
+          } : {}),
+        }}>
           {holeCards.map((card, i) => (
             <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} />
           ))}
@@ -1130,6 +1169,91 @@ function SmallButton({ label, onClick, color }) {
 // RESULT OVERLAY (showdown / hand complete)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// RUN IT OFFER OVERLAY — Consent dialog for run-it-twice/thrice
+// ═══════════════════════════════════════════════════════
+function RunItOfferOverlay({ offer, userId, onRespond }) {
+  if (!offer || !offer.playerIds?.includes(userId)) return null;
+  const [responded, setResponded] = useState(false);
+  const [countdown, setCountdown] = useState(offer.deadline || 15);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const handleChoice = (choice) => {
+    if (responded) return;
+    setResponded(true);
+    onRespond(choice);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 900,
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        border: '2px solid #4ECDC4',
+        borderRadius: 16,
+        padding: '20px 28px',
+        textAlign: 'center',
+        minWidth: 280,
+        boxShadow: '0 0 40px rgba(78,205,196,0.3)',
+      }}
+    >
+      <div style={{ fontSize: 24, marginBottom: 6 }}>🃏</div>
+      <h3 style={{ color: '#E4E6EB', fontSize: 16, margin: '0 0 4px', fontWeight: 700 }}>
+        Run It Multiple Times?
+      </h3>
+      <p style={{ color: '#B0B3B8', fontSize: 12, margin: '0 0 12px' }}>
+        Both players must agree • {countdown}s
+      </p>
+
+      {!responded ? (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <button
+            onClick={() => handleChoice('twice')}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: '#4ECDC4', color: '#000', fontWeight: 700, fontSize: 13,
+            }}
+          >
+            Run Twice
+          </button>
+          <button
+            onClick={() => handleChoice('thrice')}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: '#FFD700', color: '#000', fontWeight: 700, fontSize: 13,
+            }}
+          >
+            Run 3x
+          </button>
+          <button
+            onClick={() => handleChoice('decline')}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: '1px solid #555', cursor: 'pointer',
+              background: 'transparent', color: '#B0B3B8', fontWeight: 600, fontSize: 13,
+            }}
+          >
+            No
+          </button>
+        </div>
+      ) : (
+        <p style={{ color: '#4ECDC4', fontSize: 13, fontWeight: 600 }}>
+          ✓ Waiting for opponent...
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
 function ResultOverlay({ result }) {
   if (!result) return null;
 
@@ -1391,6 +1515,17 @@ export default function LivePokerTable({
               pots={tableState?.game?.pots || []}
             />
 
+            {/* Run It Twice/Thrice offer overlay */}
+            <AnimatePresence>
+              {result?.runItOffer && (
+                <RunItOfferOverlay
+                  offer={result.runItOffer}
+                  userId={userId}
+                  onRespond={(choice) => send('respond_run_it', { choice })}
+                />
+              )}
+            </AnimatePresence>
+
             {/* Result overlay */}
             <AnimatePresence>
               {result && <ResultOverlay result={result} />}
@@ -1408,8 +1543,10 @@ export default function LivePokerTable({
             isCurrentActor={seat.isCurrentActor}
             timerState={seat.isCurrentActor ? timerState : null}
             onClick={() => setBuyInSeat(i)}
+            isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
+            equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
             numHoleCards={
-              ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2 })[
+              ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2, pineapple: 3 })[
               tableState?.config?.variant
               ] || 2
             }

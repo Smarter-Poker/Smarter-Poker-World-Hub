@@ -52,7 +52,7 @@
 | 1.3.6 | Heads-up button rule (SB=BTN posts first) | ✅ | GameStateMachine.js | 2-player special case |
 | 1.3.7 | Dead button / missed blind handling | ✅ | TableManager.js | Tracks missed blinds |
 | 1.3.8 | All-in showdown (skip remaining streets) | ✅ | GameStateMachine.js | Advances to showdown if all active are all-in |
-| 1.3.9 | Run it twice | ⚠️ | GameStateMachine.js | Config exists, engine logic needs completion |
+| 1.3.9 | Run it twice | ✅ | GameStateMachine.js | _runItMultiple — 2 or 3 boards, pot split, HU all-in only |
 | 1.3.10 | Variant selection per table | ✅ | GameStateMachine.js | GAME_VARIANT enum: holdem/omaha4/5/6/short_deck/hilo/pineapple |
 | 1.3.11 | Crazy Pineapple variant | ✅ | GameStateMachine.js | 3 hole cards, discard 1 after flop, full discard UI + auto-discard |
 

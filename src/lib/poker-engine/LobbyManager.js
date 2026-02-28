@@ -507,6 +507,30 @@ class LobbyManager {
     });
 
     // ── RUN IT MULTIPLE (2x / 3x boards) ────────────────────────
+    // ── RUN IT OFFER — Consent flow for player_choice mode ──
+    table.on('run_it_offer', (data) => {
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_offer', payload: data });
+    });
+    table.on('run_it_response', (data) => {
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_response', payload: data });
+    });
+    table.on('run_it_agreed', (data) => {
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_agreed', payload: data });
+    });
+    table.on('run_it_declined', (data) => {
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_declined', payload: data });
+    });
+
+    // ── STRADDLE EVENTS ──
+    table.on('straddle_posted', (data) => {
+      getSyncChannel()?.send({ type: 'broadcast', event: 'straddle_posted', payload: data });
+    });
+
+    // ── ALL-IN EQUITY — Win percentages when all players are all-in ──
+    table.on('all_in_equity', (data) => {
+      getSyncChannel()?.send({ type: 'broadcast', event: 'all_in_equity', payload: data });
+    });
+
     table.on('run_it_multiple', (data) => {
       getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_multiple', payload: data });
     });

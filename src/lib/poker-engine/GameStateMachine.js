@@ -19,6 +19,7 @@ const { evaluateHoldem, evaluateOmaha, holdemShowdown, omahaShowdown } = require
 const { PotCalculator } = require('./PotCalculator');
 const { ActionValidator, ACTION_TYPES, BETTING_STRUCTURES } = require('./ActionValidator');
 const { BettingRound, ROUND_STATUS } = require('./BettingRound');
+const { calculateEquity } = require('./EquityCalculator');
 
 // ============ CONSTANTS ============
 
@@ -76,6 +77,8 @@ class GameStateMachine {
       rakeCap: config.rakeCap || Infinity,
       runItTwice: config.runItTwice || false,
       runItThrice: config.runItThrice || false,
+      // Run-it mode: 'none' | 'player_choice' | 'mandatory_twice' | 'mandatory_thrice'
+      runItMode: config.runItMode || (config.runItThrice ? 'mandatory_thrice' : config.runItTwice ? 'mandatory_twice' : 'none'),
       insurance: config.insurance || false,
       bombPot: config.bombPot || false,
       straddle: config.straddle || false,
@@ -721,47 +724,364 @@ class GameStateMachine {
   /**
    * Run out remaining community cards when all players are all-in.
    * Supports Run It Twice (2 boards), Run It Thrice (3 boards), and Insurance.
+   * 
+   * Run-it modes:
+   *   - 'none': Single board always
+   *   - 'player_choice': Best-hand player proposes; ALL others must agree or it's single board
+   *   - 'mandatory_twice': Auto run 2 boards (any 2+ all-in)
+   *   - 'mandatory_thrice': Auto run 3 boards (any 2+ all-in)
    * @private
    */
   _runOutBoard(fromStreet) {
     const activePlayers = this.currentHand.players.filter(p => !p.folded);
-    
-    // Determine number of runouts:
-    // - runItThrice: 3 boards (heads-up all-in only)
-    // - runItTwice: 2 boards (heads-up all-in only)
-    // Both require community cards still to be dealt
-    const headsUpAllIn = activePlayers.length === 2 && fromStreet !== 'river';
-    
-    if (headsUpAllIn && this.config.runItThrice) {
+    const multiAllIn = activePlayers.length >= 2 && fromStreet !== 'river';
+    const mode = this.config.runItMode || 'none';
+
+    // Emit equity immediately when all-in is detected (before any new cards)
+    if (activePlayers.length >= 2) {
+      this._emitAllInEquity(activePlayers);
+    }
+
+    // ── MANDATORY MODES — auto-trigger, no consent needed ──
+    if (multiAllIn && mode === 'mandatory_thrice') {
       this._runItMultiple(fromStreet, activePlayers, 3);
       return;
     }
-    if (headsUpAllIn && this.config.runItTwice) {
+    if (multiAllIn && mode === 'mandatory_twice') {
       this._runItMultiple(fromStreet, activePlayers, 2);
       return;
     }
 
-    // Check for insurance offer before standard runout
+    // ── PLAYER CHOICE — best hand proposes, all others accept/decline ──
+    if (multiAllIn && mode === 'player_choice') {
+      this._offerRunIt(fromStreet, activePlayers);
+      return;
+    }
+
+    // ── LEGACY BOOLEAN FLAGS (backwards compatible) ──
+    if (multiAllIn && this.config.runItThrice && mode === 'none') {
+      this._runItMultiple(fromStreet, activePlayers, 3);
+      return;
+    }
+    if (multiAllIn && this.config.runItTwice && mode === 'none') {
+      this._runItMultiple(fromStreet, activePlayers, 2);
+      return;
+    }
+
+    // ── DEFAULT — Single board runout with equity updates per street ──
+    this._singleBoardRunout(fromStreet);
+  }
+
+  /**
+   * ═══════════════════════════════════════════════════════════════
+   * RUN IT OFFER — Best-hand player proposes, all others accept/decline
+   * ═══════════════════════════════════════════════════════════════
+   * 
+   * Flow:
+   *   1. Evaluate current hands with available community cards
+   *   2. Player with the best hand is the "proposer"
+   *   3. Proposer chooses: 'once' | 'twice' | 'thrice'
+   *   4. All other all-in players must 'accept' or 'decline'
+   *   5. ANY single decline → single board (run once)
+   *   6. ALL accept → run the number of boards the proposer chose
+   * 
+   * Works for 2, 3, 4, 5+ players all-in.
+   * @private
+   */
+  _offerRunIt(fromStreet, activePlayers) {
+    const board = [...this.currentHand.communityCards];
+
+    // ── Evaluate current hands to find the leader ──
+    const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
+    const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
+
+    let rankings = activePlayers.map(p => {
+      let hand;
+      if (board.length >= 3) {
+        // We have community cards — evaluate partial hand
+        if (isOmaha) {
+          hand = this.handEvaluator.evaluateOmaha(p.holeCards, board);
+        } else if (isShortDeck) {
+          hand = this.handEvaluator.evaluateShortDeck(p.holeCards, board);
+        } else {
+          hand = this.handEvaluator.evaluateHoldem(p.holeCards, board);
+        }
+      } else {
+        // Preflop all-in — just use hole card rank sum as tiebreaker
+        const { getRank } = require('./Deck');
+        const rankSum = p.holeCards.reduce((s, c) => s + getRank(c), 0);
+        hand = { score: rankSum, description: 'Preflop' };
+      }
+      return { playerId: String(p.id), hand, score: hand.score };
+    });
+
+    rankings.sort((a, b) => b.score - a.score);
+    const proposerId = rankings[0].playerId;
+    const responderIds = rankings.slice(1).map(r => r.playerId);
+    const allPlayerIds = activePlayers.map(p => String(p.id));
+
+    // Store pending offer state
+    this._runItOffer = {
+      fromStreet,
+      activePlayers,
+      allPlayerIds,
+      proposerId,
+      responderIds,
+      proposal: null,       // Will be set when proposer picks: 'once' | 'twice' | 'thrice'
+      responses: {},         // responderId → 'accept' | 'decline'
+      resolved: false,
+      timeoutHandle: null,
+    };
+
+    // Emit offer to clients — proposer gets choice buttons, others wait
+    this.emit('run_it_offer', {
+      proposerId,
+      responderIds,
+      allPlayerIds,
+      pot: this.potCalculator.totalPot,
+      communityCards: board,
+      deadline: 15, // seconds
+      rankings: rankings.map(r => ({ playerId: r.playerId, description: r.hand.description })),
+    });
+
+    // Timeout: 15 seconds total. If not all responded, treat as decline.
+    this._runItOffer.timeoutHandle = setTimeout(() => {
+      if (!this._runItOffer || this._runItOffer.resolved) return;
+      console.log('[RunIt] Offer timed out — running single board');
+      this._resolveRunItOffer();
+    }, 15000);
+  }
+
+  /**
+   * Process a player's response to a run-it offer.
+   * 
+   * If the player is the PROPOSER:
+   *   choice must be 'once' | 'twice' | 'thrice'
+   *   - 'once' immediately ends the offer → single board
+   *   - 'twice'/'thrice' sets the proposal, waits for responders
+   * 
+   * If the player is a RESPONDER:
+   *   choice must be 'accept' | 'decline'
+   *   - 'decline' immediately ends the offer → single board
+   *   - 'accept' is recorded; if all responders accepted, run multiple boards
+   * 
+   * @param {string} playerId
+   * @param {string} choice
+   */
+  respondRunIt(playerId, choice) {
+    if (!this._runItOffer || this._runItOffer.resolved) {
+      return { success: false, error: 'No pending run-it offer' };
+    }
+
+    const pid = String(playerId);
+    const offer = this._runItOffer;
+
+    // ── PROPOSER responding (best hand picks the number of boards) ──
+    if (pid === offer.proposerId) {
+      const validProposals = ['once', 'twice', 'thrice'];
+      if (!validProposals.includes(choice)) {
+        return { success: false, error: `Proposer must choose: ${validProposals.join(', ')}` };
+      }
+
+      if (choice === 'once') {
+        // Proposer chose single board — done immediately, no need to ask others
+        console.log('[RunIt] Proposer chose once — single board');
+        this.emit('run_it_response', { playerId: pid, role: 'proposer', choice });
+        offer.resolved = true;
+        if (offer.timeoutHandle) { clearTimeout(offer.timeoutHandle); offer.timeoutHandle = null; }
+        this.emit('run_it_declined', { reason: 'proposer_chose_once', proposer: pid });
+        this._runItOffer = null;
+        this._singleBoardRunout(offer.fromStreet);
+        return { success: true };
+      }
+
+      // Proposer chose twice or thrice — set proposal and wait for responders
+      offer.proposal = choice;
+      this.emit('run_it_response', { playerId: pid, role: 'proposer', choice });
+
+      // If there are no responders (only 1 player?? shouldn't happen but safe)
+      // or check if all responders already responded
+      this._checkRunItComplete();
+      return { success: true };
+    }
+
+    // ── RESPONDER responding ──
+    if (!offer.responderIds.includes(pid)) {
+      return { success: false, error: 'You are not part of this run-it offer' };
+    }
+
+    const validResponses = ['accept', 'decline'];
+    if (!validResponses.includes(choice)) {
+      return { success: false, error: `Responder must choose: ${validResponses.join(', ')}` };
+    }
+
+    offer.responses[pid] = choice;
+    this.emit('run_it_response', { playerId: pid, role: 'responder', choice });
+
+    // Instant decline — any single decline kills the offer
+    if (choice === 'decline') {
+      console.log(`[RunIt] Player ${pid} declined — single board`);
+      offer.resolved = true;
+      if (offer.timeoutHandle) { clearTimeout(offer.timeoutHandle); offer.timeoutHandle = null; }
+      this.emit('run_it_declined', { reason: 'responder_declined', declinedBy: pid });
+      this._runItOffer = null;
+      this._singleBoardRunout(offer.fromStreet);
+      return { success: true };
+    }
+
+    // Check if all responders have now accepted
+    this._checkRunItComplete();
+    return { success: true };
+  }
+
+  /**
+   * Check if the run-it offer is fully resolved.
+   * Resolves when: proposer has chosen AND all responders have responded.
+   * @private
+   */
+  _checkRunItComplete() {
+    const offer = this._runItOffer;
+    if (!offer || offer.resolved) return;
+
+    // Need proposer's choice first
+    if (!offer.proposal) return;
+
+    // Need all responders to have responded
+    const allResponded = offer.responderIds.every(pid => offer.responses[pid]);
+    if (!allResponded) return;
+
+    // All have responded — resolve
+    this._resolveRunItOffer();
+  }
+
+  /**
+   * Resolve the run-it offer.
+   * Called when all responses are in, or on timeout.
+   * @private
+   */
+  _resolveRunItOffer() {
+    const offer = this._runItOffer;
+    if (!offer || offer.resolved) return;
+    offer.resolved = true;
+
+    if (offer.timeoutHandle) {
+      clearTimeout(offer.timeoutHandle);
+      offer.timeoutHandle = null;
+    }
+
+    const { fromStreet, activePlayers, proposal, responderIds, responses, proposerId } = offer;
+
+    // If proposer never chose, or chose 'once', or any responder didn't respond → single board
+    if (!proposal || proposal === 'once') {
+      console.log('[RunIt] No proposal or chose once — single board');
+      this.emit('run_it_declined', { reason: 'no_proposal' });
+      this._runItOffer = null;
+      this._singleBoardRunout(fromStreet);
+      return;
+    }
+
+    // Check all responders accepted
+    const allAccepted = responderIds.every(pid => responses[pid] === 'accept');
+
+    if (!allAccepted) {
+      // At least one missing or declined
+      const decliners = responderIds.filter(pid => responses[pid] !== 'accept');
+      console.log(`[RunIt] Not all agreed (${decliners.length} declined/timeout) — single board`);
+      this.emit('run_it_declined', { reason: 'not_all_accepted', declinedBy: decliners });
+      this._runItOffer = null;
+      this._singleBoardRunout(fromStreet);
+      return;
+    }
+
+    // Everyone agreed! Run the boards
+    const numBoards = proposal === 'thrice' ? 3 : 2;
+    console.log(`[RunIt] All ${activePlayers.length} players agreed → Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}`);
+    this.emit('run_it_agreed', { numBoards, proposerId, proposal });
+    this._runItOffer = null;
+
+    this._runItMultiple(fromStreet, activePlayers, numBoards);
+  }
+
+  /**
+   * Standard single-board runout (extracted for reuse after declined run-it).
+   * Emits equity percentages at each street for all-in display.
+   * @private
+   */
+  _singleBoardRunout(fromStreet) {
+    const activePlayers = this.currentHand.players.filter(p => !p.folded);
+
+    // Insurance check
     if (this.config.insurance && activePlayers.length >= 2 && fromStreet !== 'river') {
       this._offerInsurance(fromStreet, activePlayers);
     }
-    
+
     const streets = STREETS.slice(STREETS.indexOf(fromStreet));
-    
     for (const street of streets) {
       this._dealCommunityCards(street);
       this.phase = street;
-      
+
+      // Compute updated equity after this street
+      const equity = this._computeEquity(activePlayers);
+
       this.emit('street_start', {
         street,
         communityCards: [...this.currentHand.communityCards],
         potTotal: this.potCalculator.totalPot,
         allIn: true,
+        equity, // attach equity data
       });
     }
-    
-    // Go to showdown
     this._handleShowdown();
+  }
+
+  /**
+   * Compute equity for all active players and emit an 'all_in_equity' event.
+   * Called at the start of an all-in runout before any new cards.
+   * @private
+   */
+  _emitAllInEquity(activePlayers) {
+    const equity = this._computeEquity(activePlayers);
+    if (equity) {
+      this.emit('all_in_equity', equity);
+    }
+  }
+
+  /**
+   * Compute win percentages for all active players given current board.
+   * @private
+   * @returns {Object|null} { players: [{ id, equity }], boardSize }
+   */
+  _computeEquity(activePlayers) {
+    try {
+      const variant = this.config.variant || GAME_VARIANT.HOLDEM;
+      const variantStr = {
+        [GAME_VARIANT.HOLDEM]: 'holdem',
+        [GAME_VARIANT.SHORT_DECK]: 'short_deck',
+        [GAME_VARIANT.OMAHA4]: 'omaha4',
+        [GAME_VARIANT.OMAHA5]: 'omaha5',
+        [GAME_VARIANT.OMAHA6]: 'omaha6',
+        [GAME_VARIANT.OMAHA_HILO]: 'omaha4',
+      }[variant] || 'holdem';
+
+      const playerData = activePlayers
+        .filter(p => p.holeCards && p.holeCards.length > 0)
+        .map(p => ({ id: p.id, holeCards: p.holeCards }));
+
+      if (playerData.length < 2) return null;
+
+      // Use fewer iterations for Omaha (more combos per eval)
+      const iters = variantStr.startsWith('omaha') ? 1000 : 2000;
+
+      return calculateEquity(
+        playerData,
+        this.currentHand.communityCards,
+        variantStr,
+        iters
+      );
+    } catch (err) {
+      console.error('[Equity] Calculation error:', err.message);
+      return null;
+    }
   }
 
   /**

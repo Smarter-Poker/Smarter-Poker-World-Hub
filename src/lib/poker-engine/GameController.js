@@ -357,8 +357,12 @@ class GameController {
         clubId: row.club_id || null,
         actionTime: row.action_time_seconds || 30,
         straddleEnabled: row.settings?.straddle_enabled || false,
+        autoUtgStraddle: row.settings?.auto_utg_straddle || false,
+        voluntaryStraddle: row.settings?.voluntary_straddle || row.settings?.straddle_enabled || false,
+        straddle: row.settings?.straddle_enabled || false,
         runItTwice: row.settings?.run_it_twice || false,
         runItThrice: row.settings?.run_it_thrice || false,
+        runItMode: row.settings?.run_it_mode || 'none',
         insurance: row.settings?.insurance || false,
         // Anti-cheat settings from Club Arena table configuration
         clubSettings: {
@@ -538,6 +542,18 @@ class GameController {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
     return entry.table.cancelStraddle(playerId);
+  }
+
+  /**
+   * Respond to a run-it-twice/thrice offer.
+   * @param {string} tableId
+   * @param {string} playerId
+   * @param {string} choice — 'twice' | 'thrice' | 'decline'
+   */
+  respondRunIt(tableId, playerId, choice) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.respondRunIt(playerId, choice);
   }
 
   /**

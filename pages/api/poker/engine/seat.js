@@ -227,6 +227,15 @@ export default async function handler(req, res) {
         result = controller.processDiscard(tableId, playerId, body.cardIndex);
         break;
 
+      // ═══════════════════════════════════════════════════════════
+      // RUN IT TWICE/THRICE — Accept/decline offer
+      // ═══════════════════════════════════════════════════════════
+      case 'respond_run_it': {
+        const { choice } = body; // 'twice' | 'thrice' | 'decline'
+        result = controller.respondRunIt(tableId, playerId, choice);
+        break;
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
