@@ -68,6 +68,7 @@ export default function Cashier() {
 
     // Toast
     const [toast, setToast] = useState(null);
+    const [pendingCashouts, setPendingCashouts] = useState([]);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -136,6 +137,17 @@ export default function Cashier() {
                     .order('created_at', { ascending: false })
                     .limit(20);
                 setTransactions(txns || []);
+
+                // Get pending cashout requests for this user
+                const { data: cashouts } = await supabase
+                    .from('cashout_requests')
+                    .select('*')
+                    .eq('club_id', clubData.id)
+                    .eq('player_id', authUser.id)
+                    .in('status', ['pending', 'approved'])
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                setPendingCashouts(cashouts || []);
             }
         } catch (e) {
             console.error('[Cashier] Error loading data:', e);
@@ -345,6 +357,36 @@ export default function Cashier() {
                                     Cash Out
                                 </button>
                             </div>
+
+                            {/* Pending Cashout Requests */}
+                            {pendingCashouts.length > 0 && (
+                                <div style={{ marginBottom: '20px' }}>
+                                    <h2 style={S.sectionTitle}>Pending Cashouts</h2>
+                                    {pendingCashouts.map(co => (
+                                        <div key={co.id} style={{
+                                            ...S.listItem,
+                                            border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
+                                            background: co.status === 'approved' ? 'rgba(49,162,76,0.08)' : 'rgba(245,166,35,0.08)',
+                                        }}>
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
+                                                    {co.status === 'pending' ? '⏳ Awaiting Agent Approval' : '✅ Approved'}
+                                                </div>
+                                                <div style={S.txDate}>
+                                                    {co.created_at ? new Date(co.created_at).toLocaleString() : 'N/A'}
+                                                    {co.agent_note ? ` · ${co.agent_note}` : ''}
+                                                </div>
+                                            </div>
+                                            <div style={{
+                                                fontSize: '16px', fontWeight: 700,
+                                                color: co.status === 'approved' ? FB.success : '#F5A623',
+                                            }}>
+                                                {(co.amount || 0).toLocaleString()} chips
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Transaction History */}
                             <h2 style={S.sectionTitle}>Transaction History</h2>

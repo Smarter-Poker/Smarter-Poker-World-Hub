@@ -6,6 +6,24 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+
+const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+};
+
+const apiCall = async (endpoint, body) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
@@ -177,66 +195,20 @@ export default function Marketplace() {
 
         setProcessing(true);
         try {
-            // Read fresh balance to prevent stale-state overwrites
-            const { data: freshMember, error: fetchError } = await supabase
-                .from('club_members')
-                .select('chip_balance')
-                .eq('club_id', club.id)
-                .eq('user_id', user.id)
-                .single();
-
-            if (fetchError) throw fetchError;
-
-            const currentBalance = freshMember?.chip_balance || 0;
-            if (currentBalance < selectedItem.price) {
-                showToast('Not enough chips!', 'error');
-                setProcessing(false);
-                return;
-            }
-
-            // 1. Deduct chips from balance
-            const { error: updateError } = await supabase
-                .from('club_members')
-                .update({ chip_balance: currentBalance - selectedItem.price })
-                .eq('club_id', club.id)
-                .eq('user_id', user.id);
-
-            if (updateError) throw updateError;
-
-            // 2. Try to record purchase (table may not exist yet — that's OK)
-            try {
-                await supabase.from('club_shop_purchases').insert({
-                    user_id: user.id,
-                    club_id: club.id,
-                    item_id: selectedItem.id,
-                    item_name: selectedItem.name,
-                    price_paid: selectedItem.price,
-                });
-            } catch (purchaseErr) {
-                console.warn('[Marketplace] Purchase record skipped (table may not exist):', purchaseErr);
-            }
-
-            // 3. Try to record chip transaction
-            try {
-                await supabase.from('chip_transactions').insert({
-                    from_user_id: user.id,
-                    to_user_id: user.id,
-                    club_id: club.id,
-                    transaction_type: 'purchase',
-                    amount: -selectedItem.price,
-                    notes: `Purchased: ${selectedItem.name}`,
-                });
-            } catch (txErr) {
-                console.warn('[Marketplace] Transaction record skipped:', txErr);
-            }
+            const result = await apiCall('/api/club-arena/marketplace-purchase', {
+                clubId: club.id,
+                itemId: selectedItem.id,
+                itemName: selectedItem.name,
+                price: selectedItem.price,
+            });
 
             showToast(`Purchased ${selectedItem.name}!`);
             setSelectedItem(null);
             setOwnedItems([...ownedItems, selectedItem.id]);
-            setChipBalance(currentBalance - selectedItem.price);
+            setChipBalance(result.newBalance ?? (chipBalance - selectedItem.price));
         } catch (e) {
             console.error('[Marketplace] Purchase error:', e);
-            showToast('Purchase failed. Try again.', 'error');
+            showToast(e.message || 'Purchase failed. Try again.', 'error');
         } finally {
             setProcessing(false);
         }

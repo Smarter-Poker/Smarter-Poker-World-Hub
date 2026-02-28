@@ -69,6 +69,15 @@ export default function Admin() {
 
     // Toast
     const [toast, setToast] = useState(null);
+
+    // Mint chips state
+    const [mintAmount, setMintAmount] = useState('');
+    // Agent management state
+    const [selectedAgent, setSelectedAgent] = useState(null);
+    const [agentCreditAmount, setAgentCreditAmount] = useState('');
+    const [agentCommissionRate, setAgentCommissionRate] = useState('');
+    // Settlement state
+    const [settleAction, setSettleAction] = useState('status');
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -296,20 +305,16 @@ export default function Admin() {
 
         setProcessing(true);
         try {
-            const { error } = await supabase
-                .from('clubs')
-                .update({
-                    name: clubName.trim(),
-                    description: clubDescription.trim(),
-                })
-                .eq('id', club.id);
-
-            if (error) throw error;
+            await apiCall('/api/club-arena/save-settings', {
+                clubId: club.id,
+                name: clubName.trim(),
+                description: clubDescription.trim(),
+            });
             showToast('Settings saved');
             loadData();
             setActiveModal(null);
         } catch (e) {
-            showToast('Failed to save settings', 'error');
+            showToast(e.message || 'Failed to save settings', 'error');
         } finally {
             setProcessing(false);
         }
@@ -404,6 +409,9 @@ export default function Admin() {
     const adminOptions = [
         { id: 'members', icon: '', title: 'Manage Members', desc: 'Add, remove, or update player roles', color: FB.primary },
         { id: 'chips', icon: '', title: 'Chip Management', desc: 'Distribute chips to members', color: FB.success },
+        { id: 'mint', icon: '', title: 'Mint Chips', desc: 'Add chips to club treasury', color: FB.gold },
+        { id: 'agents', icon: '', title: 'Agent Management', desc: 'Credit, commission, suspend agents', color: '#F5A623' },
+        { id: 'settlement', icon: '', title: 'Settlement', desc: 'Manage settlement periods', color: '#A855F7' },
         { id: 'reports', icon: '', title: 'Club Reports', desc: 'View club statistics and activity', color: '#F582AE' },
         { id: 'settings', icon: 'Admin', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
@@ -693,6 +701,191 @@ export default function Admin() {
                                     {processing ? 'Deleting...' : 'Delete Club Permanently'}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast */}
+            {toast && (
+                <div style={{ ...S.toast, background: toast.type === 'error' ? FB.danger : FB.success, color: '#fff' }}>
+                    {toast.message}
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ MINT CHIPS MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'mint' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={S.modal} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Mint Chips to Treasury</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <div style={{ padding: '16px', background: `rgba(247,197,42,0.08)`, borderRadius: '8px', border: `1px solid ${FB.border}`, marginBottom: '16px' }}>
+                                <div style={{ fontSize: '12px', color: FB.textSecondary }}>Current Treasury</div>
+                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#F7C52A' }}>
+                                    {(club?.chip_treasury || 0).toLocaleString()} chips
+                                </div>
+                            </div>
+                            <label style={S.formLabel}>Amount to Mint</label>
+                            <input type="number" value={mintAmount} onChange={e => setMintAmount(e.target.value)}
+                                placeholder="10000" style={S.formInput} />
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                {[10000, 50000, 100000, 500000].map(v => (
+                                    <button key={v} onClick={() => setMintAmount(String(v))}
+                                        style={{ flex: 1, background: mintAmount === String(v) ? '#F7C52A' : FB.hover, color: mintAmount === String(v) ? '#000' : FB.textSecondary, border: 'none', borderRadius: '6px', padding: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                                        {v >= 1000 ? `${v/1000}K` : v}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                style={{ ...S.modalBtn, background: '#F7C52A', color: '#000', opacity: processing ? 0.5 : 1 }}
+                                disabled={processing}
+                                onClick={async () => {
+                                    if (!mintAmount || parseInt(mintAmount) <= 0) { showToast('Enter a valid amount', 'error'); return; }
+                                    setProcessing(true);
+                                    try {
+                                        await apiCall('/api/club-arena/mint-chips', { clubId: club.id, amount: parseInt(mintAmount) });
+                                        showToast(`Minted ${parseInt(mintAmount).toLocaleString()} chips to treasury`);
+                                        setMintAmount('');
+                                        loadData();
+                                        setActiveModal(null);
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                    finally { setProcessing(false); }
+                                }}
+                            >
+                                {processing ? 'Minting...' : `Mint ${mintAmount ? parseInt(mintAmount).toLocaleString() : '0'} Chips`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ AGENT MANAGEMENT MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'agents' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{...S.modal, maxHeight: '80vh', overflow: 'auto'}} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Agent Management</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {members.filter(m => m.role === 'agent').length === 0 ? (
+                                <div style={{ textAlign: 'center', color: FB.textSecondary, padding: '30px' }}>
+                                    No agents in this club. Promote a member to agent from the Members panel.
+                                </div>
+                            ) : members.filter(m => m.role === 'agent').map(agent => (
+                                <div key={agent.user_id} style={{ background: FB.background, borderRadius: '8px', padding: '14px', marginBottom: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <div>
+                                            <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: '14px' }}>
+                                                {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0,8)}
+                                            </span>
+                                            <span style={{ fontSize: '12px', color: '#F5A623', marginLeft: '8px' }}>Agent</span>
+                                        </div>
+                                        <span style={{ fontSize: '12px', color: FB.textSecondary }}>
+                                            {agent.chip_balance?.toLocaleString() || 0} chips
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        {/* Issue Credit */}
+                                        <button style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={async () => {
+                                                const amt = prompt('Credit amount:');
+                                                if (!amt || isNaN(amt)) return;
+                                                setProcessing(true);
+                                                try {
+                                                    await apiCall('/api/club-arena/agent-credit', { clubId: club.id, agentUserId: agent.user_id, action: 'issue_credit', amount: parseInt(amt) });
+                                                    showToast(`Credit of ${parseInt(amt).toLocaleString()} issued`);
+                                                    loadData();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setProcessing(false); }
+                                            }}>
+                                            Issue Credit
+                                        </button>
+                                        {/* Set Commission */}
+                                        <button style={{ background: '#A855F7', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={async () => {
+                                                const rate = prompt('Commission rate (0-100%):');
+                                                if (!rate || isNaN(rate)) return;
+                                                setProcessing(true);
+                                                try {
+                                                    await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'update', commissionRate: parseFloat(rate) / 100 });
+                                                    showToast(`Commission set to ${rate}%`);
+                                                    loadData();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setProcessing(false); }
+                                            }}>
+                                            Set Commission
+                                        </button>
+                                        {/* Suspend */}
+                                        <button style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={async () => {
+                                                if (!confirm(`Suspend agent ${agent.profile?.display_name || agent.user_id.slice(0,8)}?`)) return;
+                                                setProcessing(true);
+                                                try {
+                                                    await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'suspend' });
+                                                    showToast('Agent suspended');
+                                                    loadData();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setProcessing(false); }
+                                            }}>
+                                            Suspend
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ SETTLEMENT MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'settlement' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={S.modal} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Settlement Periods</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <p style={{ fontSize: '13px', color: FB.textSecondary, marginBottom: '16px' }}>
+                                Open, close, and pay commission settlement periods for this club.
+                            </p>
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                {['status', 'open', 'close', 'pay_all'].map(action => (
+                                    <button key={action} onClick={() => setSettleAction(action)}
+                                        style={{ flex: 1, background: settleAction === action ? FB.primary : FB.hover, color: settleAction === action ? '#fff' : FB.textSecondary, border: 'none', borderRadius: '6px', padding: '10px 8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}>
+                                        {action === 'pay_all' ? 'Pay All' : action}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                style={{ ...S.modalBtn, background: '#A855F7', color: '#fff', opacity: processing ? 0.5 : 1 }}
+                                disabled={processing}
+                                onClick={async () => {
+                                    setProcessing(true);
+                                    try {
+                                        const result = await apiCall('/api/club-arena/settle-period', { clubId: club.id, action: settleAction });
+                                        if (settleAction === 'status') {
+                                            showToast(`Period: ${result.period?.status || 'none'} | Rake: ${(result.period?.total_rake_collected || 0).toLocaleString()}`);
+                                        } else {
+                                            showToast(`Settlement ${settleAction} successful`);
+                                        }
+                                        loadData();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                    finally { setProcessing(false); }
+                                }}
+                            >
+                                {processing ? 'Processing...' : `Execute: ${settleAction === 'pay_all' ? 'Pay All' : settleAction}`}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -10,6 +10,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+
+const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+};
+const apiCall = async (endpoint, body) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import ClubArenaBottomNav from '../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -45,30 +62,8 @@ function CreateClubModal({ onClose, onCreated, user }) {
         setIsCreating(true);
         setError('');
         try {
-            const clubCode = Math.floor(10000 + Math.random() * 90000);
-            const { data, error: dbError } = await supabase
-                .from('clubs')
-                .insert({
-                    name: clubName.trim(),
-                    owner_id: user.id,
-                    club_id: clubCode,
-                    status: 'active',
-                    created_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
-
-            if (dbError) throw dbError;
-
-            await supabase.from('club_members').insert({
-                club_id: data.id,
-                user_id: user.id,
-                role: 'owner',
-                status: 'active',
-                chip_balance: 0,
-            });
-
-            onCreated(data);
+            const result = await apiCall('/api/club-arena/create-club', { name: clubName.trim() });
+            onCreated(result.club);
             onClose();
         } catch (err) {
             setError(err.message || 'Failed to create club');
@@ -120,41 +115,8 @@ function JoinClubModal({ onClose, onJoined, user }) {
         setIsJoining(true);
         setError('');
         try {
-            const { data: club, error: findError } = await supabase
-                .from('clubs')
-                .select('*')
-                .eq('club_id', parseInt(clubCode.trim()))
-                .eq('status', 'active')
-                .single();
-
-            if (findError || !club) {
-                setError('Club not found. Check the code.');
-                setIsJoining(false);
-                return;
-            }
-
-            const { data: existing } = await supabase
-                .from('club_members')
-                .select('id')
-                .eq('club_id', club.id)
-                .eq('user_id', user.id)
-                .maybeSingle();
-
-            if (existing) {
-                setError('You are already a member of this club');
-                setIsJoining(false);
-                return;
-            }
-
-            await supabase.from('club_members').insert({
-                club_id: club.id,
-                user_id: user.id,
-                role: 'player',
-                status: 'active',
-                chip_balance: 0,
-            });
-
-            onJoined(club);
+            const result = await apiCall('/api/club-arena/join-club', { clubCode: clubCode.trim() });
+            onJoined(result.club);
             onClose();
         } catch (err) {
             setError(err.message || 'Failed to join club');

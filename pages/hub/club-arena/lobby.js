@@ -12,6 +12,24 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 
+const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+};
+
+const apiCall = async (endpoint, body) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
+
 export default function ClubLobby() {
     const router = useRouter();
     const { club: clubIdParam } = router.query;
@@ -54,11 +72,10 @@ export default function ClubLobby() {
     async function handleSaveDescription() {
         if (!club) return;
         try {
-            const { error } = await supabase
-                .from('clubs')
-                .update({ description: newDescription })
-                .eq('id', club.id);
-            if (error) throw error;
+            await apiCall('/api/club-arena/save-settings', {
+                clubId: club.id,
+                description: newDescription,
+            });
             setClub({ ...club, description: newDescription });
             setIsEditingDescription(false);
         } catch (err) {
@@ -70,42 +87,29 @@ export default function ClubLobby() {
     // Handler for creating a new table
     async function handleCreateTable() {
         if (!club) return;
-        // Only admins/owners can create tables
         if (membership?.role !== 'owner' && membership?.role !== 'admin') {
             alert('Only admins and owners can create tables.');
             return;
         }
         setCreatingTable(true);
         try {
-            const { data, error } = await supabase
-                .from('tables')
-                .insert({
-                    club_id: club.id,
-                    name: newTable.name || `New ${newTable.variant.toUpperCase()} Table`,
-                    game_type: 'cash',
-                    game_variant: newTable.variant,
-                    stakes: `${parseFloat(newTable.smallBlind)}/${parseFloat(newTable.bigBlind)}`,
-                    max_players: parseInt(newTable.maxPlayers),
-                    small_blind: parseFloat(newTable.smallBlind),
-                    big_blind: parseFloat(newTable.bigBlind),
-                    min_buy_in: parseFloat(newTable.bigBlind) * 40,
-                    max_buy_in: parseFloat(newTable.bigBlind) * 200,
-                    current_players: 0,
-                    status: 'waiting',
-                    settings: {
-                        straddle_enabled: newTable.straddle,
-                        run_it_twice: newTable.runItTwice,
-                        bomb_pot_enabled: newTable.bombPots,
-                        auto_muck: newTable.autoMuck
-                    }
-                })
-                .select()
-                .single();
+            const result = await apiCall('/api/club-arena/create-table', {
+                clubId: club.id,
+                name: newTable.name || `New ${newTable.variant.toUpperCase()} Table`,
+                gameType: 'cash',
+                gameVariant: newTable.variant,
+                maxPlayers: parseInt(newTable.maxPlayers),
+                smallBlind: parseFloat(newTable.smallBlind),
+                bigBlind: parseFloat(newTable.bigBlind),
+                straddle: newTable.straddle,
+                runItTwice: newTable.runItTwice,
+                bombPots: newTable.bombPots,
+                autoMuck: newTable.autoMuck,
+            });
 
-            if (error) throw error;
-
-            // Add to table list and close modal
-            setTables(prev => [...prev, data]);
+            if (result.table) {
+                setTables(prev => [...prev, result.table]);
+            }
             setShowCreateTable(false);
             setNewTable({
                 name: '',
@@ -296,6 +300,16 @@ export default function ClubLobby() {
                                         onClick={() => setShowCreateTable(true)}
                                     >
                                         <span style={styles.heroActionLabel}>Create Table</span>
+                                    </button>
+                                )}
+                                {(membership?.role === 'owner' || membership?.role === 'admin' || membership?.role === 'agent') && (
+                                    <button
+                                        style={{ ...styles.heroActionBtn, background: 'linear-gradient(135deg, #F5A623, #D4941F)' }}
+                                        onClick={() => router.push(`/hub/club-arena/agent-dashboard?club=${club.id}`)}
+                                    >
+                                        <span style={{ ...styles.heroActionLabel, color: '#000' }}>
+                                            {membership?.role === 'agent' ? '🕵️ Agent Dashboard' : '📊 Agent Panel'}
+                                        </span>
                                     </button>
                                 )}
                                 <button
