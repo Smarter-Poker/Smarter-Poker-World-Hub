@@ -618,7 +618,20 @@ class GameController {
             hands_played: entry.table.handCount,
             settings: { snapshot },
           })
-          .eq('id', tableId);
+          .eq('id', tableId)
+          .then(({ error }) => {
+            // Fallback: if settings column doesn't exist, update without it
+            if (error?.message?.includes('settings')) {
+              return this.supabase
+                .from('poker_tables')
+                .update({
+                  status: entry.table.status,
+                  hand_number: entry.table.game?.handNumber || 0,
+                  hands_played: entry.table.handCount,
+                })
+                .eq('id', tableId);
+            }
+          });
       } catch (err) {
         console.error(`[GameController] Snapshot save failed for ${tableId}:`, err.message);
       }
@@ -668,7 +681,9 @@ class GameController {
         .from('poker_tables')
         .update({ current_players: count })
         .eq('id', tableId);
-    } catch (_) {}
+    } catch (_) {
+      // Silently fail if current_players column doesn't exist yet
+    }
   }
 
   /** @private */
