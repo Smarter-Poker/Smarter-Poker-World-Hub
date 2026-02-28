@@ -519,7 +519,7 @@ export default function CommanderDashboard() {
                   key={card.id}
                   className="cmd-card"
                   style={{ boxShadow: `0 0 20px ${card.glow}30, inset 0 0 1px ${card.glow}40` }}
-                  onClick={() => { setActiveCard(card.id); router.replace(`/commander/dashboard?card=${card.id}`, undefined, { shallow: true }); }}
+                  onClick={() => { setActiveCard(card.id); router.push(`/commander/dashboard?card=${card.id}`, undefined, { shallow: true }); }}
                 >
                   <img src={card.image} alt={card.title} />
                   <div className="cmd-card-overlay" />
