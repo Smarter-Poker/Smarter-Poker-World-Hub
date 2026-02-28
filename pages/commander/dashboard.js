@@ -38,7 +38,7 @@ const CARDS = [
     glow: '#F59E0B',
     features: [
       { label: 'Tournament Manager', href: '/commander/tournaments', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Tournament Settings', href: '/commander/tournament-settings', icon: '/images/commander/icons/tn-settings.png' },
+      { label: 'Tournament Templates', href: '/commander/tournament-settings', icon: '/images/commander/icons/tn-settings.png' },
       { label: 'Leagues & Free Rolls', href: '/commander/leagues', icon: '/images/commander/icons/tn-leagues-freerolls.png?v=2' },
       { label: 'Tournament Clock', href: '/commander/tournament-clock', icon: '/images/commander/icons/tn-clock.png' },
       { label: 'Tournament Clock Setup', href: '/commander/tournament-clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
@@ -521,7 +521,7 @@ export default function CommanderDashboard() {
                   key={card.id}
                   className="cmd-card"
                   style={{ boxShadow: `0 0 20px ${card.glow}30, inset 0 0 1px ${card.glow}40` }}
-                  onClick={() => setActiveCard(card.id)}
+                  onClick={() => { setActiveCard(card.id); router.replace(`/commander/dashboard?card=${card.id}`, undefined, { shallow: true }); }}
                 >
                   <img src={card.image} alt={card.title} />
                   <div className="cmd-card-overlay" />
@@ -534,7 +534,7 @@ export default function CommanderDashboard() {
           {openCard && (
             <div className="cmd-open">
               <div className="cmd-open-header">
-                <button className="cmd-open-back" onClick={() => setActiveCard(null)}>
+                <button className="cmd-open-back" onClick={() => { setActiveCard(null); router.replace('/commander/dashboard', undefined, { shallow: true }); }}>
                   <ArrowLeft size={16} /> Back
                 </button>
                 <div className="cmd-open-title" style={{ color: openCard.glow }}>
