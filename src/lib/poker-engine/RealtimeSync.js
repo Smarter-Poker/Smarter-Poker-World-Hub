@@ -2,24 +2,22 @@
  * Smarter.Poker - Core Poker Engine
  * Module: RealtimeSync
  * 
- * Manages real-time communication between the server and all
- * connected players at a table using Supabase Realtime channels.
+ * Manages real-time server→client broadcasting at a poker table
+ * using Supabase Realtime channels.
  * 
- * Architecture:
+ * Architecture (Phase 5+):
+ *   WRITES: Client → HTTP API → GameController → TableManager/engine
+ *   READS:  Engine events → RealtimeSync → Supabase channel → Client
+ * 
  *   - One channel per table: `table:{tableId}`
- *   - Server broadcasts game events to all players
- *   - Players send actions via the channel
- *   - Private data (hole cards) sent via presence or direct messages
- *   - Heartbeat system detects disconnects
+ *   - Server broadcasts game events to all connected clients
+ *   - Private data (hole cards, legal actions) sent via player-specific events
+ *   - Presence tracks connected viewers
+ *   - ActionTimer events broadcast remaining time
  * 
- * This module is designed to work with Supabase Realtime but
- * can be adapted to any WebSocket provider.
- * 
- * Usage:
- *   const sync = new RealtimeSync({ supabase, tableId, tableManager });
- *   sync.initialize();
- *   // Players subscribe from client side
- *   // Server broadcasts events automatically via TableManager hooks
+ * Client-side listeners are NOT processed here — all player actions
+ * are handled via HTTP API routes (/api/poker/engine/*) through
+ * the GameController singleton.
  */
 
 // ============ CONSTANTS ============
@@ -51,7 +49,9 @@ const CHANNEL_EVENTS = {
   CHAT_MESSAGE: 'chat_message',
   TABLE_ERROR: 'table_error',
   
-  // Client → Server
+  // Client → Server (NOW VIA HTTP API, kept for reference)
+  // These events are no longer listened to on the Realtime channel.
+  // All client actions go through /api/poker/engine/* HTTP endpoints.
   PLAYER_ACTION: 'player_action',       // { type, amount? }
   SIT_DOWN: 'sit_down',                 // { seatIndex, buyIn }
   STAND_UP: 'stand_up',
@@ -111,41 +111,8 @@ class RealtimeSync {
       },
     });
     
-    // Listen for client messages
+    // Presence tracking (clients join/leave the channel)
     this.channel
-      .on('broadcast', { event: CHANNEL_EVENTS.PLAYER_ACTION }, (payload) => {
-        this._handlePlayerAction(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.SIT_DOWN }, (payload) => {
-        this._handleSitDown(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.STAND_UP }, (payload) => {
-        this._handleStandUp(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.SIT_OUT }, (payload) => {
-        this._handleSitOut(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.SIT_IN }, (payload) => {
-        this._handleSitIn(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.ADD_CHIPS }, (payload) => {
-        this._handleAddChips(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.JOIN_WAITLIST }, (payload) => {
-        this._handleJoinWaitlist(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.LEAVE_WAITLIST }, (payload) => {
-        this._handleLeaveWaitlist(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.SEND_CHAT }, (payload) => {
-        this._handleChat(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.HEARTBEAT }, (payload) => {
-        this._handleHeartbeat(payload);
-      })
-      .on('broadcast', { event: CHANNEL_EVENTS.REQUEST_STATE }, (payload) => {
-        this._handleStateRequest(payload);
-      })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         this._handlePresenceJoin(newPresences);
       })
@@ -267,137 +234,11 @@ class RealtimeSync {
 
   // ============ CLIENT → SERVER HANDLERS ============
 
-  /** @private */
-  _handlePlayerAction(payload) {
-    const { playerId, action } = payload.payload || {};
-    if (!playerId || !action) return;
-    
-    // Cancel timer — player acted
-    this.timer.recordAction(playerId);
-    this.timer.cancelTurn();
-    
-    const result = this.table.processAction(playerId, action);
-    
-    if (!result.success) {
-      this._sendToPlayer(playerId, CHANNEL_EVENTS.TABLE_ERROR, {
-        error: result.error,
-      });
-    }
-  }
-
-  /** @private */
-  _handleSitDown(payload) {
-    const { playerId, seatIndex, buyIn, displayName, avatarUrl } = payload.payload || {};
-    if (!playerId || seatIndex === undefined || !buyIn) return;
-    
-    const result = this.table.sitDown(playerId, seatIndex, buyIn, { displayName, avatarUrl });
-    
-    if (!result.success) {
-      this._sendToPlayer(playerId, CHANNEL_EVENTS.TABLE_ERROR, { error: result.error });
-    }
-  }
-
-  /** @private */
-  _handleStandUp(payload) {
-    const { playerId } = payload.payload || {};
-    if (!playerId) return;
-    this.table.standUp(playerId);
-  }
-
-  /** @private */
-  _handleSitOut(payload) {
-    const { playerId } = payload.payload || {};
-    if (!playerId) return;
-    this.table.sitOut(playerId);
-  }
-
-  /** @private */
-  _handleSitIn(payload) {
-    const { playerId } = payload.payload || {};
-    if (!playerId) return;
-    this.table.sitIn(playerId);
-  }
-
-  /** @private */
-  _handleAddChips(payload) {
-    const { playerId, amount } = payload.payload || {};
-    if (!playerId || !amount) return;
-    
-    const result = this.table.addChips(playerId, amount);
-    if (!result.success) {
-      this._sendToPlayer(playerId, CHANNEL_EVENTS.TABLE_ERROR, { error: result.error });
-    }
-  }
-
-  /** @private */
-  _handleJoinWaitlist(payload) {
-    const { playerId, displayName, seatPreference } = payload.payload || {};
-    if (!playerId) return;
-    
-    const result = this.table.joinWaitlist(playerId, { displayName, seatPreference });
-    if (!result.success) {
-      this._sendToPlayer(playerId, CHANNEL_EVENTS.TABLE_ERROR, { error: result.error });
-    }
-  }
-
-  /** @private */
-  _handleLeaveWaitlist(payload) {
-    const { playerId } = payload.payload || {};
-    if (!playerId) return;
-    this.table.leaveWaitlist(playerId);
-  }
-
-  /** @private */
-  _handleChat(payload) {
-    const { playerId, message } = payload.payload || {};
-    if (!playerId || !message) return;
-    
-    // Validate and sanitize
-    const clean = String(message).slice(0, 200).trim();
-    if (!clean) return;
-    
-    // Find player name
-    const seat = this.table.seats.find(s => s.player?.id === playerId);
-    const displayName = seat?.player?.displayName || playerId;
-    
-    this._broadcast(CHANNEL_EVENTS.CHAT_MESSAGE, {
-      playerId,
-      displayName,
-      message: clean,
-      timestamp: Date.now(),
-    });
-  }
-
-  /** @private */
-  _handleHeartbeat(payload) {
-    const { playerId } = payload.payload || {};
-    if (!playerId) return;
-    
-    this._connections.set(playerId, {
-      lastHeartbeat: Date.now(),
-      userId: playerId,
-    });
-    
-    // If player was disconnected, handle reconnect
-    this.table.handleReconnect(playerId);
-  }
-
-  /** @private */
-  _handleStateRequest(payload) {
-    const { playerId } = payload.payload || {};
-    if (!playerId) return;
-    
-    // Send full state to requesting player
-    const state = this.table.getState(playerId);
-    const cards = this.table.getPlayerCards(playerId);
-    
-    this._sendToPlayer(playerId, CHANNEL_EVENTS.TABLE_STATE, {
-      ...state,
-      yourCards: cards,
-    });
-  }
-
   // ============ PRESENCE HANDLERS ============
+  // Note: Client action handlers (_handlePlayerAction, _handleSitDown, etc.)
+  // were removed in Phase 7. All client writes now go through HTTP API routes
+  // (/api/poker/engine/*) → GameController, which processes them server-side.
+  // RealtimeSync is now broadcast-only (server → client).
 
   /** @private */
   _handlePresenceJoin(presences) {
