@@ -33,6 +33,8 @@ export default function TournamentSettingsPage() {
     const [viewingStructure, setViewingStructure] = useState(null);
     const [creating, setCreating] = useState(false);
     const [createSuccess, setCreateSuccess] = useState(null);
+    const [clockPresets, setClockPresets] = useState([]);
+    const [selectedPreset, setSelectedPreset] = useState('');
 
     useEffect(() => {
         const storedStaff = localStorage.getItem('commander_staff');
@@ -42,8 +44,24 @@ export default function TournamentSettingsPage() {
             if (!staffData.venue_id) { router.push('/commander/login').catch(() => { }); return; }
             setStaff(staffData);
             setVenue({ id: staffData.venue_id, name: staffData.venue_name });
+            // Fetch clock presets
+            fetchClockPresets(storedStaff);
         } catch { router.push('/commander/login').catch(() => { }); }
     }, [router]);
+
+    async function fetchClockPresets(staffSession) {
+        try {
+            const res = await fetch('/api/commander/clock-presets', {
+                headers: { 'x-staff-session': staffSession || '' },
+            });
+            const json = await res.json();
+            if (json.success) {
+                setClockPresets(json.data || []);
+                const def = (json.data || []).find(p => p.is_default);
+                if (def) setSelectedPreset(def.id);
+            }
+        } catch (err) { console.error(err); }
+    }
 
     async function useTemplate(template) {
         setCreating(true);
@@ -84,6 +102,7 @@ export default function TournamentSettingsPage() {
                     bounty_amount: template.bounty_amount || null,
                     status: 'scheduled',
                     broadcast_to_smarter: true,
+                    settings: selectedPreset ? { clock_preset_id: selectedPreset } : {},
                 }),
             });
 
@@ -159,6 +178,33 @@ export default function TournamentSettingsPage() {
                             Choose a pre-built template to instantly create a tournament with expert blind structures, or view the structure details first.
                         </p>
                     </div>
+
+                    {/* Clock Display Preset Selector */}
+                    {clockPresets.length > 0 && (
+                        <div className="cmd-panel p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-[#8B5CF6]/10 rounded-lg flex items-center justify-center">
+                                        <Settings className="w-5 h-5 text-[#8B5CF6]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-white">Clock Display Preset</h3>
+                                        <p className="text-xs text-[#64748B]">Applied to the TV clock when tournament runs</p>
+                                    </div>
+                                </div>
+                                <select
+                                    value={selectedPreset}
+                                    onChange={e => setSelectedPreset(e.target.value)}
+                                    className="bg-[#0D192E] border-2 border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1877F2] min-w-[200px]"
+                                >
+                                    <option value="">No preset (default theme)</option>
+                                    {clockPresets.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}{p.is_default ? ' (Default)' : ''}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Template Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
