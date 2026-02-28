@@ -17,6 +17,7 @@ import {
     Maximize2, Minimize2
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const STATUS_BADGE = {
     in_use: { bg: '#31A24C', label: 'Active' },
@@ -171,6 +172,9 @@ export default function TableTabletsPage() {
         return () => clearInterval(interval);
     }, [venueId, fetchAll]);
 
+    // Commander Data Bus — instant cross-tab sync for tables, games, dealers
+    useCommanderSync(venueId, fetchAll, { entities: ['tables', 'games', 'dealers'] });
+
     // 1-second tick for live countdown display
     useEffect(() => {
         const tick = setInterval(() => setTickCounter(c => c + 1), 1000);
@@ -263,6 +267,7 @@ export default function TableTabletsPage() {
             if (data.success) {
                 setScanResult(data.data);
                 fetchAll();
+                broadcastChange('dealers');
                 setTimeout(() => closeDealerScan(), 3000);
             } else {
                 setScanError(data.error || 'Failed to assign dealer');

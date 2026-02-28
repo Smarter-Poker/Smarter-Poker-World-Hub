@@ -386,6 +386,9 @@ export default function PromotionsPage() {
   const [awardsLoading, setAwardsLoading] = useState(false);
   const [useWizard, setUseWizard] = useState(false);
   const [highHandPromo, setHighHandPromo] = useState(null);
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [promoCodesLoading, setPromoCodesLoading] = useState(false);
+  const [seedingPromos, setSeedingPromos] = useState(false);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
@@ -434,12 +437,74 @@ export default function PromotionsPage() {
     }
   }, [venueId, promotions]);
 
+  const fetchPromoCodes = useCallback(async () => {
+    setPromoCodesLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const res = await fetch('/api/promo/admin-promo-codes', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setPromoCodes(data.codes || []);
+    } catch (err) { console.error('Fetch promo codes error:', err); }
+    finally { setPromoCodesLoading(false); }
+  }, []);
+
+  const seedPremadePromos = async () => {
+    setSeedingPromos(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const res = await fetch('/api/promo/seed-premade', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`${data.message}`);
+        fetchPromoCodes();
+      } else {
+        alert(data.error || 'Failed to seed promos');
+      }
+    } catch (err) { console.error('Seed promos error:', err); alert('Failed to seed promos'); }
+    finally { setSeedingPromos(false); }
+  };
+
+  const togglePromoCode = async (code) => {
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      await fetch('/api/promo/admin-promo-codes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: code.id, is_active: !code.is_active })
+      });
+      fetchPromoCodes();
+    } catch (err) { console.error('Toggle promo code error:', err); }
+  };
+
+  const deletePromoCode = async (code) => {
+    if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
+    try {
+      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchPromoCodes();
+    } catch (err) { console.error('Delete promo code error:', err); }
+  };
+
   useEffect(() => {
     if (venueId) {
       fetchPromotions();
       fetchHighHands();
     }
   }, [venueId, fetchPromotions, fetchHighHands]);
+
+  useEffect(() => {
+    if (activeTab === 'promo-codes' && promoCodes.length === 0) {
+      fetchPromoCodes();
+    }
+  }, [activeTab, promoCodes.length, fetchPromoCodes]);
 
   async function handleViewAwards(promo) {
     setSelectedPromoForAwards(promo);
@@ -559,13 +624,22 @@ export default function PromotionsPage() {
                     New Promo
                   </button>
                 </div>
-              ) : (
+              ) : activeTab === 'high-hands' ? (
                 <button
                   onClick={() => setShowHighHandModal(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg hover:bg-[#D97706]"
                 >
                   <Trophy className="w-4 h-4" />
                   Record High Hand
+                </button>
+              ) : (
+                <button
+                  onClick={seedPremadePromos}
+                  disabled={seedingPromos}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#31A24C] text-white font-medium rounded-lg hover:bg-[#2B8C42] disabled:opacity-50"
+                >
+                  {seedingPromos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Load 25 Pre-Made
                 </button>
               )}
             </div>
@@ -590,6 +664,16 @@ export default function PromotionsPage() {
               >
                 <Trophy className="w-4 h-4 inline-block mr-2" />
                 High Hands
+              </button>
+              <button
+                onClick={() => setActiveTab('promo-codes')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promo-codes'
+                  ? 'border-[#31A24C] text-[#31A24C]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
+                  }`}
+              >
+                <Target className="w-4 h-4 inline-block mr-2" />
+                Promo Codes
               </button>
             </div>
           </header>
@@ -640,7 +724,7 @@ export default function PromotionsPage() {
                   </div>
                 )}
               </>
-            ) : (
+            ) : activeTab === 'high-hands' ? (
               <>
                 <HighHandDisplay
                   promotion={highHandPromo}
@@ -698,6 +782,75 @@ export default function PromotionsPage() {
                       />
                     ))}
                   </div>
+                )}
+              </>
+            ) : (
+              /* === PROMO CODES TAB === */
+              <>
+                {promoCodesLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#31A24C]" />
+                  </div>
+                ) : promoCodes.length === 0 ? (
+                  <div className="cmd-panel p-8 text-center">
+                    <Target className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                    <p className="text-[#B0B3B8] mb-2">No Promo Codes Yet</p>
+                    <p className="text-sm text-[#B0B3B8] mb-4">Click "Load 25 Pre-Made" above to add 25 ready-to-use promo codes</p>
+                    <button
+                      onClick={seedPremadePromos}
+                      disabled={seedingPromos}
+                      className="cmd-btn cmd-btn-primary flex items-center gap-2 mx-auto"
+                    >
+                      {seedingPromos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      Load 25 Pre-Made Promo Codes
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-[#B0B3B8]">{promoCodes.length} promo codes • {promoCodes.filter(c => c.is_active).length} active</p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {promoCodes.map(code => (
+                        <div key={code.id} className="cmd-panel p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-[#31A24C]/20 text-[#31A24C] px-2 py-0.5 rounded font-mono text-sm font-bold">{code.code}</span>
+                              {code.is_active ? (
+                                <span className="text-[10px] bg-[#31A24C]/10 text-[#31A24C] px-2 py-0.5 rounded-full font-semibold">ACTIVE</span>
+                              ) : (
+                                <span className="text-[10px] bg-[#3A3B3C] text-[#B0B3B8] px-2 py-0.5 rounded-full font-semibold">INACTIVE</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => togglePromoCode(code)}
+                              className={`p-1 rounded transition-colors ${code.is_active ? 'text-[#31A24C]' : 'text-[#3A3B3C]'}`}
+                            >
+                              {code.is_active ? <ToggleRight className="w-7 h-7" /> : <ToggleLeft className="w-7 h-7" />}
+                            </button>
+                          </div>
+                          <p className="text-sm text-[#E4E6EB] mb-1">{code.description}</p>
+                          <div className="flex items-center gap-3 text-xs text-[#B0B3B8]">
+                            <span>Type: {code.reward_type?.replace(/_/g, ' ')}</span>
+                            <span>Value: {code.reward_value}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-[#B0B3B8] mt-1">
+                            <span>Uses: {code.promo_code_redemptions?.[0]?.count || code.times_used || 0}{code.max_uses ? ` / ${code.max_uses}` : ' / ∞'}</span>
+                            {code.expires_at && <span>Exp: {new Date(code.expires_at).toLocaleDateString()}</span>}
+                          </div>
+                          <div className="flex gap-2 mt-3 pt-2 border-t border-[#3A3B3C]">
+                            <button
+                              onClick={() => deletePromoCode(code)}
+                              className="flex-1 h-8 flex items-center justify-center gap-1 text-xs font-medium text-[#EF4444] hover:bg-[#EF4444]/5 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             )}

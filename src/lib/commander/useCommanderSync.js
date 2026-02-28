@@ -1,10 +1,10 @@
 /**
- * useCommanderSync — Hardened Two-Layer Real-Time Sync for Commander
+ * useCommanderSync — Entity-Aware Two-Layer Real-Time Sync for Commander
  * ═══════════════════════════════════════════════════════════════════
  *
  * Layer 1: BroadcastChannel (instant, same browser, zero cost)
  *   When any tab writes data, it calls broadcastChange('tables').
- *   All OTHER tabs hear it and refetch instantly.
+ *   All OTHER tabs subscribed to 'tables' hear it and refetch instantly.
  *   Self-tab broadcasts are suppressed via tab ID.
  *
  * Layer 2: Supabase Realtime (cross-device, ~1s)
@@ -12,6 +12,7 @@
  *   Auto-reconnects on channel errors.
  *
  * Hardening Features:
+ *   ✓ Entity-aware filtering — only refetch when YOUR entities change
  *   ✓ Tab visibility awareness — skips refetch when hidden, catches up on focus
  *   ✓ Online/offline resilience — refetches when network comes back
  *   ✓ Self-tab suppression — won't refetch from your own broadcasts
@@ -21,8 +22,13 @@
  *   ✓ SSR-safe — all browser APIs guarded
  *
  * Usage:
+ *   // Subscribe to ALL entities (backward compatible):
  *   useCommanderSync(venueId, fetchData);
  *
+ *   // Subscribe to SPECIFIC entities only:
+ *   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games'] });
+ *
+ *   // Writer side — broadcast after mutation:
  *   import { broadcastChange } from '.../useCommanderSync';
  *   await fetch('/api/...');
  *   broadcastChange('tables');
@@ -41,12 +47,11 @@ const TAB_ID = typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
     : `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-// ─── broadcastChange ───────────────────────────────────────────
 /**
  * Broadcast a data change to all other open Commander tabs.
  * Call this AFTER a successful write (POST/PUT/PATCH/DELETE).
  *
- * @param {string} entity - What changed: 'tables' | 'games' | 'floor_calls' | 'waitlist' | 'settings'
+ * @param {string} entity - What changed: 'tables' | 'games' | 'floor_calls' | 'waitlist' | 'settings' | 'dealers' | 'staff' | 'members' | 'tournaments'
  */
 export function broadcastChange(entity) {
     try {
@@ -82,8 +87,17 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
     const pendingWhileHiddenRef = useRef(false);
     const reconnectCountRef = useRef(0);
 
+    // Entity filter — if provided, only refetch when matching entity changes
+    const entitiesRef = useRef(opts.entities || null);
+    entitiesRef.current = opts.entities || null;
+
     // ── Throttled refetch ───────────────────────────────────────
-    const throttledRefetch = () => {
+    const throttledRefetch = (entity) => {
+        // Entity filtering — skip if this hook doesn't care about this entity
+        if (entitiesRef.current && entity && !entitiesRef.current.includes(entity)) {
+            return;
+        }
+
         const now = Date.now();
         const elapsed = now - lastRefetchRef.current;
 
@@ -97,11 +111,11 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
             // Schedule for after throttle window
             setTimeout(() => {
                 lastRefetchRef.current = Date.now();
-                refetchRef.current?.();
+                refetchRef.current?.(entity);
             }, THROTTLE_MS - elapsed);
         } else {
             lastRefetchRef.current = now;
-            refetchRef.current?.();
+            refetchRef.current?.(entity);
         }
     };
 
@@ -120,7 +134,7 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
             // Guard against stale messages (older than 10s)
             if (msg.ts && Date.now() - msg.ts > 10000) return;
 
-            throttledRefetch();
+            throttledRefetch(msg.entity);
         };
 
         bc.onmessageerror = () => {

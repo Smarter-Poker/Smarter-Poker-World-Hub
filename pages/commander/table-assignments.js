@@ -18,7 +18,7 @@ import {
   Power, X, Check, AlertTriangle, Users
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const MODE_COLORS = {
   inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', label: 'Inactive', icon: Power },
@@ -77,6 +77,10 @@ export default function TableAssignments() {
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     fetchData();
   }, [fetchData, router]);
+
+  // Commander Data Bus — sync when tables are changed from other tabs
+  const venueId = (() => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } })();
+  useCommanderSync(venueId, fetchData, { entities: ['tables'] });
 
   const openAssign = (table) => {
     setSelectedTable(table);

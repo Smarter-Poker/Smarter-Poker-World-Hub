@@ -26,6 +26,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const GAME_CERTIFICATIONS = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -356,6 +357,9 @@ export default function DealersPage() {
     }
   }, [venueId]);
 
+  // Commander Data Bus — sync dealers and tables across tabs
+  useCommanderSync(venueId, () => { fetchDealers(); fetchTables(); fetchRotations(); }, { entities: ['dealers', 'tables'] });
+
   async function fetchDealers() {
     setLoading(true);
     try {
@@ -423,6 +427,7 @@ export default function DealersPage() {
       if (result.success) {
         setShowAddModal(false);
         fetchDealers();
+        broadcastChange('dealers');
       }
     } catch (err) {
       console.error('Add dealer failed:', err);
@@ -440,6 +445,7 @@ export default function DealersPage() {
       });
       setEditingDealer(null);
       fetchDealers();
+      broadcastChange('dealers');
     } catch (err) {
       console.error('Edit dealer failed:', err);
     }
@@ -456,6 +462,7 @@ export default function DealersPage() {
       });
       setRotatingDealer(null);
       fetchDealers();
+      broadcastChange('dealers');
     } catch (err) {
       console.error('Rotate dealer failed:', err);
     }

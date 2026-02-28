@@ -18,6 +18,7 @@ import {
   Receipt, Lock, Delete, DollarSign, Banknote, Users, Trophy
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 // Fallback time options — overridden by owner settings from Time Billing page
@@ -127,6 +128,9 @@ export default function Cashier() {
   }, [venueId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Commander Data Bus — sync cashier transactions + members across tabs
+  useCommanderSync(venueId, fetchData, { entities: ['members', 'tables', 'games'] });
 
   // Fetch owner-configured pricing from Time Billing settings + membership plans
   useEffect(() => {
@@ -385,6 +389,7 @@ export default function Cashier() {
         });
         playSuccessSound();
         fetchData();
+        broadcastChange('members');
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction Failed' });
       }
@@ -444,6 +449,7 @@ export default function Cashier() {
       setShowAddTime(false);
       playSuccessSound();
       fetchData();
+      broadcastChange('members');
 
       // 3. Auto-print receipt
       printTimeReceipt({
@@ -501,6 +507,7 @@ export default function Cashier() {
       setShowMembership(false);
       playSuccessSound();
       fetchData();
+      broadcastChange('members');
 
       // 3. Auto-print receipt
       printMembershipReceipt({
@@ -566,6 +573,7 @@ export default function Cashier() {
       setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });
       playSuccessSound();
       fetchData();
+      broadcastChange('members');
     } catch { setMessage({ type: 'error', text: `${actionLabel} Failed` }); }
     finally { setActionLoading(false); }
   };

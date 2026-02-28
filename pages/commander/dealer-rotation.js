@@ -101,8 +101,8 @@ export default function DealerRotation() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
-  // Cross-tab + cross-device real-time sync
-  useCommanderSync(getVenueId(), fetchData);
+  // Commander Data Bus — sync dealers + tables across tabs
+  useCommanderSync(getVenueId(), fetchData, { entities: ['dealers', 'tables', 'games'] });
 
   // ── Actions ──────────────────────────────────────────
 
@@ -122,6 +122,7 @@ export default function DealerRotation() {
       });
       setPushTarget(null);
       await fetchData();
+      broadcastChange('dealers');
       broadcastChange('tables');
     } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); }
     finally { setActionLoading(null); }

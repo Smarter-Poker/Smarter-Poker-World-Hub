@@ -8,13 +8,14 @@
  * - New Member: popup directing to staff for membership registration
  * Designed for tablet at room entrance, large touch targets
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   UserCheck, Users, Search, Phone, ChevronRight, Loader2,
   CheckCircle2, AlertTriangle, Clock, Plus, Timer, DollarSign, X
 } from 'lucide-react';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -89,6 +90,9 @@ export default function MembershipKiosk() {
       }
     } catch { /* */ }
   }, []);
+
+  // Commander Data Bus — sync waitlist + games across tabs
+  useCommanderSync(venueId, () => { fetchGames(); }, { entities: ['waitlist', 'games'] });
 
   const reset = () => {
     setMode('home'); setPhone(''); setName(''); setSearchResults([]);
@@ -191,6 +195,7 @@ export default function MembershipKiosk() {
       const gameList = waitlistMatches.map(e => `${e.stakes} ${e.game_type}`).join(', ');
       setSuccessMsg(`✅ ${playerName} — Checked In!\n${gameList}`);
       setMode('success');
+      broadcastChange('waitlist');
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };
@@ -245,6 +250,7 @@ export default function MembershipKiosk() {
       } catch { /* non-critical */ }
 
       setCheckinIsWaitlisted(foundOnWaitlist);
+      broadcastChange('waitlist');
       setSuccessMsg(`✅ ${titleCase(member.first_name || member.name || 'Player')} — Checked In!`);
       setMode('success');
     } catch (err) {
@@ -405,6 +411,7 @@ export default function MembershipKiosk() {
       const gameList = selectedGames.map(g => g.label).join(', ');
       setSuccessMsg(`✅ ${titleCase(joinName.trim())} Added To Waitlist!\n${gameList}`);
       setMode('success');
+      broadcastChange('waitlist');
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };
