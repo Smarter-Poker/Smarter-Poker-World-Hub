@@ -213,11 +213,11 @@ export default function TournamentSettings() {
           setStartingChips(t.starting_chips || 15000);
           setMaxEntries(t.max_entries || '');
           setGuaranteedPool(t.guaranteed_pool || '');
-          setRebuyAllowed(t.rebuy_allowed || false);
+          setRebuyAllowed(t.allows_rebuys || t.rebuy_allowed || false);
           setRebuyLevels(t.rebuy_levels || 4);
           setRebuyCost(t.rebuy_cost || 100);
           setRebuyChips(t.rebuy_chips || 10000);
-          setAddonAllowed(t.addon_allowed || false);
+          setAddonAllowed(t.allows_addon || t.addon_allowed || false);
           setAddonCost(t.addon_cost || 100);
           setAddonChips(t.addon_chips || 15000);
           setLateRegLevels(t.late_reg_levels || 6);
@@ -286,9 +286,9 @@ export default function TournamentSettings() {
           starting_chips: startingChips,
           max_entries: maxEntries ? parseInt(maxEntries) : null,
           guaranteed_pool: guaranteedPool ? parseInt(guaranteedPool) : null,
-          rebuy_allowed: rebuyAllowed, rebuy_levels: rebuyLevels,
+          allows_rebuys: rebuyAllowed, rebuy_levels: rebuyLevels,
           rebuy_cost: rebuyCost, rebuy_chips: rebuyChips,
-          addon_allowed: addonAllowed, addon_cost: addonCost, addon_chips: addonChips,
+          allows_addon: addonAllowed, addon_cost: addonCost, addon_chips: addonChips,
           late_reg_levels: lateRegLevels,
           blind_structure: levels,
           payout_structure: payoutStructure,

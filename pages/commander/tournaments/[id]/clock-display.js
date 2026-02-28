@@ -443,6 +443,10 @@ export default function ClockDisplay() {
   return (
     <>
       <SEOHead title="Commander — Clock Display" description="Club Commander Poker Room Management Tool." noindex={true} />
+      <style>{`
+        @keyframes levelFlash { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
 
       <div style={{
         ...S.container, ...bgStyle,
