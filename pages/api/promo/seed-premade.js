@@ -59,6 +59,20 @@ export default async function handler(req, res) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
 
+    // Verify user is owner or manager
+    const { data: staff } = await supabaseAdmin
+        .from('commander_staff')
+        .select('id, role, venue_id')
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'manager'])
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+    if (!staff) {
+        return res.status(403).json({ error: 'Only owners and managers can seed promo codes' });
+    }
+
     try {
         // Check existing codes to avoid duplicates
         const { data: existing } = await supabaseAdmin

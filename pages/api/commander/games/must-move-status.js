@@ -1,11 +1,11 @@
 /**
- * Must-Move Games Management API
+ * Must-Move Games Management API — Chain-Based
  * GET /api/commander/games/must-move-status?venue_id=X
- *   Returns active games grouped by type+stakes, with must-move relationships
- *   Includes per-game seat list for queue display
+ *   Returns active games grouped by type+stakes with chain-ordered must-move relationships.
+ *   Chain example: T7 → T4 → T1 (players move one step at a time, not all to main).
  * POST /api/commander/games/must-move-status
- *   Move next player from must-move table to main game (when seat opens)
- *   Body: { must_move_game_id, main_game_id }
+ *   Move next player from source table to target table (next in chain).
+ *   Body: { must_move_game_id, target_game_id }
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
@@ -28,7 +28,7 @@ async function handleGet(req, res) {
     const { venue_id } = req.query;
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
-    // Get all active games (no join — avoids FK ambiguity with commander_tables)
+    // Get all active games
     const { data: games, error } = await supabase
       .from('commander_games')
       .select('id, game_type, stakes, status, table_id, is_must_move, parent_game_id, current_players, max_players, created_at, dealer_staff_id')
@@ -95,23 +95,14 @@ async function handleGet(req, res) {
     const groups = {};
     enriched.forEach(g => {
       const key = `${g.game_type}|${g.stakes}`;
-      if (!groups[key]) groups[key] = { game_type: g.game_type, stakes: g.stakes, main: null, must_moves: [], all: [] };
+      if (!groups[key]) groups[key] = { game_type: g.game_type, stakes: g.stakes, all: [] };
       groups[key].all.push(g);
-      if (g.is_must_move) {
-        groups[key].must_moves.push(g);
-      } else {
-        // Oldest non-must-move is the main game
-        if (!groups[key].main || new Date(g.created_at) < new Date(groups[key].main.created_at)) {
-          groups[key].main = g;
-        }
-      }
     });
 
     // Only return groups with 2+ tables (must-move candidates)
     const candidates = Object.values(groups).filter(g => g.all.length >= 2);
 
     // ── Defensive: fix orphaned must-move flags ──
-    // Games flagged is_must_move=true but with null parent, or parent no longer active
     const activeGameIds = new Set(enriched.map(g => g.id));
     const orphans = enriched.filter(g =>
       g.is_must_move && (!g.parent_game_id || !activeGameIds.has(g.parent_game_id))
@@ -122,28 +113,61 @@ async function handleGet(req, res) {
         .from('commander_games')
         .update({ is_must_move: false, parent_game_id: null })
         .in('id', orphanIds);
-      // Fix local data
       orphans.forEach(g => { g.is_must_move = false; g.parent_game_id = null; });
     }
 
-    // Auto-link unlinked games as must-move when 2+ share the same type+stakes
+    // ── Build chain-ordered groups ──
+    // Chain order: oldest game = main, next oldest = 2nd (feeds into main),
+    // next = 3rd (feeds into 2nd), etc.
     for (const group of candidates) {
-      if (!group.main) continue;
-      const unlinked = group.all.filter(g => g.id !== group.main.id && !g.is_must_move);
-      if (unlinked.length > 0) {
-        const unlinkedIds = unlinked.map(g => g.id);
-        await supabase
-          .from('commander_games')
-          .update({ is_must_move: true, parent_game_id: group.main.id })
-          .in('id', unlinkedIds);
+      // Sort by created_at ascending (oldest first = main)
+      group.all.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-        // Update local data so the response reflects the new links
-        unlinked.forEach(g => {
-          g.is_must_move = true;
-          g.parent_game_id = group.main.id;
-          group.must_moves.push(g);
-        });
+      // The main game is the oldest non-must-move, or just the oldest
+      group.main = group.all.find(g => !g.is_must_move) || group.all[0];
+
+      // Build the chain: chain[0] = main, chain[1] = 2nd, chain[2] = 3rd, etc.
+      const chain = [group.main];
+      const remaining = group.all.filter(g => g.id !== group.main.id);
+
+      // Sort remaining by created_at (oldest = closest to main, newest = furthest)
+      remaining.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      chain.push(...remaining);
+
+      // Auto-link: each game in the chain should point to the previous game
+      const updatePromises = [];
+      for (let i = 1; i < chain.length; i++) {
+        const game = chain[i];
+        const targetGame = chain[i - 1]; // move to the table one step closer to main
+
+        if (!game.is_must_move || game.parent_game_id !== targetGame.id) {
+          updatePromises.push(
+            supabase
+              .from('commander_games')
+              .update({ is_must_move: true, parent_game_id: targetGame.id })
+              .eq('id', game.id)
+          );
+          // Update local data
+          game.is_must_move = true;
+          game.parent_game_id = targetGame.id;
+        }
+
+        // Annotate with chain metadata for the frontend
+        game.chain_position = i; // 1 = 2nd table, 2 = 3rd table, etc.
+        game.move_target_game_id = targetGame.id;
+        game.move_target_table_number = targetGame.table_number;
       }
+
+      // Main game metadata
+      group.main.chain_position = 0;
+      group.main.move_target_game_id = null;
+      group.main.move_target_table_number = null;
+
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+      }
+
+      group.chain = chain;
     }
 
     // Also return all singles for reference
@@ -171,9 +195,12 @@ async function handleGet(req, res) {
 
 async function handlePost(req, res) {
   try {
-    const { must_move_game_id, main_game_id } = req.body;
-    if (!must_move_game_id || !main_game_id) {
-      return res.status(400).json({ success: false, error: 'must_move_game_id and main_game_id required' });
+    // Accept both old format (main_game_id) and new format (target_game_id)
+    const { must_move_game_id, target_game_id, main_game_id } = req.body;
+    const actualTargetId = target_game_id || main_game_id;
+
+    if (!must_move_game_id || !actualTargetId) {
+      return res.status(400).json({ success: false, error: 'must_move_game_id and target_game_id required' });
     }
 
     // Get the must-move game's oldest occupied seat (first in line to move)
@@ -192,42 +219,42 @@ async function handlePost(req, res) {
 
     const playerToMove = seats[0];
 
-    // Get main game info
-    const { data: mainGame } = await supabase
+    // Get target game info (this could be another must-move game or the main game)
+    const { data: targetGame } = await supabase
       .from('commander_games')
       .select('id, table_id, current_players, max_players')
-      .eq('id', main_game_id)
+      .eq('id', actualTargetId)
       .single();
 
-    if (!mainGame) return res.status(404).json({ success: false, error: 'Main game not found' });
+    if (!targetGame) return res.status(404).json({ success: false, error: 'Target game not found' });
 
-    const { data: mainTable } = await supabase
+    const { data: targetTable } = await supabase
       .from('commander_tables')
       .select('id, table_number, max_seats')
-      .eq('id', mainGame.table_id)
+      .eq('id', targetGame.table_id)
       .single();
 
-    if (!mainTable) return res.status(404).json({ success: false, error: 'Main table not found' });
+    if (!targetTable) return res.status(404).json({ success: false, error: 'Target table not found' });
 
-    // Find an open seat at the main game
-    const { data: mainSeats } = await supabase
+    // Find an open seat at the target game
+    const { data: targetSeats } = await supabase
       .from('commander_seats')
       .select('seat_number')
-      .eq('game_id', main_game_id)
+      .eq('game_id', actualTargetId)
       .eq('status', 'occupied');
 
-    const occupiedSeats = new Set((mainSeats || []).map(s => s.seat_number));
-    const maxSeats = mainTable.max_seats || mainGame.max_players || 9;
+    const occupiedSeats = new Set((targetSeats || []).map(s => s.seat_number));
+    const maxSeats = targetTable.max_seats || targetGame.max_players || 9;
     let openSeat = null;
     for (let i = 1; i <= maxSeats; i++) {
       if (!occupiedSeats.has(i)) { openSeat = i; break; }
     }
 
     if (openSeat === null) {
-      return res.status(400).json({ success: false, error: 'No open seats at main table' });
+      return res.status(400).json({ success: false, error: 'No open seats at target table' });
     }
 
-    // Get must-move game table info for the response
+    // Get source game info for the response
     const { data: mmGame } = await supabase
       .from('commander_games')
       .select('table_id, current_players')
@@ -244,9 +271,9 @@ async function handlePost(req, res) {
     // 1. Delete their seat at the must-move table
     await supabase.from('commander_seats').delete().eq('id', playerToMove.id);
 
-    // 2. Insert a new seat at the main game
+    // 2. Insert a new seat at the target game
     await supabase.from('commander_seats').insert({
-      game_id: main_game_id,
+      game_id: actualTargetId,
       seat_number: openSeat,
       player_id: playerToMove.player_id,
       player_name: playerToMove.player_name,
@@ -262,11 +289,11 @@ async function handlePost(req, res) {
 
     await supabase
       .from('commander_games')
-      .update({ current_players: (mainGame.current_players || 0) + 1 })
-      .eq('id', main_game_id);
+      .update({ current_players: (targetGame.current_players || 0) + 1 })
+      .eq('id', actualTargetId);
 
     const fromTable = mmTable?.table_number || '?';
-    const toTable = mainTable.table_number;
+    const toTable = targetTable.table_number;
 
     return res.status(200).json({
       success: true,
