@@ -16,7 +16,6 @@ export default function Document() {
                 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
                 <meta name="author" content="Smarter.Poker" />
                 <meta name="publisher" content="Smarter Software Inc." />
-                <meta name="application-name" content="Smarter.Poker" />
 
                 {/* Fallback Open Graph — overridden by per-page SEOHead */}
                 <meta property="og:site_name" content="Smarter.Poker" />

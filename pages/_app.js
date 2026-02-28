@@ -280,6 +280,7 @@ export default function App({ Component, pageProps }) {
             <link rel="icon" type="image/png" sizes="192x192" href="/icons/commander-icon-192.png" />
             <link rel="icon" type="image/png" sizes="512x512" href="/icons/commander-icon-512.png" />
             <meta name="apple-mobile-web-app-title" content="Club Commander" />
+            <meta name="application-name" content="Club Commander" />
           </>
         ) : (
           <>
@@ -288,6 +289,7 @@ export default function App({ Component, pageProps }) {
             <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
             <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
             <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
+            <meta name="application-name" content="Smarter.Poker" />
           </>
         )}
       </Head>
