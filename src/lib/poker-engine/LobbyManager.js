@@ -94,6 +94,7 @@ class LobbyManager {
     const table = new TableManager({
       tableId: config.tableId,
       clubId: config.clubId,
+      name: config.name || config.tableName,
       variant: config.variant || GAME_VARIANT.HOLDEM,
       bettingStructure: config.bettingStructure || BETTING_STRUCTURES.NO_LIMIT,
       smallBlind: config.smallBlind,
