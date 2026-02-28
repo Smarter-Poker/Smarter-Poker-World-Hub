@@ -47,10 +47,15 @@ export default function ClubArenaTable() {
 
         const res = await fetch('/api/poker/engine/club-connect', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tableId }),
+          body: JSON.stringify({ tableId, userId: user.id }),
         });
         const r = await res.json();
-        if (!r.success) { setError(r.error || 'Engine connect failed'); setLoading(false); return; }
+        if (!r.success) {
+          setError(r.code === 'OBSERVERS_RESTRICTED'
+            ? '🔒 Observers are not allowed at this table'
+            : r.error || 'Engine connect failed');
+          setLoading(false); return;
+        }
 
         const vl = { nlh:"NLH", plo4:'PLO4', plo5:'PLO5', plo6:'PLO6',
           plo8:'PLO Hi/Lo', short_deck:'Short Deck', ofc:'OFC' }[td.game_variant] || 'NLH';

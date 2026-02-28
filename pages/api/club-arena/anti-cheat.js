@@ -306,6 +306,79 @@ export default async function handler(req, res) {
         });
       }
 
+      // ═══════════════════════════════════════════════════════════
+      // BUYIN REQUESTS — List/Approve/Deny buy-in authorization requests
+      // ═══════════════════════════════════════════════════════════
+      case 'get_buyin_requests': {
+        // Auto-expire old requests first
+        await supabaseAdmin.rpc('expire_old_buyin_requests').catch(() => {});
+
+        const { status: brStatus = 'pending', table_id } = req.body;
+        let q = supabaseAdmin
+          .from('buyin_requests')
+          .select('*, profiles:player_id(display_name, avatar_url)')
+          .eq('club_id', clubId)
+          .eq('status', brStatus)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (table_id) q = q.eq('table_id', table_id);
+
+        const { data, error: brErr } = await q;
+        if (brErr) return res.status(500).json({ error: brErr.message });
+        return res.json({ success: true, requests: data || [] });
+      }
+
+      case 'approve_buyin': {
+        const { request_id, approved_amount, notes } = req.body;
+        if (!request_id) return res.status(400).json({ error: 'request_id required' });
+
+        // Verify request belongs to this club
+        const { data: brReq, error: brFetchErr } = await supabaseAdmin
+          .from('buyin_requests')
+          .select('*')
+          .eq('id', request_id)
+          .eq('club_id', clubId)
+          .eq('status', 'pending')
+          .single();
+        if (brFetchErr || !brReq) return res.status(404).json({ error: 'Pending request not found' });
+
+        const { error: approveErr } = await supabaseAdmin
+          .from('buyin_requests')
+          .update({
+            status: 'approved',
+            approved_amount: approved_amount || brReq.requested_amount,
+            reviewed_by: userId,
+            reviewed_at: new Date().toISOString(),
+            review_notes: notes || null,
+            // Reset expiry — give player 5 min to use the approval
+            expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+          })
+          .eq('id', request_id);
+        if (approveErr) return res.status(500).json({ error: approveErr.message });
+
+        return res.json({ success: true, message: 'Buy-in approved' });
+      }
+
+      case 'deny_buyin': {
+        const { request_id: denyId, notes: denyNotes } = req.body;
+        if (!denyId) return res.status(400).json({ error: 'request_id required' });
+
+        const { error: denyErr } = await supabaseAdmin
+          .from('buyin_requests')
+          .update({
+            status: 'denied',
+            reviewed_by: userId,
+            reviewed_at: new Date().toISOString(),
+            review_notes: denyNotes || null,
+          })
+          .eq('id', denyId)
+          .eq('club_id', clubId)
+          .eq('status', 'pending');
+        if (denyErr) return res.status(500).json({ error: denyErr.message });
+
+        return res.json({ success: true, message: 'Buy-in denied' });
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

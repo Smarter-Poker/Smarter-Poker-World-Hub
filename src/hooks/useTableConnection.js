@@ -92,7 +92,13 @@ export function useTableConnection({ supabase, tableId, userId }) {
       displayName: info.displayName, avatarUrl: info.avatarUrl,
       fingerprint, latitude, longitude,
     });
-    if (!r.success) { setError(r.error); setTimeout(() => setError(null), 4000); }
+    if (!r.success) {
+      const msg = r.code === 'BUYIN_AUTH_REQUIRED' ? '🎫 Buy-in request submitted — waiting for admin approval'
+        : r.code === 'BUYIN_AUTH_PENDING' ? '⏳ Buy-in request already pending approval'
+        : r.error;
+      setError(msg);
+      setTimeout(() => setError(null), r.code?.startsWith('BUYIN_AUTH') ? 8000 : 4000);
+    }
     return r;
   }, [tableId, userId]);
 

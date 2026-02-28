@@ -79,6 +79,75 @@ export default async function handler(req, res) {
 
         const buyInAmount = parseFloat(buyIn);
 
+        // ─── Buy-in Authorization ─────────────────────────────────────
+        // When enabled, player must have an approved request before sitting
+        const clubSettings = entry.config?.clubSettings || {};
+        if (clubSettings.buy_in_authorization && clubId) {
+          // Check if there's an approved buyin request for this player/table
+          const { data: approved } = await supabaseAdmin
+            .from('buyin_requests')
+            .select('id, approved_amount')
+            .eq('player_id', playerId)
+            .eq('table_id', tableId)
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (!approved) {
+            // Check if already pending
+            const { data: pending } = await supabaseAdmin
+              .from('buyin_requests')
+              .select('id')
+              .eq('player_id', playerId)
+              .eq('table_id', tableId)
+              .eq('status', 'pending')
+              .limit(1)
+              .single();
+
+            if (pending) {
+              return res.status(202).json({
+                success: false,
+                code: 'BUYIN_AUTH_PENDING',
+                requestId: pending.id,
+                error: 'Your buy-in request is pending approval',
+              });
+            }
+
+            // Create new pending request
+            const { data: newReq, error: reqErr } = await supabaseAdmin
+              .from('buyin_requests')
+              .insert({
+                player_id: playerId,
+                table_id: tableId,
+                club_id: clubId,
+                seat_index: parseInt(seatIndex),
+                requested_amount: buyInAmount,
+                status: 'pending',
+              })
+              .select('id')
+              .single();
+
+            if (reqErr) {
+              console.error('[BuyinAuth] Request creation failed:', reqErr.message);
+              return res.status(500).json({ success: false, error: 'Failed to create buy-in request' });
+            }
+
+            return res.status(202).json({
+              success: false,
+              code: 'BUYIN_AUTH_REQUIRED',
+              requestId: newReq.id,
+              error: 'Buy-in requires authorization. Request submitted for approval.',
+            });
+          }
+
+          // Approved — consume the approval (mark as used)
+          await supabaseAdmin
+            .from('buyin_requests')
+            .update({ status: 'used', used_at: new Date().toISOString() })
+            .eq('id', approved.id);
+        }
+
         // Anti-cheat pre-join check (IP, device, GPS, downline, emulator, rate limit)
         const acCheck = await antiCheat.preJoinCheck(playerId, tableId, req, {
           fingerprint,
