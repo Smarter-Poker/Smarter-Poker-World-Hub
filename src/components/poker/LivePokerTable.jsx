@@ -31,6 +31,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTableConnection } from '../../hooks/useTableConnection';
 import { PokerSoundManager } from './PokerSoundManager';
 import EmojiThrower from './EmojiThrower';
+import BBJTicker from './BBJTicker';
+import { getHandStrength } from '../../lib/handStrength';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -1506,6 +1508,15 @@ export default function LivePokerTable({
               boxShadow: 'inset 0 0 80px rgba(0,0,0,0.5)',
             }}
           >
+            {/* BBJ Ticker */}
+            {tableState?.config?.bbjEnabled && tableState?.clubId && (
+              <BBJTicker
+                clubId={tableState.clubId}
+                variant="table"
+                bbjWonEvent={result?.bbj || null}
+              />
+            )}
+
             {/* Community cards */}
             <CommunityCards cards={tableState?.game?.communityCards || []} />
 
@@ -1567,6 +1578,37 @@ export default function LivePokerTable({
         straddleOn={straddleOn}
         onToggleStraddle={handleToggleStraddle}
       />
+
+      {/* Hand strength indicator (hero only, during active hand) */}
+      {myCards && myCards.length > 0 && isSitting && !result?.winners && (() => {
+        const board = tableState?.game?.communityCards || [];
+        const strength = getHandStrength(myCards, board);
+        if (!strength || !strength.label) return null;
+        const cat = strength.category || 0;
+        const color = cat >= 7 ? '#FFD700' : cat >= 5 ? '#4ECDC4' : cat >= 3 ? '#60a5fa' : '#B0B3B8';
+        return (
+          <div style={{
+            position: 'fixed',
+            bottom: isMyTurn && legalActions ? 120 : 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            background: 'rgba(0,0,0,0.75)',
+            border: `1px solid ${color}40`,
+            borderRadius: 12,
+            padding: '3px 14px',
+            fontSize: 12,
+            fontWeight: 700,
+            color,
+            textAlign: 'center',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: 'none',
+            transition: 'bottom 0.3s ease',
+          }}>
+            {strength.label}
+          </div>
+        );
+      })()}
 
       {/* Action panel (when it's hero's turn) */}
       <AnimatePresence>

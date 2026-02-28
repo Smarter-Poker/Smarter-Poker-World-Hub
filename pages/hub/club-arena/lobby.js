@@ -12,6 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
+import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 
 const getAuthToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -59,6 +60,10 @@ export default function ClubLobby() {
     const [announcements, setAnnouncements] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('players'); // players | stakes | name
+    const [showBBJ, setShowBBJ] = useState(false);
+
+    // BBJ pool data (realtime)
+    const { bbjData, loading: bbjLoading } = useBBJ(club?.id, supabase);
 
     // Filter tables by game type, search, and sort
     const filteredTables = tables.filter(table => {
@@ -280,6 +285,15 @@ export default function ClubLobby() {
                                         </div>
                                     ))}
                                 </div>
+                            )}
+
+                            {/* Bad Beat Jackpot Banner */}
+                            {bbjData && bbjData.pool?.amount > 0 && (
+                                <BBJBanner
+                                    amount={bbjData.pool.amount}
+                                    hourlyRate={bbjData.hourlyRate || 0}
+                                    onClick={() => setShowBBJ(true)}
+                                />
                             )}
 
                             {/* Game Type Filters */}
@@ -511,6 +525,11 @@ export default function ClubLobby() {
                         initialTab={showCreateGame?.tab}
                         initialVariant={showCreateGame?.variant}
                     />
+                )}
+
+                {/* ═══ BAD BEAT JACKPOT MODAL ═══ */}
+                {showBBJ && bbjData && (
+                    <BBJModal data={bbjData} onClose={() => setShowBBJ(false)} />
                 )}
 
                 {/* Hamburger Menu */}

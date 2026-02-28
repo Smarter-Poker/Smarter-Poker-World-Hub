@@ -417,38 +417,34 @@ class LobbyManager {
 
       try {
         const sb = ChipBridge.getSupabase();
-        const { getRakeConfig } = require('./RakeConfig');
+        const { getRakeConfig, getTierForBB } = require('./RakeConfig');
         const tierConfig = getRakeConfig(config.bigBlind, config.variant || 'nlh');
-
-        // Look up club's union (if any) for BBJ pool
-        const { data: unionClub } = await sb
-          .from('union_clubs')
-          .select('union_id')
-          .eq('club_id', clubId)
-          .eq('status', 'active')
-          .single();
-
-        if (!unionClub?.union_id) {
-          console.log('[BBJ] Club not in union — standalone clubs handle BBJ manually');
-          return;
-        }
+        const tier = getTierForBB(config.bigBlind);
 
         console.log(`[BBJ] 🎰 BAD BEAT JACKPOT TRIGGERED! Hand #${bbjData.handNumber}`);
         console.log(`[BBJ]   Loser: ${bbjData.loserId} (${bbjData.loserHand})`);
         console.log(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
 
-        // Call award_bbj RPC
+        // Award via bbj_pools table (works for all clubs)
         const { data: awardResult, error: awardErr } = await sb.rpc('award_bbj', {
-          p_union_id: unionClub.union_id,
           p_club_id: clubId,
-          p_loser_id: bbjData.loserId,
-          p_winner_id: bbjData.winnerId,
-          p_table_share_ids: bbjData.tableSharePlayerIds || [],
+          p_table_id: config.tableId,
+          p_hand_number: bbjData.handNumber || 0,
+          p_loser_user_id: bbjData.loserId,
+          p_loser_display_name: bbjData.loserDisplayName || 'Player',
+          p_loser_hand: bbjData.loserHand,
+          p_loser_cards: bbjData.loserCards || '',
+          p_winner_user_id: bbjData.winnerId,
+          p_winner_display_name: bbjData.winnerDisplayName || 'Player',
+          p_winner_hand: bbjData.winnerHand,
+          p_winner_cards: bbjData.winnerCards || '',
           p_payout_total_pct: tierConfig.bbjPayoutTotal,
           p_payout_loser_pct: tierConfig.bbjPayoutLoser,
           p_payout_winner_pct: tierConfig.bbjPayoutWinner,
           p_payout_table_pct: tierConfig.bbjPayoutTable,
-          p_hand_description: `${bbjData.loserHand} loses to ${bbjData.winnerHand}`,
+          p_stakes_tier: tier?.label?.toLowerCase() || 'small',
+          p_game_variant: config.variant || 'nlh',
+          p_big_blind: config.bigBlind,
         });
 
         if (awardErr) {
@@ -592,6 +588,24 @@ class LobbyManager {
 
           if (rakeErr) {
             console.error('[LobbyManager] Rake RPC failed:', rakeErr.message);
+          }
+
+          // ── ADD BBJ CONTRIBUTION TO POOL ──
+          if (bbjContribution > 0) {
+            try {
+              const { getTierForBB } = require('./RakeConfig');
+              const tier = getTierForBB(config.bigBlind);
+              await sb.rpc('add_bbj_contribution', {
+                p_club_id: clubId,
+                p_table_id: config.tableId,
+                p_hand_number: data.handNumber || 0,
+                p_amount: bbjContribution,
+                p_big_blind: config.bigBlind,
+                p_stakes_tier: tier?.label?.toLowerCase() || 'small',
+              });
+            } catch (bbjErr) {
+              console.error('[LobbyManager] BBJ contribution failed:', bbjErr.message);
+            }
           }
 
           // Now run cascading commission for each dealt player

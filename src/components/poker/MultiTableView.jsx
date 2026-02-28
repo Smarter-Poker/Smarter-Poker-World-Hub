@@ -18,6 +18,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useMultiTable } from '../../hooks/useMultiTable';
 import { useTableConnection } from '../../hooks/useTableConnection';
+import { BBJTicker, BBJModal, useBBJ } from '../club-arena/BBJDisplay';
 import { PokerSoundManager } from './PokerSoundManager';
 
 const LivePokerTable = dynamic(
@@ -280,6 +281,11 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
   } = useMultiTable({ supabase, userId });
 
   const soundManagerRef = useRef(null);
+  const [showBBJModal, setShowBBJModal] = useState(false);
+
+  // BBJ pool (realtime ticking)
+  const clubId = initialTable?.clubId || tables[0]?.clubId || null;
+  const { bbjData } = useBBJ(clubId, supabase);
 
   // Initialize sound manager
   useEffect(() => {
@@ -349,6 +355,19 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         gridTemplateRows: tables.length > 2 ? '1fr 1fr' : '1fr',
         gap: 2,
       }}>
+        {/* BBJ Ticker — top center, always visible */}
+        {bbjData && bbjData.pool?.amount > 0 && (
+          <div style={{
+            position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 50, pointerEvents: 'auto',
+          }}>
+            <BBJTicker
+              amount={bbjData.pool.amount}
+              hourlyRate={bbjData.hourlyRate || 0}
+              onClick={() => setShowBBJModal(true)}
+            />
+          </div>
+        )}
         {tables.map((table, idx) => (
           <div
             key={table.tableId}
@@ -377,6 +396,11 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
 
       {/* BBJ Win Overlay */}
       <BBJOverlay bbjData={bbjWin} onDismiss={() => setBbjWin(null)} />
+
+      {/* BBJ Info Modal */}
+      {showBBJModal && bbjData && (
+        <BBJModal data={bbjData} onClose={() => setShowBBJModal(false)} />
+      )}
     </div>
   );
 }
