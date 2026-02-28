@@ -122,7 +122,23 @@ export default async function handler(req, res) {
 
     // Compute remaining_seconds dynamically (mirrors clock.js logic)
     let remaining_seconds = 0;
-    const clockState = tournament.clock_state || null;
+    let clockState = tournament.clock_state || null;
+
+    // Auto-initialize clock_state for running tournaments that were never properly started
+    if (!clockState && ['running', 'break', 'final_table'].includes(tournament.status)) {
+      clockState = {
+        isRunning: tournament.status === 'running',
+        levelStartedAt: tournament.actual_start || tournament.scheduled_start || new Date().toISOString(),
+        pausedAt: null,
+        pausedDuration: 0
+      };
+      // Persist so this only happens once
+      await supabase
+        .from('commander_tournaments')
+        .update({ clock_state: clockState, actual_start: clockState.levelStartedAt })
+        .eq('id', tournamentId);
+    }
+
     if (currentBlinds && currentBlinds.duration && clockState && clockState.levelStartedAt) {
       const levelDuration = currentBlinds.duration * 60 * 1000;
       const elapsed = clockState.isRunning
