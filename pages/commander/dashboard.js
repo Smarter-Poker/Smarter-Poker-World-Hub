@@ -53,7 +53,7 @@ const CARDS = [
     image: '/images/commander/card-floor.jpg?v=4',
     glow: '#10B981',
     features: [
-      { label: 'Tables', href: '/commander/tables', icon: '/images/commander/icons/mg-tables.png' },
+      { label: 'Table Management', href: '/commander/tables', icon: '/images/commander/icons/mg-tables.png' },
       { label: 'Table Assignments', href: '/commander/table-assignments', icon: '/images/commander/icons/mg-table-assignments.png' },
       { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-floor-map.png' },
       { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-open-game.png' },

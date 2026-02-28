@@ -306,7 +306,7 @@ export default function CommanderTablesPage() {
           {/* Header */}
           <header style={{ position: 'sticky', top: 0, zIndex: 50, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #3A3B3C', background: '#242526' }}>
             <div>
-              <h1 style={{ color: '#fff', fontWeight: 700, fontSize: '18px' }}>Table Management</h1>
+              <h1 style={{ color: '#fff', fontWeight: 700, fontSize: '18px' }}>Tables and Floor</h1>
               <p style={{ color: '#B0B3B8', fontSize: '13px' }}>{venue?.name} — {tables.length} Tables ({activeTables.length} active)</p>
             </div>
             <button

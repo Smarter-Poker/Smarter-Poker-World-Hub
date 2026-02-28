@@ -2597,7 +2597,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {tournaments.map((t, i) => {
                                 const d = t.scheduled_start ? new Date(t.scheduled_start) : null;
-                                const GLABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo' };
+                                const GLABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo', nlh: "NL Hold'em", plo: 'PLO', plo5: 'PLO-5', plo8: 'PLO Hi-Lo', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz' };
                                 const isLive = ['running', 'break', 'final_table'].includes(t.status);
                                 const isCompleted = t.status === 'completed';
                                 const statusColor = isLive ? '#42B72A' : isCompleted ? '#B0B3B8' : '#1877F2';

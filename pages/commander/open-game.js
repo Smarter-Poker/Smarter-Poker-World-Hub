@@ -101,21 +101,43 @@ export default function OpenGame() {
     setOpening(true);
     try {
       const token = getToken();
+      const venueId = getVenueId();
       const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const gameTypeLower = selectedGame.type.toLowerCase();
 
-      // Update table status to active
+      // 1. Create the game record in commander_games
+      const gameRes = await fetch('/api/commander/games', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          venue_id: venueId,
+          table_id: selectedTable.id,
+          game_type: gameTypeLower,
+          stakes: stakes,
+          max_players: selectedTable.max_seats || selectedTable.seats || 9
+        })
+      });
+
+      const gameJson = await gameRes.json();
+      if (!gameJson.success) {
+        console.error('Failed to create game:', gameJson.error);
+        // Fallback: still update table even if game creation fails
+      }
+
+      // 2. Update table status to active
       const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers,
         body: JSON.stringify({
           status: 'in_use',
-          game_type: selectedGame.type,
+          game_type: gameTypeLower,
           stakes: stakes
         })
       });
 
       const json = await res.json();
-      if (json.success) {
+      if (json.success || gameJson.success) {
         const tNum = selectedTable.table_number || selectedTable.number;
         // Navigate to dealer view for this table
         router.push(`/commander/dealer/${tNum}`);
