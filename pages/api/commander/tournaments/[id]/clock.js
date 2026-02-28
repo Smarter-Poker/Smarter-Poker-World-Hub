@@ -209,8 +209,12 @@ async function handleClockAction(req, res, tournamentId) {
           });
         }
         updates = { status: 'paused' };
-        clockState.isRunning = false;
-        clockState.pausedAt = new Date().toISOString();
+        clockState = {
+          isRunning: false,
+          levelStartedAt: clockState.levelStartedAt,
+          pausedAt: new Date().toISOString(),
+          pausedDuration: clockState.pausedDuration || 0
+        };
         break;
 
       case 'resume':
@@ -221,11 +225,12 @@ async function handleClockAction(req, res, tournamentId) {
           });
         }
         updates = { status: 'running' };
-        if (clockState.pausedAt) {
-          clockState.pausedDuration += Date.now() - new Date(clockState.pausedAt).getTime();
-        }
-        clockState.isRunning = true;
-        clockState.pausedAt = null;
+        clockState = {
+          isRunning: true,
+          levelStartedAt: clockState.levelStartedAt,
+          pausedAt: null,
+          pausedDuration: (clockState.pausedDuration || 0) + (clockState.pausedAt ? Date.now() - new Date(clockState.pausedAt).getTime() : 0)
+        };
         break;
 
       case 'next_level': {
