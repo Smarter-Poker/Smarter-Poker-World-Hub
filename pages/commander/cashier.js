@@ -3,9 +3,10 @@
  * /commander/cashier
  * Simple operations with inline action modals:
  * 1. Scan Player Card (QR code)
- * 2. Cash Game Buy-In Receipt
- * 3. Add Time (adds minutes directly to player's time balance)
- * 4. Update Membership (changes tier + expiry on player)
+ * 2. Add Time (adds minutes directly to player's time balance)
+ * 3. Update Membership (changes tier + expiry on player)
+ * 4. Tournament Registration (backup for long cage lines)
+ * 5. Cash Game Buy-In Receipt
  * Collapsible transaction log at bottom
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,7 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   QrCode, Clock, CreditCard, Loader2,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
-  Receipt, Lock, Delete, DollarSign, Banknote, Users
+  Receipt, Lock, Delete, DollarSign, Banknote, Users, Trophy
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -503,20 +504,7 @@ export default function Cashier() {
               </div>
             )}
 
-            {/* 2. Cash Game Buy-In Receipt */}
-            <button onClick={() => { setBuyInAmount(''); setPayMethod('cash'); setShowBuyIn(true); }}
-              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
-              <div className="w-12 h-12 rounded-xl bg-[#31A24C]/15 flex items-center justify-center">
-                <Receipt className="w-6 h-6 text-[#31A24C]" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-base font-bold text-white">Cash Game Buy-In Receipt</p>
-                <p className="text-xs text-[#B0B3B8]">Issue Receipt For Cash Game Buy-Ins</p>
-              </div>
-              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
-            </button>
-
-            {/* 3. Add Time */}
+            {/* 2. Add Time */}
             <button onClick={() => {
               if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
               setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
@@ -532,7 +520,7 @@ export default function Cashier() {
               <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
             </button>
 
-            {/* 4. Update Membership */}
+            {/* 3. Update Membership */}
             <button onClick={() => {
               if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
               setSelectedTier(selectedPlayer.membership_tier || null); setShowMembership(true);
@@ -544,6 +532,32 @@ export default function Cashier() {
               <div className="text-left flex-1">
                 <p className="text-base font-bold text-white">Update Membership</p>
                 <p className="text-xs text-[#B0B3B8]">Change Or Renew Player Membership</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
+            </button>
+
+            {/* 4. Tournament Registration */}
+            <button onClick={() => router.push('/commander/tournament-registration')}
+              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
+              <div className="w-12 h-12 rounded-xl bg-[#EF4444]/15 flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-[#EF4444]" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-base font-bold text-white">Tournament Registration</p>
+                <p className="text-xs text-[#B0B3B8]">Register Players For Tournaments (Cage Backup)</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
+            </button>
+
+            {/* 5. Cash Game Buy-In Receipt */}
+            <button onClick={() => { setBuyInAmount(''); setPayMethod('cash'); setShowBuyIn(true); }}
+              className="w-full bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 flex items-center gap-4 active:bg-[#3A3B3C]">
+              <div className="w-12 h-12 rounded-xl bg-[#31A24C]/15 flex items-center justify-center">
+                <Receipt className="w-6 h-6 text-[#31A24C]" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-base font-bold text-white">Cash Game Buy-In Receipt</p>
+                <p className="text-xs text-[#B0B3B8]">Issue Receipt For Cash Game Buy-Ins</p>
               </div>
               <ChevronDown className="w-5 h-5 text-[#B0B3B8] -rotate-90" />
             </button>

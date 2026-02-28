@@ -81,7 +81,6 @@ const CARDS = [
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-time-billing.png' },
       { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/mg-incidents.png' },
       { label: 'Daily Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-room-presets.png' },
-      { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/mg-game-types.png' },
     ],
   },
   {
