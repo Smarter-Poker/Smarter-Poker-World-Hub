@@ -124,27 +124,51 @@ export default async function handler(req, res) {
                 results.skipped++; // No phone
             }
 
-            // Send Email
+            // Send Email (direct via Resend API)
             if ((channel === 'email' || channel === 'both') && member.email) {
-                try {
-                    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker'}/api/commander/notifications/send`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            venue_id,
-                            type: 'custom',
-                            channel: 'email',
-                            recipient_email: member.email,
-                            title: `Your Schedule — ${weekLabel} to ${weekEndLabel}`,
-                            message,
-                            skip_auth: true,
-                            internal_key: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20)
-                        })
-                    });
-                    results.sent++;
-                } catch (emailErr) {
-                    console.error(`[Broadcast] Email failed for ${member.display_name}:`, emailErr.message);
-                    results.failed++;
+                const resendKey = process.env.RESEND_API_KEY;
+                if (!resendKey) {
+                    console.warn('[Broadcast] RESEND_API_KEY not configured — skipping email');
+                    if (channel === 'email') results.skipped++;
+                } else {
+                    try {
+                        const htmlBody = `
+                            <div style="font-family: Inter, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+                                <div style="background: #1877F2; padding: 20px; text-align: center;">
+                                    <h1 style="color: white; margin: 0; font-size: 24px;">Club Commander</h1>
+                                </div>
+                                <div style="padding: 30px; background: #F9FAFB;">
+                                    <h2 style="color: #1F2937; margin-top: 0;">Your Schedule — ${weekLabel} to ${weekEndLabel}</h2>
+                                    <p style="color: #4B5563; font-size: 16px; line-height: 1.6; white-space: pre-line;">${message}</p>
+                                </div>
+                                <div style="padding: 20px; text-align: center; color: #9CA3AF; font-size: 12px;">
+                                    <p>Sent by Club Commander — Poker Room Management</p>
+                                </div>
+                            </div>`;
+                        const emailRes = await fetch('https://api.resend.com/emails', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${resendKey}`
+                            },
+                            body: JSON.stringify({
+                                from: process.env.RESEND_FROM_EMAIL || 'notifications@smarter.poker',
+                                to: member.email,
+                                subject: `Your Schedule — ${weekLabel} to ${weekEndLabel}`,
+                                html: htmlBody
+                            })
+                        });
+                        const emailResult = await emailRes.json();
+                        if (emailResult.id) {
+                            results.sent++;
+                        } else {
+                            console.error(`[Broadcast] Resend failed for ${member.display_name}:`, emailResult.message);
+                            results.failed++;
+                        }
+                    } catch (emailErr) {
+                        console.error(`[Broadcast] Email failed for ${member.display_name}:`, emailErr.message);
+                        results.failed++;
+                    }
                 }
             } else if (channel === 'email' && !member.email) {
                 results.skipped++;
