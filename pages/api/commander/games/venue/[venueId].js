@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         .from('commander_games')
         .select(`
           *,
-          commander_tables (
+          commander_tables!commander_games_table_id_fkey (
             id,
             table_number,
             table_name,

@@ -50,7 +50,7 @@ async function handleGet(req, res, gameId) {
           city,
           state
         ),
-        commander_tables (
+        commander_tables!commander_games_table_id_fkey (
           id,
           table_number,
           table_name,

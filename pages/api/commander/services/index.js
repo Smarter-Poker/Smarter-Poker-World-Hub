@@ -43,7 +43,7 @@ async function handleGet(req, res) {
           id,
           game_type,
           stakes,
-          commander_tables (
+          commander_tables!commander_games_table_id_fkey (
             table_number,
             table_name
           )

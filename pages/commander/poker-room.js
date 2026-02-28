@@ -57,16 +57,41 @@ export default function PokerRoomFunctions() {
         if (vid) setVenueId(vid);
       }
 
-      // Fetch tables with game data
+      // Fetch tables AND games data
       if (vid) {
-        const tabRes = await fetch(`/api/commander/tables?venue_id=${vid}`, { headers });
-        const tabJson = await tabRes.json();
-        if (tabJson.success) {
-          const tList = tabJson.data?.tables || (Array.isArray(tabJson.data) ? tabJson.data : []);
+        const [tabRes, gamesRes] = await Promise.all([
+          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()),
+          fetch(`/api/commander/games/venue/${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+        ]);
+
+        if (tabRes.success) {
+          let tList = tabRes.data?.tables || (Array.isArray(tabRes.data) ? tabRes.data : []);
+
+          // Merge game data onto tables (same pattern as floor.js)
+          const gamesArr = Array.isArray(gamesRes.data?.games) ? gamesRes.data.games
+            : Array.isArray(gamesRes.data) ? gamesRes.data : [];
+          const activeGames = gamesArr.filter(g => g.status === 'running' || g.status === 'waiting');
+
+          if (tList.length > 0 && activeGames.length > 0) {
+            tList = tList.map(t => {
+              const game = activeGames.find(g => g.table_id === t.id);
+              if (game) {
+                return {
+                  ...t, status: 'in_use',
+                  game_type: (game.game_type || t.game_type || '').toUpperCase(),
+                  stakes: game.stakes || t.stakes || '',
+                  current_players: game.current_players || 0,
+                  max_players: game.max_players || t.max_seats || 9,
+                };
+              }
+              return t;
+            });
+          }
+
           setTables(tList);
 
           // Auto-open room if there are active tables/games but room shows closed
-          const hasActiveGames = tList.some(t => t.status === 'active' || t.is_active);
+          const hasActiveGames = tList.some(t => t.status === 'in_use');
           if (hasActiveGames && !vJson.data?.room_open) {
             try {
               await fetch('/api/commander/settings', {
@@ -100,7 +125,7 @@ export default function PokerRoomFunctions() {
     finally { setToggling(false); }
   };
 
-  const activeTables = tables.filter(t => t.status === 'active' || t.is_active);
+  const activeTables = tables.filter(t => t.status === 'in_use');
   const totalSeated = tables.reduce((sum, t) => sum + (t.current_players || t.seated_count || 0), 0);
   const totalCapacity = tables.reduce((sum, t) => sum + (t.max_seats || 9), 0);
   const occupancyPct = totalCapacity > 0 ? Math.round((totalSeated / totalCapacity) * 100) : 0;
@@ -125,9 +150,9 @@ export default function PokerRoomFunctions() {
   }
 
   return (
-    <CommanderLayout title="Poker Room" backHref="/commander/dashboard?card=staff">
+    <CommanderLayout title="Poker Room Functions" backHref="/commander/dashboard?card=staff">
       <>
-        <SEOHead title="Commander — Poker Room" description="Club Commander Poker Room Management Tool." noindex={true} />
+        <SEOHead title="Commander — Poker Room Functions" description="Club Commander Poker Room Management Tool." noindex={true} />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
           {/* Room Status Banner */}
@@ -215,7 +240,7 @@ export default function PokerRoomFunctions() {
                 {tables
                   .sort((a, b) => (a.table_number || 0) - (b.table_number || 0))
                   .map(table => {
-                    const isActive = table.status === 'active' || table.is_active;
+                    const isActive = table.status === 'in_use';
                     const players = table.current_players || table.seated_count || 0;
                     const maxSeats = table.max_seats || 9;
                     const fillPct = maxSeats > 0 ? Math.round((players / maxSeats) * 100) : 0;

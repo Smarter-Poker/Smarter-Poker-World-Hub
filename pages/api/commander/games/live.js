@@ -31,7 +31,7 @@ export default async function handler(req, res) {
           city,
           state
         ),
-        commander_tables (
+        commander_tables!commander_games_table_id_fkey (
           id,
           table_number,
           table_name

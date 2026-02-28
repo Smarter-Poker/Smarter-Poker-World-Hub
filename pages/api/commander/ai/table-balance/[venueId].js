@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         current_players,
         max_players,
         started_at,
-        commander_tables (
+        commander_tables!commander_games_table_id_fkey (
           table_number,
           table_name
         )

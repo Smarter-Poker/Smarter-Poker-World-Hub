@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  QrCode, Clock, CreditCard, Loader2,
+  QrCode, Clock, CreditCard, Loader2, Search,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
   Receipt, Lock, Delete, DollarSign, Banknote, Users, Trophy
 } from 'lucide-react';
@@ -51,6 +51,13 @@ export default function Cashier() {
 
   // Scanned player
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+  // Player Search
+  const [showPlayerSearch, setShowPlayerSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
   // Modals
   const [showBuyIn, setShowBuyIn] = useState(false);
@@ -160,23 +167,52 @@ export default function Cashier() {
       const members = json.data?.members || json.data || [];
       if (json.success && members.length > 0) {
         const member = members[0];
-        setMessage({ type: 'success', text: `Found: ${member.first_name || ''} ${member.last_name || ''}`.trim() });
-        setSelectedPlayer({
-          id: member.id,
-          player_name: `${member.first_name || ''} ${member.last_name || ''}`.trim(),
-          user_id: member.user_id || member.id,
-          membership_tier: member.membership_tier,
-          membership_status: member.membership_status,
-          membership_expires: member.membership_expires,
-          time_balance_minutes: member.time_balance_minutes || 0,
-          member_number: member.member_number,
-        });
+        selectMember(member);
       } else {
         setMessage({ type: 'error', text: 'Player Not Found — Try Manual Search' });
+        setShowPlayerSearch(true);
       }
     } catch {
       setMessage({ type: 'error', text: 'Error Looking Up Player' });
     }
+  };
+
+  // Select a member from search results or scan
+  const selectMember = (member) => {
+    const name = member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim();
+    setMessage({ type: 'success', text: `Found: ${name}` });
+    setSelectedPlayer({
+      id: member.id,
+      player_name: name,
+      user_id: member.user_id || member.id,
+      membership_tier: member.membership_tier,
+      membership_status: member.membership_status,
+      membership_expires: member.membership_expires,
+      time_balance_minutes: member.time_balance_minutes || 0,
+      member_number: member.member_number,
+    });
+    setShowPlayerSearch(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  // Manual player search
+  const searchPlayers = async (query) => {
+    setSearchQuery(query);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (!query || query.length < 2) { setSearchResults([]); return; }
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const token = getToken();
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+        const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
+        const json = await res.json();
+        setSearchResults(json.data || []);
+      } catch { setSearchResults([]); }
+      finally { setSearchLoading(false); }
+    }, 300);
   };
 
   // === PIN Logic ===
@@ -495,6 +531,84 @@ export default function Cashier() {
               </div>
             )}
 
+            {/* ═══ PLAYER SEARCH / SCAN MODAL ═══ */}
+            {showPlayerSearch && (
+              <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => { setShowPlayerSearch(false); setSearchQuery(''); setSearchResults([]); }}>
+                <div className="bg-[#242526] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white">Find Player</h3>
+                    <button onClick={() => { setShowPlayerSearch(false); setSearchQuery(''); setSearchResults([]); }} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
+                  </div>
+
+                  {/* Scan Button */}
+                  <button
+                    onClick={() => { setShowPlayerSearch(false); startScan(); }}
+                    className="w-full bg-[#1877F2] text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 mb-4"
+                  >
+                    <QrCode className="w-5 h-5" /> Scan Player Card (QR Code)
+                  </button>
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-px bg-[#3A3B3C]" />
+                    <span className="text-xs text-[#B0B3B8] font-medium">OR SEARCH MANUALLY</span>
+                    <div className="flex-1 h-px bg-[#3A3B3C]" />
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={e => searchPlayers(e.target.value)}
+                      placeholder="Search by Name or Phone..."
+                      autoFocus
+                      className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-white text-base font-medium outline-none focus:border-[#1877F2] placeholder:text-[#666]"
+                    />
+                    {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1877F2] animate-spin" />}
+                  </div>
+
+                  {/* Search Results */}
+                  {searchResults.length > 0 && (
+                    <div className="space-y-2">
+                      {searchResults.map(m => {
+                        const name = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
+                        return (
+                          <button key={m.id} onClick={() => selectMember(m)}
+                            className="w-full bg-[#3A3B3C]/50 border border-[#4A4B4C] rounded-xl p-3 flex items-center gap-3 text-left active:bg-[#4A4B4C]">
+                            <div className="w-10 h-10 rounded-full bg-[#1877F2]/20 flex items-center justify-center shrink-0">
+                              <span className="text-sm font-bold text-[#1877F2]">{(name[0] || '?').toUpperCase()}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-white truncate">{name || 'Unknown'}</p>
+                              <p className="text-[10px] text-[#B0B3B8]">
+                                {m.phone || 'No Phone'}
+                                {m.membership_tier && ` • ${m.membership_tier.charAt(0).toUpperCase() + m.membership_tier.slice(1)} Member`}
+                              </p>
+                            </div>
+                            <ChevronDown className="w-4 h-4 text-[#B0B3B8] -rotate-90 shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {searchQuery.length >= 2 && searchResults.length === 0 && !searchLoading && (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-[#B0B3B8]">No players found for &quot;{searchQuery}&quot;</p>
+                    </div>
+                  )}
+
+                  {searchQuery.length < 2 && (
+                    <div className="text-center py-6">
+                      <Users className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
+                      <p className="text-sm text-[#B0B3B8]">Type a name or phone number to search</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ═══ METAL PANEL IMAGE WITH CLICKABLE HOTSPOTS ═══ */}
             <div style={{ position: 'relative', width: '100%', margin: '0 auto' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -505,9 +619,11 @@ export default function Cashier() {
                 draggable={false}
               />
 
-              {/* Hotspot 1: Scan Player Card */}
+              {/* Hotspot 1: Scan Player Card / Search */}
               <button
-                onClick={scanning ? stopScan : startScan}
+                onClick={() => {
+                  if (scanning) { stopScan(); } else { setShowPlayerSearch(true); }
+                }}
                 style={{
                   position: 'absolute', top: '12%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
@@ -519,7 +635,6 @@ export default function Cashier() {
               {/* Hotspot 2: Add Time To Player's Balance */}
               <button
                 onClick={() => {
-                  if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
                   setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
                 }}
                 style={{
@@ -533,8 +648,7 @@ export default function Cashier() {
               {/* Hotspot 3: Update Membership */}
               <button
                 onClick={() => {
-                  if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
-                  setSelectedTier(selectedPlayer.membership_tier || null); setShowMembership(true);
+                  setSelectedTier(selectedPlayer?.membership_tier || null); setShowMembership(true);
                 }}
                 style={{
                   position: 'absolute', top: '40%', left: '8%', width: '84%', height: '12.5%',

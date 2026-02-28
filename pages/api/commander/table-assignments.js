@@ -186,9 +186,6 @@ async function handlePut(req, res, venueId, staffUserId) {
   if (mode === 'cash' && game_type && !stakes) {
     // stakes is optional — only validate if game_type is provided
   }
-  if (mode === 'tournament' && !tournament_id) {
-    return res.status(400).json({ success: false, error: 'tournament_id required for tournament mode' });
-  }
 
   // Verify table belongs to venue
   const { data: table } = await supabase

@@ -90,13 +90,8 @@ export default function TableAssignments() {
     setError(null);
     try {
       const body = { table_id: selectedTable.id, mode: assignMode };
-      if (assignMode === 'tournament') {
+      if (assignMode === 'tournament' && selectedTournament) {
         body.tournament_id = selectedTournament;
-        if (!selectedTournament) {
-          setError('Please select a tournament');
-          setSaving(false);
-          return;
-        }
       }
 
       const res = await fetch('/api/commander/table-assignments', {
@@ -382,12 +377,12 @@ export default function TableAssignments() {
                 {/* Tournament Selection */}
                 {assignMode === 'tournament' && (
                   <div>
-                    <p className="text-xs text-[#B0B3B8] mb-2 font-medium">Select Tournament</p>
+                    <p className="text-xs text-[#B0B3B8] mb-2 font-medium">Link Tournament (Optional)</p>
                     {tournaments.length === 0 ? (
                       <div className="p-4 bg-[#3A3B3C]/30 rounded-xl text-center">
                         <Trophy className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
                         <p className="text-sm text-[#B0B3B8]">No Active Tournaments</p>
-                        <p className="text-xs text-[#6A6B6D] mt-1">Create A Tournament First</p>
+                        <p className="text-xs text-[#6A6B6D] mt-1">Table will be marked as tournament-ready</p>
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -417,7 +412,7 @@ export default function TableAssignments() {
                     className="flex-1 py-3.5 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-semibold active:bg-[#4A4B4C]">
                     Cancel
                   </button>
-                  <button onClick={saveAssignment} disabled={saving || (assignMode === 'tournament' && !selectedTournament)}
+                  <button onClick={saveAssignment} disabled={saving}
                     className="flex-1 py-3.5 rounded-xl bg-[#1877F2] text-white font-semibold active:bg-[#1565D8] disabled:opacity-50 flex items-center justify-center gap-2">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {saving ? 'Saving...' : 'Save Assignment'}
