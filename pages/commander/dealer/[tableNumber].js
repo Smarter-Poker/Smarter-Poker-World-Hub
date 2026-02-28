@@ -71,6 +71,10 @@ export default function DealerTablet() {
   const [bustingOut, setBustingOut] = useState(null); // player being busted
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [removingAll, setRemovingAll] = useState(false);
+  const [tournamentActionPlayer, setTournamentActionPlayer] = useState(null); // player tapped in tournament mode
+  const [chipEntryPlayer, setChipEntryPlayer] = useState(null); // chip entry modal
+  const [chipEntryValue, setChipEntryValue] = useState('');
+  const [savingChips, setSavingChips] = useState(false);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -311,6 +315,25 @@ export default function DealerTablet() {
     finally { setBustingOut(null); }
   };
 
+  // Tournament: Update chip count for a player
+  const updatePlayerChips = async () => {
+    if (!chipEntryPlayer || !chipEntryValue) return;
+    setSavingChips(true);
+    try {
+      const token = getToken();
+      const entryId = chipEntryPlayer.entry_id || chipEntryPlayer.id;
+      await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/entries/${entryId}/chips`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
+        body: JSON.stringify({ chips: parseInt(chipEntryValue) || 0 })
+      });
+      setChipEntryPlayer(null);
+      setChipEntryValue('');
+      await fetchTable();
+    } catch (err) { console.error('Update chips error:', err); }
+    finally { setSavingChips(false); }
+  };
+
   // Cash Game: Remove ALL players from this table
   const removeAllPlayers = async () => {
     setRemovingAll(true);
@@ -451,7 +474,7 @@ export default function DealerTablet() {
                       }
                     </button>
                   ) : (
-                    <button onClick={() => tournamentMode ? bustOutPlayer(player) : setAddTimePlayer(player)}
+                    <button onClick={() => tournamentMode ? setTournamentActionPlayer(player) : setAddTimePlayer(player)}
                       className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${tournamentMode
                         ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40 active:bg-[#EF4444]/30'
                         : isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn'
@@ -720,7 +743,7 @@ export default function DealerTablet() {
           </div>
         )}
 
-        {/* ADD TIME MODAL */}
+        {/* ADD TIME MODAL — Cash mode */}
         {addTimePlayer && (
           <div className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center" onClick={() => setAddTimePlayer(null)}>
             <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
@@ -745,6 +768,88 @@ export default function DealerTablet() {
                 className="w-full py-3 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-sm font-medium active:bg-[#EF4444]/20 flex items-center justify-center gap-2">
                 <UserX className="w-4 h-4" /> Remove Player
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* TOURNAMENT ACTION MODAL — Choose: Enter Chips or Bust Out */}
+        {tournamentActionPlayer && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center" onClick={() => setTournamentActionPlayer(null)}>
+            <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-[#F59E0B]/15 flex items-center justify-center">
+                  <span className="text-lg font-bold text-[#F59E0B]">S{tournamentActionPlayer.seat_number}</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">{tournamentActionPlayer.player_name}</h3>
+                  <p className="text-sm text-[#B0B3B8]">
+                    {tournamentActionPlayer.current_chips
+                      ? `${tournamentActionPlayer.current_chips.toLocaleString()} chips`
+                      : 'No chips recorded'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => {
+                setChipEntryPlayer(tournamentActionPlayer);
+                setChipEntryValue(String(tournamentActionPlayer.current_chips || ''));
+                setTournamentActionPlayer(null);
+              }}
+                className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold flex items-center justify-center gap-3 active:bg-[#1565D8]">
+                <DollarSign className="w-6 h-6" /> Enter Chip Count
+              </button>
+              <button onClick={() => {
+                bustOutPlayer(tournamentActionPlayer);
+                setTournamentActionPlayer(null);
+              }}
+                className="w-full py-4 rounded-xl bg-[#EF4444] text-white text-lg font-semibold flex items-center justify-center gap-3 active:bg-[#DC2626]">
+                <UserX className="w-6 h-6" /> Bust Out
+              </button>
+              <button onClick={() => setTournamentActionPlayer(null)}
+                className="w-full py-3 rounded-xl bg-[#3A3B3C] text-[#B0B3B8] text-sm font-medium active:bg-[#4A4B4C]">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CHIP ENTRY MODAL — Tournament mode */}
+        {chipEntryPlayer && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center" onClick={() => setChipEntryPlayer(null)}>
+            <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-white">
+                S{chipEntryPlayer.seat_number} — {chipEntryPlayer.player_name}
+              </h3>
+              <p className="text-sm text-[#B0B3B8]">
+                Current: <span className="font-mono font-bold text-white">
+                  {chipEntryPlayer.current_chips ? chipEntryPlayer.current_chips.toLocaleString() : 'Not set'}
+                </span>
+              </p>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={chipEntryValue}
+                onChange={e => setChipEntryValue(e.target.value)}
+                placeholder="Enter chip count"
+                autoFocus
+                className="w-full px-4 py-4 bg-[#18191A] border-2 border-[#3A3B3C] rounded-xl text-2xl font-mono font-bold text-white text-center focus:border-[#1877F2] focus:outline-none"
+              />
+              <div className="grid grid-cols-4 gap-2">
+                {[5000, 10000, 25000, 50000].map(v => (
+                  <button key={v} onClick={() => setChipEntryValue(String(v))}
+                    className={`py-3 rounded-xl text-sm font-medium ${chipEntryValue === String(v) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                    {v >= 1000 ? `${v / 1000}K` : v}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => { setChipEntryPlayer(null); setChipEntryValue(''); }}
+                  className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium active:bg-[#4A4B4C]">Cancel</button>
+                <button onClick={updatePlayerChips} disabled={savingChips || !chipEntryValue}
+                  className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-semibold active:bg-[#28883F] disabled:opacity-50 flex items-center justify-center gap-2">
+                  {savingChips ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {savingChips ? 'Saving...' : 'Save Chips'}
+                </button>
+              </div>
             </div>
           </div>
         )}
