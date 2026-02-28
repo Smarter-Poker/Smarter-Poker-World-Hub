@@ -14,6 +14,7 @@
  * Auth: x-engine-key header or Bearer token
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -41,6 +42,10 @@ export default async function handler(req, res) {
   if (!['lock', 'unlock', 'rebuy'].includes(action)) {
     return res.status(400).json({ error: 'action must be lock, unlock, or rebuy' });
   }
+
+  // Settlement lock check — block during Monday 4:00-4:10 AM CST
+  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
   try {
     // Get current membership

@@ -11,6 +11,7 @@
  * Auth: Bearer token
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -32,6 +33,11 @@ export default async function handler(req, res) {
   }
 
   const amount = Math.floor(chipAmount);
+
+  // Settlement lock check — block during Monday 4:00-4:10 AM CST
+  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
   // 75% Cheaper Law: 38 diamonds = 100 chips
   const diamondCost = Math.ceil((amount / 100) * 38);
 

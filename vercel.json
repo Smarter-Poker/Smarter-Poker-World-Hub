@@ -203,6 +203,14 @@
     {
       "path": "/api/cron/hard-stop",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/auto-settlement",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/cron/auto-settlement-distribute",
+      "schedule": "10 10 * * 1"
     }
   ]
 }

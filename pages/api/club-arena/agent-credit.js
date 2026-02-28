@@ -9,6 +9,7 @@
  * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -33,6 +34,10 @@ export default async function handler(req, res) {
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
   }
+
+  // Settlement lock check — block during Monday 4:00-4:10 AM CST
+  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
   try {
     // 1. Verify caller is club owner or union admin

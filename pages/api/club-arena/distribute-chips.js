@@ -6,6 +6,7 @@
  * Auth: Bearer token (owner, admin, or agent with credit)
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,6 +26,10 @@ export default async function handler(req, res) {
   if (!clubId || !toUserId || !amount || amount <= 0) {
     return res.status(400).json({ error: 'clubId, toUserId, and positive amount required' });
   }
+
+  // Settlement lock check — block during Monday 4:00-4:10 AM CST
+  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
   try {
     // Verify caller is owner/admin/agent

@@ -16,6 +16,7 @@
  * Auth: Bearer token (must be the agent who sent the chips)
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,6 +38,10 @@ export default async function handler(req, res) {
   if (!transactionId || !clubId) {
     return res.status(400).json({ error: 'transactionId and clubId required' });
   }
+
+  // Settlement lock check — block during Monday 4:00-4:10 AM CST
+  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
   try {
     // ═════════════════════════════════════════════════════════════
