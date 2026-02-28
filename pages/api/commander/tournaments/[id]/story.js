@@ -80,6 +80,10 @@ export default async function handler(req, res) {
             .eq('player_id', user.id)
             .single();
 
+        if (!entry) {
+            return res.status(403).json({ success: false, error: 'You are not registered in this tournament' });
+        }
+
         // Build story content
         const storyContent = content || buildStoryContent(story_type, {
             tournamentName: tournament.name,

@@ -524,23 +524,54 @@ export default function DailyPresetsPage() {
                       ) : (
                         <div className="space-y-2">
                           {form.tables.map((row, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-[#3A3B3C]/30 rounded-xl p-3">
-                              <select value={row.game_type_id || ''} onChange={e => updateTableRow(idx, 'game_type_id', e.target.value)}
-                                className="flex-1 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white">
-                                <option value="">Select Game Type...</option>
-                                {gameTypes.map(gt => (
-                                  <option key={gt.id} value={gt.id}>{gt.short_code} — {gt.name} {gt.stakes}</option>
-                                ))}
-                              </select>
-                              <div className="w-20">
-                                <input type="number" value={row.count || 1} min={1} max={20}
-                                  onChange={e => updateTableRow(idx, 'count', parseInt(e.target.value) || 1)}
-                                  className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center" />
-                                <p className="text-[10px] text-[#B0B3B8] text-center mt-0.5">Tables</p>
+                            <div key={idx} className="bg-[#3A3B3C]/30 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center gap-2">
+                                {gameTypes.length > 0 ? (
+                                  <select value={row.game_type_id || ''} onChange={e => updateTableRow(idx, 'game_type_id', e.target.value)}
+                                    className="flex-1 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white">
+                                    <option value="">{row.short_code ? `${row.short_code} ${row.stakes || ''}`.trim() : 'Select Game Type...'}</option>
+                                    {gameTypes.map(gt => (
+                                      <option key={gt.id} value={gt.id}>{gt.short_code} — {gt.name} {gt.stakes}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <div className="flex-1 flex gap-2">
+                                    <input value={row.short_code || ''} onChange={e => updateTableRow(idx, 'short_code', e.target.value.toUpperCase())}
+                                      placeholder="NLH" className="w-20 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center placeholder-[#6A6B6D]" />
+                                    <input value={row.stakes || ''} onChange={e => updateTableRow(idx, 'stakes', e.target.value)}
+                                      placeholder="1/3" className="flex-1 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white placeholder-[#6A6B6D]" />
+                                  </div>
+                                )}
+                                <div className="w-20">
+                                  <input type="number" value={row.count || 1} min={1} max={20}
+                                    onChange={e => updateTableRow(idx, 'count', parseInt(e.target.value) || 1)}
+                                    className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center" />
+                                  <p className="text-[10px] text-[#B0B3B8] text-center mt-0.5">Tables</p>
+                                </div>
+                                <button onClick={() => removeTableRow(idx)} className="p-1.5 hover:bg-[#EF4444]/10 rounded-lg">
+                                  <X className="w-4 h-4 text-[#EF4444]" />
+                                </button>
                               </div>
-                              <button onClick={() => removeTableRow(idx)} className="p-1.5 hover:bg-[#EF4444]/10 rounded-lg">
-                                <X className="w-4 h-4 text-[#EF4444]" />
-                              </button>
+                              {/* Inline editable fields for game code + stakes when game has no dropdown ID */}
+                              {!row.game_type_id && row.short_code && gameTypes.length > 0 && (
+                                <div className="flex gap-2 pl-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-[#B0B3B8] uppercase">Game:</span>
+                                    <input value={row.short_code || ''} onChange={e => updateTableRow(idx, 'short_code', e.target.value.toUpperCase())}
+                                      className="w-16 px-2 py-1 bg-[#3A3B3C] border border-[#4A4B4C] rounded text-xs text-white text-center" />
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-[#B0B3B8] uppercase">Stakes:</span>
+                                    <input value={row.stakes || ''} onChange={e => updateTableRow(idx, 'stakes', e.target.value)}
+                                      className="w-20 px-2 py-1 bg-[#3A3B3C] border border-[#4A4B4C] rounded text-xs text-white text-center" />
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-[#B0B3B8] uppercase">Name:</span>
+                                    <input value={row.game_type_name || ''} onChange={e => updateTableRow(idx, 'game_type_name', e.target.value)}
+                                      placeholder="No Limit Hold'em" className="flex-1 px-2 py-1 bg-[#3A3B3C] border border-[#4A4B4C] rounded text-xs text-white placeholder-[#6A6B6D]" />
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
