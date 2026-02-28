@@ -52,7 +52,7 @@ const NAV_ITEMS = [
   { label: 'Settings', href: '/commander/settings', icon: Settings },
 ];
 
-export default function CommanderLayout({ children, title, backHref, hideBack }) {
+export default function CommanderLayout({ children, title, backHref = '/commander/dashboard', hideBack }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
@@ -68,6 +68,21 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
+    } catch { }
+
+    // Track Commander navigation history in sessionStorage
+    try {
+      const path = window.location.pathname;
+      if (path.startsWith('/commander')) {
+        const hist = JSON.parse(sessionStorage.getItem('commander_nav_history') || '[]');
+        // Only add if different from the last entry
+        if (hist[hist.length - 1] !== path) {
+          hist.push(path);
+          // Keep only last 20 entries
+          if (hist.length > 20) hist.shift();
+          sessionStorage.setItem('commander_nav_history', JSON.stringify(hist));
+        }
+      }
     } catch { }
   }, []);
 
@@ -427,7 +442,26 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               <button
                 className="cmd-back-img-btn"
                 onClick={() => {
-                  router.back();
+                  // Smart back: stay within Commander
+                  try {
+                    const hist = JSON.parse(sessionStorage.getItem('commander_nav_history') || '[]');
+                    const currentPath = window.location.pathname;
+                    // Remove current page from history
+                    while (hist.length > 0 && hist[hist.length - 1] === currentPath) {
+                      hist.pop();
+                    }
+                    sessionStorage.setItem('commander_nav_history', JSON.stringify(hist));
+
+                    if (hist.length > 0) {
+                      // Previous page was a Commander page — go back normally
+                      router.back();
+                    } else {
+                      // No Commander history — use backHref to stay in Commander
+                      router.push(backHref);
+                    }
+                  } catch {
+                    router.push(backHref);
+                  }
                 }}
                 title="Go Back"
               >
