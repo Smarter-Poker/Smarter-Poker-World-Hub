@@ -505,11 +505,11 @@ export default function Cashier() {
                 draggable={false}
               />
 
-              {/* Hotspot 1: Scan Player Card — top row */}
+              {/* Hotspot 1: Scan Player Card */}
               <button
                 onClick={scanning ? stopScan : startScan}
                 style={{
-                  position: 'absolute', top: '2%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '12%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   borderRadius: 8,
                 }}
@@ -523,7 +523,7 @@ export default function Cashier() {
                   setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
                 }}
                 style={{
-                  position: 'absolute', top: '16.5%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '26%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   borderRadius: 8,
                 }}
@@ -537,7 +537,7 @@ export default function Cashier() {
                   setSelectedTier(selectedPlayer.membership_tier || null); setShowMembership(true);
                 }}
                 style={{
-                  position: 'absolute', top: '31%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '40%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   borderRadius: 8,
                 }}
@@ -548,7 +548,7 @@ export default function Cashier() {
               <button
                 onClick={() => router.push('/commander/tournament-registration')}
                 style={{
-                  position: 'absolute', top: '45.5%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '54%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   borderRadius: 8,
                 }}
@@ -559,7 +559,7 @@ export default function Cashier() {
               <button
                 onClick={() => { setBuyInAmount(''); setPayMethod('cash'); setShowBuyIn(true); }}
                 style={{
-                  position: 'absolute', top: '60%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '68%', left: '8%', width: '84%', height: '12.5%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   borderRadius: 8,
                 }}
@@ -570,7 +570,7 @@ export default function Cashier() {
               <button
                 onClick={() => setShowLog(!showLog)}
                 style={{
-                  position: 'absolute', top: '74.5%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '82%', left: '8%', width: '84%', height: '12%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   borderRadius: 8,
                 }}
