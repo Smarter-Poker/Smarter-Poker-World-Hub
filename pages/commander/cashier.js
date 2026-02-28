@@ -509,12 +509,10 @@ export default function Cashier() {
               <button
                 onClick={scanning ? stopScan : startScan}
                 style={{
-                  position: 'absolute', top: '5%', left: '8%', width: '84%', height: '12%',
+                  position: 'absolute', top: '2%', left: '8%', width: '84%', height: '13%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8, transition: 'background 0.15s',
+                  borderRadius: 8,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(24,119,242,0.12)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 aria-label="Scan Player Card"
               />
 
@@ -525,12 +523,10 @@ export default function Cashier() {
                   setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
                 }}
                 style={{
-                  position: 'absolute', top: '19%', left: '8%', width: '84%', height: '13.5%',
+                  position: 'absolute', top: '16.5%', left: '8%', width: '84%', height: '13%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8, transition: 'background 0.15s',
+                  borderRadius: 8,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,158,11,0.12)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 aria-label="Add Time To Player Balance"
               />
 
@@ -541,12 +537,10 @@ export default function Cashier() {
                   setSelectedTier(selectedPlayer.membership_tier || null); setShowMembership(true);
                 }}
                 style={{
-                  position: 'absolute', top: '34.5%', left: '8%', width: '84%', height: '13.5%',
+                  position: 'absolute', top: '31%', left: '8%', width: '84%', height: '13%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8, transition: 'background 0.15s',
+                  borderRadius: 8,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(139,92,246,0.12)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 aria-label="Update Membership"
               />
 
@@ -554,12 +548,10 @@ export default function Cashier() {
               <button
                 onClick={() => router.push('/commander/tournament-registration')}
                 style={{
-                  position: 'absolute', top: '50%', left: '8%', width: '84%', height: '13.5%',
+                  position: 'absolute', top: '45.5%', left: '8%', width: '84%', height: '13%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8, transition: 'background 0.15s',
+                  borderRadius: 8,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 aria-label="Tournament Registration"
               />
 
@@ -567,12 +559,10 @@ export default function Cashier() {
               <button
                 onClick={() => { setBuyInAmount(''); setPayMethod('cash'); setShowBuyIn(true); }}
                 style={{
-                  position: 'absolute', top: '65.5%', left: '8%', width: '84%', height: '13.5%',
+                  position: 'absolute', top: '60%', left: '8%', width: '84%', height: '13%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8, transition: 'background 0.15s',
+                  borderRadius: 8,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(49,162,76,0.12)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 aria-label="Cash Game Buy-In Receipt"
               />
 
@@ -580,12 +570,10 @@ export default function Cashier() {
               <button
                 onClick={() => setShowLog(!showLog)}
                 style={{
-                  position: 'absolute', top: '81%', left: '8%', width: '84%', height: '13%',
+                  position: 'absolute', top: '74.5%', left: '8%', width: '84%', height: '13%',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 8, transition: 'background 0.15s',
+                  borderRadius: 8,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(180,180,180,0.1)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 aria-label="Transaction Log"
               />
             </div>
