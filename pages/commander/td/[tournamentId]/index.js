@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
+import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import {
   Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
@@ -112,10 +113,11 @@ export default function TDControlCenter() {
     }
   }, [tournamentId, getToken]);
 
-  // Initial load + polling every 5 seconds
+  // Initial load + Realtime subscription + 60s fallback poll
+  useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
     fetchFloor();
-    pollRef.current = setInterval(fetchFloor, 5000);
+    pollRef.current = setInterval(fetchFloor, 60000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };

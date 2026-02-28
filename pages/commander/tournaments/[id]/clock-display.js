@@ -380,6 +380,9 @@ export default function ClockDisplay() {
   const payouts = t.payout_structure || t.custom_payouts || stats.payouts || [];
   const numPaid = payouts.length;
 
+  const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
+  const blindStructure = t.blind_structure || [];
+
   // Next Break — compute wall-clock time (TD-style: "Next break at 3:26 PM")
   const nextBreakSec = clockState.next_break_seconds;
   let nextBreakDisplay = '--:--';
@@ -400,8 +403,6 @@ export default function ClockDisplay() {
       secsUntilBreak += (lvl.duration_minutes || lvl.duration || 15) * 60;
     }
   }
-  const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
-  const blindStructure = t.blind_structure || [];
 
   // Dynamic chip denominations from preset (fallback to defaults)
   const chipDenoms = (displayOpts.chip_denominations && displayOpts.chip_denominations.length > 0)
@@ -513,7 +514,7 @@ export default function ClockDisplay() {
           <span style={{ color: '#31A24C', fontWeight: 700 }}>Players Remaining: {playersIn}</span>
         </div>
 
-        {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}}
+        {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}
         {activeScreen === SCREENS.CLOCK && (
           <div style={isPortrait ? S.mainPortrait : S.main}>
             {/* LEFT — Stats (portrait: horizontal bar) */}
@@ -739,6 +740,12 @@ const S = {
   header: {
     background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
     borderBottom: '2px solid rgba(255,255,255,0.15)', flexShrink: 0
+  },
+  subHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '6px 24px', background: 'rgba(0,0,0,0.25)',
+    borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 14,
+    fontWeight: 500, flexShrink: 0, color: '#fff'
   },
   headerTitle: { fontSize: 28, fontWeight: 700 },
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },

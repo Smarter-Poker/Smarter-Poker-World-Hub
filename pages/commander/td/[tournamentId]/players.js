@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
+import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Search, X, Loader2, RefreshCw, ChevronDown,
@@ -66,7 +67,8 @@ export default function TDPlayers() {
     finally { setLoading(false); }
   }, [tournamentId]);
 
-  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 5000); return () => clearInterval(i); }, [fetchFloor]);
+  useTournamentRealtime(tournamentId, fetchFloor);
+  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 60000); return () => clearInterval(i); }, [fetchFloor]);
 
   // Build flat player list from full entries array (all statuses)
   const allPlayers = [];

@@ -12,7 +12,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Timer, DollarSign, Clock, Loader2, Search, Square, Settings, Lock,
-  Package, Trash2, Plus, Save, Delete, CheckCircle2
+  Package, Trash2, Plus, Save, Delete, CheckCircle2, RefreshCw, Receipt
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
