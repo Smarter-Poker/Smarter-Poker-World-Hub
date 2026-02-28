@@ -54,12 +54,12 @@ export default async function handler(req, res) {
         // Get dealer member details if available
         let dealerDetails = null;
         if (rotation.dealer_id) {
-            const { data: member } = await supabase
-                .from('commander_members')
-                .select('id, first_name, last_name, photo_url, member_number')
+            const { data: dealerRow } = await supabase
+                .from('commander_dealers')
+                .select('id, name, employee_id, skill_level')
                 .eq('id', rotation.dealer_id)
                 .single();
-            dealerDetails = member;
+            dealerDetails = dealerRow;
         }
 
         return res.status(200).json({
@@ -67,9 +67,9 @@ export default async function handler(req, res) {
             data: {
                 dealer: {
                     id: rotation.dealer_id,
-                    name: rotation.dealer_name,
-                    photo_url: dealerDetails?.photo_url || null,
-                    member_number: dealerDetails?.member_number || null,
+                    name: rotation.dealer_name || dealerDetails?.name || null,
+                    employee_id: dealerDetails?.employee_id || null,
+                    skill_level: dealerDetails?.skill_level || null,
                     started_at: rotation.started_at,
                     rotation_id: rotation.id
                 }

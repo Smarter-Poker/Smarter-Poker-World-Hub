@@ -158,25 +158,24 @@ export default async function handler(req, res) {
             const rotation = rotationData?.[0] || null;
 
             if (rotation) {
-                // Fetch dealer member details for name and photo
+                // Fetch dealer details from the correct table
                 let dealerDetails = null;
                 if (rotation.dealer_id) {
-                    const { data: member } = await supabase
-                        .from('commander_members')
-                        .select('id, first_name, last_name, photo_url, member_number')
+                    const { data: dealerRow } = await supabase
+                        .from('commander_dealers')
+                        .select('id, name, employee_id, skill_level')
                         .eq('id', rotation.dealer_id)
                         .single();
-                    dealerDetails = member;
+                    dealerDetails = dealerRow;
                 }
 
-                const dealerName = rotation.dealer_name ||
-                    (dealerDetails ? `${dealerDetails.first_name || ''} ${dealerDetails.last_name || ''}`.trim() : null);
+                const dealerName = rotation.dealer_name || dealerDetails?.name || null;
 
                 dealer = {
                     id: rotation.dealer_id,
                     name: dealerName,
-                    photo_url: dealerDetails?.photo_url || null,
-                    member_number: dealerDetails?.member_number || null,
+                    employee_id: dealerDetails?.employee_id || null,
+                    skill_level: dealerDetails?.skill_level || null,
                     started_at: rotation.started_at,
                     rotation_id: rotation.id
                 };
