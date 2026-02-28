@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getDeviceFingerprint, getGPSLocation } from '@/lib/anti-cheat/deviceFingerprint';
 
 const HEARTBEAT_MS = 10000;
 const API_BASE = '/api/poker/engine';
@@ -70,9 +71,26 @@ export function useTableConnection({ supabase, tableId, userId }) {
   }, [tableId, userId]);
 
   const sitDown = useCallback(async (seatIndex, buyIn, info = {}) => {
+    // Collect anti-cheat data (non-blocking, best-effort)
+    let fingerprint = null;
+    let latitude = null;
+    let longitude = null;
+    try {
+      const [fp, gps] = await Promise.all([
+        getDeviceFingerprint(),
+        getGPSLocation(3000),
+      ]);
+      fingerprint = fp;
+      if (gps) { latitude = gps.lat; longitude = gps.lng; }
+    } catch (err) {
+      console.warn('[AntiCheat] Data collection failed:', err.message);
+    }
+
     const r = await apiPost('seat', {
       tableId, playerId: userId, action: 'sit_down',
-      seatIndex, buyIn, displayName: info.displayName, avatarUrl: info.avatarUrl,
+      seatIndex, buyIn,
+      displayName: info.displayName, avatarUrl: info.avatarUrl,
+      fingerprint, latitude, longitude,
     });
     if (!r.success) { setError(r.error); setTimeout(() => setError(null), 4000); }
     return r;
