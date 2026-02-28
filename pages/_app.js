@@ -265,47 +265,72 @@ function NavigationGuard({ children }) {
  * If any requirement fails → fail-closed → SystemOffline screen
  */
 export default function App({ Component, pageProps }) {
+  const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
+  const isCommander = router.asPath.startsWith('/commander');
 
   return (
-    <AntiGravityProvider>
-      <ThemeProvider>
-        <UnreadProvider>
-          <AvatarProvider>
-            <ExternalLinkProvider>
-              <OneSignalProvider>
-                <TrainingSettingsProvider>
-                  <NavigationGuard>
-                    <ActiveIdentityProvider>
-                      <WorldThemeProvider>
-                        <Component {...pageProps} />
-                        <CelebrationManager />
-                        <DiamondToast />
-                        <ToastContainer />
-                        <GlobalNotificationPrompt />
-                        <ProactiveHelp
-                          onAccept={() => {
-                            // Open Jarvis when user accepts help
-                            if (typeof window !== 'undefined') {
-                              window.dispatchEvent(new CustomEvent('open-jarvis'));
-                            }
-                          }}
-                          onDismiss={() => {
-                            console.log('[ProactiveHelp] User dismissed help prompt');
-                          }}
-                        />
-                        <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
-                      </WorldThemeProvider>
-                    </ActiveIdentityProvider>
-                  </NavigationGuard>
-                </TrainingSettingsProvider>
-              </OneSignalProvider>
-            </ExternalLinkProvider>
-          </AvatarProvider>
-        </UnreadProvider>
-      </ThemeProvider>
-    </AntiGravityProvider>
+    <>
+      {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
+      <Head>
+        {isCommander ? (
+          <>
+            <link rel="manifest" href="/commander-manifest.json" />
+            <link rel="apple-touch-icon" sizes="180x180" href="/icons/commander-apple-touch-icon.png" />
+            <link rel="icon" type="image/png" sizes="192x192" href="/icons/commander-icon-192.png" />
+            <link rel="icon" type="image/png" sizes="512x512" href="/icons/commander-icon-512.png" />
+            <meta name="apple-mobile-web-app-title" content="Club Commander" />
+          </>
+        ) : (
+          <>
+            <link rel="manifest" href="/manifest.json" />
+            <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
+            <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+            <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+            <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
+          </>
+        )}
+      </Head>
+      <AntiGravityProvider>
+        <ThemeProvider>
+          <UnreadProvider>
+            <AvatarProvider>
+              <ExternalLinkProvider>
+                <OneSignalProvider>
+                  <TrainingSettingsProvider>
+                    <NavigationGuard>
+                      <ActiveIdentityProvider>
+                        <WorldThemeProvider>
+                          <Component {...pageProps} />
+                          <CelebrationManager />
+                          <DiamondToast />
+                          <ToastContainer />
+                          <GlobalNotificationPrompt />
+                          <ProactiveHelp
+                            onAccept={() => {
+                              // Open Jarvis when user accepts help
+                              if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('open-jarvis'));
+                              }
+                            }}
+                            onDismiss={() => {
+                              console.log('[ProactiveHelp] User dismissed help prompt');
+                            }}
+                          />
+                          <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                        </WorldThemeProvider>
+                      </ActiveIdentityProvider>
+                    </NavigationGuard>
+                  </TrainingSettingsProvider>
+                </OneSignalProvider>
+              </ExternalLinkProvider>
+            </AvatarProvider>
+          </UnreadProvider>
+        </ThemeProvider>
+      </AntiGravityProvider>
+    </>
   );
 }
+
 
 
