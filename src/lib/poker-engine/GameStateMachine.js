@@ -228,9 +228,11 @@ class GameStateMachine {
       player.folded = true;
       this.potCalculator.markFolded(playerId);
     } else if (result.action.amount > 0) {
+      player.stack -= result.action.amount;
       this.potCalculator.addContribution(playerId, result.action.amount);
       if (result.action.type === ACTION_TYPES.ALL_IN) {
         player.allIn = true;
+        player.stack = 0;
         this.potCalculator.markAllIn(playerId);
       }
     }
