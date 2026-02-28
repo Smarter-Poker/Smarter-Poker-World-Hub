@@ -413,10 +413,13 @@ export default function ClockDisplay() {
               <StatCell label="Total Pot" value={formatMoney(prizePool)} />
             </div>
 
-            {/* CENTER — Clock + Blinds */}
+            {/* CENTER — Clock + Blinds (timer vertically centered) */}
             <div style={S.centerPanel}>
               {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
               {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
+
+              {/* Top spacer — grows to push timer to center */}
+              <div style={{ flex: 1 }} />
 
               <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>
                 {formatClock(displaySeconds)}
@@ -424,22 +427,25 @@ export default function ClockDisplay() {
 
               {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
 
-              <div style={S.blindsBlock}>
-                <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
-                <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
-                <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
-                  {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+              {/* Bottom spacer — matches top spacer, contains blinds anchored inside */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingTop: 8 }}>
+                <div style={S.blindsBlock}>
+                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
+                  <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
+                  <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
+                    {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                  </div>
+                  {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                 </div>
-                {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
-              </div>
 
-              {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
-                <div style={S.nextRound}>
-                  <strong>Next Round:</strong> {gameType}<br />
-                  Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                  {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
-                </div>
-              )}
+                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                  <div style={S.nextRound}>
+                    <strong>Next Round:</strong> {gameType}<br />
+                    Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                    {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* RIGHT — Time + Chips */}
