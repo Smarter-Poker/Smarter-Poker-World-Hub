@@ -45,7 +45,7 @@ export default async function handler(req, res) {
           description: description?.trim() || '',
           union_code: unionCode,
           owner_id: user.id,
-          settings: settings || { union_rake_hold: 0.10, default_agent_commission: 0.50 },
+          settings: settings || { union_rake_hold: 0.10, default_agent_commission: 0.50, default_club_commission_rate: 0.90 },
         })
         .select()
         .single();
@@ -116,20 +116,26 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Club already belongs to another union' });
       }
 
-      // Add to union_clubs
+      // Add to union_clubs with commission rate
+      const { clubCommissionRate = 0.90 } = params || {};  // 90% default for clubs
+      
       const { error: linkErr } = await supabaseAdmin
         .from('union_clubs')
-        .upsert({ union_id: unionId, club_id: clubId }, { onConflict: 'union_id,club_id' });
+        .upsert({ union_id: unionId, club_id: clubId, club_commission_rate: clubCommissionRate }, { onConflict: 'union_id,club_id' });
 
       if (linkErr) throw linkErr;
 
-      // Update club's union_id
+      // Update club's union_id and commission rate
       await supabaseAdmin
         .from('clubs')
-        .update({ union_id: unionId })
+        .update({ 
+          union_id: unionId,
+          club_commission_rate: clubCommissionRate,
+          auto_settlement_enabled: true,
+        })
         .eq('id', clubId);
 
-      return res.status(200).json({ success: true, clubName: club.name });
+      return res.status(200).json({ success: true, clubName: club.name, club_commission_rate: clubCommissionRate });
     }
 
     // ═══════════════════════════════════════════════════════════════

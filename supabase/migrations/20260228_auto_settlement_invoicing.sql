@@ -134,9 +134,21 @@ ALTER TABLE clubs ADD COLUMN IF NOT EXISTS auto_settlement_hour INTEGER DEFAULT 
 -- ================================================================
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS auto_rakeback_enabled BOOLEAN DEFAULT true;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS rakeback_percentage DECIMAL(5,4) DEFAULT 0.0000;
--- rakeback_percentage: what % of a player's contributed rake the agent returns to them
+-- rakeback_percentage: agent-level default for new players
 -- 0.0000 = no rakeback to players (agent keeps full commission)
--- 0.5000 = 50% of player's rake returned to player
+
+-- ================================================================
+-- 5b. ADD per-player rakeback to club_members
+-- Agents set this individually per player via set_player_rakeback
+-- Default 0 = no rakeback. Max = agent_commission - 10%
+-- ================================================================
+ALTER TABLE club_members ADD COLUMN IF NOT EXISTS player_rakeback_pct DECIMAL(5,4) DEFAULT 0.0000;
+
+-- ================================================================
+-- 5c. ADD club commission rate (defaults to 90% when joining a union)
+-- ================================================================
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS club_commission_rate DECIMAL(5,4) DEFAULT 0.9000;
+ALTER TABLE union_clubs ADD COLUMN IF NOT EXISTS club_commission_rate DECIMAL(5,4) DEFAULT 0.9000;
 
 -- ================================================================
 -- 6. FUNCTION: Check if club is settlement-locked

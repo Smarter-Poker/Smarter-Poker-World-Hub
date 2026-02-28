@@ -379,16 +379,21 @@ export default async function handler(req, res) {
 
           // ─── PREPARE PLAYER RAKEBACK DISTRIBUTIONS ───
           // (These execute in the 4:10 AM cron after agents have their chips)
-          if (agent.auto_rakeback_enabled && agent.rakeback_percentage > 0) {
-            // Get all players assigned to this agent
+          // Uses per-player rakeback rate from club_members.player_rakeback_pct
+          // Default 0 = no rakeback. Max = agent_commission - 10%
+          {
+            // Get all players assigned to this agent who have rakeback enabled
             const { data: agentPlayers } = await supabaseAdmin
               .from('club_members')
-              .select('user_id')
+              .select('user_id, player_rakeback_pct')
               .eq('club_id', club.id)
               .eq('agent_id', agent.user_id)
-              .eq('role', 'player');
+              .eq('role', 'player')
+              .gt('player_rakeback_pct', 0);
 
             for (const player of (agentPlayers || [])) {
+              const playerRakebackPct = player.player_rakeback_pct || 0;
+              if (playerRakebackPct <= 0) continue;
               // Get this player's rake contribution from rake_records
               const { data: rakeContrib } = await supabaseAdmin
                 .from('rake_records')
@@ -406,7 +411,7 @@ export default async function handler(req, res) {
               if (playerRakeContributed <= 0) continue;
 
               const rakebackAmount = Math.round(
-                playerRakeContributed * agent.rakeback_percentage * 100
+                playerRakeContributed * playerRakebackPct * 100
               ) / 100;
 
               if (rakebackAmount <= 0) continue;
@@ -419,7 +424,7 @@ export default async function handler(req, res) {
                 agent_user_id: agent.user_id,
                 player_user_id: player.user_id,
                 player_rake_contributed: playerRakeContributed,
-                rakeback_percentage: agent.rakeback_percentage,
+                rakeback_percentage: playerRakebackPct,
                 rakeback_amount: rakebackAmount,
                 status: 'pending',
               });
@@ -438,7 +443,7 @@ export default async function handler(req, res) {
                 deductions: 0,
                 breakdown: {
                   player_rake_contributed: playerRakeContributed,
-                  rakeback_pct: agent.rakeback_percentage,
+                  rakeback_pct: playerRakebackPct,
                   rakeback_amount: rakebackAmount,
                   agent_name: agent.user_id,
                 },

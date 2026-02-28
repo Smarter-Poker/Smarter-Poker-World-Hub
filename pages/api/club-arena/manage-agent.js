@@ -53,12 +53,92 @@ export default async function handler(req, res) {
     if (!authorized) return res.status(403).json({ error: 'Not authorized' });
 
     // ═══════════════════════════════════════════════════════════════
-    // PROMOTE: Member → Agent
+    // PROMOTE: Player → Agent / Super Agent / Sub Agent
+    // Commission rate MUST be explicitly set. No defaults.
+    // Rakeback % to players must be < (agent commission - 10%)
     // ═══════════════════════════════════════════════════════════════
     if (action === 'promote') {
       if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
 
-      const { commissionRate = 0.50, isPrepaid = false, creditLimit = 0 } = params;
+      const {
+        commissionRate,          // REQUIRED — no default
+        agentTier = 'agent',     // 'super_agent', 'agent', 'sub_agent'
+        isPrepaid = false,
+        creditLimit = 0,
+        parentAgentId = null,    // Required for sub_agent
+        rakebackPercentage = 0,  // What agent gives back to players (default 0)
+      } = params;
+
+      // ─── VALIDATION: Commission rate is MANDATORY ───
+      if (commissionRate === undefined || commissionRate === null) {
+        return res.status(400).json({
+          error: 'commissionRate is REQUIRED before promoting to agent status',
+          hint: 'Set a commission rate between 0.01 (1%) and 0.90 (90%)',
+        });
+      }
+
+      if (typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
+        return res.status(400).json({
+          error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)',
+          provided: commissionRate,
+        });
+      }
+
+      // ─── VALIDATION: Agent tier ───
+      const validTiers = ['super_agent', 'agent', 'sub_agent'];
+      if (!validTiers.includes(agentTier)) {
+        return res.status(400).json({ error: `agentTier must be one of: ${validTiers.join(', ')}` });
+      }
+
+      // ─── VALIDATION: Sub-agent requires parent and lower commission ───
+      if (agentTier === 'sub_agent') {
+        if (!parentAgentId) {
+          return res.status(400).json({ error: 'parentAgentId is REQUIRED for sub_agent tier' });
+        }
+
+        const { data: parentAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id, user_id, commission_rate, role')
+          .eq('user_id', parentAgentId)
+          .eq('club_id', clubId)
+          .eq('status', 'active')
+          .single();
+
+        if (!parentAgent) {
+          return res.status(404).json({ error: 'Parent agent not found or not active in this club' });
+        }
+
+        if (commissionRate >= parentAgent.commission_rate) {
+          return res.status(400).json({
+            error: 'Sub-agent commission rate must be LESS than parent agent rate',
+            parent_rate: parentAgent.commission_rate,
+            provided: commissionRate,
+            hint: `Parent agent is at ${(parentAgent.commission_rate * 100).toFixed(1)}%, sub-agent must be lower`,
+          });
+        }
+      }
+
+      // ─── VALIDATION: Rakeback percentage ───
+      // Agent can give players up to (their_commission - 10%) max
+      // e.g. Agent at 70% → max player rakeback is 60%
+      if (rakebackPercentage !== undefined && rakebackPercentage > 0) {
+        const maxRakeback = commissionRate - 0.10;
+        if (rakebackPercentage >= commissionRate) {
+          return res.status(400).json({
+            error: 'Rakeback percentage must be LESS than agent commission rate',
+            commission_rate: commissionRate,
+            provided_rakeback: rakebackPercentage,
+          });
+        }
+        if (rakebackPercentage > maxRakeback) {
+          return res.status(400).json({
+            error: `Rakeback cannot exceed agent commission minus 10%. Max allowed: ${(maxRakeback * 100).toFixed(1)}%`,
+            commission_rate: commissionRate,
+            max_rakeback: maxRakeback,
+            provided_rakeback: rakebackPercentage,
+          });
+        }
+      }
 
       // Get current membership
       const { data: member } = await supabaseAdmin
@@ -69,15 +149,17 @@ export default async function handler(req, res) {
         .single();
 
       if (!member) return res.status(404).json({ error: 'User not in club' });
-      if (member.role === 'agent') return res.status(409).json({ error: 'Already an agent' });
+      if (['agent', 'super_agent', 'sub_agent'].includes(member.role)) {
+        return res.status(409).json({ error: `Already ${member.role}` });
+      }
 
       // Update role in club_members
       await supabaseAdmin
         .from('club_members')
         .update({
-          role: 'agent',
+          role: agentTier,
           credit_limit: isPrepaid ? 0 : creditLimit,
-          agent_id: null,
+          agent_id: agentTier === 'sub_agent' ? parentAgentId : null,
         })
         .eq('club_id', clubId)
         .eq('user_id', targetUserId);
@@ -88,7 +170,7 @@ export default async function handler(req, res) {
         .insert({
           user_id: targetUserId,
           club_id: clubId,
-          role: 'agent',
+          role: agentTier,
           status: 'active',
           commission_rate: commissionRate,
           is_prepaid: isPrepaid,
@@ -96,6 +178,9 @@ export default async function handler(req, res) {
           business_balance: 0,
           active_player_count: 0,
           total_players: 0,
+          parent_agent_id: agentTier === 'sub_agent' ? parentAgentId : null,
+          auto_rakeback_enabled: rakebackPercentage > 0,
+          rakeback_percentage: rakebackPercentage || 0,
         })
         .select()
         .single();
@@ -107,7 +192,10 @@ export default async function handler(req, res) {
         action: 'promoted',
         agentId: agentRecord.id,
         targetUserId,
+        agentTier,
         commissionRate,
+        rakebackPercentage: rakebackPercentage || 0,
+        maxPlayerRakeback: Math.max(0, commissionRate - 0.10),
         isPrepaid,
       });
     }
@@ -528,6 +616,179 @@ export default async function handler(req, res) {
       }));
 
       return res.status(200).json({ success: true, subAgents: enriched });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SET PLAYER RAKEBACK — Agent sets rakeback % for their player
+    // Max rakeback = agent_commission - 10%
+    // e.g. Agent at 70% → max player rakeback is 60%
+    // Default is 0 (no rakeback to players)
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'set_player_rakeback') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId (player) required' });
+      const { rakebackPercentage } = params;
+
+      if (rakebackPercentage === undefined || rakebackPercentage === null) {
+        return res.status(400).json({ error: 'rakebackPercentage required (0 to disable, or a decimal like 0.05 for 5%)' });
+      }
+
+      if (typeof rakebackPercentage !== 'number' || rakebackPercentage < 0 || rakebackPercentage > 1) {
+        return res.status(400).json({ error: 'rakebackPercentage must be between 0 and 1' });
+      }
+
+      // Get the calling agent's record
+      const { data: callerAgent } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id, commission_rate, auto_rakeback_enabled, rakeback_percentage')
+        .eq('user_id', user.id)
+        .eq('club_id', clubId)
+        .eq('status', 'active')
+        .single();
+
+      if (!callerAgent) return res.status(403).json({ error: 'You are not an active agent in this club' });
+
+      // Verify the target player belongs to this agent
+      const { data: playerMember } = await supabaseAdmin
+        .from('club_members')
+        .select('user_id, role, agent_id')
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId)
+        .single();
+
+      if (!playerMember) return res.status(404).json({ error: 'Player not found in club' });
+      if (playerMember.agent_id !== user.id) {
+        return res.status(403).json({ error: 'This player is not assigned to you' });
+      }
+
+      // Enforce max rakeback = agent_commission - 10%
+      const maxRakeback = Math.max(0, callerAgent.commission_rate - 0.10);
+
+      if (rakebackPercentage > maxRakeback) {
+        return res.status(400).json({
+          error: `Rakeback too high. Your commission is ${(callerAgent.commission_rate * 100).toFixed(1)}%, so max player rakeback is ${(maxRakeback * 100).toFixed(1)}%`,
+          your_commission: callerAgent.commission_rate,
+          max_rakeback: maxRakeback,
+          requested: rakebackPercentage,
+        });
+      }
+
+      if (rakebackPercentage >= callerAgent.commission_rate) {
+        return res.status(400).json({
+          error: 'Rakeback must be LESS than your commission rate',
+          your_commission: callerAgent.commission_rate,
+          requested: rakebackPercentage,
+        });
+      }
+
+      // Update the player's rakeback on the agent record
+      // Store per-player rakeback in club_members
+      await supabaseAdmin
+        .from('club_members')
+        .update({ player_rakeback_pct: rakebackPercentage })
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId);
+
+      // Also update the agent-level default if this is their first time setting it
+      if (!callerAgent.auto_rakeback_enabled && rakebackPercentage > 0) {
+        await supabaseAdmin
+          .from('agents')
+          .update({
+            auto_rakeback_enabled: true,
+            rakeback_percentage: rakebackPercentage, // Sets agent default
+          })
+          .eq('id', callerAgent.id);
+      }
+
+      return res.status(200).json({
+        success: true,
+        action: 'player_rakeback_set',
+        player: targetUserId,
+        rakeback_percentage: rakebackPercentage,
+        max_allowed: maxRakeback,
+        agent_commission: callerAgent.commission_rate,
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // UPDATE COMMISSION — Change an agent's commission rate
+    // Must re-validate all business rules
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'update_commission') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      const { commissionRate } = params;
+
+      if (commissionRate === undefined || commissionRate === null) {
+        return res.status(400).json({ error: 'commissionRate is REQUIRED' });
+      }
+      if (typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
+        return res.status(400).json({ error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
+      }
+
+      const { data: targetAgent } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id, commission_rate, parent_agent_id, rakeback_percentage')
+        .eq('user_id', targetUserId)
+        .eq('club_id', clubId)
+        .single();
+
+      if (!targetAgent) return res.status(404).json({ error: 'Agent not found' });
+
+      // If sub-agent, new rate must be less than parent
+      if (targetAgent.parent_agent_id) {
+        const { data: parentAgent } = await supabaseAdmin
+          .from('agents')
+          .select('commission_rate')
+          .eq('id', targetAgent.parent_agent_id)
+          .single();
+
+        if (parentAgent && commissionRate >= parentAgent.commission_rate) {
+          return res.status(400).json({
+            error: 'Sub-agent rate must be less than parent agent rate',
+            parent_rate: parentAgent.commission_rate,
+            provided: commissionRate,
+          });
+        }
+      }
+
+      // Check sub-agents below — their rates must still be less than new rate
+      const { data: subAgents } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id, commission_rate')
+        .eq('club_id', clubId)
+        .eq('parent_agent_id', targetAgent.id);
+
+      for (const sub of (subAgents || [])) {
+        if (sub.commission_rate >= commissionRate) {
+          return res.status(400).json({
+            error: `Cannot lower rate below sub-agent ${sub.user_id} who is at ${(sub.commission_rate * 100).toFixed(1)}%`,
+            sub_agent_rate: sub.commission_rate,
+            provided: commissionRate,
+          });
+        }
+      }
+
+      // Check rakeback — if agent had rakeback, new rate must allow it
+      if (targetAgent.rakeback_percentage > 0) {
+        const maxRakeback = commissionRate - 0.10;
+        if (targetAgent.rakeback_percentage > maxRakeback) {
+          return res.status(400).json({
+            error: `Current rakeback (${(targetAgent.rakeback_percentage * 100).toFixed(1)}%) exceeds new max (${(maxRakeback * 100).toFixed(1)}%). Lower rakeback first.`,
+          });
+        }
+      }
+
+      await supabaseAdmin
+        .from('agents')
+        .update({ commission_rate: commissionRate })
+        .eq('id', targetAgent.id);
+
+      return res.status(200).json({
+        success: true,
+        action: 'commission_updated',
+        targetUserId,
+        old_rate: targetAgent.commission_rate,
+        new_rate: commissionRate,
+      });
     }
 
     return res.status(400).json({ error: `Unknown action: ${action}` });
