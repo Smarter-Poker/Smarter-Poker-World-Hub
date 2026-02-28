@@ -182,6 +182,7 @@ export default async function handler(req, res) {
           rebuy_cost: tournament.rebuy_cost,
           rebuy_chips: tournament.rebuy_chips,
           rebuy_levels: tournament.rebuy_levels,
+          rebuy_end_level: tournament.rebuy_end_level,
           allows_addon: tournament.allows_addon,
           addon_cost: tournament.addon_cost,
           addon_chips: tournament.addon_chips,

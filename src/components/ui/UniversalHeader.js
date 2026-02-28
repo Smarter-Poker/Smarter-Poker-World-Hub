@@ -537,8 +537,8 @@ export default function UniversalHeader({
                     background-position: center;
                 }
                 
-                /* MOBILE: Compact layout with all icons visible */
-                @media (max-width: 600px) {
+                /* MOBILE + TABLET: Compact layout with all icons visible */
+                @media (max-width: 1024px) {
                     .universal-header {
                         padding: 6px 6px;
                         gap: 2px;
@@ -621,8 +621,8 @@ export default function UniversalHeader({
                     }
                 }
                 
-                /* Larger tablets/desktops */
-                @media (min-width: 601px) {
+                /* Large desktops only */
+                @media (min-width: 1025px) {
                     .universal-header {
                         padding: 8px 16px;
                         gap: 12px;

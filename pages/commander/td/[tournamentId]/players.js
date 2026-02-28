@@ -370,37 +370,82 @@ export default function TDPlayers() {
               <p className="text-sm text-[#B0B3B8] mb-4">
                 {moveModal.player_name} — currently Table {moveModal.table_number} Seat {moveModal.seat_number}
               </p>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="text-xs text-[#B0B3B8] mb-1 block">Table</label>
-                  <input type="number" value={moveTable} onChange={e => setMoveTable(e.target.value)}
-                    placeholder="Table #"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg text-center focus:outline-none focus:border-[#1877F2]"
-                    autoFocus />
-                </div>
-                <div>
-                  <label className="text-xs text-[#B0B3B8] mb-1 block">Seat</label>
-                  <input type="number" value={moveSeat} onChange={e => setMoveSeat(e.target.value)}
-                    placeholder="Seat #"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg text-center focus:outline-none focus:border-[#1877F2]" />
-                </div>
-              </div>
               {/* Quick table buttons */}
               {floor?.tables && (
-                <div className="flex gap-2 flex-wrap mb-4">
+                <div className="flex gap-2 flex-wrap mb-3">
                   {floor.tables.filter(t => t.available_seats > 0).map(t => (
                     <button key={t.table_number} onClick={() => {
                       setMoveTable(String(t.table_number));
-                      const occupied = t.players.map(p => p.seat_number);
-                      for (let s = 1; s <= t.max_seats; s++) {
-                        if (!occupied.includes(s)) { setMoveSeat(String(s)); break; }
-                      }
+                      setMoveSeat('');
                     }}
                       className={`px-3 py-2 rounded-lg text-sm ${moveTable === String(t.table_number) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
                         }`}>
                       T{t.table_number} ({t.available_seats} open)
                     </button>
                   ))}
+                </div>
+              )}
+              {/* Visual seat grid */}
+              {moveTable && (() => {
+                const t = floor?.tables?.find(tbl => tbl.table_number === parseInt(moveTable));
+                if (!t) return (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                      <label className="text-xs text-[#B0B3B8] mb-1 block">Table</label>
+                      <input type="number" value={moveTable} onChange={e => setMoveTable(e.target.value)}
+                        placeholder="Table #"
+                        className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg text-center focus:outline-none focus:border-[#1877F2]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#B0B3B8] mb-1 block">Seat</label>
+                      <input type="number" value={moveSeat} onChange={e => setMoveSeat(e.target.value)}
+                        placeholder="Seat #"
+                        className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg text-center focus:outline-none focus:border-[#1877F2]" />
+                    </div>
+                  </div>
+                );
+                const occupied = t.players.map(p => p.seat_number);
+                return (
+                  <div className="mb-4">
+                    <p className="text-xs text-[#B0B3B8] mb-2">Tap an open seat on Table {t.table_number}</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {Array.from({ length: t.max_seats }, (_, i) => i + 1).map(s => {
+                        const isOccupied = occupied.includes(s);
+                        const player = t.players.find(p => p.seat_number === s);
+                        const isSelected = moveSeat === String(s);
+                        return (
+                          <button key={s} onClick={() => !isOccupied && setMoveSeat(String(s))}
+                            disabled={isOccupied}
+                            className={`relative rounded-xl p-2 text-center border-2 transition-all ${isSelected ? 'bg-[#1877F2]/20 border-[#1877F2] text-[#1877F2]' :
+                                isOccupied ? 'bg-[#3A3B3C]/40 border-[#3A3B3C] text-[#666] cursor-not-allowed' :
+                                  'bg-[#31A24C]/10 border-[#31A24C]/40 text-[#31A24C] active:bg-[#31A24C]/20'
+                              }`}>
+                            <div className="text-lg font-bold">{s}</div>
+                            <div className="text-[9px] truncate">
+                              {isOccupied ? (player?.player_name?.split(' ')[0] || '●') : 'Open'}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+              {!moveTable && (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs text-[#B0B3B8] mb-1 block">Table</label>
+                    <input type="number" value={moveTable} onChange={e => setMoveTable(e.target.value)}
+                      placeholder="Table #"
+                      className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg text-center focus:outline-none focus:border-[#1877F2]"
+                      autoFocus />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#B0B3B8] mb-1 block">Seat</label>
+                    <input type="number" value={moveSeat} onChange={e => setMoveSeat(e.target.value)}
+                      placeholder="Seat #"
+                      className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg text-center focus:outline-none focus:border-[#1877F2]" />
+                  </div>
                 </div>
               )}
               <div className="flex gap-3">

@@ -216,9 +216,10 @@ export default function ClockDisplay() {
           if (json.data.alerts?.final_table && displayOpts.sound_final_table) playAlert('final');
           prevLevelRef.current = currentLevel;
 
-          // Load preset if tournament has clock_preset_id
-          if (!preset && json.data.tournament?.clock_preset_id) {
-            fetchPreset(json.data.tournament.clock_preset_id);
+          // Load preset if tournament has clock_preset_id (stored in settings)
+          const presetId = json.data.tournament?.settings?.clock_preset_id || json.data.tournament?.clock_preset_id;
+          if (!preset && presetId) {
+            fetchPreset(presetId);
           }
         }
       } catch (err) { console.error(err); }
