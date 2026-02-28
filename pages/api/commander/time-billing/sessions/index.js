@@ -35,6 +35,17 @@ export default async function handler(req, res) {
       const { player_name, table_number, seat_number, rate_per_hour } = req.body;
       if (!player_name) return res.status(400).json({ success: false, error: 'Player name required' });
 
+      // If no rate provided, look up venue's saved time_billing_rate
+      let finalRate = rate_per_hour;
+      if (!finalRate) {
+        const { data: settings } = await supabase
+          .from('commander_venue_settings')
+          .select('time_billing_rate')
+          .eq('venue_id', staff.venue_id)
+          .single();
+        finalRate = settings?.time_billing_rate || 0;
+      }
+
       const { data: session, error } = await supabase
         .from('commander_table_sessions')
         .insert({
@@ -42,7 +53,7 @@ export default async function handler(req, res) {
           player_name,
           table_number: table_number || null,
           seat_number: seat_number || null,
-          rate_per_hour: rate_per_hour || 12,
+          rate_per_hour: finalRate,
           status: 'active',
           started_at: new Date().toISOString(),
           started_by: staff.id,
