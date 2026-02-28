@@ -2,18 +2,29 @@
  * Must-Move Games Manager
  * /commander/must-move
  * Floor manager sets which tables are must-move feeders,
- * moves players when seats open at the main game
+ * moves players when seats open at the main game.
+ * Shows FIFO queue for each must-move table.
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   ArrowRightLeft, Loader2, RefreshCw, Users, Link2, Unlink,
-  CheckCircle2, AlertTriangle, ChevronRight, Crown, ArrowRight
+  CheckCircle2, AlertTriangle, ChevronRight, Crown, ArrowRight,
+  Clock, User, Hash, List
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
-const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
+const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', NLH: 'NLH', PLO: 'PLO', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ${mins % 60}m`;
+}
 
 export default function MustMoveManager() {
   const router = useRouter();
@@ -32,13 +43,14 @@ export default function MustMoveManager() {
   }, []);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+  const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/commander/games/must-move-status?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) setData(json.data);
@@ -48,19 +60,25 @@ export default function MustMoveManager() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    if (!venueId) return;
+    const iv = setInterval(fetchData, 15000);
+    return () => clearInterval(iv);
+  }, [venueId, fetchData]);
+
   // Link a game as must-move to parent
   const linkMustMove = async (gameId, parentGameId) => {
     setActionLoading(gameId);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/games/${gameId}/must-move`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ parent_game_id: parentGameId })
       });
       const json = await res.json();
       if (json.success) {
-        setMessage({ type: 'success', text: 'Must-move Link Created' });
+        setMessage({ type: 'success', text: 'Must-Move Link Created' });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error?.message || 'Failed to link' });
@@ -73,14 +91,13 @@ export default function MustMoveManager() {
   const unlinkMustMove = async (gameId) => {
     setActionLoading(gameId);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/games/${gameId}/must-move`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
       if (json.success) {
-        setMessage({ type: 'success', text: 'Must-move Removed' });
+        setMessage({ type: 'success', text: 'Must-Move Removed' });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error?.message || 'Failed to unlink' });
@@ -93,10 +110,9 @@ export default function MustMoveManager() {
   const movePlayer = async (mustMoveGameId, mainGameId) => {
     setMoveLoading(mustMoveGameId);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/games/must-move-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ must_move_game_id: mustMoveGameId, main_game_id: mainGameId })
       });
       const json = await res.json();
@@ -111,7 +127,7 @@ export default function MustMoveManager() {
   };
 
   useEffect(() => {
-    if (message) { const t = setTimeout(() => setMessage(null), 4000); return () => clearTimeout(t); }
+    if (message) { const t = setTimeout(() => setMessage(null), 5000); return () => clearTimeout(t); }
   }, [message]);
 
   const groups = data?.must_move_groups || [];
@@ -120,129 +136,274 @@ export default function MustMoveManager() {
   return (
     <CommanderLayout title="Must-Move Games" backHref="/commander/dashboard?card=floor">
       <SEOHead
-        title="Commander — Must-Move Tables"
-        description="Club Commander Poker Room Management Tool."
+        title="Commander — Must-Move Games"
+        description="Club Commander Must-Move Games Management."
         noindex={true}
       />
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">Must-Move Games</h1>
-            <p className="text-xs text-[#B0B3B8]">{data?.total_active || 0} active games</p>
+      <div style={{ minHeight: '100vh', background: '#0A0F1C', color: '#E4E6EB', fontFamily: "'Inter', sans-serif" }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(30,58,95,0.6) 0%, rgba(15,23,42,0.9) 100%)',
+          borderBottom: '1px solid #1E3A5F', padding: '16px 20px',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <ArrowRightLeft size={22} color="#F59E0B" />
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: 0 }}>Must-Move Games</h1>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
+              {data?.total_active || 0} active games · {groups.length} must-move groups
+            </p>
           </div>
-          <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
+          <button onClick={fetchData} style={{
+            padding: 8, borderRadius: 8, background: 'rgba(30,58,95,0.5)', border: '1px solid #1E3A5F',
+            cursor: 'pointer', color: '#94A3B8',
+          }}>
+            <RefreshCw size={16} />
+          </button>
         </div>
 
-        {/* Message */}
+        {/* Message Toast */}
         {message && (
-          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
-            }`}>
-            {message.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+          <div style={{
+            margin: '12px 16px', padding: '12px 16px', borderRadius: 12,
+            display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600,
+            background: message.type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+            color: message.type === 'success' ? '#10B981' : '#EF4444',
+            border: `1px solid ${message.type === 'success' ? '#10B98130' : '#EF444430'}`,
+          }}>
+            {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
             {message.text}
           </div>
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+            <Loader2 size={32} color="#3B82F6" style={{ animation: 'spin 1s linear infinite' }} />
+          </div>
         ) : (
-          <div className="px-4 py-4 space-y-4">
-            {/* Explanation */}
-            <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
-              <p className="text-sm text-[#B0B3B8]">
-                When 2+ tables run the same game, the newer table becomes <span className="text-[#F59E0B] font-semibold">Must-move</span>.
-                Players at the must-move table transfer to the main game as seats open.
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* How Must-Move Works */}
+            <div style={{
+              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+              borderRadius: 16, padding: '14px 16px',
+            }}>
+              <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, lineHeight: 1.6 }}>
+                <span style={{ color: '#F59E0B', fontWeight: 700 }}>How it works:</span> When 2+ tables run the same game,
+                the newer table becomes <strong style={{ color: '#F59E0B' }}>must-move</strong>.
+                The longest-sitting player at the must-move table moves to the main game when a seat opens (FIFO order).
               </p>
             </div>
 
-            {/* Groups with 2+ tables */}
+            {/* Must-Move Groups */}
             {groups.length > 0 ? groups.map((group, gi) => {
               const mainGame = group.main;
               const mainOpenSeats = mainGame ? (mainGame.max_seats - mainGame.player_count) : 0;
+              const mustMoveGames = group.all.filter(g => g.id !== mainGame?.id);
 
               return (
-                <div key={gi} className="bg-[#242526] border border-[#3A3B3C] rounded-2xl overflow-hidden">
-                  {/* Group header */}
-                  <div className="bg-[#3A3B3C]/30 px-4 py-3 border-b border-[#3A3B3C]">
-                    <p className="text-base font-bold text-white">
-                      {GAME_LABELS[group.game_type] || group.game_type} {group.stakes}
-                    </p>
-                    <p className="text-xs text-[#B0B3B8]">{group.all.length} tables running</p>
+                <div key={gi} style={{
+                  background: 'rgba(15,23,42,0.8)', border: '1px solid #1E3A5F',
+                  borderRadius: 16, overflow: 'hidden',
+                }}>
+                  {/* Group Header */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(30,58,95,0.4) 0%, rgba(15,23,42,0.6) 100%)',
+                    padding: '14px 16px', borderBottom: '1px solid #1E3A5F',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
+                        {GAME_LABELS[group.game_type] || group.game_type} {group.stakes}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                        {group.all.length} tables running
+                      </div>
+                    </div>
+                    {group.waitlist_count > 0 && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 8,
+                        background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)',
+                        color: '#A855F7', fontSize: 11, fontWeight: 700,
+                      }}>
+                        <List size={12} /> {group.waitlist_count} waiting
+                      </div>
+                    )}
                   </div>
 
-                  <div className="p-3 space-y-2">
-                    {/* Main game */}
+                  <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* ── MAIN GAME ── */}
                     {mainGame && (
-                      <div className="bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Crown className="w-5 h-5 text-[#31A24C]" />
+                      <div style={{
+                        background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+                        borderRadius: 12, padding: 12,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Crown size={18} color="#10B981" />
                             <div>
-                              <p className="text-sm font-bold text-white">Table {mainGame.table_number}</p>
-                              <p className="text-xs text-[#31A24C] font-medium">MAIN GAME</p>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Table {mainGame.table_number}</div>
+                              <div style={{ fontSize: 11, color: '#10B981', fontWeight: 600 }}>MAIN GAME</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-white">{mainGame.player_count}/{mainGame.max_seats}</p>
-                            <p className="text-xs text-[#B0B3B8]">{mainOpenSeats} open</p>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
+                              {mainGame.player_count}/{mainGame.max_seats}
+                            </div>
+                            <div style={{
+                              fontSize: 11, fontWeight: 700,
+                              color: mainOpenSeats > 0 ? '#10B981' : '#EF4444',
+                            }}>
+                              {mainOpenSeats > 0 ? `${mainOpenSeats} OPEN` : 'FULL'}
+                            </div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Must-move tables and unlinked tables */}
-                    {group.all.filter(g => g.id !== mainGame?.id).map(game => {
+                    {/* ── MUST-MOVE TABLES ── */}
+                    {mustMoveGames.map(game => {
                       const isLinked = game.is_must_move && game.parent_game_id;
-                      const canMove = isLinked && mainOpenSeats > 0 && game.player_count > 0;
+                      const canMove = isLinked && mainOpenSeats > 0 && game.seats.length > 0;
+                      const nextPlayer = game.seats.length > 0 ? game.seats[0] : null;
 
                       return (
-                        <div key={game.id} className={`rounded-xl p-3 ${isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
-                          }`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              {isLinked && <ArrowRightLeft className="w-4 h-4 text-[#F59E0B]" />}
-                              <div>
-                                <p className="text-sm font-bold text-white">Table {game.table_number}</p>
-                                {isLinked
-                                  ? <p className="text-xs text-[#F59E0B] font-medium">MUST-MOVE → T{mainGame?.table_number}</p>
-                                  : <p className="text-xs text-[#B0B3B8]">Not Linked</p>
-                                }
+                        <div key={game.id} style={{
+                          border: `1px solid ${isLinked ? 'rgba(245,158,11,0.3)' : '#1E3A5F'}`,
+                          background: isLinked ? 'rgba(245,158,11,0.06)' : 'rgba(30,58,95,0.2)',
+                          borderRadius: 12, overflow: 'hidden',
+                        }}>
+                          {/* Must-Move Table Header */}
+                          <div style={{ padding: 12, borderBottom: '1px solid rgba(30,58,95,0.4)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {isLinked && <ArrowRightLeft size={16} color="#F59E0B" />}
+                                <div>
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Table {game.table_number}</div>
+                                  {isLinked
+                                    ? <div style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>MUST-MOVE → Table {mainGame?.table_number}</div>
+                                    : <div style={{ fontSize: 11, color: '#64748B' }}>Not Linked</div>
+                                  }
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{game.player_count}/{game.max_seats}</div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-white">{game.player_count}/{game.max_seats}</p>
-                              <p className="text-xs text-[#B0B3B8]">{game.player_count} players</p>
+
+                            {/* Action buttons */}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {isLinked ? (
+                                <>
+                                  <button onClick={() => movePlayer(game.id, mainGame.id)}
+                                    disabled={!canMove || moveLoading === game.id}
+                                    style={{
+                                      flex: 1, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                                      cursor: canMove ? 'pointer' : 'not-allowed',
+                                      background: canMove ? 'linear-gradient(135deg, #3B82F6, #2563EB)' : 'rgba(30,58,95,0.4)',
+                                      color: canMove ? '#fff' : '#475569',
+                                      border: canMove ? '1px solid #3B82F640' : '1px solid #1E3A5F',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                      opacity: moveLoading === game.id ? 0.6 : 1,
+                                    }}>
+                                    {moveLoading === game.id
+                                      ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                      : <ArrowRight size={14} />}
+                                    {canMove
+                                      ? `Move ${nextPlayer?.player_name || 'Next'} → T${mainGame?.table_number}`
+                                      : mainOpenSeats === 0 ? 'Main Table Full' : 'No Players'}
+                                  </button>
+                                  <button onClick={() => unlinkMustMove(game.id)}
+                                    disabled={actionLoading === game.id}
+                                    style={{
+                                      padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                                      background: 'rgba(30,58,95,0.4)', color: '#94A3B8',
+                                      border: '1px solid #1E3A5F', fontSize: 12, fontWeight: 600,
+                                      display: 'flex', alignItems: 'center', gap: 4,
+                                    }}>
+                                    {actionLoading === game.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Unlink size={12} />}
+                                    Unlink
+                                  </button>
+                                </>
+                              ) : (
+                                <button onClick={() => linkMustMove(game.id, mainGame.id)}
+                                  disabled={actionLoading === game.id}
+                                  style={{
+                                    flex: 1, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                                    cursor: 'pointer',
+                                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                                    color: '#000', border: 'none',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                  }}>
+                                  {actionLoading === game.id ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Link2 size={14} />}
+                                  Set as Must-Move → T{mainGame?.table_number}
+                                </button>
+                              )}
                             </div>
                           </div>
 
-                          <div className="flex gap-2">
-                            {isLinked ? (
-                              <>
-                                {/* Move next player button */}
-                                <button onClick={() => movePlayer(game.id, mainGame.id)} disabled={!canMove || moveLoading === game.id}
-                                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${canMove ? 'bg-[#1877F2] text-white active:bg-[#1565D8]' : 'bg-[#3A3B3C] text-[#6A6B6D]'
-                                    }`}>
-                                  {moveLoading === game.id
-                                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                                    : <ArrowRight className="w-3 h-3" />
-                                  }
-                                  {canMove ? 'Move Next Player' : mainOpenSeats === 0 ? 'Main Table Full' : 'No Players'}
-                                </button>
-                                {/* Unlink */}
-                                <button onClick={() => unlinkMustMove(game.id)} disabled={actionLoading === game.id}
-                                  className="px-3 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-bold active:bg-[#4A4B4C] flex items-center gap-1">
-                                  {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
-                                  Remove
-                                </button>
-                              </>
-                            ) : (
-                              /* Link as must-move */
-                              <button onClick={() => linkMustMove(game.id, mainGame.id)} disabled={actionLoading === game.id}
-                                className="flex-1 py-2.5 rounded-lg bg-[#F59E0B] text-black text-xs font-bold flex items-center justify-center gap-1.5 active:bg-[#D97706]">
-                                {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
-                                Set as Must-Move → T{mainGame?.table_number}
-                              </button>
-                            )}
-                          </div>
+                          {/* ── MUST-MOVE QUEUE (FIFO) ── */}
+                          {isLinked && game.seats.length > 0 && (
+                            <div style={{ padding: '8px 12px 12px' }}>
+                              <div style={{
+                                fontSize: 11, fontWeight: 700, color: '#64748B',
+                                textTransform: 'uppercase', letterSpacing: 1,
+                                marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4,
+                              }}>
+                                <Users size={12} /> Move Order (First In → First Out)
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {game.seats.map((seat, idx) => {
+                                  const isNext = idx === 0;
+                                  return (
+                                    <div key={seat.id} style={{
+                                      display: 'flex', alignItems: 'center', gap: 8,
+                                      padding: '8px 10px', borderRadius: 8,
+                                      background: isNext ? 'rgba(59,130,246,0.12)' : 'rgba(30,58,95,0.2)',
+                                      border: isNext ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+                                    }}>
+                                      {/* Position */}
+                                      <div style={{
+                                        width: 24, height: 24, borderRadius: 6,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 11, fontWeight: 800,
+                                        background: isNext ? '#3B82F6' : 'rgba(30,58,95,0.5)',
+                                        color: isNext ? '#fff' : '#64748B',
+                                      }}>
+                                        {idx + 1}
+                                      </div>
+                                      {/* Player */}
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{
+                                          fontSize: 13, fontWeight: isNext ? 700 : 500,
+                                          color: isNext ? '#fff' : '#94A3B8',
+                                        }}>
+                                          {seat.player_name || 'Unknown'}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#475569', display: 'flex', gap: 8 }}>
+                                          <span>Seat {seat.seat_number}</span>
+                                          <span>· {timeAgo(seat.seated_at)} at table</span>
+                                        </div>
+                                      </div>
+                                      {/* Badge */}
+                                      {isNext && (
+                                        <div style={{
+                                          padding: '3px 8px', borderRadius: 6,
+                                          background: mainOpenSeats > 0 ? '#3B82F6' : 'rgba(239,68,68,0.2)',
+                                          color: mainOpenSeats > 0 ? '#fff' : '#EF4444',
+                                          fontSize: 10, fontWeight: 800,
+                                          textTransform: 'uppercase', letterSpacing: 0.5,
+                                        }}>
+                                          {mainOpenSeats > 0 ? 'NEXT TO MOVE' : 'WAITING'}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -250,25 +411,45 @@ export default function MustMoveManager() {
                 </div>
               );
             }) : (
-              <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-8 text-center">
-                <ArrowRightLeft className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
-                <p className="text-[#B0B3B8] text-sm">No Duplicate Games Running</p>
-                <p className="text-[#6A6B6D] text-xs mt-1">Must-Move Activates When 2+ Tables Run The Same Game Type And Stakes</p>
+              <div style={{
+                background: 'rgba(15,23,42,0.8)', border: '1px solid #1E3A5F',
+                borderRadius: 16, padding: 40, textAlign: 'center',
+              }}>
+                <ArrowRightLeft size={40} color="#1E3A5F" style={{ margin: '0 auto 12px' }} />
+                <p style={{ color: '#94A3B8', fontSize: 14, margin: '0 0 4px' }}>No Must-Move Games Active</p>
+                <p style={{ color: '#475569', fontSize: 12, margin: 0 }}>
+                  Must-move activates when 2+ tables run the same game type and stakes
+                </p>
               </div>
             )}
 
-            {/* Single games for reference */}
+            {/* Single-Table Games */}
             {singles.length > 0 && (
-              <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
-                <h3 className="text-sm font-bold text-white mb-2">Single-Table Games</h3>
-                <div className="space-y-2">
+              <div style={{
+                background: 'rgba(15,23,42,0.8)', border: '1px solid #1E3A5F',
+                borderRadius: 16, padding: 16,
+              }}>
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: '#94A3B8',
+                  marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <Hash size={14} /> Single-Table Games ({singles.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {singles.map(g => (
-                    <div key={g.id} className="flex items-center justify-between px-3 py-2 bg-[#3A3B3C]/30 rounded-lg">
+                    <div key={g.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 12px', background: 'rgba(30,58,95,0.2)', borderRadius: 8,
+                    }}>
                       <div>
-                        <p className="text-sm font-medium text-white">{GAME_LABELS[g.game_type] || g.game_type} {g.stakes}</p>
-                        <p className="text-xs text-[#B0B3B8]">Table {g.table_number}</p>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+                          {GAME_LABELS[g.game_type] || g.game_type} {g.stakes}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748B' }}>Table {g.table_number}</div>
                       </div>
-                      <span className="text-sm font-bold text-white">{g.player_count}/{g.max_seats}</span>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                        {g.player_count}/{g.max_seats}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -278,7 +459,8 @@ export default function MustMoveManager() {
         )}
       </div>
       <style jsx>{`
-`}</style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </CommanderLayout>
   );
 }

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         stakes,
         started_at,
         ended_at,
-        commander_tables!inner(
+        commander_tables!commander_games_table_id_fkey!inner(
           id,
           table_number,
           venue_id,
