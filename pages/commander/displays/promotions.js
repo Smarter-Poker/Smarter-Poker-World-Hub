@@ -123,10 +123,10 @@ export default function PromotionsDisplay() {
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
   const current = promotions[currentIndex];
 
-  // Format prize value
+  // Format prize value — returns empty string if nothing to show
   const formatPrize = (promo) => {
     if (!promo) return '';
-    if (promo.prize_value) {
+    if (promo.prize_value && Number(promo.prize_value) > 0) {
       if (promo.prize_type === 'cash' || promo.prize_type === 'chips') {
         return `$${Number(promo.prize_value).toLocaleString()}`;
       }
@@ -207,8 +207,8 @@ export default function PromotionsDisplay() {
               {/* Promo Name */}
               <h2 className="text-5xl font-bold text-white mb-4">{current.name}</h2>
 
-              {/* Prize Amount */}
-              {current.prize_value && (
+              {/* Prize Amount — only show if there's a meaningful value */}
+              {formatPrize(current) && (
                 <p className="text-8xl font-bold shimmer mb-4"
                   style={{ color: (PROMO_TYPE_STYLES[current.promotion_type] || PROMO_TYPE_STYLES.default).accent }}>
                   {formatPrize(current)}

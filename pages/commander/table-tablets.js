@@ -14,7 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Monitor, Users, Loader2, ChevronRight, Power, DollarSign, Trophy,
     Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle,
-    Maximize2, Minimize2
+    Maximize2, Minimize2, Copy, ExternalLink, Wifi, WifiOff, ChevronDown, ChevronUp, Link2
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -95,6 +95,10 @@ export default function TableTabletsPage() {
     // Live countdown tick — tracks when API data was last fetched
     const lastFetchAt = useRef(Date.now());
     const [tickCounter, setTickCounter] = useState(0);
+    // Tablet assignment panel
+    const [showAssignPanel, setShowAssignPanel] = useState(false);
+    const [displayStatus, setDisplayStatus] = useState({}); // table_number -> { is_online, last_heartbeat }
+    const [copiedTable, setCopiedTable] = useState(null);
 
     useEffect(() => {
         try {
@@ -180,7 +184,36 @@ export default function TableTabletsPage() {
         } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
     }, [venueId]);
 
-    useEffect(() => { if (venueId) fetchAll(); }, [venueId, fetchAll]);
+    useEffect(() => { if (venueId) { fetchAll(); fetchDisplayStatus(); } }, [venueId, fetchAll]);
+
+    // Fetch tablet online status from commander_table_displays
+    const fetchDisplayStatus = useCallback(async () => {
+        if (!venueId) return;
+        try {
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+            const res = await fetch(`/api/commander/displays/status?venue_id=${venueId}`, {
+                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                const map = {};
+                json.data.forEach(d => {
+                    const tNum = d.device_id?.match(/table-(\d+)/)?.[1];
+                    if (tNum) map[parseInt(tNum)] = { is_online: d.is_online, last_heartbeat: d.last_heartbeat };
+                });
+                setDisplayStatus(map);
+            }
+        } catch { /* non-fatal */ }
+    }, [venueId]);
+
+    const copyTabletUrl = (tableNum) => {
+        const url = `${window.location.origin}/commander/tablet/${tableNum}${venueId ? `?venue=${venueId}` : ''}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopiedTable(tableNum);
+            setTimeout(() => setCopiedTable(null), 2000);
+        }).catch(() => { });
+    };
 
     // Auto-refresh every 10s
     useEffect(() => {
@@ -497,6 +530,90 @@ export default function TableTabletsPage() {
                                 {tables.length} tables — {activeTables.length} active • Tap to expand
                             </p>
                         </div>
+                    </div>
+
+                    {/* ── Tablet Assignment Panel ────────── */}
+                    <div style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14, marginBottom: 16, overflow: 'hidden' }}>
+                        <button
+                            onClick={() => setShowAssignPanel(!showAssignPanel)}
+                            style={{
+                                width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                background: 'transparent', border: 'none', cursor: 'pointer', color: '#E4E6EB',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <Link2 size={16} color="#1877F2" />
+                                <span style={{ fontSize: 14, fontWeight: 700 }}>Tablet Assignment</span>
+                                <span style={{ fontSize: 11, color: '#8A8D91', fontWeight: 500 }}>
+                                    Copy a URL → open on tablet → done
+                                </span>
+                            </div>
+                            {showAssignPanel ? <ChevronUp size={16} color="#B0B3B8" /> : <ChevronDown size={16} color="#B0B3B8" />}
+                        </button>
+                        {showAssignPanel && (
+                            <div style={{ padding: '0 16px 16px', borderTop: '1px solid #3A3B3C' }}>
+                                <p style={{ fontSize: 12, color: '#8A8D91', margin: '12px 0 12px', lineHeight: 1.5 }}>
+                                    Each table gets a unique URL. Open this URL in the tablet browser and it will auto-display that table fullscreen.
+                                    Tablets auto-register and show as online when the page is active.
+                                </p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+                                    {tables.map(table => {
+                                        const tNum = table.table_number || table.number;
+                                        const status = displayStatus[tNum];
+                                        const isOnline = status?.is_online && status?.last_heartbeat &&
+                                            (Date.now() - new Date(status.last_heartbeat).getTime()) < 120000; // 2 min threshold
+                                        const isCopied = copiedTable === tNum;
+                                        return (
+                                            <div key={tNum} style={{
+                                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                                                background: '#1a1b1d', border: '1px solid #3A3B3C', borderRadius: 10,
+                                            }}>
+                                                {/* Online indicator */}
+                                                <div style={{
+                                                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                                                    background: isOnline ? '#31A24C' : '#4E4F50',
+                                                    boxShadow: isOnline ? '0 0 6px rgba(49,162,76,0.5)' : 'none',
+                                                }} title={isOnline ? 'Tablet Online' : 'Tablet Offline'} />
+                                                {/* Table info */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#E4E6EB' }}>Table {tNum}</div>
+                                                    <div style={{ fontSize: 10, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        /commander/tablet/{tNum}
+                                                    </div>
+                                                </div>
+                                                {/* Actions */}
+                                                <button
+                                                    onClick={() => copyTabletUrl(tNum)}
+                                                    style={{
+                                                        padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                                                        background: isCopied ? '#31A24C' : '#3A3B3C',
+                                                        color: isCopied ? '#fff' : '#B0B3B8',
+                                                        border: 'none', cursor: 'pointer',
+                                                        display: 'flex', alignItems: 'center', gap: 4,
+                                                        transition: 'all 0.2s',
+                                                    }}
+                                                >
+                                                    {isCopied ? <><CheckCircle size={12} /> Copied</> : <><Copy size={12} /> Copy URL</>}
+                                                </button>
+                                                <a
+                                                    href={`/commander/tablet/${tNum}${venueId ? `?venue=${venueId}` : ''}`}
+                                                    target="_blank" rel="noopener noreferrer"
+                                                    style={{
+                                                        padding: '6px 10px', borderRadius: 8,
+                                                        background: 'rgba(24,119,242,0.1)', border: '1px solid rgba(24,119,242,0.3)',
+                                                        color: '#1877F2', textDecoration: 'none',
+                                                        display: 'flex', alignItems: 'center',
+                                                    }}
+                                                    title="Preview in new tab"
+                                                >
+                                                    <ExternalLink size={12} />
+                                                </a>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {loading ? (

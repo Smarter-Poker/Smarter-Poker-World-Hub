@@ -185,6 +185,70 @@ export default async function handler(req, res) {
             console.warn('Dealer rotation query failed:', e.message);
         }
 
+        // 4. Get venue name
+        let venue_name = '';
+        if (resolvedVenueId) {
+            try {
+                const { data: venueData } = await supabase
+                    .from('poker_venues')
+                    .select('name')
+                    .eq('id', resolvedVenueId)
+                    .single();
+                if (venueData?.name) venue_name = venueData.name;
+            } catch { /* non-fatal */ }
+        }
+
+        // 5. Get active promotions for ticker
+        let promotions = [];
+        if (resolvedVenueId) {
+            try {
+                const { data: promoData } = await supabase
+                    .from('commander_promotions')
+                    .select('id, title, name, description, type, status')
+                    .eq('venue_id', resolvedVenueId)
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                promotions = promoData || [];
+            } catch { /* non-fatal */ }
+        }
+
+        // 6. Get active announcements for ticker
+        let announcements = [];
+        if (resolvedVenueId) {
+            try {
+                const { data: annData } = await supabase
+                    .from('commander_announcements')
+                    .select('id, title, message, type, priority')
+                    .eq('venue_id', resolvedVenueId)
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+                announcements = annData || [];
+            } catch { /* non-fatal */ }
+        }
+
+        // 7. Update tablet heartbeat (auto-register on first fetch)
+        if (resolvedVenueId) {
+            try {
+                const deviceId = `tablet-${resolvedVenueId}-table-${tableNum}`;
+                await supabase
+                    .from('commander_table_displays')
+                    .upsert({
+                        device_id: deviceId,
+                        venue_id: resolvedVenueId,
+                        device_name: `Table ${tableNum} Tablet`,
+                        device_type: 'tablet',
+                        is_online: true,
+                        last_heartbeat: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    }, {
+                        onConflict: 'device_id',
+                        ignoreDuplicates: false,
+                    });
+            } catch { /* heartbeat is best-effort */ }
+        }
+
         return res.status(200).json({
             success: true,
             data: {
@@ -197,7 +261,10 @@ export default async function handler(req, res) {
                 },
                 players: playersWithTime,
                 dealer: dealer,
-                venue_type: venueType
+                venue_type: venueType,
+                venue_name,
+                promotions,
+                announcements,
             }
         });
     } catch (err) {

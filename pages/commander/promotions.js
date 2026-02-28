@@ -1105,7 +1105,7 @@ export default function PromotionsPage() {
                   </div>
                 )}
               </>
-            ) : (
+            ) : activeTab === 'promo-codes' ? (
               /* === PROMO CODES TAB === */
               <>
                 {promoCodesLoading ? (
@@ -1232,7 +1232,7 @@ export default function PromotionsPage() {
                   </>
                 )}
               </>
-            )}
+            ) : null}
 
             {/* ── Analytics Tab ── */}
             {activeTab === 'analytics' && (
