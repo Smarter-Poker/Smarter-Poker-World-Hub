@@ -338,28 +338,58 @@ async function handleClockAction(req, res, tournamentId) {
         });
     }
 
-    // Persist clock state and tournament updates together
-    const updatePayload = {
-      ...updates,
-      clock_state: clockState
-    };
+    // Persist status/level updates first (these columns are in schema cache)
+    if (Object.keys(updates).length > 0) {
+      const { error: statusError } = await supabase
+        .from('commander_tournaments')
+        .update(updates)
+        .eq('id', tournamentId);
 
-    console.log('[clock.js] Persisting:', JSON.stringify({ tournamentId, action, updatePayload }, null, 2));
-
-    const { data: updated, error } = await supabase
-      .from('commander_tournaments')
-      .update(updatePayload)
-      .eq('id', tournamentId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[clock.js] Supabase update error:', JSON.stringify(error, null, 2));
-      return res.status(500).json({
-        success: false,
-        error: { code: 'DB_ERROR', message: error.message, details: error.details, hint: error.hint }
-      });
+      if (statusError) {
+        console.error('[clock.js] Status update error:', JSON.stringify(statusError, null, 2));
+        return res.status(500).json({
+          success: false,
+          error: { code: 'DB_ERROR', message: statusError.message }
+        });
+      }
     }
+
+    // Persist clock_state separately using a raw PATCH to bypass schema cache issues
+    // The clock_state column may not be in PostgREST schema cache
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const patchRes = await fetch(
+        `${supabaseUrl}/rest/v1/commander_tournaments?id=eq.${tournamentId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({ clock_state: clockState })
+        }
+      );
+      if (!patchRes.ok) {
+        const errText = await patchRes.text();
+        console.error('[clock.js] Clock state PATCH error:', errText);
+        // If PATCH also fails, fall back to SQL
+        await supabase.rpc('exec_sql', {
+          sql: `UPDATE commander_tournaments SET clock_state = '${JSON.stringify(clockState).replace(/'/g, "''")}' WHERE id = '${tournamentId}'`
+        });
+      }
+    } catch (patchErr) {
+      console.error('[clock.js] Clock state persist error:', patchErr.message);
+    }
+
+    // Re-fetch the updated tournament
+    const { data: updated } = await supabase
+      .from('commander_tournaments')
+      .select('*')
+      .eq('id', tournamentId)
+      .single();
 
     return res.status(200).json({
       success: true,
