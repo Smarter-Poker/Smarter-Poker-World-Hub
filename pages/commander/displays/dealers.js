@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 export default function DealerRotationDisplay() {
   const [dealers, setDealers] = useState([]);
@@ -166,6 +167,16 @@ export default function DealerRotationDisplay() {
             </div>
           </div>
         </div>
+
+        {/* Dealer Push & Break Ticker */}
+        <DealerTicker
+          accentColor="#F59E0B"
+          bgColor="#000"
+          fontSize={18}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={22}
+          showBorder={true}
+        />
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">

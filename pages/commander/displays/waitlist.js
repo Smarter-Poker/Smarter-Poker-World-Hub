@@ -14,6 +14,7 @@ import {
   MessageSquare, Phone,
   CheckCircle
 } from 'lucide-react';
+import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -377,6 +378,16 @@ export default function WaitlistDisplay() {
             <span style={{ fontSize: '39px', color: c.accentColor, fontWeight: 700, letterSpacing: '1px', paddingRight: '150px', whiteSpace: 'nowrap' }}>{tickerMessage}</span>
           </div>
         </div>
+
+        {/* ═══ DEALER PUSH & BREAK TICKER ═══ */}
+        <DealerTicker
+          accentColor={c.accentColor}
+          bgColor={c.cardBgColor}
+          fontSize={24}
+          borderColor={c.borderColor}
+          speed={20}
+          showBorder={true}
+        />
       </div>
 
       <style>{`
