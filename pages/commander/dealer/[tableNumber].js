@@ -22,7 +22,7 @@ import {
   Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign,
   ChevronUp, AlertCircle, User, Power
 } from 'lucide-react';
-import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
 
@@ -142,6 +142,9 @@ export default function DealerTablet() {
   }, [tableNumber]);
 
   useEffect(() => { fetchTable(); const i = setInterval(fetchTable, 10000); return () => clearInterval(i); }, [fetchTable]);
+
+  // Commander Data Bus — instant cross-tab sync for dealer tablet
+  useCommanderSync('', fetchTable, { entities: ['tables', 'games', 'dealers'] });
 
   // Store last sync timestamp for drift-free countdown
   const lastSyncRef = useRef(Date.now());
@@ -263,6 +266,7 @@ export default function DealerTablet() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed to seat player');
       closeScanner(); await fetchTable();
+      broadcastChange('tables');
     } catch (err) { setScanError(err.message); }
     finally { setScanLoading(false); }
   };
@@ -274,6 +278,7 @@ export default function DealerTablet() {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }
       });
       await fetchTable();
+      broadcastChange('tables');
     } catch (err) { console.error(err); }
   };
 
@@ -288,6 +293,7 @@ export default function DealerTablet() {
         body: JSON.stringify({ minutes: parseInt(addTimeMinutes) || 60 })
       });
       setAddTimePlayer(null); await fetchTable();
+      broadcastChange('tables');
     } catch (err) { console.error(err); }
     finally { setAddingTime(false); }
   };
@@ -316,6 +322,8 @@ export default function DealerTablet() {
         }).catch(() => { });
       }
       await fetchTable();
+      broadcastChange('tables');
+      broadcastChange('tournaments');
     } catch (err) { console.error(err); }
     finally { setBustingOut(null); }
   };
@@ -334,6 +342,8 @@ export default function DealerTablet() {
       setChipEntryPlayer(null);
       setChipEntryValue('');
       await fetchTable();
+      broadcastChange('tables');
+      broadcastChange('tournaments');
     } catch (err) { console.error('Update chips error:', err); }
     finally { setSavingChips(false); }
   };
@@ -354,6 +364,7 @@ export default function DealerTablet() {
       );
       setConfirmRemoveAll(false);
       await fetchTable();
+      broadcastChange('tables');
     } catch (err) { console.error(err); }
     finally { setRemovingAll(false); }
   };

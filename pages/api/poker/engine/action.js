@@ -38,21 +38,21 @@ export default async function handler(req, res) {
       const emoji = extra.emoji || action?.emoji;
       const targetId = extra.targetId || action?.targetId;
       if (!emoji) return res.status(400).json({ error: 'emoji required' });
-      
+
       const table = controller.lobby?.tables?.get(tableId);
       if (!table) return res.status(404).json({ error: 'Table not found' });
-      
+
       // Broadcast emoji event to all players at the table
       const channel = controller.supabase?.channel(`table:${tableId}`);
       if (channel) {
         channel.send({
           type: 'broadcast',
           event: 'emoji_thrown',
-          payload: { 
-            fromId: playerId, 
-            targetId: targetId || null, 
-            emoji, 
-            timestamp: Date.now() 
+          payload: {
+            fromId: playerId,
+            targetId: targetId || null,
+            emoji,
+            timestamp: Date.now()
           },
         });
       }
@@ -80,7 +80,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Invalid action: ${action.type}` });
     }
 
-    const controller = await getController();
     const result = await controller.processAction(tableId, playerId, action);
 
     if (!result.success) {
