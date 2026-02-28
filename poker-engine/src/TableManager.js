@@ -1,0 +1,800 @@
+/**
+ * Smarter.Poker - Core Poker Engine
+ * Module: TableManager
+ * 
+ * Manages a single poker table's persistent state:
+ *   - Seat management (join, leave, sit-out, sit-in, reserve)
+ *   - Stack management (buy-in, rebuy, cashout)
+ *   - Waitlist queue
+ *   - Table configuration (stakes, game variant, min/max buy-in)
+ *   - Hand lifecycle coordination with GameStateMachine
+ * 
+ * This sits between the network layer (RealtimeSync) and the
+ * game engine (GameStateMachine).
+ */
+
+const { GameStateMachine, GAME_PHASE, GAME_VARIANT } = require('./GameStateMachine');
+const { BETTING_STRUCTURES } = require('./ActionValidator');
+
+// ============ CONSTANTS ============
+
+const SEAT_STATUS = {
+  EMPTY: 'empty',
+  OCCUPIED: 'occupied',
+  SITTING_OUT: 'sitting_out',
+  RESERVED: 'reserved',       // Reserved for returning player or waitlist
+  DISCONNECTED: 'disconnected', // Player disconnected, grace period
+};
+
+const TABLE_STATUS = {
+  WAITING: 'waiting',         // Not enough players
+  RUNNING: 'running',         // Hand in progress
+  BETWEEN_HANDS: 'between_hands', // Paused between hands
+  PAUSED: 'paused',           // Admin paused
+  CLOSED: 'closed',           // Table shut down
+};
+
+const MAX_SEATS = 10;
+const DEFAULT_SEATS = 9;
+const DISCONNECT_GRACE_MS = 60000;    // 60s to reconnect
+const RESERVATION_TIMEOUT_MS = 30000; // 30s to take reserved seat
+const SIT_OUT_AUTO_FOLD_HANDS = 3;    // Auto-remove after N hands sitting out
+
+// ============ TABLE MANAGER ============
+
+class TableManager {
+  /**
+   * @param {Object} config
+   * @param {string} config.tableId - Unique table identifier
+   * @param {string} config.clubId - Club this table belongs to
+   * @param {string} config.variant - Game variant
+   * @param {string} config.bettingStructure - NL/PL/FL
+   * @param {number} config.smallBlind
+   * @param {number} config.bigBlind
+   * @param {number} [config.ante]
+   * @param {number} config.minBuyIn - Minimum buy-in (in chips)
+   * @param {number} config.maxBuyIn - Maximum buy-in (in chips)
+   * @param {number} [config.maxSeats] - Number of seats (2-10)
+   * @param {number} [config.rakePercent]
+   * @param {number} [config.rakeCap]
+   * @param {boolean} [config.runItTwice]
+   * @param {boolean} [config.bombPot]
+   * @param {boolean} [config.straddle]
+   * @param {number} [config.autoStartDelay] - ms delay before auto-starting hand
+   */
+  constructor(config) {
+    this.tableId = config.tableId;
+    this.clubId = config.clubId;
+    this.tableName = config.name || config.tableName || config.tableId;
+    this.maxSeats = Math.min(Math.max(config.maxSeats || DEFAULT_SEATS, 2), MAX_SEATS);
+    this.minBuyIn = config.minBuyIn;
+    this.maxBuyIn = config.maxBuyIn;
+    this.smallBlind = config.smallBlind;
+    this.bigBlind = config.bigBlind;
+    this.autoStartDelay = config.autoStartDelay || 3000;
+    
+    // Seats array (indexed by seat number 0..maxSeats-1)
+    this.seats = Array.from({ length: this.maxSeats }, (_, i) => ({
+      seatIndex: i,
+      status: SEAT_STATUS.EMPTY,
+      player: null,         // { id, displayName, avatarUrl }
+      stack: 0,
+      sittingOutHands: 0,   // Consecutive hands sitting out
+      reservedFor: null,     // Player ID if reserved
+      reservedAt: null,      // Timestamp
+      disconnectedAt: null,  // Timestamp
+    }));
+    
+    // Waitlist
+    this.waitlist = [];     // [{ playerId, displayName, requestedAt, seatPreference? }]
+    
+    // Game engine
+    this.game = new GameStateMachine({
+      variant: config.variant || GAME_VARIANT.HOLDEM,
+      bettingStructure: config.bettingStructure || BETTING_STRUCTURES.NO_LIMIT,
+      smallBlind: config.smallBlind,
+      bigBlind: config.bigBlind,
+      ante: config.ante || 0,
+      rakePercent: config.rakePercent || 0,
+      rakeCap: config.rakeCap || Infinity,
+      runItTwice: config.runItTwice || false,
+      bombPot: config.bombPot || false,
+      straddle: config.straddle || false,
+    });
+    
+    // Table state
+    this.status = TABLE_STATUS.WAITING;
+    this.handCount = 0;
+    this._autoStartTimer = null;
+    this._disconnectTimers = new Map();
+    this._reservationTimers = new Map();
+    
+    // Event listeners
+    this._listeners = new Map();
+    
+    // Wire game engine events through
+    this.game.on('hand_start', (d) => this.emit('hand_start', d));
+    this.game.on('blinds_posted', (d) => this.emit('blinds_posted', d));
+    this.game.on('cards_dealt', (d) => this.emit('cards_dealt', d));
+    this.game.on('street_start', (d) => this.emit('street_start', d));
+    this.game.on('action_required', (d) => this.emit('action_required', d));
+    this.game.on('action_processed', (d) => this.emit('action_processed', d));
+    this.game.on('showdown', (d) => this.emit('showdown', d));
+    this.game.on('payout', (d) => this.emit('payout', d));
+    this.game.on('hand_complete', (d) => this._onHandComplete(d));
+  }
+
+  // ============ EVENT SYSTEM ============
+
+  on(event, callback) {
+    if (!this._listeners.has(event)) this._listeners.set(event, []);
+    this._listeners.get(event).push(callback);
+  }
+
+  emit(event, data) {
+    const listeners = this._listeners.get(event) || [];
+    for (const cb of listeners) {
+      try { cb(data); } catch (err) { console.error(`TableManager event error (${event}):`, err); }
+    }
+  }
+
+  // ============ SEAT MANAGEMENT ============
+
+  /**
+   * Player sits down at a specific seat.
+   * @param {string|number} playerId
+   * @param {number} seatIndex - 0-based seat number
+   * @param {number} buyIn - Chip amount
+   * @param {Object} [playerInfo] - { displayName, avatarUrl }
+   * @returns {{ success: boolean, error?: string }}
+   */
+  sitDown(playerId, seatIndex, buyIn, playerInfo = {}) {
+    // Validate seat
+    if (seatIndex < 0 || seatIndex >= this.maxSeats) {
+      return { success: false, error: `Invalid seat: ${seatIndex}` };
+    }
+    
+    const seat = this.seats[seatIndex];
+    
+    // Check if seat is available
+    if (seat.status === SEAT_STATUS.OCCUPIED || seat.status === SEAT_STATUS.SITTING_OUT) {
+      return { success: false, error: 'Seat is occupied' };
+    }
+    
+    if (seat.status === SEAT_STATUS.RESERVED && seat.reservedFor !== playerId) {
+      return { success: false, error: 'Seat is reserved for another player' };
+    }
+    
+    // Check if player is already seated
+    const existingSeat = this.seats.find(s => s.player?.id === playerId);
+    if (existingSeat) {
+      return { success: false, error: 'Player already seated at this table' };
+    }
+    
+    // Validate buy-in
+    if (buyIn < this.minBuyIn) {
+      return { success: false, error: `Minimum buy-in is ${this.minBuyIn}` };
+    }
+    if (buyIn > this.maxBuyIn) {
+      return { success: false, error: `Maximum buy-in is ${this.maxBuyIn}` };
+    }
+    
+    // Sit down
+    seat.status = SEAT_STATUS.OCCUPIED;
+    seat.player = { id: playerId, displayName: playerInfo.displayName || playerId, avatarUrl: playerInfo.avatarUrl || null };
+    seat.stack = buyIn;
+    seat.sittingOutHands = 0;
+    seat.reservedFor = null;
+    seat.reservedAt = null;
+    seat.disconnectedAt = null;
+    
+    // Clear any reservation timer
+    this._clearReservation(seatIndex);
+    
+    // Remove from waitlist if present
+    this.waitlist = this.waitlist.filter(w => w.playerId !== playerId);
+    
+    this.emit('player_seated', {
+      playerId,
+      seatIndex,
+      stack: buyIn,
+      displayName: seat.player.displayName,
+    });
+    
+    // Check if we can start a hand
+    this._checkAutoStart();
+    
+    return { success: true };
+  }
+
+  /**
+   * Player leaves the table (stands up).
+   * @param {string|number} playerId
+   * @returns {{ success: boolean, cashout?: number, error?: string }}
+   */
+  standUp(playerId) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+    
+    // If hand is in progress and player is in the hand, they must fold first
+    if (this.game.phase !== GAME_PHASE.IDLE) {
+      const handPlayer = this.game.currentHand?.players.find(p => String(p.id) === String(playerId));
+      if (handPlayer && !handPlayer.folded) {
+        // Mark as sitting out - will be auto-folded
+        seat.status = SEAT_STATUS.SITTING_OUT;
+        this.emit('player_sitting_out', { playerId, seatIndex: seat.seatIndex });
+        return { success: true, pending: true, message: 'Will stand up after current hand' };
+      }
+    }
+    
+    const cashout = seat.stack;
+    this._vacateSeat(seat);
+    
+    this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout });
+    
+    // Seat next waitlist player
+    this._seatFromWaitlist(seat.seatIndex);
+    
+    return { success: true, cashout };
+  }
+
+  /**
+   * Player sits out (still occupies seat but won't be dealt in).
+   * @param {string|number} playerId
+   * @returns {{ success: boolean, error?: string }}
+   */
+  sitOut(playerId) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+    
+    seat.status = SEAT_STATUS.SITTING_OUT;
+    seat.sittingOutHands = 0;
+    
+    this.emit('player_sitting_out', { playerId, seatIndex: seat.seatIndex });
+    return { success: true };
+  }
+
+  /**
+   * Player returns from sitting out.
+   * @param {string|number} playerId
+   * @returns {{ success: boolean, error?: string }}
+   */
+  sitIn(playerId) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+    
+    if (seat.status !== SEAT_STATUS.SITTING_OUT && seat.status !== SEAT_STATUS.DISCONNECTED) {
+      return { success: false, error: 'Player is not sitting out' };
+    }
+    
+    seat.status = SEAT_STATUS.OCCUPIED;
+    seat.sittingOutHands = 0;
+    seat.disconnectedAt = null;
+    
+    // Clear disconnect timer
+    if (this._disconnectTimers.has(playerId)) {
+      clearTimeout(this._disconnectTimers.get(playerId));
+      this._disconnectTimers.delete(playerId);
+    }
+    
+    this.emit('player_sitting_in', { playerId, seatIndex: seat.seatIndex });
+    this._checkAutoStart();
+    
+    return { success: true };
+  }
+
+  /**
+   * Player adds chips to their stack (rebuy/top-up).
+   * Only allowed between hands or when not in current hand.
+   * @param {string|number} playerId
+   * @param {number} amount
+   * @returns {{ success: boolean, newStack?: number, error?: string }}
+   */
+  addChips(playerId, amount) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+    
+    if (amount <= 0) return { success: false, error: 'Amount must be positive' };
+    
+    // Skip max buy-in check if maxBuyIn is 0 (tournament mode)
+    if (this.maxBuyIn > 0) {
+      const newStack = seat.stack + amount;
+      if (newStack > this.maxBuyIn) {
+        return { success: false, error: `Stack would exceed max buy-in of ${this.maxBuyIn}` };
+      }
+    }
+    
+    seat.stack += amount;
+    
+    this.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex: seat.seatIndex });
+    return { success: true, newStack: seat.stack };
+  }
+
+  /**
+   * Update blinds/ante (used by tournament blind clock).
+   * Takes effect on the next hand dealt.
+   * @param {number} smallBlind
+   * @param {number} bigBlind
+   * @param {number} [ante=0]
+   */
+  updateBlinds(smallBlind, bigBlind, ante = 0) {
+    this.game.config.smallBlind = smallBlind;
+    this.game.config.bigBlind = bigBlind;
+    this.game.config.ante = ante;
+    
+    this.emit('blinds_updated', { smallBlind, bigBlind, ante });
+    return { success: true };
+  }
+
+  /**
+   * Handle player disconnect.
+   * @param {string|number} playerId
+   */
+  handleDisconnect(playerId) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return;
+    
+    seat.status = SEAT_STATUS.DISCONNECTED;
+    seat.disconnectedAt = Date.now();
+    
+    this.emit('player_disconnected', { playerId, seatIndex: seat.seatIndex });
+    
+    // Start grace period timer
+    const timer = setTimeout(() => {
+      // If still disconnected after grace period, sit them out
+      if (seat.status === SEAT_STATUS.DISCONNECTED) {
+        seat.status = SEAT_STATUS.SITTING_OUT;
+        this.emit('player_timed_out', { playerId, seatIndex: seat.seatIndex });
+      }
+      this._disconnectTimers.delete(playerId);
+    }, DISCONNECT_GRACE_MS);
+    
+    this._disconnectTimers.set(playerId, timer);
+  }
+
+  /**
+   * Handle player reconnect.
+   * @param {string|number} playerId
+   * @returns {{ success: boolean, seatIndex?: number }}
+   */
+  handleReconnect(playerId) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false };
+    
+    if (seat.status === SEAT_STATUS.DISCONNECTED) {
+      seat.status = SEAT_STATUS.OCCUPIED;
+      seat.disconnectedAt = null;
+      
+      if (this._disconnectTimers.has(playerId)) {
+        clearTimeout(this._disconnectTimers.get(playerId));
+        this._disconnectTimers.delete(playerId);
+      }
+      
+      this.emit('player_reconnected', { playerId, seatIndex: seat.seatIndex });
+      return { success: true, seatIndex: seat.seatIndex };
+    }
+    
+    return { success: true, seatIndex: seat.seatIndex };
+  }
+
+  // ============ WAITLIST ============
+
+  /**
+   * Add a player to the waitlist.
+   * @param {string|number} playerId
+   * @param {Object} [options] - { displayName, seatPreference }
+   * @returns {{ success: boolean, position?: number, error?: string }}
+   */
+  joinWaitlist(playerId, options = {}) {
+    // Check if already seated
+    if (this._findPlayerSeat(playerId)) {
+      return { success: false, error: 'Already seated at this table' };
+    }
+    
+    // Check if already on waitlist
+    if (this.waitlist.some(w => w.playerId === playerId)) {
+      return { success: false, error: 'Already on the waitlist' };
+    }
+    
+    this.waitlist.push({
+      playerId,
+      displayName: options.displayName || playerId,
+      requestedAt: Date.now(),
+      seatPreference: options.seatPreference || null,
+    });
+    
+    const position = this.waitlist.length;
+    
+    this.emit('waitlist_joined', { playerId, position });
+    
+    // If there's an empty seat, offer it immediately
+    const emptySeat = this.seats.find(s => s.status === SEAT_STATUS.EMPTY);
+    if (emptySeat) {
+      this._offerSeatFromWaitlist(emptySeat.seatIndex);
+    }
+    
+    return { success: true, position };
+  }
+
+  /**
+   * Remove a player from the waitlist.
+   * @param {string|number} playerId
+   * @returns {{ success: boolean }}
+   */
+  leaveWaitlist(playerId) {
+    const idx = this.waitlist.findIndex(w => w.playerId === playerId);
+    if (idx === -1) return { success: false, error: 'Not on the waitlist' };
+    
+    this.waitlist.splice(idx, 1);
+    this.emit('waitlist_left', { playerId });
+    return { success: true };
+  }
+
+  // ============ HAND CONTROL ============
+
+  /**
+   * Start a new hand (called automatically or manually by admin).
+   * @returns {{ success: boolean, error?: string }}
+   */
+  startNextHand() {
+    if (this.game.phase !== GAME_PHASE.IDLE) {
+      return { success: false, error: 'Hand already in progress' };
+    }
+    
+    // Get active players (occupied seats with chips)
+    const activePlayers = this.seats
+      .filter(s => s.status === SEAT_STATUS.OCCUPIED && s.stack > 0)
+      .map(s => ({
+        id: s.player.id,
+        stack: s.stack,
+        seatIndex: s.seatIndex,
+      }));
+    
+    if (activePlayers.length < 2) {
+      this.status = TABLE_STATUS.WAITING;
+      return { success: false, error: 'Need at least 2 active players' };
+    }
+    
+    // Increment sitting-out counters and handle auto-remove
+    for (const seat of this.seats) {
+      if (seat.status === SEAT_STATUS.SITTING_OUT) {
+        seat.sittingOutHands++;
+        if (seat.sittingOutHands >= SIT_OUT_AUTO_FOLD_HANDS) {
+          const cashout = seat.stack;
+          const playerId = seat.player?.id;
+          this._vacateSeat(seat);
+          this.emit('player_auto_removed', { playerId, seatIndex: seat.seatIndex, cashout, reason: 'sitting_out_too_long' });
+        }
+      }
+    }
+    
+    this.status = TABLE_STATUS.RUNNING;
+    this.handCount++;
+    
+    // Start the hand on the game engine
+    this.game.startHand(activePlayers);
+    
+    return { success: true };
+  }
+
+  /**
+   * Forward a player action to the game engine.
+   * @param {string|number} playerId
+   * @param {Object} action - { type, amount? }
+   * @returns {Object} Game state result
+   */
+  processAction(playerId, action) {
+    if (this.game.phase === GAME_PHASE.IDLE) {
+      return { success: false, error: 'No hand in progress' };
+    }
+    
+    const result = this.game.processAction(playerId, action);
+    
+    // Sync stacks back from engine after each action
+    if (result.success) {
+      this._syncStacks();
+    }
+    
+    return result;
+  }
+
+  /**
+   * Auto-fold for a player who times out or is disconnected.
+   * @param {string|number} playerId
+   */
+  autoFold(playerId) {
+    const current = this.game.getCurrentActions();
+    if (current && String(current.playerId) === String(playerId)) {
+      // Check if they can check (prefer check over fold)
+      const canCheck = current.actions.some(a => a.type === 'check');
+      this.processAction(playerId, { type: canCheck ? 'check' : 'fold' });
+    }
+  }
+
+  // ============ PRIVATE HELPERS ============
+
+  /**
+   * Find the seat occupied by a player.
+   * @private
+   */
+  _findPlayerSeat(playerId) {
+    return this.seats.find(s => 
+      s.player && String(s.player.id) === String(playerId) &&
+      s.status !== SEAT_STATUS.EMPTY
+    );
+  }
+
+  /**
+   * Clear a seat entirely.
+   * @private
+   */
+  _vacateSeat(seat) {
+    seat.status = SEAT_STATUS.EMPTY;
+    seat.player = null;
+    seat.stack = 0;
+    seat.sittingOutHands = 0;
+    seat.reservedFor = null;
+    seat.reservedAt = null;
+    seat.disconnectedAt = null;
+  }
+
+  /**
+   * Sync stacks from game engine back to seats after hand actions.
+   * @private
+   */
+  _syncStacks() {
+    if (!this.game.currentHand) return;
+    
+    for (const player of this.game.currentHand.players) {
+      const seat = this.seats.find(s => s.player?.id === player.id);
+      if (seat) {
+        seat.stack = player.stack;
+      }
+    }
+  }
+
+  /**
+   * Handle hand completion.
+   * @private
+   */
+  _onHandComplete(data) {
+    // Sync final stacks
+    this._syncStacks();
+    
+    this.status = TABLE_STATUS.BETWEEN_HANDS;
+    
+    this.emit('hand_complete', data);
+    
+    // Handle pending stand-ups
+    for (const seat of this.seats) {
+      if (seat.status === SEAT_STATUS.SITTING_OUT && seat.stack <= 0) {
+        const playerId = seat.player?.id;
+        this._vacateSeat(seat);
+        this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted' });
+        this._seatFromWaitlist(seat.seatIndex);
+      }
+    }
+    
+    // Auto-start next hand after delay
+    this._checkAutoStart();
+  }
+
+  /**
+   * Check if we should auto-start the next hand.
+   * @private
+   */
+  _checkAutoStart() {
+    if (this._autoStartTimer) {
+      clearTimeout(this._autoStartTimer);
+      this._autoStartTimer = null;
+    }
+    
+    if (this.game.phase !== GAME_PHASE.IDLE) return;
+    if (this.status === TABLE_STATUS.PAUSED || this.status === TABLE_STATUS.CLOSED) return;
+    
+    const activePlayers = this.seats.filter(
+      s => s.status === SEAT_STATUS.OCCUPIED && s.stack > 0
+    );
+    
+    if (activePlayers.length >= 2) {
+      this._autoStartTimer = setTimeout(() => {
+        this.startNextHand();
+      }, this.autoStartDelay);
+    }
+  }
+
+  /**
+   * Offer next waitlist player a seat.
+   * @private
+   */
+  _seatFromWaitlist(seatIndex) {
+    if (this.waitlist.length === 0) return;
+    this._offerSeatFromWaitlist(seatIndex);
+  }
+
+  /**
+   * Reserve a seat for the next waitlist player.
+   * @private
+   */
+  _offerSeatFromWaitlist(seatIndex) {
+    if (this.waitlist.length === 0) return;
+    
+    const seat = this.seats[seatIndex];
+    if (seat.status !== SEAT_STATUS.EMPTY) return;
+    
+    const next = this.waitlist.shift();
+    
+    seat.status = SEAT_STATUS.RESERVED;
+    seat.reservedFor = next.playerId;
+    seat.reservedAt = Date.now();
+    
+    this.emit('seat_offered', {
+      playerId: next.playerId,
+      seatIndex,
+      timeout: RESERVATION_TIMEOUT_MS,
+    });
+    
+    // Start reservation timeout
+    const timer = setTimeout(() => {
+      if (seat.status === SEAT_STATUS.RESERVED && seat.reservedFor === next.playerId) {
+        seat.status = SEAT_STATUS.EMPTY;
+        seat.reservedFor = null;
+        seat.reservedAt = null;
+        this.emit('reservation_expired', { playerId: next.playerId, seatIndex });
+        // Offer to next person
+        this._seatFromWaitlist(seatIndex);
+      }
+    }, RESERVATION_TIMEOUT_MS);
+    
+    this._reservationTimers.set(seatIndex, timer);
+  }
+
+  /**
+   * Clear a reservation timer.
+   * @private
+   */
+  _clearReservation(seatIndex) {
+    if (this._reservationTimers.has(seatIndex)) {
+      clearTimeout(this._reservationTimers.get(seatIndex));
+      this._reservationTimers.delete(seatIndex);
+    }
+  }
+
+  // ============ PUBLIC: STATE ============
+
+  /**
+   * Get full table state for broadcasting.
+   * @param {string|number} [forPlayerId] - Show that player's hole cards
+   * @returns {Object}
+   */
+  getState(forPlayerId) {
+    const gameState = this.game.getState(forPlayerId);
+    
+    return {
+      tableId: this.tableId,
+      clubId: this.clubId,
+      status: this.status,
+      handCount: this.handCount,
+      maxSeats: this.maxSeats,
+      seats: this.seats.map(s => ({
+        seatIndex: s.seatIndex,
+        status: s.status,
+        player: s.player ? {
+          id: s.player.id,
+          displayName: s.player.displayName,
+          avatarUrl: s.player.avatarUrl,
+        } : null,
+        stack: s.stack,
+        // Only show hole cards for the requesting player
+        holeCards: gameState.players?.find(p => 
+          p.id === s.player?.id && (String(p.id) === String(forPlayerId) || p.showCards)
+        )?.holeCards || null,
+        isInHand: gameState.players?.some(p => p.id === s.player?.id && !p.folded) || false,
+        isFolded: gameState.players?.some(p => p.id === s.player?.id && p.folded) || false,
+        isCurrentActor: String(gameState.currentPlayerId) === String(s.player?.id),
+        invested: gameState.players?.find(p => p.id === s.player?.id)?.invested || 0,
+      })),
+      waitlist: this.waitlist.map((w, i) => ({
+        playerId: w.playerId,
+        displayName: w.displayName,
+        position: i + 1,
+      })),
+      game: {
+        phase: gameState.phase,
+        handNumber: gameState.handNumber,
+        communityCards: gameState.communityCards || [],
+        potTotal: gameState.potTotal || 0,
+        pots: gameState.pots || [],
+        currentBet: gameState.currentBet || 0,
+        currentPlayerId: gameState.currentPlayerId,
+        buttonSeat: gameState.buttonSeat,
+        result: gameState.result,
+      },
+      config: {
+        variant: this.game.config.variant,
+        bettingStructure: this.game.config.bettingStructure,
+        smallBlind: this.smallBlind,
+        bigBlind: this.bigBlind,
+        minBuyIn: this.minBuyIn,
+        maxBuyIn: this.maxBuyIn,
+        tableName: this.tableName,
+      },
+    };
+  }
+
+  /**
+   * Get the current player actions if it's their turn.
+   * @param {string|number} playerId
+   * @returns {Object|null}
+   */
+  getActionsForPlayer(playerId) {
+    const current = this.game.getCurrentActions();
+    if (!current || String(current.playerId) !== String(playerId)) return null;
+    return current;
+  }
+
+  /**
+   * Get player's private cards.
+   * @param {string|number} playerId
+   * @returns {number[]|null}
+   */
+  getPlayerCards(playerId) {
+    return this.game.getPlayerCards(playerId);
+  }
+
+  /**
+   * Admin: Pause the table.
+   */
+  pause() {
+    this.status = TABLE_STATUS.PAUSED;
+    this.emit('table_paused', { tableId: this.tableId });
+  }
+
+  /**
+   * Admin: Resume the table.
+   */
+  resume() {
+    this.status = TABLE_STATUS.BETWEEN_HANDS;
+    this.emit('table_resumed', { tableId: this.tableId });
+    this._checkAutoStart();
+  }
+
+  /**
+   * Admin: Close the table.
+   */
+  close() {
+    this.status = TABLE_STATUS.CLOSED;
+    if (this._autoStartTimer) clearTimeout(this._autoStartTimer);
+    
+    // Cash out all players
+    const cashouts = [];
+    for (const seat of this.seats) {
+      if (seat.player && seat.stack > 0) {
+        cashouts.push({ playerId: seat.player.id, amount: seat.stack });
+      }
+      this._vacateSeat(seat);
+    }
+    
+    this.emit('table_closed', { tableId: this.tableId, cashouts });
+  }
+
+  /**
+   * Destroy and clean up timers.
+   */
+  destroy() {
+    if (this._autoStartTimer) clearTimeout(this._autoStartTimer);
+    for (const timer of this._disconnectTimers.values()) clearTimeout(timer);
+    for (const timer of this._reservationTimers.values()) clearTimeout(timer);
+    this._disconnectTimers.clear();
+    this._reservationTimers.clear();
+    this._listeners.clear();
+  }
+}
+
+// ============ EXPORTS ============
+
+module.exports = {
+  SEAT_STATUS,
+  TABLE_STATUS,
+  TableManager,
+};
