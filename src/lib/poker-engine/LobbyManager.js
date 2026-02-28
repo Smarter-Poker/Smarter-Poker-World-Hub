@@ -47,6 +47,12 @@ class LobbyManager {
    * Initialize lobby channel for broadcasting table list updates.
    */
   async initialize() {
+    // Skip channel creation if no Supabase client (memory-only mode)
+    if (!this.supabase) {
+      console.log('[LobbyManager] No Supabase client — running without lobby broadcast');
+      return;
+    }
+
     this._lobbyChannel = this.supabase.channel('lobby', {
       config: { broadcast: { self: false } },
     });
