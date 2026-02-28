@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown, StopCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { supabase } from '../../src/lib/supabase';
 // Dashboard is a static navigation menu — no live data to sync
 import { canAccessRoute, getUpgradeTier, getTierConfig, hasFeature } from '../../src/lib/commander/tierConfig';
 
@@ -153,19 +154,55 @@ export default function CommanderDashboard() {
   }, [router.isReady, router.query.card]);
 
 
-  // Auth guard
+  // Auth guard — validate localStorage AND Supabase session
   useEffect(() => {
-    const stored = localStorage.getItem('commander_staff');
-    if (!stored) { if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { }); return; }
-    try {
-      const data = JSON.parse(stored);
-      if (!data.venue_id) { if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { }); return; }
-      setStaff(data);
-    } catch { if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { }); }
-    try {
-      const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
-      if (sub.tier) setCurrentTier(sub.tier);
-    } catch { }
+    async function validateSession() {
+      const stored = localStorage.getItem('commander_staff');
+      if (!stored) {
+        if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+        return;
+      }
+      try {
+        const data = JSON.parse(stored);
+        if (!data.venue_id) {
+          if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+          return;
+        }
+        setStaff(data);
+      } catch {
+        if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+        return;
+      }
+
+      // Validate Supabase session is alive — refresh if expired
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // Try to refresh
+          const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+          if (!refreshed) {
+            // Session truly expired — check if Remember Me was set
+            const remembered = localStorage.getItem('commander_remember');
+            if (!remembered) {
+              // Not remembered — clear and redirect
+              localStorage.removeItem('commander_staff');
+              localStorage.removeItem('commander_venue');
+              localStorage.removeItem('commander_subscription');
+              if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+            }
+            // If remembered, keep the localStorage data — login page will handle re-auth
+          }
+        }
+      } catch (err) {
+        console.warn('[Dashboard] Session validation error:', err);
+      }
+
+      try {
+        const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
+        if (sub.tier) setCurrentTier(sub.tier);
+      } catch { }
+    }
+    validateSession();
   }, [router]);
 
   // Hard Stop countdown
