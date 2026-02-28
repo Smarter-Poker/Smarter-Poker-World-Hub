@@ -192,7 +192,7 @@ export default function Leaderboard() {
     // ═══════════════════════════════════════════════════════════════════════════
     const S = {
         page: { minHeight: '100vh', background: FB.background, paddingBottom: '80px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
-        container: { padding: '16px 20px 40px', maxWidth: '600px', margin: '0 auto' },
+        container: { padding: '16px 20px 100px', maxWidth: '600px', margin: '0 auto' },
         backBtn: { background: FB.cardBg, border: `1px solid ${FB.border}`, color: FB.primary, padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', marginBottom: '16px', fontSize: '14px', fontWeight: 600 },
         pageTitle: { fontSize: '24px', fontWeight: 700, color: FB.textPrimary, marginBottom: '20px' },
         loading: { textAlign: 'center', padding: '60px 0', color: FB.textSecondary, fontSize: '15px' },

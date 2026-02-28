@@ -8,11 +8,15 @@
  *   Self-tab broadcasts are suppressed via tab ID.
  *
  * Layer 2: Supabase Realtime (cross-device, ~1s)
- *   Subscribes to postgres_changes on shared Commander tables.
- *   Auto-reconnects on channel errors.
+ *   Uses a SINGLETON channel manager — one Supabase channel per venue
+ *   shared across all hook instances in the same tab. Automatically
+ *   expands the table subscription set when new subscribers need
+ *   additional tables.
  *
  * Hardening Features:
  *   ✓ Entity-aware filtering — only refetch when YOUR entities change
+ *   ✓ Singleton channel — one channel per venue per tab (no duplicates)
+ *   ✓ Selective subscriptions — pages only listen to tables they need
  *   ✓ Tab visibility awareness — skips refetch when hidden, catches up on focus
  *   ✓ Online/offline resilience — refetches when network comes back
  *   ✓ Self-tab suppression — won't refetch from your own broadcasts
@@ -27,7 +31,7 @@
  *   // Subscribe to ALL entities (backward compatible):
  *   useCommanderSync(venueId, fetchData);
  *
- *   // Subscribe to SPECIFIC entities only:
+ *   // Subscribe to SPECIFIC entities only (selective subscription):
  *   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games'] });
  *
  *   // Writer side — broadcast after mutation:
@@ -50,7 +54,6 @@ const TAB_ID = typeof crypto !== 'undefined' && crypto.randomUUID
     : `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 // ─── Supabase table → entity mapping ───────────────────────────
-// Maps Supabase table names to Commander entity names for Layer 2 filtering
 const TABLE_TO_ENTITY = {
     commander_tables: 'tables',
     commander_games: 'games',
@@ -66,8 +69,171 @@ const TABLE_TO_ENTITY = {
     commander_incidents: 'incidents',
 };
 
-// Default Supabase tables to subscribe to (covers all core entities)
-const DEFAULT_SUPABASE_TABLES = Object.keys(TABLE_TO_ENTITY);
+// ─── Entity → Supabase tables reverse map (Optimization 2) ────
+const ENTITY_TO_TABLES = {
+    tables: ['commander_tables', 'commander_seats'],
+    games: ['commander_games'],
+    waitlist: ['commander_waitlist'],
+    floor_calls: ['commander_floor_calls'],
+    settings: ['commander_settings'],
+    staff: ['commander_staff'],
+    members: ['commander_members'],
+    dealers: ['commander_dealers'],
+    tournaments: ['commander_tournaments', 'commander_tournament_entries'],
+    incidents: ['commander_incidents'],
+};
+
+// All Supabase tables (used when no entity filter is specified)
+const ALL_SUPABASE_TABLES = Object.keys(TABLE_TO_ENTITY);
+
+// ─── Singleton Channel Manager (Optimization 1) ───────────────
+// Shares ONE Supabase Realtime channel per venue across all hook
+// instances in the same browser tab. Creates on first subscriber,
+// destroys when last subscriber leaves.
+const channelManager = {
+    // venueId → { channel, subscribers: Set<callback>, tables: Set<string>, reconnects: number }
+    venues: {},
+
+    /**
+     * Register a subscriber for a venue.
+     * @param {string|number} venueId
+     * @param {string[]} tables - Supabase tables this subscriber needs
+     * @param {function} callback - (entity) => void
+     */
+    subscribe(venueId, tables, callback) {
+        const key = String(venueId);
+        const client = supabase;
+        if (!client) return;
+
+        if (!this.venues[key]) {
+            // First subscriber for this venue — create the entry
+            this.venues[key] = {
+                channel: null,
+                subscribers: new Set(),
+                tables: new Set(tables),
+                reconnects: 0,
+            };
+            this.venues[key].subscribers.add(callback);
+            this._connect(key);
+        } else {
+            const entry = this.venues[key];
+            entry.subscribers.add(callback);
+
+            // Check if new subscriber needs tables we don't have yet
+            const hadAllTables = tables.every(t => entry.tables.has(t));
+            if (!hadAllTables) {
+                tables.forEach(t => entry.tables.add(t));
+                // Reconnect with expanded table set
+                this._connect(key);
+            }
+        }
+    },
+
+    /**
+     * Unregister a subscriber. Tears down channel when last one leaves.
+     * @param {string|number} venueId
+     * @param {function} callback
+     */
+    unsubscribe(venueId, callback) {
+        const key = String(venueId);
+        const entry = this.venues[key];
+        if (!entry) return;
+
+        entry.subscribers.delete(callback);
+
+        if (entry.subscribers.size === 0) {
+            // Last subscriber gone — tear down the channel
+            this._disconnect(key);
+            delete this.venues[key];
+        }
+    },
+
+    /** @private Connect/reconnect the Supabase channel for a venue */
+    _connect(venueKey) {
+        const client = supabase;
+        if (!client) return;
+
+        const entry = this.venues[venueKey];
+        if (!entry) return;
+
+        // Clean up existing channel
+        if (entry.channel) {
+            try { client.removeChannel(entry.channel); } catch { /* ignore */ }
+            entry.channel = null;
+        }
+
+        const channel = client.channel(`commander-sync:${venueKey}:${Date.now()}`);
+
+        entry.tables.forEach(table => {
+            channel.on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table,
+                    // commander_seats has no venue_id column
+                    filter: table === 'commander_seats' ? undefined : `venue_id=eq.${venueKey}`,
+                },
+                () => {
+                    // Map Supabase table name → entity name
+                    const entity = TABLE_TO_ENTITY[table] || table;
+                    // Notify ALL subscribers (each does its own entity filtering)
+                    entry.subscribers.forEach(cb => {
+                        try { cb(entity); } catch { /* subscriber error — don't break others */ }
+                    });
+                }
+            );
+        });
+
+        channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                entry.reconnects = 0;
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                if (entry.reconnects < MAX_RECONNECT) {
+                    entry.reconnects++;
+                    const delay = RECONNECT_DELAY * entry.reconnects;
+                    setTimeout(() => {
+                        // Only reconnect if this entry still exists and channel hasn't changed
+                        if (this.venues[venueKey] && this.venues[venueKey].channel === channel) {
+                            this._connect(venueKey);
+                        }
+                    }, delay);
+                }
+            }
+        });
+
+        entry.channel = channel;
+    },
+
+    /** @private Disconnect a venue's channel */
+    _disconnect(venueKey) {
+        const client = supabase;
+        if (!client) return;
+
+        const entry = this.venues[venueKey];
+        if (!entry?.channel) return;
+
+        try { client.removeChannel(entry.channel); } catch { /* ignore */ }
+        entry.channel = null;
+    },
+};
+
+/**
+ * Compute the minimal set of Supabase tables needed for a set of entities.
+ * Returns ALL tables if no entities are specified (backward compatible).
+ * @param {string[]|null} entities
+ * @returns {string[]}
+ */
+function computeTablesForEntities(entities) {
+    if (!entities || entities.length === 0) return ALL_SUPABASE_TABLES;
+    const tableSet = new Set();
+    entities.forEach(entity => {
+        const tables = ENTITY_TO_TABLES[entity];
+        if (tables) tables.forEach(t => tableSet.add(t));
+    });
+    // Fallback: if no valid entities matched, subscribe to all
+    return tableSet.size > 0 ? Array.from(tableSet) : ALL_SUPABASE_TABLES;
+}
 
 /**
  * Broadcast a data change to all other open Commander tabs.
@@ -98,25 +264,24 @@ export function broadcastChange(entity) {
  * @param {string|number} venueId - Venue to subscribe to
  * @param {function} onRefetch - Called when data changes are detected
  * @param {object} [opts] - Options
- * @param {string[]} [opts.entities] - Entity types to listen for (for filtering)
- * @param {string[]} [opts.tables] - Override Supabase tables to subscribe to
+ * @param {string[]} [opts.entities] - Entity types to listen for (selective subscription)
+ * @param {string[]} [opts.tables] - Override Supabase tables to subscribe to (advanced)
  */
 export function useCommanderSync(venueId, onRefetch, opts = {}) {
     const refetchRef = useRef(onRefetch);
     refetchRef.current = onRefetch;
 
-    const channelRef = useRef(null);
     const lastRefetchRef = useRef(0);
     const pendingWhileHiddenRef = useRef(false);
-    const reconnectCountRef = useRef(0);
-    const pendingTimerRef = useRef(null); // Track scheduled throttle timer
+    const pendingTimerRef = useRef(null);
 
     // Entity filter — if provided, only refetch when matching entity changes
     const entitiesRef = useRef(opts.entities || null);
     entitiesRef.current = opts.entities || null;
 
     // ── Throttled refetch ───────────────────────────────────────
-    const throttledRefetch = (entity) => {
+    const throttledRefetchRef = useRef(null);
+    throttledRefetchRef.current = (entity) => {
         // Entity filtering — skip if this hook doesn't care about this entity
         if (entitiesRef.current && entity && !entitiesRef.current.includes(entity)) {
             return;
@@ -146,6 +311,12 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
         }
     };
 
+    // Stable callback wrapper for the channel manager (never changes identity)
+    const stableCallbackRef = useRef(null);
+    if (!stableCallbackRef.current) {
+        stableCallbackRef.current = (entity) => throttledRefetchRef.current?.(entity);
+    }
+
     // ── Layer 1: BroadcastChannel (same browser, instant) ───────
     useEffect(() => {
         if (typeof BroadcastChannel === 'undefined') return;
@@ -161,7 +332,7 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
             // Guard against stale messages (older than 10s)
             if (msg.ts && Date.now() - msg.ts > 10000) return;
 
-            throttledRefetch(msg.entity);
+            throttledRefetchRef.current?.(msg.entity);
         };
 
         bc.onmessageerror = () => {
@@ -208,68 +379,17 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Layer 2: Supabase Realtime (cross-device) ───────────────
+    // ── Layer 2: Supabase Realtime via Singleton Channel Manager ─
     useEffect(() => {
         if (!venueId) return;
-        const client = supabase;
-        if (!client) return;
 
-        const listenTables = opts.tables || DEFAULT_SUPABASE_TABLES;
+        // Compute the minimal table set for this subscriber
+        const neededTables = opts.tables || computeTablesForEntities(opts.entities);
 
-        const connectChannel = () => {
-            // Clean up any existing channel first
-            if (channelRef.current) {
-                try { client.removeChannel(channelRef.current); } catch { /* ignore */ }
-                channelRef.current = null;
-            }
-
-            const channel = client.channel(`commander-sync:${venueId}:${Date.now()}`);
-
-            listenTables.forEach(table => {
-                channel.on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table,
-                        // commander_seats has no venue_id column
-                        filter: table === 'commander_seats' ? undefined : `venue_id=eq.${venueId}`,
-                    },
-                    () => {
-                        // Map Supabase table name → entity name for filtering
-                        const entity = TABLE_TO_ENTITY[table] || table;
-                        throttledRefetch(entity);
-                    }
-                );
-            });
-
-            channel.subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    reconnectCountRef.current = 0; // Reset on success
-                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                    // Auto-reconnect with backoff
-                    if (reconnectCountRef.current < MAX_RECONNECT) {
-                        reconnectCountRef.current++;
-                        const delay = RECONNECT_DELAY * reconnectCountRef.current;
-                        setTimeout(() => {
-                            if (channelRef.current === channel) {
-                                connectChannel();
-                            }
-                        }, delay);
-                    }
-                }
-            });
-
-            channelRef.current = channel;
-        };
-
-        connectChannel();
+        channelManager.subscribe(venueId, neededTables, stableCallbackRef.current);
 
         return () => {
-            if (channelRef.current) {
-                try { client.removeChannel(channelRef.current); } catch { /* ignore */ }
-                channelRef.current = null;
-            }
+            channelManager.unsubscribe(venueId, stableCallbackRef.current);
         };
     }, [venueId]); // eslint-disable-line react-hooks/exhaustive-deps
 }

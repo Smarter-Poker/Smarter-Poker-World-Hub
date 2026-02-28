@@ -114,7 +114,7 @@ export default function LeaderboardDisplay() {
         </div>
 
         {/* Leaderboard table */}
-        <div className="flex-1 overflow-hidden px-8 py-4">
+        <div className="flex-1 overflow-y-auto min-h-0 px-8 py-4">
           {!current || current.entries.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <p className="text-3xl text-white/20">No Leaderboard Data</p>
