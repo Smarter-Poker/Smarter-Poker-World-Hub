@@ -42,15 +42,31 @@ const MAX_EMPTY_TABLE_AGE_MS = 600000;    // Remove empty tables after 10 min
 
 // Variant mapping: DB game_type → engine variant
 const VARIANT_MAP = {
+  // Hold'em variants
   'holdem': GAME_VARIANT.HOLDEM,
   'nlh': GAME_VARIANT.HOLDEM,
   'no_limit_holdem': GAME_VARIANT.HOLDEM,
+  'texas_holdem': GAME_VARIANT.HOLDEM,
+  // Omaha 4-card
   'omaha': GAME_VARIANT.OMAHA4,
+  'omaha4': GAME_VARIANT.OMAHA4,
   'plo': GAME_VARIANT.OMAHA4,
+  'plo4': GAME_VARIANT.OMAHA4,
+  'pot_limit_omaha': GAME_VARIANT.OMAHA4,
+  // Omaha 5-card
   'omaha5': GAME_VARIANT.OMAHA5,
+  'plo5': GAME_VARIANT.OMAHA5,
+  // Omaha 6-card
   'omaha6': GAME_VARIANT.OMAHA6,
+  'plo6': GAME_VARIANT.OMAHA6,
+  // Omaha Hi-Lo
   'omaha_hi_lo': GAME_VARIANT.OMAHA_HILO,
+  'omaha_hilo': GAME_VARIANT.OMAHA_HILO,
+  'plo8': GAME_VARIANT.OMAHA_HILO,
+  'omaha8': GAME_VARIANT.OMAHA_HILO,
+  // Short Deck
   'short_deck': GAME_VARIANT.SHORT_DECK,
+  '6plus': GAME_VARIANT.SHORT_DECK,
 };
 
 const STRUCTURE_MAP = {
@@ -226,6 +242,85 @@ class GameController {
       console.error('[GameController] Engine table creation failed:', err.message);
       return { success: false, error: err.message };
     }
+  }
+
+  /**
+   * Connect to a Club Arena table (from 'tables' DB).
+   * If the table already has an in-memory engine instance, returns it.
+   * Otherwise, reads config from the 'tables' DB and creates one.
+   * This bridges Club Arena's table management with the poker engine.
+   * 
+   * @param {string} clubTableId - UUID from the 'tables' DB
+   * @returns {{ success: boolean, tableId?: string, error?: string }}
+   */
+  async connectToClubTable(clubTableId) {
+    await this._ensureInit();
+
+    // Already connected?
+    if (this.lobby.tables.has(clubTableId)) {
+      return { success: true, tableId: clubTableId, existing: true };
+    }
+
+    // Read from Club Arena 'tables' DB
+    if (!this.supabase) {
+      return { success: false, error: 'No database connection' };
+    }
+
+    try {
+      const { data: row, error } = await this.supabase
+        .from('tables')
+        .select('*')
+        .eq('id', clubTableId)
+        .single();
+
+      if (error || !row) {
+        return { success: false, error: error?.message || 'Table not found in club database' };
+      }
+
+      // Map Club Arena columns → engine config
+      const variant = row.game_variant || row.game_type || 'nlh';
+      const config = {
+        tableId: row.id,
+        name: row.name,
+        tableName: row.name,
+        variant: VARIANT_MAP[variant] || GAME_VARIANT.HOLDEM,
+        bettingStructure: this._inferBettingStructure(variant),
+        maxSeats: row.max_players || 9,
+        smallBlind: row.small_blind || 1,
+        bigBlind: row.big_blind || 2,
+        minBuyIn: row.min_buy_in || row.min_buyin || (row.big_blind || 2) * 40,
+        maxBuyIn: row.max_buy_in || row.max_buyin || (row.big_blind || 2) * 200,
+        ante: row.ante || 0,
+        rakePercent: row.rake_percent || 0,
+        rakeCap: row.rake_cap_bb || 0,
+        clubId: row.club_id || null,
+        actionTime: row.action_time_seconds || 30,
+      };
+
+      await this.lobby.createTable(config);
+
+      // Update Club Arena table status
+      await this.supabase
+        .from('tables')
+        .update({ status: 'active' })
+        .eq('id', clubTableId);
+
+      console.log(`[GameController] Connected to club table: ${clubTableId} (${row.name})`);
+      return { success: true, tableId: clubTableId, name: row.name };
+    } catch (err) {
+      console.error('[GameController] Club table connect failed:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Infer betting structure from variant string.
+   * @private
+   */
+  _inferBettingStructure(variant) {
+    const v = (variant || '').toLowerCase();
+    if (v.startsWith('plo') || v.startsWith('omaha')) return BETTING_STRUCTURES.POT_LIMIT;
+    return BETTING_STRUCTURES.NO_LIMIT;
   }
 
   /**
