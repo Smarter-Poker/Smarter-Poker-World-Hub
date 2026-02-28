@@ -47,51 +47,48 @@ export default async function handler(req, res) {
       });
     }
 
-    // Try to find the staff member: by staff record id first, then by user_id + venue
-    let authStaff = null;
+    // Auth: verify the session has owner/manager access to this venue
+    // The login flow stores { user_id, role, venue_id } without a commander_staff table ID,
+    // so we check multiple ways to authenticate.
+    let authRole = null;
+
+    // Method 1: Look up by staff record ID
     if (sessionData.id) {
-      const { data, error: err } = await supabase
+      const { data } = await supabase
         .from('commander_staff')
-        .select('id, venue_id, role, is_active')
+        .select('id, venue_id, role')
         .eq('id', sessionData.id)
         .eq('is_active', true)
         .single();
-      if (!err && data) authStaff = data;
+      if (data && String(data.venue_id) === String(venueId)) {
+        authRole = data.role;
+      }
     }
-    if (!authStaff && sessionData.user_id) {
-      const { data, error: err } = await supabase
+
+    // Method 2: Look up by Supabase user_id
+    if (!authRole && sessionData.user_id) {
+      const { data } = await supabase
         .from('commander_staff')
-        .select('id, venue_id, role, is_active')
+        .select('id, venue_id, role')
         .eq('user_id', sessionData.user_id)
         .eq('venue_id', venueId)
         .eq('is_active', true)
         .limit(1);
-      if (!err && data?.[0]) authStaff = data[0];
-    }
-    // Fallback: if session claims owner/manager role and has correct venue, allow access
-    if (!authStaff && sessionData.role && ['owner', 'manager'].includes(sessionData.role) && String(sessionData.venue_id) === String(venueId)) {
-      authStaff = { id: sessionData.id || sessionData.user_id, venue_id: parseInt(venueId), role: sessionData.role, is_active: true };
+      if (data?.[0]) {
+        authRole = data[0].role;
+      }
     }
 
-    if (!authStaff) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
-      });
+    // Method 3: Trust the session role if venue matches
+    // Safe because data returned is already scoped to venueId in the query below
+    if (!authRole && sessionData.role && String(sessionData.venue_id) === String(venueId)) {
+      authRole = sessionData.role;
     }
 
-    // Verify staff belongs to this venue and has manager role
-    if (String(authStaff.venue_id) !== String(venueId)) {
+    if (!authRole || !['owner', 'manager'].includes(authRole)) {
       return res.status(403).json({
         success: false,
-        error: { code: 'FORBIDDEN', message: 'Not authorized for this venue' }
-      });
-    }
-
-    if (!['owner', 'manager'].includes(authStaff.role)) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'FORBIDDEN', message: 'Manager role required' }
+        error: { code: 'FORBIDDEN', message: 'Owner or Manager role required' }
       });
     }
 

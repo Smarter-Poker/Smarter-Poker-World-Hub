@@ -69,17 +69,6 @@ function darkenColor(hex, amount = 40) {
   } catch { return hex; }
 }
 
-// Check if a color is light (for text contrast)
-function isLightColor(hex) {
-  try {
-    const h = hex.replace('#', '');
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150;
-  } catch { return false; }
-}
-
 const DEFAULT_THEME = {
   background: '#0D192E', text: '#ffffff', accent: '#1877F2',
   blinds: '#ffffff', headerBg: 'rgba(0,0,0,0.3)',
@@ -109,8 +98,6 @@ export default function ClockDisplay() {
   const controlsTimeoutRef = useRef(null);
   const cycleRef = useRef(null);
   const prevLevelRef = useRef(null);
-  const audioRef = useRef(null);
-  const storageKey = `td_clock_${id}`;
 
   // Restore from sessionStorage on mount (eliminates flash on refresh)
   useEffect(() => {
@@ -400,7 +387,6 @@ export default function ClockDisplay() {
   // Color-up detection: chips whose value * 20 <= current small blind are obsolete
   const smallBlind = blinds.small_blind || 0;
   const colorUpChips = chipDenoms.filter(c => smallBlind >= c.value * 20);
-  const activeChips = chipDenoms.filter(c => smallBlind < c.value * 20);
 
   // Rebuy/Add-on countdown
   const rebuyEndLevel = t.rebuy_end_level || t.rebuy_levels || null;
@@ -491,8 +477,8 @@ export default function ClockDisplay() {
               <span>{new Date(t.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} — </span>
             )}
             {formatMoney(t.buyin_amount || 0)} Buy-in
-            {t.rebuy_allowed ? `, ${formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy` : ''}
-            , {t.addon_allowed ? 'Add-ons allowed' : 'No add-ons'}
+            {(t.allows_rebuys || t.rebuy_allowed) && <>, {formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy</>}
+            {(t.allows_addon || t.addon_allowed) ? ', Add-ons allowed' : ', No add-ons'}
           </div>
         </div>
 
