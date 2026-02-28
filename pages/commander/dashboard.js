@@ -73,7 +73,7 @@ const CARDS = [
     glow: '#10B981',
     features: [
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
-      { label: 'Clock In / Out', href: '/commander/time-clock', icon: '/images/commander/icons/mg-time-billing.png' },
+      { label: 'Clock In / Out', href: '/commander/time-clock', icon: '/images/commander/icons/mg-time-clock.png' },
       { label: 'Poker Room Functions', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/mg-staff-schedule.png' },
       { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-shift-handoff.png' },
