@@ -325,7 +325,138 @@ export default function CommanderSettingsPage() {
             </section>
 
 
-            {/* Navigation Links */}
+            {/* Time Billing */}
+            <section className="cmd-panel">
+              <div className="p-4 border-b border-[#3A3B3C]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-[#1877F2]" />
+                  </div>
+                  <h2 className="font-semibold text-white">Time Billing</h2>
+                </div>
+              </div>
+              <div className="divide-y divide-[#3A3B3C]">
+                <div className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-white">Venue Type</p>
+                    <p className="text-sm text-[#B0B3B8]">Texas = Prepaid Time, Charity = No Time Billing</p>
+                  </div>
+                  <div className="flex rounded-lg overflow-hidden border border-[#3A3B3C]">
+                    {['texas', 'charity'].map(t => (
+                      <button key={t} onClick={() => handleChange('venue_type', t)}
+                        disabled={!canManageSettings}
+                        className={`px-4 py-2 text-sm font-medium capitalize ${settings.venue_type === t ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'} disabled:opacity-50`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <SettingNumber
+                  label="Time Rate ($/hour)"
+                  description="Hourly Rate Charged For Table Time"
+                  value={settings.time_billing_rate}
+                  onChange={(v) => handleChange('time_billing_rate', v)}
+                  min={1}
+                  max={100}
+                  disabled={!canManageSettings || settings.venue_type !== 'texas'}
+                />
+                <SettingNumber
+                  label="Auto-Comp Rate ($/hour)"
+                  description="Comps Earned Per Hour Of Play"
+                  value={settings.auto_comp_rate}
+                  onChange={(v) => handleChange('auto_comp_rate', v)}
+                  min={0}
+                  max={25}
+                  disabled={!canManageSettings}
+                />
+              </div>
+            </section>
+
+            {/* Bulk Time Packages */}
+            <section className="cmd-panel">
+              <div className="p-4 border-b border-[#3A3B3C]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
+                    <Package className="w-5 h-5 text-[#F59E0B]" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="font-semibold text-white">Bulk Time Packages</h2>
+                    <p className="text-xs text-[#B0B3B8]">Deals for players who buy time in bulk</p>
+                  </div>
+                  {canManageSettings && (
+                    <button onClick={() => {
+                      const pkgs = [...(settings.bulk_time_packages || [])];
+                      pkgs.push({ name: '', hours: 5, price: 50, active: true });
+                      handleChange('bulk_time_packages', pkgs);
+                    }} className="px-3 py-1.5 rounded-lg bg-[#1877F2] text-white text-xs font-medium">
+                      + Add Package
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="divide-y divide-[#3A3B3C]">
+                {(!settings.bulk_time_packages || settings.bulk_time_packages.length === 0) ? (
+                  <div className="p-6 text-center">
+                    <p className="text-sm text-[#B0B3B8]">No bulk packages configured</p>
+                    <p className="text-xs text-[#64748B] mt-1">Add packages for discounted bulk time purchases</p>
+                  </div>
+                ) : (
+                  settings.bulk_time_packages.map((pkg, idx) => (
+                    <div key={idx} className="p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <input type="text" value={pkg.name} placeholder={`Package ${idx + 1}`}
+                          onChange={e => {
+                            const pkgs = [...settings.bulk_time_packages];
+                            pkgs[idx] = { ...pkgs[idx], name: e.target.value };
+                            handleChange('bulk_time_packages', pkgs);
+                          }}
+                          disabled={!canManageSettings}
+                          className="flex-1 px-3 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm focus:outline-none focus:border-[#1877F2] disabled:opacity-50" />
+                        <button onClick={() => {
+                          const pkgs = settings.bulk_time_packages.filter((_, i) => i !== idx);
+                          handleChange('bulk_time_packages', pkgs);
+                        }} disabled={!canManageSettings}
+                          className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg text-xs font-bold disabled:opacity-50">X</button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-[#B0B3B8] block mb-1">Hours</label>
+                          <input type="number" value={pkg.hours} min={1} max={100}
+                            onChange={e => {
+                              const pkgs = [...settings.bulk_time_packages];
+                              pkgs[idx] = { ...pkgs[idx], hours: parseInt(e.target.value) || 1 };
+                              handleChange('bulk_time_packages', pkgs);
+                            }}
+                            disabled={!canManageSettings}
+                            className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm text-center focus:outline-none focus:border-[#1877F2] disabled:opacity-50" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#B0B3B8] block mb-1">Price ($)</label>
+                          <input type="number" value={pkg.price} min={0} step={0.01}
+                            onChange={e => {
+                              const pkgs = [...settings.bulk_time_packages];
+                              pkgs[idx] = { ...pkgs[idx], price: parseFloat(e.target.value) || 0 };
+                              handleChange('bulk_time_packages', pkgs);
+                            }}
+                            disabled={!canManageSettings}
+                            className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm text-center focus:outline-none focus:border-[#1877F2] disabled:opacity-50" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#B0B3B8] block mb-1">Per Hr</label>
+                          <div className="px-2 py-2 bg-[#242526] border border-[#3A3B3C] rounded-lg text-sm text-center font-mono">
+                            <span className={pkg.hours > 0 && (pkg.price / pkg.hours) < settings.time_billing_rate ? 'text-[#31A24C]' : 'text-[#B0B3B8]'}>
+                              ${pkg.hours > 0 ? (pkg.price / pkg.hours).toFixed(2) : '0.00'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+
             <section className="cmd-panel divide-y divide-[#3A3B3C]">
               <button onClick={() => router.push('/commander/membership-plans')}
                 className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
