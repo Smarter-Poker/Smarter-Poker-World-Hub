@@ -82,6 +82,7 @@ export default function TableTabletsPage() {
     const [venueName, setVenueName] = useState('');
     // Fullscreen table popup
     const [fullscreenTable, setFullscreenTable] = useState(null);
+    const [dealerMap, setDealerMap] = useState({}); // table_number -> dealer_name
     // Dealer scan state
     const [scanningTable, setScanningTable] = useState(null);
     const [scanCameraActive, setScanCameraActive] = useState(false);
@@ -161,6 +162,22 @@ export default function TableTabletsPage() {
 
         lastFetchAt.current = Date.now();
         setLoading(false);
+
+        // Fetch active dealer rotations — maps table_number to dealer_name
+        try {
+            const rotRes = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers });
+            const rotData = await rotRes.json();
+            if (rotData.success) {
+                const rots = rotData.data?.rotations || rotData.data || [];
+                const map = {};
+                (Array.isArray(rots) ? rots : []).forEach(r => {
+                    if (r.table_number && !r.ended_at) {
+                        map[r.table_number] = r.dealer_name || r.commander_dealers?.name || 'Dealer';
+                    }
+                });
+                setDealerMap(map);
+            }
+        } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
     }, [venueId]);
 
     useEffect(() => { if (venueId) fetchAll(); }, [venueId, fetchAll]);
@@ -367,7 +384,7 @@ export default function TableTabletsPage() {
                             fontSize: isFullscreen ? 32 : 28, fontWeight: 900, color: '#fff',
                         }}>D</div>
                         <div style={{ fontSize: isFullscreen ? 12 : 11, fontWeight: 700, color: '#1877F2', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {game?.dealer_name || game?.dealer_staff_id ? 'Dealer' : 'No Dealer'}
+                            {dealerMap[tNum] || game?.dealer_name || 'No Dealer'}
                         </div>
                     </div>
 

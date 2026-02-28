@@ -146,18 +146,42 @@ export default async function handler(req, res) {
                         } catch (e) { /* default to texas */ }
 
                         // Fetch active dealer rotations for all tables in one batch
+                        // Rotations may have table_id, table_number, or both — query by both
                         const tableNumbers = Object.values(tableMap).map(t => t.table_number).filter(Boolean);
                         let dealerRotationMap = {};
-                        if (tableIds.length > 0) {
+                        if (tableIds.length > 0 || tableNumbers.length > 0) {
                             try {
-                                const { data: rotations } = await supabase
-                                    .from('commander_dealer_rotations')
-                                    .select('table_id, commander_dealers:dealer_id (id, name, display_name)')
-                                    .in('table_id', tableIds)
-                                    .is('ended_at', null);
-                                (rotations || []).forEach(r => {
-                                    dealerRotationMap[r.table_id] = r.commander_dealers?.display_name || r.commander_dealers?.name || null;
-                                });
+                                // Query 1: by table_id (if rotations have it)
+                                if (tableIds.length > 0) {
+                                    const { data: rotById } = await supabase
+                                        .from('commander_dealer_rotations')
+                                        .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name, display_name)')
+                                        .in('table_id', tableIds)
+                                        .is('ended_at', null);
+                                    (rotById || []).forEach(r => {
+                                        const name = r.commander_dealers?.display_name || r.commander_dealers?.name || r.dealer_name || null;
+                                        if (name) dealerRotationMap[r.table_id] = name;
+                                    });
+                                }
+                                // Query 2: by table_number (if rotations only have table_number, no table_id)
+                                if (tableNumbers.length > 0) {
+                                    const { data: rotByNum } = await supabase
+                                        .from('commander_dealer_rotations')
+                                        .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name, display_name)')
+                                        .eq('venue_id', venueId)
+                                        .in('table_number', tableNumbers)
+                                        .is('ended_at', null);
+                                    // Build a reverse map: table_number → table_id
+                                    const numToId = {};
+                                    Object.entries(tableMap).forEach(([tid, t]) => { numToId[t.table_number] = tid; });
+                                    (rotByNum || []).forEach(r => {
+                                        const name = r.commander_dealers?.display_name || r.commander_dealers?.name || r.dealer_name || null;
+                                        const resolvedTableId = r.table_id || numToId[r.table_number];
+                                        if (name && resolvedTableId && !dealerRotationMap[resolvedTableId]) {
+                                            dealerRotationMap[resolvedTableId] = name;
+                                        }
+                                    });
+                                }
                             } catch (e) { /* no dealer data */ }
                         }
 

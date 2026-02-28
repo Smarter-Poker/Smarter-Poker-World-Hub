@@ -65,6 +65,7 @@ export default function CommanderTablesPage() {
   const [tables, setTables] = useState([]);
   const [games, setGames] = useState([]);
   const [sessions, setSessions] = useState({}); // keyed by table_number
+  const [dealerMap, setDealerMap] = useState({}); // table_number -> dealer_name
   const [loading, setLoading] = useState(true);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -137,6 +138,22 @@ export default function CommanderTablesPage() {
     } catch { }
 
     setLoading(false);
+
+    // Fetch active dealer rotations — maps table_number to dealer_name
+    try {
+      const rotRes = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers });
+      const rotData = await rotRes.json();
+      if (rotData.success) {
+        const rots = rotData.data?.rotations || rotData.data || [];
+        const map = {};
+        (Array.isArray(rots) ? rots : []).forEach(r => {
+          if (r.table_number && !r.ended_at) {
+            map[r.table_number] = r.dealer_name || r.commander_dealers?.name || 'Dealer';
+          }
+        });
+        setDealerMap(map);
+      }
+    } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
   }, [venueId]);
 
   useEffect(() => { if (venueId) fetchTables(); }, [venueId, fetchTables]);
@@ -477,7 +494,7 @@ export default function CommanderTablesPage() {
                                       fontSize: 28, fontWeight: 900, color: '#fff',
                                     }}>D</div>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#1877F2', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {game.dealer_name || 'No Dealer'}
+                                      {dealerMap[tNum] || game.dealer_name || 'No Dealer'}
                                     </div>
                                   </div>
 

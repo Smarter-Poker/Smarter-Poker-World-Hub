@@ -113,6 +113,17 @@ async function createRotation(req, res) {
       .eq('is_active', true)
       .single();
 
+    // Look up table_number from table_id for complete rotation records
+    let resolvedTableNumber = null;
+    if (table_id) {
+      const { data: tbl } = await supabase
+        .from('commander_tables')
+        .select('table_number')
+        .eq('id', parseInt(table_id))
+        .single();
+      resolvedTableNumber = tbl?.table_number || null;
+    }
+
     if (dealerError || !dealer) {
       return res.status(404).json({
         success: false,
@@ -136,7 +147,9 @@ async function createRotation(req, res) {
           .insert({
             venue_id: venue_id,
             dealer_id,
+            dealer_name: dealer.name,
             table_id: parseInt(table_id),
+            table_number: resolvedTableNumber,
             game_id: game_id ? parseInt(game_id) : null,
             started_at: new Date().toISOString()
           })
@@ -223,7 +236,9 @@ async function createRotation(req, res) {
       .insert({
         venue_id: venue_id,
         dealer_id,
+        dealer_name: dealer.name,
         table_id: parseInt(table_id),
+        table_number: resolvedTableNumber,
         game_id: game_id ? parseInt(game_id) : null,
         started_at: new Date().toISOString()
       })

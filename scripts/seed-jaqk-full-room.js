@@ -428,6 +428,7 @@ const DEALER_ROSTER = [
                 venue_id: VENUE_ID,
                 dealer_id: dealer.id,
                 dealer_name: dealer.name,
+                table_id: game.table_id,  // Store table_id for social pages API query
                 table_number: parseInt(tableNum) || (i + 1),
                 rotation_date: today,
                 started_at: new Date(Date.now() - rand(10, 45) * 60000).toISOString(), // started 10-45 min ago
