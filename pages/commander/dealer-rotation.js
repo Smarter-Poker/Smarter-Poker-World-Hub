@@ -1,275 +1,486 @@
 /**
- * Dealer Rotation Manager
+ * Dealer Rotation Manager — Complete Rebuild
  * /commander/dealer-rotation
  * 
  * Floor managers use this to:
- * - See all active dealers and their current table assignments
- * - Push dealers (rotate to next table)
- * - Send dealers on break
- * - View rotation history for the shift
- * - Auto-suggest next rotation based on time at table
+ * - See all active dealers grouped by status (Dealing / Break / Available)
+ * - Push dealers to new tables with visual countdown timer
+ * - Send dealers on break / return from break
+ * - View unassigned tables that need a dealer
+ * - See today's rotation history per dealer
+ * - Auto-refresh every 10 seconds
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  RefreshCw, Clock, Users, Loader2,
-  ArrowRightLeft, Coffee, CheckCircle2, ChevronRight
+  RefreshCw, Clock, Users, Loader2, ArrowRightLeft, Coffee,
+  CheckCircle2, AlertTriangle, RotateCcw, ChevronDown, ChevronUp, History
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
+const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
+const PUSH_WARNING = 25;   // minutes before showing amber warning
+
 function minutesSince(dateStr) {
   if (!dateStr) return 0;
-  return Math.floor((new Date() - new Date(dateStr)) / 60000);
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '--';
+  return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
 export default function DealerRotation() {
   const router = useRouter();
   const [dealers, setDealers] = useState([]);
   const [tables, setTables] = useState([]);
+  const [games, setGames] = useState([]);
   const [rotations, setRotations] = useState([]);
+  const [history, setHistory] = useState([]); // ended rotations for today
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  const [pushTarget, setPushTarget] = useState(null); // dealer being pushed
+  const [pushTarget, setPushTarget] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null); // dealerId being acted on
+  const [showHistory, setShowHistory] = useState(false);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
-  const getVenueId = () => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
+  const getStaff = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}'); } catch { return {}; }
   };
+  const getVenueId = () => getStaff().venue_id || '';
+  const getHeaders = () => {
+    const staff = getStaff();
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${staff.token || ''}`,
+      'x-staff-session': localStorage.getItem('commander_staff') || ''
+    };
+  };
+
+  const fetchData = useCallback(async () => {
+    try {
+      const venueId = getVenueId();
+      if (!venueId) { setLoading(false); return; }
+      const headers = getHeaders();
+
+      const [dealersRes, tablesRes, rotationsRes, gamesRes] = await Promise.all([
+        fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+        fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+        fetch(`/api/commander/games/venue/${venueId}`, { headers }).then(r => r.json()).catch(() => ({}))
+      ]);
+
+      // Parse dealers — API returns { dealers: [...] } or { data: { dealers: [...] } }
+      const dealersArr = dealersRes.data?.dealers || dealersRes.dealers || (Array.isArray(dealersRes.data) ? dealersRes.data : []);
+      setDealers(dealersArr.filter(d => d.is_active !== false));
+
+      // Parse tables
+      const tablesArr = tablesRes.data?.tables || (Array.isArray(tablesRes.data) ? tablesRes.data : []);
+      setTables(tablesArr);
+
+      // Parse games
+      const gamesArr = gamesRes.data || (Array.isArray(gamesRes) ? gamesRes : []);
+      setGames(gamesArr);
+
+      // Parse rotations — API returns { rotations: [...] } — split active vs history
+      const allRotations = rotationsRes.data?.rotations || (Array.isArray(rotationsRes.data) ? rotationsRes.data : []);
+      const active = allRotations.filter(r => !r.ended_at);
+      const ended = allRotations.filter(r => r.ended_at);
+      setRotations(active);
+      setHistory(ended);
+    } catch (err) { console.error('[DealerRotation] fetch error:', err); }
+    finally { setLoading(false); }
+  }, []);
 
   useEffect(() => {
     fetchData();
     const poll = setInterval(fetchData, 10000);
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  }, [fetchData]);
 
-  const fetchData = async () => {
+  // ── Actions ──────────────────────────────────────────
+
+  const callAction = async (action, dealerId, tableId = null) => {
+    setActionLoading(dealerId);
     try {
-      const token = getToken();
       const venueId = getVenueId();
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const [dealersRes, tablesRes, rotationsRes] = await Promise.all([
-        fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
-      ]);
-      // Dealers: data is array directly
-      const dealersArr = Array.isArray(dealersRes.data) ? dealersRes.data : [];
-      setDealers(dealersArr);
-      // Tables: data may be {tables: []} or array directly
-      const tablesArr = Array.isArray(tablesRes.data) ? tablesRes.data
-        : Array.isArray(tablesRes.data?.tables) ? tablesRes.data.tables : [];
-      setTables(tablesArr);
-      // Rotations: data is array directly
-      const rotationsArr = Array.isArray(rotationsRes.data) ? rotationsRes.data : [];
-      setRotations(rotationsArr);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
-
-  // Get current assignment for each dealer
-  const getAssignment = (dealerId) => {
-    return rotations.find(r => r.dealer_id === dealerId && !r.ended_at);
-  };
-
-  // Tables that need a dealer (active with no dealer assigned)
-  const activeTables = tables.filter(t => t.status === 'active');
-  const assignedTableNums = rotations.filter(r => !r.ended_at).map(r => r.table_number);
-  const unassignedTables = activeTables.filter(t => !assignedTableNums.includes(t.table_number || t.number));
-
-  const pushDealer = async (dealerId, newTableNumber) => {
-    try {
-      const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-
-      // End current rotation
-      const current = getAssignment(dealerId);
-      if (current) {
-        await fetch('/api/commander/dealers/rotations', {
-          method: 'PUT', headers,
-          body: JSON.stringify({ id: current.id, ended_at: new Date().toISOString() })
-        }).catch(() => { });
-      }
-
-      // Start new rotation
-      if (newTableNumber) {
-        await fetch('/api/commander/dealers/rotations', {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            dealer_id: dealerId,
-            table_number: newTableNumber,
-            dealer_name: dealers.find(d => d.id === dealerId)?.name || 'Unknown'
-          })
-        }).catch(() => { });
-      }
-
+      await fetch('/api/commander/dealers/rotations', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          venue_id: venueId,
+          dealer_id: dealerId,
+          table_id: tableId,
+          action
+        })
+      });
       setPushTarget(null);
-      fetchData();
-    } catch (err) { console.error(err); }
+      await fetchData();
+    } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); }
+    finally { setActionLoading(null); }
   };
 
-  const sendOnBreak = async (dealerId) => {
-    const current = getAssignment(dealerId);
-    if (current) {
-      try {
-        const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
-        await fetch('/api/commander/dealers/rotations', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-          body: JSON.stringify({ id: current.id, ended_at: new Date().toISOString(), break_after: true })
-        }).catch(() => { });
-        fetchData();
-      } catch (err) { console.error(err); }
-    }
+  const pushDealer = (dealerId, tableId) => callAction('push', dealerId, tableId);
+  const sendOnBreak = (dealerId) => callAction('break', dealerId);
+  const returnFromBreak = (dealerId) => callAction('return', dealerId);
+  const assignDealer = (dealerId, tableId) => callAction(null, dealerId, tableId);
+
+  // ── Derived Data ─────────────────────────────────────
+
+  // Get tables with running games
+  const activeTables = tables.filter(t => {
+    const hasGame = games.some(g =>
+      (g.table_id === t.id || g.table_number === t.table_number) &&
+      ['running', 'waiting', 'active'].includes(g.status)
+    );
+    return t.status === 'in_use' || hasGame;
+  });
+
+  // Current rotation lookup
+  const getActiveRotation = (dealerId) => rotations.find(r => {
+    const did = r.commander_dealers?.id || r.dealer_id;
+    return did === dealerId;
+  });
+
+  // Assigned table IDs from rotations
+  const assignedTableIds = new Set(rotations.map(r => {
+    const tbl = r.commander_tables;
+    return tbl?.id || r.table_id;
+  }));
+
+  // Unassigned active tables
+  const unassignedTables = activeTables.filter(t => !assignedTableIds.has(t.id));
+
+  // Group dealers
+  const dealingDealers = dealers.filter(d => getActiveRotation(d.id));
+  const breakDealers = dealers.filter(d => !getActiveRotation(d.id) && (d.current_status === 'on_break'));
+  const availableDealers = dealers.filter(d =>
+    !getActiveRotation(d.id) && d.current_status !== 'on_break'
+  );
+
+  // Get table info for a rotation
+  const getTableInfo = (rotation) => {
+    const tbl = rotation?.commander_tables;
+    const tableNum = tbl?.table_number || rotation?.table_number;
+    const game = rotation?.commander_games;
+    const matchedTable = tableNum ? tables.find(t => t.table_number === tableNum) : null;
+    const matchedGame = games.find(g =>
+      g.table_id === (tbl?.id || rotation?.table_id) ||
+      g.table_number === tableNum
+    );
+    return {
+      number: tableNum || '?',
+      gameType: game?.game_type || matchedGame?.game_type || matchedTable?.game_type || '',
+      stakes: game?.stakes || matchedGame?.stakes || matchedTable?.stakes || ''
+    };
   };
 
-  const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
+  // ── Loading State ───────────────────────────────────
 
   if (loading) return (
-    <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Loader2 style={{ width: 32, height: 32, color: '#1877F2', animation: 'spin 1s linear infinite' }} />
+      <style jsx>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
-  // Split dealers into assigned and available
-  const assignedDealers = dealers.filter(d => getAssignment(d.id));
-  const availableDealers = dealers.filter(d => !getAssignment(d.id) && d.status === 'active');
-
   return (
     <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard?card=floor">
-      <SEOHead
-        title="Commander — Dealer Rotation"
-        description="Club Commander Poker Room Management Tool."
-        noindex={true}
-      />
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <SEOHead title="Commander — Dealer Rotation" description="Club Commander Dealer Rotation Manager" noindex={true} />
 
-        {/* Sub-header */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-          <p className="text-xs text-[#B0B3B8]">
-            {assignedDealers.length} dealing · {availableDealers.length} available · {unassignedTables.length} tables need dealer
-          </p>
-          <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
+      <style jsx>{`
+        .dr-page { min-height: 100vh; background: #0a0a0a; color: #E4E6EB; font-family: 'Inter', sans-serif; }
+        .dr-stats { background: linear-gradient(180deg, #111 0%, #0a0a0a 100%); border-bottom: 1px solid #222; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+        .dr-stats-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .dr-stat { font-size: 13px; color: #888; }
+        .dr-stat b { color: #E4E6EB; font-weight: 700; }
+        .dr-refresh { background: none; border: 1px solid #333; border-radius: 8px; padding: 6px 8px; cursor: pointer; color: #888; display: flex; align-items: center; }
+        .dr-refresh:active { background: #222; }
+
+        .dr-grid { display: grid; grid-template-columns: 1fr 320px; gap: 0; }
+        @media (max-width: 768px) { .dr-grid { grid-template-columns: 1fr; } }
+
+        .dr-main { padding: 16px; border-right: 1px solid #1a1a1a; }
+        .dr-sidebar { padding: 16px; }
+
+        .dr-section-title { font-size: 12px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+        .dr-card { background: #111; border: 1px solid #222; border-radius: 12px; margin-bottom: 10px; overflow: hidden; transition: border-color 0.2s; }
+        .dr-card.warning { border-color: rgba(245, 158, 11, 0.4); }
+        .dr-card.overdue { border-color: rgba(239, 68, 68, 0.4); }
+        .dr-card-body { padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+        .dr-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0; }
+        .dr-avatar.dealing { background: rgba(24, 119, 242, 0.12); color: #4A9AF5; }
+        .dr-avatar.warning { background: rgba(245, 158, 11, 0.12); color: #F59E0B; }
+        .dr-avatar.overdue { background: rgba(239, 68, 68, 0.12); color: #EF4444; }
+        .dr-name { font-size: 15px; font-weight: 600; color: #fff; }
+        .dr-meta { font-size: 12px; color: #666; margin-top: 2px; }
+        .dr-badge { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: auto; flex-shrink: 0; }
+        .dr-badge.push { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .dr-badge.overdue-badge { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+
+        .dr-actions { display: flex; border-top: 1px solid #1a1a1a; }
+        .dr-action-btn { flex: 1; padding: 10px; font-size: 12px; font-weight: 600; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.15s; }
+        .dr-action-btn:not(:last-child) { border-right: 1px solid #1a1a1a; }
+        .dr-action-btn.push-btn { color: #4A9AF5; }
+        .dr-action-btn.push-btn:hover { background: rgba(24, 119, 242, 0.08); }
+        .dr-action-btn.break-btn { color: #F59E0B; }
+        .dr-action-btn.break-btn:hover { background: rgba(245, 158, 11, 0.08); }
+
+        .dr-push-panel { padding: 12px 16px; border-top: 1px solid #1a1a1a; background: #0d0d0d; }
+        .dr-push-label { font-size: 11px; color: #666; margin-bottom: 8px; font-weight: 600; }
+        .dr-push-tables { display: flex; flex-wrap: wrap; gap: 6px; }
+        .dr-push-table { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #333; background: #1a1a1a; color: #ccc; transition: all 0.15s; }
+        .dr-push-table:hover { border-color: #4A9AF5; color: #4A9AF5; background: rgba(24, 119, 242, 0.08); }
+        .dr-push-table.current { opacity: 0.3; cursor: default; }
+        .dr-push-cancel { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #333; background: #1a1a1a; color: #888; }
+
+        .dr-break-card { background: #111; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .dr-break-icon { width: 32px; height: 32px; border-radius: 50%; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center; }
+        .dr-break-time { font-size: 11px; color: rgba(245, 158, 11, 0.7); }
+        .dr-return-btn { margin-left: auto; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; background: rgba(49, 162, 76, 0.15); color: #31A24C; border: 1px solid rgba(49, 162, 76, 0.3); cursor: pointer; }
+        .dr-return-btn:hover { background: rgba(49, 162, 76, 0.25); }
+
+        .dr-available-card { background: #111; border: 1px solid #1a1a1a; border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .dr-available-dot { width: 8px; height: 8px; border-radius: 50%; background: #31A24C; flex-shrink: 0; }
+        .dr-assign-btn { margin-left: auto; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; background: rgba(24, 119, 242, 0.15); color: #4A9AF5; border: 1px solid rgba(24, 119, 242, 0.3); cursor: pointer; }
+        .dr-assign-btn:hover { background: rgba(24, 119, 242, 0.25); }
+
+        .dr-warning-box { background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+        .dr-warning-title { font-size: 13px; font-weight: 700; color: #F59E0B; display: flex; align-items: center; gap: 6px; }
+        .dr-warning-detail { font-size: 12px; color: #888; margin-top: 4px; }
+
+        .dr-history-toggle { background: none; border: 1px solid #222; border-radius: 8px; padding: 8px 14px; color: #888; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-top: 16px; width: 100%; justify-content: center; }
+        .dr-history-toggle:hover { border-color: #444; color: #ccc; }
+
+        .dr-timeline { margin-top: 10px; }
+        .dr-timeline-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; font-size: 12px; color: #666; }
+        .dr-timeline-dot { width: 6px; height: 6px; border-radius: 50%; background: #333; margin-top: 5px; flex-shrink: 0; }
+        .dr-timeline-text b { color: #999; }
+
+        .dr-empty { text-align: center; padding: 20px; color: #444; font-size: 14px; }
+
+        @keyframes dr-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .dr-pulse { animation: dr-pulse 2s ease-in-out infinite; }
+      `}</style>
+
+      <div className="dr-page">
+
+        {/* ── Stats Bar ── */}
+        <div className="dr-stats">
+          <div className="dr-stats-left">
+            <span className="dr-stat"><b>{dealers.length}</b> Dealers</span>
+            <span className="dr-stat"><b>{dealingDealers.length}</b> Dealing</span>
+            <span className="dr-stat"><b>{breakDealers.length}</b> Break</span>
+            <span className="dr-stat"><b>{availableDealers.length}</b> Available</span>
+            {unassignedTables.length > 0 && (
+              <span className="dr-stat" style={{ color: '#F59E0B' }}>
+                <b>{unassignedTables.length}</b> Tables Need Dealer
+              </span>
+            )}
+          </div>
+          <button className="dr-refresh" onClick={fetchData} title="Refresh">
+            <RefreshCw style={{ width: 16, height: 16 }} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="dr-grid">
 
-          {/* Unassigned tables warning */}
-          {unassignedTables.length > 0 && (
-            <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-3">
-              <p className="text-sm font-semibold text-[#F59E0B]">
-                {unassignedTables.length} active table{unassignedTables.length > 1 ? 's' : ''} without a dealer
-              </p>
-              <p className="text-xs text-[#B0B3B8] mt-0.5">
-                Tables: {unassignedTables.map(t => t.table_number || t.number).join(', ')}
-              </p>
+          {/* ── LEFT: Currently Dealing ── */}
+          <div className="dr-main">
+
+            {/* Unassigned tables warning */}
+            {unassignedTables.length > 0 && (
+              <div className="dr-warning-box">
+                <div className="dr-warning-title">
+                  <AlertTriangle style={{ width: 16, height: 16 }} />
+                  {unassignedTables.length} Active Table{unassignedTables.length > 1 ? 's' : ''} Without a Dealer
+                </div>
+                <div className="dr-warning-detail">
+                  Tables: {unassignedTables.map(t => `T${t.table_number}`).join(', ')}
+                </div>
+              </div>
+            )}
+
+            <div className="dr-section-title">
+              <Users style={{ width: 14, height: 14 }} /> At Table ({dealingDealers.length})
             </div>
-          )}
 
-          {/* Currently dealing */}
-          <div>
-            <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Currently Dealing</h2>
-            {assignedDealers.length === 0 ? (
-              <p className="py-4 text-center text-[#B0B3B8] text-sm">No Dealers Currently Assigned</p>
+            {dealingDealers.length === 0 ? (
+              <div className="dr-empty">No Dealers Currently Assigned</div>
             ) : (
-              <div className="space-y-2">
-                {assignedDealers.map(dealer => {
-                  const assignment = getAssignment(dealer.id);
-                  const mins = minutesSince(assignment?.started_at);
-                  const overdue = mins >= PUSH_THRESHOLD;
-                  return (
-                    <div key={dealer.id}
-                      className={`bg-[#242526] border rounded-xl overflow-hidden ${overdue ? 'border-[#F59E0B]/50' : 'border-[#3A3B3C]'
-                        }`}>
-                      <div className="px-4 py-3 flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${overdue ? 'bg-[#F59E0B]/10' : 'bg-[#1877F2]/10'
-                          }`}>
-                          <Users className={`w-5 h-5 ${overdue ? 'text-[#F59E0B]' : 'text-[#1877F2]'}`} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-white">{dealer.name || `${dealer.first_name} ${dealer.last_name}`}</p>
-                          <p className="text-xs text-[#B0B3B8]">
-                            Table {assignment?.table_number} · <span className={overdue ? 'text-[#F59E0B] font-bold' : ''}>{mins}m</span>
-                          </p>
-                        </div>
-                        {overdue && (
-                          <span className="text-[10px] font-bold text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-1 rounded">PUSH</span>
-                        )}
-                      </div>
+              dealingDealers.map(dealer => {
+                const rotation = getActiveRotation(dealer.id);
+                const tableInfo = getTableInfo(rotation);
+                const mins = minutesSince(rotation?.started_at);
+                const isWarning = mins >= PUSH_WARNING && mins < PUSH_THRESHOLD;
+                const isOverdue = mins >= PUSH_THRESHOLD;
+                const isLoading = actionLoading === dealer.id;
+                const cardClass = `dr-card ${isOverdue ? 'overdue' : isWarning ? 'warning' : ''}`;
+                const avatarClass = `dr-avatar ${isOverdue ? 'overdue' : isWarning ? 'warning' : 'dealing'}`;
 
-                      {/* Push target selection */}
-                      {pushTarget === dealer.id ? (
-                        <div className="px-4 py-3 border-t border-[#3A3B3C] bg-[#1A1B1C]">
-                          <p className="text-xs text-[#B0B3B8] mb-2">Push To Table:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {activeTables.map(t => {
-                              const tNum = t.table_number || t.number;
-                              const isCurrentTable = tNum === assignment?.table_number;
-                              return (
-                                <button key={tNum} onClick={() => !isCurrentTable && pushDealer(dealer.id, tNum)}
-                                  disabled={isCurrentTable}
-                                  className={`px-3 py-2 rounded-lg text-sm font-medium ${isCurrentTable ? 'bg-[#3A3B3C] text-[#6A6B6D]' : 'bg-[#1877F2]/20 text-[#1877F2] active:bg-[#1877F2]/30'
-                                    }`}>T{tNum}</button>
-                              );
-                            })}
-                            <button onClick={() => setPushTarget(null)}
-                              className="px-3 py-2 rounded-lg text-sm text-[#B0B3B8] bg-[#3A3B3C]">Cancel</button>
-                          </div>
+                return (
+                  <div key={dealer.id} className={cardClass}>
+                    <div className="dr-card-body">
+                      <div className={avatarClass}>T{tableInfo.number}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="dr-name">{dealer.name || dealer.display_name}</div>
+                        <div className="dr-meta">
+                          {tableInfo.gameType && `${tableInfo.gameType.toUpperCase()} `}
+                          {tableInfo.stakes && `${tableInfo.stakes} · `}
+                          <span style={{ color: isOverdue ? '#EF4444' : isWarning ? '#F59E0B' : '#666', fontWeight: isOverdue || isWarning ? 700 : 400 }}>
+                            {mins}m
+                          </span>
+                          {rotation?.started_at && ` · Started ${formatTime(rotation.started_at)}`}
                         </div>
-                      ) : (
-                        <div className="flex border-t border-[#3A3B3C]">
-                          <button onClick={() => setPushTarget(dealer.id)}
-                            className="flex-1 py-2.5 text-xs font-semibold text-[#1877F2] flex items-center justify-center gap-1 active:bg-[#1877F2]/10 border-r border-[#3A3B3C]">
-                            <ArrowRightLeft className="w-3.5 h-3.5" /> Push
-                          </button>
-                          <button onClick={() => sendOnBreak(dealer.id)}
-                            className="flex-1 py-2.5 text-xs font-semibold text-[#F59E0B] flex items-center justify-center gap-1 active:bg-[#F59E0B]/10">
-                            <Coffee className="w-3.5 h-3.5" /> Break
-                          </button>
+                      </div>
+                      {isOverdue && <span className="dr-badge overdue-badge">PUSH NOW</span>}
+                      {isWarning && !isOverdue && <span className="dr-badge push">PUSH SOON</span>}
+                    </div>
+
+                    {pushTarget === dealer.id ? (
+                      <div className="dr-push-panel">
+                        <div className="dr-push-label">Push To Table:</div>
+                        <div className="dr-push-tables">
+                          {activeTables.map(t => {
+                            const isCurrent = t.id === (rotation?.commander_tables?.id || rotation?.table_id);
+                            return (
+                              <button key={t.id}
+                                className={`dr-push-table ${isCurrent ? 'current' : ''}`}
+                                disabled={isCurrent || isLoading}
+                                onClick={() => !isCurrent && pushDealer(dealer.id, t.id)}
+                              >T{t.table_number}</button>
+                            );
+                          })}
+                          <button className="dr-push-cancel" onClick={() => setPushTarget(null)}>Cancel</button>
                         </div>
-                      )}
+                      </div>
+                    ) : (
+                      <div className="dr-actions">
+                        <button className="dr-action-btn push-btn" onClick={() => setPushTarget(dealer.id)} disabled={isLoading}>
+                          <ArrowRightLeft style={{ width: 14, height: 14 }} /> Push
+                        </button>
+                        <button className="dr-action-btn break-btn" onClick={() => sendOnBreak(dealer.id)} disabled={isLoading}>
+                          <Coffee style={{ width: 14, height: 14 }} /> Break
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+
+            {/* ── Rotation History Toggle ── */}
+            <button className="dr-history-toggle" onClick={() => setShowHistory(!showHistory)}>
+              <History style={{ width: 14, height: 14 }} />
+              Rotation History ({history.length})
+              {showHistory ? <ChevronUp style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+            </button>
+
+            {showHistory && history.length > 0 && (
+              <div className="dr-timeline">
+                {history.slice(0, 20).map(r => {
+                  const dealerName = r.commander_dealers?.display_name || r.dealer_name || 'Unknown';
+                  const tableNum = r.commander_tables?.table_number || r.table_number || '?';
+                  const gameName = r.commander_games?.game_type || '';
+                  return (
+                    <div key={r.id} className="dr-timeline-item">
+                      <div className="dr-timeline-dot" />
+                      <div className="dr-timeline-text">
+                        <b>{dealerName}</b> → T{tableNum}
+                        {gameName ? ` (${gameName.toUpperCase()})` : ''}
+                        &nbsp;· {formatTime(r.started_at)} – {formatTime(r.ended_at)}
+                        &nbsp;({minutesSince(r.started_at) - minutesSince(r.ended_at)}m)
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
+            {showHistory && history.length === 0 && (
+              <div className="dr-empty" style={{ marginTop: 8 }}>No rotation history yet today</div>
+            )}
           </div>
 
-          {/* Available dealers */}
-          {availableDealers.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Available</h2>
-              <div className="space-y-1">
-                {availableDealers.map(dealer => (
-                  <div key={dealer.id} className="flex items-center gap-3 px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-[#31A24C]/10 flex items-center justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-[#31A24C]" />
+          {/* ── RIGHT SIDEBAR ── */}
+          <div className="dr-sidebar">
+
+            {/* On Break */}
+            <div className="dr-section-title">
+              <Coffee style={{ width: 14, height: 14, color: '#F59E0B' }} /> On Break ({breakDealers.length})
+            </div>
+            {breakDealers.length === 0 ? (
+              <div className="dr-empty" style={{ fontSize: 12, padding: 12 }}>No Dealers On Break</div>
+            ) : (
+              breakDealers.map(d => (
+                <div key={d.id} className="dr-break-card dr-pulse">
+                  <div className="dr-break-icon">
+                    <Coffee style={{ width: 16, height: 16, color: '#F59E0B' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{d.name || d.display_name}</div>
+                    <div className="dr-break-time">
+                      {d.break_started_at ? `${minutesSince(d.break_started_at)}m on break` : 'On break'}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-white">{dealer.name || `${dealer.first_name} ${dealer.last_name}`}</p>
-                    </div>
-                    {unassignedTables.length > 0 && (
-                      <button onClick={() => pushDealer(dealer.id, unassignedTables[0]?.table_number || unassignedTables[0]?.number)}
-                        className="text-xs font-semibold text-[#1877F2] px-3 py-1.5 rounded-lg bg-[#1877F2]/10 active:bg-[#1877F2]/20">
-                        Assign →
-                      </button>
+                  </div>
+                  <button className="dr-return-btn" onClick={() => returnFromBreak(d.id)}
+                    disabled={actionLoading === d.id}>
+                    <RotateCcw style={{ width: 12, height: 12, display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                    Return
+                  </button>
+                </div>
+              ))
+            )}
+
+            {/* Available */}
+            <div className="dr-section-title" style={{ marginTop: 20 }}>
+              <CheckCircle2 style={{ width: 14, height: 14, color: '#31A24C' }} /> Available ({availableDealers.length})
+            </div>
+            {availableDealers.length === 0 ? (
+              <div className="dr-empty" style={{ fontSize: 12, padding: 12 }}>No Dealers Available</div>
+            ) : (
+              availableDealers.map(d => (
+                <div key={d.id} className="dr-available-card">
+                  <div className="dr-available-dot" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#ccc' }}>{d.name || d.display_name}</div>
+                    {d.certified_games && (
+                      <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
+                        {(Array.isArray(d.certified_games) ? d.certified_games : []).map(g => g.toUpperCase()).join(' · ')}
+                      </div>
                     )}
                   </div>
-                ))}
+                  {unassignedTables.length > 0 && (
+                    <button className="dr-assign-btn"
+                      onClick={() => assignDealer(d.id, unassignedTables[0]?.id)}
+                      disabled={actionLoading === d.id}>
+                      Assign → T{unassignedTables[0]?.table_number}
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+
+            {/* Quick Stats */}
+            <div style={{ marginTop: 24, padding: 14, background: '#111', border: '1px solid #1a1a1a', borderRadius: 10 }}>
+              <div className="dr-section-title" style={{ marginBottom: 8 }}>
+                <Clock style={{ width: 14, height: 14 }} /> Shift Summary
+              </div>
+              <div style={{ fontSize: 12, color: '#666', lineHeight: 1.8 }}>
+                <div>Active Tables: <b style={{ color: '#ccc' }}>{activeTables.length}</b></div>
+                <div>Total Rotations Today: <b style={{ color: '#ccc' }}>{history.length + rotations.length}</b></div>
+                <div>Avg Time at Table: <b style={{ color: '#ccc' }}>
+                  {dealingDealers.length > 0
+                    ? `${Math.round(dealingDealers.reduce((sum, d) => sum + minutesSince(getActiveRotation(d.id)?.started_at), 0) / dealingDealers.length)}m`
+                    : '--'}
+                </b></div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
-      <style jsx>{`
-`}</style>
     </CommanderLayout>
   );
 }
