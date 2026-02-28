@@ -57,7 +57,9 @@ function shiftHours(start, end) {
   if (!start || !end) return 0;
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
-  return Math.round(((eh * 60 + em) - (sh * 60 + sm)) / 60 * 10) / 10;
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60; // overnight shift
+  return Math.round(mins / 60 * 10) / 10;
 }
 
 const ROLE_FILTERS = [
@@ -548,10 +550,10 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
                   type="button"
                   onClick={() => setDate(day.date)}
                   className={`py-2 rounded-lg text-xs font-medium transition-colors ${date === day.date
-                      ? 'bg-[#1877F2] text-white'
-                      : day.isToday
-                        ? 'bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/30'
-                        : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                    ? 'bg-[#1877F2] text-white'
+                    : day.isToday
+                      ? 'bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/30'
+                      : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
                     }`}
                 >
                   <p>{day.label}</p>
@@ -571,8 +573,8 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
                   type="button"
                   onClick={() => { setStartTime(p.start); setEndTime(p.end); }}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${startTime === p.start && endTime === p.end
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                    ? 'bg-[#1877F2] text-white'
+                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
                     }`}
                 >
                   {p.label}

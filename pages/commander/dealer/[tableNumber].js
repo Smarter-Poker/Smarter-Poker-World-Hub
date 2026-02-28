@@ -80,6 +80,10 @@ export default function DealerTablet() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
+  // Staff session token for write operations (x-staff-session header)
+  const getStaffSession = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_staff') || '' : '';
+
   const fetchTable = useCallback(async () => {
     if (!tableNumber) return;
     try {
@@ -295,7 +299,7 @@ export default function DealerTablet() {
       // Use the tournament eliminate API
       const res = await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/eliminate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
         body: JSON.stringify({
           entry_id: player.entry_id || player.id,
           finish_position: tournamentMode.players_remaining || 0,
@@ -321,11 +325,10 @@ export default function DealerTablet() {
     if (!chipEntryPlayer || !chipEntryValue) return;
     setSavingChips(true);
     try {
-      const token = getToken();
       const entryId = chipEntryPlayer.entry_id || chipEntryPlayer.id;
       await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/entries/${entryId}/chips`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ chips: parseInt(chipEntryValue) || 0 })
       });
       setChipEntryPlayer(null);

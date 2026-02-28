@@ -199,14 +199,14 @@ export default function PokerRoomFunctions() {
                       <button key={table.id || table.table_number}
                         onClick={() => router.push(`/commander/table/${table.id || table.table_number}`)}
                         className={`rounded-xl border p-3 text-center active:scale-[0.97] transition-transform ${isActive
-                            ? 'bg-[#242526] border-[#31A24C]/30'
-                            : 'bg-[#1E1F20] border-[#3A3B3C]/50 opacity-50'
+                          ? 'bg-[#242526] border-[#31A24C]/30'
+                          : 'bg-[#1E1F20] border-[#3A3B3C]/50 opacity-50'
                           }`}>
                         <div className="text-lg font-bold text-white">T{table.table_number}</div>
                         {isActive ? (
                           <>
                             <div className={`text-xl font-black ${fillPct >= 90 ? 'text-[#EF4444]' :
-                                fillPct >= 60 ? 'text-[#F59E0B]' : 'text-[#31A24C]'
+                              fillPct >= 60 ? 'text-[#F59E0B]' : 'text-[#31A24C]'
                               }`}>
                               {players}/{maxSeats}
                             </div>
@@ -215,7 +215,7 @@ export default function PokerRoomFunctions() {
                             {/* Fill bar */}
                             <div className="mt-1.5 h-1 bg-[#3A3B3C] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${fillPct >= 90 ? 'bg-[#EF4444]' :
-                                  fillPct >= 60 ? 'bg-[#F59E0B]' : 'bg-[#31A24C]'
+                                fillPct >= 60 ? 'bg-[#F59E0B]' : 'bg-[#31A24C]'
                                 }`} style={{ width: `${fillPct}%` }} />
                             </div>
                           </>
@@ -247,7 +247,7 @@ export default function PokerRoomFunctions() {
             <div className="grid grid-cols-2 gap-2">
               <QuickAction icon={LayoutGrid} label="Manage Tables" desc="Add, edit, close tables" path="/commander/tables" router={router} />
               <QuickAction icon={ArrowRightLeft} label="Must-Move" desc="Move players between games" path="/commander/must-move" router={router} />
-              <QuickAction icon={Users} label="Waitlists" desc="Manage game waitlists" path="/commander/waitlist-desk" router={router} />
+              <QuickAction icon={Users} label="Waitlists" desc="Manage game waitlists" path="/commander/waitlist/desk" router={router} />
               <QuickAction icon={Settings} label="Room Presets" desc="Game configs & defaults" path="/commander/room-presets" router={router} />
             </div>
           </div>

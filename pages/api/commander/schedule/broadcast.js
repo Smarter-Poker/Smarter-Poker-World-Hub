@@ -120,14 +120,13 @@ export default async function handler(req, res) {
                     console.error(`[Broadcast] SMS failed for ${member.display_name}:`, smsErr.message);
                     results.failed++;
                 }
-            } else if (channel === 'sms') {
+            } else if (channel === 'sms' && !member.phone) {
                 results.skipped++; // No phone
             }
 
-            // Send Email (via Supabase edge function or custom mailer)
+            // Send Email
             if ((channel === 'email' || channel === 'both') && member.email) {
                 try {
-                    // Use the existing notification system's email path
                     await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker'}/api/commander/notifications/send`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -142,11 +141,13 @@ export default async function handler(req, res) {
                             internal_key: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20)
                         })
                     });
-                    if (channel === 'email') results.sent++;
+                    results.sent++;
                 } catch (emailErr) {
                     console.error(`[Broadcast] Email failed for ${member.display_name}:`, emailErr.message);
-                    if (channel === 'email') results.failed++;
+                    results.failed++;
                 }
+            } else if (channel === 'email' && !member.email) {
+                results.skipped++;
             }
         }
 
