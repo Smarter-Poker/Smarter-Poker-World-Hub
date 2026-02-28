@@ -419,6 +419,29 @@ export default function AnnouncementsDisplay() {
                 </div>
               </div>
 
+              {/* ─── QUICK TEMPLATES ─── */}
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #3A3B3C' }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#6A6B6D', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px' }}>
+                  Quick Templates
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {TEMPLATES.map((tpl, i) => (
+                    <button key={i} onClick={() => { applyTemplate(tpl); setShowForm(true); setEditingAnnouncement(null); }}
+                      style={{
+                        padding: '8px 10px', borderRadius: 8, background: '#18191A', border: '1px solid #3A3B3C',
+                        color: '#E4E6EB', cursor: 'pointer', textAlign: 'left',
+                        display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 500,
+                        transition: 'border-color 0.2s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#1877F2'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = '#3A3B3C'}>
+                      <span style={{ fontSize: 16 }}>{tpl.emoji}</span>
+                      <span>{tpl.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Panel Content — List of all announcements */}
               <div style={{ flex: 1, overflow: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {allAnnouncements.length === 0 ? (
