@@ -23,9 +23,9 @@ const TIME_OPTIONS = [
   { label: '1 Hour', minutes: 60 },
   { label: '2 Hours', minutes: 120 },
   { label: '3 Hours', minutes: 180 },
-  { label: '5 Hours', minutes: 300 },
-  { label: '8 Hours', minutes: 480 },
-  { label: 'All Day', minutes: 720 },
+  { label: '4 Hours', minutes: 240 },
+  { label: '5 Hr Pack', minutes: 300 },
+  { label: '20 Hr Pack', minutes: 1200 },
 ];
 const MEMBERSHIP_TIERS = [
   { tier: 'daily', label: 'Daily', color: '#22D3EE', duration: 1 },

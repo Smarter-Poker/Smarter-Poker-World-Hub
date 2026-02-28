@@ -42,10 +42,24 @@ export default async function handler(req, res) {
 
     const now = new Date();
 
+    // Batch-fetch member balances for sessions with member IDs
+    const memberIds = [...new Set((sessions || []).filter(s => s.member_id).map(s => s.member_id))];
+    let memberMap = {};
+    if (memberIds.length > 0) {
+      const { data: members } = await supabase
+        .from('commander_members')
+        .select('id, time_balance_minutes, membership_tier, membership_status, membership_expires')
+        .in('id', memberIds);
+      if (members) {
+        memberMap = Object.fromEntries(members.map(m => [m.id, m]));
+      }
+    }
+
     const withTimeRemaining = (sessions || []).map(s => {
       const totalAllocatedSeconds = ((s.time_allocated_minutes || 0) + (s.time_added_minutes || 0)) * 60;
       const elapsedSeconds = Math.floor((now - new Date(s.started_at)) / 1000);
       const timeRemaining = Math.max(0, totalAllocatedSeconds - elapsedSeconds);
+      const member = memberMap[s.member_id] || null;
 
       return {
         session_id: s.id,
@@ -53,10 +67,13 @@ export default async function handler(req, res) {
         player_name: s.player_name,
         table_number: s.table_number,
         seat_number: s.seat_number,
-        membership_tier: s.membership_tier,
+        membership_tier: member?.membership_tier || s.membership_tier,
+        membership_status: member?.membership_status || null,
+        membership_expires: member?.membership_expires || null,
         member_number: s.member_number,
         time_allocated_minutes: s.time_allocated_minutes,
         time_added_minutes: s.time_added_minutes,
+        time_balance_minutes: member?.time_balance_minutes || 0,
         started_at: s.started_at,
         time_remaining: timeRemaining, // seconds
         is_low: timeRemaining <= 900 && timeRemaining > 0,    // < 15 min
