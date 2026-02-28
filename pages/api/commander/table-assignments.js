@@ -126,8 +126,8 @@ async function handleGet(req, res, venueId) {
     const activeGames = gamesByTableId[t.id] || [];
     const activeGame = activeGames.find(g => ['running', 'active', 'waiting'].includes(g.status));
 
-    // Derive mode from actual data
-    let mode = 'inactive';
+    // Use persisted mode as primary source of truth, fall back to derivation
+    let mode = t.mode || 'inactive';
     let gameType = t.game_type || null;
     let stakes = t.stakes || null;
     let activePlayers = sessionCounts[t.table_number] || 0;
@@ -135,18 +135,14 @@ async function handleGet(req, res, venueId) {
     let tournamentId = t.tournament_id || null;
 
     if (activeGame) {
-      mode = 'cash';
+      if (mode === 'inactive') mode = 'cash'; // auto-upgrade if game exists
       gameType = activeGame.game_type || gameType;
       stakes = activeGame.stakes || stakes;
       activePlayers = activeGame.current_players || activePlayers;
       currentGameId = activeGame.id;
-    } else if (t.status === 'in_use' && t.game_type) {
-      mode = 'cash';
-      gameType = t.game_type;
-      stakes = t.stakes;
     }
 
-    if (tournamentId) {
+    if (tournamentId && mode !== 'tournament') {
       mode = 'tournament';
     }
 
@@ -204,8 +200,9 @@ async function handlePut(req, res, venueId, staffUserId) {
 
   if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
-  // Build update
+  // Build update — persist mode column as source of truth
   const updates = {
+    mode,
     game_type: mode === 'cash' ? game_type : null,
     stakes: mode === 'cash' ? stakes : null,
     tournament_id: mode === 'tournament' ? tournament_id : null,
@@ -300,6 +297,7 @@ async function handleClose(req, res, venueId, staffUserId) {
   const { data: updated } = await supabase
     .from('commander_tables')
     .update({
+      mode: 'inactive',
       game_type: null,
       stakes: null,
       tournament_id: null,
