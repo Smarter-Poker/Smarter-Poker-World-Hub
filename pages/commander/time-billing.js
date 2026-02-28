@@ -44,14 +44,18 @@ export default function TimeBilling() {
 
   const [now, setNow] = useState(Date.now());
   const [filter, setFilter] = useState('active');
-  const [search, setSearch] = useState('');
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingDirty, setPricingDirty] = useState(false);
   const [pricing, setPricing] = useState({
-    time_billing_rate: 12,
-    auto_comp_rate: 1,
+    time_billing_rate: 0,
+    auto_comp_rate: 0,
     bulk_time_packages: []
   });
+
+  // Membership plans state
+  const [memberPlans, setMemberPlans] = useState([]);
+  const [memberSaving, setMemberSaving] = useState(null);
+  const [memberDirty, setMemberDirty] = useState({});
 
   // PIN verification state
   const [pinStep, setPinStep] = useState(false);
@@ -104,7 +108,7 @@ export default function TimeBilling() {
               id: s.session_id,
               status: s.is_expired ? 'expired' : 'active',
               started_at: s.started_at,
-              rate_per_hour: t.rate_per_hour || 12,
+              rate_per_hour: t.rate_per_hour || pricing.time_billing_rate || 0,
             }));
           }
         } catch { /* non-fatal */ }
@@ -126,7 +130,7 @@ export default function TimeBilling() {
       setSessions(allSessions);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [filter]);
+  }, [filter, pricing.time_billing_rate]);
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, [fetchData]);
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
@@ -151,6 +155,20 @@ export default function TimeBilling() {
       } catch { /* non-fatal */ }
     };
     loadPricing();
+    // Load membership plans
+    const loadMemberPlans = async () => {
+      try {
+        const token = getToken();
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const venueId = getVenueId();
+        const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
+          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        });
+        const json = await res.json();
+        if (json.success) setMemberPlans(json.data.plans || []);
+      } catch { /* non-fatal */ }
+    };
+    loadMemberPlans();
   }, []);
 
   // Save pricing settings
@@ -257,7 +275,7 @@ export default function TimeBilling() {
         if (session) printTimeBillingReceipt({
           ...session,
           duration_minutes: json.data.elapsed_minutes,
-          total_charge: calculateCharge(session.started_at, session.rate_per_hour || 12),
+          total_charge: calculateCharge(session.started_at, session.rate_per_hour || pricing.time_billing_rate || 0),
           staff_name: staff?.display_name || 'Staff',
         });
       }
@@ -292,7 +310,7 @@ export default function TimeBilling() {
   <div class="row sm"><span>Table/Seat:</span><span class="bold">T${session.table_number || '-'} S${session.seat_number || '-'}</span></div>
   <div class="divider"></div>
   <div class="row sm"><span>Duration:</span><span class="bold">${hours} hrs</span></div>
-  <div class="row sm"><span>Rate:</span><span>$${parseFloat(session.rate_per_hour || 12).toFixed(2)}/hr</span></div>
+  <div class="row sm"><span>Rate:</span><span>$${parseFloat(session.rate_per_hour || pricing.time_billing_rate || 0).toFixed(2)}/hr</span></div>
   <div class="divider"></div>
   <div class="center bold big">$${charge.toFixed(2)}</div>
   <div class="center sm">AMOUNT DUE</div>
@@ -336,13 +354,32 @@ export default function TimeBilling() {
   const activeSessions = sessions.filter(s => s.status === 'active');
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const displaySessions = filter === 'active' ? activeSessions : completedSessions;
-  const filtered = displaySessions.filter(s =>
-    !search || s.player_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = displaySessions;
 
   const totalActive = activeSessions.reduce((sum, s) =>
     sum + calculateCharge(s.started_at, s.rate_per_hour), 0);
   const totalCollected = sessions.reduce((sum, s) => sum + (s.amount_paid || 0), 0);
+
+  // Save a membership plan price
+  const saveMemberPrice = async (plan, field, value) => {
+    setMemberSaving(plan.id);
+    try {
+      const token = getToken();
+      const venueId = getVenueId();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({ [field]: parseFloat(value) || 0 })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMemberPlans(prev => prev.map(p => p.id === plan.id ? { ...p, [field]: parseFloat(value) || 0 } : p));
+        setMemberDirty(prev => ({ ...prev, [plan.id]: false }));
+      }
+    } catch (err) { console.error(err); }
+    finally { setMemberSaving(null); }
+  };
 
   if (loading) return <div className="min-h-screen bg-[#18191A] flex items-center justify-center"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>;
 
@@ -493,17 +530,12 @@ export default function TimeBilling() {
           </div>
         </div>
 
-        {/* Search + Filter */}
+        {/* Filter Toggle */}
         <div className="px-4 pb-2 flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search Players..." className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg pl-9 pr-3 py-2.5 text-sm text-[#E4E6EB] placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
-          </div>
           <button onClick={() => setFilter(filter === 'active' ? 'completed' : 'active')}
             className={`px-4 py-2.5 rounded-lg text-sm font-medium ${filter === 'active' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
               }`}>
-            {filter === 'active' ? 'Active' : 'History'}
+            {filter === 'active' ? 'Active Sessions' : 'Session History'}
           </button>
         </div>
 
@@ -575,6 +607,57 @@ export default function TimeBilling() {
               <p className="text-[#B0B3B8]">{filter === 'active' ? 'No active sessions' : 'No session history'}</p>
             </div>
           )}
+        </div>
+
+        {/* Membership Pricing Section */}
+        <div className="px-4 py-3">
+          <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5 text-[#8B5CF6]" />
+              <h3 className="text-sm font-bold text-white">Membership Pricing</h3>
+              <p className="text-[10px] text-[#B0B3B8]">(saved to venue settings)</p>
+            </div>
+            {memberPlans.length === 0 ? (
+              <p className="text-xs text-[#64748B] text-center py-3">No membership plans configured</p>
+            ) : (
+              <div className="space-y-3">
+                {memberPlans.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map(plan => {
+                  const tierLabels = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+                  const tierColors = { daily: '#22D3EE', weekly: '#31A24C', monthly: '#F59E0B', yearly: '#8B5CF6' };
+                  const priceField = plan.tier === 'daily' ? 'price_daily' : plan.tier === 'weekly' ? 'price_weekly' : plan.tier === 'monthly' ? 'price_monthly' : 'price_yearly';
+                  const price = plan[priceField];
+                  const isDirty = memberDirty[plan.id];
+                  return (
+                    <div key={plan.id} className="bg-[#18191A] rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full" style={{ background: tierColors[plan.tier] || '#1877F2' }} />
+                        <span className="text-sm font-bold text-white flex-1">{tierLabels[plan.tier] || plan.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#B0B3B8]">$</span>
+                          <input type="number" step="0.01" min="0"
+                            value={price != null ? price : ''}
+                            onChange={e => {
+                              const v = e.target.value;
+                              setMemberPlans(prev => prev.map(p => p.id === plan.id ? { ...p, [priceField]: v === '' ? null : parseFloat(v) } : p));
+                              setMemberDirty(prev => ({ ...prev, [plan.id]: true }));
+                            }}
+                            className="w-24 px-2 py-1.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded text-white text-lg font-mono text-center focus:outline-none focus:border-[#1877F2]" />
+                          {isDirty && (
+                            <button onClick={() => saveMemberPrice(plan, priceField, plan[priceField])}
+                              disabled={memberSaving === plan.id}
+                              className="px-3 py-1.5 rounded-lg bg-[#1877F2] text-white text-xs font-medium disabled:opacity-50 flex items-center gap-1">
+                              {memberSaving === plan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                              Save
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
 
