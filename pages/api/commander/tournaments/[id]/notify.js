@@ -124,9 +124,9 @@ export default async function handler(req, res) {
 
         // Also insert in-app notifications for each player
         const notificationRows = targetUserIds.map(uid => ({
-            user_id: uid,
+            player_id: uid,
             venue_id: tournament.venue_id,
-            type: type === 'custom' ? 'custom' : 'tournament_starting',
+            notification_type: type === 'custom' ? 'custom' : 'tournament_starting',
             title: notification.title,
             message: notification.body,
             channel: 'push',
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
             metadata: {
                 tournament_id: tournamentId,
                 tournament_name: tournamentName,
-                notification_type: type
+                sub_type: type
             }
         }));
 
