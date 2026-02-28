@@ -339,18 +339,27 @@ async function handleClockAction(req, res, tournamentId) {
     }
 
     // Persist clock state and tournament updates together
+    const updatePayload = {
+      ...updates,
+      clock_state: clockState
+    };
+
+    console.log('[clock.js] Persisting:', JSON.stringify({ tournamentId, action, updatePayload }, null, 2));
+
     const { data: updated, error } = await supabase
       .from('commander_tournaments')
-      .update({
-        ...updates,
-        clock_state: clockState,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', tournamentId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[clock.js] Supabase update error:', JSON.stringify(error, null, 2));
+      return res.status(500).json({
+        success: false,
+        error: { code: 'DB_ERROR', message: error.message, details: error.details, hint: error.hint }
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -361,10 +370,10 @@ async function handleClockAction(req, res, tournamentId) {
       }
     });
   } catch (error) {
-    console.error('Clock action error:', error);
+    console.error('[clock.js] Clock action exception:', error.message, error.stack);
     return res.status(500).json({
       success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to perform clock action' }
+      error: { code: 'SERVER_ERROR', message: error.message || 'Failed to perform clock action' }
     });
   }
 }
