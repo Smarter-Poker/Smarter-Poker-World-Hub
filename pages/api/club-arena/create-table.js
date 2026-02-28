@@ -45,6 +45,10 @@ export default async function handler(req, res) {
         const gv = VALID_VARIANTS.includes(variant) ? variant : 'nlh';
         const gt = VALID_GAME_TYPES.includes(gameType) ? gameType : 'cash';
 
+        // Auto-fill rake/BBJ from tier config based on stakes
+        const { getRakeConfig } = require('../../src/lib/poker-engine/RakeConfig');
+        const tierConfig = getRakeConfig(bb, gv);
+
         const { data: table, error: createErr } = await supabaseAdmin
             .from('tables')
             .insert({
@@ -59,6 +63,13 @@ export default async function handler(req, res) {
                 big_blind: bb,
                 min_buy_in: sb * 40,
                 max_buy_in: bb * 200,
+                rake_percent: Math.min(Math.max(
+                  parseFloat(settings?.rakePercent) || tierConfig.rakePercent, 0), 33),
+                rake_cap_bb: Math.max(
+                  parseFloat(settings?.rakeCap) || tierConfig.rakeCapBB, 0),
+                bbj_percent: tierConfig.bbjEnabled
+                  ? parseFloat(settings?.bbjFeeBB) || tierConfig.bbjFeeBB
+                  : 0,
                 current_players: 0,
                 status: 'waiting',
                 settings: {
@@ -66,6 +77,15 @@ export default async function handler(req, res) {
                     run_it_twice: settings?.runItTwice || false,
                     bomb_pot_enabled: settings?.bombPots || false,
                     auto_muck: settings?.autoMuck !== false,
+                    // Tier info for reference
+                    stakes_tier: tierConfig.tier,
+                    // BBJ payout config (% of main pool when hit)
+                    bbj_payout_total: tierConfig.bbjPayoutTotal,
+                    bbj_payout_loser: tierConfig.bbjPayoutLoser,
+                    bbj_payout_winner: tierConfig.bbjPayoutWinner,
+                    bbj_payout_table: tierConfig.bbjPayoutTable,
+                    bbj_qualifying_hand: tierConfig.qualifyingHand?.minLosingHand || null,
+                    bbj_eligible: tierConfig.bbjEnabled,
                 },
             })
             .select()

@@ -1,12 +1,9 @@
 /**
  * POST /api/club-arena/distribute-chips
  * 
- * Agent distributes chips to a player in their downline.
- * Atomic: deducts from agent's club_members.chip_balance, adds to player's.
- * Records chip_transaction.
- * 
- * Body: { clubId, playerId, amount, notes? }
- * Auth: Bearer token (must be agent with player in downline)
+ * Move chips from club treasury to a member via atomic RPC.
+ * Body: { clubId, toUserId, amount, notes? }
+ * Auth: Bearer token (owner, admin, or agent with credit)
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -21,101 +18,72 @@ export default async function handler(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'No auth token' });
 
-  // Verify the calling user
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, playerId, amount, notes } = req.body;
-  if (!clubId || !playerId || !amount || amount <= 0) {
-    return res.status(400).json({ error: 'clubId, playerId, and positive amount required' });
+  const { clubId, toUserId, amount, notes } = req.body;
+  if (!clubId || !toUserId || !amount || amount <= 0) {
+    return res.status(400).json({ error: 'clubId, toUserId, and positive amount required' });
   }
 
   try {
-    // 1. Verify agent membership and role
-    const { data: agentMember, error: agentErr } = await supabaseAdmin
+    // Verify caller is owner/admin/agent
+    const { data: member } = await supabaseAdmin
       .from('club_members')
-      .select('user_id, role, chip_balance, nickname')
+      .select('role')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
       .single();
 
-    if (agentErr || !agentMember) {
-      return res.status(403).json({ error: 'Not a member of this club' });
-    }
-    if (!['agent', 'owner', 'admin'].includes(agentMember.role)) {
-      return res.status(403).json({ error: 'Only agents/owners can distribute chips' });
+    if (!member || !['owner', 'admin', 'agent'].includes(member.role)) {
+      return res.status(403).json({ error: 'Only owners, admins, or agents can distribute chips' });
     }
 
-    // 2. Verify player is in agent's downline (or caller is owner/admin)
-    const { data: playerMember, error: playerErr } = await supabaseAdmin
-      .from('club_members')
-      .select('user_id, role, chip_balance, agent_id, nickname')
-      .eq('club_id', clubId)
-      .eq('user_id', playerId)
-      .single();
-
-    if (playerErr || !playerMember) {
-      return res.status(404).json({ error: 'Player not found in club' });
-    }
-
-    // Agents can only distribute to their own downline; owners/admins can distribute to anyone
-    if (agentMember.role === 'agent' && playerMember.agent_id !== user.id) {
-      return res.status(403).json({ error: 'Player is not in your downline' });
-    }
-
-    // 3. Check agent has enough chips
-    if (agentMember.chip_balance < amount) {
-      return res.status(400).json({
-        error: 'Insufficient chips',
-        available: agentMember.chip_balance,
-        requested: amount
+    // If agent, use agent-to-player transfer instead of treasury
+    if (member.role === 'agent') {
+      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_chips_agent_to_player', {
+        p_agent_user_id: user.id,
+        p_player_user_id: toUserId,
+        p_club_id: clubId,
+        p_amount: amount,
       });
+
+      if (rpcErr) {
+        return res.status(500).json({ error: 'Transfer failed', details: rpcErr.message });
+      }
+      if (!result?.success) {
+        return res.status(400).json({ error: result?.error || 'Transfer failed', details: result });
+      }
+
+      return res.status(200).json({ success: true, ...result });
     }
 
-    // 4. Atomic transfer: deduct from agent, add to player
-    const { error: deductErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: agentMember.chip_balance - amount })
-      .eq('club_id', clubId)
-      .eq('user_id', user.id);
+    // Owner/admin: distribute from treasury via atomic RPC
+    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('distribute_chips', {
+      p_club_id: clubId,
+      p_to_user_id: toUserId,
+      p_amount: amount,
+      p_distributed_by: user.id,
+    });
 
-    if (deductErr) throw deductErr;
-
-    const { error: addErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: playerMember.chip_balance + amount })
-      .eq('club_id', clubId)
-      .eq('user_id', playerId);
-
-    if (addErr) {
-      // Rollback: restore agent's chips
-      await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: agentMember.chip_balance })
-        .eq('club_id', clubId)
-        .eq('user_id', user.id);
-      throw addErr;
+    if (rpcErr) {
+      console.error('[distribute-chips] RPC error:', rpcErr);
+      return res.status(500).json({ error: 'Distribution failed', details: rpcErr.message });
     }
 
-    // 5. Record transaction (keep ID for 10-min clawback window)
-    const { data: txn } = await supabaseAdmin.from('chip_transactions').insert({
-      club_id: clubId,
-      from_user_id: user.id,
-      to_user_id: playerId,
-      amount,
-      transaction_type: 'send',
-      notes: notes || `Chips from ${agentMember.nickname || 'agent'} to ${playerMember.nickname || 'player'}`,
-    }).select('id, created_at').single();
+    if (!result?.success) {
+      return res.status(400).json({ error: result?.error || 'Distribution failed', details: result });
+    }
 
     return res.status(200).json({
       success: true,
-      transactionId: txn?.id,
-      agentBalance: agentMember.chip_balance - amount,
-      playerBalance: playerMember.chip_balance + amount,
+      clubId,
+      toUserId,
       amount,
-      clawbackExpiresAt: txn?.created_at
-        ? new Date(new Date(txn.created_at).getTime() + 10 * 60 * 1000).toISOString()
-        : null,
+      treasuryBefore: result.treasury_before,
+      treasuryAfter: result.treasury_after,
+      memberBefore: result.member_before,
+      memberAfter: result.member_after,
     });
   } catch (err) {
     console.error('[distribute-chips]', err);

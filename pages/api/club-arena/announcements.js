@@ -1,0 +1,128 @@
+/**
+ * /api/club-arena/announcements
+ * 
+ * GET  ?clubId=xxx — List announcements for club
+ * POST { action: 'create'|'update'|'delete', clubId, title, content, announcementId }
+ * Auth: Bearer token, admin/owner for writes
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'No auth token' });
+
+  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+  try {
+    // ═══════════════════════════════════════════════════════════════
+    // GET — List announcements
+    // ═══════════════════════════════════════════════════════════════
+    if (req.method === 'GET') {
+      const clubId = req.query.clubId;
+      if (!clubId) return res.status(400).json({ error: 'clubId required' });
+
+      // Verify membership
+      const { data: member } = await supabaseAdmin
+        .from('club_members')
+        .select('role')
+        .eq('club_id', clubId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!member) return res.status(403).json({ error: 'Not a club member' });
+
+      const { data: announcements, error } = await supabaseAdmin
+        .from('club_announcements')
+        .select('*')
+        .eq('club_id', clubId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, announcements: announcements || [] });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // POST — Create/Update/Delete
+    // ═══════════════════════════════════════════════════════════════
+    if (req.method === 'POST') {
+      const { action, clubId, title, content, announcementId, pinned } = req.body;
+      if (!clubId || !action) return res.status(400).json({ error: 'clubId and action required' });
+
+      // Verify admin/owner role
+      const { data: member } = await supabaseAdmin
+        .from('club_members')
+        .select('role')
+        .eq('club_id', clubId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!member || !['owner', 'admin'].includes(member.role)) {
+        return res.status(403).json({ error: 'Only admins and owners can manage announcements' });
+      }
+
+      if (action === 'create') {
+        if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
+
+        const { data: announcement, error } = await supabaseAdmin
+          .from('club_announcements')
+          .insert({
+            club_id: clubId,
+            author_id: user.id,
+            title: title.trim(),
+            content: content?.trim() || '',
+            pinned: pinned || false,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return res.status(200).json({ success: true, announcement });
+      }
+
+      if (action === 'update') {
+        if (!announcementId) return res.status(400).json({ error: 'announcementId required' });
+
+        const updates = {};
+        if (title !== undefined) updates.title = title.trim();
+        if (content !== undefined) updates.content = content.trim();
+        if (pinned !== undefined) updates.pinned = pinned;
+
+        const { error } = await supabaseAdmin
+          .from('club_announcements')
+          .update(updates)
+          .eq('id', announcementId)
+          .eq('club_id', clubId);
+
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      }
+
+      if (action === 'delete') {
+        if (!announcementId) return res.status(400).json({ error: 'announcementId required' });
+
+        const { error } = await supabaseAdmin
+          .from('club_announcements')
+          .delete()
+          .eq('id', announcementId)
+          .eq('club_id', clubId);
+
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      }
+
+      return res.status(400).json({ error: `Unknown action: ${action}` });
+    }
+
+    return res.status(405).json({ error: 'GET or POST only' });
+  } catch (err) {
+    console.error('[announcements]', err);
+    return res.status(500).json({ error: 'Announcements failed', details: err.message });
+  }
+}

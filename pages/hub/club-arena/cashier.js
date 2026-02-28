@@ -69,6 +69,8 @@ export default function Cashier() {
     // Toast
     const [toast, setToast] = useState(null);
     const [pendingCashouts, setPendingCashouts] = useState([]);
+    const [cashoutHistory, setCashoutHistory] = useState([]);
+    const [rakebackInfo, setRakebackInfo] = useState(null); // { pendingRakeback, rakebackRate }
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -148,6 +150,31 @@ export default function Cashier() {
                     .order('created_at', { ascending: false })
                     .limit(10);
                 setPendingCashouts(cashouts || []);
+
+                // Load full cashout history (all statuses) via API
+                try {
+                    const token = await getAuthToken();
+                    if (token) {
+                        const histRes = await fetch(`/api/club-arena/cashout-history?clubId=${clubData.id}`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (histRes.ok) {
+                            const histData = await histRes.json();
+                            setCashoutHistory(histData.cashouts || []);
+                        }
+                    }
+                } catch (e) { /* cashout history is optional */ }
+
+                // Load rakeback info
+                try {
+                    const rbRes = await fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (rbRes.ok) {
+                        const rbData = await rbRes.json();
+                        setRakebackInfo(rbData);
+                    }
+                } catch (e) { /* rakeback is optional */ }
             }
         } catch (e) {
             console.error('[Cashier] Error loading data:', e);
@@ -385,6 +412,84 @@ export default function Cashier() {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+
+                            {/* Rakeback */}
+                            {rakebackInfo && rakebackInfo.pendingRakeback > 0 && (
+                                <div style={{ marginBottom: '24px' }}>
+                                    <h2 style={S.sectionTitle}>Rakeback Available</h2>
+                                    <div style={{
+                                        background: 'rgba(75,181,67,0.08)', borderRadius: '12px',
+                                        padding: '16px', border: '1px solid rgba(75,181,67,0.25)',
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <div>
+                                                <div style={{ fontSize: '13px', color: FB.textSecondary }}>Unclaimed Rakeback</div>
+                                                <div style={{ fontSize: '24px', fontWeight: 800, color: '#4BB543' }}>
+                                                    {rakebackInfo.pendingRakeback.toLocaleString()} chips
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: FB.textSecondary }}>
+                                                    Rate: {((rakebackInfo.rakebackRate || 0) * 100).toFixed(0)}% · {rakebackInfo.pendingCount} period{rakebackInfo.pendingCount !== 1 ? 's' : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const result = await apiCall('/api/club-arena/rakeback', { action: 'claim', clubId: club.id });
+                                                    showToast(`Claimed ${result.claimed?.toLocaleString()} chips rakeback!`);
+                                                    loadData();
+                                                } catch (e) { showToast(e.message || 'Claim failed', 'error'); }
+                                            }}
+                                            style={{
+                                                width: '100%', padding: '12px', background: '#4BB543', color: '#fff',
+                                                border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '15px', cursor: 'pointer',
+                                            }}
+                                        >
+                                            Claim {rakebackInfo.pendingRakeback.toLocaleString()} Chips
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cashout History */}
+                            {cashoutHistory.length > 0 && (
+                                <div style={{ marginBottom: '24px' }}>
+                                    <h2 style={S.sectionTitle}>Cashout History</h2>
+                                    {cashoutHistory.slice(0, 20).map(co => {
+                                        const statusColors = {
+                                            pending: { bg: 'rgba(255,165,0,0.08)', border: 'rgba(255,165,0,0.25)', text: '#FFA500', icon: '⏳' },
+                                            approved: { bg: 'rgba(75,181,67,0.08)', border: 'rgba(75,181,67,0.25)', text: '#4BB543', icon: '✅' },
+                                            cancelled: { bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.25)', text: '#FA383E', icon: '❌' },
+                                            completed: { bg: 'rgba(35,116,225,0.08)', border: 'rgba(35,116,225,0.25)', text: '#2374E1', icon: '💎' },
+                                        };
+                                        const sc = statusColors[co.status] || statusColors.pending;
+                                        return (
+                                            <div key={co.id} style={{
+                                                background: sc.bg, borderRadius: '10px', padding: '12px 14px',
+                                                border: `1px solid ${sc.border}`, marginBottom: '8px',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <span style={{ fontSize: '16px', fontWeight: 800, color: sc.text }}>
+                                                            {sc.icon} {(co.amount || 0).toLocaleString()} chips
+                                                        </span>
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '11px', fontWeight: 700, color: sc.text,
+                                                        background: `${sc.text}15`, padding: '3px 10px', borderRadius: '12px',
+                                                    }}>
+                                                        {co.status?.toUpperCase()}
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: '11px', color: FB.textSecondary, marginTop: '4px' }}>
+                                                    {co.created_at ? new Date(co.created_at).toLocaleString() : ''}
+                                                    {co.agent_note && <span> · Agent: {co.agent_note}</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
 

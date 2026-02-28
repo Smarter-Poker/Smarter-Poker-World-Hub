@@ -30,6 +30,15 @@ const apiCall = async (endpoint, body) => {
     return data;
 };
 
+const apiGet = async (url) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
+
 export default function ClubLobby() {
     const router = useRouter();
     const { club: clubIdParam } = router.query;
@@ -46,12 +55,16 @@ export default function ClubLobby() {
     const [creatingTable, setCreatingTable] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [newDescription, setNewDescription] = useState('');
+    const [announcements, setAnnouncements] = useState([]);
     const [newTable, setNewTable] = useState({
         name: '',
         variant: 'nlh',
         maxPlayers: '9',
         smallBlind: '1',
         bigBlind: '2',
+        rakePercent: '5',
+        rakeCap: '',
+        bbjPercent: '0',
         straddle: true,
         runItTwice: true,
         bombPots: false,
@@ -97,14 +110,19 @@ export default function ClubLobby() {
                 clubId: club.id,
                 name: newTable.name || `New ${newTable.variant.toUpperCase()} Table`,
                 gameType: 'cash',
-                gameVariant: newTable.variant,
-                maxPlayers: parseInt(newTable.maxPlayers),
+                variant: newTable.variant,
                 smallBlind: parseFloat(newTable.smallBlind),
                 bigBlind: parseFloat(newTable.bigBlind),
-                straddle: newTable.straddle,
-                runItTwice: newTable.runItTwice,
-                bombPots: newTable.bombPots,
-                autoMuck: newTable.autoMuck,
+                maxPlayers: parseInt(newTable.maxPlayers),
+                settings: {
+                    rakePercent: parseFloat(newTable.rakePercent) || 5,
+                    rakeCap: parseFloat(newTable.rakeCap) || (parseFloat(newTable.bigBlind) * 3),
+                    bbjPercent: parseFloat(newTable.bbjPercent) || 0,
+                    straddle: newTable.straddle,
+                    runItTwice: newTable.runItTwice,
+                    bombPots: newTable.bombPots,
+                    autoMuck: newTable.autoMuck,
+                },
             });
 
             if (result.table) {
@@ -168,6 +186,12 @@ export default function ClubLobby() {
                     .eq('club_id', clubData.id)
                     .neq('status', 'deleted');
                 setTables(tableData || []);
+
+                // Load club announcements
+                try {
+                    const annRes = await apiGet(`/api/club-arena/announcements?clubId=${clubData.id}`);
+                    setAnnouncements(annRes.announcements || []);
+                } catch (e) { /* announcements table may not exist yet */ }
 
                 // Load membership & chip balance
                 if (authUser) {
@@ -269,6 +293,28 @@ export default function ClubLobby() {
                                     <p style={styles.descriptionText}>{club.description || 'Welcome to the club!'}</p>
                                 )}
                             </div>
+
+                            {/* Club Announcements */}
+                            {announcements.length > 0 && (
+                                <div style={{ marginBottom: '16px' }}>
+                                    {announcements.slice(0, 3).map(ann => (
+                                        <div key={ann.id} style={{
+                                            background: 'rgba(35,116,225,0.08)', borderRadius: '8px',
+                                            padding: '10px 14px', marginBottom: '6px',
+                                            border: `1px solid rgba(35,116,225,0.2)`,
+                                        }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 700, color: FB.textPrimary }}>
+                                                📢 {ann.title}
+                                            </div>
+                                            {ann.content && (
+                                                <div style={{ fontSize: '12px', color: FB.textSecondary, marginTop: '2px' }}>
+                                                    {ann.content.length > 120 ? ann.content.slice(0, 120) + '...' : ann.content}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Game Type Filters */}
                             <div style={styles.filterTabs}>

@@ -460,6 +460,76 @@ export default async function handler(req, res) {
       });
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // SET PARENT AGENT (create sub-agent relationship)
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'set_parent_agent') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required (the sub-agent)' });
+      const { parentAgentId } = req.body;
+
+      // Get target agent record
+      const { data: targetAgent } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id, parent_agent_id')
+        .eq('user_id', targetUserId)
+        .eq('club_id', clubId)
+        .single();
+
+      if (!targetAgent) return res.status(404).json({ error: 'Target agent not found' });
+
+      // If parentAgentId is null, remove parent (make standalone)
+      const { error } = await supabaseAdmin
+        .from('agents')
+        .update({ parent_agent_id: parentAgentId || null })
+        .eq('id', targetAgent.id);
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, action: 'parent_set', parentAgentId });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LIST SUB-AGENTS (for a given parent agent)
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'list_sub_agents') {
+      const { parentAgentUserId } = req.body;
+      if (!parentAgentUserId) return res.status(400).json({ error: 'parentAgentUserId required' });
+
+      // Get parent agent record
+      const { data: parentAgent } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id')
+        .eq('user_id', parentAgentUserId)
+        .eq('club_id', clubId)
+        .single();
+
+      if (!parentAgent) return res.status(404).json({ error: 'Parent agent not found' });
+
+      // Get sub-agents
+      const { data: subAgents } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id, commission_rate, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
+        .eq('club_id', clubId)
+        .eq('parent_agent_id', parentAgent.id);
+
+      // Enrich with profiles
+      const subIds = (subAgents || []).map(a => a.user_id);
+      let profiles = {};
+      if (subIds.length > 0) {
+        const { data: profs } = await supabaseAdmin
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', subIds);
+        for (const p of (profs || [])) profiles[p.id] = p;
+      }
+
+      const enriched = (subAgents || []).map(a => ({
+        ...a,
+        profile: profiles[a.user_id] || null,
+      }));
+
+      return res.status(200).json({ success: true, subAgents: enriched });
+    }
+
     return res.status(400).json({ error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-agent]', err);

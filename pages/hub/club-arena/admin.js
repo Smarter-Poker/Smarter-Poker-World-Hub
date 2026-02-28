@@ -45,6 +45,15 @@ const apiCall = async (endpoint, body) => {
     return data;
 };
 
+const apiGet = async (url) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
+
 export default function Admin() {
     const router = useRouter();
     const { club: clubIdParam } = router.query;
@@ -78,6 +87,19 @@ export default function Admin() {
     const [agentCommissionRate, setAgentCommissionRate] = useState('');
     // Settlement state
     const [settleAction, setSettleAction] = useState('status');
+    // Announcements state
+    const [announcements, setAnnouncements] = useState([]);
+    const [newAnnTitle, setNewAnnTitle] = useState('');
+    const [newAnnContent, setNewAnnContent] = useState('');
+    // Shop management state
+    const [shopItems, setShopItems] = useState([]);
+    const [newItemName, setNewItemName] = useState('');
+    const [newItemPrice, setNewItemPrice] = useState('');
+    const [newItemDesc, setNewItemDesc] = useState('');
+    const [newItemCategory, setNewItemCategory] = useState('general');
+    // Rakeback state
+    const [rakebackStatus, setRakebackStatus] = useState(null);
+    const [rakebackLoading, setRakebackLoading] = useState(false);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -165,6 +187,28 @@ export default function Admin() {
     }, [clubIdParam]);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    // Load announcements or shop items when those modals open
+    useEffect(() => {
+        if (!club) return;
+        if (activeModal === 'announcements') {
+            apiGet(`/api/club-arena/announcements?clubId=${club.id}`)
+                .then(d => setAnnouncements(d.announcements || []))
+                .catch(() => {});
+        }
+        if (activeModal === 'shop') {
+            apiGet(`/api/club-arena/manage-shop?clubId=${club.id}`)
+                .then(d => setShopItems(d.items || []))
+                .catch(() => {});
+        }
+        if (activeModal === 'rakeback') {
+            setRakebackLoading(true);
+            apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`)
+                .then(d => setRakebackStatus(d))
+                .catch(() => {})
+                .finally(() => setRakebackLoading(false));
+        }
+    }, [activeModal, club]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MEMBER MANAGEMENT
@@ -413,6 +457,9 @@ export default function Admin() {
         { id: 'agents', icon: '', title: 'Agent Management', desc: 'Credit, commission, suspend agents', color: '#F5A623' },
         { id: 'settlement', icon: '', title: 'Settlement', desc: 'Manage settlement periods', color: '#A855F7' },
         { id: 'reports', icon: '', title: 'Club Reports', desc: 'View club statistics and activity', color: '#F582AE' },
+        { id: 'announcements', icon: '', title: 'Announcements', desc: 'Create and manage club announcements', color: '#4ECDC4' },
+        { id: 'shop', icon: '', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
+        { id: 'rakeback', icon: '', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'settings', icon: 'Admin', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -420,6 +467,15 @@ export default function Admin() {
     const currentMemberForUI = members.find(m => m.user_id === user?.id);
     if (currentMemberForUI?.role === 'owner') {
         adminOptions.push({ id: 'danger', icon: '', title: 'Danger Zone', desc: 'Delete club permanently', color: FB.danger });
+    }
+
+    // Navigation tiles (open pages, not modals)
+    const navTiles = [];
+    if (['owner', 'admin', 'agent'].includes(currentMemberForUI?.role)) {
+        navTiles.push({ title: 'Agent Dashboard', desc: 'Manage players, cashouts & commissions', color: '#FF9500', href: `/hub/club-arena/agent-dashboard?club=${clubIdParam}` });
+    }
+    if (club?.union_id && ['owner', 'admin'].includes(currentMemberForUI?.role)) {
+        navTiles.push({ title: 'Union Dashboard', desc: 'Manage union settings and clubs', color: '#AF52DE', href: `/hub/club-arena/union-dashboard?union=${club.union_id}` });
     }
 
     return (
@@ -466,6 +522,28 @@ export default function Admin() {
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Dashboard navigation tiles */}
+                            {navTiles.length > 0 && (
+                                <>
+                                    <h2 style={{ ...S.sectionTitle, marginTop: 24 }}>Dashboards</h2>
+                                    {navTiles.map(tile => (
+                                        <div
+                                            key={tile.title}
+                                            style={S.actionCard}
+                                            onClick={() => router.push(tile.href)}
+                                            onMouseEnter={e => e.currentTarget.style.background = FB.hover}
+                                            onMouseLeave={e => e.currentTarget.style.background = FB.cardBg}
+                                        >
+                                            <div style={{ ...S.iconBox, background: tile.color }}>→</div>
+                                            <div>
+                                                <div style={S.actionTitle}>{tile.title}</div>
+                                                <div style={S.actionDesc}>{tile.desc}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
                         </>
                     )}
                 </div>
@@ -714,6 +792,258 @@ export default function Admin() {
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════════
+ ANNOUNCEMENTS MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'announcements' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{...S.modal, maxHeight: '80vh', overflow: 'auto'}} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Club Announcements</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {/* Create new announcement */}
+                            <div style={{ marginBottom: 20 }}>
+                                <label style={S.formLabel}>Title</label>
+                                <input value={newAnnTitle} onChange={e => setNewAnnTitle(e.target.value)}
+                                    placeholder="Announcement title" style={S.formInput} />
+                                <label style={S.formLabel}>Content</label>
+                                <textarea value={newAnnContent} onChange={e => setNewAnnContent(e.target.value)}
+                                    placeholder="Announcement content..." style={S.formTextarea} />
+                                <button
+                                    style={{ ...S.modalBtn, background: '#4ECDC4', color: '#000', opacity: processing ? 0.5 : 1 }}
+                                    disabled={processing}
+                                    onClick={async () => {
+                                        if (!newAnnTitle.trim()) { showToast('Title required', 'error'); return; }
+                                        setProcessing(true);
+                                        try {
+                                            await apiCall('/api/club-arena/announcements', { action: 'create', clubId: club.id, title: newAnnTitle, content: newAnnContent });
+                                            showToast('Announcement posted!');
+                                            setNewAnnTitle(''); setNewAnnContent('');
+                                            const d = await apiGet(`/api/club-arena/announcements?clubId=${club.id}`);
+                                            setAnnouncements(d.announcements || []);
+                                        } catch (e) { showToast(e.message, 'error'); }
+                                        finally { setProcessing(false); }
+                                    }}>
+                                    {processing ? 'Posting...' : 'Post Announcement'}
+                                </button>
+                            </div>
+                            {/* Existing announcements */}
+                            <h4 style={{ fontSize: 14, color: FB.textPrimary, fontWeight: 700, marginBottom: 8 }}>
+                                Existing ({announcements.length})
+                            </h4>
+                            {announcements.map(ann => (
+                                <div key={ann.id} style={{ background: FB.background, borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 13 }}>{ann.title}</div>
+                                        <button onClick={async () => {
+                                            if (!confirm('Delete this announcement?')) return;
+                                            try {
+                                                await apiCall('/api/club-arena/announcements', { action: 'delete', clubId: club.id, announcementId: ann.id });
+                                                setAnnouncements(prev => prev.filter(a => a.id !== ann.id));
+                                                showToast('Deleted');
+                                            } catch (e) { showToast(e.message, 'error'); }
+                                        }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Delete</button>
+                                    </div>
+                                    {ann.content && <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 4 }}>{ann.content}</div>}
+                                    <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 4 }}>
+                                        {ann.created_at ? new Date(ann.created_at).toLocaleString() : ''}
+                                        {ann.pinned && <span style={{ color: FB.gold, marginLeft: 8 }}>📌 Pinned</span>}
+                                    </div>
+                                </div>
+                            ))}
+                            {announcements.length === 0 && (
+                                <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 20 }}>No announcements yet.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ SHOP MANAGEMENT MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'shop' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{...S.modal, maxHeight: '80vh', overflow: 'auto'}} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Shop Management</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {/* Create new item */}
+                            <div style={{ marginBottom: 20 }}>
+                                <label style={S.formLabel}>Item Name</label>
+                                <input value={newItemName} onChange={e => setNewItemName(e.target.value)}
+                                    placeholder="Cool Hat" style={S.formInput} />
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={S.formLabel}>Price (chips)</label>
+                                        <input type="number" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)}
+                                            placeholder="500" style={{...S.formInput, marginBottom: 0}} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={S.formLabel}>Category</label>
+                                        <select value={newItemCategory} onChange={e => setNewItemCategory(e.target.value)}
+                                            style={{...S.formInput, marginBottom: 0}}>
+                                            <option value="general">General</option>
+                                            <option value="avatar">Avatar</option>
+                                            <option value="emote">Emote</option>
+                                            <option value="card_back">Card Back</option>
+                                            <option value="table_theme">Table Theme</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <label style={S.formLabel}>Description (optional)</label>
+                                <input value={newItemDesc} onChange={e => setNewItemDesc(e.target.value)}
+                                    placeholder="A cool item..." style={S.formInput} />
+                                <button
+                                    style={{ ...S.modalBtn, background: '#45B7D1', color: '#000', opacity: processing ? 0.5 : 1 }}
+                                    disabled={processing}
+                                    onClick={async () => {
+                                        if (!newItemName.trim() || !newItemPrice) { showToast('Name and price required', 'error'); return; }
+                                        setProcessing(true);
+                                        try {
+                                            await apiCall('/api/club-arena/manage-shop', { action: 'create', clubId: club.id, name: newItemName, price: newItemPrice, description: newItemDesc, category: newItemCategory });
+                                            showToast('Item created!');
+                                            setNewItemName(''); setNewItemPrice(''); setNewItemDesc('');
+                                            const d = await apiGet(`/api/club-arena/manage-shop?clubId=${club.id}`);
+                                            setShopItems(d.items || []);
+                                        } catch (e) { showToast(e.message, 'error'); }
+                                        finally { setProcessing(false); }
+                                    }}>
+                                    {processing ? 'Creating...' : 'Create Item'}
+                                </button>
+                            </div>
+                            {/* Existing items */}
+                            <h4 style={{ fontSize: 14, color: FB.textPrimary, fontWeight: 700, marginBottom: 8 }}>
+                                Shop Items ({shopItems.length})
+                            </h4>
+                            {shopItems.map(item => (
+                                <div key={item.id} style={{ background: FB.background, borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                        <div>
+                                            <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 13 }}>{item.name}</span>
+                                            <span style={{ fontSize: 12, color: FB.gold, marginLeft: 8 }}>{item.price?.toLocaleString()} chips</span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            <button onClick={async () => {
+                                                try {
+                                                    const r = await apiCall('/api/club-arena/manage-shop', { action: 'toggle', clubId: club.id, itemId: item.id });
+                                                    setShopItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: r.isActive } : i));
+                                                    showToast(r.isActive ? 'Item enabled' : 'Item disabled');
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                            }} style={{ background: item.is_active ? FB.success : FB.hover, color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
+                                                {item.is_active ? 'Active' : 'Disabled'}
+                                            </button>
+                                            <button onClick={async () => {
+                                                if (!confirm(`Delete "${item.name}"?`)) return;
+                                                try {
+                                                    await apiCall('/api/club-arena/manage-shop', { action: 'delete', clubId: club.id, itemId: item.id });
+                                                    setShopItems(prev => prev.filter(i => i.id !== item.id));
+                                                    showToast('Deleted');
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                            }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Delete</button>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                        {item.category} · {item.purchase_count || 0} sold
+                                        {item.description && ` · ${item.description}`}
+                                    </div>
+                                </div>
+                            ))}
+                            {shopItems.length === 0 && (
+                                <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 20 }}>No shop items yet.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ RAKEBACK MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'rakeback' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={S.modal} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Rakeback Management</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {rakebackLoading ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>Loading...</div>
+                            ) : (
+                                <>
+                                    <div style={{ background: FB.background, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                                        <div style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 4 }}>Current Period</div>
+                                        <div style={{ fontSize: 18, fontWeight: 800, color: rakebackStatus?.activePeriod ? '#4BB543' : FB.textSecondary }}>
+                                            {rakebackStatus?.activePeriod ? '🟢 Open' : '⚫ No Active Period'}
+                                        </div>
+                                        {rakebackStatus?.activePeriod && (
+                                            <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 4 }}>
+                                                Since {new Date(rakebackStatus.activePeriod.period_start).toLocaleString()}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: 13, color: FB.textSecondary, marginTop: 8 }}>
+                                            Rate: {((rakebackStatus?.rakebackRate || 0) * 100).toFixed(0)}% of rake returned to players
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        {!rakebackStatus?.activePeriod ? (
+                                            <button
+                                                style={{ ...S.modalBtn, flex: 1, background: '#4BB543', color: '#fff', opacity: processing ? 0.5 : 1 }}
+                                                disabled={processing}
+                                                onClick={async () => {
+                                                    setProcessing(true);
+                                                    try {
+                                                        await apiCall('/api/club-arena/rakeback', { action: 'open', clubId: club.id });
+                                                        showToast('Rakeback period opened!');
+                                                        const d = await apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`);
+                                                        setRakebackStatus(d);
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                    finally { setProcessing(false); }
+                                                }}
+                                            >
+                                                {processing ? 'Opening...' : 'Open New Period'}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                style={{ ...S.modalBtn, flex: 1, background: '#F5A623', color: '#000', opacity: processing ? 0.5 : 1 }}
+                                                disabled={processing}
+                                                onClick={async () => {
+                                                    if (!confirm('Close this period and calculate rakeback for all players?')) return;
+                                                    setProcessing(true);
+                                                    try {
+                                                        const r = await apiCall('/api/club-arena/rakeback', { action: 'close', clubId: club.id });
+                                                        showToast(`Period closed! ${r.playersProcessed} players, ${r.totalRakebackDistributed?.toLocaleString()} chips rakeback distributed.`);
+                                                        const d = await apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`);
+                                                        setRakebackStatus(d);
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                    finally { setProcessing(false); }
+                                                }}
+                                            >
+                                                {processing ? 'Closing...' : 'Close Period & Calculate Rakeback'}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div style={{ marginTop: 16, fontSize: 12, color: FB.textSecondary, lineHeight: '1.5' }}>
+                                        <strong style={{ color: FB.textPrimary }}>How it works:</strong><br />
+                                        1. Open a rakeback period to start tracking.<br />
+                                        2. Rake from all hands during the period is tracked per player.<br />
+                                        3. Close the period to calculate each player&apos;s rakeback share.<br />
+                                        4. Players claim their rakeback from the Cashier page.
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
  MINT CHIPS MODAL
  ═══════════════════════════════════════════════════════════════════════ */}
             {activeModal === 'mint' && (
@@ -836,6 +1166,31 @@ export default function Admin() {
                                                 finally { setProcessing(false); }
                                             }}>
                                             Suspend
+                                        </button>
+                                        {/* Set Parent Agent (make sub-agent) */}
+                                        <button style={{ background: '#FF9500', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={async () => {
+                                                const otherAgents = members.filter(m => m.role === 'agent' && m.user_id !== agent.user_id);
+                                                if (otherAgents.length === 0) { showToast('No other agents to assign as parent', 'error'); return; }
+                                                const names = otherAgents.map((a, i) => `${i + 1}. ${a.profile?.display_name || a.profile?.username || a.user_id.slice(0,8)}`).join('\n');
+                                                const choice = prompt(`Select parent agent (enter number, or 0 to clear):\n${names}`);
+                                                if (choice === null) return;
+                                                const idx = parseInt(choice);
+                                                setProcessing(true);
+                                                try {
+                                                    if (idx === 0) {
+                                                        await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'set_parent_agent', parentAgentUserId: null });
+                                                        showToast('Parent agent cleared (now independent)');
+                                                    } else if (idx >= 1 && idx <= otherAgents.length) {
+                                                        const parent = otherAgents[idx - 1];
+                                                        await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'set_parent_agent', parentAgentUserId: parent.user_id });
+                                                        showToast(`Set as sub-agent of ${parent.profile?.display_name || parent.user_id.slice(0,8)}`);
+                                                    } else { showToast('Invalid selection', 'error'); }
+                                                    loadData();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setProcessing(false); }
+                                            }}>
+                                            Sub-Agent
                                         </button>
                                     </div>
                                 </div>

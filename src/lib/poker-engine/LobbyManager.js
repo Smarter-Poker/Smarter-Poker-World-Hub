@@ -396,27 +396,68 @@ class LobbyManager {
       
       await history.completeHand(finalStacks);
 
-      // ── Record rake to Club Arena DB if this is a club table ──
+      // ── Record rake to Club Arena DB via Supabase RPC ──
+      // Uses DEALT METHOD: rake split equally among ALL dealt players
       const clubId = config.clubId;
-      if (clubId && data.rake > 0) {
-        try {
-          // Build player contributions (proportional to pot investment)
-          const playerContributions = (data.players || [])
-            .filter(p => p.invested > 0)
-            .map(p => ({
-              playerId: p.id,
-              rakeContribution: data.rake * (p.invested / (data.potTotal || 1)),
-            }));
+      const rakeAmount = data.rake || 0;
 
-          await ChipBridge.recordRake({
-            clubId,
-            tableId: config.tableId,
-            handId: `hand_${config.tableId}_${Date.now()}`,
-            potSize: data.potTotal || 0,
-            rakeAmount: data.rake,
-            numPlayers: data.players?.length || finalStacks.length,
-            playerContributions,
+      if (clubId && rakeAmount > 0) {
+        try {
+          const sb = ChipBridge.getSupabase();
+          const { calculateBBJFee } = require('./RakeConfig');
+
+          // ALL players dealt into this hand (not just those who invested)
+          const dealtPlayerIds = (data.players || []).map(p => p.id);
+
+          // Calculate BBJ fee using tier-based config
+          // Fee is in BB units (e.g. 0.25 BB for Small stakes), applied per hand
+          // Only charged if pot ≥ 10 BB and 4+ players dealt
+          const bbjContribution = calculateBBJFee(
+            config.bigBlind,
+            data.potTotal || 0,
+            dealtPlayerIds.length,
+            config.variant || 'nlh'
+          );
+
+          // Call the Supabase RPC — handles:
+          //   1. Dealt-method per-player attribution (equal split)
+          //   2. Union hold split
+          //   3. BBJ routing to main/backup/promo pools
+          //   4. Club treasury credit
+          //   5. Ledger entries
+          const { data: rakeResult, error: rakeErr } = await sb.rpc('record_rake', {
+            p_hand_id: data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`,
+            p_club_id: clubId,
+            p_table_id: config.tableId,
+            p_rake_amount: rakeAmount,
+            p_pot_size: data.potTotal || 0,
+            p_num_players: dealtPlayerIds.length || finalStacks.length,
+            p_bbj_contribution: bbjContribution,
+            p_dealt_player_ids: dealtPlayerIds.length > 0 ? dealtPlayerIds : null,
           });
+
+          if (rakeErr) {
+            console.error('[LobbyManager] Rake RPC failed:', rakeErr.message);
+          }
+
+          // Now run cascading commission for each dealt player
+          // This credits agents up the hierarchy
+          if (dealtPlayerIds.length > 0) {
+            const perPlayerRake = rakeAmount / dealtPlayerIds.length;
+            for (const playerId of dealtPlayerIds) {
+              try {
+                await sb.rpc('calculate_cascading_commission', {
+                  p_hand_id: data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`,
+                  p_club_id: clubId,
+                  p_player_user_id: playerId,
+                  p_rake_amount: perPlayerRake,
+                });
+              } catch (commErr) {
+                // Don't block on commission failures
+                console.error('[LobbyManager] Commission calc failed for', playerId, commErr.message);
+              }
+            }
+          }
         } catch (rakeErr) {
           console.error('[LobbyManager] Rake recording failed:', rakeErr);
           // Don't block hand progression on rake recording failure

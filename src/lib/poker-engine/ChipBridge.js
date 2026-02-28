@@ -183,7 +183,16 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
   const sb = getSupabase();
 
   try {
-    // 1. Insert rake record
+    // 1. Insert rake record (including per-player contributions for rakeback)
+    const contribMap = {};
+    if (playerContributions?.length > 0) {
+      for (const pc of playerContributions) {
+        if (pc.playerId && pc.rakeContribution > 0) {
+          contribMap[pc.playerId] = (contribMap[pc.playerId] || 0) + pc.rakeContribution;
+        }
+      }
+    }
+
     await sb.from('rake_records').insert({
       club_id: clubId,
       table_id: tableId,
@@ -192,6 +201,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       rake_amount: rakeAmount,
       num_players: numPlayers || 0,
       bbj_contribution: 0,
+      player_contributions: Object.keys(contribMap).length > 0 ? contribMap : null,
     });
 
     // 2. Update club total rake
@@ -302,4 +312,5 @@ module.exports = {
   recordRake,
   getChipBalance,
   checkLockExists,
+  getSupabase,
 };

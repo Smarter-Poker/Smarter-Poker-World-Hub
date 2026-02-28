@@ -103,7 +103,26 @@ export default async function handler(req, res) {
       periods = periodData || [];
     }
 
-    // 6. Aggregate stats
+    // 6. Get all union admins
+    const { data: adminList } = await supabaseAdmin
+      .from('union_admins')
+      .select('user_id, role, permissions, created_at')
+      .eq('union_id', unionId);
+
+    // Enrich admins with profile names
+    let admins = adminList || [];
+    const adminUserIds = admins.map(a => a.user_id);
+    if (adminUserIds.length > 0) {
+      const { data: adminProfiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .in('id', adminUserIds);
+      const profMap = {};
+      for (const p of (adminProfiles || [])) profMap[p.id] = p;
+      admins = admins.map(a => ({ ...a, profile: profMap[a.user_id] || null }));
+    }
+
+    // 7. Aggregate stats
     const totalTreasury = clubs.reduce((s, c) => s + (c.chip_treasury || 0), 0);
     const totalRake = clubs.reduce((s, c) => s + (c.total_rake || 0), 0);
     const totalMembers = clubs.reduce((s, c) => s + (c.member_count || 0), 0);
@@ -130,6 +149,7 @@ export default async function handler(req, res) {
       },
       clubs,
       agents,
+      admins,
       recentPeriods: periods,
     });
   } catch (err) {

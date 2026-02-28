@@ -59,6 +59,10 @@ const TABS = [
     { id: 'agents', label: 'Agents' },
     { id: 'settlement', label: 'Settlement' },
     { id: 'mint', label: 'Mint Chips' },
+    { id: 'manage_clubs', label: 'Manage Clubs' },
+    { id: 'admins', label: 'Admins' },
+    { id: 'settings', label: 'Settings' },
+    { id: 'bbj', label: '🎰 BBJ' },
 ];
 
 export default function UnionDashboard() {
@@ -81,6 +85,20 @@ export default function UnionDashboard() {
     const [settleAction, setSettleAction] = useState('open');
     const [settleProcessing, setSettleProcessing] = useState(false);
 
+    // Manage clubs state
+    const [addClubId, setAddClubId] = useState('');
+    // Admin management state
+    const [addAdminId, setAddAdminId] = useState('');
+    // Settings state
+    const [unionName, setUnionName] = useState('');
+    const [unionDesc, setUnionDesc] = useState('');
+    const [unionHoldRate, setUnionHoldRate] = useState('');
+    const [bbjData, setBbjData] = useState(null);
+    const [bbjLoading, setBbjLoading] = useState(false);
+    const [bbjMainPct, setBbjMainPct] = useState('50');
+    const [bbjBackupPct, setBbjBackupPct] = useState('25');
+    const [bbjPromoPct, setBbjPromoPct] = useState('25');
+
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 3500);
@@ -101,6 +119,14 @@ export default function UnionDashboard() {
         try {
             const data = await apiGet(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`);
             setDashboard(data);
+            if (data.union) {
+                setUnionName(data.union.name || '');
+                setUnionDesc(data.union.description || '');
+                setUnionHoldRate(String(((data.union.settings?.union_rake_hold || 0.10) * 100).toFixed(0)));
+                setBbjMainPct(String(data.union.settings?.bbj_main_pct || 50));
+                setBbjBackupPct(String(data.union.settings?.bbj_backup_pct || 25));
+                setBbjPromoPct(String(data.union.settings?.bbj_promo_pct || 25));
+            }
             if (data.clubs?.length > 0 && !mintClubId) {
                 setMintClubId(data.clubs[0].id);
                 setSettleClubId(data.clubs[0].id);
@@ -169,6 +195,75 @@ export default function UnionDashboard() {
     }
 
     if (!dashboard) {
+        // If no unionIdParam, show Create Union form
+        if (!unionIdParam) {
+            return (
+                <div style={{ background: FB.background, minHeight: '100vh' }}>
+                    <SEOHead title="Create Union | Club Arena" />
+                    <UniversalHeader />
+                    <div style={{ maxWidth: 500, margin: '0 auto', padding: '60px 16px' }}>
+                        <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: 24, fontWeight: 800, color: FB.gold, margin: '0 0 8px', textAlign: 'center' }}>
+                            Create a Union
+                        </h1>
+                        <p style={{ fontSize: 13, color: FB.textSecondary, textAlign: 'center', marginBottom: 32 }}>
+                            Manage multiple clubs under one umbrella with shared agents, settlements, and chip minting.
+                        </p>
+                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 24, border: `1px solid ${FB.border}` }}>
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Union Name *</label>
+                                <input value={unionName} onChange={e => setUnionName(e.target.value)}
+                                    placeholder="My Poker Union" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px', fontSize: 14, boxSizing: 'border-box' }} />
+                            </div>
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Description</label>
+                                <textarea value={unionDesc} onChange={e => setUnionDesc(e.target.value)}
+                                    placeholder="Describe your union..." rows={3}
+                                    style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }} />
+                            </div>
+                            <div style={{ marginBottom: 20 }}>
+                                <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Union Rake Hold Rate (%)</label>
+                                <input type="number" value={unionHoldRate} onChange={e => setUnionHoldRate(e.target.value)}
+                                    placeholder="10" min="0" max="100"
+                                    style={{ width: 120, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px', fontSize: 14, boxSizing: 'border-box' }} />
+                            </div>
+                            <button
+                                disabled={mintProcessing || !unionName.trim()}
+                                onClick={async () => {
+                                    if (!unionName.trim()) { showToast('Union name required', 'error'); return; }
+                                    setMintProcessing(true);
+                                    try {
+                                        const r = await apiCall('/api/club-arena/manage-union', {
+                                            action: 'create',
+                                            name: unionName,
+                                            description: unionDesc,
+                                            settings: { union_rake_hold: parseFloat(unionHoldRate || '10') / 100 },
+                                        });
+                                        showToast('Union created!');
+                                        router.push(`/hub/club-arena/union-dashboard?union=${r.union.id}`);
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                    finally { setMintProcessing(false); }
+                                }}
+                                style={{
+                                    width: '100%', background: FB.gold, color: '#000', border: 'none',
+                                    borderRadius: 10, padding: '14px', fontWeight: 800, fontSize: 16, cursor: 'pointer',
+                                    opacity: mintProcessing || !unionName.trim() ? 0.5 : 1,
+                                }}>
+                                {mintProcessing ? 'Creating...' : 'Create Union'}
+                            </button>
+                        </div>
+                        <button onClick={() => router.push('/hub/club-arena')}
+                            style={{ display: 'block', margin: '20px auto 0', background: 'transparent', color: FB.textSecondary, border: 'none', fontSize: 13, cursor: 'pointer' }}>
+                            ← Back to Club Arena
+                        </button>
+                    </div>
+                    {toast && (
+                        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'error' ? FB.danger : FB.success, color: '#fff', padding: '10px 24px', borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 999 }}>
+                            {toast.msg}
+                        </div>
+                    )}
+                </div>
+            );
+        }
         return (
             <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
                 <SEOHead title="Union Dashboard | Club Arena" />
@@ -436,10 +531,273 @@ export default function UnionDashboard() {
                         </button>
                     </div>
                 )}
-            </div>
 
-            {/* Toast */}
-            {toast && (
+                {/* ═══ MANAGE CLUBS TAB ═══ */}
+                {activeTab === 'manage_clubs' && (
+                    <div>
+                        {/* Add club by ID */}
+                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}`, marginBottom: 16 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Add Club to Union</h3>
+                            <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>Enter a club UUID to add it to this union.</p>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <input value={addClubId} onChange={e => setAddClubId(e.target.value)}
+                                    placeholder="Club UUID" style={{ flex: 1, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }} />
+                                <button onClick={async () => {
+                                    if (!addClubId.trim()) { showToast('Enter a club ID', 'error'); return; }
+                                    try {
+                                        const r = await apiCall('/api/club-arena/manage-union', { action: 'add_club', unionId: unionIdParam, clubId: addClubId.trim() });
+                                        showToast(`Added club: ${r.clubName || addClubId}`);
+                                        setAddClubId('');
+                                        loadDashboard();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                }} style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Add</button>
+                            </div>
+                        </div>
+                        {/* Current clubs with remove button */}
+                        <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Current Clubs</h3>
+                        {clubs.length === 0 ? (
+                            <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 30 }}>No clubs in this union yet.</div>
+                        ) : clubs.map(club => (
+                            <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{club.name}</div>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary }}>👥 {club.member_count || 0} · 🏦 {(club.chip_treasury || 0).toLocaleString()}</div>
+                                </div>
+                                <button onClick={async () => {
+                                    if (!confirm(`Remove ${club.name} from union?`)) return;
+                                    try {
+                                        await apiCall('/api/club-arena/manage-union', { action: 'remove_club', unionId: unionIdParam, clubId: club.id });
+                                        showToast(`Removed ${club.name}`);
+                                        loadDashboard();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Remove</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* ═══ ADMINS TAB ═══ */}
+                {activeTab === 'admins' && (
+                    <div>
+                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}`, marginBottom: 16 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Add Union Admin</h3>
+                            <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>Enter a user UUID to grant union admin access.</p>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <input value={addAdminId} onChange={e => setAddAdminId(e.target.value)}
+                                    placeholder="User UUID" style={{ flex: 1, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }} />
+                                <button onClick={async () => {
+                                    if (!addAdminId.trim()) { showToast('Enter a user ID', 'error'); return; }
+                                    try {
+                                        const r = await apiCall('/api/club-arena/manage-union', { action: 'add_admin', unionId: unionIdParam, adminUserId: addAdminId.trim() });
+                                        showToast(`Added admin: ${r.admin?.display_name || r.admin?.username || addAdminId}`);
+                                        setAddAdminId('');
+                                        loadDashboard();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Add Admin</button>
+                            </div>
+                        </div>
+                        <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Current Admins</h3>
+                        {(dashboard.admins || []).length === 0 ? (
+                            <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 20 }}>No admins found.</div>
+                        ) : (dashboard.admins || []).map(admin => (
+                            <div key={admin.user_id} style={{
+                                background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`,
+                                marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            }}>
+                                <div>
+                                    <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
+                                        {admin.profile?.display_name || admin.profile?.username || admin.user_id.slice(0, 8)}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                        Role: <span style={{ color: admin.role === 'owner' ? FB.gold : FB.primary }}>{admin.role}</span>
+                                    </div>
+                                </div>
+                                {admin.role !== 'owner' && (
+                                    <button onClick={async () => {
+                                        if (!confirm(`Remove ${admin.profile?.display_name || admin.profile?.username || 'this admin'}?`)) return;
+                                        try {
+                                            await apiCall('/api/club-arena/manage-union', { action: 'remove_admin', unionId: unionIdParam, adminUserId: admin.user_id });
+                                            showToast('Admin removed');
+                                            loadDashboard();
+                                        } catch (e) { showToast(e.message, 'error'); }
+                                    }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Remove</button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* ═══ SETTINGS TAB ═══ */}
+                {activeTab === 'settings' && (
+                    <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 16 }}>Union Settings</h3>
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Union Name</label>
+                            <input value={unionName} onChange={e => setUnionName(e.target.value)}
+                                style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                        </div>
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Description</label>
+                            <textarea value={unionDesc} onChange={e => setUnionDesc(e.target.value)} rows={3}
+                                style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }} />
+                        </div>
+
+                        {/* Rake Routing Info */}
+                        <div style={{ background: 'rgba(24,119,242,0.08)', borderRadius: 10, padding: 14, marginBottom: 16, border: '1px solid rgba(24,119,242,0.2)' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: FB.primary, marginBottom: 4 }}>💰 Rake Routing</div>
+                            <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                100% of all rake and BBJ from member clubs flows to this union. Clubs in a union do not keep rake directly.
+                            </div>
+                        </div>
+
+                        {/* BBJ Split Config */}
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, display: 'block', marginBottom: 8 }}>🎰 BBJ Split Percentages</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                <div>
+                                    <label style={{ fontSize: 11, color: '#FFD700', display: 'block', marginBottom: 2 }}>Main BBJ %</label>
+                                    <input type="number" value={bbjMainPct} onChange={e => setBbjMainPct(e.target.value)}
+                                        min="0" max="100" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 11, color: '#C0C0C0', display: 'block', marginBottom: 2 }}>Backup BBJ %</label>
+                                    <input type="number" value={bbjBackupPct} onChange={e => setBbjBackupPct(e.target.value)}
+                                        min="0" max="100" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 11, color: '#4BB543', display: 'block', marginBottom: 2 }}>Promo Fund %</label>
+                                    <input type="number" value={bbjPromoPct} onChange={e => setBbjPromoPct(e.target.value)}
+                                        min="0" max="100" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                </div>
+                            </div>
+                            {(parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)) !== 100 && (
+                                <div style={{ fontSize: 11, color: FB.danger, marginTop: 4 }}>
+                                    ⚠️ Must total 100% (currently {parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)}%)
+                                </div>
+                            )}
+                        </div>
+
+                        <button onClick={async () => {
+                            const total = parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0);
+                            if (total !== 100) { showToast('BBJ split must total 100%', 'error'); return; }
+                            try {
+                                await apiCall('/api/club-arena/manage-union', {
+                                    action: 'update_settings',
+                                    unionId: unionIdParam,
+                                    name: unionName,
+                                    description: unionDesc,
+                                    settings: {
+                                        ...union?.settings,
+                                        bbj_main_pct: parseInt(bbjMainPct),
+                                        bbj_backup_pct: parseInt(bbjBackupPct),
+                                        bbj_promo_pct: parseInt(bbjPromoPct),
+                                    },
+                                });
+                                showToast('Settings saved');
+                                loadDashboard();
+                            } catch (e) { showToast(e.message, 'error'); }
+                        }} style={{
+                            width: '100%', background: FB.primary, color: '#fff', border: 'none',
+                            borderRadius: 10, padding: '12px', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                        }}>Save Settings</button>
+                    </div>
+                )}
+
+                {/* ═══ BBJ TAB ═══ */}
+                {activeTab === 'bbj' && (
+                    <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 16 }}>🎰 Bad Beat Jackpot</h3>
+
+                        {!bbjData ? (
+                            <button onClick={async () => {
+                                setBbjLoading(true);
+                                try {
+                                    const token = await getAuthToken();
+                                    // Call via direct Supabase RPC
+                                    const { createClient } = await import('@supabase/supabase-js');
+                                    const sb = createClient(
+                                        process.env.NEXT_PUBLIC_SUPABASE_URL,
+                                        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                                    );
+                                    const { data, error } = await sb.rpc('get_union_bbj_status', { p_union_id: unionIdParam });
+                                    if (error) throw error;
+                                    setBbjData(data);
+                                } catch (e) {
+                                    showToast(e.message || 'Failed to load BBJ', 'error');
+                                } finally { setBbjLoading(false); }
+                            }} disabled={bbjLoading} style={{
+                                width: '100%', background: FB.primary, color: '#fff', border: 'none',
+                                borderRadius: 10, padding: '12px', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                                opacity: bbjLoading ? 0.5 : 1,
+                            }}>{bbjLoading ? 'Loading...' : 'Load BBJ Status'}</button>
+                        ) : (
+                            <div>
+                                {/* Pool Balances */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+                                    {[
+                                        { label: 'Main BBJ', value: bbjData.main_bbj || 0, color: '#FFD700', icon: '🏆' },
+                                        { label: 'Backup BBJ', value: bbjData.backup_bbj || 0, color: '#C0C0C0', icon: '🔄' },
+                                        { label: 'Promo Fund', value: bbjData.promo_fund || 0, color: '#4BB543', icon: '🎁' },
+                                    ].map(p => (
+                                        <div key={p.label} style={{ background: FB.background, borderRadius: 10, padding: 14, textAlign: 'center', border: `1px solid ${FB.border}` }}>
+                                            <div style={{ fontSize: 20, marginBottom: 4 }}>{p.icon}</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4 }}>{p.label}</div>
+                                            <div style={{ fontSize: 20, fontWeight: 900, color: p.color }}>{(p.value).toLocaleString()}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Total */}
+                                <div style={{ background: 'rgba(255,215,0,0.06)', borderRadius: 10, padding: 14, marginBottom: 16, textAlign: 'center', border: '1px solid rgba(255,215,0,0.2)' }}>
+                                    <div style={{ fontSize: 12, color: '#FFD700', marginBottom: 2 }}>TOTAL BBJ POOL</div>
+                                    <div style={{ fontSize: 28, fontWeight: 900, color: '#FFD700' }}>
+                                        {(bbjData.total_bbj || 0).toLocaleString()}
+                                    </div>
+                                </div>
+
+                                {/* Split Config */}
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>BBJ Split Configuration</div>
+                                    <div style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+                                        <span style={{ color: '#FFD700' }}>Main: {bbjData.split_config?.main_pct || 50}%</span>
+                                        <span style={{ color: FB.textSecondary }}>·</span>
+                                        <span style={{ color: '#C0C0C0' }}>Backup: {bbjData.split_config?.backup_pct || 25}%</span>
+                                        <span style={{ color: FB.textSecondary }}>·</span>
+                                        <span style={{ color: '#4BB543' }}>Promo: {bbjData.split_config?.promo_pct || 25}%</span>
+                                    </div>
+                                </div>
+
+                                {/* Recent Entries */}
+                                <div>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>Recent BBJ Activity</div>
+                                    {(bbjData.recent_entries || []).length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 20, color: FB.textSecondary, fontSize: 13 }}>
+                                            No BBJ activity yet. BBJ drops start when tables have bbj_percent configured.
+                                        </div>
+                                    ) : (bbjData.recent_entries || []).map((entry, i) => (
+                                        <div key={entry.id || i} style={{
+                                            background: FB.background, borderRadius: 8, padding: '10px 12px',
+                                            border: `1px solid ${FB.border}`, marginBottom: 6, fontSize: 12,
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ color: entry.entry_type === 'contribution' ? '#4BB543' : '#FA383E', fontWeight: 600 }}>
+                                                    {entry.entry_type === 'contribution' ? '+' : ''}{(entry.main_amount || 0).toFixed(2)} main
+                                                    {entry.backup_amount ? ` / ${(entry.backup_amount).toFixed(2)} backup` : ''}
+                                                    {entry.promo_amount ? ` / ${(entry.promo_amount).toFixed(2)} promo` : ''}
+                                                </span>
+                                                <span style={{ color: FB.textSecondary }}>
+                                                    {entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}
+                                                </span>
+                                            </div>
+                                            {entry.note && <div style={{ color: FB.textSecondary, marginTop: 2 }}>{entry.note}</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
                 <div style={{
                     position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
                     background: toast.type === 'error' ? FB.danger : FB.success,

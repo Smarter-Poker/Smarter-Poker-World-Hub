@@ -707,10 +707,13 @@ class GameStateMachine {
     this.emit('hand_complete', {
       handNumber: this.handNumber,
       result: this.currentHand.result,
+      rake: this.currentHand.result?.rake || 0,
+      potTotal: this.potCalculator.totalPot,
       players: this.currentHand.players.map(p => ({
         id: p.id,
         stack: p.stack,
         seatIndex: p.seatIndex,
+        invested: this.potCalculator.getInvestment(p.id),
       })),
     });
   }

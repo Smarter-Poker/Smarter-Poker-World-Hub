@@ -293,6 +293,7 @@ class GameController {
         ante: row.ante || 0,
         rakePercent: row.rake_percent || 0,
         rakeCap: row.rake_cap_bb || 0,
+        bbjPercent: row.bbj_percent || 0,
         clubId: row.club_id || null,
         actionTime: row.action_time_seconds || 30,
       };

@@ -95,6 +95,8 @@ export default function AgentDashboard() {
     const [cashoutNote, setCashoutNote] = useState('');
     const [clawbackModal, setClawbackModal] = useState(null); // transaction object
     const [processing, setProcessing] = useState(false);
+    const [subAgents, setSubAgents] = useState([]);
+    const [subAgentsLoaded, setSubAgentsLoaded] = useState(false);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -248,6 +250,7 @@ export default function AgentDashboard() {
         { id: 'cashouts', label: `Cashouts (${pendingCashouts?.length || 0})`, icon: '💸' },
         { id: 'transactions', label: 'Transactions', icon: '📋' },
         { id: 'commissions', label: 'Commissions', icon: '💰' },
+        { id: 'subagents', label: 'Sub-Agents', icon: '🔗' },
     ];
 
     // Get clawback-eligible transactions (within last 10 minutes, type=send, from current user)
@@ -320,6 +323,58 @@ export default function AgentDashboard() {
                 )}
                 {activeTab === 'commissions' && (
                     <CommissionsTab history={commissionHistory} myAgent={myAgent} />
+                )}
+
+                {/* ═══ SUB-AGENTS TAB ═══ */}
+                {activeTab === 'subagents' && (
+                    <div>
+                        {!subAgentsLoaded ? (
+                            <div style={{ textAlign: 'center', padding: 30 }}>
+                                <button onClick={async () => {
+                                    try {
+                                        const r = await apiCall('/api/club-arena/manage-agent', {
+                                            action: 'list_sub_agents', clubId: dashboard.clubId, parentAgentUserId: user.id,
+                                        });
+                                        setSubAgents(r.subAgents || []);
+                                        setSubAgentsLoaded(true);
+                                    } catch (e) { showToast(e.message || 'Failed to load', 'error'); }
+                                }} style={{ ...actionBtn, background: FB.primary, width: 'auto', padding: '12px 32px' }}>
+                                    Load Sub-Agents
+                                </button>
+                            </div>
+                        ) : subAgents.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
+                                <div style={{ fontSize: 32, marginBottom: 12 }}>🔗</div>
+                                <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
+                                <div style={{ fontSize: 12, marginTop: 6 }}>Club owners assign sub-agent relationships.</div>
+                            </div>
+                        ) : subAgents.map(sa => (
+                            <div key={sa.id} style={{ ...cardStyle, marginBottom: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
+                                            {sa.profile?.display_name || sa.profile?.username || 'Unknown'}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                            {sa.status === 'active' ? '🟢' : '🔴'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+                                    {[
+                                        { label: 'Players', value: sa.active_player_count || 0, color: FB.textPrimary },
+                                        { label: 'Weekly Rake', value: (sa.weekly_rake_generated || 0).toLocaleString(), color: FB.gold },
+                                        { label: 'Lifetime', value: (sa.lifetime_earnings || 0).toLocaleString(), color: '#4BB543' },
+                                    ].map(s => (
+                                        <div key={s.label} style={{ background: FB.background, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary }}>{s.label}</div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
 

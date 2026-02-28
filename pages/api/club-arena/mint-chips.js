@@ -1,11 +1,9 @@
 /**
  * POST /api/club-arena/mint-chips
  * 
- * Union owner or club owner mints new chips into the club treasury.
- * Records the allocation as a club_transaction.
- * 
+ * Mints new chips into club treasury via atomic RPC.
  * Body: { clubId, amount, notes? }
- * Auth: Bearer token (must be club owner or union admin)
+ * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -29,62 +27,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Get club details
-    const { data: club, error: clubErr } = await supabaseAdmin
-      .from('clubs')
-      .select('id, name, chip_treasury, union_id, owner_id')
-      .eq('id', clubId)
-      .single();
-
-    if (clubErr || !club) return res.status(404).json({ error: 'Club not found' });
-
-    // 2. Check authorization: must be club owner or union admin
-    let authorized = club.owner_id === user.id;
-
-    if (!authorized && club.union_id) {
-      const { data: unionAdmin } = await supabaseAdmin
-        .from('union_admins')
-        .select('role')
-        .eq('union_id', club.union_id)
-        .eq('user_id', user.id)
-        .single();
-      authorized = !!unionAdmin;
-    }
-
-    if (!authorized) {
-      return res.status(403).json({ error: 'Only club owner or union admin can mint chips' });
-    }
-
-    // 3. Update club treasury
-    const currentTreasury = club.chip_treasury || 0;
-    const { error: updateErr } = await supabaseAdmin
-      .from('clubs')
-      .update({ chip_treasury: currentTreasury + amount })
-      .eq('id', clubId);
-
-    if (updateErr) throw updateErr;
-
-    // 4. Record transaction
-    await supabaseAdmin.from('club_transactions').insert({
-      club_id: clubId,
-      user_id: user.id,
-      transaction_type: 'deposit',
-      amount,
-      description: notes || `Chip mint: ${amount.toLocaleString()} chips added to treasury`,
-      metadata: {
-        source: club.union_id ? 'union_allocation' : 'owner_mint',
-        union_id: club.union_id,
-        treasury_before: currentTreasury,
-        treasury_after: currentTreasury + amount,
-      },
+    // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging
+    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('mint_club_chips', {
+      p_club_id: clubId,
+      p_amount: amount,
+      p_minted_by: user.id,
     });
+
+    if (rpcErr) {
+      console.error('[mint-chips] RPC error:', rpcErr);
+      return res.status(500).json({ error: 'Mint failed', details: rpcErr.message });
+    }
+
+    if (!result?.success) {
+      return res.status(400).json({ error: result?.error || 'Mint failed' });
+    }
 
     return res.status(200).json({
       success: true,
       clubId,
       amount,
-      treasuryBefore: currentTreasury,
-      treasuryAfter: currentTreasury + amount,
+      treasuryBefore: result.old_treasury,
+      treasuryAfter: result.new_treasury,
     });
   } catch (err) {
     console.error('[mint-chips]', err);
