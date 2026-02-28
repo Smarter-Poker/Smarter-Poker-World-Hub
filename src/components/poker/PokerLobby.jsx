@@ -38,15 +38,48 @@ const T = {
 
 const VARIANT_LABELS = {
   holdem: "No Limit Hold'em",
-  omaha: 'Pot Limit Omaha',
-  omaha_hi_lo: 'Omaha Hi-Lo',
+  omaha4: 'PLO (4-Card)',
+  omaha5: 'PLO 5-Card',
+  omaha6: 'PLO 6-Card',
+  omaha_hilo: 'Omaha Hi-Lo',
   short_deck: 'Short Deck',
+  // Aliases (from DB or Club Arena)
+  omaha: 'Pot Limit Omaha',
+  nlh: "No Limit Hold'em",
+  plo: 'PLO (4-Card)',
+  plo4: 'PLO (4-Card)',
+  plo5: 'PLO 5-Card',
+  plo6: 'PLO 6-Card',
+  plo8: 'Omaha Hi-Lo',
+  omaha_hi_lo: 'Omaha Hi-Lo',
 };
 
 const VARIANT_COLORS = {
   holdem: '#22c55e',
+  nlh: '#22c55e',
   omaha: '#f59e0b',
+  omaha4: '#f59e0b',
+  plo: '#f59e0b',
+  plo4: '#f59e0b',
+  omaha5: '#e67e22',
+  plo5: '#e67e22',
+  omaha6: '#e74c3c',
+  plo6: '#e74c3c',
+  omaha_hilo: '#ef4444',
   omaha_hi_lo: '#ef4444',
+  plo8: '#ef4444',
+  short_deck: '#8b5cf6',
+};
+
+// Primary variants for filter chips and create-table selector
+const FILTER_VARIANTS = {
+  holdem: "No Limit Hold'em",
+  omaha4: 'PLO (4-Card)',
+  omaha5: 'PLO 5-Card',
+  omaha6: 'PLO 6-Card',
+  omaha_hilo: 'Omaha Hi-Lo',
+  short_deck: 'Short Deck',
+};
   short_deck: '#8b5cf6',
 };
 
@@ -208,7 +241,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
         {/* Variant */}
         <Field label="Game">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {Object.entries(VARIANT_LABELS).map(([k, v]) => (
+            {Object.entries(FILTER_VARIANTS).map(([k, v]) => (
               <Chip key={k} label={v} active={config.variant === k} onClick={() => update('variant', k)} />
             ))}
           </div>
@@ -522,10 +555,10 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
             }}
           />
           
-          {['all', ...Object.keys(VARIANT_LABELS)].map(v => (
+          {['all', ...Object.keys(FILTER_VARIANTS)].map(v => (
             <Chip
               key={v}
-              label={v === 'all' ? 'All Games' : VARIANT_LABELS[v]}
+              label={v === 'all' ? 'All Games' : FILTER_VARIANTS[v]}
               active={filterVariant === v}
               onClick={() => setFilterVariant(v)}
             />
