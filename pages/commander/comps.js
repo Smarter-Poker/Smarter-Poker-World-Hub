@@ -17,7 +17,7 @@ import {
   Plus, Loader2, RefreshCw, Check, Star, TrendingUp, Lock, X, Shield
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function CompSystem() {
   const router = useRouter();
@@ -153,6 +153,7 @@ export default function CompSystem() {
       });
       const json = await res.json();
       if (json.success) {
+        broadcastChange('members');
         setAwarded(true);
         setTimeout(() => {
           setAwarded(false);

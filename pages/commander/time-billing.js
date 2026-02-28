@@ -193,6 +193,7 @@ export default function TimeBilling() {
       const json = await res.json();
       if (json.success) {
         setPricingDirty(false);
+        broadcastChange('settings');
       }
     } catch (err) { console.error(err); }
     finally { setPricingSaving(false); }
@@ -382,6 +383,7 @@ export default function TimeBilling() {
       if (json.success) {
         setMemberPlans(prev => prev.map(p => p.id === plan.id ? { ...p, [field]: parseFloat(value) || 0 } : p));
         setMemberDirty(prev => ({ ...prev, [plan.id]: false }));
+        broadcastChange('settings');
       }
     } catch (err) { console.error(err); }
     finally { setMemberSaving(null); }

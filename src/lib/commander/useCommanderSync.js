@@ -17,9 +17,11 @@
  *   ✓ Online/offline resilience — refetches when network comes back
  *   ✓ Self-tab suppression — won't refetch from your own broadcasts
  *   ✓ Per-instance throttle — prevents refetch storms (max 1 per 500ms)
- *   ✓ Supabase reconnect — retries on channel failure
+ *   ✓ Supabase reconnect — retries on channel failure (exponential backoff)
  *   ✓ Stale closure prevention — uses refs for callbacks
  *   ✓ SSR-safe — all browser APIs guarded
+ *   ✓ setTimeout leak prevention — pending timers cleaned on unmount
+ *   ✓ Full entity coverage — 8 Supabase tables with entity mapping
  *
  * Usage:
  *   // Subscribe to ALL entities (backward compatible):
@@ -47,11 +49,27 @@ const TAB_ID = typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
     : `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+// ─── Supabase table → entity mapping ───────────────────────────
+// Maps Supabase table names to Commander entity names for Layer 2 filtering
+const TABLE_TO_ENTITY = {
+    commander_tables: 'tables',
+    commander_games: 'games',
+    commander_waitlist: 'waitlist',
+    commander_floor_calls: 'floor_calls',
+    commander_seats: 'tables',       // Seat changes affect tables
+    commander_settings: 'settings',
+    commander_staff: 'staff',
+    commander_members: 'members',
+};
+
+// Default Supabase tables to subscribe to (covers all core entities)
+const DEFAULT_SUPABASE_TABLES = Object.keys(TABLE_TO_ENTITY);
+
 /**
  * Broadcast a data change to all other open Commander tabs.
  * Call this AFTER a successful write (POST/PUT/PATCH/DELETE).
  *
- * @param {string} entity - What changed: 'tables' | 'games' | 'floor_calls' | 'waitlist' | 'settings' | 'dealers' | 'staff' | 'members' | 'tournaments'
+ * @param {string} entity - What changed: 'tables' | 'games' | 'floor_calls' | 'waitlist' | 'settings' | 'dealers' | 'staff' | 'members' | 'tournaments' | 'incidents'
  */
 export function broadcastChange(entity) {
     try {
@@ -76,7 +94,8 @@ export function broadcastChange(entity) {
  * @param {string|number} venueId - Venue to subscribe to
  * @param {function} onRefetch - Called when data changes are detected
  * @param {object} [opts] - Options
- * @param {string[]} [opts.tables] - Supabase tables to subscribe to
+ * @param {string[]} [opts.entities] - Entity types to listen for (for filtering)
+ * @param {string[]} [opts.tables] - Override Supabase tables to subscribe to
  */
 export function useCommanderSync(venueId, onRefetch, opts = {}) {
     const refetchRef = useRef(onRefetch);
@@ -86,6 +105,7 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
     const lastRefetchRef = useRef(0);
     const pendingWhileHiddenRef = useRef(false);
     const reconnectCountRef = useRef(0);
+    const pendingTimerRef = useRef(null); // Track scheduled throttle timer
 
     // Entity filter — if provided, only refetch when matching entity changes
     const entitiesRef = useRef(opts.entities || null);
@@ -108,8 +128,11 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
         }
 
         if (elapsed < THROTTLE_MS) {
+            // Clear any existing pending timer to avoid double-fire
+            if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
             // Schedule for after throttle window
-            setTimeout(() => {
+            pendingTimerRef.current = setTimeout(() => {
+                pendingTimerRef.current = null;
                 lastRefetchRef.current = Date.now();
                 refetchRef.current?.(entity);
             }, THROTTLE_MS - elapsed);
@@ -142,7 +165,12 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
         };
 
         return () => {
+            // Clean up BroadcastChannel + any pending throttle timer
             try { bc.close(); } catch { /* already closed */ }
+            if (pendingTimerRef.current) {
+                clearTimeout(pendingTimerRef.current);
+                pendingTimerRef.current = null;
+            }
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -182,12 +210,7 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
         const client = supabase;
         if (!client) return;
 
-        const listenTables = opts.tables || [
-            'commander_tables',
-            'commander_games',
-            'commander_waitlist',
-            'commander_floor_calls',
-        ];
+        const listenTables = opts.tables || DEFAULT_SUPABASE_TABLES;
 
         const connectChannel = () => {
             // Clean up any existing channel first
@@ -205,9 +228,14 @@ export function useCommanderSync(venueId, onRefetch, opts = {}) {
                         event: '*',
                         schema: 'public',
                         table,
+                        // commander_seats has no venue_id column
                         filter: table === 'commander_seats' ? undefined : `venue_id=eq.${venueId}`,
                     },
-                    () => throttledRefetch()
+                    () => {
+                        // Map Supabase table name → entity name for filtering
+                        const entity = TABLE_TO_ENTITY[table] || table;
+                        throttledRefetch(entity);
+                    }
                 );
             });
 

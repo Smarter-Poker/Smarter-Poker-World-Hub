@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
+
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import {

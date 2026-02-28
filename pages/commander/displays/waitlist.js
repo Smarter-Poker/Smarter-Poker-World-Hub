@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
+
 import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import {
   Loader2, Users, ArrowLeft,

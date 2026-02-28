@@ -15,7 +15,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
+
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import {
   AlertTriangle, Check, Clock, Loader2, RefreshCw,
