@@ -690,8 +690,10 @@ function ActionButton({ label, color, onClick }) {
 // BUY-IN DIALOG
 // ═══════════════════════════════════════════════════════════════════════════
 
-function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
-  const [amount, setAmount] = useState(Math.floor((minBuyIn + maxBuyIn) / 2));
+function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, onConfirm, onCancel }) {
+  const effectiveMax = maxBuyIn < minBuyIn ? minBuyIn : maxBuyIn;
+  const [amount, setAmount] = useState(Math.floor((minBuyIn + effectiveMax) / 2));
+  const insufficientChips = isClubTable && chipBalance !== null && chipBalance < minBuyIn;
 
   return (
     <motion.div
@@ -726,9 +728,17 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
         <h3 style={{ color: T.accent, fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
           Take a Seat
         </h3>
-        <p style={{ color: T.textSecondary, fontSize: 13, marginBottom: 20 }}>
-          Buy-in: {minBuyIn.toLocaleString()} – {maxBuyIn.toLocaleString()} chips
+        <p style={{ color: T.textSecondary, fontSize: 13, marginBottom: isClubTable ? 4 : 20 }}>
+          Buy-in: {minBuyIn.toLocaleString()} – {effectiveMax.toLocaleString()} chips
         </p>
+        {isClubTable && chipBalance !== null && (
+          <p style={{ color: insufficientChips ? '#FA383E' : '#31A24C', fontSize: 12, marginBottom: 16 }}>
+            {insufficientChips
+              ? `Insufficient chips (${chipBalance.toLocaleString()} available, need ${minBuyIn.toLocaleString()})`
+              : `Balance: ${chipBalance.toLocaleString()} chips`
+            }
+          </p>
+        )}
 
         <div style={{ fontSize: 28, fontWeight: 800, color: T.textPrimary, marginBottom: 12, fontVariantNumeric: 'tabular-nums' }}>
           {amount.toLocaleString()}
@@ -737,15 +747,15 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
         <input
           type="range"
           min={minBuyIn}
-          max={maxBuyIn}
+          max={effectiveMax}
           step={bigBlind}
-          value={amount}
+          value={Math.min(amount, effectiveMax)}
           onChange={(e) => setAmount(parseInt(e.target.value))}
           style={{ width: '100%', accentColor: T.accent, marginBottom: 20 }}
         />
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
-          {[minBuyIn, Math.floor((minBuyIn + maxBuyIn) / 2), maxBuyIn].map((v) => (
+          {[minBuyIn, Math.floor((minBuyIn + effectiveMax) / 2), effectiveMax].map((v) => (
             <button
               key={v}
               onClick={() => setAmount(v)}
@@ -760,7 +770,7 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
                 cursor: 'pointer',
               }}
             >
-              {v === minBuyIn ? 'Min' : v === maxBuyIn ? 'Max' : 'Mid'}
+              {v === minBuyIn ? 'Min' : v === effectiveMax ? 'Max' : 'Mid'}
             </button>
           ))}
         </div>
@@ -783,21 +793,25 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, onConfirm, onCancel }) {
             Cancel
           </button>
           <button
-            onClick={() => onConfirm(amount)}
+            onClick={() => !insufficientChips && onConfirm(Math.min(amount, effectiveMax))}
+            disabled={insufficientChips}
             style={{
               flex: 1,
-              background: `linear-gradient(135deg, ${T.callGreen}, #15803d)`,
-              color: '#fff',
+              background: insufficientChips
+                ? 'rgba(255,255,255,0.1)'
+                : `linear-gradient(135deg, ${T.callGreen}, #15803d)`,
+              color: insufficientChips ? T.textSecondary : '#fff',
               border: 'none',
               borderRadius: 10,
               padding: '10px',
               fontSize: 14,
               fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: `0 4px 15px ${T.callGreen}40`,
+              cursor: insufficientChips ? 'not-allowed' : 'pointer',
+              boxShadow: insufficientChips ? 'none' : `0 4px 15px ${T.callGreen}40`,
+              opacity: insufficientChips ? 0.5 : 1,
             }}
           >
-            Sit Down
+            {insufficientChips ? 'Need More Chips' : 'Sit Down'}
           </button>
         </div>
       </motion.div>
@@ -1065,6 +1079,29 @@ export default function LivePokerTable({
 
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
+  const [clubChipBalance, setClubChipBalance] = useState(null);
+
+  // Fetch club chip balance when buy-in dialog opens
+  useEffect(() => {
+    if (buyInSeat === null || !tableState?.clubId || !userId) {
+      setClubChipBalance(null);
+      return;
+    }
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('club_members')
+          .select('chip_balance')
+          .eq('club_id', tableState.clubId)
+          .eq('user_id', userId)
+          .single();
+        setClubChipBalance(data?.chip_balance || 0);
+      } catch (e) {
+        console.warn('[LivePokerTable] Failed to fetch chip balance:', e);
+        setClubChipBalance(null);
+      }
+    })();
+  }, [buyInSeat, tableState?.clubId, userId, supabase]);
 
   // Derived state
   const isSitting = tableState?.seats.some(
@@ -1240,8 +1277,14 @@ export default function LivePokerTable({
         {buyInSeat !== null && (
           <BuyInDialog
             minBuyIn={tableState?.config?.minBuyIn || 40}
-            maxBuyIn={tableState?.config?.maxBuyIn || 200}
+            maxBuyIn={
+              clubChipBalance !== null
+                ? Math.min(tableState?.config?.maxBuyIn || 200, clubChipBalance)
+                : (tableState?.config?.maxBuyIn || 200)
+            }
             bigBlind={tableState?.config?.bigBlind || tableState?.bigBlind || 2}
+            chipBalance={clubChipBalance}
+            isClubTable={!!tableState?.clubId}
             onConfirm={handleSitDown}
             onCancel={() => setBuyInSeat(null)}
           />

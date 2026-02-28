@@ -13,6 +13,7 @@
 const { TableManager, TABLE_STATUS } = require('./TableManager');
 const { ActionTimer } = require('./ActionTimer');
 const { RealtimeSync } = require('./RealtimeSync');
+const ChipBridge = require('./ChipBridge');
 const { HandHistoryRecorder } = require('./HandHistory');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
@@ -146,6 +147,40 @@ class LobbyManager {
     });
     table.on('player_left', (data) => {
       this._trackPlayerLeave(data.playerId, config.tableId);
+
+      // ── Auto-unlock chips for engine-initiated removals (busted, auto-kicked) ──
+      // If a player was removed by the engine (not via seat.js stand_up),
+      // their chip lock still exists. Clean it up and return remaining chips.
+      const clubId = config.clubId;
+      if (clubId && data.playerId) {
+        const cashout = data.cashout || 0;
+        // Use setTimeout to let seat.js handle it first if this was a manual stand_up.
+        // If seat.js already cleared the lock, unlockChips is a safe no-op (delete on missing row).
+        setTimeout(async () => {
+          try {
+            const sb = require('./ChipBridge');
+            // Check if lock still exists (seat.js would have deleted it)
+            const supabase = require('@supabase/supabase-js').createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_ROLE_KEY
+            );
+            const { data: lock } = await supabase
+              .from('table_chip_locks')
+              .select('id')
+              .eq('table_id', config.tableId)
+              .eq('user_id', data.playerId)
+              .single();
+
+            if (lock) {
+              // Lock still exists — this was an engine auto-removal
+              console.log(`[LobbyManager] Auto-unlock: player ${data.playerId} removed from table with ${cashout} chips`);
+              await sb.unlockChips(clubId, data.playerId, config.tableId, cashout);
+            }
+          } catch (e) {
+            console.error('[LobbyManager] Auto-unlock error:', e);
+          }
+        }, 500); // Small delay to let seat.js finish first
+      }
     });
     
     // Store
@@ -373,6 +408,33 @@ class LobbyManager {
         .map(s => ({ playerId: s.player.id, stack: s.stack }));
       
       await history.completeHand(finalStacks);
+
+      // ── Record rake to Club Arena DB if this is a club table ──
+      const clubId = config.clubId;
+      if (clubId && data.rake > 0) {
+        try {
+          // Build player contributions (proportional to pot investment)
+          const playerContributions = (data.players || [])
+            .filter(p => p.invested > 0)
+            .map(p => ({
+              playerId: p.id,
+              rakeContribution: data.rake * (p.invested / (data.potTotal || 1)),
+            }));
+
+          await ChipBridge.recordRake({
+            clubId,
+            tableId: config.tableId,
+            handId: `hand_${config.tableId}_${Date.now()}`,
+            potSize: data.potTotal || 0,
+            rakeAmount: data.rake,
+            numPlayers: data.players?.length || finalStacks.length,
+            playerContributions,
+          });
+        } catch (rakeErr) {
+          console.error('[LobbyManager] Rake recording failed:', rakeErr);
+          // Don't block hand progression on rake recording failure
+        }
+      }
     });
   }
 
