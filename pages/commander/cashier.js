@@ -778,15 +778,25 @@ export default function Cashier() {
                 <h3 className="text-lg font-bold text-white">Add Time</h3>
                 <button onClick={() => setShowAddTime(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
               </div>
-              <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#B0B3B8]" />
-                  <span className="text-sm text-white font-medium">{selectedPlayer?.player_name}</span>
+              {selectedPlayer ? (
+                <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#B0B3B8]" />
+                    <span className="text-sm text-white font-medium">{selectedPlayer.player_name}</span>
+                  </div>
+                  <span className="text-xs text-[#F59E0B] font-medium">
+                    Current: {Math.floor((selectedPlayer.time_balance_minutes || 0) / 60)}h {(selectedPlayer.time_balance_minutes || 0) % 60}m
+                  </span>
                 </div>
-                <span className="text-xs text-[#F59E0B] font-medium">
-                  Current: {Math.floor((selectedPlayer?.time_balance_minutes || 0) / 60)}h {(selectedPlayer?.time_balance_minutes || 0) % 60}m
-                </span>
-              </div>
+              ) : (
+                <div className="mb-4">
+                  <p className="text-xs text-[#F59E0B] font-semibold mb-2">Select a player first:</p>
+                  <button onClick={() => { setShowAddTime(false); setShowPlayerSearch(true); }}
+                    className="w-full bg-[#1877F2]/15 border border-[#1877F2]/30 text-[#1877F2] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                    <Search className="w-4 h-4" /> Scan or Search for Player
+                  </button>
+                </div>
+              )}
               <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Time</p>
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {TIME_OPTIONS.map(opt => (
@@ -805,7 +815,7 @@ export default function Cashier() {
               </div>
               <PinSubmitButton action="addtime" color="#F59E0B"
                 label={`Add ${selectedTime ? TIME_OPTIONS.find(o => o.minutes === selectedTime)?.label : customMinutes ? customMinutes + ' Minutes' : 'Time'}`}
-                disabled={!selectedTime && !customMinutes} />
+                disabled={(!selectedTime && !customMinutes) || !selectedPlayer?.id} />
             </div>
           </div>
         )}
