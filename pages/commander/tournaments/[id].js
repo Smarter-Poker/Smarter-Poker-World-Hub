@@ -168,7 +168,7 @@ export default function TournamentDetailPage() {
 
   // View public clock
   function openPublicClock() {
-    window.open(`/hub/commander/tournament/${id}/clock`, '_blank');
+    window.open(`/commander/tournaments/${id}/clock-display`, '_blank');
   }
 
   const activeEntries = entries.filter(e => e.status === 'active');
@@ -428,7 +428,7 @@ export default function TournamentDetailPage() {
                         )}
                       </div>
                       <span className="text-sm text-[#64748B]">
-                        ${entry.total_chips?.toLocaleString() || tournament.starting_chips?.toLocaleString() || '10,000'}
+                        {entry.total_chips?.toLocaleString() || tournament.starting_chips?.toLocaleString() || '10,000'}
                       </span>
                     </div>
                   ))

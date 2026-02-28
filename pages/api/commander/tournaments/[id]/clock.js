@@ -252,6 +252,7 @@ async function handleClockAction(req, res, tournamentId) {
         break;
       }
 
+      case 'prev_level':
       case 'previous_level': {
         if (!['running', 'paused'].includes(tournament.status)) {
           return res.status(400).json({
@@ -285,6 +286,24 @@ async function handleClockAction(req, res, tournamentId) {
           pausedAt: tournament.status === 'paused' ? new Date().toISOString() : null,
           pausedDuration: 0
         };
+        break;
+      }
+
+      case 'add_time': {
+        // Add 60 seconds to the remaining time by pushing levelStartedAt back by 60s
+        if (!clockState.levelStartedAt) break;
+        const started = new Date(clockState.levelStartedAt);
+        started.setSeconds(started.getSeconds() + 60);
+        clockState.levelStartedAt = started.toISOString();
+        break;
+      }
+
+      case 'subtract_time': {
+        // Remove 60 seconds from the remaining time by pushing levelStartedAt forward by 60s
+        if (!clockState.levelStartedAt) break;
+        const started2 = new Date(clockState.levelStartedAt);
+        started2.setSeconds(started2.getSeconds() - 60);
+        clockState.levelStartedAt = started2.toISOString();
         break;
       }
 
