@@ -1,240 +1,674 @@
 /**
- * Floor Calls
+ * Floor Calls — Complete Rebuild
  * /commander/floor-calls
- * 
+ *
  * Floor managers see:
- * - Pending calls sorted by priority/time
- * - One-tap acknowledge
- * - Resolution tracking
- * - Call history for the day
- * 
+ * - Live queue sorted by priority → time
+ * - Category filter pills
+ * - One-tap acknowledge → on-my-way → resolve
+ * - New Call creation modal
+ * - History with response time metrics
+ * - Sound/vibration alerts for urgent calls
+ *
  * Designed for quick triage on mobile.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
 import {
-  AlertTriangle, Check, Clock, Loader2,
-  RefreshCw, ChevronRight, Bell, XCircle
+  AlertTriangle, Check, Clock, Loader2, RefreshCw,
+  Bell, Plus, X, ChevronDown, Volume2, VolumeX,
+  Users, Shield, Wrench, DollarSign, Gavel,
+  MessageSquare, Coffee, HelpCircle, ArrowRight,
+  Filter, CheckCircle2, Timer, Hash
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
+/* ─── Constants ──────────────────────────────────────────────── */
+
 const PRIORITY_CONFIG = {
-  urgent: { color: '#EF4444', label: 'URGENT', animate: true },
-  high: { color: '#F59E0B', label: 'HIGH', animate: false },
-  normal: { color: '#1877F2', label: 'Normal', animate: false },
-  low: { color: '#B0B3B8', label: 'Low', animate: false }
+  urgent: { color: '#EF4444', label: 'URGENT', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.4)' },
+  high: { color: '#F59E0B', label: 'HIGH', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.3)' },
+  normal: { color: '#1877F2', label: 'Normal', bg: 'rgba(24,119,242,0.08)', border: 'rgba(24,119,242,0.2)' },
+  low: { color: '#8A8D91', label: 'Low', bg: 'rgba(138,141,145,0.08)', border: 'rgba(138,141,145,0.2)' },
 };
 
 const STATUS_CONFIG = {
-  pending: { color: '#EF4444', label: 'Pending' },
-  acknowledged: { color: '#F59E0B', label: 'Acknowledged' },
-  en_route: { color: '#1877F2', label: 'En Route' },
-  resolved: { color: '#31A24C', label: 'Resolved' }
+  pending: { color: '#EF4444', label: 'Pending', icon: Bell },
+  acknowledged: { color: '#F59E0B', label: 'Acknowledged', icon: Check },
+  en_route: { color: '#1877F2', label: 'En Route', icon: ArrowRight },
+  resolved: { color: '#31A24C', label: 'Resolved', icon: CheckCircle2 },
+  cancelled: { color: '#6B7280', label: 'Cancelled', icon: X },
 };
+
+const REASON_CONFIG = {
+  dispute: { icon: Gavel, label: 'Dispute', color: '#EF4444' },
+  chip_fill: { icon: DollarSign, label: 'Chip Fill', color: '#F59E0B' },
+  buyin: { icon: DollarSign, label: 'Buy-In / Cash', color: '#31A24C' },
+  player_issue: { icon: Users, label: 'Player Issue', color: '#E4405F' },
+  security: { icon: Shield, label: 'Security', color: '#EF4444' },
+  maintenance: { icon: Wrench, label: 'Maintenance', color: '#6B7280' },
+  dealer_relief: { icon: Coffee, label: 'Dealer Relief', color: '#8B5CF6' },
+  floor_assistance: { icon: Bell, label: 'Floor Assist', color: '#1877F2' },
+  other: { icon: HelpCircle, label: 'Other', color: '#B0B3B8' },
+};
+
+const PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+/* ─── Helpers ────────────────────────────────────────────────── */
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 0) return 'now';
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`;
 }
+
+function formatDuration(seconds) {
+  if (!seconds && seconds !== 0) return '—';
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+}
+
+/* ─── Page ───────────────────────────────────────────────────── */
 
 export default function FloorCalls() {
   const router = useRouter();
   const [calls, setCalls] = useState([]);
   const [resolved, setResolved] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('active'); // active, resolved
-  const [now, setNow] = useState(new Date());
+  const [tab, setTab] = useState('active'); // active | history
+  const [now, setNow] = useState(Date.now());
+  const [reasonFilter, setReasonFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [soundOn, setSoundOn] = useState(true);
+  const [showNewCall, setShowNewCall] = useState(false);
+  const [resolveModal, setResolveModal] = useState(null);
+  const [resolveNote, setResolveNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const prevPendingRef = useRef(0);
+  const audioRef = useRef(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  // New call form state
+  const [newTable, setNewTable] = useState('');
+  const [newReason, setNewReason] = useState('dispute');
+  const [newPriority, setNewPriority] = useState('normal');
+  const [newDesc, setNewDesc] = useState('');
 
-  useEffect(() => {
-    fetchCalls();
-    const poll = setInterval(fetchCalls, 15000); // 15s fallback — realtime handles instant updates
-    const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  // Auth
+  const getAuth = () => {
+    const token = typeof window !== 'undefined'
+      ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+    const staffSession = typeof window !== 'undefined'
+      ? localStorage.getItem('commander_staff') || '' : '';
+    let venueId = '';
+    try { venueId = JSON.parse(staffSession).venue_id || ''; } catch { }
+    return { token, staffSession, venueId };
+  };
 
-  // Realtime: instant floor call updates
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
+
+  // Realtime updates
   useRealtimeUpdates(venueId, () => fetchCalls(), !!venueId);
+
+  // Polling + clock
+  useEffect(() => {
+    fetchCalls();
+    const poll = setInterval(fetchCalls, 10000);
+    const clock = setInterval(() => setNow(Date.now()), 1000);
+    return () => { clearInterval(poll); clearInterval(clock); };
+  }, []);
+
+  // Sound alert when new pending calls arrive
+  useEffect(() => {
+    const pendingCount = calls.filter(c => c.status === 'pending').length;
+    if (pendingCount > prevPendingRef.current && soundOn) {
+      playAlert();
+    }
+    prevPendingRef.current = pendingCount;
+  }, [calls, soundOn]);
+
+  const playAlert = () => {
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAAD+/wIA+/8EAPz/AwD+/wEA//8BAAAA//8AAAEA//8BAAAA/v8CAAEA/v8DAAEA/f8EAAIA/P8GAAQA+v8IAAgA9/8MAA4A8/8SABgA7f8bACMA5f8nADEA2v81AEEA0P9GAE8Axf9eAGMAuf92AHsAr/+SAJEAo/+sAKoAmf/EAMMAlP/dAN0AkP/2APYA');
+      }
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => { });
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } catch { }
+  };
+
+  /* ─── API ──────────────────────────────────────────────────── */
 
   const fetchCalls = async () => {
     try {
-      const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      let vid = '';
-      try { vid = JSON.parse(staffSession).venue_id || ''; } catch { }
+      const { token, staffSession, venueId: vid } = getAuth();
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const [activeRes, resolvedRes] = await Promise.all([
-        fetch(`/api/commander/floor-calls?status=pending&venue_id=${vid}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/floor-calls?status=resolved&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
-      ]);
-      // Also get acknowledged and en_route
-      const ackRes = await fetch(`/api/commander/floor-calls?status=acknowledged&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }));
-      const routeRes = await fetch(`/api/commander/floor-calls?status=en_route&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }));
 
-      const allActive = [
-        ...(activeRes.data || []),
-        ...(ackRes.data || []),
-        ...(routeRes.data || [])
-      ].sort((a, b) => {
-        const pOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-        if (pOrder[a.priority] !== pOrder[b.priority]) return pOrder[a.priority] - pOrder[b.priority];
+      const [activeRes, resolvedRes] = await Promise.all([
+        fetch(`/api/commander/floor-calls?status=pending,acknowledged,en_route&venue_id=${vid}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/floor-calls?status=resolved&venue_id=${vid}&limit=30`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+      ]);
+
+      const allActive = (activeRes.data || []).sort((a, b) => {
+        const pA = PRIORITY_ORDER[a.priority] ?? 2;
+        const pB = PRIORITY_ORDER[b.priority] ?? 2;
+        if (pA !== pB) return pA - pB;
         return new Date(a.created_at) - new Date(b.created_at);
       });
+
       setCalls(allActive);
-      setResolved((resolvedRes.data || []).slice(0, 20));
-    } catch (err) { console.error(err); }
+      setResolved(resolvedRes.data || []);
+    } catch (err) { console.error('Floor calls fetch error:', err); }
     finally { setLoading(false); }
   };
 
   const updateCall = async (id, status, resolution) => {
     try {
-      const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
+      const { token, staffSession } = getAuth();
+      let respondedBy = '';
+      try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch { }
+
       await fetch('/api/commander/floor-calls', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ id, status, resolution })
+        body: JSON.stringify({ id, status, responded_by: respondedBy, resolution })
       });
       fetchCalls();
     } catch (err) { console.error(err); }
   };
 
+  const createCall = async () => {
+    if (!newTable) return;
+    setSubmitting(true);
+    try {
+      const { token, staffSession, venueId: vid } = getAuth();
+      await fetch('/api/commander/floor-calls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({
+          venue_id: vid,
+          table_number: parseInt(newTable),
+          reason: newReason,
+          priority: newPriority,
+          description: newDesc,
+          called_by: 'staff'
+        })
+      });
+      setShowNewCall(false);
+      setNewTable(''); setNewReason('dispute'); setNewPriority('normal'); setNewDesc('');
+      fetchCalls();
+    } catch (err) { console.error(err); }
+    finally { setSubmitting(false); }
+  };
+
+  const handleResolve = async () => {
+    if (!resolveModal) return;
+    setSubmitting(true);
+    await updateCall(resolveModal.id, 'resolved', resolveNote || 'Resolved');
+    setResolveModal(null);
+    setResolveNote('');
+    setSubmitting(false);
+  };
+
+  /* ─── Filtered data ────────────────────────────────────────── */
+
+  const filtered = calls.filter(c => {
+    if (reasonFilter !== 'all' && c.reason !== reasonFilter) return false;
+    if (priorityFilter !== 'all' && c.priority !== priorityFilter) return false;
+    return true;
+  });
+
   const pendingCount = calls.filter(c => c.status === 'pending').length;
+  const urgentCount = calls.filter(c => c.priority === 'urgent' && c.status === 'pending').length;
+
+  // Stats for history
+  const avgResponse = resolved.length > 0
+    ? Math.round(resolved.reduce((s, c) => s + (c.response_time_seconds || 0), 0) / resolved.length)
+    : 0;
+
+  /* ─── Render ───────────────────────────────────────────────── */
 
   return (
     <CommanderLayout title={`Floor Calls${pendingCount > 0 ? ` (${pendingCount})` : ''}`} backHref="/commander/dashboard?card=floor">
-      <SEOHead
-        title="Commander — Floor Calls"
-        description="Club Commander Poker Room Management Tool."
-        noindex={true}
-      />
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <SEOHead title="Commander — Floor Calls" description="Club Commander Floor Call Management." noindex={true} />
+      <div style={{ minHeight: '100vh', background: '#0D0E10', color: '#E4E6EB', fontFamily: 'Inter, sans-serif' }}>
 
-        {/* Header */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg font-bold text-white">Floor Calls</h1>
+        {/* ── Header ───────────────────────────────── */}
+        <div style={{ background: '#18191A', borderBottom: '1px solid #2A2B2D', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Bell size={18} color={pendingCount > 0 ? '#EF4444' : '#B0B3B8'} />
+              Floor Calls
               {pendingCount > 0 && (
-                <p className="text-xs text-[#EF4444] font-semibold">{pendingCount} pending</p>
+                <span style={{ fontSize: 13, fontWeight: 700, background: '#EF4444', color: '#fff', borderRadius: 12, padding: '2px 8px', minWidth: 22, textAlign: 'center' }}>{pendingCount}</span>
               )}
-            </div>
+            </h1>
+            {urgentCount > 0 && (
+              <p style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, margin: '2px 0 0', animation: 'pulse-text 1.5s ease-in-out infinite' }}>
+                ⚠ {urgentCount} URGENT {urgentCount === 1 ? 'call' : 'calls'} waiting
+              </p>
+            )}
           </div>
-          <button onClick={fetchCalls} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
-          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button onClick={() => setSoundOn(!soundOn)} style={iconBtnStyle} title={soundOn ? 'Mute alerts' : 'Unmute alerts'}>
+              {soundOn ? <Volume2 size={16} color="#31A24C" /> : <VolumeX size={16} color="#6B7280" />}
+            </button>
+            <button onClick={fetchCalls} style={iconBtnStyle}>
+              <RefreshCw size={16} color="#B0B3B8" />
+            </button>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] flex">
-          <button onClick={() => setTab('active')}
-            className={`flex-1 py-3 text-sm font-medium text-center border-b-2 -mb-px ${tab === 'active' ? 'text-[#EF4444] border-[#EF4444]' : 'text-[#B0B3B8] border-transparent'
-              }`}>Active ({calls.length})</button>
-          <button onClick={() => setTab('resolved')}
-            className={`flex-1 py-3 text-sm font-medium text-center border-b-2 -mb-px ${tab === 'resolved' ? 'text-[#31A24C] border-[#31A24C]' : 'text-[#B0B3B8] border-transparent'
-              }`}>Resolved ({resolved.length})</button>
+        {/* ── Tabs ─────────────────────────────────── */}
+        <div style={{ display: 'flex', background: '#18191A', borderBottom: '1px solid #2A2B2D' }}>
+          {[
+            { key: 'active', label: `Live Queue (${calls.length})`, color: '#EF4444' },
+            { key: 'history', label: `History (${resolved.length})`, color: '#31A24C' },
+          ].map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              style={{
+                flex: 1, padding: '12px 0', fontSize: 13, fontWeight: 600, textAlign: 'center',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: tab === t.key ? t.color : '#6B7280',
+                borderBottom: tab === t.key ? `2px solid ${t.color}` : '2px solid transparent',
+                marginBottom: -1,
+              }}>{t.label}</button>
+          ))}
         </div>
 
+        {/* ── Filters (active tab only) ─────────────── */}
+        {tab === 'active' && (
+          <div style={{ padding: '10px 16px 6px', display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap' }}>
+            {[
+              { key: 'all', label: 'All' },
+              ...Object.entries(REASON_CONFIG).map(([k, v]) => ({ key: k, label: v.label }))
+            ].map(f => (
+              <button key={f.key} onClick={() => setReasonFilter(f.key)}
+                style={{
+                  padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                  background: reasonFilter === f.key ? '#1877F2' : '#242526',
+                  color: reasonFilter === f.key ? '#fff' : '#B0B3B8',
+                  border: `1px solid ${reasonFilter === f.key ? '#1877F2' : '#3A3B3C'}`,
+                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                }}>{f.label}</button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Content ───────────────────────────────── */}
         {loading ? (
-          <div className="py-20 flex justify-center">
-            <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+          <div style={{ padding: '80px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Loader2 size={32} color="#1877F2" style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : (
-          <div className="p-4 space-y-2">
-            {/* ACTIVE calls */}
+          <div style={{ padding: '8px 16px 100px' }}>
+
+            {/* ━━━ ACTIVE TAB ━━━ */}
             {tab === 'active' && (
-              calls.length === 0 ? (
-                <div className="py-16 text-center">
-                  <Check className="w-12 h-12 text-[#31A24C] mx-auto mb-3" />
-                  <p className="text-lg font-bold text-white">All Clear</p>
-                  <p className="text-sm text-[#B0B3B8]">No Pending Floor Calls</p>
+              filtered.length === 0 ? (
+                <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(49,162,76,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <Check size={28} color="#31A24C" />
+                  </div>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>All Clear</p>
+                  <p style={{ fontSize: 13, color: '#6B7280', margin: 0 }}>No pending floor calls</p>
                 </div>
               ) : (
-                calls.map(call => {
-                  const pConfig = PRIORITY_CONFIG[call.priority] || PRIORITY_CONFIG.normal;
-                  const sConfig = STATUS_CONFIG[call.status] || STATUS_CONFIG.pending;
-                  return (
-                    <div key={call.id}
-                      className={`bg-[#242526] border rounded-xl overflow-hidden ${call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
-                        }`}>
-                      <div className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-white">Table {call.table_number}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                              style={{ backgroundColor: `${pConfig.color}20`, color: pConfig.color }}>
-                              {pConfig.label}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {filtered.map(call => {
+                    const pCfg = PRIORITY_CONFIG[call.priority] || PRIORITY_CONFIG.normal;
+                    const sCfg = STATUS_CONFIG[call.status] || STATUS_CONFIG.pending;
+                    const rCfg = REASON_CONFIG[call.reason] || REASON_CONFIG.other;
+                    const StatusIcon = sCfg.icon;
+                    const ReasonIcon = rCfg.icon;
+                    const isUrgent = call.priority === 'urgent' && call.status === 'pending';
+
+                    return (
+                      <div key={call.id} style={{
+                        background: '#1A1B1D', borderRadius: 14, overflow: 'hidden',
+                        border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.5)' : '#2A2B2D'}`,
+                        animation: isUrgent ? 'urgent-pulse 2s ease-in-out infinite' : 'none',
+                      }}>
+                        {/* Card body */}
+                        <div style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Table {call.table_number}</span>
+                              <span style={{
+                                fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
+                                background: pCfg.bg, color: pCfg.color, border: `1px solid ${pCfg.border}`,
+                              }}>{pCfg.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Clock size={12} color="#6B7280" />
+                              <span style={{ fontSize: 12, color: '#8A8D91', fontWeight: 600 }}>{timeAgo(call.created_at)}</span>
+                            </div>
+                          </div>
+
+                          {/* Reason + description */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: 8,
+                              background: `${rCfg.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <ReasonIcon size={14} color={rCfg.color} />
+                            </div>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: '#E4E6EB', textTransform: 'capitalize' }}>
+                              {rCfg.label}
                             </span>
                           </div>
-                          <span className="text-xs text-[#B0B3B8]">{timeAgo(call.created_at)} ago</span>
-                        </div>
-                        <p className="text-sm text-white font-medium capitalize">{call.reason?.replace(/_/g, ' ')}</p>
-                        {call.description && <p className="text-xs text-[#B0B3B8] mt-1">{call.description}</p>}
-                        <div className="flex items-center gap-1 mt-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sConfig.color }} />
-                          <span className="text-[10px]" style={{ color: sConfig.color }}>{sConfig.label}</span>
-                        </div>
-                      </div>
+                          {call.description && (
+                            <p style={{ fontSize: 12, color: '#8A8D91', margin: '0 0 6px', lineHeight: 1.4 }}>{call.description}</p>
+                          )}
 
-                      {/* Action buttons */}
-                      <div className="flex border-t border-[#3A3B3C]">
-                        {call.status === 'pending' && (
-                          <>
-                            <button onClick={() => updateCall(call.id, 'acknowledged')}
-                              className="flex-1 py-3 text-xs font-semibold text-[#F59E0B] border-r border-[#3A3B3C] active:bg-[#F59E0B]/10">
-                              Acknowledge
+                          {/* Status + caller */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <StatusIcon size={12} color={sCfg.color} />
+                              <span style={{ fontSize: 11, color: sCfg.color, fontWeight: 600 }}>{sCfg.label}</span>
+                            </div>
+                            {call.called_by && (
+                              <span style={{ fontSize: 10, color: '#6B7280' }}>by {call.called_by}</span>
+                            )}
+                            {call.responded_by && (
+                              <span style={{ fontSize: 10, color: '#1877F2' }}>→ {call.responded_by}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', borderTop: '1px solid #2A2B2D' }}>
+                          {call.status === 'pending' && (
+                            <>
+                              <button onClick={() => updateCall(call.id, 'acknowledged')}
+                                style={{ ...actionBtnStyle, color: '#F59E0B', borderRight: '1px solid #2A2B2D' }}>
+                                <Check size={14} /> Acknowledge
+                              </button>
+                              <button onClick={() => updateCall(call.id, 'en_route')}
+                                style={{ ...actionBtnStyle, color: '#1877F2' }}>
+                                <ArrowRight size={14} /> On My Way
+                              </button>
+                            </>
+                          )}
+                          {call.status === 'acknowledged' && (
+                            <>
+                              <button onClick={() => updateCall(call.id, 'en_route')}
+                                style={{ ...actionBtnStyle, color: '#1877F2', borderRight: '1px solid #2A2B2D' }}>
+                                <ArrowRight size={14} /> On My Way
+                              </button>
+                              <button onClick={() => { setResolveModal(call); setResolveNote(''); }}
+                                style={{ ...actionBtnStyle, color: '#31A24C' }}>
+                                <CheckCircle2 size={14} /> Resolve
+                              </button>
+                            </>
+                          )}
+                          {call.status === 'en_route' && (
+                            <button onClick={() => { setResolveModal(call); setResolveNote(''); }}
+                              style={{ ...actionBtnStyle, color: '#31A24C' }}>
+                              <CheckCircle2 size={14} /> Mark Resolved
                             </button>
-                            <button onClick={() => updateCall(call.id, 'en_route')}
-                              className="flex-1 py-3 text-xs font-semibold text-[#1877F2] active:bg-[#1877F2]/10">
-                              On My Way
-                            </button>
-                          </>
-                        )}
-                        {(call.status === 'acknowledged' || call.status === 'en_route') && (
-                          <button onClick={() => updateCall(call.id, 'resolved', 'Resolved by floor')}
-                            className="flex-1 py-3 text-xs font-semibold text-[#31A24C] active:bg-[#31A24C]/10">
-                            Mark Resolved
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )
             )}
 
-            {/* RESOLVED calls */}
-            {tab === 'resolved' && (
-              resolved.length === 0 ? (
-                <p className="py-10 text-center text-[#B0B3B8]">No Resolved Calls Today</p>
-              ) : (
-                resolved.map(call => (
-                  <div key={call.id} className="flex items-center gap-3 px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl opacity-70">
-                    <Check className="w-5 h-5 text-[#31A24C] flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white">Table {call.table_number} — {call.reason?.replace(/_/g, ' ')}</p>
-                      {call.resolution && <p className="text-[10px] text-[#B0B3B8] truncate">{call.resolution}</p>}
-                    </div>
-                    <span className="text-[10px] text-[#B0B3B8]">{timeAgo(call.responded_at || call.created_at)}</span>
+            {/* ━━━ HISTORY TAB ━━━ */}
+            {tab === 'history' && (
+              <>
+                {/* Stats bar */}
+                {resolved.length > 0 && (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 12, overflowX: 'auto' }}>
+                    <StatCard label="Total Resolved" value={resolved.length} color="#31A24C" />
+                    <StatCard label="Avg Response" value={formatDuration(avgResponse)} color="#1877F2" />
                   </div>
-                ))
-              )
+                )}
+
+                {resolved.length === 0 ? (
+                  <p style={{ padding: '40px 0', textAlign: 'center', color: '#6B7280', fontSize: 14 }}>No resolved calls today</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {resolved.map(call => {
+                      const rCfg = REASON_CONFIG[call.reason] || REASON_CONFIG.other;
+                      const ReasonIcon = rCfg.icon;
+                      return (
+                        <div key={call.id} style={{
+                          display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                          background: '#1A1B1D', border: '1px solid #2A2B2D', borderRadius: 12, opacity: 0.85,
+                        }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 8,
+                            background: 'rgba(49,162,76,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            <CheckCircle2 size={16} color="#31A24C" />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>Table {call.table_number}</span>
+                              <ReasonIcon size={12} color={rCfg.color} />
+                              <span style={{ fontSize: 11, color: rCfg.color }}>{rCfg.label}</span>
+                            </div>
+                            {call.resolution && (
+                              <p style={{ fontSize: 11, color: '#6B7280', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{call.resolution}</p>
+                            )}
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            {call.response_time_seconds > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#1877F2', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <Timer size={10} /> {formatDuration(call.response_time_seconds)}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 10, color: '#6B7280' }}>{timeAgo(call.resolved_at || call.created_at)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
+
+        {/* ── FAB: New Call ────────────────────────── */}
+        {tab === 'active' && (
+          <button onClick={() => setShowNewCall(true)}
+            style={{
+              position: 'fixed', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28,
+              background: 'linear-gradient(135deg, #1877F2, #1565D8)', color: '#fff',
+              border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(24,119,242,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30,
+            }}>
+            <Plus size={24} />
+          </button>
+        )}
+
+        {/* ── New Call Modal ──────────────────────── */}
+        {showNewCall && (
+          <div style={overlayStyle} onClick={() => setShowNewCall(false)}>
+            <div style={modalStyle} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: 0 }}>New Floor Call</h3>
+                <button onClick={() => setShowNewCall(false)} style={iconBtnStyle}><X size={18} color="#B0B3B8" /></button>
+              </div>
+
+              {/* Table number */}
+              <label style={labelStyle}>Table Number</label>
+              <input type="number" value={newTable} onChange={e => setNewTable(e.target.value)}
+                placeholder="e.g. 5" style={inputStyle} autoFocus />
+
+              {/* Reason */}
+              <label style={{ ...labelStyle, marginTop: 14 }}>Reason</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
+                {Object.entries(REASON_CONFIG).map(([key, cfg]) => {
+                  const Icon = cfg.icon;
+                  return (
+                    <button key={key} onClick={() => setNewReason(key)}
+                      style={{
+                        padding: '10px 6px', borderRadius: 10, fontSize: 11, fontWeight: 600,
+                        background: newReason === key ? `${cfg.color}20` : '#242526',
+                        color: newReason === key ? cfg.color : '#8A8D91',
+                        border: `1px solid ${newReason === key ? `${cfg.color}50` : '#3A3B3C'}`,
+                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                      }}>
+                      <Icon size={16} />
+                      {cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Priority */}
+              <label style={{ ...labelStyle, marginTop: 8 }}>Priority</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                  <button key={key} onClick={() => setNewPriority(key)}
+                    style={{
+                      flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                      background: newPriority === key ? cfg.bg : '#242526',
+                      color: newPriority === key ? cfg.color : '#6B7280',
+                      border: `1px solid ${newPriority === key ? cfg.border : '#3A3B3C'}`,
+                      cursor: 'pointer',
+                    }}>{cfg.label}</button>
+                ))}
+              </div>
+
+              {/* Description */}
+              <label style={{ ...labelStyle, marginTop: 8 }}>Notes (optional)</label>
+              <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)}
+                placeholder="Additional details..." rows={2}
+                style={{ ...inputStyle, resize: 'none', fontFamily: 'Inter, sans-serif' }} />
+
+              {/* Submit */}
+              <button onClick={createCall} disabled={!newTable || submitting}
+                style={{
+                  width: '100%', padding: '14px 0', borderRadius: 12, fontSize: 15, fontWeight: 700,
+                  background: newTable ? 'linear-gradient(135deg, #1877F2, #1565D8)' : '#3A3B3C',
+                  color: newTable ? '#fff' : '#6B7280',
+                  border: 'none', cursor: newTable ? 'pointer' : 'default', marginTop: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}>
+                {submitting ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Bell size={18} />}
+                {submitting ? 'Creating...' : 'Create Floor Call'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Resolve Modal ──────────────────────── */}
+        {resolveModal && (
+          <div style={overlayStyle} onClick={() => setResolveModal(null)}>
+            <div style={modalStyle} onClick={e => e.stopPropagation()}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Resolve Call</h3>
+              <p style={{ fontSize: 13, color: '#8A8D91', margin: '0 0 16px' }}>
+                Table {resolveModal.table_number} — {(REASON_CONFIG[resolveModal.reason] || REASON_CONFIG.other).label}
+              </p>
+
+              <label style={labelStyle}>Resolution Notes</label>
+              <textarea value={resolveNote} onChange={e => setResolveNote(e.target.value)}
+                placeholder="How was it resolved?" rows={3} autoFocus
+                style={{ ...inputStyle, resize: 'none', fontFamily: 'Inter, sans-serif' }} />
+
+              {/* Quick resolution buttons */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '8px 0 16px' }}>
+                {['Ruling made', 'Chips delivered', 'Player warned', 'Issue resolved', 'Dealer relieved'].map(q => (
+                  <button key={q} onClick={() => setResolveNote(q)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      background: resolveNote === q ? '#31A24C' : '#242526',
+                      color: resolveNote === q ? '#fff' : '#B0B3B8',
+                      border: `1px solid ${resolveNote === q ? '#31A24C' : '#3A3B3C'}`,
+                      cursor: 'pointer',
+                    }}>{q}</button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setResolveModal(null)}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 10, background: '#242526', color: '#B0B3B8', fontSize: 14, fontWeight: 600, border: '1px solid #3A3B3C', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleResolve} disabled={submitting}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 10, background: '#31A24C', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  {submitting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={16} />}
+                  Resolve
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
       <style jsx>{`
-`}</style>
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes urgent-pulse {
+          0%, 100% { border-color: rgba(239,68,68,0.5); box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+          50% { border-color: rgba(239,68,68,0.8); box-shadow: 0 0 20px 0 rgba(239,68,68,0.15); }
+        }
+        @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
     </CommanderLayout>
   );
 }
+
+/* ─── Sub-components ─────────────────────────────────────────── */
+
+function StatCard({ label, value, color }) {
+  return (
+    <div style={{
+      background: '#1A1B1D', border: '1px solid #2A2B2D', borderRadius: 12,
+      padding: '10px 16px', minWidth: 120, flexShrink: 0,
+    }}>
+      <div style={{ fontSize: 20, fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+/* ─── Shared styles ──────────────────────────────────────────── */
+
+const iconBtnStyle = {
+  width: 36, height: 36, borderRadius: 10,
+  background: '#242526', border: '1px solid #3A3B3C',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', flexShrink: 0,
+};
+
+const actionBtnStyle = {
+  flex: 1, padding: '12px 0', fontSize: 12, fontWeight: 600,
+  background: 'transparent', border: 'none', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+};
+
+const overlayStyle = {
+  position: 'fixed', inset: 0, zIndex: 50,
+  background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+};
+
+const modalStyle = {
+  background: '#1A1B1D', borderRadius: '20px 20px 0 0',
+  width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto',
+  padding: '20px 20px 28px', border: '1px solid #2A2B2D',
+};
+
+const labelStyle = {
+  display: 'block', fontSize: 11, fontWeight: 600, color: '#8A8D91',
+  textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
+};
+
+const inputStyle = {
+  width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 14,
+  background: '#242526', color: '#E4E6EB', border: '1px solid #3A3B3C',
+  outline: 'none', boxSizing: 'border-box',
+};
