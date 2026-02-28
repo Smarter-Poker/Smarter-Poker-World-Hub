@@ -1,21 +1,51 @@
 /**
- * useTableConnection — React hook for Supabase Realtime table connection
+ * useTableConnection — React hook for live poker table connection
+ * ═══════════════════════════════════════════════════════════════
  * 
- * Manages:
- *   - Channel subscription and cleanup
- *   - Heartbeat
- *   - State request on connect
- *   - Private card channel
- *   - Event dispatch to state
+ * Hybrid architecture:
+ *   WRITES → HTTP API (/api/poker/engine/*)
+ *   READS  → Supabase Realtime channel (broadcasts from server)
  * 
- * Usage:
- *   const { tableState, myCards, legalActions, timerState, chatMessages, error, send }
- *     = useTableConnection({ supabase, tableId, userId });
+ * This ensures the GameController singleton processes all actions
+ * server-side, while clients get instant updates via Realtime.
+ * 
+ * Backward compatible: exposes send() that maps legacy event names
+ * to the correct HTTP endpoints, so LivePokerTable works unchanged.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 const HEARTBEAT_MS = 10000;
+const API_BASE = '/api/poker/engine';
+
+// ─── HTTP helpers ────────────────────────────────────────────
+
+async function apiPost(endpoint, body) {
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error(`[API] ${endpoint} failed:`, err);
+    return { success: false, error: err.message };
+  }
+}
+
+async function apiGet(endpoint, params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`);
+    return await res.json();
+  } catch (err) {
+    console.error(`[API] GET ${endpoint} failed:`, err);
+    return null;
+  }
+}
+
+// ─── Hook ────────────────────────────────────────────────────
 
 export function useTableConnection({ supabase, tableId, userId }) {
   const [tableState, setTableState] = useState(null);
@@ -26,25 +56,63 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(false);
-  
+
   const channelRef = useRef(null);
   const resultTimeoutRef = useRef(null);
-  
-  // Send helper
-  const send = useCallback((event, payload = {}) => {
-    channelRef.current?.send({
-      type: 'broadcast',
-      event,
-      payload: { playerId: userId, ...payload },
+  const heartbeatRef = useRef(null);
+
+  // ── Write operations (HTTP) ────────────────────────────────
+
+  const sendAction = useCallback(async (action) => {
+    const r = await apiPost('action', { tableId, playerId: userId, action });
+    if (!r.success) { setError(r.error); setTimeout(() => setError(null), 4000); }
+    return r;
+  }, [tableId, userId]);
+
+  const sitDown = useCallback(async (seatIndex, buyIn, info = {}) => {
+    const r = await apiPost('seat', {
+      tableId, playerId: userId, action: 'sit_down',
+      seatIndex, buyIn, displayName: info.displayName, avatarUrl: info.avatarUrl,
     });
-  }, [userId]);
-  
-  // Request fresh state
-  const requestState = useCallback(() => {
-    send('request_state');
-  }, [send]);
-  
-  // Event handler
+    if (!r.success) { setError(r.error); setTimeout(() => setError(null), 4000); }
+    return r;
+  }, [tableId, userId]);
+
+  const standUp = useCallback(() =>
+    apiPost('seat', { tableId, playerId: userId, action: 'stand_up' }), [tableId, userId]);
+
+  const sitOut = useCallback(() =>
+    apiPost('seat', { tableId, playerId: userId, action: 'sit_out' }), [tableId, userId]);
+
+  const sitIn = useCallback(() =>
+    apiPost('seat', { tableId, playerId: userId, action: 'sit_in' }), [tableId, userId]);
+
+  const addChips = useCallback((amount) =>
+    apiPost('seat', { tableId, playerId: userId, action: 'add_chips', amount }), [tableId, userId]);
+
+  const sendChat = useCallback((message) =>
+    apiPost('connect', { tableId, playerId: userId, type: 'chat', message }), [tableId, userId]);
+
+  const joinWaitlist = useCallback((opts = {}) =>
+    apiPost('seat', { tableId, playerId: userId, action: 'join_waitlist', ...opts }), [tableId, userId]);
+
+  const leaveWaitlist = useCallback(() =>
+    apiPost('seat', { tableId, playerId: userId, action: 'leave_waitlist' }), [tableId, userId]);
+
+  // ── Read operations ────────────────────────────────────────
+
+  const requestState = useCallback(async () => {
+    const state = await apiGet('state', { tableId, playerId: userId });
+    if (state && !state.error) {
+      setTableState(state);
+      if (state.yourCards) setMyCards(state.yourCards);
+      if (state.legalActions) setLegalActions(state.legalActions);
+    }
+    return state;
+  }, [tableId, userId]);
+
+  // ── Realtime event handler ─────────────────────────────────
+
   const handleEvent = useCallback((event, data) => {
     switch (event) {
       case 'table_state':
@@ -52,9 +120,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
         if (data.yourCards) setMyCards(data.yourCards);
         break;
       case 'hand_start':
-        setResult(null);
-        setMyCards(null);
-        setLegalActions(null);
+        setResult(null); setMyCards(null); setLegalActions(null); setTimerState(null);
+        requestState();
         break;
       case 'private_cards':
         setMyCards(data.holeCards);
@@ -64,6 +131,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'action_required':
         if (data.playerId !== userId) setLegalActions(null);
+        setTimerState({ playerId: data.playerId, remaining: data.timeBank });
         break;
       case 'action_processed':
         if (data.playerId === userId) setLegalActions(null);
@@ -73,33 +141,43 @@ export function useTableConnection({ supabase, tableId, userId }) {
         setTimerState(data);
         break;
       case 'showdown':
+        setResult(data); setLegalActions(null); requestState();
+        break;
       case 'hand_complete':
-        setResult(data);
-        setLegalActions(null);
+        setResult(data); setLegalActions(null);
         if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
         resultTimeoutRef.current = setTimeout(() => setResult(null), 5000);
+        requestState();
+        break;
+      case 'payout':
+        setResult(prev => prev ? { ...prev, ...data } : data);
         break;
       case 'chat_message':
         setChatMessages(prev => [...prev.slice(-100), data]);
         break;
       case 'table_error':
-        setError(data.error);
-        setTimeout(() => setError(null), 4000);
+        setError(data.error); setTimeout(() => setError(null), 4000);
+        break;
+      case 'cards_dealt':
+      case 'street_start':
+      case 'blinds_posted':
+        requestState();
         break;
       default:
-        // State-changing events — request fresh state
         requestState();
         break;
     }
   }, [userId, requestState]);
-  
-  // Connect
+
+  // ── Connect: Realtime for reads + HTTP heartbeat ───────────
+
   useEffect(() => {
     if (!supabase || !tableId || !userId) return;
-    
+
+    requestState(); // initial HTTP fetch
+
     const channel = supabase.channel(`table:${tableId}`);
-    
-    // Public server events
+
     const events = [
       'table_state', 'hand_start', 'blinds_posted', 'cards_dealt',
       'street_start', 'action_required', 'action_processed',
@@ -108,71 +186,69 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'player_sitting_in', 'player_disconnected', 'player_reconnected',
       'chat_message', 'table_error', 'seat_offered',
     ];
-    
+
     for (const evt of events) {
       channel.on('broadcast', { event: evt }, (payload) => {
         handleEvent(evt, payload.payload);
       });
     }
-    
-    // Private events
+
+    // Private events targeted to this user
     for (const evt of ['private_cards', 'your_turn', 'table_state', 'table_error']) {
       channel.on('broadcast', { event: `${evt}:${userId}` }, (payload) => {
         handleEvent(evt, payload.payload);
       });
     }
-    
-    // Presence
+
     channel.on('presence', { event: 'sync' }, () => {});
-    
-    // Subscribe
-    let hb;
+
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         setConnected(true);
         await channel.track({ user_id: userId, online_at: new Date().toISOString() });
-        
-        // Request state
-        channel.send({
-          type: 'broadcast',
-          event: 'request_state',
-          payload: { playerId: userId },
-        });
-        
-        // Heartbeat
-        hb = setInterval(() => {
-          channel.send({
-            type: 'broadcast',
-            event: 'heartbeat',
-            payload: { playerId: userId },
-          });
+        heartbeatRef.current = setInterval(() => {
+          apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
         }, HEARTBEAT_MS);
       }
     });
-    
+
     channelRef.current = channel;
-    
+
     return () => {
       setConnected(false);
-      if (hb) clearInterval(hb);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
+      apiPost('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => {});
       channel.untrack().catch(() => {});
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [supabase, tableId, userId, handleEvent]);
-  
+  }, [supabase, tableId, userId, handleEvent, requestState]);
+
+  // ── Legacy send() — backward compat with LivePokerTable ────
+
+  const send = useCallback((event, payload = {}) => {
+    switch (event) {
+      case 'player_action': return sendAction(payload.action);
+      case 'sit_down': return sitDown(payload.seatIndex, payload.buyIn, payload);
+      case 'stand_up': return standUp();
+      case 'sit_out': return sitOut();
+      case 'sit_in': return sitIn();
+      case 'add_chips': return addChips(payload.amount);
+      case 'send_chat': return sendChat(payload.message);
+      case 'request_state': return requestState();
+      case 'join_waitlist': return joinWaitlist(payload);
+      case 'leave_waitlist': return leaveWaitlist();
+      default: console.warn('[useTableConnection] Unknown event:', event);
+    }
+  }, [sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat, requestState, joinWaitlist, leaveWaitlist]);
+
   return {
-    tableState,
-    myCards,
-    legalActions,
-    timerState,
-    chatMessages,
-    result,
-    error,
-    connected,
-    send,
-    requestState,
+    tableState, myCards, legalActions, timerState, chatMessages,
+    result, error, connected,
+    send, requestState,
+    sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat,
+    joinWaitlist, leaveWaitlist,
   };
 }
 
