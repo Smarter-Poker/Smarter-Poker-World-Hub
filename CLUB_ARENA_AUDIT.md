@@ -2,7 +2,7 @@
 ## Updated: Feb 28, 2026 (Post-Sprint Completion)
 
 ### System Summary
-- **19 API routes** (3,290 total lines) — all server-side with Bearer token auth
+- **26 API routes** — all server-side with Bearer token auth
 - **12 frontend pages** (7,600+ total lines) — all wired to API routes
 - **0 direct Supabase writes** from frontend pages (except RPCs in messages.js)
 - **1 ChipBridge** (304 lines) connecting poker engine to club chip economy
@@ -24,7 +24,7 @@
 | 1.7 | View settlement | ✅ | union-dashboard settlement tab |
 | 1.8 | Union settings | ❌ | Low priority |
 
-### Club Owner (19/21 features complete)
+### Club Owner (21/21 features complete)
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 2.1 | Create club | ✅ | API + UI |
@@ -43,13 +43,13 @@
 | 2.14 | View cashouts | ✅ | agent-dashboard (owners see all) |
 | 2.15 | Approve/cancel | ✅ | agent-dashboard buttons |
 | 2.16 | Create tables | ✅ | API + lobby UI |
-| 2.17 | Announcements | ❌ | P2 — table exists, no CRUD |
-| 2.18 | Marketplace admin | ⚠️ | Buyer side wired, no seller mgmt |
+| 2.17 | Announcements | ✅ | API + admin modal (create/delete/pin) |
+| 2.18 | Marketplace admin | ✅ | manage-shop API + admin modal (CRUD/toggle) |
 | 2.19 | Transaction history | ✅ | cashier.js |
 | 2.20 | Suspend agent | ✅ | API + admin agents tab |
 | 2.21 | Commission rates | ✅ | API + admin agents tab |
 
-### Agent / Super Agent (7/10 features complete)
+### Agent / Super Agent (9/10 features complete)
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 5.1 | Agent dashboard | ✅ | 803-line page, fully wired |
@@ -58,10 +58,10 @@
 | 5.4 | Approve/cancel | ✅ | approve-cashout API + buttons |
 | 5.5 | Clawback (10 min) | ✅ | clawback-chips API + button |
 | 5.6 | Commission history | ✅ | Dashboard shows history |
-| 5.7 | Sub-agent management | ❌ | P2 — schema supports it |
-| 5.8 | Sub-agent performance | ❌ | P2 |
+| 5.7 | Sub-agent management | ✅ | Agents promote own downline via ⬆️ button |
+| 5.8 | Sub-agent performance | ❌ | P2 — stats reporting |
 | 5.9 | Cascading commission | ✅ | settle-period calculates |
-| 5.10 | Credit management | ❌ | P2 — agent-credit API exists |
+| 5.10 | Credit management | ✅ | agent-credit API + admin Issue Credit button |
 
 ### Player (16/16 features complete)
 | # | Feature | Status | Notes |
@@ -151,6 +151,5 @@
 1. Create union API + UI (rare admin operation)
 2. Union settings management
 3. Union add/remove clubs/admins
-4. Club announcements CRUD
-5. Sub-agent management UI
-6. Marketplace seller management (add/edit shop items)
+4. Photo rotation verification (camera capture + liveness check)
+5. Sub-agent performance reporting (stats for sub-agent downlines)

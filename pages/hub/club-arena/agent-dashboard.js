@@ -128,6 +128,15 @@ export default function AgentDashboard() {
 
     useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
+    // ─── Auto-load sub-agents when tab selected ────────────────
+    useEffect(() => {
+        if (activeTab !== 'subagents' || subAgentsLoaded || !dashboard?.clubId) return;
+        apiCall('/api/club-arena/manage-agent', {
+            action: 'list_sub_agents', clubId: dashboard.clubId, parentAgentUserId: user?.id,
+        }).then(r => { setSubAgents(r.subAgents || []); setSubAgentsLoaded(true); })
+          .catch(() => setSubAgentsLoaded(true));
+    }, [activeTab, subAgentsLoaded, dashboard?.clubId, user?.id]);
+
     // ─── Distribute Chips ───────────────────────────────────────
     const handleDistribute = async () => {
         if (!distributeModal || !distributeAmount || processing) return;
@@ -309,6 +318,20 @@ export default function AgentDashboard() {
                     <PlayersTab
                         players={players}
                         onDistribute={(p) => setDistributeModal({ playerId: p.user_id, playerName: p.profile?.display_name || p.nickname || 'Player' })}
+                        onPromote={async (p) => {
+                            const rate = prompt(`Promote ${p.profile?.display_name || 'player'} to Sub-Agent.\n\nEnter commission rate (e.g. 5 for 5%).\nMust be lower than your rate.`);
+                            if (!rate) return;
+                            const pct = parseFloat(rate);
+                            if (isNaN(pct) || pct < 1 || pct > 90) { showToast('Enter a number between 1-90', 'error'); return; }
+                            try {
+                                await apiCall('/api/club-arena/manage-agent', {
+                                    action: 'promote_to_sub_agent', clubId: dashboard.clubId,
+                                    targetUserId: p.user_id, commissionRate: pct / 100,
+                                });
+                                showToast(`${p.profile?.display_name || 'Player'} promoted to Sub-Agent at ${pct}%!`);
+                                setSubAgentsLoaded(false); // Force reload
+                            } catch (e) { showToast(e.message || 'Promotion failed', 'error'); }
+                        }}
                     />
                 )}
                 {activeTab === 'cashouts' && (
@@ -330,24 +353,14 @@ export default function AgentDashboard() {
                 {activeTab === 'subagents' && (
                     <div>
                         {!subAgentsLoaded ? (
-                            <div style={{ textAlign: 'center', padding: 30 }}>
-                                <button onClick={async () => {
-                                    try {
-                                        const r = await apiCall('/api/club-arena/manage-agent', {
-                                            action: 'list_sub_agents', clubId: dashboard.clubId, parentAgentUserId: user.id,
-                                        });
-                                        setSubAgents(r.subAgents || []);
-                                        setSubAgentsLoaded(true);
-                                    } catch (e) { showToast(e.message || 'Failed to load', 'error'); }
-                                }} style={{ ...actionBtn, background: FB.primary, width: 'auto', padding: '12px 32px' }}>
-                                    Load Sub-Agents
-                                </button>
+                            <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>
+                                Loading sub-agents...
                             </div>
                         ) : subAgents.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
                                 <div style={{ fontSize: 32, marginBottom: 12 }}>🔗</div>
                                 <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
-                                <div style={{ fontSize: 12, marginTop: 6 }}>Club owners assign sub-agent relationships.</div>
+                                <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap ⬆️ to promote a player.</div>
                             </div>
                         ) : subAgents.map(sa => (
                             <div key={sa.id} style={{ ...cardStyle, marginBottom: 10 }}>
@@ -555,7 +568,7 @@ function StatLine({ label, value }) {
 // TAB: PLAYERS (Downline)
 // ═══════════════════════════════════════════════════════════════
 
-function PlayersTab({ players, onDistribute }) {
+function PlayersTab({ players, onDistribute, onPromote }) {
     const [search, setSearch] = useState('');
     const filtered = (players || []).filter(p => {
         const name = (p.profile?.display_name || p.nickname || '').toLowerCase();
@@ -613,6 +626,17 @@ function PlayersTab({ players, onDistribute }) {
                     }}>
                         Send
                     </button>
+
+                    {/* Promote to Sub-Agent */}
+                    {onPromote && p.role !== 'sub_agent' && p.role !== 'agent' && (
+                        <button onClick={() => onPromote(p)} style={{
+                            background: '#4ECDC4', color: '#000', border: 'none', borderRadius: 8,
+                            padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                            flexShrink: 0,
+                        }}>
+                            ⬆️
+                        </button>
+                    )}
                 </div>
             ))}
         </div>

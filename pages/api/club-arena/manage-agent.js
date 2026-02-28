@@ -50,6 +50,21 @@ export default async function handler(req, res) {
         .single();
       authorized = !!ua;
     }
+
+    // Agent-level actions — agents can call these for their own downline
+    const agentActions = ['list_sub_agents', 'set_player_rakeback', 'update_commission', 'promote_to_sub_agent'];
+    if (!authorized && agentActions.includes(action)) {
+      // Check if caller is an active agent in this club
+      const { data: callerAsAgent } = await supabaseAdmin
+        .from('agents')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .eq('club_id', clubId)
+        .eq('status', 'active')
+        .single();
+      if (callerAsAgent) authorized = true;
+    }
+
     if (!authorized) return res.status(403).json({ error: 'Not authorized' });
 
     // ═══════════════════════════════════════════════════════════════
@@ -788,6 +803,92 @@ export default async function handler(req, res) {
         targetUserId,
         old_rate: targetAgent.commission_rate,
         new_rate: commissionRate,
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PROMOTE TO SUB-AGENT (agent self-service)
+    // Agents can promote their own downline players to sub-agents.
+    // No owner approval needed — fully automated.
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'promote_to_sub_agent') {
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      const { commissionRate } = params;
+
+      if (!commissionRate || typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
+        return res.status(400).json({ error: 'commissionRate required (0.01 to 0.90)' });
+      }
+
+      // Verify caller is an active agent
+      const { data: parentAgent } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id, commission_rate, status, agent_tier')
+        .eq('user_id', user.id)
+        .eq('club_id', clubId)
+        .eq('status', 'active')
+        .single();
+
+      if (!parentAgent) {
+        return res.status(403).json({ error: 'You are not an active agent in this club' });
+      }
+
+      // Sub-agent commission must be lower than parent's
+      if (commissionRate >= parentAgent.commission_rate) {
+        return res.status(400).json({
+          error: `Sub-agent commission (${(commissionRate * 100).toFixed(1)}%) must be lower than yours (${(parentAgent.commission_rate * 100).toFixed(1)}%)`,
+          your_rate: parentAgent.commission_rate,
+        });
+      }
+
+      // Verify target is a player assigned to this agent
+      const { data: targetMember } = await supabaseAdmin
+        .from('club_members')
+        .select('user_id, role, agent_id')
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId)
+        .single();
+
+      if (!targetMember) return res.status(404).json({ error: 'Player not found in club' });
+      if (targetMember.agent_id !== user.id) {
+        return res.status(403).json({ error: 'This player is not in your downline' });
+      }
+      if (['agent', 'super_agent', 'sub_agent'].includes(targetMember.role)) {
+        return res.status(400).json({ error: 'Player is already an agent' });
+      }
+
+      // Promote: update club_members role + create agents record
+      const { error: roleErr } = await supabaseAdmin
+        .from('club_members')
+        .update({ role: 'sub_agent' })
+        .eq('club_id', clubId)
+        .eq('user_id', targetUserId);
+
+      if (roleErr) throw roleErr;
+
+      const { error: agentErr } = await supabaseAdmin
+        .from('agents')
+        .upsert({
+          user_id: targetUserId,
+          club_id: clubId,
+          status: 'active',
+          commission_rate: commissionRate,
+          agent_tier: 'sub_agent',
+          parent_agent_id: user.id,
+          is_prepaid: false,
+          credit_limit: 0,
+        }, { onConflict: 'user_id,club_id' });
+
+      if (agentErr) throw agentErr;
+
+      // Reassign the player's existing downline players to the new sub-agent
+      // (they keep their agent_id pointing to the parent, but the sub-agent manages them)
+
+      return res.status(200).json({
+        success: true,
+        action: 'promoted_to_sub_agent',
+        targetUserId,
+        parentAgentId: user.id,
+        commissionRate,
       });
     }
 
