@@ -38,7 +38,10 @@ export default function PromotionsDisplay() {
       const res = await fetch('/api/commander/promotions');
       const json = await res.json();
       if (json.success) {
-        const active = (json.data || []).filter(p => p.status === 'active' || p.is_active);
+        // API returns { data: { promotions: [...] } }
+        const promos = json.data?.promotions || json.data || [];
+        const arr = Array.isArray(promos) ? promos : [];
+        const active = arr.filter(p => p.status === 'active' || p.is_active);
         setPromotions(active);
       }
     } catch (err) { console.error(err); }

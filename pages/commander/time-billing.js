@@ -133,7 +133,7 @@ export default function TimeBilling() {
     finally { setLoading(false); }
   }, [filter, pricing.time_billing_rate]);
 
-  useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, [fetchData]);
+  useEffect(() => { fetchData(); const i = setInterval(fetchData, 30000); return () => clearInterval(i); }, [fetchData]); // fallback — real-time sync handles instant updates
 
   // Memoized venueId for Supabase sync (avoid function call per render)
   const [syncVenueId] = useState(() => getVenueId());

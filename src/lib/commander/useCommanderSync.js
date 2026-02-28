@@ -21,7 +21,7 @@
  *   ✓ Stale closure prevention — uses refs for callbacks
  *   ✓ SSR-safe — all browser APIs guarded
  *   ✓ setTimeout leak prevention — pending timers cleaned on unmount
- *   ✓ Full entity coverage — 8 Supabase tables with entity mapping
+ *   ✓ Full entity coverage — 12 Supabase tables with entity mapping
  *
  * Usage:
  *   // Subscribe to ALL entities (backward compatible):
@@ -60,6 +60,10 @@ const TABLE_TO_ENTITY = {
     commander_settings: 'settings',
     commander_staff: 'staff',
     commander_members: 'members',
+    commander_dealers: 'dealers',
+    commander_tournaments: 'tournaments',
+    commander_tournament_entries: 'tournaments',  // Entry changes affect tournaments
+    commander_incidents: 'incidents',
 };
 
 // Default Supabase tables to subscribe to (covers all core entities)

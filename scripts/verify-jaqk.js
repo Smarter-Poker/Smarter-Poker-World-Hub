@@ -105,7 +105,7 @@ function check(label, condition, detail) {
     // ═══ 6. DEALERS ═══
     console.log('\n── 6. DEALERS ──');
     const { data: dealers, count: dCount } = await sb.from('commander_dealers').select('*', { count: 'exact' }).eq('venue_id', VENUE_ID);
-    check('8 dealers registered', dCount === 8, 'got ' + dCount);
+    check('28 dealers registered', dCount === 28, 'got ' + dCount);
 
     const activeDealers = (dealers || []).filter(d => d.is_active === true);
     check('7+ dealers active', activeDealers.length >= 7, 'got ' + activeDealers.length + ' active');
@@ -117,10 +117,10 @@ function check(label, condition, detail) {
     // ═══ 7. DEALER ROTATIONS ═══
     console.log('\n── 7. DEALER ROTATIONS ──');
     const { data: rotations, count: rCount } = await sb.from('commander_dealer_rotations').select('*', { count: 'exact' }).eq('venue_id', VENUE_ID).is('ended_at', null);
-    check('8 active rotations', rCount === 8, 'got ' + rCount);
+    check('15 active rotations', rCount === 15, 'got ' + rCount);
 
     const rotTables = new Set((rotations || []).map(r => r.table_number));
-    check('Rotations at tables 1-8', rotTables.size === 8, 'tables: ' + [...rotTables].sort((a, b) => a - b).join(','));
+    check('Rotations at tables 1-15', rotTables.size === 15, 'tables: ' + [...rotTables].sort((a, b) => a - b).join(','));
 
     // FK join test
     const { data: fkTest, error: fkErr } = await sb.from('commander_dealer_rotations')
