@@ -13,8 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
-import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import {
   RefreshCw, Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, Clock,
   PhoneCall, Armchair, SkipForward, Trash2,
@@ -187,10 +186,10 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch('/api/commander/waitlist/call', {
+      const res = await fetch(`/api/commander/waitlist/${entry.id}/call`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ waitlist_id: entry.id })
+        body: JSON.stringify({ notify_sms: true, notify_push: true })
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -200,11 +199,12 @@ export default function WaitlistDesk() {
         await fetchData();
         return;
       }
-      // Update UI
+      // Update UI with the [id]/call response shape
       setWaitlists(prev => prev.map(e => e.id === entry.id ? { ...e, status: 'called' } : e));
-      if (json.data?.sms_sent) setSmsStatus({ type: 'sent', text: `SMS sent to ${titleCase(entry.player_name)}` });
-      else if (json.data?.sms_status === 'no_phone') setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
-      else setSmsStatus({ type: 'none', text: 'Called — SMS Unavailable' });
+      const notifCount = json.data?.notifications_sent || 0;
+      if (notifCount > 0) setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} notified (${notifCount} notification${notifCount > 1 ? 's' : ''})` });
+      else if (!entry.player_phone) setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
+      else setSmsStatus({ type: 'none', text: 'Called — Notifications Unavailable' });
       await fetchData();
       broadcastChange('waitlist');
       setTimeout(() => setSmsStatus(null), 3000);
@@ -224,15 +224,18 @@ export default function WaitlistDesk() {
       const json = await res.json();
       if (!res.ok || !json.success) {
         console.error('Seat API error:', json);
-        alert('Seat failed: ' + (json.error?.message || json.error || 'Unknown error'));
+        setSmsStatus({ type: 'none', text: 'Seat failed: ' + (json.error?.message || json.error || 'Unknown error') });
+        setTimeout(() => setSmsStatus(null), 4000);
         return;
       }
       // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
       setSeatModal(null); setSelectedPlayer(null);
+      setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} seated at Table ${tableNumber} Seat ${seatNumber}` });
+      setTimeout(() => setSmsStatus(null), 4000);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Seat error:', err); alert('Seat failed: ' + err.message); await fetchData(); }
+    } catch (err) { console.error('Seat error:', err); setSmsStatus({ type: 'none', text: 'Seat failed: ' + err.message }); setTimeout(() => setSmsStatus(null), 4000); await fetchData(); }
   };
 
   const handlePass = async (entry) => {
@@ -290,13 +293,21 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      await fetch(`/api/commander/waitlist/${entry.id}`, {
+      const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ checked_in_at: new Date().toISOString() })
       });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setSmsStatus({ type: 'none', text: 'Check-in failed: ' + (json.error?.message || json.error || 'Unknown error') });
+        setTimeout(() => setSmsStatus(null), 4000);
+      } else {
+        setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} checked in` });
+        setTimeout(() => setSmsStatus(null), 3000);
+      }
       setSelectedPlayer(null); await fetchData();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); setSmsStatus({ type: 'none', text: 'Check-in failed: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
   };
 
   const handleAddWalkIn = async (playerData) => {
@@ -315,8 +326,16 @@ export default function WaitlistDesk() {
         })
       });
       const json = await res.json();
-      if (json.success) { setShowAddWalkIn(false); await fetchData(); broadcastChange('waitlist'); }
-    } catch (err) { console.error(err); }
+      if (json.success) {
+        setShowAddWalkIn(false);
+        setSmsStatus({ type: 'sent', text: `${titleCase(playerData.player_name)} added to waitlist` });
+        setTimeout(() => setSmsStatus(null), 3000);
+        await fetchData(); broadcastChange('waitlist');
+      } else {
+        setSmsStatus({ type: 'none', text: json.error?.message || json.error || 'Failed to add player' });
+        setTimeout(() => setSmsStatus(null), 4000);
+      }
+    } catch (err) { console.error(err); setSmsStatus({ type: 'none', text: 'Failed to add player: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
   };
 
   // ── RENAME GAME: Batch-update all entries for old game to new name/stakes ──
@@ -381,6 +400,8 @@ export default function WaitlistDesk() {
           body: JSON.stringify({ venue_id: staffData.venue_id, table_number: parseInt(tn) || tn, table_name: `Table ${tn}`, max_seats: 9, game_type: gt, stakes: st })
         });
       } catch { /* table may already exist — ignore */ }
+      await fetchData();
+    } else {
       await fetchData();
     }
     setNewGameType(''); setNewGameStakes(''); setNewGameTable(''); setShowAddGame(false);

@@ -74,7 +74,7 @@ export default function MustMoveManager() {
   }, [venueId, fetchData]);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['games', 'tables'] });
 
   // Unlink must-move
   const unlinkMustMove = async (gameId) => {

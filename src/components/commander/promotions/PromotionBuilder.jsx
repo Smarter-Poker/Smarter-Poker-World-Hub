@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   Gift, DollarSign, Calendar, Clock, Settings,
-  ChevronRight, ChevronLeft, Check, X, Star, Zap
+  ChevronRight, ChevronLeft, Check, X, Star, Zap, Image, Sparkles
 } from 'lucide-react';
 
 const PROMOTION_TYPES = [
@@ -46,6 +46,19 @@ const STEPS = [
   { key: 'review', label: 'Review', icon: Check }
 ];
 
+/** Pre-built templates with sensible defaults per type */
+const TEMPLATE_DEFAULTS = {
+  high_hand: { name: 'High Hand Bonus', description: 'Win a bonus for the highest hand of the hour! Quads or better qualify.', prize_type: 'cash', prize_amount: '500', qualifying_hand: 'Quads or Better', game_types: ['all'], max_winners: 1 },
+  bad_beat: { name: 'Bad Beat Jackpot', description: 'Lose with quad Jacks or better to win the progressive bad beat jackpot!', prize_type: 'cash', prize_amount: '25000', qualifying_hand: 'Quad Jacks Beaten', game_types: ['all'], max_winners: 3 },
+  splash_pot: { name: 'Splash Pot', description: 'Every 30 minutes, a random pot gets a cash bonus added!', prize_type: 'cash', prize_amount: '100', game_types: ['all'], max_winners: 1 },
+  happy_hour: { name: 'Happy Hour', description: 'Double comp points during happy hour! 4 PM - 7 PM daily.', prize_type: 'points', prize_amount: '50', start_time: '16:00', end_time: '19:00', game_types: ['all'], max_winners: 99 },
+  new_player: { name: 'New Player Freeroll', description: 'First-time players receive a free tournament entry worth $1,000!', prize_type: 'freeroll', prize_amount: '1000', game_types: ['all'], max_winners: 1 },
+  referral: { name: 'Bring a Friend Bonus', description: 'Refer a friend and both of you receive a cash bonus when they play their first session!', prize_type: 'cash', prize_amount: '50', game_types: ['all'], max_winners: 99 },
+  loyalty: { name: 'Loyalty Double Points', description: 'Earn double comp points all weekend long — Friday through Sunday.', prize_type: 'points', prize_amount: '', prize_description: '2x points', is_recurring: true, recurring_days: [5, 6, 0], game_types: ['all'], max_winners: 99 },
+  drawing: { name: 'Prize Drawing', description: 'Earn 1 raffle ticket every hour of play. Drawing held at closing!', prize_type: 'cash', prize_amount: '500', game_types: ['all'], max_winners: 1 },
+  custom: { name: '', description: '', prize_type: 'cash', prize_amount: '', game_types: ['all'], max_winners: 1 }
+};
+
 export default function PromotionBuilder({
   venueId,
   onSubmit,
@@ -70,8 +83,10 @@ export default function PromotionBuilder({
     end_time: '',
     is_recurring: false,
     recurring_days: [],
-    is_featured: false
+    is_featured: false,
+    image_url: ''
   });
+  const [useTemplate, setUseTemplate] = useState(true);
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -125,6 +140,7 @@ export default function PromotionBuilder({
       min_stakes: formData.min_stakes || null,
       qualifying_hands: formData.qualifying_hand || null,
       is_featured: formData.is_featured,
+      image_url: formData.image_url || null,
       status: 'active',
       settings: { max_winners: parseInt(formData.max_winners) || 1 }
     });
@@ -148,10 +164,10 @@ export default function PromotionBuilder({
                   onClick={() => i < step && setStep(i)}
                   disabled={i > step}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                      ? 'bg-[#22D3EE]/20 text-[#22D3EE]'
-                      : isDone
-                        ? 'text-[#10B981] hover:bg-[#132240]'
-                        : 'text-[#4A5E78]'
+                    ? 'bg-[#22D3EE]/20 text-[#22D3EE]'
+                    : isDone
+                      ? 'text-[#10B981] hover:bg-[#132240]'
+                      : 'text-[#4A5E78]'
                     }`}
                 >
                   {isDone ? (
@@ -175,7 +191,20 @@ export default function PromotionBuilder({
         {/* Step 0: Select Type */}
         {step === 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Choose Promotion Type</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Choose Promotion Type</h3>
+              <button
+                onClick={() => setUseTemplate(!useTemplate)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${useTemplate ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]' : 'border-[#4A5E78] text-[#64748B]'
+                  }`}
+              >
+                <Sparkles size={14} />
+                {useTemplate ? 'Templates On' : 'Templates Off'}
+              </button>
+            </div>
+            {useTemplate && (
+              <p className="text-xs text-[#64748B] mb-3 -mt-2">Selecting a type will auto-fill recommended settings. You can edit everything on the next steps.</p>
+            )}
             <div className="grid grid-cols-3 gap-3">
               {PROMOTION_TYPES.map(type => {
                 const Icon = type.icon;
@@ -184,10 +213,31 @@ export default function PromotionBuilder({
                 return (
                   <button
                     key={type.value}
-                    onClick={() => updateField('promotion_type', type.value)}
+                    onClick={() => {
+                      updateField('promotion_type', type.value);
+                      if (useTemplate && TEMPLATE_DEFAULTS[type.value]) {
+                        const tpl = TEMPLATE_DEFAULTS[type.value];
+                        setFormData(prev => ({
+                          ...prev,
+                          promotion_type: type.value,
+                          name: tpl.name || prev.name,
+                          description: tpl.description || prev.description,
+                          prize_type: tpl.prize_type || prev.prize_type,
+                          prize_amount: tpl.prize_amount || prev.prize_amount,
+                          prize_description: tpl.prize_description || prev.prize_description || '',
+                          qualifying_hand: tpl.qualifying_hand || prev.qualifying_hand || '',
+                          game_types: tpl.game_types || prev.game_types,
+                          max_winners: tpl.max_winners || prev.max_winners,
+                          start_time: tpl.start_time || prev.start_time,
+                          end_time: tpl.end_time || prev.end_time,
+                          is_recurring: tpl.is_recurring || false,
+                          recurring_days: tpl.recurring_days || [],
+                        }));
+                      }
+                    }}
                     className={`p-4 rounded-lg border text-left transition-colors ${isSelected
-                        ? 'border-[#22D3EE] bg-[#22D3EE]/10'
-                        : 'border-[#4A5E78] hover:border-[#64748B]'
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/10'
+                      : 'border-[#4A5E78] hover:border-[#64748B]'
                       }`}
                   >
                     <Icon size={24} style={{ color: type.color }} />
@@ -236,8 +286,8 @@ export default function PromotionBuilder({
                     key={opt.value}
                     onClick={() => toggleGameType(opt.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${formData.game_types.includes(opt.value)
-                        ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                        : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                      : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
                       }`}
                   >
                     {opt.label}
@@ -270,6 +320,24 @@ export default function PromotionBuilder({
                 </div>
               )}
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">Image URL (optional)</label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => updateField('image_url', e.target.value)}
+                  placeholder="https://example.com/promo-image.jpg"
+                  className="flex-1 cmd-input"
+                />
+                {formData.image_url && (
+                  <div style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid #4A5E78', flexShrink: 0 }}>
+                    <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -286,8 +354,8 @@ export default function PromotionBuilder({
                     key={opt.value}
                     onClick={() => updateField('prize_type', opt.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${formData.prize_type === opt.value
-                        ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                        : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                      : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
                       }`}
                   >
                     {opt.label}
@@ -417,8 +485,8 @@ export default function PromotionBuilder({
                       key={day}
                       onClick={() => toggleDay(i)}
                       className={`w-10 h-10 rounded-lg text-xs font-medium border transition-colors ${formData.recurring_days.includes(i)
-                          ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                          : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
+                        ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                        : 'border-[#4A5E78] text-[#64748B] hover:border-[#64748B]'
                         }`}
                     >
                       {day}

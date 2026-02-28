@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
     // Filter by game type
     if (game_type) {
-      query = query.eq('game_type', game_type.toLowerCase());
+      query = query.eq('game_type', game_type.toUpperCase());
     }
 
     // Filter by stakes

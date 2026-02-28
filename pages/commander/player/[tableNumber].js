@@ -35,6 +35,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Script from 'next/script';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -316,25 +317,27 @@ export default function PlayerTableDisplay() {
   const isTexas = venueType === 'texas';
 
   // Fetch all tablet data (table info, sessions, dealer) in one call
+  const fetchData = useCallback(async () => {
+    if (!tableNumber) return;
+    try {
+      const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
+      const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
+      const json = await res.json();
+      if (json.success) {
+        setPlayers(json.data.players || []);
+        setTable(json.data.table || null);
+        setDealer(json.data.dealer || null);
+        if (json.data.venue_type) setVenueType(json.data.venue_type);
+      }
+    } catch (err) { console.error(err); }
+  }, [tableNumber, table?.venue_id]);
+
   useEffect(() => {
     if (!tableNumber) return;
-    const fetchData = async () => {
-      try {
-        const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
-        const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
-        const json = await res.json();
-        if (json.success) {
-          setPlayers(json.data.players || []);
-          setTable(json.data.table || null);
-          setDealer(json.data.dealer || null);
-          if (json.data.venue_type) setVenueType(json.data.venue_type);
-        }
-      } catch (err) { console.error(err); }
-    };
     fetchData();
     const poll = setInterval(fetchData, 3000);
     return () => clearInterval(poll);
-  }, [tableNumber, table?.venue_id]);
+  }, [tableNumber, fetchData]);
 
   // Local ticker (countdown for Texas, re-render for elapsed display)
   useEffect(() => {
@@ -350,6 +353,12 @@ export default function PlayerTableDisplay() {
     }, 1000);
     return () => clearInterval(ticker);
   }, [isTexas]);
+
+  // Commander Data Bus — instant sync for player and dealer changes
+  const [syncVenueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return table?.venue_id || null; }
+  });
+  useCommanderSync(syncVenueId || table?.venue_id || '', fetchData, { entities: ['tables', 'dealers'] });
 
   // Wake lock
   useEffect(() => {
@@ -385,6 +394,8 @@ export default function PlayerTableDisplay() {
       if (json.success) {
         setDealer(json.data.dealer);
         setScanStatus({ type: 'success', message: `${json.data.dealer.name} is now dealing` });
+        broadcastChange('dealers');
+        broadcastChange('tables');
       } else {
         setScanStatus({ type: 'error', message: json.error || 'Scan failed' });
       }
@@ -420,6 +431,7 @@ export default function PlayerTableDisplay() {
           message: `${d.player_name} seated at S${d.seat_number}${d.time_allocated_minutes ? ` (${d.time_allocated_minutes}m)` : ''}`
         });
         setTargetSeat(null);
+        broadcastChange('tables');
       } else {
         setScanStatus({ type: 'error', message: json.error || 'Scan failed' });
       }
@@ -449,6 +461,7 @@ export default function PlayerTableDisplay() {
         if (d.unused_minutes_returned > 0) msg += ` · ${d.unused_minutes_returned}m returned`;
         if (d.comp_earned > 0) msg += ` · $${d.comp_earned} comp`;
         setScanStatus({ type: 'success', message: msg });
+        broadcastChange('tables');
       } else {
         setScanStatus({ type: 'error', message: json.error || 'Remove failed' });
       }
@@ -487,10 +500,10 @@ export default function PlayerTableDisplay() {
   return (
     <>
       <SEOHead
-                title="Commander — Details"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Details"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <Script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" strategy="beforeInteractive" />
 

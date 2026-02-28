@@ -37,7 +37,7 @@ export default function LobbyDisplay() {
   }, []);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
 
   // Wake lock
   useEffect(() => {

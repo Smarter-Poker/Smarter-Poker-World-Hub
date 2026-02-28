@@ -135,8 +135,11 @@ export default function TimeBilling() {
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, [fetchData]);
 
+  // Memoized venueId for Supabase sync (avoid function call per render)
+  const [syncVenueId] = useState(() => getVenueId());
+
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(getVenueId(), fetchData);
+  useCommanderSync(syncVenueId, fetchData, { entities: ['tables', 'settings'] });
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
 
   // Load pricing settings

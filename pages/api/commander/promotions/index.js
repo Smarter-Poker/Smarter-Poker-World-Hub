@@ -84,6 +84,17 @@ async function listPromotions(req, res) {
 
     if (error) throw error;
 
+    // Auto-expire: flip any promo where end_date < today AND status = 'active'
+    const now = new Date().toISOString().split('T')[0];
+    const expired = (data || []).filter(p => p.status === 'active' && p.end_date && p.end_date < now);
+    if (expired.length > 0) {
+      await Promise.all(expired.map(p =>
+        supabase.from('commander_promotions').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', p.id)
+      ));
+      // Update local data to reflect the change
+      expired.forEach(p => { p.status = 'expired'; });
+    }
+
     return res.status(200).json({
       success: true,
       data: {

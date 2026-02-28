@@ -25,6 +25,7 @@ import {
 import EliminatePlayerModal from '../../../src/components/commander/modals/EliminatePlayerModal';
 import PayoutModal from '../../../src/components/commander/modals/PayoutModal';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
@@ -58,6 +59,11 @@ export default function TournamentDetailPage() {
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [closing, setClosing] = useState(false);
 
+  // Extract venueId for sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Check staff session
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
@@ -73,6 +79,8 @@ export default function TournamentDetailPage() {
       router.push('/commander/login').catch(() => { });
     }
   }, [router]);
+
+
 
   // Fetch tournament data
   const fetchTournament = useCallback(async () => {
@@ -104,6 +112,9 @@ export default function TournamentDetailPage() {
       setLoading(false);
     }
   }, [id]);
+
+  // Commander Data Bus — instant sync for tournament changes across devices
+  useCommanderSync(venueId, fetchTournament, { entities: ['tournaments'] });
 
   useEffect(() => {
     if (staff && id) {
@@ -141,6 +152,7 @@ export default function TournamentDetailPage() {
       const data = await res.json();
       if (data.success) {
         fetchTournament();
+        broadcastChange('tournaments');
       }
     } catch (error) {
       console.error('Clock action failed:', error);
@@ -160,6 +172,7 @@ export default function TournamentDetailPage() {
       const data = await res.json();
       if (data.success) {
         fetchTournament();
+        broadcastChange('tournaments');
       }
     } catch (error) {
       console.error('Status change failed:', error);
@@ -263,6 +276,7 @@ export default function TournamentDetailPage() {
                       const json = await res.json();
                       if (json.success) {
                         fetchTournament();
+                        broadcastChange('tournaments');
                       } else {
                         alert(json.error?.message || 'Failed to close tournament');
                       }
