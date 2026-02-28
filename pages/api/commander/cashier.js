@@ -68,7 +68,7 @@ async function handleGet(req, res, staff) {
 
 async function handlePost(req, res, staff) {
   try {
-    const { venue_id, session_id, player_name, table_number, seat_number, type, amount, chip_count, payment_method, notes } = req.body;
+    const { venue_id, session_id, player_name, table_number, seat_number, type, amount, chip_count, payment_method, notes, pin_verified_by } = req.body;
 
     if (!venue_id || !player_name || !type || !amount) {
       return res.status(400).json({ success: false, error: 'venue_id, player_name, type, and amount required' });
@@ -92,7 +92,7 @@ async function handlePost(req, res, staff) {
         amount: parseFloat(amount),
         chip_count: chip_count ? parseFloat(chip_count) : parseFloat(amount),
         payment_method: payment_method || 'cash',
-        processed_by: staff.id,
+        processed_by: pin_verified_by || staff.id,
         notes: notes || null,
       })
       .select()

@@ -169,6 +169,10 @@ export default function TDRegister() {
               <span className="text-[#1877F2] font-medium">Late reg: {stats.levels_until_late_reg_closes}L left</span>
             )}
           </div>
+          <div className="flex items-center gap-3 text-xs text-[#B0B3B8] mt-1">
+            <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" />{formatMoney(tournament.buyin_amount)}{tournament.buyin_fee ? ` + ${formatMoney(tournament.buyin_fee)} fee` : ''}</span>
+            <span className="flex items-center gap-1"><Coins className="w-3 h-3" />{(tournament.starting_chips || 0).toLocaleString()} chips</span>
+          </div>
         </div>
 
         {/* Entry Info */}

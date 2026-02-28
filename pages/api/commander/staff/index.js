@@ -182,6 +182,23 @@ async function handlePost(req, res) {
     }
 
     // Create staff record — user_id is optional for name-only employees
+    // Check for duplicate PIN at this venue
+    if (pin_code) {
+      const { data: existingPin } = await supabase
+        .from('commander_staff')
+        .select('id')
+        .eq('venue_id', venue_id)
+        .eq('pin_code', pin_code)
+        .eq('is_active', true)
+        .limit(1);
+      if (existingPin?.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'DUPLICATE_PIN', message: 'This PIN is already in use by another employee at this venue' }
+        });
+      }
+    }
+
     const staffRecord = {
       venue_id,
       role,

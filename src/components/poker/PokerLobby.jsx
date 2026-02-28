@@ -80,8 +80,6 @@ const FILTER_VARIANTS = {
   omaha_hilo: 'Omaha Hi-Lo',
   short_deck: 'Short Deck',
 };
-  short_deck: '#8b5cf6',
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLE CARD
@@ -91,7 +89,7 @@ function TableCard({ table, onJoin }) {
   const openSeats = table.maxSeats - table.playerCount;
   const fillPct = (table.playerCount / table.maxSeats) * 100;
   const variantColor = VARIANT_COLORS[table.variant] || T.green;
-  
+
   return (
     <motion.div
       whileHover={{ scale: 1.02, y: -2 }}
@@ -118,7 +116,7 @@ function TableCard({ table, onJoin }) {
           transition: 'width 0.5s',
         }} />
       </div>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
@@ -135,7 +133,7 @@ function TableCard({ table, onJoin }) {
             {VARIANT_LABELS[table.variant] || table.variant}
           </div>
         </div>
-        
+
         <div style={{
           background: openSeats > 0 ? `${T.green}20` : `${T.red}20`,
           color: openSeats > 0 ? T.green : T.red,
@@ -145,7 +143,7 @@ function TableCard({ table, onJoin }) {
           {openSeats > 0 ? `${openSeats} open` : 'Full'}
         </div>
       </div>
-      
+
       {/* Stakes */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ color: T.accent, fontSize: 18, fontWeight: 800 }}>
@@ -155,7 +153,7 @@ function TableCard({ table, onJoin }) {
           Buy-in: {table.minBuyIn}–{table.maxBuyIn}
         </div>
       </div>
-      
+
       {/* Seat indicators */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
         {Array.from({ length: table.maxSeats }).map((_, i) => (
@@ -169,7 +167,7 @@ function TableCard({ table, onJoin }) {
           />
         ))}
       </div>
-      
+
       {/* Footer stats */}
       <div style={{ display: 'flex', justifyContent: 'space-between', color: T.textMuted, fontSize: 11 }}>
         <span>{table.playerCount}/{table.maxSeats} players</span>
@@ -194,9 +192,9 @@ function CreateTableDialog({ onConfirm, onCancel }) {
     minBuyIn: 40,
     maxBuyIn: 200,
   });
-  
+
   const update = (key, val) => setConfig(prev => ({ ...prev, [key]: val }));
-  
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -226,7 +224,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
         <h3 style={{ color: T.accent, fontSize: 18, fontWeight: 800, marginBottom: 20 }}>
           Create Table
         </h3>
-        
+
         {/* Table name */}
         <Field label="Table Name">
           <input
@@ -237,7 +235,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
             style={inputStyle}
           />
         </Field>
-        
+
         {/* Variant */}
         <Field label="Game">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -246,7 +244,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
             ))}
           </div>
         </Field>
-        
+
         {/* Seats */}
         <Field label="Max Seats">
           <div style={{ display: 'flex', gap: 6 }}>
@@ -255,7 +253,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
             ))}
           </div>
         </Field>
-        
+
         {/* Blinds */}
         <Field label="Blinds">
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -278,7 +276,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
             />
           </div>
         </Field>
-        
+
         {/* Buy-in range */}
         <Field label={`Buy-in: ${config.minBuyIn}–${config.maxBuyIn}`}>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -295,7 +293,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
             />
           </div>
         </Field>
-        
+
         {/* Buttons */}
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <button onClick={onCancel} style={cancelBtnStyle}>Cancel</button>
@@ -383,12 +381,12 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
   const [tables, setTables] = useState([]);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
-  
+
   // Filters
   const [filterVariant, setFilterVariant] = useState('all');
   const [filterOpenOnly, setFilterOpenOnly] = useState(false);
   const [search, setSearch] = useState('');
-  
+
   // Fetch tables via HTTP + subscribe to Realtime for live updates
   useEffect(() => {
     let pollTimer;
@@ -426,7 +424,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
       if (channel && supabase) supabase.removeChannel(channel);
     };
   }, [supabase]);
-  
+
   // Filtered tables
   const filtered = useMemo(() => {
     let list = tables;
@@ -438,7 +436,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
     }
     return list;
   }, [tables, filterVariant, filterOpenOnly, search]);
-  
+
   // Quick seat — join the best available table
   const handleQuickSeat = useCallback(() => {
     const open = tables.filter(t => t.playerCount < t.maxSeats && t.playerCount > 0);
@@ -450,7 +448,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
       onJoinTable?.(tables[0].tableId);
     }
   }, [tables, onJoinTable]);
-  
+
   const handleCreateTable = useCallback(async (config) => {
     setShowCreate(false);
     try {
@@ -467,7 +465,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
       console.error('Create table failed:', err);
     }
   }, [userId, onJoinTable]);
-  
+
   return (
     <div
       style={{
@@ -496,7 +494,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
               {tables.length} tables • {totalPlayers} players online
             </p>
           </div>
-          
+
           <div style={{ display: 'flex', gap: 8 }}>
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -515,7 +513,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
             >
               ⚡ Quick Seat
             </motion.button>
-            
+
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
@@ -535,7 +533,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
             </motion.button>
           </div>
         </div>
-        
+
         {/* Filters */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
@@ -554,7 +552,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
               width: 180,
             }}
           />
-          
+
           {['all', ...Object.keys(FILTER_VARIANTS)].map(v => (
             <Chip
               key={v}
@@ -563,7 +561,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
               onClick={() => setFilterVariant(v)}
             />
           ))}
-          
+
           <Chip
             label="Open Seats"
             active={filterOpenOnly}
@@ -571,7 +569,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
           />
         </div>
       </div>
-      
+
       {/* Table grid */}
       <div style={{
         display: 'grid',
@@ -595,7 +593,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
           ))}
         </AnimatePresence>
       </div>
-      
+
       {/* Empty state */}
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: T.textMuted }}>
@@ -608,7 +606,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
           </div>
         </div>
       )}
-      
+
       {/* Create dialog */}
       <AnimatePresence>
         {showCreate && (

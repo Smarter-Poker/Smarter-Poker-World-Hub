@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, RefreshCw, Lock } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const ROLES = [
@@ -76,7 +76,6 @@ export default function CommanderStaffPage() {
     if (venueId) fetchStaff();
   }, [venueId, fetchStaff]);
 
-  // Add staff
   async function handleAddStaff(staffData) {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -90,13 +89,15 @@ export default function CommanderStaffPage() {
       if (data.success) {
         fetchStaff();
         setShowAddModal(false);
+        return { success: true };
       }
+      return { success: false, error: data.error?.message || 'Failed to add staff' };
     } catch (err) {
       console.error('Failed to add staff:', err);
+      return { success: false, error: 'Network error' };
     }
   }
 
-  // Update staff
   async function handleUpdateStaff(staffId, staffData) {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -110,9 +111,12 @@ export default function CommanderStaffPage() {
       if (data.success) {
         fetchStaff();
         setEditingStaff(null);
+        return { success: true };
       }
+      return { success: false, error: data.error?.message || 'Failed to update staff' };
     } catch (err) {
       console.error('Failed to update staff:', err);
+      return { success: false, error: 'Network error' };
     }
   }
 
@@ -270,15 +274,16 @@ export default function CommanderStaffPage() {
       {(showAddModal || editingStaff) && (
         <StaffModal
           staff={editingStaff}
+          existingStaff={staffList}
           onClose={() => {
             setShowAddModal(false);
             setEditingStaff(null);
           }}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (editingStaff) {
-              handleUpdateStaff(editingStaff.id, data);
+              return handleUpdateStaff(editingStaff.id, data);
             } else {
-              handleAddStaff(data);
+              return handleAddStaff(data);
             }
           }}
         />
@@ -289,7 +294,7 @@ export default function CommanderStaffPage() {
   );
 }
 
-function StaffModal({ staff, onClose, onSubmit }) {
+function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
   const [displayName, setDisplayName] = useState(staff?.display_name || staff?.profiles?.display_name || '');
   const [email, setEmail] = useState(staff?.email || '');
   const [phone, setPhone] = useState(staff?.phone || '');
@@ -301,6 +306,19 @@ function StaffModal({ staff, onClose, onSubmit }) {
 
   const isEditing = !!staff;
 
+  // Generate a random 4-digit PIN not already in use at this venue
+  const generatePin = () => {
+    const usedPins = new Set(existingStaff.filter(s => s.id !== staff?.id && s.pin_code).map(s => s.pin_code));
+    let pin;
+    let attempts = 0;
+    do {
+      pin = String(Math.floor(1000 + Math.random() * 9000));
+      attempts++;
+    } while (usedPins.has(pin) && attempts < 100);
+    setPinCode(pin);
+    setError('');
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -308,12 +326,12 @@ function StaffModal({ staff, onClose, onSubmit }) {
       setError('Employee name is required');
       return;
     }
-    if (pinCode && pinCode.length !== 4) {
-      setError('PIN must be exactly 4 digits');
+    if (!pinCode || pinCode.length !== 4) {
+      setError('A 4-digit PIN is required for all employees');
       return;
     }
     setSubmitting(true);
-    await onSubmit({
+    const result = await onSubmit({
       display_name: displayName.trim(),
       email: email.trim() || null,
       phone: phone.trim() || null,
@@ -321,6 +339,9 @@ function StaffModal({ staff, onClose, onSubmit }) {
       pin_code: pinCode || null,
       is_active: isActive
     });
+    if (result && !result.success) {
+      setError(result.error || 'Failed to save');
+    }
     setSubmitting(false);
   }
 
@@ -415,17 +436,28 @@ function StaffModal({ staff, onClose, onSubmit }) {
             <label className="block text-sm font-medium text-white mb-1">
               4-Digit PIN <span className="text-[#EF4444]">*</span>
             </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={pinCode}
-              onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="e.g. 1234"
-              maxLength={4}
-              className="w-full h-12 px-3 cmd-input text-center text-2xl tracking-[0.5em] font-mono"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={pinCode}
+                onChange={(e) => { setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
+                placeholder="e.g. 1234"
+                maxLength={4}
+                required
+                className="flex-1 h-12 px-3 cmd-input text-center text-2xl tracking-[0.5em] font-mono"
+              />
+              <button
+                type="button"
+                onClick={generatePin}
+                className="h-12 px-3 rounded-lg bg-[#3A3B3C] hover:bg-[#4A4B4C] text-[#1877F2] flex items-center gap-1.5 text-xs font-medium whitespace-nowrap"
+                title="Generate unique random PIN"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Random
+              </button>
+            </div>
             <p className="text-xs text-[#F59E0B] mt-1">🔒 Required for all financial transactions, terminal login, and comp authorization</p>
-            {pinCode && pinCode.length < 4 && (
+            {pinCode && pinCode.length > 0 && pinCode.length < 4 && (
               <p className="text-xs text-[#EF4444] mt-0.5">PIN must be exactly 4 digits</p>
             )}
           </div>

@@ -58,13 +58,15 @@ export default async function handler(req, res) {
       });
     }
 
-    const { data: staff, error } = await supabase
+    const { data: staffRows, error } = await supabase
       .from('commander_staff')
-      .select('id, venue_id, role, is_active, display_name, profiles ( id, display_name, avatar_url )')
+      .select('id, venue_id, role, is_active, display_name, permissions, profiles ( id, display_name, avatar_url )')
       .eq('venue_id', venue_id)
       .eq('pin_code', pin_code)
       .eq('is_active', true)
-      .single();
+      .limit(1);
+
+    const staff = staffRows?.[0] || null;
 
     if (error || !staff) {
       const e = attempts.get(key);

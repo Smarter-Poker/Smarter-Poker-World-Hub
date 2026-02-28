@@ -153,12 +153,13 @@ export default function TDPlayers() {
   const handleEliminate = (player) => confirmEliminate(player);
   const handleRebuy = (player) => confirmRebuy(player);
 
-  const handleAddon = async (player) => {
-    setActionLoading('addon');
-    await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
-    setSelectedPlayer(null);
-    setActionLoading(null);
-    fetchFloor();
+  const handleAddon = (player) => {
+    setConfirmAction({
+      type: 'addon', player,
+      message: `Add-on for ${player.player_name}?`,
+      detail: floor?.tournament?.addon_cost ? `Cost: $${floor.tournament.addon_cost} — Chips: ${formatChips(floor.tournament.addon_chips || floor.tournament.starting_chips)}` : 'Process add-on for this player.',
+      color: '#8B5CF6',
+    });
   };
 
   const handleUpdateChips = async () => {
@@ -423,7 +424,9 @@ export default function TDPlayers() {
                 <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${confirmAction.color}20` }}>
                   {confirmAction.type === 'eliminate'
                     ? <UserX className="w-7 h-7" style={{ color: confirmAction.color }} />
-                    : <RotateCcw className="w-7 h-7" style={{ color: confirmAction.color }} />
+                    : confirmAction.type === 'addon'
+                      ? <Coins className="w-7 h-7" style={{ color: confirmAction.color }} />
+                      : <RotateCcw className="w-7 h-7" style={{ color: confirmAction.color }} />
                   }
                 </div>
                 <h3 className="text-lg font-bold text-white">{confirmAction.message}</h3>

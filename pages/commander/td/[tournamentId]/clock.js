@@ -332,6 +332,46 @@ export default function TDClock() {
           </div>
         </div>
 
+        {/* Blind Structure Table */}
+        {!isFullscreen && tournament.blind_structure?.length > 0 && (
+          <div className="w-full max-w-lg mx-auto px-4 mb-6">
+            <h3 className="text-sm font-bold text-[#B0B3B8] uppercase tracking-wider mb-2">Blind Structure</h3>
+            <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] overflow-hidden max-h-48 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-[#3A3B3C] sticky top-0">
+                  <tr>
+                    <th className="py-2 px-3 text-left text-[#B0B3B8] text-xs font-medium">Lvl</th>
+                    <th className="py-2 px-3 text-left text-[#B0B3B8] text-xs font-medium">Blinds</th>
+                    <th className="py-2 px-3 text-right text-[#B0B3B8] text-xs font-medium">Ante</th>
+                    <th className="py-2 px-3 text-right text-[#B0B3B8] text-xs font-medium">Min</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tournament.blind_structure.map((level, i) => {
+                    const isCurrent = i === (clock.current_level || 0);
+                    const isPast = i < (clock.current_level || 0);
+                    return (
+                      <tr key={i} className={`border-t border-[#3A3B3C]/50 ${isCurrent ? 'bg-[#1877F2]/10' : ''} ${isPast ? 'opacity-40' : ''}`}>
+                        <td className={`py-2 px-3 font-medium ${isCurrent ? 'text-[#1877F2]' : 'text-white'}`}>
+                          {level.is_break ? '☕' : i + 1}
+                        </td>
+                        <td className={`py-2 px-3 ${isCurrent ? 'text-[#1877F2] font-bold' : 'text-white'}`}>
+                          {level.is_break ? 'Break' : `${(level.small_blind || level.sb || 0).toLocaleString()} / ${(level.big_blind || level.bb || 0).toLocaleString()}`}
+                        </td>
+                        <td className="py-2 px-3 text-right text-[#B0B3B8]">
+                          {level.ante ? level.ante.toLocaleString() : '–'}
+                        </td>
+                        <td className="py-2 px-3 text-right text-[#B0B3B8]">
+                          {level.duration || '–'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         {/* Message Modal */}
         {showMessage && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center p-4"

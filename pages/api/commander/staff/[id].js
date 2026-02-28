@@ -82,7 +82,26 @@ async function handlePatch(req, res, id) {
     const updates = {};
     if (role !== undefined) updates.role = role;
     if (permissions !== undefined) updates.permissions = permissions;
-    if (pin_code !== undefined) updates.pin_code = pin_code;
+    if (pin_code !== undefined) {
+      // Check for duplicate PIN at this venue (exclude self)
+      if (pin_code) {
+        const { data: existingPin } = await supabase
+          .from('commander_staff')
+          .select('id')
+          .eq('venue_id', target.venue_id)
+          .eq('pin_code', pin_code)
+          .eq('is_active', true)
+          .neq('id', id)
+          .limit(1);
+        if (existingPin?.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'DUPLICATE_PIN', message: 'This PIN is already in use by another employee at this venue' }
+          });
+        }
+      }
+      updates.pin_code = pin_code;
+    }
     if (is_active !== undefined) updates.is_active = is_active;
 
     if (Object.keys(updates).length === 0) {

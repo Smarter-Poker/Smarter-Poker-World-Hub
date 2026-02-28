@@ -42,6 +42,13 @@ export default function Cashier() {
   const [pinError, setPinError] = useState('');
   const [pinVerifying, setPinVerifying] = useState(false);
   const [verifiedStaff, setVerifiedStaff] = useState(null);
+  const [pinCacheExpiry, setPinCacheExpiry] = useState(0); // timestamp when cache expires
+
+  // Check if PIN is still cached
+  const isPinCached = () => verifiedStaff && Date.now() < pinCacheExpiry;
+
+  // Clear PIN cache
+  const lockPin = () => { setVerifiedStaff(null); setPinCacheExpiry(0); };
 
   useEffect(() => {
     try {
@@ -87,10 +94,15 @@ export default function Cashier() {
     setShowForm(true);
   };
 
-  // Step 1: validate amount, then show PIN prompt
+  // Step 1: validate amount, then show PIN prompt (or use cache)
   const requestPin = () => {
     if (!amount || parseFloat(amount) <= 0) {
       setMessage({ type: 'error', text: 'Enter A Valid Amount' });
+      return;
+    }
+    // If PIN is cached, skip keypad and go straight to submit
+    if (isPinCached()) {
+      verifyPinAndSubmit(null, verifiedStaff);
       return;
     }
     setPinDigits('');
@@ -98,29 +110,42 @@ export default function Cashier() {
     setPinStep(true);
   };
 
-  // Step 2: verify PIN then submit
-  const verifyPinAndSubmit = async (digits) => {
-    if (digits.length !== 4) return;
-    setPinVerifying(true);
-    setPinError('');
-    try {
-      const pinRes = await fetch('/api/commander/staff/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venue_id: venueId, pin_code: digits })
-      });
-      const pinJson = await pinRes.json();
-      if (!pinJson.success || !pinJson.data?.valid) {
-        setPinError(pinJson.error?.message || 'Invalid PIN');
+  // Step 2: verify PIN then submit (or use cached staff)
+  const verifyPinAndSubmit = async (digits, cachedStaff = null) => {
+    let staff = cachedStaff;
+    if (!staff) {
+      if (!digits || digits.length !== 4) return;
+      setPinVerifying(true);
+      setPinError('');
+      try {
+        const pinRes = await fetch('/api/commander/staff/verify-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ venue_id: venueId, pin_code: digits })
+        });
+        const pinJson = await pinRes.json();
+        if (!pinJson.success || !pinJson.data?.valid) {
+          setPinError(pinJson.error?.message || 'Invalid PIN');
+          setPinDigits('');
+          setPinVerifying(false);
+          return;
+        }
+        staff = pinJson.data.staff;
+      } catch (err) {
+        setPinError('Network Error');
         setPinDigits('');
         setPinVerifying(false);
         return;
       }
-      setVerifiedStaff(pinJson.data.staff);
-      setPinStep(false);
+    }
+    // Cache PIN for 5 minutes
+    setVerifiedStaff(staff);
+    setPinCacheExpiry(Date.now() + 5 * 60 * 1000);
+    setPinStep(false);
 
-      // Now submit the actual transaction
-      setActionLoading(true);
+    // Now submit the actual transaction
+    setActionLoading(true);
+    try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/cashier', {
         method: 'POST',
@@ -133,13 +158,14 @@ export default function Cashier() {
           seat_number: selectedPlayer?.seat_number,
           type: txType,
           amount: parseFloat(amount),
-          payment_method: payMethod
+          payment_method: payMethod,
+          pin_verified_by: staff?.id || null
         })
       });
       const json = await res.json();
       if (json.success) {
         const label = txType === 'buy_in' ? 'Buy-in' : txType === 'add_on' ? 'Add-on' : 'Cash-out';
-        setMessage({ type: 'success', text: `${label} $${parseFloat(amount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-up'} (${pinJson.data.staff?.display_name || 'Staff'})` });
+        setMessage({ type: 'success', text: `${label} $${parseFloat(amount).toLocaleString()} — ${selectedPlayer?.player_name || 'Walk-up'} (${staff?.display_name || 'Staff'})` });
         setShowForm(false);
         // Auto-print receipt
         printReceipt({
@@ -150,7 +176,7 @@ export default function Cashier() {
           amount: parseFloat(amount),
           payment_method: payMethod,
           created_at: new Date().toISOString(),
-          staff_name: pinJson.data.staff?.display_name || 'Staff'
+          staff_name: staff?.display_name || 'Staff'
         });
         fetchData();
       } else {
@@ -472,18 +498,33 @@ export default function Cashier() {
                   )}
                 </div>
               ) : (
-                <button onClick={requestPin} disabled={actionLoading || !amount}
-                  className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
-                    ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
-                    : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
-                    } disabled:opacity-50`}>
-                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                    <><Lock className="w-4 h-4 mr-1" />
-                      {txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}</>
+                <>
+                  {isPinCached() && (
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-[#31A24C]/10 mb-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-[#31A24C]" />
+                        <span className="text-xs text-[#31A24C] font-medium">Verified as {verifiedStaff?.display_name}</span>
+                      </div>
+                      <button onClick={lockPin} className="text-xs text-[#B0B3B8] hover:text-white flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> Lock
+                      </button>
+                    </div>
                   )}
-                  {txType === 'cash_out' ? 'Process Cash Out' : txType === 'add_on' ? 'Process Add-On' : 'Process Buy-In'}
-                  {amount ? ` — $${parseFloat(amount).toLocaleString()}` : ''}
-                </button>
+                  <button onClick={requestPin} disabled={actionLoading || !amount}
+                    className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
+                      ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
+                      : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
+                      } disabled:opacity-50`}>
+                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                      isPinCached()
+                        ? <>{txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}</>
+                        : <><Lock className="w-4 h-4 mr-1" />
+                          {txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}</>
+                    )}
+                    {txType === 'cash_out' ? 'Process Cash Out' : txType === 'add_on' ? 'Process Add-On' : 'Process Buy-In'}
+                    {amount ? ` — $${parseFloat(amount).toLocaleString()}` : ''}
+                  </button>
+                </>
               )}
             </div>
           </div>
