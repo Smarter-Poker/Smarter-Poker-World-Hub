@@ -187,7 +187,9 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
-            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me')
+            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.divider(),
+            createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [
             { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
@@ -646,7 +648,8 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
             createMenuItem.divider(),
-            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false }
+            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
+            createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -666,7 +669,8 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Lives', '/hub/lives'),
             createMenuItem.navigation('Video Library', '/hub/video-library'),
             createMenuItem.divider(),
-            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false }
+            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
+            createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
