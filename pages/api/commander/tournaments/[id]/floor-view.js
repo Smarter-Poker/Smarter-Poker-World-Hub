@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         .filter(e => e.table_number === tn)
         .map(e => ({
           entry_id: e.id,
-          player_name: e.player_name,
+          player_name: avatarMap[e.player_id]?.display_name || e.player_name,
           seat_number: e.seat_number,
           current_chips: e.current_chips,
           rebuy_count: e.rebuy_count || 0,
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
             : 0,
           player_stacks: activeEntries
             .filter(e => e.current_chips > 0)
-            .map(e => ({ name: e.player_name, chips: e.current_chips }))
+            .map(e => ({ name: avatarMap[e.player_id]?.display_name || e.player_name, chips: e.current_chips }))
         },
         alerts: {
           imbalanced,
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
         // Full entries list for Players tab — includes ALL statuses
         entries: entries.map(e => ({
           entry_id: e.id,
-          player_name: e.player_name,
+          player_name: avatarMap[e.player_id]?.display_name || e.player_name,
           user_id: e.user_id,
           status: e.status,
           table_number: e.table_number,
@@ -276,7 +276,7 @@ export default async function handler(req, res) {
           .slice(0, 20)
           .map(e => ({
             entry_id: e.id,
-            player_name: e.player_name,
+            player_name: avatarMap[e.player_id]?.display_name || e.player_name,
             finish_position: e.finish_position,
             eliminated_at: e.eliminated_at,
             payout_amount: e.payout_amount

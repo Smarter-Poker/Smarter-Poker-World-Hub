@@ -24,6 +24,11 @@ import {
   Copy, Award
 } from 'lucide-react';
 
+// Prefer real name from profiles over manually typed player_name (alias)
+function getName(e) {
+  return e?.profiles?.display_name || e?.player_name || 'Unknown';
+}
+
 function formatTime(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
   const m = Math.floor(seconds / 60);
@@ -284,7 +289,7 @@ export default function TournamentPublic() {
           <div className="mx-4 mt-4 bg-gradient-to-r from-[#F59E0B]/20 to-[#F59E0B]/5 border border-[#F59E0B]/30 rounded-2xl p-5 text-center">
             <Trophy className="w-10 h-10 text-[#F59E0B] mx-auto mb-2" />
             <p className="text-xs text-[#F59E0B] uppercase tracking-wider mb-1">Champion</p>
-            <p className="text-2xl font-bold text-white">{finalStandings[0]?.player_name || 'TBD'}</p>
+            <p className="text-2xl font-bold text-white">{getName(finalStandings[0]) || 'TBD'}</p>
             {finalStandings[0]?.payout_amount > 0 && (
               <p className="text-lg font-semibold text-[#31A24C] mt-1">${finalStandings[0].payout_amount.toLocaleString()}</p>
             )}
@@ -471,7 +476,7 @@ export default function TournamentPublic() {
                       <span className="w-8 text-center text-sm font-bold text-[#B0B3B8]">
                         {i + 1}.
                       </span>
-                      <span className="flex-1 text-sm font-medium text-white">{e.player_name}</span>
+                      <span className="flex-1 text-sm font-medium text-white">{getName(e)}</span>
                       <span className="text-sm font-bold text-[#31A24C] tabular-nums">{(e.current_chips || 0).toLocaleString()}</span>
                     </div>
                   ))}
