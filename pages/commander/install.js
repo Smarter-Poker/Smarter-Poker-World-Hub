@@ -4,7 +4,6 @@
  * Step-by-step guide to add Commander to tablet/phone home screen
  */
 import { useState } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Smartphone, Tablet, Monitor, ArrowRight, CheckCircle2, Download } from 'lucide-react';
@@ -115,9 +114,6 @@ export default function CommanderInstall() {
 
     return (
         <CommanderLayout title="Install on Tablet" backHref="/commander/downloads">
-            <Head>
-                <link rel="manifest" href="/commander-manifest.json" />
-            </Head>
             <SEOHead
                 title="Commander — Install on iPad & Android"
                 description="Install Club Commander on your iPad or Android tablet for a full-screen poker room management experience."

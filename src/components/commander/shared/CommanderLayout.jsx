@@ -157,12 +157,6 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         {title && <title>{title} | Club Commander</title>}
-        {/* Commander-specific PWA — overrides the global Smarter.Poker manifest */}
-        <link rel="manifest" href="/commander-manifest.json" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/commander-apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icons/commander-icon-192.png" />
-        <meta name="apple-mobile-web-app-title" content="Club Commander" />
-        <meta name="application-name" content="Club Commander" />
       </Head>
 
       <style jsx global>{`
