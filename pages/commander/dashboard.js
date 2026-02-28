@@ -467,10 +467,10 @@ export default function CommanderDashboard() {
           border-radius: 14px;
           cursor: pointer;
           transition: all 0.25s;
-          border: none;
+          border: 2px solid #3A3B3C;
           overflow: hidden;
-          background: transparent;
-          box-shadow: none;
+          background: #1A1A1A;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
         }
         .cmd-feature-btn img {
           width: 100%;
