@@ -75,11 +75,11 @@ class RealtimeSync {
    * @param {import('./TableManager').TableManager} config.tableManager - Table manager instance
    * @param {import('./ActionTimer').ActionTimer} config.actionTimer - Action timer instance
    */
-  constructor(config) {
-    this.supabase = config.supabase;
-    this.tableId = config.tableId;
-    this.table = config.tableManager;
-    this.timer = config.actionTimer;
+  constructor(config = {}) {
+    this.supabase = config.supabase || null;
+    this.tableId = config.tableId || null;
+    this.table = config.tableManager || null;
+    this.timer = config.actionTimer || null;
     
     this.channelName = `table:${this.tableId}`;
     this.channel = null;
@@ -95,6 +95,14 @@ class RealtimeSync {
    * Initialize the realtime channel and wire up event handlers.
    */
   async initialize() {
+    // Skip channel creation if no Supabase client (memory-only mode)
+    if (!this.supabase) {
+      console.log(`[RealtimeSync] No Supabase client — running without realtime for table ${this.tableId}`);
+      this._wireTableEvents();
+      this._wireTimerEvents();
+      return;
+    }
+
     // Create Supabase Realtime channel
     this.channel = this.supabase.channel(this.channelName, {
       config: {
