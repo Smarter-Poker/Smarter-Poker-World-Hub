@@ -61,7 +61,8 @@ export default function TableAssignments() {
         setTables(json.data.tables || []);
         setTournaments(json.data.tournaments || []);
       } else {
-        setError(json.error || 'Failed to load tables');
+        const errMsg = typeof json.error === 'object' ? json.error.message : (json.error || 'Failed to load tables');
+        setError(errMsg);
       }
     } catch (err) {
       console.error(err);
@@ -110,7 +111,8 @@ export default function TableAssignments() {
         setSelectedTable(null);
         await fetchData();
       } else {
-        setError(json.error || 'Failed to save assignment');
+        const errMsg = typeof json.error === 'object' ? json.error.message : (json.error || 'Failed to save assignment');
+        setError(errMsg);
       }
     } catch (err) {
       console.error(err);

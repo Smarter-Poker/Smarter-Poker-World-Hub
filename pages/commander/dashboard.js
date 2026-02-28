@@ -523,6 +523,22 @@ export default function CommanderDashboard() {
                 >
                   <img src={card.image} alt={card.title} />
                   <div className="cmd-card-overlay" />
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    padding: '20px 16px 14px',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+                    zIndex: 2,
+                  }}>
+                    <div style={{
+                      color: card.glow, fontSize: 18, fontWeight: 800,
+                      textTransform: 'uppercase', letterSpacing: 1.5,
+                      textShadow: `0 0 20px ${card.glow}60, 0 2px 4px rgba(0,0,0,0.8)`,
+                    }}>{card.title}</div>
+                    <div style={{
+                      color: '#94A3B8', fontSize: 11, marginTop: 2,
+                      fontWeight: 500, letterSpacing: 0.5,
+                    }}>{card.subtitle}</div>
+                  </div>
                 </div>
               ))}
             </div>
