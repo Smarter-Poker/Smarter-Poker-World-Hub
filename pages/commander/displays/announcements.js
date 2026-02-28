@@ -63,7 +63,7 @@ export default function AnnouncementsDisplay() {
   const wakeLockRef = useRef(null);
 
   // ─── Management state ───
-  const [showPanel, setShowPanel] = useState(false);
+  const [showPanel, setShowPanel] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [saving, setSaving] = useState(false);
