@@ -295,7 +295,6 @@ export default function DealerTablet() {
   const bustOutPlayer = async (player) => {
     setBustingOut(player);
     try {
-      const token = getToken();
       // Use the tournament eliminate API
       const res = await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/eliminate`, {
         method: 'POST',
