@@ -293,8 +293,8 @@ export default function TournamentPublic() {
                 <div className="mt-1 space-y-1">
                   {chipEntries.map((e, i) => (
                     <div key={e.id || i} className="flex items-center gap-3 px-4 py-2 bg-[#242526] border border-[#3A3B3C] rounded-lg">
-                      <span className="w-8 text-center text-sm font-bold">
-                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="text-[#B0B3B8]">{i + 1}</span>}
+                      <span className="w-8 text-center text-sm font-bold text-[#B0B3B8]">
+                        {i + 1}.
                       </span>
                       <span className="flex-1 text-sm font-medium text-white">{e.player_name}</span>
                       <span className="text-sm font-bold text-[#31A24C] tabular-nums">{(e.current_chips || 0).toLocaleString()}</span>

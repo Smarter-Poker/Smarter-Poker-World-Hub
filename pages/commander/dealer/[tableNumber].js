@@ -64,6 +64,7 @@ export default function DealerTablet() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const animFrameRef = useRef(null);
+  const longPressRef = useRef(null);
   const [addTimePlayer, setAddTimePlayer] = useState(null);
   const [addTimeMinutes, setAddTimeMinutes] = useState('60');
   const [addingTime, setAddingTime] = useState(false);
@@ -474,8 +475,13 @@ export default function DealerTablet() {
                       }
                     </button>
                   ) : (
-                    <button onClick={() => tournamentMode ? setTournamentActionPlayer(player) : setAddTimePlayer(player)}
-                      className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${tournamentMode
+                    <button
+                      onTouchStart={() => { if (tournamentMode) longPressRef.current = setTimeout(() => { longPressRef.current = 'fired'; setTournamentActionPlayer(player); }, 500); }}
+                      onTouchEnd={() => { if (tournamentMode) { if (longPressRef.current !== 'fired') clearTimeout(longPressRef.current); longPressRef.current = null; } else { setAddTimePlayer(player); } }}
+                      onMouseDown={() => { if (tournamentMode) longPressRef.current = setTimeout(() => { longPressRef.current = 'fired'; setTournamentActionPlayer(player); }, 500); }}
+                      onMouseUp={() => { if (tournamentMode) { if (longPressRef.current !== 'fired') clearTimeout(longPressRef.current); longPressRef.current = null; } else { setAddTimePlayer(player); } }}
+                      onContextMenu={e => e.preventDefault()}
+                      className={`w-14 h-14 rounded-full flex items-center justify-center border-2 select-none ${tournamentMode
                         ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40 active:bg-[#EF4444]/30'
                         : isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn'
                           : isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn'
@@ -829,18 +835,11 @@ export default function DealerTablet() {
                 inputMode="numeric"
                 value={chipEntryValue}
                 onChange={e => setChipEntryValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && chipEntryValue) updatePlayerChips(); }}
                 placeholder="Enter chip count"
                 autoFocus
                 className="w-full px-4 py-4 bg-[#18191A] border-2 border-[#3A3B3C] rounded-xl text-2xl font-mono font-bold text-white text-center focus:border-[#1877F2] focus:outline-none"
               />
-              <div className="grid grid-cols-4 gap-2">
-                {[5000, 10000, 25000, 50000].map(v => (
-                  <button key={v} onClick={() => setChipEntryValue(String(v))}
-                    className={`py-3 rounded-xl text-sm font-medium ${chipEntryValue === String(v) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
-                    {v >= 1000 ? `${v / 1000}K` : v}
-                  </button>
-                ))}
-              </div>
               <div className="flex gap-3">
                 <button onClick={() => { setChipEntryPlayer(null); setChipEntryValue(''); }}
                   className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium active:bg-[#4A4B4C]">Cancel</button>

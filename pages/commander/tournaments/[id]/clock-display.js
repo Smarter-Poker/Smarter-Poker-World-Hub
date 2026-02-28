@@ -558,8 +558,8 @@ export default function ClockDisplay() {
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, opacity: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>Chip Leaders</div>
                   {chipLeaders.map((p, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, marginBottom: 2 }}>
-                      <span style={{ color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : '#CD7F32', fontSize: 18 }}>
-                        {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                      <span style={{ color: '#fff', fontSize: 16, minWidth: 18, textAlign: 'center', opacity: 0.7 }}>
+                        {i + 1}.
                       </span>
                       <span style={{ flex: 1, textAlign: 'left' }}>{p.name || `Player ${i + 1}`}</span>
                       <span style={{ fontVariantNumeric: 'tabular-nums', color: '#31A24C' }}>{formatChipCount(p.chips)}</span>
@@ -735,9 +735,16 @@ export default function ClockDisplay() {
           </div>
         )}
 
-        {/* Branding */}
-        <div style={{ position: 'absolute', bottom: 4, right: 12, opacity: 0.15, fontSize: 10, color: '#fff' }}>
-          Powered by Smarter.Poker
+        {/* Branding + QR Code */}
+        <div style={{ position: 'absolute', bottom: 4, right: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {id && (
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/commander/tournaments/${id}/public`)}&bgcolor=000000&color=ffffff`}
+              alt="Scan for chip counts"
+              style={{ width: 48, height: 48, opacity: 0.4, borderRadius: 4 }}
+            />
+          )}
+          <span style={{ opacity: 0.15, fontSize: 10, color: '#fff' }}>Powered by Smarter.Poker</span>
         </div>
       </div>
     </>
