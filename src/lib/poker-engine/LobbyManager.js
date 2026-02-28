@@ -154,32 +154,19 @@ class LobbyManager {
       const clubId = config.clubId;
       if (clubId && data.playerId) {
         const cashout = data.cashout || 0;
-        // Use setTimeout to let seat.js handle it first if this was a manual stand_up.
-        // If seat.js already cleared the lock, unlockChips is a safe no-op (delete on missing row).
+        // Delay to let seat.js handle it first if this was a manual stand_up.
         setTimeout(async () => {
           try {
-            const sb = require('./ChipBridge');
-            // Check if lock still exists (seat.js would have deleted it)
-            const supabase = require('@supabase/supabase-js').createClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL,
-              process.env.SUPABASE_SERVICE_ROLE_KEY
-            );
-            const { data: lock } = await supabase
-              .from('table_chip_locks')
-              .select('id')
-              .eq('table_id', config.tableId)
-              .eq('user_id', data.playerId)
-              .single();
-
-            if (lock) {
+            const hasLock = await ChipBridge.checkLockExists(config.tableId, data.playerId);
+            if (hasLock) {
               // Lock still exists — this was an engine auto-removal
               console.log(`[LobbyManager] Auto-unlock: player ${data.playerId} removed from table with ${cashout} chips`);
-              await sb.unlockChips(clubId, data.playerId, config.tableId, cashout);
+              await ChipBridge.unlockChips(clubId, data.playerId, config.tableId, cashout);
             }
           } catch (e) {
             console.error('[LobbyManager] Auto-unlock error:', e);
           }
-        }, 500); // Small delay to let seat.js finish first
+        }, 500);
       }
     });
     

@@ -264,6 +264,22 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CHECK LOCK EXISTS — Used by LobbyManager auto-unlock
+// Returns true if a table_chip_locks record exists for this player/table
+// ═══════════════════════════════════════════════════════════════
+
+async function checkLockExists(tableId, userId) {
+  const sb = getSupabase();
+  const { data } = await sb
+    .from('table_chip_locks')
+    .select('id')
+    .eq('table_id', tableId)
+    .eq('user_id', userId)
+    .single();
+  return !!data;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // GET CLUB CHIP BALANCE — For buy-in validation
 // ═══════════════════════════════════════════════════════════════
 
@@ -285,4 +301,5 @@ module.exports = {
   rebuyChips,
   recordRake,
   getChipBalance,
+  checkLockExists,
 };
