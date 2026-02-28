@@ -19,6 +19,18 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
+const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
+const { createClient } = require('@supabase/supabase-js');
+
+// Supabase admin for anti-cheat agent lookups
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// Singleton anti-cheat instance (persists across requests via globalThis)
+if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
+const antiCheat = globalThis.__ANTI_CHEAT__;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -59,13 +71,32 @@ export default async function handler(req, res) {
       // SIT DOWN — Lock chips from club balance, then seat in engine
       // ═══════════════════════════════════════════════════════════
       case 'sit_down': {
-        const { seatIndex, buyIn, displayName, avatarUrl } = params;
+        const { seatIndex, buyIn, displayName, avatarUrl, fingerprint, latitude, longitude } = params;
         if (seatIndex === undefined || seatIndex === null) {
           return res.status(400).json({ error: 'seatIndex required' });
         }
         if (!buyIn) return res.status(400).json({ error: 'buyIn required' });
 
         const buyInAmount = parseFloat(buyIn);
+
+        // Anti-cheat pre-join check (IP, device, GPS, downline, emulator, rate limit)
+        const acCheck = await antiCheat.preJoinCheck(playerId, tableId, req, {
+          fingerprint,
+          clubSettings: entry.config?.clubSettings,
+          location: (latitude != null && longitude != null) ? { lat: latitude, lng: longitude } : null,
+          userAgent: req.headers?.['user-agent'],
+        });
+        if (!acCheck.allowed) {
+          // Log the blocked seating attempt
+          antiCheat.logSeatBlocked(playerId, tableId, clubId, acCheck.reason);
+          return res.status(403).json({ success: false, error: acCheck.reason });
+        }
+        // Log warnings to console for admin visibility
+        if (acCheck.warnings?.length) {
+          console.warn(`[AntiCheat] Warnings for ${playerId} at ${tableId}:`, acCheck.warnings);
+          // Persist flags from this check
+          antiCheat.persistFlags(playerId, clubId, tableId);
+        }
 
         // If club table: lock chips BEFORE engine sit_down
         if (clubId) {
@@ -87,6 +118,20 @@ export default async function handler(req, res) {
         if (!result.success && clubId) {
           await ChipBridge.unlockChips(clubId, playerId, tableId, buyInAmount);
         }
+
+        // Record session for anti-cheat persistence (non-blocking)
+        if (result.success) {
+          const ip = req.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
+                     req.headers?.['x-real-ip'] || req.socket?.remoteAddress || null;
+          antiCheat.recordSession(tableId, playerId, parseInt(seatIndex), {
+            ip,
+            lat: latitude || null,
+            lng: longitude || null,
+            fingerprint: fingerprint || null,
+            userAgent: req.headers?.['user-agent'] || null,
+            clubId,
+          }).catch(err => console.error('[AntiCheat] Session record failed:', err.message));
+        }
         break;
       }
 
@@ -95,6 +140,13 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════
       case 'stand_up': {
         result = await controller.standUp(tableId, playerId);
+
+        // Clean up anti-cheat tracking for this player/table
+        if (result.success) {
+          antiCheat.removePlayerFromTable(playerId, tableId);
+          antiCheat.closeSession(tableId, playerId)
+            .catch(err => console.error('[AntiCheat] Session close failed:', err.message));
+        }
 
         // If club table: return chips to club balance
         if (result.success && clubId) {

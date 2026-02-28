@@ -8,6 +8,16 @@
  */
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
+const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
+const { createClient } = require('@supabase/supabase-js');
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+// Reuse singleton anti-cheat (with supabase for DB persistence)
+if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
+const antiCheat = globalThis.__ANTI_CHEAT__;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -80,10 +90,37 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Invalid action: ${action.type}` });
     }
 
+    // Rate limit check
+    const rateCheck = antiCheat.validateAction(playerId, tableId);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ success: false, error: rateCheck.reason });
+    }
+
     const result = await controller.processAction(tableId, playerId, action);
 
     if (!result.success) {
       return res.status(400).json(result);
+    }
+
+    // Record action for collusion pattern analysis (non-blocking)
+    antiCheat.recordAction(playerId, tableId, {
+      type: action.type,
+      amount: action.amount || 0,
+      targetPlayerId: null, // filled by collusion analysis at hand end
+    });
+
+    // Periodic bot pattern check (every ~20 actions per player)
+    const timings = antiCheat._actionTimings?.get(playerId);
+    if (timings && timings.length > 0 && timings.length % 20 === 0) {
+      const botCheck = antiCheat.analyzeBotPattern(playerId);
+      if (botCheck.suspicious) {
+        console.warn(`[AntiCheat] Bot suspect: ${playerId} score=${botCheck.score} reason=${botCheck.reason}`);
+        // Persist bot flags
+        const entry = controller._tables?.get(tableId);
+        const clubId = entry?.config?.clubId;
+        antiCheat.persistFlags(playerId, clubId, tableId)
+          .catch(err => console.error('[AntiCheat] Persist bot flags error:', err.message));
+      }
     }
 
     return res.json({ success: true });

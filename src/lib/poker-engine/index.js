@@ -27,6 +27,7 @@ const { GameController, getController, getControllerSync } = require('./GameCont
 
 // Phase 10
 const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS, DEFAULT_BLIND_STRUCTURE, SNG_BLIND_STRUCTURE, SPIN_BLIND_STRUCTURE, SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES } = require('./TournamentController');
+const { TournamentBridge } = require('./TournamentBridge');
 const { ClubLedger, TRANSACTION_TYPE } = require('./ClubLedger');
 
 module.exports = {
@@ -54,5 +55,6 @@ module.exports = {
   TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS,
   DEFAULT_BLIND_STRUCTURE, SNG_BLIND_STRUCTURE, SPIN_BLIND_STRUCTURE,
   SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES,
+  TournamentBridge,
   ClubLedger, TRANSACTION_TYPE,
 };

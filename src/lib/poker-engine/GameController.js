@@ -31,6 +31,8 @@ const { LobbyManager } = require('./LobbyManager');
 const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('./TableManager');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
+const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS } = require('./TournamentController');
+const { TournamentBridge } = require('./TournamentBridge');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -118,6 +120,7 @@ class GameController {
     this._snapshotInterval = null;
     this._staleCheckInterval = null;
     this._bootTime = Date.now();
+    this._tournaments = new Map(); // tournamentId → { controller, bridge }
     this._stats = {
       handsDealt: 0,
       peakPlayers: 0,
@@ -338,6 +341,18 @@ class GameController {
         runItTwice: row.settings?.run_it_twice || false,
         runItThrice: row.settings?.run_it_thrice || false,
         insurance: row.settings?.insurance || false,
+        // Anti-cheat settings from Club Arena table configuration
+        clubSettings: {
+          ip_restriction: row.settings?.ip_restriction !== false, // default ON
+          gps_restriction: row.settings?.gps_restriction !== false, // default ON
+          restrict_device: row.settings?.restrict_device !== false, // default ON
+          emulator_restriction: row.settings?.emulator_restriction || false,
+          same_agent_downline_limit: row.settings?.same_agent_downline_limit || 0,
+          restrict_observers: row.settings?.restrict_observers || false,
+          buy_in_authorization: row.settings?.buy_in_authorization || false,
+          photo_rotation_verification: row.settings?.photo_rotation_verification || false,
+          gps_min_distance_meters: row.settings?.gps_min_distance_meters || 100,
+        },
       };
 
       await this.lobby.createTable(config);
@@ -639,6 +654,123 @@ class GameController {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // TOURNAMENTS
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Create a tournament.
+   */
+  async createTournament(config) {
+    await this._ensureInit();
+    const {
+      name, clubId, unionId, type = 'mtt', variant = 'nlh',
+      buyIn = 100, startingChips = 10000, maxPlayers = 100,
+      maxTableSize = 9, blindStructure, lateRegLevels = 6,
+      rebuyEnabled = false, rebuyLevels = 4, maxRebuys = 1,
+      rebuyCost, rebuyChips, addonEnabled = false, addonCost, addonChips,
+      guaranteedPrize = 0, payoutStructure, sngSize = 6,
+      levelDuration = 15, actionTime = 30, timeBankSeconds = 30,
+      autoStartDelay = 3000, breakSchedule,
+    } = config;
+
+    let tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    if (this.supabase) {
+      try {
+        const { data, error } = await this.supabase
+          .from('club_tournaments')
+          .insert({
+            name, club_id: clubId, union_id: unionId, type, variant,
+            buy_in: buyIn, starting_chips: startingChips, max_players: maxPlayers,
+            status: 'registering',
+            settings: { maxTableSize, blindStructure, lateRegLevels, rebuyEnabled, rebuyLevels, maxRebuys,
+              rebuyCost, rebuyChips, addonEnabled, addonCost, addonChips,
+              guaranteedPrize, payoutStructure, sngSize, levelDuration, actionTime, timeBankSeconds, autoStartDelay, breakSchedule },
+          })
+          .select('id').single();
+        if (!error && data) tournamentId = data.id;
+      } catch (err) { console.error('[GameController] Tournament DB insert:', err.message); }
+    }
+
+    const controller = new TournamentController({
+      tournamentId, name, clubId, unionId,
+      tournamentType: TOURNAMENT_TYPE[type?.toUpperCase()] || TOURNAMENT_TYPE.MTT,
+      variant: VARIANT_MAP[variant] || 'holdem',
+      buyIn, startingChips, maxPlayers, maxTableSize, blindStructure, lateRegLevels,
+      allowsRebuys: rebuyEnabled, rebuyEndLevel: rebuyLevels, maxRebuys,
+      rebuyCost: rebuyCost || buyIn, rebuyChips: rebuyChips || startingChips,
+      allowsAddon: addonEnabled, addonCost, addonChips: addonChips || startingChips,
+      guaranteedPrize, payoutStructure, sngSize,
+      levelDuration: (levelDuration || 15) * 60000, actionTime: (actionTime || 30) * 1000,
+      timeBankSeconds: (timeBankSeconds || 30) * 1000, autoStartDelay: autoStartDelay || 3000,
+      breakSchedule,
+    });
+
+    const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
+    bridge.wire();
+    this._tournaments.set(tournamentId, { controller, bridge });
+    console.log(`[GameController] Tournament created: ${tournamentId} (${name})`);
+    return { success: true, tournamentId };
+  }
+
+  async registerForTournament(tournamentId, playerId, playerName) {
+    await this._ensureInit();
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found' };
+    return entry.controller.registerPlayer(playerId, playerName);
+  }
+
+  async unregisterFromTournament(tournamentId, playerId) {
+    await this._ensureInit();
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found' };
+    return entry.controller.unregisterPlayer(playerId);
+  }
+
+  async startTournament(tournamentId) {
+    await this._ensureInit();
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found' };
+    return entry.controller.startTournament();
+  }
+
+  async tournamentRebuy(tournamentId, playerId) {
+    await this._ensureInit();
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found' };
+    return entry.controller.rebuy(playerId);
+  }
+
+  async tournamentAddon(tournamentId, playerId) {
+    await this._ensureInit();
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found' };
+    return entry.controller.addon(playerId);
+  }
+
+  getTournamentState(tournamentId) {
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return null;
+    return entry.bridge.getState();
+  }
+
+  listTournaments() {
+    return [...this._tournaments.entries()].map(([id, entry]) => ({
+      tournamentId: id, name: entry.controller.name, status: entry.controller.status,
+      type: entry.controller.tournamentType, players: entry.controller.entries?.size || 0,
+      tables: entry.controller.tables.size, currentLevel: entry.controller.currentLevel,
+    }));
+  }
+
+  async cancelTournament(tournamentId) {
+    await this._ensureInit();
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found' };
+    entry.bridge.destroy();
+    this._tournaments.delete(tournamentId);
+    return { success: true };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // STATS
   // ═══════════════════════════════════════════════════════════════════
 
@@ -686,6 +818,8 @@ class GameController {
         return;
       }
 
+      const { StateSerializer } = require('./StateSerializer');
+
       for (const row of tables) {
         try {
           const config = {
@@ -706,7 +840,19 @@ class GameController {
 
           await this.lobby.createTable(config);
 
-          // Recover seated players from snapshot if available
+          // Try mid-hand recovery from live_state first
+          if (row.live_state && row.live_state.savedAt) {
+            const entry = this.lobby.tables.get(row.id);
+            if (entry) {
+              const recovered = StateSerializer.restore(entry.table, row.live_state);
+              if (recovered) {
+                console.log(`[GameController] Mid-hand recovered: ${row.id}`);
+                continue; // Skip snapshot recovery
+              }
+            }
+          }
+
+          // Fallback: recover seated players from snapshot
           if (row.settings?.snapshot?.seats) {
             const snapshot = row.settings.snapshot;
             for (const seatData of snapshot.seats) {

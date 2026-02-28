@@ -15,6 +15,7 @@ const { ActionTimer } = require('./ActionTimer');
 const { RealtimeSync } = require('./RealtimeSync');
 const ChipBridge = require('./ChipBridge');
 const { HandHistoryRecorder } = require('./HandHistory');
+const { StateSerializer } = require('./StateSerializer');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
 
@@ -129,7 +130,13 @@ class LobbyManager {
     });
     
     // Wire hand history recording to table events
-    this._wireHandHistory(table, history);
+    // Note: sync is created AFTER this call, so we pass a getter
+    const getSyncForTable = () => this.tables.get(config.tableId)?.sync;
+    this._wireHandHistory(table, history, config, getSyncForTable);
+    
+    // Wire state serializer for crash recovery
+    const serializer = new StateSerializer(config.tableId, this.supabase);
+    serializer.wire(table);
     
     // Create RealtimeSync
     const sync = new RealtimeSync({
@@ -188,6 +195,7 @@ class LobbyManager {
         minBuyIn: config.minBuyIn,
         maxBuyIn: config.maxBuyIn,
         maxSeats: config.maxSeats || 9,
+        clubSettings: config.clubSettings || {},
         createdAt: new Date().toISOString(),
       },
     });
@@ -321,9 +329,17 @@ class LobbyManager {
 
   /**
    * Wire hand history recording to table events.
-   * @private
+   * @param {TableManager} table
+   * @param {HandHistoryRecorder} history
+   * @param {Object} config - Table config (clubId, bigBlind, variant, tableId)
+   * @param {Function} getSync - Getter for RealtimeSync (deferred because sync is created after wiring)
    */
-  _wireHandHistory(table, history) {
+  _wireHandHistory(table, history, config, getSync) {
+    // Helper to safely get sync channel
+    const getSyncChannel = () => {
+      const sync = typeof getSync === 'function' ? getSync() : getSync;
+      return sync?.channel || null;
+    };
     table.on('hand_start', (data) => {
       history.beginHand(data);
     });
@@ -436,8 +452,9 @@ class LobbyManager {
           console.log(`[BBJ] ✅ Jackpot paid! Total: ${awardResult.total_payout}`);
 
           // Broadcast BBJ win to the table channel
-          if (sync?.channel) {
-            sync.channel.send({
+          const _bbjCh = getSyncChannel();
+          if (_bbjCh) {
+            _bbjCh.send({
               type: 'broadcast',
               event: 'bbj_won',
               payload: {
@@ -461,63 +478,40 @@ class LobbyManager {
 
     // ── INSURANCE EVENTS ────────────────────────────────────────
     table.on('insurance_offered', (data) => {
-      if (sync?.channel) {
-        // Send insurance offer only to the leading player
-        sync.channel.send({
-          type: 'broadcast',
-          event: `insurance_offered:${data.leaderId}`,
-          payload: data,
-        });
-        // Also broadcast general event for spectators
-        sync.channel.send({
-          type: 'broadcast',
-          event: 'insurance_offered',
-          payload: data,
-        });
+      const ch = getSyncChannel();
+      if (ch) {
+        ch.send({ type: 'broadcast', event: `insurance_offered:${data.leaderId}`, payload: data });
+        ch.send({ type: 'broadcast', event: 'insurance_offered', payload: data });
       }
     });
 
     table.on('insurance_purchased', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'insurance_purchased', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_purchased', payload: data });
     });
 
     table.on('insurance_declined', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'insurance_declined', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_declined', payload: data });
     });
 
     table.on('insurance_payout', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'insurance_payout', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_payout', payload: data });
     });
 
     table.on('insurance_expired', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'insurance_expired', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_expired', payload: data });
     });
 
     // ── RUN IT MULTIPLE (2x / 3x boards) ────────────────────────
     table.on('run_it_multiple', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'run_it_multiple', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_multiple', payload: data });
     });
 
     table.on('run_it_twice', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'run_it_twice', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_twice', payload: data });
     });
 
     table.on('run_it_thrice', (data) => {
-      if (sync?.channel) {
-        sync.channel.send({ type: 'broadcast', event: 'run_it_thrice', payload: data });
-      }
+      getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_thrice', payload: data });
     });
     
     table.on('hand_complete', async (data) => {
