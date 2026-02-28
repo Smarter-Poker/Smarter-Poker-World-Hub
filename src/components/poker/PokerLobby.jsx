@@ -90,7 +90,7 @@ function TableCard({ table, onJoin }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
           <div style={{ color: T.textPrimary, fontSize: 15, fontWeight: 700 }}>
-            {table.name || table.tableId}
+            {table.tableName || table.name || table.tableId}
           </div>
           <div style={{
             color: variantColor, fontSize: 11, fontWeight: 600, marginTop: 2,
@@ -381,7 +381,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
     if (filterOpenOnly) list = list.filter(t => t.playerCount < t.maxSeats);
     if (search) {
       const s = search.toLowerCase();
-      list = list.filter(t => (t.name || t.tableId).toLowerCase().includes(s));
+      list = list.filter(t => (t.tableName || t.name || t.tableId).toLowerCase().includes(s));
     }
     return list;
   }, [tables, filterVariant, filterOpenOnly, search]);
@@ -398,12 +398,22 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
     }
   }, [tables, onJoinTable]);
   
-  const handleCreateTable = useCallback((config) => {
-    // Send to server via API or Supabase function
+  const handleCreateTable = useCallback(async (config) => {
     setShowCreate(false);
-    // In production: POST /api/poker/create-table or supabase.functions.invoke('create-table', { body: config })
-    console.log('Create table:', config);
-  }, []);
+    try {
+      const res = await fetch('/api/poker/create-live-table', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...config, userId }),
+      });
+      const data = await res.json();
+      if (data.tableId) {
+        onJoinTable?.(data.tableId);
+      }
+    } catch (err) {
+      console.error('Create table failed:', err);
+    }
+  }, [userId, onJoinTable]);
   
   return (
     <div
