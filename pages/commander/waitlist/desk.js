@@ -167,7 +167,7 @@ export default function WaitlistDesk() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000);
+    const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(interval);
   }, [fetchData]);
 

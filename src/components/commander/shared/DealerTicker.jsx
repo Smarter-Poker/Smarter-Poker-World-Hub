@@ -19,6 +19,7 @@
  *   showBorder: boolean — show top border (default: true)
  */
 import { useState, useEffect, useCallback } from 'react';
+import { useCommanderSync } from '../../../lib/commander/useCommanderSync';
 
 const PUSH_THRESHOLD = 30; // minutes
 
@@ -89,9 +90,15 @@ export default function DealerTicker({
 
     useEffect(() => {
         fetchAllData();
-        const poll = setInterval(fetchAllData, 15000);
+        const poll = setInterval(fetchAllData, 60000); // fallback — real-time sync handles instant updates
         return () => clearInterval(poll);
     }, [fetchAllData]);
+
+    // Real-time sync — instant updates for dealer rotations, promotions, announcements
+    const [venueId] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || null; } catch { return null; }
+    });
+    useCommanderSync(venueId, fetchAllData, { entities: ['dealers', 'settings'] });
 
     // Build ticker message parts
     const parts = [];

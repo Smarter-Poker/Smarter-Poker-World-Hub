@@ -41,6 +41,19 @@ const ANNOUNCEMENT_TYPES = [
   { value: 'maintenance', label: 'Maintenance' },
 ];
 
+const ANNOUNCEMENT_TEMPLATES = [
+  { emoji: '🍻', name: 'Happy Hour', title: 'Happy Hour', message: 'Happy hour is now in effect! Enjoy drink specials at the bar.', priority: 'high', type: 'promotion' },
+  { emoji: '🃏', name: 'High Hand Bonus', title: 'High Hand Bonus', message: 'High hand bonus is active! Check the board for the current qualifying hand and prize amount.', priority: 'high', type: 'promotion' },
+  { emoji: '🔄', name: 'Dealer Push', title: 'Dealer Push', message: 'Dealer push in progress. Please have your dealer locks and tips ready.', priority: 'normal', type: 'update' },
+  { emoji: '🏆', name: 'Tournament Starting', title: 'Tournament Starting Soon', message: 'Tournament registration is closing soon! Head to the front desk to register.', priority: 'urgent', type: 'event' },
+  { emoji: '🍔', name: 'Food Service', title: 'Food Service Available', message: 'Kitchen is now open! Menus available at your table. Flag down your dealer to place an order.', priority: 'normal', type: 'general' },
+  { emoji: '🎰', name: 'New Game Opening', title: 'New Game Opening', message: 'A new game is opening! Check with the floor for available seats.', priority: 'high', type: 'announcement' },
+  { emoji: '⏰', name: 'Last Call', title: 'Last Call', message: 'Last call for drinks and food. Kitchen closes in 30 minutes.', priority: 'normal', type: 'general' },
+  { emoji: '🔧', name: 'Table Maintenance', title: 'Table Maintenance', message: 'A table is temporarily closed for maintenance. Players will be moved to available seats.', priority: 'low', type: 'maintenance' },
+  { emoji: '🎁', name: 'Special Promotion', title: 'Special Promotion', message: 'Special promotion running today! Ask the front desk for details.', priority: 'high', type: 'promotion' },
+  { emoji: '📋', name: 'Waitlist Update', title: 'Waitlist Update', message: 'Seats are opening up! If you are on the waitlist, please check in with the front desk.', priority: 'normal', type: 'announcement' },
+];
+
 export default function NotificationCenter() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notifications');
@@ -57,8 +70,9 @@ export default function NotificationCenter() {
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [formData, setFormData] = useState({
-    title: '', message: '', priority: 'normal', type: 'general', expires_at: '',
+    title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '',
   });
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
   const getStaffSession = () => localStorage.getItem('commander_staff') || '';
@@ -128,7 +142,7 @@ export default function NotificationCenter() {
     try {
       const venueId = getVenueId();
       if (!venueId) return;
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, {
+      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();
@@ -142,8 +156,9 @@ export default function NotificationCenter() {
   }, [activeTab, fetchAnnouncements]);
 
   const openCreateForm = () => {
-    setFormData({ title: '', message: '', priority: 'normal', type: 'general', expires_at: '' });
+    setFormData({ title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });
     setEditingAnnouncement(null);
+    setShowTemplates(false);
     setShowCreateForm(true);
   };
 
@@ -154,9 +169,22 @@ export default function NotificationCenter() {
       priority: a.priority || 'normal',
       type: a.type || a.message_type || 'general',
       expires_at: a.expires_at ? new Date(a.expires_at).toISOString().slice(0, 16) : '',
+      starts_at: a.starts_at ? new Date(a.starts_at).toISOString().slice(0, 16) : '',
     });
     setEditingAnnouncement(a);
+    setShowTemplates(false);
     setShowCreateForm(true);
+  };
+
+  const applyTemplate = (tpl) => {
+    setFormData(prev => ({
+      ...prev,
+      title: tpl.title,
+      message: tpl.message,
+      priority: tpl.priority,
+      type: tpl.type,
+    }));
+    setShowTemplates(false);
   };
 
   const saveAnnouncement = async () => {
@@ -176,6 +204,7 @@ export default function NotificationCenter() {
             priority: formData.priority,
             type: formData.type,
             expires_at: formData.expires_at || null,
+            starts_at: formData.starts_at || null,
           })
         });
         const json = await res.json();
@@ -192,6 +221,7 @@ export default function NotificationCenter() {
             priority: formData.priority,
             type: formData.type,
             expires_at: formData.expires_at || null,
+            starts_at: formData.starts_at || null,
           })
         });
         const json = await res.json();
@@ -413,8 +443,20 @@ export default function NotificationCenter() {
                         }}>
                           {a.type || a.message_type || 'general'}
                         </span>
+                        {/* Scheduled badge */}
+                        {a.starts_at && new Date(a.starts_at) > new Date() && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, color: '#A855F7', textTransform: 'uppercase',
+                            letterSpacing: 0.5, padding: '2px 8px', borderRadius: 6, background: 'rgba(168,85,247,0.15)',
+                          }}>
+                            ⏱ Scheduled
+                          </span>
+                        )}
                         <span style={{ fontSize: 10, color: '#6A6B6D', marginLeft: 'auto' }}>
-                          {formatTime(a.created_at)}
+                          {a.starts_at && new Date(a.starts_at) > new Date()
+                            ? `Starts ${new Date(a.starts_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                            : formatTime(a.created_at)
+                          }
                         </span>
                       </div>
 
@@ -488,6 +530,49 @@ export default function NotificationCenter() {
 
               {/* Modal Body */}
               <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                {/* Template Picker */}
+                {!editingAnnouncement && (
+                  <div>
+                    <button
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 10,
+                        background: showTemplates ? '#1877F2' : '#3A3B3C',
+                        border: 'none', color: showTemplates ? '#fff' : '#B0B3B8',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        transition: 'all 0.2s',
+                      }}>
+                      📄 {showTemplates ? 'Hide Templates' : 'Use a Template'}
+                      <ChevronDown size={14} style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                    {showTemplates && (
+                      <div style={{
+                        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                        marginTop: 10, maxHeight: 200, overflow: 'auto',
+                        padding: 2,
+                      }}>
+                        {ANNOUNCEMENT_TEMPLATES.map((tpl, i) => (
+                          <button key={i} onClick={() => applyTemplate(tpl)}
+                            style={{
+                              padding: '10px 12px', borderRadius: 10,
+                              background: '#18191A', border: '1px solid #3A3B3C',
+                              color: '#E4E6EB', cursor: 'pointer', textAlign: 'left',
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              fontSize: 12, fontWeight: 500,
+                              transition: 'border-color 0.2s',
+                            }}
+                            onMouseEnter={e => e.target.style.borderColor = '#1877F2'}
+                            onMouseLeave={e => e.target.style.borderColor = '#3A3B3C'}>
+                            <span style={{ fontSize: 18 }}>{tpl.emoji}</span>
+                            <span>{tpl.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Title */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -561,24 +646,44 @@ export default function NotificationCenter() {
                   </div>
                 </div>
 
-                {/* Expires At */}
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Expires At (Optional)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.expires_at}
-                    onChange={e => setFormData(p => ({ ...p, expires_at: e.target.value }))}
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
-                      background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <p style={{ fontSize: 11, color: '#6A6B6D', marginTop: 4 }}>
-                    Leave blank for no expiration
-                  </p>
+                {/* Scheduling: Starts At + Expires At side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Starts At (Optional)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.starts_at}
+                      onChange={e => setFormData(p => ({ ...p, starts_at: e.target.value }))}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
+                        background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <p style={{ fontSize: 11, color: '#6A6B6D', marginTop: 4 }}>
+                      Leave blank to publish immediately
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Expires At (Optional)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.expires_at}
+                      onChange={e => setFormData(p => ({ ...p, expires_at: e.target.value }))}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
+                        background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <p style={{ fontSize: 11, color: '#6A6B6D', marginTop: 4 }}>
+                      Leave blank for no expiration
+                    </p>
+                  </div>
                 </div>
 
                 {/* Preview */}
@@ -618,7 +723,7 @@ export default function NotificationCenter() {
                     opacity: savingAnnouncement ? 0.6 : 1,
                   }}>
                   {savingAnnouncement ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
-                  {editingAnnouncement ? 'Save Changes' : 'Publish'}
+                  {editingAnnouncement ? 'Save Changes' : (formData.starts_at ? '⏱ Schedule' : 'Publish')}
                 </button>
               </div>
             </div>

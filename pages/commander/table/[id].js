@@ -10,9 +10,10 @@
  * - Dealer position indicator
  * - Quick actions: seat from waitlist, remove player, add time
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import {
   Clock, Users, Plus, Minus, Loader2,
   RefreshCw, Timer, UserPlus, ChevronDown
@@ -45,9 +46,15 @@ export default function TableSeating() {
   useEffect(() => {
     if (!id) return;
     fetchData();
-    const poll = setInterval(fetchData, 5000);
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(poll);
   }, [id]);
+
+  // Real-time sync — instant cross-tab + cross-device updates
+  const venueId = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } })()
+    : '';
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
 
   const fetchData = async () => {
     try {
@@ -78,6 +85,7 @@ export default function TableSeating() {
         body: JSON.stringify({ reason: 'removed' })
       });
       fetchData();
+      broadcastChange('tables');
     } catch (err) { console.error(err); }
   };
 

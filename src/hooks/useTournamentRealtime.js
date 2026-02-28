@@ -22,24 +22,11 @@
  * Falls back gracefully if Realtime connection fails — polling still works as backup.
  */
 import { useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+import { supabase } from '../lib/supabase';
 
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT = 5;
 const DEBOUNCE_MS = 300;
-
-let _client = null;
-function getClient() {
-    if (!_client && supabaseUrl && supabaseAnonKey) {
-        _client = createClient(supabaseUrl, supabaseAnonKey, {
-            realtime: { params: { eventsPerSecond: 10 } }
-        });
-    }
-    return _client;
-}
 
 export default function useTournamentRealtime(tournamentId, onUpdate) {
     // ── Ref for callback — prevents stale closure and channel churn ──
@@ -55,7 +42,7 @@ export default function useTournamentRealtime(tournamentId, onUpdate) {
     useEffect(() => {
         if (!tournamentId || typeof window === 'undefined') return;
 
-        const client = getClient();
+        const client = supabase;
         if (!client) {
             console.warn('[Realtime] Supabase client not available — using polling only');
             return;

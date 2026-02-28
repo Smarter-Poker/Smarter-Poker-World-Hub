@@ -153,7 +153,7 @@ export default function FloorMap() {
   useEffect(() => { if (venueId) fetchAll(); }, [venueId, fetchAll]);
   useEffect(() => {
     if (!venueId) return;
-    const poll = setInterval(fetchAll, 20000);
+    const poll = setInterval(fetchAll, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [venueId, fetchAll]);

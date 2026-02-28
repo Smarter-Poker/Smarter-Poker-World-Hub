@@ -3,13 +3,17 @@
  * /commander/displays/announcements
  * Full-screen display for TV via wireless HDMI transmitter
  * Shows: current announcements, scrolling messages, room status
- * Auto-refreshes every 5 seconds, auto-rotates pages, auto-dismisses expired
+ * Supabase Realtime — instant sync, auto-rotates pages, auto-dismisses expired
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function AnnouncementsDisplay() {
   const [announcements, setAnnouncements] = useState([]);
@@ -17,6 +21,7 @@ export default function AnnouncementsDisplay() {
   const [now, setNow] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(0);
   const wakeLockRef = useRef(null);
+  const realtimeChannelRef = useRef(null);
 
   // Get venue_id from localStorage
   const [venueId] = useState(() => {
@@ -64,10 +69,33 @@ export default function AnnouncementsDisplay() {
 
   useEffect(() => {
     fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+    const poll = setInterval(fetchData, 60000); // fallback only — realtime handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
+
+  // ─── Supabase Realtime — instant announcement updates ───
+  useEffect(() => {
+    if (!venueId || !supabaseUrl || !supabaseAnonKey) return;
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const channel = supabase.channel(`announcements-display-${venueId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'commander_club_announcements',
+        filter: `venue_id=eq.${venueId}`,
+      }, () => {
+        // Any INSERT, UPDATE, or DELETE → re-fetch
+        fetchData();
+      })
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [venueId, fetchData]);
 
   // Commander Data Bus — instant sync when settings change
   useCommanderSync(venueId, fetchData, { entities: ['settings'] });
@@ -224,9 +252,6 @@ export default function AnnouncementsDisplay() {
                         }}>
                           {a.message || a.content}
                         </p>
-                        {a.details && (
-                          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', margin: '8px 0 0' }}>{a.details}</p>
-                        )}
                       </div>
                       <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', flexShrink: 0, whiteSpace: 'nowrap' }}>
                         {a.created_at ? new Date(a.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}

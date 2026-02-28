@@ -1,9 +1,10 @@
 /**
  * Announcements API — Full CRUD
- * GET    /api/commander/announcements?venue_id=X  — List active announcements
- * POST   /api/commander/announcements             — Create announcement
- * PATCH  /api/commander/announcements              — Update announcement
- * DELETE /api/commander/announcements?id=X         — Delete announcement
+ * GET    /api/commander/announcements?venue_id=X                      — List active (non-expired, started) announcements
+ * GET    /api/commander/announcements?venue_id=X&include_scheduled=1  — Include future-scheduled (for management UI)
+ * POST   /api/commander/announcements                                 — Create announcement
+ * PATCH  /api/commander/announcements                                 — Update announcement
+ * DELETE /api/commander/announcements?id=X                            — Delete announcement
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff, verifyStaffSession } from '../../../src/lib/commander/auth';
@@ -34,10 +35,12 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // Filter expired
+      // Filter expired and not-yet-started
       const now = new Date();
+      const includeScheduled = req.query.include_scheduled === '1';
       const active = (data || []).filter(a => {
         if (a.expires_at && new Date(a.expires_at) < now) return false;
+        if (!includeScheduled && a.starts_at && new Date(a.starts_at) > now) return false;
         return true;
       });
 
@@ -54,7 +57,7 @@ export default async function handler(req, res) {
 
   // POST — Create announcement
   if (req.method === 'POST') {
-    const { venue_id: vid, title, message, type, priority, expires_at } = req.body;
+    const { venue_id: vid, title, message, type, priority, expires_at, starts_at } = req.body;
     const targetVenueId = vid || staff.venue_id;
     if (!targetVenueId || !message) {
       return res.status(400).json({ success: false, error: 'venue_id and message required' });
@@ -68,6 +71,7 @@ export default async function handler(req, res) {
         type: type || 'general',
         priority: priority || 'normal',
         expires_at: expires_at || null,
+        starts_at: starts_at || null,
       };
       // author_id references profiles(id) — only set if user_id is available
       // (PIN-based staff auth returns commander_staff.id, not profiles.id)
@@ -88,7 +92,7 @@ export default async function handler(req, res) {
 
   // PATCH — Update announcement
   if (req.method === 'PATCH') {
-    const { id, title, message, type, priority, expires_at } = req.body;
+    const { id, title, message, type, priority, expires_at, starts_at } = req.body;
     if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
     try {
@@ -98,6 +102,7 @@ export default async function handler(req, res) {
       if (type !== undefined) updates.type = type;
       if (priority !== undefined) updates.priority = priority;
       if (expires_at !== undefined) updates.expires_at = expires_at || null;
+      if (starts_at !== undefined) updates.starts_at = starts_at || null;
       updates.updated_at = new Date().toISOString();
 
       if (Object.keys(updates).length <= 1) {

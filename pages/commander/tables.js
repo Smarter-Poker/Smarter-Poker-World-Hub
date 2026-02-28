@@ -144,7 +144,7 @@ export default function CommanderTablesPage() {
   // Auto-refresh every 15s
   useEffect(() => {
     if (!venueId) return;
-    const interval = setInterval(fetchTables, 15000);
+    const interval = setInterval(fetchTables, 30000); // fallback — real-time sync handles instant updates
     return () => clearInterval(interval);
   }, [venueId, fetchTables]);
 

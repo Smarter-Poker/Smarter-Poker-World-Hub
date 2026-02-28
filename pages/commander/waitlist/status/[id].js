@@ -12,9 +12,10 @@
  * 
  * No login required - URL serves as auth token.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { supabase } from '../../../../src/lib/supabase';
 import { Clock, Users, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'lucide-react';
 
 export default function WaitlistStatus() {
@@ -25,14 +26,8 @@ export default function WaitlistStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const fetchStatus = useCallback(async () => {
     if (!id) return;
-    fetchStatus();
-    const poll = setInterval(fetchStatus, 5000);
-    return () => clearInterval(poll);
-  }, [id]);
-
-  const fetchStatus = async () => {
     try {
       const res = await fetch(`/api/commander/waitlist/${id}`);
       const json = await res.json();
@@ -58,7 +53,31 @@ export default function WaitlistStatus() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    fetchStatus();
+    const poll = setInterval(fetchStatus, 15000); // fallback — Supabase Realtime handles instant updates
+    return () => clearInterval(poll);
+  }, [id, fetchStatus]);
+
+  // Supabase Realtime — instant updates when waitlist changes
+  const channelRef = useRef(null);
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`waitlist-status-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist' }, () => fetchStatus())
+      .subscribe();
+    channelRef.current = channel;
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [id, fetchStatus]);
 
   if (loading) return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
@@ -86,10 +105,10 @@ export default function WaitlistStatus() {
   return (
     <>
       <SEOHead
-                title="Commander — Details"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Details"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-6">
 
@@ -147,8 +166,8 @@ export default function WaitlistStatus() {
               )}
 
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4 text-center">
-                <p className="text-xs text-[#B0B3B8]">Keep This Page Open For Live Updates</p>
-                <p className="text-xs text-[#B0B3B8] mt-1">Auto-Refreshing Every 5 Seconds</p>
+                <p className="text-xs text-[#B0B3B8]">Live Updates Active</p>
+                <p className="text-xs text-[#B0B3B8] mt-1">Position Updates Instantly</p>
               </div>
             </>
           )}
