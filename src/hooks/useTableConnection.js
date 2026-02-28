@@ -92,13 +92,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       displayName: info.displayName, avatarUrl: info.avatarUrl,
       fingerprint, latitude, longitude,
     });
-    if (!r.success) {
-      const msg = r.code === 'BUYIN_AUTH_REQUIRED' ? '🎫 Buy-in request submitted — waiting for admin approval'
-        : r.code === 'BUYIN_AUTH_PENDING' ? '⏳ Buy-in request already pending approval'
-        : r.error;
-      setError(msg);
-      setTimeout(() => setError(null), r.code?.startsWith('BUYIN_AUTH') ? 8000 : 4000);
-    }
+    if (!r.success) { setError(r.error); setTimeout(() => setError(null), 4000); }
     return r;
   }, [tableId, userId]);
 
@@ -263,7 +257,17 @@ export function useTableConnection({ supabase, tableId, userId }) {
         setConnected(true);
         await channel.track({ user_id: userId, online_at: new Date().toISOString() });
         heartbeatRef.current = setInterval(() => {
-          apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => { });
+          // Send GPS on every heartbeat — feeds the anti-cheat background
+          // monitor for continuous proximity scanning. Fully automated.
+          getGPSLocation(2000).then(gps => {
+            apiPost('connect', {
+              tableId, playerId: userId, type: 'heartbeat',
+              latitude: gps?.lat || null,
+              longitude: gps?.lng || null,
+            }).catch(() => {});
+          }).catch(() => {
+            apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
+          });
         }, HEARTBEAT_MS);
       }
     });

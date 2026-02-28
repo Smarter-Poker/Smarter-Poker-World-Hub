@@ -19,18 +19,13 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
-const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase admin for anti-cheat agent lookups
+// Supabase admin for buy-in auth and chip operations
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// Singleton anti-cheat instance (persists across requests via globalThis)
-if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
-const antiCheat = globalThis.__ANTI_CHEAT__;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -58,6 +53,7 @@ export default async function handler(req, res) {
     }
 
     const controller = await getController();
+    const antiCheat = controller.antiCheat; // Shared instance — same data as background monitor
 
     // Get table entry to check if this is a club table
     const entry = controller.lobby.tables.get(tableId);
@@ -78,75 +74,6 @@ export default async function handler(req, res) {
         if (!buyIn) return res.status(400).json({ error: 'buyIn required' });
 
         const buyInAmount = parseFloat(buyIn);
-
-        // ─── Buy-in Authorization ─────────────────────────────────────
-        // When enabled, player must have an approved request before sitting
-        const clubSettings = entry.config?.clubSettings || {};
-        if (clubSettings.buy_in_authorization && clubId) {
-          // Check if there's an approved buyin request for this player/table
-          const { data: approved } = await supabaseAdmin
-            .from('buyin_requests')
-            .select('id, approved_amount')
-            .eq('player_id', playerId)
-            .eq('table_id', tableId)
-            .eq('status', 'approved')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (!approved) {
-            // Check if already pending
-            const { data: pending } = await supabaseAdmin
-              .from('buyin_requests')
-              .select('id')
-              .eq('player_id', playerId)
-              .eq('table_id', tableId)
-              .eq('status', 'pending')
-              .limit(1)
-              .single();
-
-            if (pending) {
-              return res.status(202).json({
-                success: false,
-                code: 'BUYIN_AUTH_PENDING',
-                requestId: pending.id,
-                error: 'Your buy-in request is pending approval',
-              });
-            }
-
-            // Create new pending request
-            const { data: newReq, error: reqErr } = await supabaseAdmin
-              .from('buyin_requests')
-              .insert({
-                player_id: playerId,
-                table_id: tableId,
-                club_id: clubId,
-                seat_index: parseInt(seatIndex),
-                requested_amount: buyInAmount,
-                status: 'pending',
-              })
-              .select('id')
-              .single();
-
-            if (reqErr) {
-              console.error('[BuyinAuth] Request creation failed:', reqErr.message);
-              return res.status(500).json({ success: false, error: 'Failed to create buy-in request' });
-            }
-
-            return res.status(202).json({
-              success: false,
-              code: 'BUYIN_AUTH_REQUIRED',
-              requestId: newReq.id,
-              error: 'Buy-in requires authorization. Request submitted for approval.',
-            });
-          }
-
-          // Approved — consume the approval (mark as used)
-          await supabaseAdmin
-            .from('buyin_requests')
-            .update({ status: 'used', used_at: new Date().toISOString() })
-            .eq('id', approved.id);
-        }
 
         // Anti-cheat pre-join check (IP, device, GPS, downline, emulator, rate limit)
         const acCheck = await antiCheat.preJoinCheck(playerId, tableId, req, {
@@ -200,6 +127,11 @@ export default async function handler(req, res) {
             userAgent: req.headers?.['user-agent'] || null,
             clubId,
           }).catch(err => console.error('[AntiCheat] Session record failed:', err.message));
+
+          // Feed initial GPS to background monitor for continuous scanning
+          if (controller.antiCheatMonitor && latitude && longitude) {
+            controller.antiCheatMonitor.updatePlayerGPS(playerId, tableId, latitude, longitude);
+          }
         }
         break;
       }

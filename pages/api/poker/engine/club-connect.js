@@ -44,20 +44,21 @@ export default async function handler(req, res) {
     }
 
     // ─── Observer Restriction ───────────────────────────────────────
-    // If restrict_observers is enabled, only seated players and club
-    // staff (owner/admin/manager/agent) can view the table.
+    // ─── Observer Time Limit ─────────────────────────────────────
+    // When restrict_observers is enabled, non-seated non-staff users
+    // can observe for up to 30 minutes before being booted.
+    // Staff (owner/admin/manager/agent) and seated players bypass.
     if (userId) {
       const entry = controller.lobby?.getEntry?.(tableId);
       const settings = entry?.config?.clubSettings || {};
       const clubId = entry?.config?.clubId;
 
       if (settings.restrict_observers && clubId) {
-        // Check if user is currently seated at this table
         const seatedPlayers = entry?.state?.seats || [];
         const isSeated = seatedPlayers.some(s => s && s.playerId === userId);
 
         if (!isSeated) {
-          // Check if user is club staff (owner/admin/manager/agent)
+          // Check if user is club staff
           const { data: member } = await supabaseAdmin
             .from('club_members')
             .select('role')
@@ -69,20 +70,66 @@ export default async function handler(req, res) {
           const isStaff = member && staffRoles.includes(member.role);
 
           if (!isStaff) {
-            return res.status(403).json({
-              success: false,
-              error: 'Observers are not allowed at this table',
-              code: 'OBSERVERS_RESTRICTED',
-            });
+            const OBSERVER_LIMIT_MINUTES = 30;
+
+            // Check for existing observer session
+            const { data: existingSession } = await supabaseAdmin
+              .from('table_sessions')
+              .select('id, seated_at')
+              .eq('table_id', tableId)
+              .eq('player_id', userId)
+              .eq('is_active', true)
+              .eq('seat_index', -1) // -1 = observer (not seated)
+              .single();
+
+            if (existingSession) {
+              const elapsed = (Date.now() - new Date(existingSession.seated_at).getTime()) / 60000;
+              if (elapsed >= OBSERVER_LIMIT_MINUTES) {
+                // Time's up — close session and boot
+                await supabaseAdmin
+                  .from('table_sessions')
+                  .update({ is_active: false, left_at: new Date().toISOString(), kick_reason: 'observer_time_limit' })
+                  .eq('id', existingSession.id);
+
+                return res.status(403).json({
+                  success: false,
+                  error: 'Observer time limit reached (30 minutes)',
+                  code: 'OBSERVER_TIME_EXPIRED',
+                });
+              }
+              // Still within limit
+              result.observerTimeLimit = {
+                enabled: true,
+                limitMinutes: OBSERVER_LIMIT_MINUTES,
+                elapsedMinutes: Math.round(elapsed),
+                remainingMinutes: Math.round(OBSERVER_LIMIT_MINUTES - elapsed),
+                startedAt: existingSession.seated_at,
+              };
+            } else {
+              // First connect as observer — create observer session
+              await supabaseAdmin
+                .from('table_sessions')
+                .insert({
+                  table_id: tableId,
+                  player_id: userId,
+                  club_id: clubId,
+                  seat_index: -1, // -1 = observer
+                  is_active: true,
+                })
+                .catch(() => {}); // Ignore duplicates
+
+              result.observerTimeLimit = {
+                enabled: true,
+                limitMinutes: OBSERVER_LIMIT_MINUTES,
+                elapsedMinutes: 0,
+                remainingMinutes: OBSERVER_LIMIT_MINUTES,
+                startedAt: new Date().toISOString(),
+              };
+            }
           }
         }
       }
 
-      // ─── Buy-in Authorization flag ──────────────────────────────────
-      // Signal to the client that buy-in requires admin approval
-      if (settings.buy_in_authorization) {
-        result.buyInAuthRequired = true;
-      }
     }
 
     return res.json(result);

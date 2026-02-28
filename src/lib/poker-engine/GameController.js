@@ -33,6 +33,8 @@ const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
 const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS } = require('./TournamentController');
 const { TournamentBridge } = require('./TournamentBridge');
+const { AntiCheat } = require('./AntiCheat');
+const { AntiCheatMonitor } = require('./AntiCheatMonitor');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -116,6 +118,8 @@ class GameController {
   constructor() {
     this.supabase = null;
     this.lobby = null;
+    this.antiCheat = null;
+    this.antiCheatMonitor = null;
     this.initialized = false;
     this._snapshotInterval = null;
     this._staleCheckInterval = null;
@@ -163,6 +167,12 @@ class GameController {
     this._snapshotInterval = setInterval(() => this._saveAllSnapshots(), STATE_SNAPSHOT_INTERVAL_MS);
     this._staleCheckInterval = setInterval(() => this._cleanupStaleTables(), STALE_TABLE_CHECK_MS);
 
+    // ─── Anti-Cheat Background Monitor ──────────────────────────────
+    // Fully automated. No manual approvals. Scans every 30s, auto-boots.
+    this.antiCheat = new AntiCheat(this.supabase);
+    this.antiCheatMonitor = new AntiCheatMonitor(this, this.antiCheat, this.supabase);
+    this.antiCheatMonitor.start();
+
     this.initialized = true;
     console.log(`[GameController] Initialized (${this.lobby.tables.size} tables recovered)`);
   }
@@ -175,6 +185,10 @@ class GameController {
 
     if (this._snapshotInterval) clearInterval(this._snapshotInterval);
     if (this._staleCheckInterval) clearInterval(this._staleCheckInterval);
+
+    // Stop anti-cheat monitor
+    if (this.antiCheatMonitor) this.antiCheatMonitor.stop();
+    if (this.antiCheat) this.antiCheat.cleanup();
 
     // Save final snapshots
     await this._saveAllSnapshots();

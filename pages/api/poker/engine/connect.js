@@ -5,7 +5,7 @@
  * Body: { tableId, playerId, type, ... }
  * 
  * Types:
- *   heartbeat:   Keep connection alive
+ *   heartbeat:   Keep connection alive + update GPS location
  *   chat:        { message }
  *   disconnect:  Signal intentional disconnect
  */
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST or GET' });
 
-    const { tableId, playerId, type, message } = req.body;
+    const { tableId, playerId, type, message, latitude, longitude } = req.body;
 
     if (!tableId || !playerId || !type) {
       return res.status(400).json({ error: 'tableId, playerId, type required' });
@@ -41,6 +41,14 @@ export default async function handler(req, res) {
     switch (type) {
       case 'heartbeat':
         await controller.handleHeartbeat(tableId, playerId);
+
+        // ─── Feed GPS to anti-cheat monitor (non-blocking) ─────────
+        // Client sends lat/lng on every heartbeat. Monitor uses this
+        // for continuous proximity scanning — no human in the loop.
+        if (controller.antiCheatMonitor && latitude != null && longitude != null) {
+          controller.antiCheatMonitor.updatePlayerGPS(playerId, tableId, latitude, longitude);
+        }
+
         return res.json({ success: true });
 
       case 'chat':
