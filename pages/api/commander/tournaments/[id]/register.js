@@ -2,9 +2,16 @@
  * Tournament Registration API
  * POST /api/commander/tournaments/:id/register
  * DELETE /api/commander/tournaments/:id/register
+ * 
+ * Push Notifications: Fires registration confirmation to player
+ * Auto-Stories: Creates "Just registered" story
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
+import {
+  sendPushNotification,
+  isOneSignalConfigured
+} from '../../../../../src/lib/commander/pushNotifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -164,6 +171,34 @@ async function handleRegister(req, res, tournamentId) {
     // Note: current_entries is auto-updated by the update_tournament_stats trigger
 
     // XP system removed
+
+    // --- Push Notification: Registration Confirmation ---
+    if (player_id && isOneSignalConfigured()) {
+      const startTime = tournament.scheduled_start
+        ? new Date(tournament.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : 'TBD';
+      sendPushNotification({
+        externalUserIds: [player_id],
+        title: 'Registration Confirmed',
+        message: `You're registered for ${tournament.name}! Starts at ${startTime}.`,
+        url: `/hub/commander/tournament/${tournamentId}/my-status`,
+        data: { type: 'tournament_registered', tournament_id: tournamentId }
+      }).catch(err => console.warn('[register.js] Push failed:', err.message));
+    }
+
+    // --- Auto-Story: Registration ---
+    if (player_id) {
+      supabase
+        .from('social_stories')
+        .insert({
+          author_id: player_id,
+          content: `Just registered for ${tournament.name}! Let's go!`,
+          media_type: 'text',
+          background_color: 'linear-gradient(135deg, #1877F2 0%, #0A5DC2 100%)'
+        })
+        .then(() => { })
+        .catch(err => console.warn('[register.js] Auto-story failed:', err.message));
+    }
 
     return res.status(201).json({
       success: true,

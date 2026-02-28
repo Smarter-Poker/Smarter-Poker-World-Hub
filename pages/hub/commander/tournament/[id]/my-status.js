@@ -11,9 +11,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../../../src/lib/supabase';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
+import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
 import {
     Trophy, DollarSign, Users, Clock, Loader2,
-    CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash
+    CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash,
+    Bell, Share2, Camera
 } from 'lucide-react';
 
 export default function MyTournamentStatus() {
@@ -27,6 +29,11 @@ export default function MyTournamentStatus() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState(null);
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushRequesting, setPushRequesting] = useState(false);
+    const [sharingStory, setSharingStory] = useState(false);
+    const [storyShared, setStoryShared] = useState(false);
+    const [showStoryPreview, setShowStoryPreview] = useState(false);
 
     const fetchData = useCallback(async () => {
         if (!id) return;
@@ -81,6 +88,57 @@ export default function MyTournamentStatus() {
         const interval = setInterval(fetchData, 30000);
         return () => clearInterval(interval);
     }, [id, fetchData]);
+
+    // Check push notification status
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setPushEnabled(Notification.permission === 'granted');
+        }
+    }, []);
+
+    const handleEnablePush = async () => {
+        if (typeof window === 'undefined' || !('Notification' in window)) return;
+        setPushRequesting(true);
+        try {
+            const result = await Notification.requestPermission();
+            setPushEnabled(result === 'granted');
+        } catch (err) {
+            console.error('Push permission error:', err);
+        } finally {
+            setPushRequesting(false);
+        }
+    };
+
+    const handleShareStory = async (storyType = 'chip_update') => {
+        if (sharingStory) return;
+        setSharingStory(true);
+        setStoryShared(false);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const res = await fetch(`/api/commander/tournaments/${id}/story`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                body: JSON.stringify({
+                    story_type: storyType,
+                    chip_count: myEntry?.current_chips,
+                    finish_position: myEntry?.finish_position,
+                    payout_amount: myEntry?.payout_amount
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                setStoryShared(true);
+                setShowStoryPreview(false);
+                setTimeout(() => setStoryShared(false), 3000);
+            }
+        } catch (err) {
+            console.error('Share story error:', err);
+        } finally {
+            setSharingStory(false);
+        }
+    };
 
     const handleUpdateChips = async () => {
         if (!chipValue || saving) return;
@@ -160,6 +218,28 @@ export default function MyTournamentStatus() {
                         </div>
                     </div>
                 </div>
+
+                {/* Push Notification Opt-In */}
+                {!pushEnabled && (
+                    <div className="mx-4 mt-4 bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#1877F2]/10 flex items-center justify-center flex-shrink-0">
+                                <Bell className="w-5 h-5 text-[#1877F2]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-white">Enable Notifications</p>
+                                <p className="text-xs text-[#B0B3B8]">Get alerts for blinds, breaks, and seat assignments</p>
+                            </div>
+                            <button
+                                onClick={handleEnablePush}
+                                disabled={pushRequesting}
+                                className="px-4 py-2 bg-[#1877F2] text-white rounded-lg text-xs font-semibold active:bg-[#1565D8] disabled:opacity-50 flex-shrink-0"
+                            >
+                                {pushRequesting ? 'Enabling...' : 'Enable'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Clock Info (if live) */}
                 {isLive && clock && (
@@ -278,6 +358,55 @@ export default function MyTournamentStatus() {
                                 className="w-full py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl text-sm text-[#B0B3B8] font-medium flex items-center justify-center gap-2 active:bg-[#3A3B3C]">
                                 <Trophy className="w-4 h-4" /> View Public Tournament Page
                             </button>
+                        </div>
+
+                        {/* Share to Story */}
+                        <div className="mx-4 mt-3">
+                            {storyShared ? (
+                                <div className="w-full py-3 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-sm text-[#31A24C] font-medium flex items-center justify-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4" /> Story Shared!
+                                </div>
+                            ) : showStoryPreview ? (
+                                <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
+                                    <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                                        <Camera className="w-4 h-4 text-[#1877F2]" />
+                                        Share Tournament Story
+                                    </h3>
+                                    <div className="flex justify-center mb-3">
+                                        <TournamentStoryCard
+                                            storyType={isEliminated ? (myEntry.payout_amount > 0 ? 'itm' : 'custom') : 'chip_update'}
+                                            tournamentName={t.name}
+                                            chipCount={myEntry?.current_chips}
+                                            finishPosition={myEntry?.finish_position}
+                                            payoutAmount={myEntry?.payout_amount}
+                                            compact={true}
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setShowStoryPreview(false)}
+                                            className="flex-1 py-2.5 bg-[#3A3B3C] text-white rounded-xl text-sm font-medium active:bg-[#4E4F50]"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => handleShareStory(isEliminated ? (myEntry.payout_amount > 0 ? 'itm' : 'custom') : 'chip_update')}
+                                            disabled={sharingStory}
+                                            className="flex-1 py-2.5 bg-[#1877F2] text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:bg-[#1565D8] disabled:opacity-50"
+                                        >
+                                            {sharingStory ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                                            {sharingStory ? 'Sharing...' : 'Share'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setShowStoryPreview(true)}
+                                    className="w-full py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl text-sm text-[#B0B3B8] font-medium flex items-center justify-center gap-2 active:bg-[#3A3B3C]"
+                                >
+                                    <Share2 className="w-4 h-4" /> Share to Story
+                                </button>
+                            )}
                         </div>
                     </>
                 )}

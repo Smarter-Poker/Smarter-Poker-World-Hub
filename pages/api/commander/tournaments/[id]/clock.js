@@ -9,6 +9,10 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
+import {
+  sendPushNotification,
+  isOneSignalConfigured
+} from '../../../../../src/lib/commander/pushNotifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -199,6 +203,12 @@ async function handleClockAction(req, res, tournamentId) {
           pausedAt: null,
           pausedDuration: 0
         };
+
+        // --- Push Notification: Tournament Starting ---
+        fireTournamentStartNotification(tournamentId, tournament.name).catch(err =>
+          console.warn('[clock.js] Start notification failed:', err.message)
+        );
+
         break;
 
       case 'pause':
@@ -389,4 +399,26 @@ async function handleClockAction(req, res, tournamentId) {
       error: { code: 'SERVER_ERROR', message: error.message || 'Failed to perform clock action' }
     });
   }
+}
+
+// --- Push Notification: Mass notify all players that tournament is starting ---
+async function fireTournamentStartNotification(tournamentId, tournamentName) {
+  if (!isOneSignalConfigured()) return;
+
+  const { data: entries } = await supabase
+    .from('commander_tournament_entries')
+    .select('player_id')
+    .eq('tournament_id', tournamentId)
+    .in('status', ['registered', 'seated', 'active']);
+
+  const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
+  if (playerIds.length === 0) return;
+
+  await sendPushNotification({
+    externalUserIds: playerIds,
+    title: `${tournamentName || 'Tournament'} Starting Now`,
+    message: 'The tournament is starting! Please take your seat.',
+    url: `/hub/commander/tournament/${tournamentId}/my-status`,
+    data: { type: 'tournament_starting', tournament_id: tournamentId }
+  });
 }

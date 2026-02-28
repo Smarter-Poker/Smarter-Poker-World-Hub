@@ -2,9 +2,16 @@
  * Tournament Elimination API
  * Reference: IMPLEMENTATION_PHASES.md - Phase 3
  * POST /api/commander/tournaments/[id]/eliminate - Eliminate a player
+ * 
+ * Push Notifications: Fires on elimination (ITM/bust/winner)
+ * Auto-Stories: Creates tournament stories for ITM and winner milestones
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
+import {
+  sendPushNotification,
+  isOneSignalConfigured
+} from '../../../../../src/lib/commander/pushNotifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -147,6 +154,20 @@ export default async function handler(req, res) {
       // XP system removed
     }
 
+    // --- Push Notification: Eliminated player ---
+    if (entry.player_id) {
+      fireEliminationNotification(entry.player_id, tournament, finishPosition, payoutAmount).catch(err =>
+        console.warn('[eliminate.js] Push notification failed:', err.message)
+      );
+    }
+
+    // --- Auto-Story: ITM milestone ---
+    if (payoutAmount > 0 && entry.player_id) {
+      createAutoStory(entry.player_id, 'itm', tournament, finishPosition, payoutAmount).catch(err =>
+        console.warn('[eliminate.js] Auto-story failed:', err.message)
+      );
+    }
+
     // Check if tournament should end (only 1 player left)
     if (remainingCount <= 2) {
       // Mark the winner
@@ -196,6 +217,16 @@ export default async function handler(req, res) {
           // XP system removed
         }
 
+        // --- Push Notification: Winner ---
+        if (winner.player_id) {
+          fireEliminationNotification(winner.player_id, tournament, 1, winnerAmount, true).catch(err =>
+            console.warn('[eliminate.js] Winner push failed:', err.message)
+          );
+          createAutoStory(winner.player_id, 'winner', tournament, 1, winnerAmount).catch(err =>
+            console.warn('[eliminate.js] Winner auto-story failed:', err.message)
+          );
+        }
+
         // End tournament
         await supabase
           .from('commander_tournaments')
@@ -237,4 +268,66 @@ async function getTotalAddons(tournamentId) {
     .eq('addon_taken', true);
 
   return count || 0;
+}
+
+// --- Push Notification Helper ---
+async function fireEliminationNotification(playerId, tournament, position, payout, isWinner = false) {
+  if (!isOneSignalConfigured()) return;
+
+  const tournamentName = tournament.name || 'Tournament';
+  let title, message;
+
+  if (isWinner) {
+    title = 'Tournament Winner!';
+    message = payout
+      ? `Congratulations! You won ${tournamentName}! Prize: $${payout.toLocaleString()}`
+      : `Congratulations! You won ${tournamentName}!`;
+  } else if (payout > 0) {
+    title = 'In The Money!';
+    message = `You finished ${addOrdinalSuffix(position)} in ${tournamentName} and won $${payout.toLocaleString()}!`;
+  } else {
+    title = 'Tournament Result';
+    message = `Thanks for playing ${tournamentName}! You finished ${addOrdinalSuffix(position)}.`;
+  }
+
+  await sendPushNotification({
+    externalUserIds: [playerId],
+    title,
+    message,
+    url: `/hub/commander/tournament/${tournament.id}/my-status`,
+    data: { type: 'tournament_elimination', tournament_id: tournament.id, position, payout }
+  });
+}
+
+// --- Auto-Story Helper ---
+async function createAutoStory(playerId, storyType, tournament, position, payout) {
+  const contentMap = {
+    itm: payout
+      ? `IN THE MONEY! Finished ${addOrdinalSuffix(position)} in ${tournament.name} — $${payout.toLocaleString()}`
+      : `IN THE MONEY! Cashed in ${tournament.name}!`,
+    winner: payout
+      ? `I WON ${tournament.name}! $${payout.toLocaleString()}`
+      : `I WON ${tournament.name}!`
+  };
+
+  const gradients = {
+    itm: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+    winner: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%)'
+  };
+
+  await supabase
+    .from('social_stories')
+    .insert({
+      author_id: playerId,
+      content: contentMap[storyType] || `Playing in ${tournament.name}`,
+      media_type: 'text',
+      background_color: gradients[storyType] || gradients.itm
+    });
+}
+
+function addOrdinalSuffix(n) {
+  if (!n) return '';
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
