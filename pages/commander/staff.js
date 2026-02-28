@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, RefreshCw, Lock } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, Lock, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const ROLES = [
@@ -40,6 +40,11 @@ export default function CommanderStaffPage() {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
         router.push('/commander/login').catch(() => { });
+        return;
+      }
+      // Access check: only owner and manager can access staff page
+      if (!['owner', 'manager'].includes(staffData.role)) {
+        router.push('/commander/dashboard').catch(() => { });
         return;
       }
       setCurrentStaff(staffData);
@@ -306,18 +311,8 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
 
   const isEditing = !!staff;
 
-  // Generate a random 4-digit PIN not already in use at this venue
-  const generatePin = () => {
-    const usedPins = new Set(existingStaff.filter(s => s.id !== staff?.id && s.pin_code).map(s => s.pin_code));
-    let pin;
-    let attempts = 0;
-    do {
-      pin = String(Math.floor(1000 + Math.random() * 9000));
-      attempts++;
-    } while (usedPins.has(pin) && attempts < 100);
-    setPinCode(pin);
-    setError('');
-  };
+  // Real-time duplicate PIN check
+  const isDuplicatePin = pinCode.length === 4 && existingStaff.some(s => s.id !== staff?.id && s.pin_code === pinCode);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -328,6 +323,10 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
     }
     if (!pinCode || pinCode.length !== 4) {
       setError('A 4-digit PIN is required for all employees');
+      return;
+    }
+    if (isDuplicatePin) {
+      setError('This PIN is already in use by another employee. Please choose a different PIN.');
       return;
     }
     setSubmitting(true);
@@ -436,30 +435,29 @@ function StaffModal({ staff, existingStaff = [], onClose, onSubmit }) {
             <label className="block text-sm font-medium text-white mb-1">
               4-Digit PIN <span className="text-[#EF4444]">*</span>
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={pinCode}
-                onChange={(e) => { setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
-                placeholder="e.g. 1234"
-                maxLength={4}
-                required
-                className="flex-1 h-12 px-3 cmd-input text-center text-2xl tracking-[0.5em] font-mono"
-              />
-              <button
-                type="button"
-                onClick={generatePin}
-                className="h-12 px-3 rounded-lg bg-[#3A3B3C] hover:bg-[#4A4B4C] text-[#1877F2] flex items-center gap-1.5 text-xs font-medium whitespace-nowrap"
-                title="Generate unique random PIN"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> Random
-              </button>
-            </div>
-            <p className="text-xs text-[#F59E0B] mt-1">🔒 Required for all financial transactions, terminal login, and comp authorization</p>
-            {pinCode && pinCode.length > 0 && pinCode.length < 4 && (
-              <p className="text-xs text-[#EF4444] mt-0.5">PIN must be exactly 4 digits</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={pinCode}
+              onChange={(e) => { setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
+              placeholder="Enter 4-digit PIN"
+              maxLength={4}
+              required
+              className="w-full h-12 px-3 cmd-input text-center text-2xl tracking-[0.5em] font-mono"
+            />
+            {isDuplicatePin && (
+              <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-[#EF4444]/10">
+                <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444] flex-shrink-0" />
+                <span className="text-xs text-[#EF4444] font-medium">This PIN is already in use by another employee</span>
+              </div>
             )}
+            {!isDuplicatePin && pinCode.length === 4 && (
+              <p className="text-xs text-[#31A24C] mt-1">✓ PIN available</p>
+            )}
+            {pinCode.length > 0 && pinCode.length < 4 && (
+              <p className="text-xs text-[#B0B3B8] mt-1">Enter {4 - pinCode.length} more digit{4 - pinCode.length > 1 ? 's' : ''}</p>
+            )}
+            <p className="text-xs text-[#F59E0B] mt-1">🔒 Required for all financial transactions</p>
           </div>
 
           {/* Active Toggle */}

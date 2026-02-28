@@ -83,6 +83,10 @@ export default async function handler(req, res) {
         role,
         permissions,
         is_active,
+        display_name,
+        pin_code,
+        email,
+        phone,
         hired_at,
         created_at,
         profiles (
