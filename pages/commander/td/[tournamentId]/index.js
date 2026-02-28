@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import {
   Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
@@ -224,9 +225,9 @@ export default function TDControlCenter() {
   const displaySeconds = clockSeconds ?? clockState.remaining_seconds ?? 0;
 
   return (
-    <>
+    <CommanderLayout title="Commander — Control Center" backHref="/commander/tournament-controls">
       <SEOHead
-        title="Commander — Index"
+        title="Commander — Control Center"
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
@@ -494,8 +495,8 @@ export default function TDControlCenter() {
                   return (
                     <div key={e.entry_id + '-' + i} className="px-4 py-2.5 flex items-center gap-3">
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isEliminated ? 'bg-[#EF4444]' :
-                          isAlternate ? 'bg-[#F59E0B]' :
-                            isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
+                        isAlternate ? 'bg-[#F59E0B]' :
+                          isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
                         }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-[#E4E6EB] truncate">{e.player_name}</p>
@@ -576,7 +577,7 @@ export default function TDControlCenter() {
           </div>
         </nav>
       </div>
-    </>
+    </CommanderLayout>
   );
 }
 

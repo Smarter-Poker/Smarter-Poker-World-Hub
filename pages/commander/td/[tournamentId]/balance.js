@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Loader2, RefreshCw, AlertTriangle, CheckCircle2, ArrowRight,
@@ -103,7 +104,7 @@ export default function TDBalance() {
   const isBalanced = !floor?.alerts?.imbalanced;
 
   return (
-    <>
+    <CommanderLayout title="Commander — Balance" backHref={`/commander/td/${tournamentId}`}>
       <SEOHead
         title="Commander — Balance"
         description="Club Commander Poker Room Management Tool."
@@ -267,6 +268,6 @@ export default function TDBalance() {
           </div>
         </nav>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

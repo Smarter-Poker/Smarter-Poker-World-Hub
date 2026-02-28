@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Search, X, Loader2, RefreshCw, ChevronDown,
@@ -194,7 +195,7 @@ export default function TDPlayers() {
   if (loading) return <div className="min-h-screen bg-[#18191A] flex items-center justify-center"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>;
 
   return (
-    <>
+    <CommanderLayout title="Commander — Players" backHref={`/commander/td/${tournamentId}`}>
       <SEOHead
         title="Commander — Players"
         description="Club Commander Poker Room Management Tool."
@@ -459,7 +460,7 @@ export default function TDPlayers() {
           </div>
         </nav>
       </div>
-    </>
+    </CommanderLayout>
   );
 }
 

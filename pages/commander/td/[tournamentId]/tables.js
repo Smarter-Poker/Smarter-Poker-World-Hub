@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   X, ChevronRight, AlertTriangle, Loader2, RefreshCw,
@@ -126,7 +127,7 @@ export default function TDTablesMap() {
   const tables = floor?.tables || [];
 
   return (
-    <>
+    <CommanderLayout title="Commander — Tables" backHref={`/commander/td/${tournamentId}`}>
       <SEOHead
         title="Commander — Tables"
         description="Club Commander Poker Room Management Tool."
@@ -456,6 +457,6 @@ export default function TDTablesMap() {
           </div>
         </nav>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

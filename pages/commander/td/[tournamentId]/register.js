@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Loader2, RefreshCw, Search, CheckCircle2, AlertTriangle,
@@ -147,7 +148,7 @@ export default function TDRegister() {
   const autoAssignment = getAutoSeatAssignment();
 
   return (
-    <>
+    <CommanderLayout title="Commander — Register" backHref={`/commander/td/${tournamentId}`}>
       <SEOHead
         title="Commander — Register"
         description="Club Commander Poker Room Management Tool."
@@ -191,8 +192,8 @@ export default function TDRegister() {
           {/* Max entries indicator */}
           {tournament.max_entries && (
             <div className={`mt-2 text-xs text-center py-1.5 rounded-lg ${stats.total_entries >= tournament.max_entries
-                ? 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30'
-                : 'bg-[#3A3B3C]/50 text-[#B0B3B8]'
+              ? 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30'
+              : 'bg-[#3A3B3C]/50 text-[#B0B3B8]'
               }`}>
               {stats.total_entries >= tournament.max_entries
                 ? `MAX CAPACITY REACHED (${tournament.max_entries})`
@@ -380,6 +381,6 @@ export default function TDRegister() {
           </div>
         </nav>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

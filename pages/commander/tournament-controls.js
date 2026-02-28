@@ -24,6 +24,7 @@ export default function TournamentDirector() {
     const router = useRouter();
     const [tournaments, setTournaments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [tab, setTab] = useState('current'); // 'current' or 'upcoming'
 
     useEffect(() => {
         const staff = localStorage.getItem('commander_staff');
@@ -37,10 +38,9 @@ export default function TournamentDirector() {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    const order = ['running', 'break', 'final_table', 'registering', 'scheduled'];
+                    // Exclude completed/cancelled entirely — they belong in Tournament Manager
                     const active = (data.data?.tournaments || [])
-                        .filter(t => !['completed', 'cancelled'].includes(t.status))
-                        .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+                        .filter(t => !['completed', 'cancelled'].includes(t.status));
                     setTournaments(active);
                 }
             } catch (err) { console.error(err); }
@@ -49,29 +49,54 @@ export default function TournamentDirector() {
         fetchTournaments();
     }, [router]);
 
+    const currentStatuses = ['running', 'break', 'final_table', 'registering'];
+    const currentTournaments = tournaments.filter(t => currentStatuses.includes(t.status));
+    const upcomingTournaments = tournaments.filter(t => t.status === 'scheduled');
+    const displayList = tab === 'current' ? currentTournaments : upcomingTournaments;
+
     return (
         <CommanderLayout title="Tournament Director | Commander" backHref="/commander/dashboard?card=tournaments">
             <SEOHead title="Commander — Tournament Director" description="Club Commander Poker Room Management Tool." noindex={true} />
             <div className="cmd-page">
                 <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
-                            <Trophy className="w-5 h-5 text-[#10B981]" />
+                        <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
+                            <Trophy className="w-5 h-5 text-[#1877F2]" />
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-white">Tournament Director</h1>
-                            <p className="text-sm text-[#64748B]">Manage live tournaments — controls, clock display, and settings</p>
+                            <p className="text-sm text-[#B0B3B8]">Manage live tournaments — controls, clock display, and settings</p>
                         </div>
+                    </div>
+
+                    {/* Current / Upcoming Tabs */}
+                    <div className="flex gap-2">
+                        <button onClick={() => setTab('current')}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${tab === 'current'
+                                    ? 'bg-[#1877F2] text-white'
+                                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                                }`}>
+                            Current ({currentTournaments.length})
+                        </button>
+                        <button onClick={() => setTab('upcoming')}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${tab === 'upcoming'
+                                    ? 'bg-[#1877F2] text-white'
+                                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                                }`}>
+                            Upcoming ({upcomingTournaments.length})
+                        </button>
                     </div>
 
                     {loading ? (
                         <div className="py-20 text-center">
                             <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin mx-auto" />
                         </div>
-                    ) : tournaments.length === 0 ? (
+                    ) : displayList.length === 0 ? (
                         <div className="cmd-panel p-8 text-center">
-                            <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                            <p className="text-[#64748B] mb-4">No active tournaments</p>
+                            <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                            <p className="text-[#B0B3B8] mb-4">
+                                {tab === 'current' ? 'No live tournaments' : 'No upcoming tournaments'}
+                            </p>
                             <button onClick={() => router.push('/commander/tournaments')}
                                 className="px-4 py-2 cmd-btn cmd-btn-primary rounded-lg text-sm font-medium">
                                 Go to Tournament Manager
@@ -79,34 +104,34 @@ export default function TournamentDirector() {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {tournaments.map(t => {
+                            {displayList.map(t => {
                                 const sc = STATUS_COLORS[t.status] || STATUS_COLORS.scheduled;
                                 const isLive = ['running', 'break', 'final_table'].includes(t.status);
                                 return (
-                                    <div key={t.id} className={`cmd-panel overflow-hidden ${isLive ? 'border-[#10B981]/30' : ''}`}>
+                                    <div key={t.id} className={`cmd-panel overflow-hidden ${isLive ? 'border-[#1877F2]/30' : ''}`}>
                                         {/* Tournament Info Header */}
                                         <div className="p-4 pb-3">
                                             <div className="flex items-start gap-3">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isLive ? 'bg-[#10B981]/10' : 'bg-[#0D192E]'}`}>
-                                                    <Trophy className={`w-5 h-5 ${isLive ? 'text-[#10B981]' : 'text-[#4A5E78]'}`} />
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isLive ? 'bg-[#1877F2]/10' : 'bg-[#242526]'}`}>
+                                                    <Trophy className={`w-5 h-5 ${isLive ? 'text-[#1877F2]' : 'text-[#B0B3B8]'}`} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-white truncate">{t.name}</p>
                                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${sc.bg} ${sc.text}`}>{sc.label}</span>
                                                         {t.scheduled_start && (
-                                                            <span className="text-xs text-[#64748B]">
+                                                            <span className="text-xs text-[#B0B3B8]">
                                                                 {new Date(t.scheduled_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                                 {' '}
                                                                 {new Date(t.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                                                             </span>
                                                         )}
                                                         {t.player_count > 0 && (
-                                                            <span className="text-xs text-[#64748B] flex items-center gap-1">
+                                                            <span className="text-xs text-[#B0B3B8] flex items-center gap-1">
                                                                 <Users className="w-3 h-3" /> {t.player_count}
                                                             </span>
                                                         )}
-                                                        {t.current_level > 0 && <span className="text-xs text-[#64748B]">Level {t.current_level}</span>}
+                                                        {t.current_level > 0 && <span className="text-xs text-[#B0B3B8]">Level {t.current_level}</span>}
                                                     </div>
                                                 </div>
                                                 {isLive && (
@@ -119,26 +144,26 @@ export default function TournamentDirector() {
                                         </div>
 
                                         {/* Action Buttons */}
-                                        <div className="border-t border-[#1E3A5F] grid grid-cols-3 divide-x divide-[#1E3A5F]">
+                                        <div className="border-t border-[#3A3B3C] grid grid-cols-3 divide-x divide-[#3A3B3C]">
                                             <button
                                                 onClick={() => router.push(`/commander/td/${t.id}`)}
-                                                className="flex items-center justify-center gap-2 py-3 px-2 hover:bg-[#132240] transition-colors text-sm"
+                                                className="flex items-center justify-center gap-2 py-3 px-2 hover:bg-[#3A3B3C] transition-colors text-sm"
                                             >
-                                                <Play className="w-4 h-4 text-[#10B981]" />
+                                                <Play className="w-4 h-4 text-[#1877F2]" />
                                                 <span className="text-[#E4E6EB] font-medium">TD Controls</span>
                                             </button>
                                             <button
                                                 onClick={() => window.open(`/commander/tournaments/${t.id}/clock-display`, '_blank')}
-                                                className="flex items-center justify-center gap-2 py-3 px-2 hover:bg-[#132240] transition-colors text-sm"
+                                                className="flex items-center justify-center gap-2 py-3 px-2 hover:bg-[#3A3B3C] transition-colors text-sm"
                                             >
                                                 <Monitor className="w-4 h-4 text-[#F59E0B]" />
                                                 <span className="text-[#E4E6EB] font-medium">Launch Clock</span>
                                             </button>
                                             <button
                                                 onClick={() => router.push(`/commander/tournaments/${t.id}/settings`)}
-                                                className="flex items-center justify-center gap-2 py-3 px-2 hover:bg-[#132240] transition-colors text-sm"
+                                                className="flex items-center justify-center gap-2 py-3 px-2 hover:bg-[#3A3B3C] transition-colors text-sm"
                                             >
-                                                <Settings className="w-4 h-4 text-[#22D3EE]" />
+                                                <Settings className="w-4 h-4 text-[#B0B3B8]" />
                                                 <span className="text-[#E4E6EB] font-medium">Settings</span>
                                             </button>
                                         </div>
@@ -147,11 +172,6 @@ export default function TournamentDirector() {
                             })}
                         </div>
                     )}
-
-                    <p className="text-xs text-[#4A5E78] text-center mt-6">
-                        TD Controls = manage clock, players, tables, and balance on a tablet.
-                        Launch Clock = full-screen clock display for TV/projector.
-                    </p>
                 </div>
             </div>
         </CommanderLayout>

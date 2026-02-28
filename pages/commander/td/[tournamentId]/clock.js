@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw,
@@ -194,7 +195,7 @@ export default function TDClock() {
   const displaySeconds = clockSeconds ?? clockState.remaining_seconds ?? 0;
 
   return (
-    <>
+    <CommanderLayout title="Commander — Clock" backHref={`/commander/td/${tournamentId}`}>
       <SEOHead
         title="Commander — Clock"
         description="Club Commander Poker Room Management Tool."
@@ -380,7 +381,7 @@ export default function TDClock() {
           </nav>
         )}
       </div>
-    </>
+    </CommanderLayout>
   );
 }
 
