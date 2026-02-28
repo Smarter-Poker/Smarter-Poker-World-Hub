@@ -218,7 +218,7 @@ export default async function handler(req, res) {
         if (resolvedVenueId) {
             try {
                 const { data: annData } = await supabase
-                    .from('commander_announcements')
+                    .from('commander_club_announcements')
                     .select('id, title, message, type, priority')
                     .eq('venue_id', resolvedVenueId)
                     .eq('status', 'active')

@@ -14,7 +14,8 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Monitor, Users, Loader2, ChevronRight, Power, DollarSign, Trophy,
     Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle,
-    Maximize2, Minimize2, Copy, ExternalLink, Wifi, WifiOff, ChevronDown, ChevronUp, Link2
+    Maximize2, Minimize2, Copy, ExternalLink, Wifi, WifiOff, ChevronDown, ChevronUp, Link2,
+    Lock, Unlock, ShieldCheck
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -99,6 +100,12 @@ export default function TableTabletsPage() {
     const [showAssignPanel, setShowAssignPanel] = useState(false);
     const [displayStatus, setDisplayStatus] = useState({}); // table_number -> { is_online, last_heartbeat }
     const [copiedTable, setCopiedTable] = useState(null);
+    // Tablet lock mode
+    const [lockedTable, setLockedTable] = useState(null); // table_number that is locked
+    const [showPinModal, setShowPinModal] = useState(false);
+    const [pinValue, setPinValue] = useState('');
+    const [pinError, setPinError] = useState('');
+    const [pinLoading, setPinLoading] = useState(false);
 
     useEffect(() => {
         try {
@@ -108,7 +115,77 @@ export default function TableTabletsPage() {
             setVenueId(parsed.venue_id);
             if (parsed.venue_name) setVenueName(parsed.venue_name);
         } catch { router.push('/commander/login').catch(() => { }); }
+
+        // Restore locked table from localStorage
+        try {
+            const saved = localStorage.getItem('tablet_locked_table');
+            if (saved) {
+                const { table_number, venue_id: savedVenue } = JSON.parse(saved);
+                if (table_number) setLockedTable(table_number);
+            }
+        } catch { /* ignore */ }
     }, [router]);
+
+    // When locked table is set, also set it as the fullscreen table
+    useEffect(() => {
+        if (lockedTable && tables.length > 0) {
+            const table = tables.find(t => (t.table_number || t.number) === lockedTable);
+            if (table) setFullscreenTable(table);
+        }
+    }, [lockedTable, tables]);
+
+    // Browser back/navigation prevention when locked
+    useEffect(() => {
+        if (!lockedTable) return;
+        const handleBeforeUnload = (e) => { e.preventDefault(); e.returnValue = ''; };
+        const handlePopState = (e) => { window.history.pushState(null, '', window.location.href); };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('popstate', handlePopState);
+        window.history.pushState(null, '', window.location.href);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [lockedTable]);
+
+    // Lock a table
+    const lockToTable = (tableNumber) => {
+        setLockedTable(tableNumber);
+        localStorage.setItem('tablet_locked_table', JSON.stringify({ table_number: tableNumber, venue_id: venueId }));
+    };
+
+    // Unlock with PIN
+    const handleUnlockAttempt = async () => {
+        if (!pinValue || pinValue.length < 4) { setPinError('Enter your 4+ digit PIN'); return; }
+        setPinLoading(true);
+        setPinError('');
+        try {
+            const res = await fetch('/api/commander/staff/verify-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pinValue, venue_id: venueId }),
+            });
+            const json = await res.json();
+            if (json.success && json.data?.staff) {
+                const role = json.data.staff.role;
+                if (role === 'owner' || role === 'manager') {
+                    // Unlock!
+                    setLockedTable(null);
+                    setFullscreenTable(null);
+                    setShowPinModal(false);
+                    setPinValue('');
+                    localStorage.removeItem('tablet_locked_table');
+                } else {
+                    setPinError('Owner or Manager PIN required');
+                }
+            } else {
+                setPinError(json.error || 'Invalid PIN');
+            }
+        } catch {
+            setPinError('Network error — try again');
+        }
+        setPinLoading(false);
+    };
 
     const fetchAll = useCallback(async () => {
         if (!venueId) return;
@@ -778,27 +855,61 @@ export default function TableTabletsPage() {
                             </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <button
-                                onClick={() => openDealerScan(fullscreenTable.table_number)}
-                                style={{
-                                    background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                                    borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                    fontSize: 13, fontWeight: 700, color: '#fff',
-                                }}
-                            >
-                                <ScanLine size={14} /> Scan Dealer
-                            </button>
-                            <button
-                                onClick={() => setFullscreenTable(null)}
-                                style={{
-                                    background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
-                                    width: 40, height: 40, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}
-                            >
-                                <X size={22} color="#fff" />
-                            </button>
+                            {!lockedTable && (
+                                <button
+                                    onClick={() => openDealerScan(fullscreenTable.table_number)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                                        borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        fontSize: 13, fontWeight: 700, color: '#fff',
+                                    }}
+                                >
+                                    <ScanLine size={14} /> Scan Dealer
+                                </button>
+                            )}
+                            {!lockedTable ? (
+                                <>
+                                    {/* Lock button */}
+                                    <button
+                                        onClick={() => lockToTable(fullscreenTable.table_number || fullscreenTable.number)}
+                                        style={{
+                                            background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
+                                            borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: 6,
+                                            fontSize: 13, fontWeight: 700, color: '#F59E0B',
+                                        }}
+                                        title="Lock tablet to this table"
+                                    >
+                                        <Lock size={14} /> Lock Tablet
+                                    </button>
+                                    {/* Close button */}
+                                    <button
+                                        onClick={() => setFullscreenTable(null)}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                                            width: 40, height: 40, cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}
+                                    >
+                                        <X size={22} color="#fff" />
+                                    </button>
+                                </>
+                            ) : (
+                                /* Locked — show unlock button */
+                                <button
+                                    onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
+                                    style={{
+                                        background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)',
+                                        borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        fontSize: 13, fontWeight: 700, color: '#EF4444',
+                                    }}
+                                    title="Unlock — requires manager PIN"
+                                >
+                                    <Unlock size={14} /> Unlock
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -916,6 +1027,121 @@ export default function TableTabletsPage() {
                                 </div>
                             </>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── PIN UNLOCK MODAL ── */}
+            {showPinModal && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div onClick={() => setShowPinModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)' }} />
+                    <div style={{
+                        position: 'relative', background: '#242526', borderRadius: 20,
+                        width: '90%', maxWidth: 360, padding: 32,
+                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                    }}>
+                        {/* Header */}
+                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                            <div style={{
+                                width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px',
+                                background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.3)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <ShieldCheck size={32} color="#EF4444" />
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff' }}>Unlock Tablet</h3>
+                            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#8A8D91' }}>
+                                Enter manager or owner PIN to unlock
+                            </p>
+                        </div>
+
+                        {/* PIN display */}
+                        <div style={{
+                            display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20,
+                        }}>
+                            {[0, 1, 2, 3, 4, 5].map(i => (
+                                <div key={i} style={{
+                                    width: 40, height: 48, borderRadius: 10,
+                                    background: pinValue.length > i ? '#1877F2' : '#3A3B3C',
+                                    border: `2px solid ${pinValue.length > i ? '#1877F2' : '#4E4F50'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s',
+                                }}>
+                                    {pinValue.length > i && (
+                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff' }} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Error */}
+                        {pinError && (
+                            <div style={{
+                                padding: '8px 12px', marginBottom: 16, borderRadius: 10,
+                                background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                                color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
+                            }}>
+                                {pinError}
+                            </div>
+                        )}
+
+                        {/* Numeric keypad */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        if (key === null) return;
+                                        if (key === 'del') { setPinValue(v => v.slice(0, -1)); setPinError(''); }
+                                        else if (pinValue.length < 6) { setPinValue(v => v + key); setPinError(''); }
+                                    }}
+                                    style={{
+                                        padding: '16px 0', borderRadius: 12,
+                                        background: key === null ? 'transparent' : key === 'del' ? '#3A3B3C' : '#3A3B3C',
+                                        border: key === null ? 'none' : '1px solid #4E4F50',
+                                        color: '#E4E6EB', fontSize: key === 'del' ? 14 : 22, fontWeight: 700,
+                                        cursor: key === null ? 'default' : 'pointer',
+                                        visibility: key === null ? 'hidden' : 'visible',
+                                        transition: 'background 0.15s',
+                                    }}
+                                >
+                                    {key === 'del' ? '⌫' : key}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Submit */}
+                        <button
+                            onClick={handleUnlockAttempt}
+                            disabled={pinLoading || pinValue.length < 4}
+                            style={{
+                                width: '100%', padding: '14px', borderRadius: 12,
+                                background: pinValue.length >= 4 ? '#EF4444' : '#3A3B3C',
+                                color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
+                                cursor: pinValue.length >= 4 ? 'pointer' : 'not-allowed',
+                                opacity: pinLoading ? 0.7 : 1,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            {pinLoading ? (
+                                <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</>
+                            ) : (
+                                <><Unlock size={18} /> Unlock Tablet</>
+                            )}
+                        </button>
+
+                        {/* Cancel */}
+                        <button
+                            onClick={() => { setShowPinModal(false); setPinValue(''); setPinError(''); }}
+                            style={{
+                                width: '100%', padding: '10px', marginTop: 8,
+                                background: 'transparent', border: 'none', borderRadius: 8,
+                                color: '#8A8D91', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}

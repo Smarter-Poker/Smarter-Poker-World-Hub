@@ -37,11 +37,7 @@ async function handleGet(req, res, id) {
   try {
     const { data: incident, error } = await supabase
       .from('commander_incidents')
-      .select(`
-        *,
-        reported_by_staff:commander_staff!reported_by (id, name, role),
-        resolved_by_staff:commander_staff!resolved_by (id, name, role)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -129,11 +125,7 @@ async function handlePatch(req, res, id) {
       .from('commander_incidents')
       .update(updates)
       .eq('id', id)
-      .select(`
-        *,
-        reported_by_staff:commander_staff!reported_by (id, name, role),
-        resolved_by_staff:commander_staff!resolved_by (id, name, role)
-      `)
+      .select('*')
       .single();
 
     if (updateError) {
