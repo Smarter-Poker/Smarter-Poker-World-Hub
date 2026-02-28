@@ -97,7 +97,7 @@ async function handleCreate(req, res) {
     // Verify dealer exists and belongs to venue
     const { data: dealer, error: dealerError } = await supabase
       .from('commander_dealers')
-      .select('id, name, status')
+      .select('id, name')
       .eq('id', dealer_id)
       .eq('venue_id', venue_id)
       .single();
@@ -109,12 +109,6 @@ async function handleCreate(req, res) {
       });
     }
 
-    if (dealer.status !== 'active') {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'Dealer is not active' }
-      });
-    }
 
     // Verify table exists and belongs to venue
     const { data: table, error: tableError } = await supabase
@@ -154,6 +148,8 @@ async function handleCreate(req, res) {
         venue_id,
         dealer_id,
         table_id,
+        dealer_name: dealer.name,
+        table_number: table.table_number,
         started_at: new Date().toISOString()
       })
       .select(`

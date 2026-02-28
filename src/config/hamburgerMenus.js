@@ -188,6 +188,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
@@ -647,6 +648,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Posts', '/hub/social-media'),
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
+            createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
             { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
             createMenuItem.navigation('📲 Install App', '/hub/install')
@@ -668,6 +670,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Lives', '/hub/lives'),
             createMenuItem.navigation('Video Library', '/hub/video-library'),
+            createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
             { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
             createMenuItem.navigation('📲 Install App', '/hub/install')
