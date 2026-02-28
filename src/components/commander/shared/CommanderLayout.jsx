@@ -442,25 +442,11 @@ export default function CommanderLayout({ children, title, backHref = '/commande
               <button
                 className="cmd-back-img-btn"
                 onClick={() => {
-                  // ALWAYS use router.push to a known Commander page — NEVER router.back()
-                  // router.back() follows browser history which may contain World Hub entries
-                  try {
-                    const hist = JSON.parse(sessionStorage.getItem('commander_nav_history') || '[]');
-                    const currentPath = window.location.pathname;
-                    // Remove current page from history
-                    while (hist.length > 0 && hist[hist.length - 1] === currentPath) {
-                      hist.pop();
-                    }
-                    sessionStorage.setItem('commander_nav_history', JSON.stringify(hist));
-
-                    if (hist.length > 0) {
-                      // Navigate to the previous Commander page via push (NOT back)
-                      router.push(hist[hist.length - 1]);
-                    } else {
-                      // No Commander history — use backHref fallback
-                      router.push(backHref);
-                    }
-                  } catch {
+                  // True browser-history back — preserves query params (?card=tables etc.)
+                  // so the user always returns to the EXACT previous page they came from.
+                  if (window.history.length > 1) {
+                    router.back();
+                  } else {
                     router.push(backHref);
                   }
                 }}
