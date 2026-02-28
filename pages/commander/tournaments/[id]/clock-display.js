@@ -353,10 +353,12 @@ export default function ClockDisplay() {
 
   const { tournament: t = {}, clock = {}, stats = {}, alerts = {} } = data;
   const theme = { ...DEFAULT_THEME, ...(preset?.theme || {}) };
-  const displayOpts = preset?.display_options || {
+  const displayOpts = {
     show_prize_pool: true, show_payouts: true, show_icm: false,
     show_chip_chop: false, show_chip_colors: true, show_next_round: true,
     show_schedule_preview: false, show_seating: false,
+    sound_level_change: true, sound_break: true, sound_final_table: true,
+    ...(preset?.display_options || {}),
   };
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
