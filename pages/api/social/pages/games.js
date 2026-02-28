@@ -155,11 +155,11 @@ export default async function handler(req, res) {
                                 if (tableIds.length > 0) {
                                     const { data: rotById } = await supabase
                                         .from('commander_dealer_rotations')
-                                        .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name, display_name)')
+                                        .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name)')
                                         .in('table_id', tableIds)
                                         .is('ended_at', null);
                                     (rotById || []).forEach(r => {
-                                        const name = r.commander_dealers?.display_name || r.commander_dealers?.name || r.dealer_name || null;
+                                        const name = r.dealer_name || r.commander_dealers?.name || null;
                                         if (name) dealerRotationMap[r.table_id] = name;
                                     });
                                 }
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
                                 if (tableNumbers.length > 0) {
                                     const { data: rotByNum } = await supabase
                                         .from('commander_dealer_rotations')
-                                        .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name, display_name)')
+                                        .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name)')
                                         .eq('venue_id', venueId)
                                         .in('table_number', tableNumbers)
                                         .is('ended_at', null);
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
                                     const numToId = {};
                                     Object.entries(tableMap).forEach(([tid, t]) => { numToId[t.table_number] = tid; });
                                     (rotByNum || []).forEach(r => {
-                                        const name = r.commander_dealers?.display_name || r.commander_dealers?.name || r.dealer_name || null;
+                                        const name = r.dealer_name || r.commander_dealers?.name || null;
                                         const resolvedTableId = r.table_id || numToId[r.table_number];
                                         if (name && resolvedTableId && !dealerRotationMap[resolvedTableId]) {
                                             dealerRotationMap[resolvedTableId] = name;
