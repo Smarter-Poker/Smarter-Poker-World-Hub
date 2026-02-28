@@ -4,11 +4,10 @@
  * PUT  /api/commander/table-assignments - Assign a table to a mode (inactive/cash/tournament)
  * POST /api/commander/table-assignments - Close a table (end all sessions, set inactive)
  *
- * The floor manager uses this to control which physical tables run which games/tournaments.
- * Dealer tablets read their table's mode to show the correct interface.
+ * Auth: guardManager — uses x-staff-session header for Commander staff PIN sessions.
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../src/lib/commander/auth';
+import { guardManager } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,27 +15,60 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
+  const _g = await guardManager(req, res); if (!_g) return;
 
   try {
-    // Auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // Get venue_id from staff session header
+    let venueId;
+    try {
+      const staffSession = JSON.parse(req.headers['x-staff-session'] || '{}');
+      if (staffSession.venue_id) {
+        venueId = staffSession.venue_id;
+      } else if (staffSession.id) {
+        const { data: staffData } = await supabase
+          .from('commander_staff')
+          .select('venue_id')
+          .eq('id', staffSession.id)
+          .eq('is_active', true)
+          .single();
+        venueId = staffData?.venue_id;
+      } else if (staffSession.user_id) {
+        venueId = staffSession.venue_id;
+      }
+    } catch { }
 
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id, venue_id, role')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+    // Fallback: Bearer token
+    if (!venueId) {
+      try {
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.replace('Bearer ', '');
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            const { data: staff } = await supabase
+              .from('commander_staff')
+              .select('venue_id')
+              .eq('user_id', user.id)
+              .eq('is_active', true)
+              .single();
+            venueId = staff?.venue_id;
+          }
+        }
+      } catch { }
+    }
 
-    if (req.method === 'GET') return handleGet(req, res, staff);
-    if (req.method === 'PUT') return handlePut(req, res, staff, user);
-    if (req.method === 'POST') return handleClose(req, res, staff, user);
+    if (!venueId) return res.status(403).json({ success: false, error: 'Could not determine venue' });
+
+    // Extract staff info
+    let staffUserId = null;
+    try {
+      const sess = JSON.parse(req.headers['x-staff-session'] || '{}');
+      staffUserId = sess.user_id || sess.id || null;
+    } catch { }
+
+    if (req.method === 'GET') return handleGet(req, res, venueId);
+    if (req.method === 'PUT') return handlePut(req, res, venueId, staffUserId);
+    if (req.method === 'POST') return handleClose(req, res, venueId, staffUserId);
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
     console.error('Table assignment error:', err);
@@ -44,30 +76,37 @@ export default async function handler(req, res) {
   }
 }
 
-// GET: List all tables with their current assignments
-async function handleGet(req, res, staff) {
-  // Get all tables
+// GET: List all tables with their current assignments + active game info
+async function handleGet(req, res, venueId) {
+  // Get all tables for this venue
   const { data: tables, error } = await supabase
     .from('commander_tables')
     .select('*')
-    .eq('venue_id', staff.venue_id)
+    .eq('venue_id', venueId)
     .order('table_number');
 
   if (error) return res.status(500).json({ success: false, error: 'Failed to fetch tables' });
 
+  // Get active games at this venue (to determine which tables are running cash games)
+  const { data: games } = await supabase
+    .from('commander_games')
+    .select('id, table_id, game_type, stakes, current_players, max_players, status, started_at')
+    .eq('venue_id', venueId)
+    .in('status', ['waiting', 'running', 'active']);
+
   // Get active tournaments at this venue
   const { data: tournaments } = await supabase
     .from('commander_tournaments')
-    .select('id, name, status, game_type, buyin_amount')
-    .eq('venue_id', staff.venue_id)
-    .in('status', ['registering', 'running', 'paused', 'late_registration'])
+    .select('id, name, status, game_type, buyin_amount, max_entries')
+    .eq('venue_id', venueId)
+    .in('status', ['scheduled', 'registering', 'running', 'paused', 'late_registration'])
     .order('created_at', { ascending: false });
 
-  // Get active session counts per table
+  // Get session counts per table (fallback player count)
   const { data: sessions } = await supabase
     .from('commander_table_sessions')
     .select('table_number')
-    .eq('venue_id', staff.venue_id)
+    .eq('venue_id', venueId)
     .eq('status', 'active');
 
   const sessionCounts = {};
@@ -75,33 +114,59 @@ async function handleGet(req, res, staff) {
     sessionCounts[s.table_number] = (sessionCounts[s.table_number] || 0) + 1;
   });
 
-  // Get tournament entry counts per table
-  const tournamentTableCounts = {};
-  const tournamentIds = [...new Set((tables || []).filter(t => t.tournament_id).map(t => t.tournament_id))];
-  for (const tid of tournamentIds) {
-    const { data: entries } = await supabase
-      .from('commander_tournament_entries')
-      .select('table_number')
-      .eq('tournament_id', tid)
-      .in('status', ['active', 'seated']);
-    (entries || []).forEach(e => {
-      if (e.table_number) {
-        tournamentTableCounts[e.table_number] = (tournamentTableCounts[e.table_number] || 0) + 1;
-      }
-    });
-  }
+  // Map games to tables by table_id
+  const gamesByTableId = {};
+  (games || []).forEach(g => {
+    if (!gamesByTableId[g.table_id]) gamesByTableId[g.table_id] = [];
+    gamesByTableId[g.table_id].push(g);
+  });
 
-  const enriched = (tables || []).map(t => ({
-    ...t,
-    active_players: t.mode === 'tournament'
-      ? (tournamentTableCounts[t.table_number] || 0)
-      : (sessionCounts[t.table_number] || 0),
-    open_seats: t.max_seats - (
-      t.mode === 'tournament'
-        ? (tournamentTableCounts[t.table_number] || 0)
-        : (sessionCounts[t.table_number] || 0)
-    )
-  }));
+  // Enrich tables with mode, game info, and player counts
+  const enriched = (tables || []).map(t => {
+    const activeGames = gamesByTableId[t.id] || [];
+    const activeGame = activeGames.find(g => ['running', 'active', 'waiting'].includes(g.status));
+
+    // Derive mode from actual data
+    let mode = 'inactive';
+    let gameType = t.game_type || null;
+    let stakes = t.stakes || null;
+    let activePlayers = sessionCounts[t.table_number] || 0;
+    let currentGameId = null;
+    let tournamentId = t.tournament_id || null;
+
+    if (activeGame) {
+      mode = 'cash';
+      gameType = activeGame.game_type || gameType;
+      stakes = activeGame.stakes || stakes;
+      activePlayers = activeGame.current_players || activePlayers;
+      currentGameId = activeGame.id;
+    } else if (t.status === 'in_use' && t.game_type) {
+      mode = 'cash';
+      gameType = t.game_type;
+      stakes = t.stakes;
+    }
+
+    if (tournamentId) {
+      mode = 'tournament';
+    }
+
+    return {
+      id: t.id,
+      table_number: t.table_number,
+      table_name: t.table_name || `Table ${t.table_number}`,
+      max_seats: t.max_seats || 9,
+      status: t.status || 'available',
+      mode,
+      game_type: gameType,
+      stakes,
+      tournament_id: tournamentId,
+      current_game_id: currentGameId,
+      active_players: activePlayers,
+      open_seats: (t.max_seats || 9) - activePlayers,
+      is_active: t.is_active !== false,
+      label: t.label || null,
+    };
+  });
 
   return res.status(200).json({
     success: true,
@@ -113,7 +178,7 @@ async function handleGet(req, res, staff) {
 }
 
 // PUT: Assign a table to a mode
-async function handlePut(req, res, staff, user) {
+async function handlePut(req, res, venueId, staffUserId) {
   const { table_id, mode, game_type, stakes, tournament_id } = req.body;
 
   if (!table_id || !mode) {
@@ -134,21 +199,50 @@ async function handlePut(req, res, staff, user) {
     .from('commander_tables')
     .select('*')
     .eq('id', table_id)
-    .eq('venue_id', staff.venue_id)
+    .eq('venue_id', venueId)
     .single();
 
   if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
   // Build update
   const updates = {
-    mode,
     game_type: mode === 'cash' ? game_type : null,
     stakes: mode === 'cash' ? stakes : null,
     tournament_id: mode === 'tournament' ? tournament_id : null,
-    assigned_at: new Date().toISOString(),
-    assigned_by: user.id,
     status: mode === 'inactive' ? 'available' : 'in_use'
   };
+
+  // If assigning to cash, also create a commander_games entry
+  if (mode === 'cash') {
+    // Close any existing games on this table first
+    await supabase
+      .from('commander_games')
+      .update({ status: 'closed', ended_at: new Date().toISOString() })
+      .eq('table_id', table_id)
+      .eq('venue_id', venueId)
+      .in('status', ['waiting', 'running', 'active']);
+
+    // Create new game
+    await supabase.from('commander_games').insert({
+      venue_id: venueId,
+      table_id: table_id,
+      game_type: game_type,
+      stakes: stakes,
+      max_players: table.max_seats || 9,
+      status: 'waiting',
+      started_at: new Date().toISOString()
+    });
+  }
+
+  // If setting to inactive, close any active games
+  if (mode === 'inactive') {
+    await supabase
+      .from('commander_games')
+      .update({ status: 'closed', ended_at: new Date().toISOString() })
+      .eq('table_id', table_id)
+      .eq('venue_id', venueId)
+      .in('status', ['waiting', 'running', 'active']);
+  }
 
   const { data: updated, error } = await supabase
     .from('commander_tables')
@@ -166,7 +260,7 @@ async function handlePut(req, res, staff, user) {
 }
 
 // POST: Close a table (end sessions, set inactive)
-async function handleClose(req, res, staff, user) {
+async function handleClose(req, res, venueId, staffUserId) {
   const { table_id } = req.body;
   if (!table_id) return res.status(400).json({ success: false, error: 'table_id required' });
 
@@ -174,16 +268,24 @@ async function handleClose(req, res, staff, user) {
     .from('commander_tables')
     .select('*')
     .eq('id', table_id)
-    .eq('venue_id', staff.venue_id)
+    .eq('venue_id', venueId)
     .single();
 
   if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
+
+  // Close all active games on this table
+  await supabase
+    .from('commander_games')
+    .update({ status: 'closed', ended_at: new Date().toISOString() })
+    .eq('table_id', table_id)
+    .eq('venue_id', venueId)
+    .in('status', ['waiting', 'running', 'active']);
 
   // End all active sessions at this table
   await supabase
     .from('commander_table_sessions')
     .update({ status: 'ended', ended_at: new Date().toISOString() })
-    .eq('venue_id', staff.venue_id)
+    .eq('venue_id', venueId)
     .eq('table_number', table.table_number)
     .eq('status', 'active');
 
@@ -191,21 +293,18 @@ async function handleClose(req, res, staff, user) {
   await supabase
     .from('commander_table_seats')
     .delete()
-    .eq('venue_id', staff.venue_id)
+    .eq('venue_id', venueId)
     .eq('table_number', table.table_number);
 
   // Set table to inactive
   const { data: updated } = await supabase
     .from('commander_tables')
     .update({
-      mode: 'inactive',
       game_type: null,
       stakes: null,
       tournament_id: null,
       status: 'available',
       current_game_id: null,
-      assigned_at: null,
-      assigned_by: null
     })
     .eq('id', table_id)
     .select()
