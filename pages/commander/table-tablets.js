@@ -192,8 +192,8 @@ export default function TableTabletsPage() {
 
     const getSeatedCount = (table) => {
         const game = getTableGame(table);
-        if (table.seats && table.seats.length > 0) return table.seats.length;
         if (game && game.current_players) return game.current_players;
+        if (table.seats && table.seats.length > 0) return table.seats.length;
         return 0;
     };
 

@@ -2282,7 +2282,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
                 {/* Action Bar */}
                 <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button onClick={onBack} style={{
+                    <button onClick={() => { if (window.history.length > 1) router.back(); else onBack(); }} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Back</button>
@@ -3016,7 +3016,33 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 )
             }
 
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            {/* Floating Green Live Events Button */}
+            {(() => {
+                const liveTourneys = tournaments.filter(t => ['running', 'break', 'final_table'].includes(t.status));
+                if (liveTourneys.length === 0) return null;
+                const lt = liveTourneys[0];
+                return (
+                    <div
+                        onClick={() => lt.id && window.open(`/commander/tournaments/${lt.id}/public`, '_blank')}
+                        style={{
+                            position: 'fixed', bottom: 24, right: 24, zIndex: 1000, cursor: lt.id ? 'pointer' : 'default',
+                            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 22px',
+                            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                            borderRadius: 50, boxShadow: '0 4px 24px rgba(34,197,94,0.45), 0 0 0 3px rgba(34,197,94,0.15)',
+                            color: '#fff', fontFamily: 'inherit',
+                            transition: 'transform 0.2s, box-shadow 0.2s'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(34,197,94,0.55), 0 0 0 4px rgba(34,197,94,0.2)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 24px rgba(34,197,94,0.45), 0 0 0 3px rgba(34,197,94,0.15)'; }}
+                    >
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 6px rgba(255,255,255,0.8)', animation: 'pulse 1.5s infinite' }} />
+                        <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.3 }}>🏆 LIVE EVENT{liveTourneys.length > 1 ? `S (${liveTourneys.length})` : ''}</span>
+                        <span style={{ fontSize: 12, opacity: 0.9, fontWeight: 500 }}>{lt.name}</span>
+                    </div>
+                );
+            })()}
+
+            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
         </div >
     );
 }
@@ -3151,7 +3177,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Live Games</h2>
                         <p style={{ margin: '2px 0 0', fontSize: 13, opacity: 0.8 }}>{pageName || 'Club Games'}</p>
                     </div>
-                    {onClose && <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
+                    {onClose && <button onClick={() => { if (window.history.length > 1) router.back(); else onClose(); }} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
                 </div>
 
                 {/* Follow Status Banner */}
