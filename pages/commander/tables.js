@@ -14,7 +14,11 @@ const STATUS_COLORS = {
   available: { bg: 'rgba(16,185,129,0.15)', border: '#10B981', text: '#10B981', label: 'Available' },
   in_use: { bg: 'rgba(34,211,238,0.15)', border: '#22D3EE', text: '#22D3EE', label: 'In Use' },
   reserved: { bg: 'rgba(245,158,11,0.15)', border: '#F59E0B', text: '#F59E0B', label: 'Reserved' },
-  maintenance: { bg: 'rgba(107,114,128,0.15)', border: '#6B7280', text: '#6B7280', label: 'Maintenance' },
+};
+
+const PURPOSE_COLORS = {
+  cash_game: { bg: 'rgba(16,185,129,0.15)', border: '#10B981', text: '#10B981', label: 'Cash Game' },
+  tournament: { bg: 'rgba(168,85,247,0.15)', border: '#A855F7', text: '#A855F7', label: 'Tournament' },
 };
 
 const GAME_TYPES = ['NLH', 'PLO', 'NLO8', 'PLO8', 'Mixed', 'Stud', 'Razz', 'Draw'];
@@ -211,7 +215,7 @@ export default function CommanderTablesPage() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const updates = { status };
-      if (status === 'available' || status === 'maintenance') {
+      if (status === 'available') {
         updates.game_type = null;
         updates.stakes = null;
       }
@@ -255,6 +259,22 @@ export default function CommanderTablesPage() {
         await fetchTables();
       }
     } catch (err) { console.error('Add table error:', err); }
+  };
+
+  // Set table purpose (cash_game or tournament)
+  const handleSetPurpose = async (purpose) => {
+    if (!selectedTable) return;
+    setActionLoading(true);
+    try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      await fetch(`/api/commander/tables/${selectedTable.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        body: JSON.stringify({ table_purpose: purpose })
+      });
+      await fetchTables();
+    } catch (err) { console.error('Set purpose error:', err); }
+    finally { setActionLoading(false); }
   };
 
   // Update selectedTableId ref when tables refresh
@@ -577,19 +597,37 @@ export default function CommanderTablesPage() {
                                 </div>
 
                                 {/* Quick Actions */}
+                                {/* Table Purpose Toggle */}
+                                <div style={{ marginBottom: 10, display: 'flex', gap: 8 }}>
+                                  {Object.entries(PURPOSE_COLORS).map(([key, pc]) => {
+                                    const isActive = (table.table_purpose || 'cash_game') === key;
+                                    return (
+                                      <button key={key} onClick={(e) => { e.stopPropagation(); handleSetPurpose(key); }} disabled={actionLoading}
+                                        style={{
+                                          flex: 1, padding: '8px 14px', fontSize: '13px', fontWeight: 700,
+                                          borderRadius: '8px', cursor: 'pointer',
+                                          background: isActive ? pc.bg : 'rgba(30,58,95,0.4)',
+                                          color: isActive ? pc.text : '#64748B',
+                                          border: `2px solid ${isActive ? pc.border : '#1E3A5F'}`,
+                                          opacity: actionLoading ? 0.5 : 1,
+                                        }}
+                                      >{pc.label}</button>
+                                    );
+                                  })}
+                                </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                  {['available', 'reserved', 'maintenance'].filter(s => s !== table.status).map(status => {
+                                  {['available', 'reserved'].filter(s => s !== table.status).map(status => {
                                     const sc = STATUS_COLORS[status];
                                     return (
                                       <button
                                         key={status}
                                         onClick={(e) => { e.stopPropagation(); handleSetStatus(status); }}
-                                        disabled={actionLoading || (table.status === 'in_use' && status !== 'maintenance')}
+                                        disabled={actionLoading}
                                         style={{
                                           padding: '8px 14px', fontSize: '13px', fontWeight: 600,
                                           borderRadius: '8px', cursor: 'pointer',
                                           background: sc.bg, color: sc.text, border: `1px solid ${sc.border}40`,
-                                          opacity: (actionLoading || (table.status === 'in_use' && status !== 'maintenance')) ? 0.4 : 1,
+                                          opacity: actionLoading ? 0.4 : 1,
                                         }}
                                       >
                                         Set {sc.label}
@@ -657,8 +695,15 @@ export default function CommanderTablesPage() {
                                 {sc.label}
                               </span>
                             </div>
-                            <div style={{ marginTop: '6px', color: '#64748B', fontSize: '12px' }}>
-                              {table.max_seats || 9} seats — Ready
+                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#64748B', fontSize: '12px' }}>{table.max_seats || 9} seats</span>
+                              <span style={{
+                                fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                                background: (table.table_purpose === 'tournament' ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game).bg,
+                                color: (table.table_purpose === 'tournament' ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game).text,
+                                border: `1px solid ${(table.table_purpose === 'tournament' ? PURPOSE_COLORS.tournament : PURPOSE_COLORS.cash_game).border}40`,
+                                textTransform: 'uppercase',
+                              }}>{table.table_purpose === 'tournament' ? 'TOURNAMENT' : 'CASH GAME'}</span>
                             </div>
                           </button>
                         );
@@ -682,7 +727,7 @@ export default function CommanderTablesPage() {
                         </div>
 
                         {/* Start Game */}
-                        {selectedTable.status !== 'maintenance' && (
+                        {selectedTable.status !== 'in_use' && (
                           <>
                             {!showStartGame ? (
                               <button
@@ -763,8 +808,26 @@ export default function CommanderTablesPage() {
                         )}
 
                         {/* Quick Actions */}
+                        {/* Table Purpose Toggle */}
+                        <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+                          {Object.entries(PURPOSE_COLORS).map(([key, pc]) => {
+                            const isActive = (selectedTable.table_purpose || 'cash_game') === key;
+                            return (
+                              <button key={key} onClick={() => handleSetPurpose(key)} disabled={actionLoading}
+                                style={{
+                                  flex: 1, padding: '10px 14px', fontSize: '14px', fontWeight: 700,
+                                  borderRadius: '8px', cursor: 'pointer',
+                                  background: isActive ? pc.bg : 'rgba(30,58,95,0.4)',
+                                  color: isActive ? pc.text : '#64748B',
+                                  border: `2px solid ${isActive ? pc.border : '#1E3A5F'}`,
+                                  opacity: actionLoading ? 0.5 : 1,
+                                }}
+                              >{pc.label}</button>
+                            );
+                          })}
+                        </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {['available', 'reserved', 'maintenance'].filter(s => s !== selectedTable.status).map(status => {
+                          {['available', 'reserved'].filter(s => s !== selectedTable.status).map(status => {
                             const sc = STATUS_COLORS[status];
                             return (
                               <button key={status} onClick={() => handleSetStatus(status)} disabled={actionLoading}

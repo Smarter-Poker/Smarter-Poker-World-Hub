@@ -95,7 +95,7 @@ async function handlePatch(req, res, tableId) {
       });
     }
 
-    const { table_name, max_seats, status, features, position_x, position_y, game_type, stakes } = req.body;
+    const { table_name, max_seats, status, features, position_x, position_y, game_type, stakes, table_purpose } = req.body;
 
     // Verify table exists
     const { data: existing, error: fetchError } = await supabase
@@ -120,6 +120,7 @@ async function handlePatch(req, res, tableId) {
     if (position_y !== undefined) updates.position_y = position_y;
     if (game_type !== undefined) updates.game_type = game_type;
     if (stakes !== undefined) updates.stakes = stakes;
+    if (table_purpose !== undefined) updates.table_purpose = table_purpose;
 
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {

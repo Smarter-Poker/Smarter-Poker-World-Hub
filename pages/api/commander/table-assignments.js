@@ -187,8 +187,8 @@ async function handlePut(req, res, venueId, staffUserId) {
   if (!['inactive', 'cash', 'tournament'].includes(mode)) {
     return res.status(400).json({ success: false, error: 'mode must be inactive, cash, or tournament' });
   }
-  if (mode === 'cash' && (!game_type || !stakes)) {
-    return res.status(400).json({ success: false, error: 'game_type and stakes required for cash mode' });
+  if (mode === 'cash' && game_type && !stakes) {
+    // stakes is optional — only validate if game_type is provided
   }
   if (mode === 'tournament' && !tournament_id) {
     return res.status(400).json({ success: false, error: 'tournament_id required for tournament mode' });

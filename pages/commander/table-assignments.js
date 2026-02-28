@@ -29,7 +29,6 @@ export default function TableAssignments() {
   const router = useRouter();
   const [tables, setTables] = useState([]);
   const [tournaments, setTournaments] = useState([]);
-  const [gameTypes, setGameTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -37,8 +36,6 @@ export default function TableAssignments() {
   // Assignment modal state
   const [selectedTable, setSelectedTable] = useState(null);
   const [assignMode, setAssignMode] = useState('inactive');
-  const [cashGame, setCashGame] = useState('NLH');
-  const [cashStakes, setCashStakes] = useState('');
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(null);
@@ -58,31 +55,13 @@ export default function TableAssignments() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Get venue_id from staff session for game types query
-      let venueId = '';
-      try {
-        const sess = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-        venueId = sess.venue_id || '';
-      } catch { }
-
-      const [tablesRes, gameTypesRes] = await Promise.all([
-        fetch('/api/commander/table-assignments', { headers: getHeaders() }),
-        venueId ? fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers: getHeaders() }).catch(() => null) : Promise.resolve(null)
-      ]);
-
-      const tablesJson = await tablesRes.json();
-      if (tablesJson.success) {
-        setTables(tablesJson.data.tables || []);
-        setTournaments(tablesJson.data.tournaments || []);
+      const res = await fetch('/api/commander/table-assignments', { headers: getHeaders() });
+      const json = await res.json();
+      if (json.success) {
+        setTables(json.data.tables || []);
+        setTournaments(json.data.tournaments || []);
       } else {
-        setError(tablesJson.error || 'Failed to load tables');
-      }
-
-      if (gameTypesRes) {
-        const gtJson = await gameTypesRes.json();
-        if (gtJson.success && Array.isArray(gtJson.data)) {
-          setGameTypes(gtJson.data);
-        }
+        setError(json.error || 'Failed to load tables');
       }
     } catch (err) {
       console.error(err);
@@ -100,8 +79,6 @@ export default function TableAssignments() {
   const openAssign = (table) => {
     setSelectedTable(table);
     setAssignMode(table.mode || 'inactive');
-    setCashGame(table.game_type || 'NLH');
-    setCashStakes(table.stakes || '');
     setSelectedTournament(table.tournament_id || null);
     setError(null);
   };
@@ -112,15 +89,6 @@ export default function TableAssignments() {
     setError(null);
     try {
       const body = { table_id: selectedTable.id, mode: assignMode };
-      if (assignMode === 'cash') {
-        body.game_type = cashGame;
-        body.stakes = cashStakes;
-        if (!cashStakes) {
-          setError('Please select stakes');
-          setSaving(false);
-          return;
-        }
-      }
       if (assignMode === 'tournament') {
         body.tournament_id = selectedTournament;
         if (!selectedTournament) {
@@ -137,7 +105,7 @@ export default function TableAssignments() {
       });
       const json = await res.json();
       if (json.success) {
-        setSuccess(`Table ${selectedTable.table_number} assigned to ${assignMode === 'inactive' ? 'inactive' : assignMode === 'cash' ? `${cashGame} ${cashStakes}` : 'tournament'}`);
+        setSuccess(`Table ${selectedTable.table_number} → ${assignMode === 'inactive' ? 'Inactive' : assignMode === 'cash' ? 'Cash Game' : 'Tournament'}`);
         setTimeout(() => setSuccess(null), 3000);
         setSelectedTable(null);
         await fetchData();
@@ -173,21 +141,6 @@ export default function TableAssignments() {
     } catch (err) { console.error(err); }
     finally { setClosing(null); }
   };
-
-  // Unique game types + stakes from custom game types or hardcoded fallbacks
-  const availableGameTypes = gameTypes.length > 0
-    ? [...new Set(gameTypes.map(gt => gt.short_code || gt.game_type))]
-    : ['NLH', 'PLO', 'Mixed', 'Omaha', 'Stud'];
-
-  const availableStakes = gameTypes.length > 0
-    ? [...new Set(gameTypes.filter(gt => (gt.short_code || gt.game_type) === cashGame).map(gt => gt.stakes).filter(Boolean))]
-    : {
-      NLH: ['$1/$2', '$1/$3', '$2/$5', '$5/$10', '$10/$25'],
-      PLO: ['$1/$2', '$2/$5', '$5/$10', '$5/$25'],
-      Mixed: ['$2/$4', '$4/$8', '$10/$20'],
-      Omaha: ['$2/$4', '$4/$8', '$5/$10'],
-      Stud: ['$1/$3', '$2/$4', '$3/$6']
-    }[cashGame] || [];
 
   // Stats
   const activeCash = tables.filter(t => t.mode === 'cash').length;
@@ -422,41 +375,7 @@ export default function TableAssignments() {
                   </div>
                 </div>
 
-                {/* Cash Game Options */}
-                {assignMode === 'cash' && (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-[#B0B3B8] mb-2 font-medium">Game Type</p>
-                      <div className="flex flex-wrap gap-2">
-                        {availableGameTypes.map(g => (
-                          <button key={g} onClick={() => { setCashGame(g); setCashStakes(''); }}
-                            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${cashGame === g ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                              }`}>
-                            {g}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#B0B3B8] mb-2 font-medium">Stakes</p>
-                      <div className="flex flex-wrap gap-2">
-                        {availableStakes.map(s => (
-                          <button key={s} onClick={() => setCashStakes(s)}
-                            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${cashStakes === s ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                              }`}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                      {availableStakes.length === 0 && (
-                        <div className="mt-2">
-                          <input type="text" value={cashStakes} onChange={e => setCashStakes(e.target.value)}
-                            placeholder="e.g. $1/$3" className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#31A24C]" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Tournament Selection */}
                 {assignMode === 'tournament' && (
