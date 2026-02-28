@@ -103,8 +103,16 @@ export default function ClockDisplay() {
         if (json.success) {
           setData(json.data);
           const cs = json.data.clock?.clock_state;
-          if (cs?.remaining_seconds !== undefined) {
+          if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
             setSeconds(cs.remaining_seconds);
+          } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
+            // Fallback: use level duration from blind structure if clock hasn't started
+            const blindStructure = json.data.tournament?.blind_structure || [];
+            const currentLvl = json.data.clock?.current_level || 0;
+            const levelData = blindStructure[currentLvl];
+            if (levelData?.duration_minutes) {
+              setSeconds(levelData.duration_minutes * 60);
+            }
           }
           isRunningRef.current = cs?.status === 'running';
         }
@@ -282,7 +290,7 @@ export default function ClockDisplay() {
             <div
               style={{
                 ...S.timer,
-                color: isBreak ? '#F59E0B' : displaySeconds <= 60 ? '#EF4444' : theme.accent,
+                color: '#FFFFFF',
                 cursor: 'pointer'
               }}
               onClick={toggleControls}
@@ -412,16 +420,16 @@ const S = {
   timer: {
     fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
-    fontFamily: "'Inter', monospace", padding: '8px 0'
+    fontFamily: "'Inter', monospace", padding: '8px 0', textAlign: 'center', width: '100%'
   },
   blindsBlock: {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
     width: '100%', textAlign: 'center', padding: '8px 16px'
   },
-  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500 },
-  blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5 },
-  blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15 },
-  blindsAnte: { fontSize: 34, fontWeight: 700 },
+  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500, color: '#FFFFFF' },
+  blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5, color: '#FFFFFF' },
+  blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15, color: '#FFFFFF' },
+  blindsAnte: { fontSize: 34, fontWeight: 700, color: '#FFFFFF' },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
