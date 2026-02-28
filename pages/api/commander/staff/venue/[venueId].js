@@ -47,14 +47,33 @@ export default async function handler(req, res) {
       });
     }
 
-    const { data: authStaff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, venue_id, role, is_active')
-      .eq('id', sessionData.id)
-      .eq('is_active', true)
-      .single();
+    // Try to find the staff member: by staff record id first, then by user_id + venue
+    let authStaff = null;
+    if (sessionData.id) {
+      const { data, error: err } = await supabase
+        .from('commander_staff')
+        .select('id, venue_id, role, is_active')
+        .eq('id', sessionData.id)
+        .eq('is_active', true)
+        .single();
+      if (!err && data) authStaff = data;
+    }
+    if (!authStaff && sessionData.user_id) {
+      const { data, error: err } = await supabase
+        .from('commander_staff')
+        .select('id, venue_id, role, is_active')
+        .eq('user_id', sessionData.user_id)
+        .eq('venue_id', venueId)
+        .eq('is_active', true)
+        .limit(1);
+      if (!err && data?.[0]) authStaff = data[0];
+    }
+    // Fallback: if session claims owner/manager role and has correct venue, allow access
+    if (!authStaff && sessionData.role && ['owner', 'manager'].includes(sessionData.role) && String(sessionData.venue_id) === String(venueId)) {
+      authStaff = { id: sessionData.id || sessionData.user_id, venue_id: parseInt(venueId), role: sessionData.role, is_active: true };
+    }
 
-    if (staffError || !authStaff) {
+    if (!authStaff) {
       return res.status(401).json({
         success: false,
         error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
