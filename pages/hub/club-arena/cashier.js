@@ -27,6 +27,25 @@ const FB = {
 const BUYIN_PRESETS = [100, 500, 1000, 5000];
 const CASHOUT_PRESETS = [100, 500, 1000, 'All'];
 
+// Helper: get auth token for API calls
+const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+};
+
+const apiCall = async (endpoint, body) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API call failed');
+    return data;
+};
+
 export default function Cashier() {
     const router = useRouter();
     const { club: clubIdParam } = router.query;
@@ -147,61 +166,17 @@ export default function Cashier() {
 
         setProcessing(true);
         try {
-            // Read fresh balances to prevent stale-state overwrites
-            const { data: freshProfile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', user.id)
-                .single();
-            const currentDiamonds = freshProfile?.diamonds || 0;
-            if (diamondCost > currentDiamonds) {
-                showToast(`Not enough diamonds. Need ${diamondCost}, have ${currentDiamonds}`, 'error');
-                setProcessing(false);
-                return;
-            }
-
-            const { data: freshMember } = await supabase
-                .from('club_members')
-                .select('chip_balance')
-                .eq('club_id', club.id)
-                .eq('user_id', user.id)
-                .single();
-            const currentChips = freshMember?.chip_balance || 0;
-
-            // 1. Deduct diamonds from profile
-            const { error: diamondError } = await supabase
-                .from('profiles')
-                .update({ diamonds: currentDiamonds - diamondCost })
-                .eq('id', user.id);
-
-            if (diamondError) throw diamondError;
-
-            // 2. Add chips to club membership
-            const { error: chipError } = await supabase
-                .from('club_members')
-                .update({ chip_balance: currentChips + amount })
-                .eq('club_id', club.id)
-                .eq('user_id', user.id);
-
-            if (chipError) throw chipError;
-
-            // 3. Record transaction
-            await supabase.from('chip_transactions').insert({
-                from_user_id: user.id,
-                to_user_id: user.id,
-                club_id: club?.id,
-                transaction_type: 'buyin',
-                amount: amount,
-                notes: `Buy-in: ${amount} chips for ${diamondCost} diamonds`,
+            const result = await apiCall('/api/club-arena/buyin', {
+                clubId: club.id,
+                chipAmount: amount,
             });
 
-            showToast(`Bought ${amount.toLocaleString()} chips!`, 'success');
+            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} 💎`, 'success');
             setShowBuyInModal(false);
             setBuyInAmount('');
             loadData();
         } catch (e) {
-            console.error('[Cashier] Buy-in error:', e);
-            showToast('Buy-in failed. Try again.', 'error');
+            showToast(e.message || 'Buy-in failed. Try again.', 'error');
         } finally {
             setProcessing(false);
         }
@@ -223,122 +198,17 @@ export default function Cashier() {
 
         setProcessing(true);
         try {
-            // Read fresh balances to prevent stale-state overwrites
-            const { data: freshMember } = await supabase
-                .from('club_members')
-                .select('chip_balance')
-                .eq('club_id', club.id)
-                .eq('user_id', user.id)
-                .single();
-            const currentChips = freshMember?.chip_balance || 0;
-
-            // If 'Cash All', recalculate amount from fresh balance
-            if (cashOutAmount === 'All') {
-                amount = currentChips;
-            }
-
-            if (amount > currentChips || amount <= 0) {
-                showToast(currentChips <= 0 ? 'No chips to cash out' : `Max cashout is ${currentChips.toLocaleString()} chips`, 'error');
-                setProcessing(false);
-                return;
-            }
-
-            // Reverse of buy-in: 100 chips = 38 diamonds (calculated from definitive amount)
-            const diamondsReturned = Math.floor((amount / 100) * 38);
-
-            const { data: freshProfile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', user.id)
-                .single();
-            const currentDiamonds = freshProfile?.diamonds || 0;
-
-            // 1. Deduct chips from club membership
-            const { error: chipError } = await supabase
-                .from('club_members')
-                .update({ chip_balance: currentChips - amount })
-                .eq('club_id', club.id)
-                .eq('user_id', user.id);
-
-            if (chipError) throw chipError;
-
-            // 2. Add diamonds to profile
-            const { error: diamondError } = await supabase
-                .from('profiles')
-                .update({ diamonds: currentDiamonds + diamondsReturned })
-                .eq('id', user.id);
-
-            if (diamondError) throw diamondError;
-
-            // 3. Record transaction
-            await supabase.from('chip_transactions').insert({
-                from_user_id: user.id,
-                to_user_id: user.id,
-                club_id: club?.id,
-                transaction_type: 'cashout',
-                amount: -amount,
-                notes: `Cash-out: ${amount} chips for ${diamondsReturned} diamonds`,
+            const result = await apiCall('/api/club-arena/request-cashout', {
+                clubId: club.id,
+                amount,
             });
 
-            showToast(`Cashed out ${amount.toLocaleString()} chips → ${diamondsReturned}`, 'success');
+            showToast(result.message || `Cashout request sent! ${amount.toLocaleString()} chips held.`, 'success');
             setShowCashOutModal(false);
             setCashOutAmount('');
             loadData();
-
-            // ═══════════════════════════════════════════════════════════════════════════
-            // NOTIFY AGENT: Send message and push notification on cash-out
-            // Read fresh membership to get current agent_id (not stale state)
-            // ═══════════════════════════════════════════════════════════════════════════
-            const { data: freshMembership } = await supabase
-                .from('club_members')
-                .select('agent_id')
-                .eq('club_id', club.id)
-                .eq('user_id', user.id)
-                .single();
-            if (freshMembership?.agent_id) {
-                try {
-                    // Get user profile for name
-                    const { data: userProfile } = await supabase
-                        .from('profiles')
-                        .select('username, display_name')
-                        .eq('id', user.id)
-                        .single();
-                    const displayName = userProfile?.display_name || userProfile?.username || 'A player';
-
-                    // 1. Create/get conversation and send in-app message
-                    const { data: convId } = await supabase.rpc('fn_get_or_create_conversation', {
-                        user1_id: user.id,
-                        user2_id: freshMembership.agent_id,
-                    });
-                    if (convId) {
-                        await supabase.rpc('fn_send_message', {
-                            p_conversation_id: convId,
-                            p_sender_id: user.id,
-                            p_content: ` Cash-Out Request: I cashed out ${amount.toLocaleString()} chips → ${diamondsReturned}`,
-                        });
-                    }
-
-                    // 2. Send push notification to agent
-                    await fetch('/api/notifications/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            title: ' Cash-Out Request',
-                            message: `${displayName} cashed out ${amount.toLocaleString()} chips`,
-                            url: `/hub/club-arena/messages?club=${clubIdParam}`,
-                            externalUserIds: [freshMembership.agent_id],
-                        }),
-                    });
-
-                    console.log('[Cashier] Agent notified of cash-out');
-                } catch (notifyError) {
-                    console.warn('[Cashier] Failed to notify agent:', notifyError);
-                    // Don't fail the cash-out if notification fails
-                }
-            }
         } catch (e) {
-            console.error('[Cashier] Cash-out error:', e);
-            showToast('Cash-out failed. Try again.', 'error');
+            showToast(e.message || 'Cash-out failed. Try again.', 'error');
         } finally {
             setProcessing(false);
         }
@@ -575,11 +445,14 @@ export default function Cashier() {
                 <div style={S.modalOverlay} onClick={() => !processing && setShowCashOutModal(false)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Cash Out</span>
+                            <span style={S.modalTitle}> Request Cash Out</span>
                             <button style={S.modalClose} onClick={() => !processing && setShowCashOutModal(false)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
                             <label style={S.modalLabel}>How Many Chips To Cash Out?</label>
+                            <p style={{ fontSize: '12px', color: FB.textSecondary, margin: '0 0 12px 0' }}>
+                                Chips will be held until your agent approves the request.
+                            </p>
                             <input
                                 type="number"
                                 value={cashOutAmount === 'All' ? chipBalance : cashOutAmount}
@@ -623,7 +496,7 @@ export default function Cashier() {
                                 onClick={handleCashOut}
                                 disabled={processing || !cashOutAmount}
                             >
-                                {processing ? 'Processing...' : `Cash Out ${(cashOutAmount === 'All' ? chipBalance : parseInt(cashOutAmount || 0)).toLocaleString()} Chips`}
+                                {processing ? 'Processing...' : `Request Cash Out — ${(cashOutAmount === 'All' ? chipBalance : parseInt(cashOutAmount || 0)).toLocaleString()} Chips`}
                             </button>
                         </div>
                     </div>
