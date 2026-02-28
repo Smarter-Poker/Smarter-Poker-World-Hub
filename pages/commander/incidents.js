@@ -24,6 +24,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const INCIDENT_TYPES = [
   { value: 'dispute', label: 'Player Dispute', emoji: '⚔️' },
@@ -390,6 +391,9 @@ export default function IncidentsPage() {
     if (venueId) fetchIncidents();
   }, [venueId]);
 
+  // Commander Data Bus — sync incidents across tabs
+  useCommanderSync(venueId, fetchIncidents, { entities: ['incidents'] });
+
   async function fetchIncidents() {
     setLoading(true);
     try {
@@ -419,6 +423,7 @@ export default function IncidentsPage() {
       if (result.success) {
         setShowCreateModal(false);
         fetchIncidents();
+        broadcastChange('incidents');
       }
     } catch (err) { console.error('Create incident failed:', err); }
   }
@@ -434,6 +439,7 @@ export default function IncidentsPage() {
       });
       setSelectedIncident(null);
       fetchIncidents();
+      broadcastChange('incidents');
     } catch (err) { console.error('Resolve incident failed:', err); }
   }
 

@@ -11,6 +11,7 @@ import {
   Star, BarChart3
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 const VIBE_COLORS = {
   'Action Game': { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', emoji: '🔥' },
@@ -46,6 +47,9 @@ export default function TableVibes() {
   useEffect(() => {
     if (staff?.venue_id) fetchVibes();
   }, [staff, days]);
+
+  // Commander Data Bus — sync table vibes
+  useCommanderSync(staff?.venue_id || '', fetchVibes, { entities: ['tables'] });
 
   const fetchVibes = async () => {
     setLoading(true);

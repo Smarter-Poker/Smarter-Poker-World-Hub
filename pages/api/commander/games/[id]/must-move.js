@@ -120,11 +120,29 @@ async function handlePost(req, res, gameId) {
       });
     }
 
-    if (mainGame.is_must_move) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'CHAIN_ERROR', message: 'Cannot use a must-move game as a parent' }
-      });
+    // Allow chaining: a must-move game CAN be used as a parent (e.g., T7 → T4 → T1).
+    // But prevent circular chains (e.g., A → B → A).
+    if (mainGame.is_must_move && mainGame.parent_game_id) {
+      // Walk the chain to detect a cycle
+      const visited = new Set([gameId, parent_game_id]);
+      let currentId = mainGame.parent_game_id;
+      let depth = 0;
+      while (currentId && depth < 20) {
+        if (visited.has(currentId)) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'CIRCULAR_CHAIN', message: 'This would create a circular must-move chain' }
+          });
+        }
+        visited.add(currentId);
+        const { data: nextGame } = await supabase
+          .from('commander_games')
+          .select('parent_game_id')
+          .eq('id', currentId)
+          .single();
+        currentId = nextGame?.parent_game_id || null;
+        depth++;
+      }
     }
 
     // Set this game as a must-move linked to the parent

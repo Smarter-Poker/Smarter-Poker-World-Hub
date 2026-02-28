@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Star, Eye, EyeOff, Volume2, VolumeX, Image, MonitorPlay } from 'lucide-react';
 
 const DEFAULT_THEME = {
@@ -104,6 +105,9 @@ export default function ClockSetup() {
 
     useEffect(() => { if (staff) fetchPresets(); }, [staff, fetchPresets]);
 
+    // Commander Data Bus — sync clock presets
+    useCommanderSync(staff?.venue_id || '', fetchPresets, { entities: ['tournaments'] });
+
     const startNew = (starterTheme = null) => {
         setEditing('new');
         setFormName(starterTheme?.name || '');
@@ -156,6 +160,7 @@ export default function ClockSetup() {
                 setTimeout(() => setSaved(false), 2000);
                 setEditing(null);
                 fetchPresets();
+                broadcastChange('tournaments');
             }
         } catch (err) { console.error(err); }
         finally { setSaving(false); }
@@ -169,6 +174,7 @@ export default function ClockSetup() {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
             });
             fetchPresets();
+            broadcastChange('tournaments');
             if (editing?.id === presetId) setEditing(null);
         } catch (err) { console.error(err); }
     };

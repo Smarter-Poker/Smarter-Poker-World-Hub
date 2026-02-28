@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronUp, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function ShiftHandoff() {
   const router = useRouter();
@@ -46,6 +47,9 @@ export default function ShiftHandoff() {
   useEffect(() => {
     if (staff?.venue_id) fetchHandoffs();
   }, [staff]);
+
+  // Commander Data Bus — sync handoffs across tabs
+  useCommanderSync(staff?.venue_id || '', fetchHandoffs, { entities: ['staff'] });
 
   const fetchHandoffs = async () => {
     setLoading(true);
@@ -90,6 +94,7 @@ export default function ShiftHandoff() {
         setNotes(''); setIssues(''); setVipAlerts(''); setPendingActions(''); setIncomingName('');
         setMode('history');
         fetchHandoffs();
+        broadcastChange('staff');
       } else {
         setToast({ type: 'error', msg: json.error?.message || 'Failed to submit' });
       }
@@ -115,6 +120,7 @@ export default function ShiftHandoff() {
       if (json.success) {
         setToast({ type: 'success', msg: 'Handoff acknowledged' });
         fetchHandoffs();
+        broadcastChange('staff');
       }
     } catch (err) { console.error(err); }
     finally { setTimeout(() => setToast(null), 3000); }
