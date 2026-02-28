@@ -529,7 +529,7 @@ export default function AnnouncementsDisplay() {
         </div>
 
         {/* Dealer Ticker */}
-        <DealerTicker accentColor="#1877F2" bgColor="#242526" fontSize={16} borderColor="#3A3B3C" speed={10} showBorder={true} />
+        <DealerTicker accentColor="#1877F2" bgColor="#242526" fontSize={16} borderColor="#3A3B3C" speed={60} showBorder={true} />
 
         {/* Bottom bar */}
         <div style={{
