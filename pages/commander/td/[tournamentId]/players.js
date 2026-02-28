@@ -66,17 +66,28 @@ export default function TDPlayers() {
 
   useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 5000); return () => clearInterval(i); }, [fetchFloor]);
 
-  // Build flat player list from tables + eliminated
+  // Build flat player list from full entries array (all statuses)
   const allPlayers = [];
   if (floor) {
-    floor.tables?.forEach(t => {
-      t.players.forEach(p => {
-        allPlayers.push({ ...p, table_number: t.table_number, status: 'active' });
+    // Use the full entries array from API (includes all statuses)
+    if (floor.entries?.length > 0) {
+      floor.entries.forEach(e => {
+        allPlayers.push({
+          ...e,
+          status: e.status === 'seated' ? 'active' : e.status,
+        });
       });
-    });
-    floor.eliminated?.forEach(e => {
-      allPlayers.push({ ...e, status: 'eliminated', current_chips: 0 });
-    });
+    } else {
+      // Fallback to old table-based approach
+      floor.tables?.forEach(t => {
+        t.players.forEach(p => {
+          allPlayers.push({ ...p, table_number: t.table_number, status: 'active' });
+        });
+      });
+      floor.eliminated?.forEach(e => {
+        allPlayers.push({ ...e, status: 'eliminated', current_chips: 0 });
+      });
+    }
   }
 
   const filtered = allPlayers.filter(p => {
@@ -196,8 +207,8 @@ export default function TDPlayers() {
           {FILTERS.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`px-4 py-2 rounded-full text-sm font-medium ${filter === f.key
-                  ? 'bg-[#1877F2] text-white'
-                  : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                ? 'bg-[#1877F2] text-white'
+                : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
                 }`}>
               {f.label}
             </button>
@@ -213,8 +224,8 @@ export default function TDPlayers() {
               className="w-full flex items-center gap-3 px-4 py-3 bg-[#242526] rounded-xl border border-[#3A3B3C] active:bg-[#3A3B3C] text-left"
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-                  player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
-                    'bg-[#B0B3B8]/20 text-[#B0B3B8]'
+                player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                  'bg-[#B0B3B8]/20 text-[#B0B3B8]'
                 }`}>
                 {player.table_number ? `${player.table_number}-${player.seat_number}` : '--'}
               </div>

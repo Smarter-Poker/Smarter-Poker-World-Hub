@@ -176,6 +176,7 @@ export default async function handler(req, res) {
           payout_structure: tournament.payout_structure,
           custom_payouts: tournament.custom_payouts,
           clock_color: tournament.settings?.clock_color,
+          max_entries: tournament.max_entries,
         },
         clock: {
           current_level: currentLevel,
@@ -212,6 +213,25 @@ export default async function handler(req, res) {
           on_break: tournament.clock_state?.on_break || false
         },
         tables,
+        // Full entries list for Players tab — includes ALL statuses
+        entries: entries.map(e => ({
+          entry_id: e.id,
+          player_name: e.player_name,
+          user_id: e.user_id,
+          status: e.status,
+          table_number: e.table_number,
+          seat_number: e.seat_number,
+          current_chips: e.current_chips,
+          starting_chips: e.starting_chips || tournament.starting_chips,
+          rebuy_count: e.rebuy_count || 0,
+          addon_taken: e.addon_taken || false,
+          finish_position: e.finish_position,
+          eliminated_at: e.eliminated_at,
+          payout_amount: e.payout_amount,
+          registered_at: e.created_at,
+          phone: e.phone,
+          metadata: e.metadata,
+        })),
         eliminated: eliminatedEntries
           .sort((a, b) => (b.finish_position || 999) - (a.finish_position || 999))
           .slice(0, 20)
