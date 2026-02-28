@@ -64,15 +64,36 @@ export default async function handler(req, res) {
     const elapsedSeconds = Math.floor((now - new Date(session.started_at)) / 1000);
     const timeRemaining = Math.max(0, totalAllocatedSeconds - elapsedSeconds);
 
-    // Log the time purchase if member exists
+    // Deduct from member's prepaid balance if available
+    let paymentMethod = 'cash_at_table';
     if (session.member_id) {
+      const { data: member } = await supabase
+        .from('commander_members')
+        .select('time_balance_minutes')
+        .eq('id', session.member_id)
+        .single();
+
+      const memberBalance = member?.time_balance_minutes || 0;
+      if (memberBalance >= parseInt(minutes)) {
+        // Deduct from prepaid balance
+        await supabase
+          .from('commander_members')
+          .update({
+            time_balance_minutes: memberBalance - parseInt(minutes),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', session.member_id);
+        paymentMethod = 'from_balance';
+      }
+
+      // Log the time purchase
       await supabase
         .from('commander_time_purchases')
         .insert({
           venue_id: session.venue_id,
           member_id: session.member_id,
           minutes_purchased: parseInt(minutes),
-          payment_method: 'at_table',
+          payment_method: paymentMethod,
           purchased_by: 'dealer'
         });
     }

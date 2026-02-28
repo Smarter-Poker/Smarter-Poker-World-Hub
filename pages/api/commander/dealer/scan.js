@@ -46,6 +46,7 @@ export default async function handler(req, res) {
     const { data: members, error: memberError } = await supabase
       .from('commander_members')
       .select('*')
+      .eq('venue_id', _staff.venue_id)
       .or(`qr_code.eq.${lookupCode},member_number.eq.${lookupCode}`)
       .limit(1);
 

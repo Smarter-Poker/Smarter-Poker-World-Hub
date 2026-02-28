@@ -80,8 +80,43 @@ export default function TableTabletsPage() {
             const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
             const json = await res.json();
             if (json.success) {
-                const tablesArr = Array.isArray(json.data) ? json.data
+                let tablesArr = Array.isArray(json.data) ? json.data
                     : Array.isArray(json.data?.tables) ? json.data.tables : [];
+
+                // For active tables, fetch sessions to get time_remaining for countdown clocks
+                const activeTbls = tablesArr.filter(t => t.status === 'in_use');
+                if (activeTbls.length > 0) {
+                    const sessionsByTable = {};
+                    await Promise.all(activeTbls.map(async (t) => {
+                        const tNum = t.table_number || t.number;
+                        try {
+                            const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+                            const sJson = await sRes.json();
+                            if (sJson.success) sessionsByTable[tNum] = sJson.data || [];
+                        } catch { /* non-fatal */ }
+                    }));
+
+                    // Merge session time_remaining into table seat data
+                    tablesArr = tablesArr.map(t => {
+                        const tNum = t.table_number || t.number;
+                        const tableSessions = sessionsByTable[tNum];
+                        if (!tableSessions || tableSessions.length === 0) return t;
+                        return {
+                            ...t,
+                            seats: tableSessions.map(s => ({
+                                seat_number: s.seat_number,
+                                player_name: s.player_name,
+                                member_id: s.member_id,
+                                membership_tier: s.membership_tier,
+                                time_remaining: s.time_remaining,
+                                is_low: s.is_low,
+                                is_critical: s.is_critical,
+                                is_expired: s.is_expired,
+                            }))
+                        };
+                    });
+                }
+
                 setTables(tablesArr);
             }
         } catch (err) { console.error('Failed to fetch tables:', err); }

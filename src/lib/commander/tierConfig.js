@@ -177,8 +177,6 @@ export const NAV_ROUTE_FEATURES = {
     '/commander/tournaments': 'tournaments',
     '/commander/reports/tournament-results': 'reports', // charity+
     '/commander/leagues': 'tournaments',
-    '/commander/tournament-clock': 'tournaments',
-    '/commander/tournament-clock-setup': 'tournaments',
     '/commander/tournament-controls': 'tournaments',
 
     // ── TABLES & FLOOR CARD ──

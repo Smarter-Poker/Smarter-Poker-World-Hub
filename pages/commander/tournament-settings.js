@@ -288,7 +288,7 @@ export default function TournamentSettingsPage() {
                             </button>
 
                             <button
-                                onClick={() => router.push('/commander/tournament-clock')}
+                                onClick={() => router.push('/commander/tournament-controls')}
                                 className="cmd-panel p-4 flex items-center gap-3 hover:bg-[#132240] transition-colors text-left"
                             >
                                 <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">

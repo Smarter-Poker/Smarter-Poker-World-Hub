@@ -39,12 +39,6 @@ export default function TimeBilling() {
   const [sessions, setSessions] = useState([]);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showNew, setShowNew] = useState(false);
-  const [newPlayer, setNewPlayer] = useState('');
-  const [newTable, setNewTable] = useState('');
-  const [newSeat, setNewSeat] = useState('');
-  const [newRate, setNewRate] = useState('12');
-  const [creating, setCreating] = useState(false);
   const [stopping, setStopping] = useState(null);
   const [payModal, setPayModal] = useState(null);
   const [payAmount, setPayAmount] = useState('');
@@ -64,56 +58,75 @@ export default function TimeBilling() {
       const venueId = getVenueId();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const [sessRes, tabRes] = await Promise.all([
-        fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers }),
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers })
-      ]);
-      const sessJson = await sessRes.json();
+
+      // Fetch tables to know which are active
+      const tabRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       const tabJson = await tabRes.json();
-      if (sessJson.success) setSessions(sessJson.data || []);
-      if (tabJson.success) setTables(tabJson.data || []);
+      const tablesArr = tabJson.success
+        ? (Array.isArray(tabJson.data) ? tabJson.data : tabJson.data?.tables || [])
+        : [];
+      setTables(tablesArr);
+
+      // Fetch active sessions from ALL tables (unified commander_table_sessions)
+      const activeTables = tablesArr.filter(t => t.status === 'in_use');
+      const allSessions = [];
+
+      await Promise.all(activeTables.map(async (t) => {
+        const tNum = t.table_number || t.number;
+        try {
+          const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+          const sJson = await sRes.json();
+          if (sJson.success && sJson.data) {
+            sJson.data.forEach(s => allSessions.push({
+              ...s,
+              id: s.session_id,
+              status: s.is_expired ? 'expired' : 'active',
+              started_at: s.started_at,
+              rate_per_hour: t.rate_per_hour || 12,
+            }));
+          }
+        } catch { /* non-fatal */ }
+      }));
+
+      // Also fetch completed/ended sessions for history view
+      if (filter === 'completed') {
+        try {
+          const histRes = await fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers });
+          const histJson = await histRes.json();
+          if (histJson.success) {
+            const completed = (histJson.data || []).filter(s => s.status === 'completed');
+            setSessions([...allSessions, ...completed]);
+            return;
+          }
+        } catch { /* fall through */ }
+      }
+
+      setSessions(allSessions);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
+  }, [filter]);
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, [fetchData]);
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
-
-  const startSession = async () => {
-    if (!newPlayer.trim()) return;
-    setCreating(true);
-    try {
-      const token = getToken();
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch('/api/commander/time-billing/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({
-          player_name: newPlayer.trim(),
-          table_number: newTable ? parseInt(newTable) : null,
-          seat_number: newSeat ? parseInt(newSeat) : null,
-          rate_per_hour: parseFloat(newRate) || 12
-        })
-      });
-      setNewPlayer(''); setNewTable(''); setNewSeat(''); setShowNew(false);
-      await fetchData();
-    } catch (err) { console.error(err); }
-    finally { setCreating(false); }
-  };
 
   const stopSession = async (sessionId) => {
     setStopping(sessionId);
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/time-billing/sessions/${sessionId}/stop`, {
+      const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       const json = await res.json();
       // Print time billing receipt
       if (json.success && json.data) {
-        printTimeBillingReceipt(json.data);
+        const session = sessions.find(s => s.id === sessionId || s.session_id === sessionId);
+        if (session) printTimeBillingReceipt({
+          ...session,
+          duration_minutes: json.data.elapsed_minutes,
+          total_charge: calculateCharge(session.started_at, session.rate_per_hour || 12),
+        });
       }
       await fetchData();
     } catch (err) { console.error(err); }
@@ -201,10 +214,6 @@ export default function TimeBilling() {
           <div className="flex-1">
             <p className="text-xs text-[#B0B3B8]">{activeSessions.length} active sessions</p>
           </div>
-          <button onClick={() => setShowNew(true)}
-            className="px-3 py-2 rounded-lg bg-[#31A24C] text-white text-sm font-medium flex items-center gap-1.5 active:bg-[#28883F]">
-            <Plus className="w-4 h-4" /> New
-          </button>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
             <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
           </button>
@@ -267,8 +276,12 @@ export default function TimeBilling() {
                     <p className="text-base font-semibold text-white truncate">{session.player_name}</p>
                     <p className="text-xs text-[#B0B3B8]">
                       T{session.table_number || '?'}-S{session.seat_number || '?'} —
-                      {formatDuration(session.started_at)} —
-                      ${session.rate_per_hour}/hr
+                      {formatDuration(session.started_at)}
+                      {session.time_remaining !== undefined && session.time_remaining !== null && (
+                        <> — <span className={`font-mono font-bold ${session.time_remaining <= 0 ? 'text-[#EF4444]' : session.time_remaining <= 300 ? 'text-[#EF4444]' : session.time_remaining <= 900 ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>
+                          {session.time_remaining <= 0 ? 'EXPIRED' : `${Math.floor(session.time_remaining / 60)}m left`}
+                        </span></>
+                      )}
                     </p>
                   </div>
                   <div className="text-right">
@@ -308,51 +321,6 @@ export default function TimeBilling() {
           )}
         </div>
 
-        {/* New Session Modal */}
-        {showNew && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setShowNew(false)}>
-            <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-white">Start Session</h3>
-              <input type="text" value={newPlayer} onChange={e => setNewPlayer(e.target.value)}
-                placeholder="Player Name" autoFocus
-                className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-[#E4E6EB] placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs text-[#B0B3B8] mb-1 block">Table</label>
-                  <input type="number" value={newTable} onChange={e => setNewTable(e.target.value)} placeholder="#"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-3 py-3 text-white text-center focus:outline-none focus:border-[#1877F2]" />
-                </div>
-                <div>
-                  <label className="text-xs text-[#B0B3B8] mb-1 block">Seat</label>
-                  <input type="number" value={newSeat} onChange={e => setNewSeat(e.target.value)} placeholder="#"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-3 py-3 text-white text-center focus:outline-none focus:border-[#1877F2]" />
-                </div>
-                <div>
-                  <label className="text-xs text-[#B0B3B8] mb-1 block">$/Hour</label>
-                  <input type="number" value={newRate} onChange={e => setNewRate(e.target.value)} placeholder="12"
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-3 py-3 text-white text-center focus:outline-none focus:border-[#1877F2]" />
-                </div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {[8, 10, 12, 15, 20, 25].map(r => (
-                  <button key={r} onClick={() => setNewRate(String(r))}
-                    className={`px-3 py-2 rounded-lg text-sm ${newRate === String(r) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
-                    ${r}/hr
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowNew(false)}
-                  className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium active:bg-[#4A4B4C]">Cancel</button>
-                <button onClick={startSession} disabled={!newPlayer.trim() || creating}
-                  className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium active:bg-[#28883F] disabled:opacity-50 flex items-center justify-center gap-2">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                  Start
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Payment Modal */}
         {payModal && (

@@ -28,8 +28,8 @@ function formatMoney(n) {
 }
 
 function formatChipCount(n) {
-  if (!n) return '$0';
-  return '$' + Number(n).toLocaleString();
+  if (!n) return '0';
+  return Number(n).toLocaleString();
 }
 
 function formatElapsed(startTime) {
@@ -42,12 +42,12 @@ function formatElapsed(startTime) {
 }
 
 const CHIP_DENOMS = [
-  { value: 5, bg: '#FFFFFF', border: '#888', textColor: '#000', label: '$5' },
-  { value: 10, bg: '#8B0000', border: '#5C0000', textColor: '#fff', label: '$10' },
-  { value: 25, bg: '#1a3a8a', border: '#0d2060', textColor: '#fff', label: '$25' },
-  { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '$100' },
-  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '$500' },
-  { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '$1,000' },
+  { value: 5, bg: '#FFFFFF', border: '#888', textColor: '#000', label: '5' },
+  { value: 10, bg: '#8B0000', border: '#5C0000', textColor: '#fff', label: '10' },
+  { value: 25, bg: '#1a3a8a', border: '#0d2060', textColor: '#fff', label: '25' },
+  { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '100' },
+  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '500' },
+  { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '1,000' },
 ];
 
 // Multi-tournament clock color themes — up to 6 concurrent tournaments
@@ -206,10 +206,10 @@ export default function ClockDisplay() {
               <div style={S.blindsGame}>{gameType}</div>
               <div style={S.blindsLabel}>Blinds</div>
               <div style={S.blindsValue}>
-                ${(blinds.small_blind || 0).toLocaleString()} / ${(blinds.big_blind || 0).toLocaleString()}
+                {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
               </div>
               {(blinds.ante || 0) > 0 && (
-                <div style={S.blindsAnte}>Ante: ${(blinds.ante || 0).toLocaleString()}</div>
+                <div style={S.blindsAnte}>Ante: {(blinds.ante || 0).toLocaleString()}</div>
               )}
             </div>
 
@@ -217,8 +217,8 @@ export default function ClockDisplay() {
             {nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) ? (
               <div style={S.nextRound}>
                 <strong>Next Round:</strong> {gameType}<br />
-                Blinds: ${(nextBlinds.small_blind || 0).toLocaleString()} / ${(nextBlinds.big_blind || 0).toLocaleString()}
-                {(nextBlinds.ante || 0) > 0 && <><br />Ante: ${(nextBlinds.ante || 0).toLocaleString()}</>}
+                Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
               </div>
             ) : <div style={{ flex: 0 }} />}
           </div>
@@ -305,7 +305,8 @@ const S = {
   rightPanel: { display: 'flex', flexDirection: 'column' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', position: 'relative', padding: '8px 0'
+    justifyContent: 'center', position: 'relative', padding: '8px 0',
+    flex: 1
   },
   statCell: {
     flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',

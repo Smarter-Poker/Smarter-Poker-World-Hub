@@ -177,6 +177,10 @@
       "schedule": "0 10 * * *"
     },
     {
+      "path": "/api/cron/freeroll-qualification-sync",
+      "schedule": "0 */6 * * *"
+    },
+    {
       "path": "/api/cron/trivia-tournaments",
       "schedule": "0 1 * * *"
     },

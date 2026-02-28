@@ -11,7 +11,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Trophy, Plus, Users, Calendar, DollarSign,
   Loader2, ChevronDown, ChevronUp, Star, BarChart3,
-  Clock, Gift, Target, UserPlus, Trash2, Check, X, Edit2
+  Clock, Gift, Target, UserPlus, Trash2, Check, X, Edit2, RefreshCw
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -67,7 +67,9 @@ export default function LeaguesAndFreerollsManagement() {
   const [qualifications, setQualifications] = useState({});
   const [freerollSubmitting, setFreerollSubmitting] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(null);
-  const [addPlayerForm, setAddPlayerForm] = useState({ player_name: '', hours_logged: '', points_earned: '', manually_added: true });
+  const [addPlayerForm, setAddPlayerForm] = useState({ player_name: '', hours_logged: '', points_earned: '', custom_value: '', manually_added: true });
+  const [syncingFreeroll, setSyncingFreeroll] = useState(null);
+  const [freerollFilter, setFreerollFilter] = useState(null); // 'active' | 'qualified' | 'upcoming' | null
   const [freerollForm, setFreerollForm] = useState({
     name: '', description: '', qualification_type: 'cash_hours',
     qualification_threshold: '', qualification_period: 'weekly',
@@ -248,6 +250,7 @@ export default function LeaguesAndFreerollsManagement() {
         player_name: addPlayerForm.player_name.trim(),
         hours_logged: addPlayerForm.hours_logged ? parseFloat(addPlayerForm.hours_logged) : 0,
         points_earned: addPlayerForm.points_earned ? parseInt(addPlayerForm.points_earned) : 0,
+        custom_value: addPlayerForm.custom_value || null,
         manually_added: true,
         is_qualified: addPlayerForm.manually_added,
       };
@@ -260,10 +263,53 @@ export default function LeaguesAndFreerollsManagement() {
       if (json.success) {
         showToast('success', 'Player added');
         setShowAddPlayer(null);
-        setAddPlayerForm({ player_name: '', hours_logged: '', points_earned: '', manually_added: true });
+        setAddPlayerForm({ player_name: '', hours_logged: '', points_earned: '', custom_value: '', manually_added: true });
         fetchQualifications(freerollId);
       } else {
         showToast('error', json.error?.message || 'Failed');
+      }
+    } catch { showToast('error', 'Network error'); }
+  };
+
+  /* ── Sync qualifications from player sessions ── */
+  const handleSyncQualifications = async (freerollId) => {
+    setSyncingFreeroll(freerollId);
+    try {
+      const res = await fetch('/api/cron/freeroll-qualification-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+          'x-staff-session': getStaffSession()
+        },
+        body: JSON.stringify({ freeroll_id: freerollId, manual: true })
+      });
+      const json = await res.json();
+      if (json.success) {
+        const synced = json.results?.[0];
+        showToast('success', `Synced: ${synced?.players_processed || 0} players processed, ${synced?.players_qualified || 0} qualified`);
+        fetchQualifications(freerollId);
+      } else {
+        showToast('error', json.error || 'Sync failed');
+      }
+    } catch { showToast('error', 'Network error during sync'); }
+    finally { setSyncingFreeroll(null); }
+  };
+
+  /* ── Remove player qualification ── */
+  const handleRemovePlayer = async (freerollId, playerId, playerName) => {
+    if (!confirm(`Remove ${playerName || 'this player'} from qualifications?`)) return;
+    try {
+      const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications?player_id=${playerId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('success', `${playerName || 'Player'} removed`);
+        fetchQualifications(freerollId);
+      } else {
+        showToast('error', json.error?.message || 'Failed to remove');
       }
     } catch { showToast('error', 'Network error'); }
   };
@@ -482,24 +528,35 @@ export default function LeaguesAndFreerollsManagement() {
           {/* ═══════════════════════════════════════ */}
           {activeTab === 'freerolls' && (
             <>
-              {/* Stats Row */}
+              {/* Stats Row — clickable filters */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="cmd-panel p-3 text-center">
+                <button onClick={() => setFreerollFilter(freerollFilter === 'active' ? null : 'active')}
+                  className={`cmd-panel p-3 text-center transition-all cursor-pointer hover:bg-[#132240] ${freerollFilter === 'active' ? 'ring-2 ring-[#F59E0B] bg-[#F59E0B]/5' : ''}`}>
                   <Gift className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
                   <p className="text-2xl font-bold text-white">{freerolls.filter(f => ['qualifying', 'running'].includes(f.status)).length}</p>
                   <p className="text-[10px] text-[#64748B] font-semibold uppercase">Active</p>
-                </div>
-                <div className="cmd-panel p-3 text-center">
+                </button>
+                <button onClick={() => setFreerollFilter(freerollFilter === 'qualified' ? null : 'qualified')}
+                  className={`cmd-panel p-3 text-center transition-all cursor-pointer hover:bg-[#132240] ${freerollFilter === 'qualified' ? 'ring-2 ring-[#31A24C] bg-[#31A24C]/5' : ''}`}>
                   <Users className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
                   <p className="text-2xl font-bold text-white">{freerolls.reduce((s, f) => s + (f.qualified_count || 0), 0)}</p>
                   <p className="text-[10px] text-[#64748B] font-semibold uppercase">Qualified</p>
-                </div>
-                <div className="cmd-panel p-3 text-center">
+                </button>
+                <button onClick={() => setFreerollFilter(freerollFilter === 'upcoming' ? null : 'upcoming')}
+                  className={`cmd-panel p-3 text-center transition-all cursor-pointer hover:bg-[#132240] ${freerollFilter === 'upcoming' ? 'ring-2 ring-[#1877F2] bg-[#1877F2]/5' : ''}`}>
                   <Calendar className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
                   <p className="text-2xl font-bold text-white">{freerolls.filter(f => f.status === 'upcoming').length}</p>
                   <p className="text-[10px] text-[#64748B] font-semibold uppercase">Upcoming</p>
-                </div>
+                </button>
               </div>
+
+              {/* Active filter indicator */}
+              {freerollFilter && (
+                <div className="flex items-center justify-between px-3 py-2 bg-[#0D192E] rounded-lg border border-[#1E3A5F]">
+                  <span className="text-xs text-[#94A3B8]">Showing: <strong className="text-white capitalize">{freerollFilter}</strong> freerolls</span>
+                  <button onClick={() => setFreerollFilter(null)} className="text-xs text-[#64748B] hover:text-white">Clear</button>
+                </div>
+              )}
 
               {/* Create button */}
               <div className="flex justify-end">
@@ -629,188 +686,238 @@ export default function LeaguesAndFreerollsManagement() {
                   <p className="text-[#64748B] mb-2">No freerolls created yet.</p>
                   <p className="text-xs text-[#4A5E78]">Create a freeroll to start tracking player qualification by cash game hours, tournament points, or custom rules.</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {freerolls.map(fr => {
-                    const isExpanded = freerollExpandedId === fr.id;
-                    const sc = STATUS_COLORS[fr.status] || STATUS_COLORS.upcoming;
-                    const frQuals = qualifications[fr.id] || [];
-                    const qualLabel = QUAL_TYPES.find(t => t.value === fr.qualification_type)?.label || fr.qualification_type;
+              ) : (() => {
+                const filteredFreerolls = freerollFilter === 'active'
+                  ? freerolls.filter(f => ['qualifying', 'running'].includes(f.status))
+                  : freerollFilter === 'upcoming'
+                    ? freerolls.filter(f => f.status === 'upcoming')
+                    : freerollFilter === 'qualified'
+                      ? freerolls.filter(f => (f.qualified_count || 0) > 0)
+                      : freerolls;
 
-                    return (
-                      <div key={fr.id} className="cmd-panel overflow-hidden">
-                        <button onClick={() => handleFreerollExpand(fr.id)}
-                          className="w-full p-4 flex items-center gap-3 text-left hover:bg-[#132240] transition-colors">
-                          <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center flex-shrink-0">
-                            <Gift className="w-5 h-5 text-[#F59E0B]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-white truncate">{fr.name}</p>
-                            <div className="flex items-center gap-3 mt-0.5 text-xs text-[#64748B]">
-                              <span className="flex items-center gap-1"><Target className="w-3 h-3" /> {qualLabel}</span>
-                              <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {fr.qualified_count || 0} qualified</span>
-                              {fr.prize_pool > 0 && <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${fr.prize_pool}</span>}
+                return filteredFreerolls.length === 0 ? (
+                  <div className="cmd-panel p-8 text-center">
+                    <Gift className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                    <p className="text-[#64748B] mb-2">No {freerollFilter} freerolls found.</p>
+                    <button onClick={() => setFreerollFilter(null)} className="text-xs text-[#1877F2] hover:underline">Show all</button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredFreerolls.map(fr => {
+                      const isExpanded = freerollExpandedId === fr.id;
+                      const sc = STATUS_COLORS[fr.status] || STATUS_COLORS.upcoming;
+                      const frQuals = qualifications[fr.id] || [];
+                      const qualLabel = QUAL_TYPES.find(t => t.value === fr.qualification_type)?.label || fr.qualification_type;
+
+                      return (
+                        <div key={fr.id} className="cmd-panel overflow-hidden">
+                          <button onClick={() => handleFreerollExpand(fr.id)}
+                            className="w-full p-4 flex items-center gap-3 text-left hover:bg-[#132240] transition-colors">
+                            <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center flex-shrink-0">
+                              <Gift className="w-5 h-5 text-[#F59E0B]" />
                             </div>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase ${sc.bg} ${sc.text}`}>{fr.status}</span>
-                          {isExpanded ? <ChevronUp className="w-4 h-4 text-[#64748B]" /> : <ChevronDown className="w-4 h-4 text-[#64748B]" />}
-                        </button>
-
-                        {isExpanded && (
-                          <div className="px-4 pb-4 border-t border-[#1E3A5F]">
-                            {fr.description && (
-                              <p className="text-sm text-[#94A3B8] mt-3 leading-relaxed">{fr.description}</p>
-                            )}
-
-                            {/* Rules summary */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                              <div className="bg-[#0D192E] rounded-lg p-3 text-center">
-                                <p className="text-[10px] text-[#64748B] font-semibold uppercase">Type</p>
-                                <p className="text-xs font-bold text-[#F59E0B]">{qualLabel}</p>
-                              </div>
-                              <div className="bg-[#0D192E] rounded-lg p-3 text-center">
-                                <p className="text-[10px] text-[#64748B] font-semibold uppercase">Threshold</p>
-                                <p className="text-sm font-bold text-white">
-                                  {fr.qualification_type === 'open' ? 'Open' :
-                                    fr.qualification_type === 'cash_hours' ? `${fr.qualification_threshold || 0}h` :
-                                      fr.qualification_type === 'tournament_points' ? `${fr.qualification_threshold || 0} pts` :
-                                        fr.qualification_threshold || 'Custom'}
-                                </p>
-                              </div>
-                              <div className="bg-[#0D192E] rounded-lg p-3 text-center">
-                                <p className="text-[10px] text-[#64748B] font-semibold uppercase">Period</p>
-                                <p className="text-sm font-bold text-white capitalize">{fr.qualification_period || 'N/A'}</p>
-                              </div>
-                              <div className="bg-[#0D192E] rounded-lg p-3 text-center">
-                                <p className="text-[10px] text-[#64748B] font-semibold uppercase">Date</p>
-                                <p className="text-sm font-bold text-white">
-                                  {fr.scheduled_date ? new Date(fr.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
-                                </p>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-white truncate">{fr.name}</p>
+                              <div className="flex items-center gap-3 mt-0.5 text-xs text-[#64748B]">
+                                <span className="flex items-center gap-1"><Target className="w-3 h-3" /> {qualLabel}</span>
+                                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {fr.qualified_count || 0} qualified</span>
+                                {fr.prize_pool > 0 && <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${fr.prize_pool}</span>}
                               </div>
                             </div>
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase ${sc.bg} ${sc.text}`}>{fr.status}</span>
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-[#64748B]" /> : <ChevronDown className="w-4 h-4 text-[#64748B]" />}
+                          </button>
 
-                            {fr.qualification_rules_text && (
-                              <div className="mt-2 p-2 bg-[#0D192E]/50 rounded-lg text-xs text-[#94A3B8] italic">
-                                {fr.qualification_rules_text}
+                          {isExpanded && (
+                            <div className="px-4 pb-4 border-t border-[#1E3A5F]">
+                              {fr.description && (
+                                <p className="text-sm text-[#94A3B8] mt-3 leading-relaxed">{fr.description}</p>
+                              )}
+
+                              {/* Rules summary */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                                <div className="bg-[#0D192E] rounded-lg p-3 text-center">
+                                  <p className="text-[10px] text-[#64748B] font-semibold uppercase">Type</p>
+                                  <p className="text-xs font-bold text-[#F59E0B]">{qualLabel}</p>
+                                </div>
+                                <div className="bg-[#0D192E] rounded-lg p-3 text-center">
+                                  <p className="text-[10px] text-[#64748B] font-semibold uppercase">Threshold</p>
+                                  <p className="text-sm font-bold text-white">
+                                    {fr.qualification_type === 'open' ? 'Open' :
+                                      fr.qualification_type === 'cash_hours' ? `${fr.qualification_threshold || 0}h` :
+                                        fr.qualification_type === 'tournament_points' ? `${fr.qualification_threshold || 0} pts` :
+                                          fr.qualification_threshold || 'Custom'}
+                                  </p>
+                                </div>
+                                <div className="bg-[#0D192E] rounded-lg p-3 text-center">
+                                  <p className="text-[10px] text-[#64748B] font-semibold uppercase">Period</p>
+                                  <p className="text-sm font-bold text-white capitalize">{fr.qualification_period || 'N/A'}</p>
+                                </div>
+                                <div className="bg-[#0D192E] rounded-lg p-3 text-center">
+                                  <p className="text-[10px] text-[#64748B] font-semibold uppercase">Date</p>
+                                  <p className="text-sm font-bold text-white">
+                                    {fr.scheduled_date ? new Date(fr.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
+                                  </p>
+                                </div>
                               </div>
-                            )}
 
-                            {/* Qualifications table */}
-                            <div className="mt-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs text-[#64748B] font-semibold uppercase tracking-wider">
-                                  Player Qualifications ({frQuals.length})
-                                </p>
-                                <button onClick={() => setShowAddPlayer(showAddPlayer === fr.id ? null : fr.id)}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-semibold rounded-lg hover:bg-[#F59E0B]/20 transition-colors">
-                                  <UserPlus className="w-3.5 h-3.5" /> Add Player
-                                </button>
-                              </div>
-
-                              {/* Add Player Form */}
-                              {showAddPlayer === fr.id && (
-                                <div className="mb-3 p-3 bg-[#0A1628] rounded-lg border border-[#F59E0B]/20 space-y-2">
-                                  <input value={addPlayerForm.player_name}
-                                    onChange={e => setAddPlayerForm({ ...addPlayerForm, player_name: e.target.value })}
-                                    placeholder="Player Name *"
-                                    className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {(fr.qualification_type === 'cash_hours' || fr.qualification_type === 'custom') && (
-                                      <input type="number" step="0.5" value={addPlayerForm.hours_logged}
-                                        onChange={e => setAddPlayerForm({ ...addPlayerForm, hours_logged: e.target.value })}
-                                        placeholder="Hours logged"
-                                        className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
-                                    )}
-                                    {(fr.qualification_type === 'tournament_points' || fr.qualification_type === 'custom') && (
-                                      <input type="number" value={addPlayerForm.points_earned}
-                                        onChange={e => setAddPlayerForm({ ...addPlayerForm, points_earned: e.target.value })}
-                                        placeholder="Points earned"
-                                        className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <label className="flex items-center gap-2 text-xs text-[#94A3B8] cursor-pointer">
-                                      <input type="checkbox" checked={addPlayerForm.manually_added}
-                                        onChange={e => setAddPlayerForm({ ...addPlayerForm, manually_added: e.target.checked })}
-                                        className="w-4 h-4 rounded border-[#1E3A5F] bg-[#0D192E] text-[#F59E0B] focus:ring-[#F59E0B]" />
-                                      Auto-qualify (skip threshold)
-                                    </label>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button onClick={() => setShowAddPlayer(null)}
-                                      className="px-3 py-1.5 text-xs text-[#64748B] border border-[#4A5E78] rounded-lg hover:bg-[#132240]">Cancel</button>
-                                    <button onClick={() => handleAddPlayer(fr.id)}
-                                      className="px-4 py-1.5 text-xs bg-[#F59E0B] text-black font-semibold rounded-lg hover:bg-[#E8A317]">Add</button>
-                                  </div>
+                              {fr.qualification_rules_text && (
+                                <div className="mt-2 p-2 bg-[#0D192E]/50 rounded-lg text-xs text-[#94A3B8] italic">
+                                  {fr.qualification_rules_text}
                                 </div>
                               )}
 
-                              {/* Qualifications list */}
-                              {frQuals.length > 0 ? (
-                                <div className="space-y-1">
-                                  {frQuals.map((q, i) => {
-                                    const progress = fr.qualification_threshold > 0
-                                      ? Math.min(100, ((fr.qualification_type === 'cash_hours' ? q.hours_logged : q.points_earned) / fr.qualification_threshold) * 100)
-                                      : (q.is_qualified ? 100 : 0);
+                              {/* Qualifications table */}
+                              <div className="mt-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs text-[#64748B] font-semibold uppercase tracking-wider">
+                                    Player Qualifications ({frQuals.length})
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    {(fr.qualification_type === 'cash_hours' || fr.qualification_type === 'tournament_points') && (
+                                      <button
+                                        onClick={() => handleSyncQualifications(fr.id)}
+                                        disabled={syncingFreeroll === fr.id}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-[#1877F2]/10 text-[#1877F2] text-xs font-semibold rounded-lg hover:bg-[#1877F2]/20 transition-colors disabled:opacity-50">
+                                        <RefreshCw className={`w-3.5 h-3.5 ${syncingFreeroll === fr.id ? 'animate-spin' : ''}`} />
+                                        {syncingFreeroll === fr.id ? 'Syncing...' : 'Sync Qualifications'}
+                                      </button>
+                                    )}
+                                    <button onClick={() => setShowAddPlayer(showAddPlayer === fr.id ? null : fr.id)}
+                                      className="flex items-center gap-1 px-3 py-1.5 bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-semibold rounded-lg hover:bg-[#F59E0B]/20 transition-colors">
+                                      <UserPlus className="w-3.5 h-3.5" /> Add Player
+                                    </button>
+                                  </div>
+                                </div>
 
-                                    return (
-                                      <div key={q.id || i} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${q.is_qualified ? 'bg-[#31A24C]/5 border border-[#31A24C]/20' : 'bg-[#0D192E]'
-                                        }`}>
-                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${q.is_qualified ? 'bg-[#31A24C]/20' : 'bg-[#1E3A5F]'
+                                {/* Add Player Form */}
+                                {showAddPlayer === fr.id && (
+                                  <div className="mb-3 p-3 bg-[#0A1628] rounded-lg border border-[#F59E0B]/20 space-y-2">
+                                    <input value={addPlayerForm.player_name}
+                                      onChange={e => setAddPlayerForm({ ...addPlayerForm, player_name: e.target.value })}
+                                      placeholder="Player Name *"
+                                      className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {(fr.qualification_type === 'cash_hours' || fr.qualification_type === 'custom') && (
+                                        <input type="number" step="0.5" value={addPlayerForm.hours_logged}
+                                          onChange={e => setAddPlayerForm({ ...addPlayerForm, hours_logged: e.target.value })}
+                                          placeholder="Hours logged"
+                                          className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                      )}
+                                      {(fr.qualification_type === 'tournament_points' || fr.qualification_type === 'custom') && (
+                                        <input type="number" value={addPlayerForm.points_earned}
+                                          onChange={e => setAddPlayerForm({ ...addPlayerForm, points_earned: e.target.value })}
+                                          placeholder="Points earned"
+                                          className="px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                      )}
+                                    </div>
+                                    {fr.qualification_type === 'custom' && (
+                                      <input value={addPlayerForm.custom_value}
+                                        onChange={e => setAddPlayerForm({ ...addPlayerForm, custom_value: e.target.value })}
+                                        placeholder="Custom qualification value"
+                                        className="w-full px-3 py-2 bg-[#0D192E] border border-[#1E3A5F] rounded-lg text-white text-sm placeholder-[#4A5E78] focus:border-[#F59E0B] focus:outline-none" />
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                      <label className="flex items-center gap-2 text-xs text-[#94A3B8] cursor-pointer">
+                                        <input type="checkbox" checked={addPlayerForm.manually_added}
+                                          onChange={e => setAddPlayerForm({ ...addPlayerForm, manually_added: e.target.checked })}
+                                          className="w-4 h-4 rounded border-[#1E3A5F] bg-[#0D192E] text-[#F59E0B] focus:ring-[#F59E0B]" />
+                                        Auto-qualify (skip threshold)
+                                      </label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button onClick={() => setShowAddPlayer(null)}
+                                        className="px-3 py-1.5 text-xs text-[#64748B] border border-[#4A5E78] rounded-lg hover:bg-[#132240]">Cancel</button>
+                                      <button onClick={() => handleAddPlayer(fr.id)}
+                                        className="px-4 py-1.5 text-xs bg-[#F59E0B] text-black font-semibold rounded-lg hover:bg-[#E8A317]">Add</button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Qualifications list */}
+                                {frQuals.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {frQuals.map((q, i) => {
+                                      const progressValue = fr.qualification_type === 'cash_hours' ? (q.hours_logged || 0)
+                                        : fr.qualification_type === 'tournament_points' ? (q.points_earned || 0)
+                                          : (q.hours_logged || q.points_earned || 0);
+                                      const progress = fr.qualification_threshold > 0
+                                        ? Math.min(100, (progressValue / fr.qualification_threshold) * 100)
+                                        : (q.is_qualified ? 100 : 0);
+
+                                      return (
+                                        <div key={q.id || i} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${q.is_qualified ? 'bg-[#31A24C]/5 border border-[#31A24C]/20' : 'bg-[#0D192E]'
                                           }`}>
-                                          {q.is_qualified
-                                            ? <Check className="w-3.5 h-3.5 text-[#31A24C]" />
-                                            : <span className="text-[10px] font-bold text-[#64748B]">{i + 1}</span>
-                                          }
-                                        </span>
+                                          <span className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${q.is_qualified ? 'bg-[#31A24C]/20' : 'bg-[#1E3A5F]'
+                                            }`}>
+                                            {q.is_qualified
+                                              ? <Check className="w-3.5 h-3.5 text-[#31A24C]" />
+                                              : <span className="text-[10px] font-bold text-[#64748B]">{i + 1}</span>
+                                            }
+                                          </span>
 
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-white text-sm truncate">
-                                            {q.player_name || 'Unknown Player'}
-                                            {q.manually_added && <span className="ml-1 text-[10px] text-[#F59E0B]">(manual)</span>}
-                                          </p>
-                                          {fr.qualification_threshold > 0 && (
-                                            <div className="mt-1 flex items-center gap-2">
-                                              <div className="flex-1 h-1.5 bg-[#1E3A5F] rounded-full overflow-hidden">
-                                                <div className="h-full rounded-full transition-all duration-500"
-                                                  style={{
-                                                    width: `${progress}%`,
-                                                    background: progress >= 100 ? '#31A24C' : '#F59E0B'
-                                                  }} />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-white text-sm truncate">
+                                              {q.player_name || 'Unknown Player'}
+                                              {q.manually_added && <span className="ml-1 text-[10px] text-[#F59E0B]">(manual)</span>}
+                                            </p>
+                                            {fr.qualification_threshold > 0 && (
+                                              <div className="mt-1 flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-[#1E3A5F] rounded-full overflow-hidden">
+                                                  <div className="h-full rounded-full transition-all duration-500"
+                                                    style={{
+                                                      width: `${progress}%`,
+                                                      background: progress >= 100 ? '#31A24C' : '#F59E0B'
+                                                    }} />
+                                                </div>
+                                                <span className="text-[10px] text-[#64748B] font-mono whitespace-nowrap">
+                                                  {fr.qualification_type === 'cash_hours'
+                                                    ? `${q.hours_logged || 0}/${fr.qualification_threshold}h`
+                                                    : fr.qualification_type === 'tournament_points'
+                                                      ? `${q.points_earned || 0}/${fr.qualification_threshold} pts`
+                                                      : fr.qualification_type === 'custom'
+                                                        ? (q.custom_value || `${q.hours_logged || q.points_earned || 0}/${fr.qualification_threshold}`)
+                                                        : `${q.hours_logged || 0}/${fr.qualification_threshold}`
+                                                  }
+                                                </span>
                                               </div>
-                                              <span className="text-[10px] text-[#64748B] font-mono whitespace-nowrap">
-                                                {fr.qualification_type === 'cash_hours'
-                                                  ? `${q.hours_logged || 0}/${fr.qualification_threshold}h`
-                                                  : `${q.points_earned || 0}/${fr.qualification_threshold} pts`
-                                                }
-                                              </span>
-                                            </div>
+                                            )}
+                                          </div>
+
+                                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${q.is_qualified
+                                            ? 'bg-[#31A24C]/10 text-[#31A24C]'
+                                            : 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                                            }`}>
+                                            {q.is_qualified ? 'Qualified' : 'In Progress'}
+                                          </span>
+
+                                          {q.player_id && (
+                                            <button onClick={() => handleRemovePlayer(fr.id, q.player_id, q.player_name)}
+                                              className="p-1 rounded hover:bg-[#EF4444]/10 text-[#64748B] hover:text-[#EF4444] transition-colors ml-1"
+                                              title="Remove player">
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
                                           )}
                                         </div>
-
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${q.is_qualified
-                                          ? 'bg-[#31A24C]/10 text-[#31A24C]'
-                                          : 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                                          }`}>
-                                          {q.is_qualified ? 'Qualified' : 'In Progress'}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <div className="p-4 text-center text-[#64748B] text-sm bg-[#0D192E] rounded-lg">
-                                  No players tracked yet -- use "Add Player" to start tracking qualification
-                                </div>
-                              )}
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-4 text-center text-[#64748B] text-sm bg-[#0D192E] rounded-lg">
+                                    {(fr.qualification_type === 'cash_hours' || fr.qualification_type === 'tournament_points')
+                                      ? 'No players tracked yet — tap "Sync Qualifications" to auto-pull from player sessions'
+                                      : 'No players tracked yet — use "Add Player" to start tracking qualification'}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>

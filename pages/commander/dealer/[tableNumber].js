@@ -133,17 +133,39 @@ export default function DealerTablet() {
 
   useEffect(() => { fetchTable(); const i = setInterval(fetchTable, 10000); return () => clearInterval(i); }, [fetchTable]);
 
-  // Countdown ticker - every second
+  // Store last sync timestamp for drift-free countdown
+  const lastSyncRef = useRef(Date.now());
+  const serverSnapshotRef = useRef({});
+
+  // When seatedPlayers updates from server, snapshot the server values + timestamp
+  useEffect(() => {
+    lastSyncRef.current = Date.now();
+    const snapshot = {};
+    seatedPlayers.forEach(p => {
+      if (p.time_remaining !== null && p.time_remaining !== undefined) {
+        snapshot[p.seat_number] = p.time_remaining;
+      }
+    });
+    serverSnapshotRef.current = snapshot;
+  }, [seatedPlayers.length, seatedPlayers.map(p => p.session_id).join(',')]);
+
+  // Drift-free countdown ticker — computes display time from server anchor
+  const [displayPlayers, setDisplayPlayers] = useState([]);
   useEffect(() => {
     const ticker = setInterval(() => {
-      setSeatedPlayers(prev => prev.map(p => ({
-        ...p,
-        time_remaining: p.time_remaining !== null && p.time_remaining !== undefined
-          ? Math.max(0, p.time_remaining - 1) : null
-      })));
+      const elapsed = Math.floor((Date.now() - lastSyncRef.current) / 1000);
+      setDisplayPlayers(seatedPlayers.map(p => {
+        const serverTime = serverSnapshotRef.current[p.seat_number];
+        if (serverTime !== undefined) {
+          return { ...p, time_remaining: Math.max(0, serverTime - elapsed) };
+        }
+        return p;
+      }));
     }, 1000);
+    // Initialize immediately
+    setDisplayPlayers(seatedPlayers);
     return () => clearInterval(ticker);
-  }, []);
+  }, [seatedPlayers]);
 
   // Break timer
   useEffect(() => {
@@ -343,7 +365,7 @@ export default function DealerTablet() {
 
   const maxSeats = table?.max_seats || 9;
   const seatPositions = getSeatPositions(maxSeats);
-  const lowTimePlayers = seatedPlayers.filter(p => p.time_remaining !== null && p.time_remaining > 0 && p.time_remaining <= 900);
+  const lowTimePlayers = displayPlayers.filter(p => p.time_remaining !== null && p.time_remaining > 0 && p.time_remaining <= 900);
 
   return (
     <>
@@ -410,7 +432,7 @@ export default function DealerTablet() {
               {breakTimer && <p className="text-lg font-mono font-bold text-[#F59E0B]">Break {Math.floor(breakSeconds / 60)}:{(breakSeconds % 60).toString().padStart(2, '0')}</p>}
             </div>
             {seatPositions.map(pos => {
-              const player = seatedPlayers.find(p => p.seat_number === pos.seat);
+              const player = displayPlayers.find(p => p.seat_number === pos.seat);
               const isEmpty = !player;
               const t = player?.time_remaining;
               const isLow = t !== null && t !== undefined && t <= 900 && t > 0;
@@ -431,11 +453,11 @@ export default function DealerTablet() {
                   ) : (
                     <button onClick={() => tournamentMode ? bustOutPlayer(player) : setAddTimePlayer(player)}
                       className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${tournamentMode
-                          ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40 active:bg-[#EF4444]/30'
-                          : isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn'
-                            : isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn'
-                              : isLow ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40'
-                                : 'bg-[#1877F2]/20 border-[#1877F2]/40'
+                        ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40 active:bg-[#EF4444]/30'
+                        : isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn'
+                          : isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn'
+                            : isLow ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40'
+                              : 'bg-[#1877F2]/20 border-[#1877F2]/40'
                         }`}>
                       <span className="text-sm font-bold text-white">{pos.seat}</span>
                     </button>
@@ -467,7 +489,7 @@ export default function DealerTablet() {
         {seatedPlayers.length > 0 && (
           <div className="bg-[#242526] border-t border-[#3A3B3C] px-4 py-2 max-h-44 overflow-y-auto">
             <div className="space-y-1">
-              {seatedPlayers.sort((a, b) => tournamentMode
+              {[...displayPlayers].sort((a, b) => tournamentMode
                 ? (a.seat_number - b.seat_number)
                 : (a.time_remaining ?? Infinity) - (b.time_remaining ?? Infinity)
               ).map(player => {
@@ -479,7 +501,7 @@ export default function DealerTablet() {
                 return (
                   <div key={player.session_id || player.seat_number}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isBusting ? 'bg-[#EF4444]/20' :
-                        isExpired ? 'bg-[#EF4444]/10' : isCritical ? 'bg-[#EF4444]/5' : isLow ? 'bg-[#F59E0B]/5' : 'bg-[#3A3B3C]/30'
+                      isExpired ? 'bg-[#EF4444]/10' : isCritical ? 'bg-[#EF4444]/5' : isLow ? 'bg-[#F59E0B]/5' : 'bg-[#3A3B3C]/30'
                       }`}>
                     <span className="text-xs text-[#B0B3B8] w-6">S{player.seat_number}</span>
                     <span className="text-sm text-white flex-1 truncate">{player.player_name}</span>
@@ -647,9 +669,20 @@ export default function DealerTablet() {
                         <p className="text-xs text-[#B0B3B8] mt-1">Player Needs To Add Time At The Front Desk</p>
                       </div>
                     ) : (
-                      <button onClick={seatPlayer} className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F]">
-                        <CheckCircle2 className="w-5 h-5" /> Seat at S{targetSeat} — {scannedMember.time_balance_minutes} min
-                      </button>
+                      <>
+                        {scannedMember.already_seated && (
+                          <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-3 flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
+                            <div>
+                              <p className="text-sm text-[#F59E0B] font-medium">Already Seated</p>
+                              <p className="text-xs text-[#B0B3B8]">Currently at Table {scannedMember.already_seated.table_number} Seat {scannedMember.already_seated.seat_number}</p>
+                            </div>
+                          </div>
+                        )}
+                        <button onClick={seatPlayer} className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F]">
+                          <CheckCircle2 className="w-5 h-5" /> Seat at S{targetSeat} — {scannedMember.time_balance_minutes} min
+                        </button>
+                      </>
                     )}
                     <button onClick={() => { setScannedMember(null); startCamera(); }} className="w-full py-2 text-[#1877F2] text-sm font-medium">Scan Different Player</button>
                   </div>
