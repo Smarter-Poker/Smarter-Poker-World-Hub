@@ -115,40 +115,9 @@ export default function FloorCalls() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
-  useCommanderSync(venueId, fetchCalls, { entities: ['floor_calls', 'tables'] });
-
-  // Polling + clock
-  useEffect(() => {
-    fetchCalls();
-    const poll = setInterval(fetchCalls, 30000); // fallback — real-time sync handles instant updates
-    const clock = setInterval(() => setNow(Date.now()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
-
-  // Sound alert when new pending calls arrive
-  useEffect(() => {
-    const pendingCount = calls.filter(c => c.status === 'pending').length;
-    if (pendingCount > prevPendingRef.current && soundOn) {
-      playAlert();
-    }
-    prevPendingRef.current = pendingCount;
-  }, [calls, soundOn]);
-
-  const playAlert = () => {
-    try {
-      if (!audioRef.current) {
-        audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAAD+/wIA+/8EAPz/AwD+/wEA//8BAAAA//8AAAEA//8BAAAA/v8CAAEA/v8DAAEA/f8EAAIA/P8GAAQA+v8IAAgA9/8MAA4A8/8SABgA7f8bACMA5f8nADEA2v81AEEA0P9GAE8Axf9eAGMAuf92AHsAr/+SAJEAo/+sAKoAmf/EAMMAlP/dAN0AkP/2APYA');
-      }
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => { });
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    } catch { }
-  };
-
   /* ─── API ──────────────────────────────────────────────────── */
 
-  const fetchCalls = async () => {
+  const fetchCalls = useCallback(async () => {
     try {
       const { token, staffSession, venueId: vid } = getAuth();
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
@@ -169,6 +138,37 @@ export default function FloorCalls() {
       setResolved(resolvedRes.data || []);
     } catch (err) { console.error('Floor calls fetch error:', err); }
     finally { setLoading(false); }
+  }, []);
+
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(venueId, fetchCalls, { entities: ['floor_calls', 'tables'] });
+
+  // Polling + clock
+  useEffect(() => {
+    fetchCalls();
+    const poll = setInterval(fetchCalls, 30000); // fallback — real-time sync handles instant updates
+    const clock = setInterval(() => setNow(Date.now()), 1000);
+    return () => { clearInterval(poll); clearInterval(clock); };
+  }, [fetchCalls]);
+
+  // Sound alert when new pending calls arrive
+  useEffect(() => {
+    const pendingCount = calls.filter(c => c.status === 'pending').length;
+    if (pendingCount > prevPendingRef.current && soundOn) {
+      playAlert();
+    }
+    prevPendingRef.current = pendingCount;
+  }, [calls, soundOn]);
+
+  const playAlert = () => {
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAAD+/wIA+/8EAPz/AwD+/wEA//8BAAAA//8AAAEA//8BAAAA/v8CAAEA/v8DAAEA/f8EAAIA/P8GAAQA+v8IAAgA9/8MAA4A8/8SABgA7f8bACMA5f8nADEA2v81AEEA0P9GAE8Axf9eAGMAuf92AHsAr/+SAJEAo/+sAKoAmf/EAMMAlP/dAN0AkP/2APYA');
+      }
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => { });
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } catch { }
   };
 
   const updateCall = async (id, status, resolution) => {
