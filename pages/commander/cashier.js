@@ -446,7 +446,7 @@ export default function Cashier() {
   return (
     <CommanderLayout title="Cashier" backHref="/commander/dashboard">
       <SEOHead title="Commander — Cashier" description="Club Commander Poker Room Management Tool." noindex={true} />
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <div className="min-h-screen bg-black text-[#E4E6EB] font-['Inter']">
 
         {/* Message Toast */}
         {message && (
@@ -496,10 +496,10 @@ export default function Cashier() {
             )}
 
             {/* ═══ METAL PANEL IMAGE WITH CLICKABLE HOTSPOTS ═══ */}
-            <div style={{ position: 'relative', width: '100%', maxWidth: 520, margin: '0 auto' }}>
+            <div style={{ position: 'relative', width: '100%', margin: '0 auto' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/commander/cashier-panel.png"
+                src="/images/commander/cashier-panel.jpg"
                 alt="Cashier Panel"
                 style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
                 draggable={false}
@@ -629,8 +629,8 @@ export default function Cashier() {
 
         {/* === BUY-IN RECEIPT MODAL === */}
         {showBuyIn && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowBuyIn(false)}>
-            <div className="bg-[#242526] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setShowBuyIn(false)}>
+            <div className="bg-[#242526] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Cash Game Buy-In</h3>
                 <button onClick={() => setShowBuyIn(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
@@ -670,8 +670,8 @@ export default function Cashier() {
 
         {/* === ADD TIME MODAL === */}
         {showAddTime && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowAddTime(false)}>
-            <div className="bg-[#242526] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setShowAddTime(false)}>
+            <div className="bg-[#242526] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Add Time</h3>
                 <button onClick={() => setShowAddTime(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
@@ -710,8 +710,8 @@ export default function Cashier() {
 
         {/* === UPDATE MEMBERSHIP MODAL === */}
         {showMembership && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowMembership(false)}>
-            <div className="bg-[#242526] w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setShowMembership(false)}>
+            <div className="bg-[#242526] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Update Membership</h3>
                 <button onClick={() => setShowMembership(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>

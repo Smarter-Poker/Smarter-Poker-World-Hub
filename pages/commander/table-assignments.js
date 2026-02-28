@@ -2,77 +2,93 @@
  * Table Assignments — Floor Manager Control Center
  * /commander/table-assignments
  *
- * Each physical table (with a tablet) gets assigned to:
- *   - Inactive (table not in use, tablet shows idle screen)
- *   - Cash Game (game type + stakes, tablet shows cash dealer mode)
- *   - Tournament (linked to active tournament, tablet shows bust-out mode)
+ * Each physical table gets assigned to:
+ *   - Inactive (table not in use)
+ *   - Cash Game (game type + stakes)
+ *   - Tournament (linked to active tournament)
  *
- * The dealer tablet reads its table's mode on load and shows the correct interface.
- * Floor manager can change assignments at any time from this page.
+ * Pulls real tables from commander_tables + commander_games JOIN.
+ * Uses x-staff-session header for Commander PIN auth.
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Loader2, RefreshCw, Table2, Trophy, DollarSign,
-  Power, ChevronRight, X, Check, AlertTriangle, Users, Wifi
+  Power, X, Check, AlertTriangle, Users, ChevronDown
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
-const GAME_TYPES = [
-  { type: 'NLH', name: "No Limit Hold'em" },
-  { type: 'PLO', name: 'Pot Limit Omaha' },
-  { type: 'Mixed', name: 'Mixed Game' },
-  { type: 'Omaha', name: 'Omaha Hi-Lo' },
-  { type: 'Stud', name: '7-Card Stud' },
-];
-
-const STAKES_MAP = {
-  NLH: ['$1/$2', '$1/$3', '$2/$5', '$5/$10', '$10/$25'],
-  PLO: ['$1/$2', '$2/$5', '$5/$10', '$5/$25'],
-  Mixed: ['$2/$4', '$4/$8', '$10/$20'],
-  Omaha: ['$2/$4', '$4/$8', '$5/$10'],
-  Stud: ['$1/$3', '$2/$4', '$3/$6']
-};
-
 const MODE_COLORS = {
-  inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', icon: Power },
-  cash: { bg: '#31A24C', border: '#28883F', text: '#fff', icon: DollarSign },
-  tournament: { bg: '#F59E0B', border: '#D97706', text: '#fff', icon: Trophy }
+  inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', label: 'Inactive', icon: Power },
+  cash: { bg: '#31A24C', border: '#28883F', text: '#fff', label: 'Cash Game', icon: DollarSign },
+  tournament: { bg: '#F59E0B', border: '#D97706', text: '#fff', label: 'Tournament', icon: Trophy }
 };
 
 export default function TableAssignments() {
   const router = useRouter();
   const [tables, setTables] = useState([]);
   const [tournaments, setTournaments] = useState([]);
+  const [gameTypes, setGameTypes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  // Assignment modal state
   const [selectedTable, setSelectedTable] = useState(null);
-  const [assignMode, setAssignMode] = useState(null); // 'inactive' | 'cash' | 'tournament'
+  const [assignMode, setAssignMode] = useState('inactive');
   const [cashGame, setCashGame] = useState('NLH');
   const [cashStakes, setCashStakes] = useState('');
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(null);
 
-  const getToken = () => typeof window !== 'undefined'
-    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  // Filter
+  const [filterMode, setFilterMode] = useState('all');
+
+  const getHeaders = () => {
+    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const staffSession = localStorage.getItem('commander_staff') || '';
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'x-staff-session': staffSession
+    };
+  };
 
   const fetchData = useCallback(async () => {
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch('/api/commander/table-assignments', {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
-      });
-      const json = await res.json();
-      if (json.success) {
-        setTables(json.data.tables || []);
-        setTournaments(json.data.tournaments || []);
+      const [tablesRes, gameTypesRes] = await Promise.all([
+        fetch('/api/commander/table-assignments', { headers: getHeaders() }),
+        fetch(`/api/commander/game-types?venue_id=1`, { headers: getHeaders() }).catch(() => null)
+      ]);
+
+      const tablesJson = await tablesRes.json();
+      if (tablesJson.success) {
+        setTables(tablesJson.data.tables || []);
+        setTournaments(tablesJson.data.tournaments || []);
+      } else {
+        setError(tablesJson.error || 'Failed to load tables');
       }
-    } catch (err) { console.error(err); }
+
+      if (gameTypesRes) {
+        const gtJson = await gameTypesRes.json();
+        if (gtJson.success && Array.isArray(gtJson.data)) {
+          setGameTypes(gtJson.data);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load table data');
+    }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const stored = localStorage.getItem('commander_staff');
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
+    fetchData();
+  }, [fetchData, router]);
 
   const openAssign = (table) => {
     setSelectedTable(table);
@@ -80,51 +96,97 @@ export default function TableAssignments() {
     setCashGame(table.game_type || 'NLH');
     setCashStakes(table.stakes || '');
     setSelectedTournament(table.tournament_id || null);
+    setError(null);
   };
 
   const saveAssignment = async () => {
     if (!selectedTable) return;
     setSaving(true);
+    setError(null);
     try {
       const body = { table_id: selectedTable.id, mode: assignMode };
       if (assignMode === 'cash') {
         body.game_type = cashGame;
-        body.stakes = cashStakes || STAKES_MAP[cashGame]?.[0] || '$1/$2';
+        body.stakes = cashStakes;
+        if (!cashStakes) {
+          setError('Please select stakes');
+          setSaving(false);
+          return;
+        }
       }
       if (assignMode === 'tournament') {
         body.tournament_id = selectedTournament;
+        if (!selectedTournament) {
+          setError('Please select a tournament');
+          setSaving(false);
+          return;
+        }
       }
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch('/api/commander/table-assignments', {
+
+      const res = await fetch('/api/commander/table-assignments', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
+        headers: getHeaders(),
         body: JSON.stringify(body)
       });
-      setSelectedTable(null);
-      await fetchData();
-    } catch (err) { console.error(err); }
+      const json = await res.json();
+      if (json.success) {
+        setSuccess(`Table ${selectedTable.table_number} assigned to ${assignMode === 'inactive' ? 'inactive' : assignMode === 'cash' ? `${cashGame} ${cashStakes}` : 'tournament'}`);
+        setTimeout(() => setSuccess(null), 3000);
+        setSelectedTable(null);
+        await fetchData();
+      } else {
+        setError(json.error || 'Failed to save assignment');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to save assignment');
+    }
     finally { setSaving(false); }
   };
 
   const closeTable = async (table) => {
     setClosing(table.id);
     try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch('/api/commander/table-assignments', {
+      const res = await fetch('/api/commander/table-assignments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
+        headers: getHeaders(),
         body: JSON.stringify({ table_id: table.id })
       });
-      await fetchData();
+      const json = await res.json();
+      if (json.success) {
+        setSuccess(`Table ${table.table_number} closed`);
+        setTimeout(() => setSuccess(null), 3000);
+        await fetchData();
+      }
     } catch (err) { console.error(err); }
     finally { setClosing(null); }
   };
+
+  // Unique game types + stakes from custom game types or hardcoded fallbacks
+  const availableGameTypes = gameTypes.length > 0
+    ? [...new Set(gameTypes.map(gt => gt.short_code || gt.game_type))]
+    : ['NLH', 'PLO', 'Mixed', 'Omaha', 'Stud'];
+
+  const availableStakes = gameTypes.length > 0
+    ? [...new Set(gameTypes.filter(gt => (gt.short_code || gt.game_type) === cashGame).map(gt => gt.stakes).filter(Boolean))]
+    : {
+      NLH: ['$1/$2', '$1/$3', '$2/$5', '$5/$10', '$10/$25'],
+      PLO: ['$1/$2', '$2/$5', '$5/$10', '$5/$25'],
+      Mixed: ['$2/$4', '$4/$8', '$10/$20'],
+      Omaha: ['$2/$4', '$4/$8', '$5/$10'],
+      Stud: ['$1/$3', '$2/$4', '$3/$6']
+    }[cashGame] || [];
 
   // Stats
   const activeCash = tables.filter(t => t.mode === 'cash').length;
   const activeTournament = tables.filter(t => t.mode === 'tournament').length;
   const inactive = tables.filter(t => t.mode === 'inactive' || !t.mode).length;
   const totalPlayers = tables.reduce((s, t) => s + (t.active_players || 0), 0);
+
+  // Filter
+  const filteredTables = filterMode === 'all'
+    ? tables
+    : tables.filter(t => (t.mode || 'inactive') === filterMode);
 
   if (loading) return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
@@ -136,7 +198,7 @@ export default function TableAssignments() {
     <CommanderLayout title="Table Assignments" backHref="/commander/dashboard?card=floor">
       <SEOHead
         title="Commander — Table Assignments"
-        description="Club Commander Poker Room Management Tool."
+        description="Assign tables to cash games or tournaments."
         noindex={true}
       />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -152,29 +214,57 @@ export default function TableAssignments() {
           </button>
         </div>
 
+        {/* Success/Error toast */}
+        {success && (
+          <div className="mx-4 mt-3 p-3 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl flex items-center gap-2">
+            <Check className="w-4 h-4 text-[#31A24C] flex-shrink-0" />
+            <span className="text-xs text-[#31A24C] font-medium">{success}</span>
+          </div>
+        )}
+        {error && !selectedTable && (
+          <div className="mx-4 mt-3 p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
+            <span className="text-xs text-[#EF4444] font-medium">{error}</span>
+          </div>
+        )}
+
         {/* Summary bar */}
         <div className="px-4 py-3 flex gap-2">
-          <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center">
+          <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center cursor-pointer"
+            onClick={() => setFilterMode(filterMode === 'cash' ? 'all' : 'cash')}>
             <p className="text-lg font-bold text-[#31A24C]">{activeCash}</p>
             <p className="text-[10px] text-[#31A24C]/80">Cash</p>
           </div>
-          <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center">
+          <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center cursor-pointer"
+            onClick={() => setFilterMode(filterMode === 'tournament' ? 'all' : 'tournament')}>
             <p className="text-lg font-bold text-[#F59E0B]">{activeTournament}</p>
             <p className="text-[10px] text-[#F59E0B]/80">Tournament</p>
           </div>
-          <div className="flex-1 bg-[#3A3B3C]/50 border border-[#3A3B3C] rounded-xl px-3 py-2 text-center">
+          <div className="flex-1 bg-[#3A3B3C]/50 border border-[#3A3B3C] rounded-xl px-3 py-2 text-center cursor-pointer"
+            onClick={() => setFilterMode(filterMode === 'inactive' ? 'all' : 'inactive')}>
             <p className="text-lg font-bold text-[#B0B3B8]">{inactive}</p>
             <p className="text-[10px] text-[#B0B3B8]/80">Inactive</p>
           </div>
-          <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center">
+          <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center cursor-pointer"
+            onClick={() => setFilterMode('all')}>
             <p className="text-lg font-bold text-[#1877F2]">{totalPlayers}</p>
             <p className="text-[10px] text-[#1877F2]/80">Players</p>
           </div>
         </div>
 
+        {/* Filter indicator */}
+        {filterMode !== 'all' && (
+          <div className="mx-4 mb-2 flex items-center justify-between">
+            <span className="text-xs text-[#B0B3B8]">
+              Showing: <strong className="text-white capitalize">{filterMode}</strong> ({filteredTables.length} tables)
+            </span>
+            <button onClick={() => setFilterMode('all')} className="text-xs text-[#1877F2]">Show All</button>
+          </div>
+        )}
+
         {/* Table Grid */}
-        <div className="px-4 pb-4 grid grid-cols-2 gap-3">
-          {tables.map(table => {
+        <div className="px-4 pb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {filteredTables.map(table => {
             const mode = table.mode || 'inactive';
             const mc = MODE_COLORS[mode] || MODE_COLORS.inactive;
             const Icon = mc.icon;
@@ -182,60 +272,65 @@ export default function TableAssignments() {
 
             return (
               <div key={table.id}
-                className="rounded-2xl border-2 overflow-hidden"
+                className="rounded-2xl border-2 overflow-hidden transition-all hover:shadow-lg"
                 style={{ borderColor: mc.border, background: '#242526' }}>
 
                 {/* Mode badge bar */}
-                <div className="px-3 py-2 flex items-center gap-2"
-                  style={{ background: mc.bg + (mode === 'inactive' ? '' : '30') }}>
-                  <Icon className="w-4 h-4" style={{ color: mc.text === '#fff' && mode !== 'inactive' ? mc.bg : mc.text }} />
-                  <span className="text-xs font-bold uppercase tracking-wider"
-                    style={{ color: mc.text === '#fff' && mode !== 'inactive' ? mc.bg : mc.text }}>
-                    {mode === 'inactive' ? 'Inactive' : mode === 'cash' ? 'Cash Game' : 'Tournament'}
+                <div className="px-3 py-1.5 flex items-center gap-1.5"
+                  style={{ background: mode === 'inactive' ? '#3A3B3C' : mc.bg + '20' }}>
+                  <Icon className="w-3.5 h-3.5" style={{ color: mode === 'inactive' ? '#B0B3B8' : mc.bg }} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: mode === 'inactive' ? '#B0B3B8' : mc.bg }}>
+                    {mc.label}
                   </span>
                 </div>
 
                 {/* Table info */}
                 <div className="px-3 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl font-bold text-white">T{table.table_number}</span>
-                    <span className="text-xs text-[#B0B3B8]">{table.max_seats} seats</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xl font-bold text-white">T{table.table_number}</span>
+                    {table.table_name && table.table_name !== `Table ${table.table_number}` && (
+                      <span className="text-[10px] text-[#B0B3B8] truncate ml-1">{table.table_name}</span>
+                    )}
                   </div>
 
-                  {mode === 'cash' && (
-                    <div className="mb-2">
-                      <p className="text-sm font-semibold text-[#31A24C]">{table.game_type} {table.stakes}</p>
-                      <p className="text-xs text-[#B0B3B8]">
-                        {table.active_players || 0} player{(table.active_players || 0) !== 1 ? 's' : ''} seated
-                      </p>
-                    </div>
-                  )}
+                  <div className="mb-2 min-h-[28px]">
+                    {mode === 'cash' && (
+                      <>
+                        <p className="text-sm font-semibold text-[#31A24C]">{table.game_type} {table.stakes}</p>
+                        <p className="text-[10px] text-[#B0B3B8]">
+                          <Users className="w-3 h-3 inline mr-0.5" />
+                          {table.active_players || 0}/{table.max_seats} seated
+                        </p>
+                      </>
+                    )}
 
-                  {mode === 'tournament' && (
-                    <div className="mb-2">
-                      <p className="text-sm font-semibold text-[#F59E0B] truncate">
-                        {tournaments.find(t => t.id === table.tournament_id)?.name || 'Tournament'}
-                      </p>
-                      <p className="text-xs text-[#B0B3B8]">
-                        {table.active_players || 0}/{table.max_seats} seated
-                      </p>
-                    </div>
-                  )}
+                    {mode === 'tournament' && (
+                      <>
+                        <p className="text-xs font-semibold text-[#F59E0B] truncate">
+                          {tournaments.find(t => t.id === table.tournament_id)?.name || 'Tournament'}
+                        </p>
+                        <p className="text-[10px] text-[#B0B3B8]">
+                          {table.active_players || 0}/{table.max_seats} seated
+                        </p>
+                      </>
+                    )}
 
-                  {mode === 'inactive' && (
-                    <p className="text-xs text-[#6A6B6D] mb-2">Not Assigned</p>
-                  )}
+                    {mode === 'inactive' && (
+                      <p className="text-[10px] text-[#6A6B6D]">{table.max_seats} seats — Not Assigned</p>
+                    )}
+                  </div>
 
                   {/* Action buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <button onClick={() => openAssign(table)}
-                      className="flex-1 py-2 rounded-lg bg-[#1877F2] text-white text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1565D8]">
-                      <Table2 className="w-3.5 h-3.5" /> Assign
+                      className="flex-1 py-1.5 rounded-lg bg-[#1877F2] text-white text-[10px] font-semibold flex items-center justify-center gap-1 active:bg-[#1565D8]">
+                      <Table2 className="w-3 h-3" /> Assign
                     </button>
-                    {mode !== 'inactive' && (table.active_players || 0) === 0 && (
+                    {mode !== 'inactive' && (
                       <button onClick={() => closeTable(table)} disabled={isClosing}
-                        className="py-2 px-3 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#EF4444]/20 disabled:opacity-50">
-                        {isClosing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
+                        className="py-1.5 px-2 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-[10px] font-semibold flex items-center gap-1 active:bg-[#EF4444]/20 disabled:opacity-50">
+                        {isClosing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Power className="w-3 h-3" />}
                         Close
                       </button>
                     )}
@@ -246,7 +341,7 @@ export default function TableAssignments() {
           })}
 
           {tables.length === 0 && (
-            <div className="col-span-2 text-center py-16">
+            <div className="col-span-full text-center py-16">
               <Table2 className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
               <p className="text-[#B0B3B8]">No Tables Configured</p>
               <p className="text-xs text-[#6A6B6D] mt-1">Add Tables In The Tables Section First</p>
@@ -263,7 +358,7 @@ export default function TableAssignments() {
               <div className="sticky top-0 bg-[#242526] border-b border-[#3A3B3C] px-5 py-4 flex items-center justify-between z-10">
                 <div>
                   <h3 className="text-lg font-bold text-white">Assign Table {selectedTable.table_number}</h3>
-                  <p className="text-xs text-[#B0B3B8]">{selectedTable.max_seats} seats</p>
+                  <p className="text-xs text-[#B0B3B8]">{selectedTable.table_name} · {selectedTable.max_seats} seats</p>
                 </div>
                 <button onClick={() => setSelectedTable(null)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
                   <X className="w-5 h-5 text-[#B0B3B8]" />
@@ -282,6 +377,14 @@ export default function TableAssignments() {
                   </div>
                 )}
 
+                {/* Error in modal */}
+                {error && (
+                  <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
+                    <span className="text-xs text-[#EF4444]">{error}</span>
+                  </div>
+                )}
+
                 {/* Mode Selection */}
                 <div>
                   <p className="text-xs text-[#B0B3B8] mb-2 font-medium uppercase tracking-wider">Table Mode</p>
@@ -292,11 +395,11 @@ export default function TableAssignments() {
                       { mode: 'tournament', label: 'Tournament', icon: Trophy, color: '#F59E0B' },
                     ].map(opt => (
                       <button key={opt.mode} onClick={() => setAssignMode(opt.mode)}
-                        className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 ${assignMode === opt.mode
-                          ? 'border-[' + opt.color + '] bg-[' + opt.color + ']/10'
-                          : 'border-[#3A3B3C] bg-[#3A3B3C]/30 active:bg-[#3A3B3C]'
-                          }`}
-                        style={assignMode === opt.mode ? { borderColor: opt.color, background: opt.color + '15' } : {}}>
+                        className="py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all"
+                        style={assignMode === opt.mode
+                          ? { borderColor: opt.color, background: opt.color + '15' }
+                          : { borderColor: '#3A3B3C', background: '#3A3B3C30' }
+                        }>
                         <opt.icon className="w-6 h-6" style={{ color: assignMode === opt.mode ? opt.color : '#B0B3B8' }} />
                         <span className="text-xs font-semibold"
                           style={{ color: assignMode === opt.mode ? opt.color : '#B0B3B8' }}>
@@ -313,11 +416,11 @@ export default function TableAssignments() {
                     <div>
                       <p className="text-xs text-[#B0B3B8] mb-2 font-medium">Game Type</p>
                       <div className="flex flex-wrap gap-2">
-                        {GAME_TYPES.map(g => (
-                          <button key={g.type} onClick={() => { setCashGame(g.type); setCashStakes(''); }}
-                            className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cashGame === g.type ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                        {availableGameTypes.map(g => (
+                          <button key={g} onClick={() => { setCashGame(g); setCashStakes(''); }}
+                            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${cashGame === g ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
                               }`}>
-                            {g.type}
+                            {g}
                           </button>
                         ))}
                       </div>
@@ -325,14 +428,20 @@ export default function TableAssignments() {
                     <div>
                       <p className="text-xs text-[#B0B3B8] mb-2 font-medium">Stakes</p>
                       <div className="flex flex-wrap gap-2">
-                        {(STAKES_MAP[cashGame] || []).map(s => (
+                        {availableStakes.map(s => (
                           <button key={s} onClick={() => setCashStakes(s)}
-                            className={`px-4 py-2.5 rounded-xl text-sm font-medium ${cashStakes === s ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${cashStakes === s ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
                               }`}>
                             {s}
                           </button>
                         ))}
                       </div>
+                      {availableStakes.length === 0 && (
+                        <div className="mt-2">
+                          <input type="text" value={cashStakes} onChange={e => setCashStakes(e.target.value)}
+                            placeholder="e.g. $1/$3" className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#31A24C]" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -351,15 +460,16 @@ export default function TableAssignments() {
                       <div className="space-y-2">
                         {tournaments.map(t => (
                           <button key={t.id} onClick={() => setSelectedTournament(t.id)}
-                            className={`w-full text-left px-4 py-3 rounded-xl border-2 ${selectedTournament === t.id
-                              ? 'border-[#F59E0B] bg-[#F59E0B]/10'
-                              : 'border-[#3A3B3C] bg-[#3A3B3C]/30 active:bg-[#3A3B3C]'
-                              }`}>
+                            className="w-full text-left px-4 py-3 rounded-xl border-2 transition-all"
+                            style={selectedTournament === t.id
+                              ? { borderColor: '#F59E0B', background: '#F59E0B15' }
+                              : { borderColor: '#3A3B3C', background: '#3A3B3C30' }
+                            }>
                             <p className={`text-sm font-semibold ${selectedTournament === t.id ? 'text-[#F59E0B]' : 'text-white'}`}>
                               {t.name}
                             </p>
                             <p className="text-xs text-[#B0B3B8]">
-                              {t.game_type} — {t.status} — ${t.buyin_amount || 0} buy-in
+                              {t.game_type || 'NLH'} — {t.status} — ${t.buyin_amount || 0} buy-in
                             </p>
                           </button>
                         ))}
@@ -370,7 +480,7 @@ export default function TableAssignments() {
 
                 {/* Save button */}
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => setSelectedTable(null)}
+                  <button onClick={() => { setSelectedTable(null); setError(null); }}
                     className="flex-1 py-3.5 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-semibold active:bg-[#4A4B4C]">
                     Cancel
                   </button>
@@ -385,8 +495,7 @@ export default function TableAssignments() {
           </div>
         )}
       </div>
-      <style jsx>{`
-`}</style>
+      <style jsx>{``}</style>
     </CommanderLayout>
   );
 }
