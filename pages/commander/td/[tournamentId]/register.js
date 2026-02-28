@@ -10,7 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Loader2, RefreshCw, Search, CheckCircle2, AlertTriangle,
-  UserCheck, DollarSign, Clock, X
+  UserCheck, DollarSign, Clock, X, ListOrdered, Coins
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -170,7 +170,7 @@ export default function TDRegister() {
 
         {/* Entry Info */}
         <div className="px-4 py-3">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3 text-center">
               <p className="text-lg font-bold text-white">{formatMoney(tournament.buyin_amount)}</p>
               <p className="text-[10px] text-[#B0B3B8] uppercase">Buy-In</p>
@@ -180,10 +180,26 @@ export default function TDRegister() {
               <p className="text-[10px] text-[#B0B3B8] uppercase">Rebuy</p>
             </div>
             <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3 text-center">
+              <p className="text-lg font-bold text-[#F59E0B]">{tournament.starting_chips ? formatMoney(tournament.starting_chips).replace('$', '') : '--'}</p>
+              <p className="text-[10px] text-[#B0B3B8] uppercase">Start Chips</p>
+            </div>
+            <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3 text-center">
               <p className="text-lg font-bold text-white">{formatMoney(stats.prize_pool)}</p>
               <p className="text-[10px] text-[#B0B3B8] uppercase">Prize Pool</p>
             </div>
           </div>
+          {/* Max entries indicator */}
+          {tournament.max_entries && (
+            <div className={`mt-2 text-xs text-center py-1.5 rounded-lg ${stats.total_entries >= tournament.max_entries
+                ? 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30'
+                : 'bg-[#3A3B3C]/50 text-[#B0B3B8]'
+              }`}>
+              {stats.total_entries >= tournament.max_entries
+                ? `MAX CAPACITY REACHED (${tournament.max_entries})`
+                : `${tournament.max_entries - (stats.total_entries || 0)} of ${tournament.max_entries} spots remaining`
+              }
+            </div>
+          )}
         </div>
 
         {/* Registration Form */}
@@ -284,12 +300,47 @@ export default function TDRegister() {
               }
             </button>
 
+            {/* Add to Alternate List (when no seats) */}
+            {!autoAssignment && playerName.trim() && (
+              <button onClick={async () => {
+                setRegistering(true);
+                try {
+                  const res = await fetch(`/api/commander/tournaments/${tournamentId}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+                    body: JSON.stringify({
+                      player_name: playerName.trim(),
+                      phone: playerPhone.trim() || undefined,
+                      status: 'alternate'
+                    })
+                  });
+                  const json = await res.json();
+                  setLastResult(json.success
+                    ? { success: true, data: { alternate: true } }
+                    : json
+                  );
+                  if (json.success) {
+                    setPlayerName('');
+                    setPlayerPhone('');
+                    await fetchFloor();
+                  }
+                } catch { setLastResult({ success: false, error: 'Failed to add alternate' }); }
+                finally { setRegistering(false); }
+              }}
+                disabled={registering}
+                className="w-full py-4 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[#F59E0B] text-base font-semibold flex items-center justify-center gap-2 active:bg-[#F59E0B]/20 disabled:opacity-50">
+                <ListOrdered className="w-5 h-5" /> Add to Alternate List
+              </button>
+            )}
+
             {/* Result */}
             {lastResult && (
               <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${lastResult.success ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
                 }`}>
                 {lastResult.success
-                  ? <><CheckCircle2 className="w-4 h-4" /> Registered — T{lastResult.data?.table_number || '?'} S{lastResult.data?.seat_number || '?'}</>
+                  ? lastResult.data?.alternate
+                    ? <><ListOrdered className="w-4 h-4" /> Added to alternate list</>
+                    : <><CheckCircle2 className="w-4 h-4" /> Registered — T{lastResult.data?.table_number || '?'} S{lastResult.data?.seat_number || '?'}</>
                   : <><AlertTriangle className="w-4 h-4" /> {lastResult.error || 'Failed'}</>
                 }
               </div>

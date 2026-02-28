@@ -62,6 +62,7 @@ export default function TDTablesMap() {
   const [actionLoading, setActionLoading] = useState(null);
   const [autoBreak, setAutoBreak] = useState(null);
   const [breakExecuting, setBreakExecuting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
@@ -90,22 +91,29 @@ export default function TDTablesMap() {
     return () => clearInterval(interval);
   }, [fetchFloor]);
 
-  const handleEliminate = async (entryId) => {
-    setActionLoading(entryId);
-    try {
-      await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
-        body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
-      });
-      await fetchFloor();
-      // Refresh selected table data
-      if (selectedTable) {
-        const updated = floor?.tables?.find(t => t.table_number === selectedTable.table_number);
-        if (updated) setSelectedTable(updated);
+  const handleEliminate = async (entryId, playerName) => {
+    setConfirmAction({
+      type: 'eliminate',
+      message: `Eliminate ${playerName || 'this player'}?`,
+      detail: `Position #${floor?.stats?.players_remaining || '?'} — Cannot be undone.`,
+      color: '#EF4444',
+      onConfirm: async () => {
+        setActionLoading(entryId);
+        try {
+          await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+            body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
+          });
+          await fetchFloor();
+          if (selectedTable) {
+            const updated = floor?.tables?.find(t => t.table_number === selectedTable.table_number);
+            if (updated) setSelectedTable(updated);
+          }
+        } catch (err) { console.error(err); }
+        finally { setActionLoading(null); }
       }
-    } catch (err) { console.error(err); }
-    finally { setActionLoading(null); }
+    });
   };
 
   const navigateTo = (path) => {
@@ -248,8 +256,8 @@ export default function TDTablesMap() {
                         <div
                           key={pos.seat}
                           className={`absolute w-4 h-4 rounded-full border-2 ${isOccupied
-                              ? `${colors.dot} border-white/30`
-                              : 'bg-transparent border-[#3A3B3C]'
+                            ? `${colors.dot} border-white/30`
+                            : 'bg-transparent border-[#3A3B3C]'
                             }`}
                           style={{
                             left: `${pos.x}%`,
@@ -345,7 +353,7 @@ export default function TDTablesMap() {
                             <ArrowRightLeft className="w-4 h-4 text-[#B0B3B8]" />
                           </button>
                           <button
-                            onClick={() => handleEliminate(player.entry_id)}
+                            onClick={() => handleEliminate(player.entry_id, player.player_name)}
                             disabled={actionLoading === player.entry_id}
                             className="w-10 h-10 rounded-lg bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20 disabled:opacity-50"
                             title="Eliminate"
@@ -401,6 +409,30 @@ export default function TDTablesMap() {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== CONFIRMATION MODAL ===== */}
+        {confirmAction && (
+          <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center px-4" onClick={() => setConfirmAction(null)}>
+            <div className="bg-[#242526] rounded-2xl w-full max-w-sm p-6 border border-[#3A3B3C]" onClick={e => e.stopPropagation()}>
+              <div className="text-center mb-4">
+                <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${confirmAction.color}20` }}>
+                  <UserX className="w-7 h-7" style={{ color: confirmAction.color }} />
+                </div>
+                <h3 className="text-lg font-bold text-white">{confirmAction.message}</h3>
+                <p className="text-sm text-[#B0B3B8] mt-1">{confirmAction.detail}</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmAction(null)}
+                  className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-medium active:bg-[#4A4B4C]">Cancel</button>
+                <button onClick={async () => { setConfirmAction(null); await confirmAction.onConfirm(); }}
+                  className="flex-1 py-3 rounded-xl text-white font-bold active:opacity-80"
+                  style={{ backgroundColor: confirmAction.color }}>
+                  Confirm
+                </button>
               </div>
             </div>
           </div>
