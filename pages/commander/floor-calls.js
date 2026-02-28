@@ -115,9 +115,8 @@ export default function FloorCalls() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  // Realtime updates — Layer 2 (Supabase) + Layer 1 (BroadcastChannel)
-  useRealtimeUpdates(venueId, () => fetchCalls(), !!venueId);
-  useCommanderSync(venueId, fetchCalls);
+  // Commander Data Bus — both BroadcastChannel (instant) + Supabase Realtime (cross-device)
+  useCommanderSync(venueId, fetchCalls, { entities: ['floor_calls', 'tables'] });
 
   // Polling + clock
   useEffect(() => {

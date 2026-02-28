@@ -798,6 +798,7 @@ export default function UnionDashboard() {
                     </div>
                 )}
             </div>
+            {toast && (
                 <div style={{
                     position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
                     background: toast.type === 'error' ? FB.danger : FB.success,

@@ -117,8 +117,7 @@ export default function WaitlistDisplay() {
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
-  useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 
   // ── GROUP & SORT (identical to desk.js) ──────────────────────────
   const waitlistByGame = {};

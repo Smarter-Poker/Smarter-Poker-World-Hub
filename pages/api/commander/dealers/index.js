@@ -19,17 +19,18 @@ export default async function handler(req, res) {
       .from('commander_dealers')
       .select('*')
       .eq('venue_id', venue_id)
-      .order('display_name');
+      .order('name');
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { dealers: data } });
   }
 
   if (req.method === 'POST') {
-    const { venue_id: vid, display_name, employee_id, skill_level, certified_games } = req.body;
-    if (!vid || !display_name) return res.status(400).json({ success: false, error: 'venue_id and display_name required' });
+    const { venue_id: vid, display_name, name, employee_id, skill_level, certified_games } = req.body;
+    const dealerName = name || display_name;
+    if (!vid || !dealerName) return res.status(400).json({ success: false, error: 'venue_id and name required' });
     const { data, error } = await supabase
       .from('commander_dealers')
-      .insert({ venue_id: vid, display_name, employee_id, skill_level, certified_games })
+      .insert({ venue_id: vid, name: dealerName, employee_id, skill_level, certified_games })
       .select()
       .single();
     if (error) return res.status(500).json({ success: false, error: error.message });

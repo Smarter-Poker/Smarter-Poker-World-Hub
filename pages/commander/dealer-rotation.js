@@ -80,8 +80,8 @@ export default function DealerRotation() {
       const tablesArr = tablesRes.data?.tables || (Array.isArray(tablesRes.data) ? tablesRes.data : []);
       setTables(tablesArr);
 
-      // Parse games
-      const gamesArr = gamesRes.data || (Array.isArray(gamesRes) ? gamesRes : []);
+      // Parse games — API returns { data: { games: [...] } }
+      const gamesArr = gamesRes.data?.games || (Array.isArray(gamesRes.data) ? gamesRes.data : []);
       setGames(gamesArr);
 
       // Parse rotations — API returns { rotations: [...] } — split active vs history
@@ -388,7 +388,7 @@ export default function DealerRotation() {
             {showHistory && history.length > 0 && (
               <div className="dr-timeline">
                 {history.slice(0, 20).map(r => {
-                  const dealerName = r.commander_dealers?.display_name || r.dealer_name || 'Unknown';
+                  const dealerName = r.commander_dealers?.name || r.dealer_name || 'Unknown';
                   const tableNum = r.commander_tables?.table_number || r.table_number || '?';
                   const gameName = r.commander_games?.game_type || '';
                   return (

@@ -42,22 +42,39 @@ async function getRotations(req, res) {
   if (!staff) return;
 
   try {
-    // Get active dealer assignments
-    const { data: rotations, error } = await supabase
-      .from('commander_dealer_rotations')
-      .select(`
-        id,
-        started_at,
-        ended_at,
-        commander_dealers:dealer_id (id, display_name, employee_id),
-        commander_tables:table_id (id, table_number),
-        commander_games:game_id (id, game_type, stakes)
-      `)
-      .eq('venue_id', venue_id)
-      .is('ended_at', null)
-      .order('started_at', { ascending: false });
+    // Get active dealer assignments — only dealer_id FK exists in rotations table
+    // table_number and dealer_name are stored directly as columns
+    let rotations = [];
+    try {
+      const result = await supabase
+        .from('commander_dealer_rotations')
+        .select(`
+          id,
+          started_at,
+          ended_at,
+          dealer_name,
+          table_number,
+          dealer_id,
+          commander_dealers:dealer_id (id, name, employee_id)
+        `)
+        .eq('venue_id', venue_id)
+        .is('ended_at', null)
+        .order('started_at', { ascending: false });
 
-    if (error) throw error;
+      if (result.error) throw result.error;
+      rotations = result.data || [];
+    } catch (joinErr) {
+      // Fallback: simple query without FK join
+      const result = await supabase
+        .from('commander_dealer_rotations')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .is('ended_at', null)
+        .order('started_at', { ascending: false });
+
+      if (result.error) throw result.error;
+      rotations = result.data || [];
+    }
 
     return res.status(200).json({
       success: true,
@@ -90,7 +107,7 @@ async function createRotation(req, res) {
     // Verify dealer belongs to venue
     const { data: dealer, error: dealerError } = await supabase
       .from('commander_dealers')
-      .select('id, display_name')
+      .select('id, name')
       .eq('id', dealer_id)
       .eq('venue_id', venue_id)
       .eq('is_active', true)
@@ -130,13 +147,13 @@ async function createRotation(req, res) {
 
         return res.status(201).json({
           success: true,
-          data: { assignment, message: `${dealer.display_name} pushed to table ${table_id}` }
+          data: { assignment, message: `${dealer.name} pushed to table ${table_id}` }
         });
       }
 
       return res.status(200).json({
         success: true,
-        data: { message: `${dealer.display_name} pushed off table` }
+        data: { message: `${dealer.name} pushed off table` }
       });
     }
 
@@ -158,7 +175,7 @@ async function createRotation(req, res) {
 
       return res.status(200).json({
         success: true,
-        data: { message: `${dealer.display_name} is now on break` }
+        data: { message: `${dealer.name} is now on break` }
       });
     }
 
@@ -174,7 +191,7 @@ async function createRotation(req, res) {
 
       return res.status(200).json({
         success: true,
-        data: { message: `${dealer.display_name} returned from break` }
+        data: { message: `${dealer.name} returned from break` }
       });
     }
 
@@ -217,7 +234,7 @@ async function createRotation(req, res) {
 
     return res.status(201).json({
       success: true,
-      data: { assignment, message: `${dealer.display_name} assigned to table` }
+      data: { assignment, message: `${dealer.name} assigned to table` }
     });
   } catch (error) {
     console.error('Create rotation error:', error);

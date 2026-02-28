@@ -38,8 +38,13 @@ export default function DealerRotationDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Commander Data Bus — instant sync when dealers change
-  useCommanderSync('', fetchData, { entities: ['dealers'] });
+  useCommanderSync(venueId, fetchData, { entities: ['dealers'] });
 
   // Wake lock
   useEffect(() => {

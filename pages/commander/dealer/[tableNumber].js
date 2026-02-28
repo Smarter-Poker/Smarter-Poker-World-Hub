@@ -143,8 +143,13 @@ export default function DealerTablet() {
 
   useEffect(() => { fetchTable(); const i = setInterval(fetchTable, 10000); return () => clearInterval(i); }, [fetchTable]);
 
-  // Commander Data Bus — instant cross-tab sync for dealer tablet
-  useCommanderSync('', fetchTable, { entities: ['tables', 'games', 'dealers'] });
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
+  // Commander Data Bus — instant cross-tab sync + Supabase Realtime cross-device
+  useCommanderSync(venueId, fetchTable, { entities: ['tables', 'games', 'dealers'] });
 
   // Store last sync timestamp for drift-free countdown
   const lastSyncRef = useRef(Date.now());

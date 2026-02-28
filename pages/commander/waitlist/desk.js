@@ -175,8 +175,7 @@ export default function WaitlistDesk() {
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
-  useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
-  useCommanderSync(venueId, fetchData);
+  useCommanderSync(venueId, fetchData, { entities: ['waitlist', 'tables', 'games'] });
 
   // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
@@ -590,196 +589,235 @@ export default function WaitlistDesk() {
           <div style={{ flex: 1, display: 'flex', padding: '12px 16px', gap: '2px', alignItems: 'stretch' }}>
             {visibleGames.map(([gameLabel, entries]) => {
               const tableNums = getTableNums(gameLabel);
+
+              // ── Find must-move chain for this game ──
+              const mmGroups = mustMoveData?.must_move_groups || [];
+              const glParts = gameLabel.split(' ');
+              const colGameType = glParts[0].toLowerCase();
+              const colStakes = glParts.slice(1).join(' ');
+              const mmGroup = mmGroups.find(g => {
+                const gt = (g.game_type || '').toLowerCase();
+                const st = (g.stakes || '').trim();
+                return gt === colGameType && st === colStakes;
+              });
+              // Build must-move tables from the chain (skip index 0 = main game)
+              const chain = mmGroup?.chain || [];
+              const mmTables = chain.filter((g, i) => i > 0 && g.is_must_move && (g.seats || []).length > 0);
+
+              // Calculate column width — shrink to fit must-move columns
+              const totalCols = 1 + mmTables.length; // game col + must-move cols
+              const baseWidth = totalCols > 1 ? `calc(25% - 2px)` : `calc(25% - 2px)`;
+
               return (
-                <div key={gameLabel} style={{ flex: '0 0 calc(25% - 2px)', maxWidth: 'calc(25% - 2px)', minWidth: '140px', border: `3px solid ${c.borderColor}`, borderRadius: '4px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  {/* Header — Click to edit game name/stakes */}
-                  <div
-                    onClick={() => {
-                      const parts = gameLabel.split(' ');
-                      setEditGame({ oldLabel: gameLabel, gameType: parts[0], stakes: parts.slice(1).join(' ') });
-                    }}
-                    style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 800, fontSize: '26px', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px', background: headerGradient, textShadow: '0 2px 4px rgba(0,0,0,0.5)', borderBottom: headerBorderBottom, cursor: 'pointer', position: 'relative' }}
-                    title="Click to edit game name & stakes"
-                  >
-                    {gameLabel}
-                  </div>
-                  {/* Table Numbers with Main/Feeder labels */}
-                  <div style={{ padding: '4px 8px', textAlign: 'center', fontSize: '14px', color: `${c.textColor}99`, borderBottom: `1px solid ${c.borderColor}55`, background: c.cardBgColor, fontWeight: 600, letterSpacing: '0.5px' }}>
-                    {tableNums.length > 0 ? tableNums.map((tn, i) => (
-                      <span key={tn}>
-                        {i > 0 && ' · '}
-                        <span style={{ color: i === 0 ? c.accentColor : `${c.textColor}77` }}>
-                          T{tn}{tableNums.length > 1 ? (i === 0 ? ' ★' : ' ⇢') : ''}
+                <div key={gameLabel} style={{ display: 'flex', gap: '2px', flex: mmTables.length > 0 ? `0 0 calc(${25 * (1 + mmTables.length * 0.6)}% - 2px)` : '0 0 calc(25% - 2px)', maxWidth: mmTables.length > 0 ? `calc(${25 * (1 + mmTables.length * 0.6)}% - 2px)` : 'calc(25% - 2px)', minWidth: '140px' }}>
+                  {/* ═══ WAITLIST COLUMN ═══ */}
+                  <div style={{ flex: '1 1 0', minWidth: '140px', border: `3px solid ${c.borderColor}`, borderRadius: '4px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Header — Click to edit game name/stakes */}
+                    <div
+                      onClick={() => {
+                        const parts = gameLabel.split(' ');
+                        setEditGame({ oldLabel: gameLabel, gameType: parts[0], stakes: parts.slice(1).join(' ') });
+                      }}
+                      style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 800, fontSize: '26px', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px', background: headerGradient, textShadow: '0 2px 4px rgba(0,0,0,0.5)', borderBottom: headerBorderBottom, cursor: 'pointer', position: 'relative' }}
+                      title="Click to edit game name & stakes"
+                    >
+                      {gameLabel}
+                    </div>
+                    {/* Table Numbers with Main/Feeder labels */}
+                    <div style={{ padding: '4px 8px', textAlign: 'center', fontSize: '14px', color: `${c.textColor}99`, borderBottom: `1px solid ${c.borderColor}55`, background: c.cardBgColor, fontWeight: 600, letterSpacing: '0.5px' }}>
+                      {tableNums.length > 0 ? tableNums.map((tn, i) => (
+                        <span key={tn}>
+                          {i > 0 && ' · '}
+                          <span style={{ color: i === 0 ? c.accentColor : `${c.textColor}77` }}>
+                            T{tn}{tableNums.length > 1 ? (i === 0 ? ' ★' : ' ⇢') : ''}
+                          </span>
                         </span>
-                      </span>
-                    )) : '—'}
-                  </div>
-                  {/* Player Names */}
-                  <div style={{ flex: 1, background: c.bgColor }}>
-                    {entries.map((entry) => {
-                      const isCalled = entry.status === 'called';
-                      const isSelected = selectedPlayer?.id === entry.id;
-                      const hasApp = entry.signup_method === 'app';
-                      const isWeb = entry.signup_method === 'web';
-                      const isCheckedIn = !!entry.checked_in_at;
-                      // Calculate web check-in countdown (1 hour from creation)
-                      const webMinutesLeft = isWeb && !isCheckedIn && entry.created_at
-                        ? Math.max(0, Math.ceil((new Date(entry.created_at).getTime() + 60 * 60 * 1000 - Date.now()) / 60000))
-                        : null;
-                      const isExpired = webMinutesLeft !== null && webMinutesLeft <= 0;
-                      // Calculate texted countdown (10 min from last_called_at)
-                      const calledMinutesLeft = isCalled && entry.last_called_at
-                        ? Math.max(0, Math.ceil((new Date(entry.last_called_at).getTime() + CALL_EXPIRY_MINUTES * 60 * 1000 - Date.now()) / 60000))
-                        : null;
-                      return (
-                        <div key={entry.id}>
-                          <div
-                            onClick={() => setSelectedPlayer(isSelected ? null : entry)}
-                            style={{
-                              padding: '8px 12px', borderBottom: `1px solid ${c.bgColor === '#000000' ? '#1a1a1a' : c.borderColor + '22'}`,
-                              cursor: 'pointer', display: 'flex', alignItems: 'center',
-                              justifyContent: 'space-between', transition: 'background-color 0.1s',
-                              backgroundColor: isCalled ? `${c.accentColor}14` : isExpired ? 'rgba(239,68,68,0.08)' : isSelected ? 'rgba(255,255,255,0.04)' : 'transparent'
-                            }}
-                          >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              {hasApp && <span style={{ color: c.accentColor, fontSize: '16px' }}>♦</span>}
-                              {isWeb && !isCheckedIn && (
-                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#fff', background: isExpired ? '#EF4444' : '#3B82F6', padding: '1px 5px', borderRadius: '3px', letterSpacing: '0.5px', lineHeight: '16px' }}>
-                                  {isExpired ? '⚠ EXPIRED' : 'WEB'}
+                      )) : '—'}
+                    </div>
+                    {/* Player Names */}
+                    <div style={{ flex: 1, background: c.bgColor }}>
+                      {entries.map((entry) => {
+                        const isCalled = entry.status === 'called';
+                        const isSelected = selectedPlayer?.id === entry.id;
+                        const hasApp = entry.signup_method === 'app';
+                        const isWeb = entry.signup_method === 'web';
+                        const isCheckedIn = !!entry.checked_in_at;
+                        // Calculate web check-in countdown (1 hour from creation)
+                        const webMinutesLeft = isWeb && !isCheckedIn && entry.created_at
+                          ? Math.max(0, Math.ceil((new Date(entry.created_at).getTime() + 60 * 60 * 1000 - Date.now()) / 60000))
+                          : null;
+                        const isExpired = webMinutesLeft !== null && webMinutesLeft <= 0;
+                        // Calculate texted countdown (10 min from last_called_at)
+                        const calledMinutesLeft = isCalled && entry.last_called_at
+                          ? Math.max(0, Math.ceil((new Date(entry.last_called_at).getTime() + CALL_EXPIRY_MINUTES * 60 * 1000 - Date.now()) / 60000))
+                          : null;
+                        return (
+                          <div key={entry.id}>
+                            <div
+                              onClick={() => setSelectedPlayer(isSelected ? null : entry)}
+                              style={{
+                                padding: '8px 12px', borderBottom: `1px solid ${c.bgColor === '#000000' ? '#1a1a1a' : c.borderColor + '22'}`,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                justifyContent: 'space-between', transition: 'background-color 0.1s',
+                                backgroundColor: isCalled ? `${c.accentColor}14` : isExpired ? 'rgba(239,68,68,0.08)' : isSelected ? 'rgba(255,255,255,0.04)' : 'transparent'
+                              }}
+                            >
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                {hasApp && <span style={{ color: c.accentColor, fontSize: '16px' }}>♦</span>}
+                                {isWeb && !isCheckedIn && (
+                                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#fff', background: isExpired ? '#EF4444' : '#3B82F6', padding: '1px 5px', borderRadius: '3px', letterSpacing: '0.5px', lineHeight: '16px' }}>
+                                    {isExpired ? '⚠ EXPIRED' : 'WEB'}
+                                  </span>
+                                )}
+                                {isWeb && isCheckedIn && (
+                                  <CheckCircle size={14} style={{ color: '#10B981' }} />
+                                )}
+                                <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : isExpired ? '#EF4444' : c.textColor }}>
+                                  {titleCase(entry.player_name)}
+                                </span>
+                                {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (
+                                  <span style={{ fontSize: '12px', color: webMinutesLeft <= 10 ? '#F59E0B' : '#64748B', fontWeight: 600 }}>
+                                    {webMinutesLeft}m
+                                  </span>
+                                )}
+                              </span>
+                              {isCalled && (
+                                <span style={{ fontSize: '12px', fontWeight: 800, color: c.bgColor, background: calledMinutesLeft !== null && calledMinutesLeft <= 3 ? '#EF4444' : c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  TEXTED{calledMinutesLeft !== null ? ` ${calledMinutesLeft}m` : ''}
                                 </span>
                               )}
-                              {isWeb && isCheckedIn && (
-                                <CheckCircle size={14} style={{ color: '#10B981' }} />
-                              )}
-                              <span style={{ fontSize: `${c.playerFontSize}px`, fontWeight: 700, letterSpacing: '0.3px', color: isCalled ? c.accentColor : isExpired ? '#EF4444' : c.textColor }}>
-                                {titleCase(entry.player_name)}
-                              </span>
-                              {isWeb && !isCheckedIn && webMinutesLeft !== null && !isExpired && (
-                                <span style={{ fontSize: '12px', color: webMinutesLeft <= 10 ? '#F59E0B' : '#64748B', fontWeight: 600 }}>
-                                  {webMinutesLeft}m
-                                </span>
-                              )}
-                            </span>
-                            {isCalled && (
-                              <span style={{ fontSize: '12px', fontWeight: 800, color: c.bgColor, background: calledMinutesLeft !== null && calledMinutesLeft <= 3 ? '#EF4444' : c.accentColor, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                TEXTED{calledMinutesLeft !== null ? ` ${calledMinutesLeft}m` : ''}
-                              </span>
+                            </div>
+
+                            {isSelected && (
+                              <div style={{ display: 'flex', padding: '8px 12px', gap: '8px', background: `linear-gradient(180deg, ${lighten(c.cardBgColor, 5)}, ${c.cardBgColor})`, borderBottom: `2px solid ${c.borderColor}55`, flexWrap: 'wrap' }}>
+                                {isWeb && !isCheckedIn && (
+                                  <button onClick={(e) => { e.stopPropagation(); handleCheckIn(entry); }} style={makeActionBtnGreen(c)}>
+                                    <CheckCircle size={18} /> Check In
+                                  </button>
+                                )}
+                                {entry.status !== 'called' && (
+                                  <button onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
+                                    disabled={callLoading === entry.id} style={makeActionBtn(c)}>
+                                    {callLoading === entry.id ? <Loader2 size={18} className="animate-spin" /> : <PhoneCall size={18} />}
+                                    Text
+                                  </button>
+                                )}
+                                <button onClick={(e) => { e.stopPropagation(); setSeatModal(entry); }} style={makeActionBtnGreen(c)}>
+                                  <Armchair size={18} /> Seat
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handlePass(entry); }} style={makeActionBtn(c)}>
+                                  <SkipForward size={18} /> Pass
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleRemove(entry); }} style={makeActionBtnRed(c)}>
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
                             )}
                           </div>
+                        );
+                      })}
+                    </div>
 
-                          {isSelected && (
-                            <div style={{ display: 'flex', padding: '8px 12px', gap: '8px', background: `linear-gradient(180deg, ${lighten(c.cardBgColor, 5)}, ${c.cardBgColor})`, borderBottom: `2px solid ${c.borderColor}55`, flexWrap: 'wrap' }}>
-                              {isWeb && !isCheckedIn && (
-                                <button onClick={(e) => { e.stopPropagation(); handleCheckIn(entry); }} style={makeActionBtnGreen(c)}>
-                                  <CheckCircle size={18} /> Check In
-                                </button>
-                              )}
-                              {entry.status !== 'called' && (
-                                <button onClick={(e) => { e.stopPropagation(); handleCall(entry); }}
-                                  disabled={callLoading === entry.id} style={makeActionBtn(c)}>
-                                  {callLoading === entry.id ? <Loader2 size={18} className="animate-spin" /> : <PhoneCall size={18} />}
-                                  Text
-                                </button>
-                              )}
-                              <button onClick={(e) => { e.stopPropagation(); setSeatModal(entry); }} style={makeActionBtnGreen(c)}>
-                                <Armchair size={18} /> Seat
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handlePass(entry); }} style={makeActionBtn(c)}>
-                                <SkipForward size={18} /> Pass
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleRemove(entry); }} style={makeActionBtnRed(c)}>
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {/* Join Wait List Button */}
+                    <div style={{ padding: '8px', background: c.cardBgColor, borderTop: `1px solid ${c.borderColor}44`, marginTop: 'auto' }}>
+                      <button
+                        onClick={() => {
+                          setAddGameType(gameLabel);
+                          setShowAddWalkIn(true);
+                        }}
+                        style={{
+                          width: '100%', padding: '12px 8px', fontSize: '16px', fontWeight: 800,
+                          letterSpacing: '1px', textTransform: 'uppercase',
+                          background: `linear-gradient(180deg, ${lighten(c.headerColor, 15)}, ${c.headerColor})`,
+                          border: `2px solid ${c.accentColor}`,
+                          borderRadius: '6px', color: '#fff', cursor: 'pointer',
+                          boxShadow: `0 2px 8px ${c.accentColor}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                          textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                        }}
+                      >
+                        Join Wait List
+                      </button>
+                    </div>
                   </div>
 
-                  {/* ═══ MUST MOVE LIST ═══ */}
-                  {(() => {
-                    // Find must-move group matching this game column
-                    const mmGroups = mustMoveData?.must_move_groups || [];
-                    const parts = gameLabel.split(' ');
-                    const colGameType = parts[0].toLowerCase();
-                    const colStakes = parts.slice(1).join(' ');
-                    const mmGroup = mmGroups.find(g => {
-                      const gt = (g.game_type || '').toLowerCase();
-                      const st = (g.stakes || '').trim();
-                      return gt === colGameType && st === colStakes;
-                    });
-                    if (!mmGroup || !mmGroup.must_moves || mmGroup.must_moves.length === 0) return null;
-                    const mainGame = mmGroup.main;
-                    const mainOpenSeats = mainGame ? (mainGame.max_seats - mainGame.player_count) : 0;
+                  {/* ═══ MUST-MOVE COLUMNS — Separate columns next to the game ═══ */}
+                  {mmTables.map(mmGame => {
+                    const seats = mmGame.seats || [];
+                    const targetGame = chain.find(g => g.id === mmGame.move_target_game_id) || chain[0];
+                    const targetOpenSeats = targetGame ? (targetGame.max_seats - targetGame.player_count) : 0;
+                    const canMove = targetOpenSeats > 0 && seats.length > 0;
+                    const nextPlayer = seats[0] || null;
+                    const mmTimeAgo = (dateStr) => {
+                      if (!dateStr) return '';
+                      const diff = Date.now() - new Date(dateStr).getTime();
+                      const mins = Math.floor(diff / 60000);
+                      if (mins < 60) return `${mins}m`;
+                      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                    };
 
-                    return mmGroup.must_moves.map(mmGame => {
-                      const seats = mmGame.seats || [];
-                      if (seats.length === 0) return null;
-                      const nextPlayer = seats[0];
-                      const canMove = mainOpenSeats > 0;
-                      const mmTimeAgo = (dateStr) => {
-                        if (!dateStr) return '';
-                        const diff = Date.now() - new Date(dateStr).getTime();
-                        const mins = Math.floor(diff / 60000);
-                        if (mins < 60) return `${mins}m`;
-                        return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-                      };
-
-                      return (
-                        <div key={mmGame.id} style={{
-                          borderTop: `2px solid ${c.accentColor}44`,
-                          background: `${c.accentColor}08`,
+                    return (
+                      <div key={`mm-${mmGame.id}`} style={{
+                        flex: '0 0 180px', minWidth: '140px',
+                        border: `3px solid ${c.accentColor}44`,
+                        borderRadius: '4px',
+                        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                        background: c.bgColor,
+                      }}>
+                        {/* Must-Move Header */}
+                        <div style={{
+                          padding: '10px 8px', textAlign: 'center',
+                          background: `linear-gradient(180deg, ${c.accentColor}25, ${c.accentColor}10)`,
+                          borderBottom: `2px solid ${c.accentColor}33`,
                         }}>
-                          <div style={{
-                            padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '6px',
-                            background: `linear-gradient(180deg, ${c.accentColor}15, ${c.accentColor}08)`,
-                            borderBottom: `1px solid ${c.accentColor}22`,
-                          }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '2px' }}>
                             <ArrowRightLeft size={14} color={c.accentColor} />
-                            <span style={{ fontSize: '13px', fontWeight: 800, color: c.accentColor, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: c.accentColor, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                               Must Move List
                             </span>
-                            <span style={{ fontSize: '11px', color: `${c.textColor}77`, marginLeft: 'auto' }}>
-                              T{mmGame.table_number} → T{mainGame?.table_number}
-                            </span>
                           </div>
+                          <div style={{ fontSize: '11px', color: `${c.textColor}77`, fontWeight: 600 }}>
+                            T{mmGame.table_number} → T{targetGame?.table_number || '?'}
+                          </div>
+                        </div>
+
+                        {/* Player Queue (FIFO ordered) */}
+                        <div style={{ flex: 1, overflow: 'auto' }}>
                           {seats.map((seat, idx) => {
                             const isNext = idx === 0;
                             return (
                               <div key={seat.id} style={{
-                                padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '6px 8px', display: 'flex', alignItems: 'center', gap: '6px',
                                 borderBottom: `1px solid ${c.bgColor === '#000000' ? '#1a1a1a' : c.borderColor + '22'}`,
                                 background: isNext ? `${c.accentColor}12` : 'transparent',
                               }}>
                                 <span style={{
-                                  width: '22px', height: '22px', borderRadius: '4px',
+                                  width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: '11px', fontWeight: 800,
+                                  fontSize: '10px', fontWeight: 800,
                                   background: isNext ? c.accentColor : `${c.textColor}15`,
                                   color: isNext ? c.bgColor : `${c.textColor}66`,
                                 }}>
                                   {idx + 1}
                                 </span>
-                                <span style={{ flex: 1 }}>
+                                <span style={{ flex: 1, minWidth: 0 }}>
                                   <span style={{
-                                    fontSize: `${Math.max(16, c.playerFontSize - 6)}px`,
+                                    fontSize: `${Math.max(14, c.playerFontSize - 8)}px`,
                                     fontWeight: isNext ? 700 : 500,
                                     color: isNext ? c.accentColor : `${c.textColor}99`,
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
                                   }}>
                                     {titleCase(seat.player_name || 'Unknown')}
                                   </span>
                                   {seat.seated_at && (
-                                    <span style={{ fontSize: '11px', color: `${c.textColor}55`, marginLeft: '6px' }}>
+                                    <span style={{ fontSize: '10px', color: `${c.textColor}44` }}>
                                       {mmTimeAgo(seat.seated_at)}
                                     </span>
                                   )}
                                 </span>
                                 {isNext && (
                                   <span style={{
-                                    padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 800,
-                                    letterSpacing: '0.5px',
+                                    padding: '2px 5px', borderRadius: '3px', fontSize: '9px', fontWeight: 800,
+                                    letterSpacing: '0.5px', flexShrink: 0,
                                     background: canMove ? c.accentColor : '#EF4444',
                                     color: canMove ? c.bgColor : '#fff',
                                   }}>
@@ -789,75 +827,57 @@ export default function WaitlistDesk() {
                               </div>
                             );
                           })}
-                          {/* Move button for position #1 */}
-                          {canMove && nextPlayer && (
-                            <div style={{ padding: '6px 10px' }}>
-                              <button
-                                disabled={moveLoading === mmGame.id}
-                                onClick={async () => {
-                                  setMoveLoading(mmGame.id);
-                                  try {
-                                    const token = getToken();
-                                    const staffSession = getStaffSession();
-                                    const res = await fetch('/api/commander/games/must-move-status', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-                                      body: JSON.stringify({ must_move_game_id: mmGame.id, main_game_id: mainGame.id })
-                                    });
-                                    const json = await res.json();
-                                    if (json.success) {
-                                      setSmsStatus({ type: 'sent', text: json.data.message });
-                                      setTimeout(() => setSmsStatus(null), 4000);
-                                      await fetchData();
-                                    } else {
-                                      setSmsStatus({ type: 'none', text: json.error || 'Move failed' });
-                                      setTimeout(() => setSmsStatus(null), 4000);
-                                    }
-                                  } catch { setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 4000); }
-                                  finally { setMoveLoading(null); }
-                                }}
-                                style={{
-                                  width: '100%', padding: '8px', fontSize: '13px', fontWeight: 800,
-                                  letterSpacing: '0.5px', textTransform: 'uppercase',
-                                  background: `linear-gradient(180deg, ${lighten(c.headerColor, 10)}, ${darken(c.headerColor, 10)})`,
-                                  border: `1px solid ${c.accentColor}`, borderRadius: '4px',
-                                  color: '#fff', cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                  opacity: moveLoading === mmGame.id ? 0.6 : 1,
-                                }}
-                              >
-                                {moveLoading === mmGame.id
-                                  ? <Loader2 size={14} className="animate-spin" />
-                                  : <ArrowRight size={14} />}
-                                Move {titleCase(nextPlayer.player_name || 'Next')} → T{mainGame?.table_number}
-                              </button>
-                            </div>
-                          )}
                         </div>
-                      );
-                    });
-                  })()}
 
-                  {/* Join Wait List Button */}
-                  <div style={{ padding: '8px', background: c.cardBgColor, borderTop: `1px solid ${c.borderColor}44`, marginTop: 'auto' }}>
-                    <button
-                      onClick={() => {
-                        setAddGameType(gameLabel);
-                        setShowAddWalkIn(true);
-                      }}
-                      style={{
-                        width: '100%', padding: '12px 8px', fontSize: '16px', fontWeight: 800,
-                        letterSpacing: '1px', textTransform: 'uppercase',
-                        background: `linear-gradient(180deg, ${lighten(c.headerColor, 15)}, ${c.headerColor})`,
-                        border: `2px solid ${c.accentColor}`,
-                        borderRadius: '6px', color: '#fff', cursor: 'pointer',
-                        boxShadow: `0 2px 8px ${c.accentColor}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
-                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                      }}
-                    >
-                      Join Wait List
-                    </button>
-                  </div>
+                        {/* Move button */}
+                        {canMove && nextPlayer && (
+                          <div style={{ padding: '6px 8px', borderTop: `1px solid ${c.accentColor}22` }}>
+                            <button
+                              disabled={moveLoading === mmGame.id}
+                              onClick={async () => {
+                                setMoveLoading(mmGame.id);
+                                try {
+                                  const token = getToken();
+                                  const staffSession = getStaffSession();
+                                  const res = await fetch('/api/commander/games/must-move-status', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+                                    body: JSON.stringify({ must_move_game_id: mmGame.id, target_game_id: targetGame.id })
+                                  });
+                                  const json = await res.json();
+                                  if (json.success) {
+                                    setSmsStatus({ type: 'sent', text: json.data.message });
+                                    setTimeout(() => setSmsStatus(null), 4000);
+                                    await fetchData();
+                                    broadcastChange('games');
+                                  } else {
+                                    setSmsStatus({ type: 'none', text: json.error || 'Move failed' });
+                                    setTimeout(() => setSmsStatus(null), 4000);
+                                  }
+                                } catch { setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 4000); }
+                                finally { setMoveLoading(null); }
+                              }}
+                              style={{
+                                width: '100%', padding: '7px 6px', fontSize: '11px', fontWeight: 800,
+                                letterSpacing: '0.3px', textTransform: 'uppercase',
+                                background: `linear-gradient(180deg, ${lighten(c.headerColor, 10)}, ${darken(c.headerColor, 10)})`,
+                                border: `1px solid ${c.accentColor}`, borderRadius: '4px',
+                                color: '#fff', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                opacity: moveLoading === mmGame.id ? 0.6 : 1,
+                              }}
+                            >
+                              {moveLoading === mmGame.id
+                                ? <Loader2 size={12} className="animate-spin" />
+                                : <ArrowRight size={12} />}
+                              Move → T{targetGame?.table_number}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
                 </div>
               );
             })}

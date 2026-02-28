@@ -49,8 +49,13 @@ export default function DisplayManagement() {
     fetchData();
   }, [fetchData]);
 
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
   // Commander Data Bus — sync tournament list
-  useCommanderSync('', fetchData, { entities: ['tournaments'] });
+  useCommanderSync(venueId, fetchData, { entities: ['tournaments'] });
 
   const getBaseUrl = () => {
     if (typeof window !== 'undefined') return window.location.origin;
