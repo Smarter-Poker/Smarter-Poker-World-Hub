@@ -329,11 +329,32 @@ export default function CommanderTablesPage() {
                         const tableSessions = sessions[tNum] || [];
                         const isSelected = selectedTableId === table.id;
 
-                        // Build seat array from sessions
+                        // Build seat array — merge sessions, table_seats, then fill with anonymous badges
                         const seatArr = Array.from({ length: maxSeats }, (_, i) => {
-                          const session = tableSessions.find(s => s.seat_number === i + 1);
-                          return { number: i + 1, taken: session || null };
+                          const seatNum = i + 1;
+                          // Priority 1: session data (has time_remaining)
+                          const session = tableSessions.find(s => s.seat_number === seatNum);
+                          if (session) return { number: seatNum, taken: session };
+                          // Priority 2: table_seats data from API (has player_name)
+                          const tableSeat = (table.seats || []).find(s => s.seat_number === seatNum && s.status === 'occupied');
+                          if (tableSeat) return { number: seatNum, taken: { player_name: tableSeat.player_name, seat_number: seatNum } };
+                          return { number: seatNum, taken: null };
                         });
+
+                        // Fill with anonymous players if game.current_players > seated records
+                        const gamePlayers = game?.current_players || 0;
+                        const actuallySeated = seatArr.filter(s => s.taken).length;
+                        if (gamePlayers > actuallySeated) {
+                          let toFill = gamePlayers - actuallySeated;
+                          let pNum = 1;
+                          for (let i = 0; i < seatArr.length && toFill > 0; i++) {
+                            if (!seatArr[i].taken) {
+                              seatArr[i].taken = { player_name: `P${pNum}`, seat_number: seatArr[i].number, _anonymous: true };
+                              pNum++;
+                              toFill--;
+                            }
+                          }
+                        }
                         const occupiedCount = seatArr.filter(s => s.taken).length;
 
                         // Compute seat positions

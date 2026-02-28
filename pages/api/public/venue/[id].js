@@ -168,18 +168,17 @@ export default async function handler(req, res) {
         }
       }
 
-      // Fetch Commander tournaments if linked venue exists
+      // Fetch Commander tournaments if linked venue exists (including live/running)
       let upcomingTournaments = [];
       if (commanderEnabled && venueIdForCommander) {
         try {
           const { data: tourneys } = await supabase
             .from('commander_tournaments')
-            .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool')
+            .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool, players_remaining')
             .eq('venue_id', venueIdForCommander)
-            .in('status', ['scheduled', 'registering', 'registration'])
-            .gte('scheduled_start', new Date().toISOString())
+            .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
             .order('scheduled_start', { ascending: true })
-            .limit(10);
+            .limit(20);
           upcomingTournaments = tourneys || [];
         } catch (cmdErr) {
           console.warn('[venue-detail] Commander tournaments query failed:', cmdErr.message);
@@ -348,7 +347,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fetch upcoming tournaments
+    // Fetch upcoming + live tournaments
     let tournaments = [];
     try {
       const { data: tourneysData } = await supabase
@@ -362,13 +361,13 @@ export default async function handler(req, res) {
           status,
           current_entries,
           max_entries,
-          guaranteed_pool
+          guaranteed_pool,
+          players_remaining
         `)
         .eq('venue_id', id)
-        .in('status', ['scheduled', 'registering', 'registration'])
-        .gte('scheduled_start', new Date().toISOString())
+        .in('status', ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'])
         .order('scheduled_start', { ascending: true })
-        .limit(10);
+        .limit(20);
       tournaments = tourneysData || [];
     } catch (cmdErr) {
       console.warn('[venue-detail] Commander tournaments query failed (pv path):', cmdErr.message);
