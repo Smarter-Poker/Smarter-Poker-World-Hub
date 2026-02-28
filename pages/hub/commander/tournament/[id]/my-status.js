@@ -17,6 +17,7 @@ import {
     CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash,
     Bell, Share2, Camera
 } from 'lucide-react';
+import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
@@ -107,7 +108,10 @@ export default function MyTournamentStatus() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Auto-refresh every 30s
+    // Supabase Realtime — instant sync when tournament/player data changes
+    useTournamentRealtime(id, fetchData);
+
+    // Fallback polling
     useEffect(() => {
         if (!id) return;
         const interval = setInterval(fetchData, 30000);

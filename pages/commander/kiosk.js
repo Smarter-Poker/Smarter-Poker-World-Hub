@@ -137,18 +137,22 @@ export default function MembershipKiosk() {
             games.push({ game_type: e.game_type, stakes: e.stakes, label: `${e.stakes} ${e.game_type}` });
           }
         });
-        if (games.length > 0) setAvailableGames(games);
+        if (games.length > 0) {
+          setAvailableGames(games);
+          return; // Have real games, skip fallback
+        }
       }
     } catch { /* */ }
-    // Always provide fallback games
-    if (availableGames.length === 0) {
-      setAvailableGames([
+    // Fallback if no games were fetched — use ref-safe check
+    setAvailableGames(prev => {
+      if (prev.length > 0) return prev; // Already have games from a previous fetch
+      return [
         { game_type: 'NLH', stakes: '$1/$2', label: '$1/$2 NLH' },
         { game_type: 'NLH', stakes: '$2/$5', label: '$2/$5 NLH' },
         { game_type: 'PLO', stakes: '$1/$2', label: '$1/$2 PLO' },
         { game_type: 'NLH', stakes: '$5/$10', label: '$5/$10 NLH' }
-      ]);
-    }
+      ];
+    });
   };
 
   // ── CHECK IN: Search waitlist for player ──
@@ -306,7 +310,7 @@ export default function MembershipKiosk() {
       console.error(err);
       setScanError('Search failed. Please try again.');
     }
-    finally { setSubmitting(false); }
+    finally { setSubmitting(false); broadcastChange('waitlist'); }
   };
 
   // ── CHECK IN BY PHONE: Search waitlist by phone and check in ──
@@ -353,7 +357,7 @@ export default function MembershipKiosk() {
       console.error(err);
       setScanError('Search failed. Please try again.');
     }
-    finally { setSubmitting(false); }
+    finally { setSubmitting(false); broadcastChange('waitlist'); }
   };
 
   // ── SCAN CARD → JOIN WAITLIST: Look up member, pre-fill name/phone, go to game select ──

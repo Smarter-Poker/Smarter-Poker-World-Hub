@@ -30,7 +30,8 @@ import {
   Copy,
   BarChart3,
   CheckSquare,
-  Square
+  Square,
+  GripVertical
 } from 'lucide-react';
 import PromotionCard from '../../src/components/commander/promotions/PromotionCard';
 import PromotionEditor from '../../src/components/commander/promotions/PromotionEditor';
@@ -736,11 +737,39 @@ export default function PromotionsPage() {
     }
   }
 
+  const [draggedId, setDraggedId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
   const filteredPromos = promotions.filter(p => {
     if (filter === 'active') return p.is_active;
     if (filter === 'inactive') return !p.is_active;
     return true;
-  });
+  }).sort((a, b) => ((a.settings?.display_order ?? 999) - (b.settings?.display_order ?? 999)));
+
+  async function handleDragEnd(e) {
+    if (!draggedId || !dragOverId || draggedId === dragOverId) {
+      setDraggedId(null); setDragOverId(null); return;
+    }
+    const items = [...filteredPromos];
+    const fromIdx = items.findIndex(p => p.id === draggedId);
+    const toIdx = items.findIndex(p => p.id === dragOverId);
+    if (fromIdx < 0 || toIdx < 0) { setDraggedId(null); setDragOverId(null); return; }
+    const [moved] = items.splice(fromIdx, 1);
+    items.splice(toIdx, 0, moved);
+    // Persist order via settings.display_order
+    const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+    const staffSession = localStorage.getItem('commander_staff') || '';
+    await Promise.all(items.map((p, idx) =>
+      fetch(`/api/commander/promotions/${p.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
+      })
+    ));
+    setDraggedId(null); setDragOverId(null);
+    broadcastChange('settings');
+    fetchPromotions();
+  }
 
   if (!staff) {
     return (
@@ -986,7 +1015,20 @@ export default function PromotionsPage() {
                     gap: 16,
                   }}>
                     {filteredPromos.map((promo) => (
-                      <div key={promo.id} style={{ position: 'relative' }}>
+                      <div
+                        key={promo.id}
+                        style={{ position: 'relative', opacity: draggedId === promo.id ? 0.4 : 1, border: dragOverId === promo.id ? '2px dashed #1877F2' : '2px solid transparent', borderRadius: 14, transition: 'all 0.15s' }}
+                        draggable
+                        onDragStart={(e) => { setDraggedId(promo.id); e.dataTransfer.effectAllowed = 'move'; }}
+                        onDragOver={(e) => { e.preventDefault(); setDragOverId(promo.id); }}
+                        onDragLeave={() => setDragOverId(null)}
+                        onDrop={(e) => { e.preventDefault(); handleDragEnd(e); }}
+                        onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                      >
+                        {/* Drag Handle */}
+                        <div style={{ position: 'absolute', top: 10, left: 8, zIndex: 10, cursor: 'grab', color: '#4E4F50', opacity: 0.5 }}>
+                          <GripVertical size={18} />
+                        </div>
                         {selectedIds.size > 0 && (
                           <button
                             onClick={() => toggleSelect(promo.id)}

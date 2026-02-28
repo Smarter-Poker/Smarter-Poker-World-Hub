@@ -215,6 +215,19 @@ async function createPromotion(req, res) {
 
     if (error) throw error;
 
+    // Push notification: broadcast to realtime channel so display pages auto-update
+    try {
+      const channel = supabase.channel('promotions-push');
+      await channel.send({
+        type: 'broadcast',
+        event: 'new_promotion',
+        payload: { id: promotion.id, name: promotion.name, venue_id, promotion_type }
+      });
+      supabase.removeChannel(channel);
+    } catch (broadcastErr) {
+      console.warn('Broadcast notification failed (non-critical):', broadcastErr.message);
+    }
+
     return res.status(201).json({ promotion });
   } catch (error) {
     console.error('Create promotion error:', error);
