@@ -84,7 +84,34 @@ export default function TDClock() {
     const cs = floor?.clock?.clock_state;
     if (cs?.status === 'running' && clockSeconds > 0) {
       timerRef.current = setInterval(() => {
-        setClockSeconds(prev => (prev > 0 ? prev - 1 : 0));
+        setClockSeconds(prev => {
+          if (prev === 1) {
+            // Play alert sound when level ends
+            try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.value = 880;
+              gain.gain.value = 0.3;
+              osc.start();
+              osc.stop(ctx.currentTime + 0.5);
+              // Second beep
+              setTimeout(() => {
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.frequency.value = 1100;
+                gain2.gain.value = 0.3;
+                osc2.start();
+                osc2.stop(ctx.currentTime + 0.5);
+              }, 600);
+            } catch (e) { /* Audio not available */ }
+          }
+          return prev > 0 ? prev - 1 : 0;
+        });
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -361,8 +388,8 @@ function ActionChip({ icon: Icon, label, onClick, active, activeColor, disabled 
   return (
     <button onClick={onClick} disabled={disabled}
       className={`px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-40 ${active
-          ? `text-white`
-          : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+        ? `text-white`
+        : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
         }`}
       style={active ? { backgroundColor: activeColor } : undefined}>
       <Icon className="w-4 h-4" />

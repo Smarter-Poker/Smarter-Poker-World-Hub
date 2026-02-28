@@ -470,6 +470,52 @@ export default function TDControlCenter() {
           </div>
         )}
 
+        {/* ===== ACTIVITY LOG ===== */}
+        {floor.entries && floor.entries.length > 0 && (
+          <div className="px-4 py-2">
+            <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">
+              Activity Log
+            </h2>
+            <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] divide-y divide-[#3A3B3C] max-h-[300px] overflow-y-auto">
+              {[...floor.entries]
+                .sort((a, b) => {
+                  const aTime = a.eliminated_at || a.registered_at || '1970';
+                  const bTime = b.eliminated_at || b.registered_at || '1970';
+                  return new Date(bTime) - new Date(aTime);
+                })
+                .slice(0, 20)
+                .map((e, i) => {
+                  const isEliminated = e.status === 'eliminated';
+                  const isAlternate = e.status === 'alternate';
+                  const isActive = ['active', 'seated'].includes(e.status);
+                  const time = e.eliminated_at || e.registered_at;
+                  const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                  return (
+                    <div key={e.entry_id + '-' + i} className="px-4 py-2.5 flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isEliminated ? 'bg-[#EF4444]' :
+                          isAlternate ? 'bg-[#F59E0B]' :
+                            isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
+                        }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[#E4E6EB] truncate">{e.player_name}</p>
+                        <p className="text-[10px] text-[#B0B3B8]">
+                          {isEliminated ? `Eliminated #${e.finish_position || '?'}` :
+                            isAlternate ? 'Added to alternates' :
+                              isActive ? `Seated T${e.table_number || '?'}-S${e.seat_number || '?'}` :
+                                'Registered'}
+                          {e.rebuy_count > 0 ? ` \u2022 ${e.rebuy_count}R` : ''}
+                          {e.addon_taken ? ' \u2022 Add-on' : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-[#B0B3B8] flex-shrink-0">{timeStr}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {/* ===== BROADCAST MESSAGE MODAL ===== */}
         {messageModal && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center p-4"
