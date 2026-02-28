@@ -314,7 +314,7 @@ export default function Cashier() {
   const doAddTime = async (staff) => {
     const mins = selectedTime || parseInt(customMinutes) || 0;
     if (mins <= 0) { setMessage({ type: 'error', text: 'Select A Time Amount' }); return; }
-    if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
+    if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -342,7 +342,7 @@ export default function Cashier() {
   // Update Membership
   const doUpdateMembership = async (staff) => {
     if (!selectedTier) { setMessage({ type: 'error', text: 'Select A Membership Tier' }); return; }
-    if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Scan A Player Card First' }); return; }
+    if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -740,7 +740,10 @@ export default function Cashier() {
               <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#B0B3B8]" />
                 <span className="text-sm text-white font-medium">{selectedPlayer?.player_name || 'Walk-Up Player'}</span>
-                {!selectedPlayer && <span className="text-xs text-[#B0B3B8] ml-auto">Scan Card First For Named Receipt</span>}
+                {!selectedPlayer && (
+                  <button onClick={() => { setShowBuyIn(false); setShowPlayerSearch(true); }}
+                    className="text-xs text-[#1877F2] ml-auto font-semibold">Find Player</button>
+                )}
               </div>
               <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Amount</p>
               <div className="grid grid-cols-3 gap-2 mb-4">
