@@ -31,8 +31,13 @@ async function awardComp(req, res, staffAuth) {
     // display_name comes from request body (authorized_by) — set by PIN verifier
     const staffRecord = staffAuth;
 
-    const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes } = req.body;
-    if (!member_id || !amount) return res.status(400).json({ success: false, error: 'member_id and amount required' });
+    const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes, membership_days } = req.body;
+    if (!member_id) return res.status(400).json({ success: false, error: 'member_id required' });
+
+    // Membership comps need duration, other comps need amount
+    if (!membership_days && !amount) {
+      return res.status(400).json({ success: false, error: 'amount or membership_days required' });
+    }
 
     // Get the member — check commander_members first, then commander_staff
     let member = null;
@@ -133,13 +138,47 @@ async function awardComp(req, res, staffAuth) {
       return res.status(403).json({ success: false, error: 'Staff not authorized for this venue' });
     }
 
+    // ═══ MEMBERSHIP COMP: Extend membership_expires ═══
+    if (membership_days && parseInt(membership_days) > 0) {
+      const days = parseInt(membership_days);
+      const now = new Date();
+      const currentExpiry = member.membership_expires ? new Date(member.membership_expires) : null;
+      const startDate = (currentExpiry && currentExpiry > now) ? currentExpiry : now;
+      const newExpiry = new Date(startDate);
+      newExpiry.setDate(newExpiry.getDate() + days);
+
+      const { error: updateErr } = await supabase
+        .from('commander_members')
+        .update({ membership_status: 'active', membership_expires: newExpiry.toISOString() })
+        .eq('id', member.id);
+
+      if (updateErr) throw updateErr;
+
+      await supabase.from('commander_member_comp_log').insert({
+        venue_id: member.venue_id, member_id: member.id, amount: 0,
+        type: type || 'award', reason: reason || `Free Membership — ${days} days`,
+        authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
+        processed_by: staffRecord.id, balance_after: member.comp_balance || 0,
+        comp_category: 'free_membership', notes: notes || null
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          member_id: member.id, amount: 0, membership_days: days,
+          membership_expires: newExpiry.toISOString(), new_balance: member.comp_balance || 0,
+          authorized_by: authorized_by || 'Staff'
+        }
+      });
+    }
+
+    // ═══ DOLLAR COMP: Update comp_balance ═══
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ success: false, error: 'Amount must be a positive number' });
     }
     const newBalance = (member.comp_balance || 0) + parsedAmount;
 
-    // Update member's comp balance
     const updateFields = { comp_balance: Math.round(newBalance * 100) / 100 };
     if (parsedAmount > 0) {
       updateFields.comp_lifetime_earned = (member.comp_lifetime_earned || 0) + parsedAmount;
@@ -154,31 +193,20 @@ async function awardComp(req, res, staffAuth) {
 
     if (updateErr) throw updateErr;
 
-    // Log the transaction with category and notes
-    await supabase
-      .from('commander_member_comp_log')
-      .insert({
-        venue_id: member.venue_id,
-        member_id: member.id,
-        amount: parsedAmount,
-        type: type || 'award',
-        reason: reason || 'Manual comp award',
-        authorized_by: authorized_by || 'Staff',
-        authorized_pin: authorized_pin || false,
-        processed_by: staffRecord.id,
-        balance_after: Math.round(newBalance * 100) / 100,
-        comp_category: comp_category || 'cash_bonus',
-        notes: notes || null
-      });
+    await supabase.from('commander_member_comp_log').insert({
+      venue_id: member.venue_id, member_id: member.id, amount: parsedAmount,
+      type: type || 'award', reason: reason || 'Manual comp award',
+      authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
+      processed_by: staffRecord.id, balance_after: Math.round(newBalance * 100) / 100,
+      comp_category: comp_category || 'cash_bonus', notes: notes || null
+    });
 
-    // Ignore log error if table doesn't have all columns - comp was still awarded
     return res.json({
       success: true,
       data: {
-        member_id: member.id,
-        amount: parsedAmount,
+        member_id: member.id, amount: parsedAmount,
         new_balance: Math.round(newBalance * 100) / 100,
-        authorized_by: authorized_by || staffRecord.display_name
+        authorized_by: authorized_by || 'Staff'
       }
     });
   } catch (error) {

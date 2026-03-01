@@ -299,6 +299,12 @@ export default function CompSystem() {
     try {
       const receiptWindow = window.open('', '_blank', 'width=400,height=600');
       if (!receiptWindow) return; // popup blocked
+      const amountLine = data.isMembership
+        ? `<div class="amount" style="color:#8B5CF6">${data.durationLabel}</div>`
+        : `<div class="amount">$${data.amount.toFixed(2)}</div>`;
+      const balanceLine = data.isMembership && data.newExpires
+        ? `<div class="row"><span>Active Through:</span><span class="bold">${new Date(data.newExpires).toLocaleDateString()}</span></div>`
+        : `<div class="row"><span>New Balance:</span><span class="bold">$${(data.newBalance || 0).toFixed(2)}</span></div>`;
       receiptWindow.document.write(`
         <html>
         <head><title>Comp Receipt</title>
@@ -325,9 +331,9 @@ export default function CompSystem() {
           <div class="row"><span>Category:</span><span>${data.category}</span></div>
           ${data.notes ? `<div class="row"><span>Notes:</span><span>${data.notes}</span></div>` : ''}
           <div class="divider"></div>
-          <div class="amount">$${data.amount.toFixed(2)}</div>
+          ${amountLine}
           <div class="divider"></div>
-          <div class="row"><span>New Balance:</span><span class="bold">$${(data.newBalance || 0).toFixed(2)}</span></div>
+          ${balanceLine}
           <div class="row"><span>Authorized By:</span><span>${data.authorizedBy}</span></div>
           <div class="center" style="margin-top:12px;">
             <span class="stamp">STAFF PIN VERIFIED</span>
@@ -518,8 +524,14 @@ export default function CompSystem() {
                     </div>
                     <h2 className="text-2xl font-bold text-white">Comp Issued</h2>
                     <p className="text-[#B0B3B8] mt-2">
-                      ${compAmount} {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} To {selectedMember?.first_name} {selectedMember?.last_name}
+                      {lastAwardData?.isMembership
+                        ? `${lastAwardData.durationLabel} Free Membership To ${selectedMember?.first_name} ${selectedMember?.last_name}`
+                        : `$${compAmount} ${COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} To ${selectedMember?.first_name} ${selectedMember?.last_name}`
+                      }
                     </p>
+                    {lastAwardData?.newExpires && (
+                      <p className="text-xs text-[#8B5CF6] mt-1">Membership Active Through {new Date(lastAwardData.newExpires).toLocaleDateString()}</p>
+                    )}
                     <p className="text-xs text-[#31A24C] mt-1">PIN Verified And Documented</p>
                     {lastAwardData && (
                       <p className="text-xs text-[#B0B3B8] mt-1">Authorized By: {lastAwardData.authorizedBy}</p>
