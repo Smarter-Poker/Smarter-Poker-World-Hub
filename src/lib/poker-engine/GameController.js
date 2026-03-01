@@ -236,6 +236,7 @@ class GameController {
       const { data, error } = await this.supabase
         .from('tables')
         .insert({
+          club_id: clubId,
           name: name || `${sb}/${bb} ${variant === 'holdem' ? 'NLH' : variant.toUpperCase()}`,
           game_type: 'cash',
           game_variant: variant === 'holdem' ? 'nlh' : variant,
