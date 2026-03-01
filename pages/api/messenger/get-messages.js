@@ -3,7 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
@@ -15,13 +15,20 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Service key not configured' });
     }
 
-    const { conversationId, userId } = req.body;
-
-    if (!conversationId || !userId) {
-        return res.status(400).json({ error: 'Missing conversationId or userId' });
-    }
-
     const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    const userId = user.id; // From JWT, NOT body
+    const { conversationId } = req.body;
+
+    if (!conversationId) {
+        return res.status(400).json({ error: 'Missing conversationId' });
+    }
 
     try {
         // First verify user is a participant in this conversation (security check)
