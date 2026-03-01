@@ -55,6 +55,8 @@ export default function CompSystem() {
   const [compNotes, setCompNotes] = useState('');
   const [awarding, setAwarding] = useState(false);
   const [awarded, setAwarded] = useState(false);
+  const [awardError, setAwardError] = useState('');
+  const [lastAwardData, setLastAwardData] = useState(null);
   const searchTimeoutRef = useRef(null);
 
   // ─── PIN auth state ───
@@ -198,15 +200,19 @@ export default function CompSystem() {
         body: JSON.stringify({ venue_id: venueId, pin_code: pinCode })
       });
       const pinData = await pinRes.json();
-      if (!pinRes.ok || !pinData.success) {
-        setPinError(pinData.error?.message || 'Invalid PIN');
+
+      // Check both HTTP status and the 'valid' field from the API
+      if (!pinRes.ok || !pinData.success || !pinData.data?.valid) {
+        setPinError(pinData.error?.message || 'Invalid PIN — Please Try Again');
         setVerifying(false);
         return;
       }
 
       const authorizer = pinData.data?.staff;
+      const authorizerName = authorizer?.display_name || 'Staff';
       setShowPinModal(false);
       setAwarding(true);
+      setAwardError('');
       const token = getToken();
       const staffSession = getStaffSession();
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -224,14 +230,28 @@ export default function CompSystem() {
           type: 'award',
           comp_category: selectedCategory,
           notes: compNotes || '',
-          authorized_by: authorizer?.display_name || authorizer?.id || 'Staff',
-          authorized_pin: true
+          authorized_by: authorizerName,
+          authorized_pin: true  // Boolean flag: PIN was verified (verifier name in authorized_by)
         })
       });
       const json = await res.json();
       if (json.success) {
         broadcastChange('members');
+        const receiptData = {
+          memberName: `${selectedMember.first_name} ${selectedMember.last_name}`,
+          amount: parseFloat(compAmount),
+          category: catLabel,
+          notes: compNotes,
+          authorizedBy: authorizerName,
+          newBalance: json.data?.new_balance,
+          timestamp: new Date().toLocaleString()
+        };
+        setLastAwardData(receiptData);
         setAwarded(true);
+
+        // Auto-print receipt
+        printCompReceipt(receiptData);
+
         setTimeout(() => {
           setAwarded(false);
           setSelectedMember(null);
@@ -240,10 +260,66 @@ export default function CompSystem() {
           setCompNotes('');
           setSearchQuery('');
           setSearchResults([]);
-        }, 2500);
+          setLastAwardData(null);
+        }, 4000);
+      } else {
+        setAwardError(json.error || 'Failed To Issue Comp — Please Try Again');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setAwardError('Network Error — Please Try Again');
+    }
     finally { setAwarding(false); setVerifying(false); }
+  };
+
+  // ─── Auto-print receipt on comp completion ───
+  const printCompReceipt = (data) => {
+    try {
+      const receiptWindow = window.open('', '_blank', 'width=400,height=600');
+      if (!receiptWindow) return; // popup blocked
+      receiptWindow.document.write(`
+        <html>
+        <head><title>Comp Receipt</title>
+        <style>
+          body { font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 20px 0; color: #000; }
+          .center { text-align: center; }
+          .divider { border-top: 1px dashed #000; margin: 8px 0; }
+          .bold { font-weight: bold; }
+          .row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; }
+          h2 { margin: 0 0 4px; font-size: 16px; }
+          .amount { font-size: 28px; font-weight: bold; text-align: center; margin: 12px 0; }
+          .footer { font-size: 10px; text-align: center; margin-top: 16px; color: #666; }
+          .stamp { border: 2px solid #000; padding: 4px 12px; display: inline-block; font-weight: bold; font-size: 11px; margin-top: 8px; letter-spacing: 1px; }
+        </style>
+        </head>
+        <body>
+          <div class="center">
+            <h2>COMP RECEIPT</h2>
+            <p style="font-size:11px;margin:0;">Club Commander</p>
+          </div>
+          <div class="divider"></div>
+          <div class="row"><span>Date:</span><span>${data.timestamp}</span></div>
+          <div class="row"><span>Member:</span><span class="bold">${data.memberName}</span></div>
+          <div class="row"><span>Category:</span><span>${data.category}</span></div>
+          ${data.notes ? `<div class="row"><span>Notes:</span><span>${data.notes}</span></div>` : ''}
+          <div class="divider"></div>
+          <div class="amount">$${data.amount.toFixed(2)}</div>
+          <div class="divider"></div>
+          <div class="row"><span>New Balance:</span><span class="bold">$${(data.newBalance || 0).toFixed(2)}</span></div>
+          <div class="row"><span>Authorized By:</span><span>${data.authorizedBy}</span></div>
+          <div class="center" style="margin-top:12px;">
+            <span class="stamp">STAFF PIN VERIFIED</span>
+          </div>
+          <div class="footer">
+            <p>This comp has been logged and documented.</p>
+            <p>Thank you for playing!</p>
+          </div>
+        </body>
+        </html>
+      `);
+      receiptWindow.document.close();
+      setTimeout(() => { receiptWindow.print(); }, 300);
+    } catch (e) { console.warn('Receipt print failed:', e); }
   };
 
   const resetIssueFlow = () => {
@@ -254,6 +330,7 @@ export default function CompSystem() {
     setSearchQuery('');
     setSearchResults([]);
     setAwarded(false);
+    setAwardError('');
   };
 
   const TABS = [
@@ -403,6 +480,15 @@ export default function CompSystem() {
             {/* ═══════════ ISSUE COMP TAB ═══════════ */}
             {tab === 'issue' && (
               <div className="space-y-4">
+                {/* Error Banner */}
+                {awardError && (
+                  <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-3 flex items-center gap-2">
+                    <X className="w-5 h-5 text-[#EF4444] shrink-0" />
+                    <p className="text-sm text-[#EF4444] flex-1">{awardError}</p>
+                    <button onClick={() => setAwardError('')} className="text-[#EF4444] text-xs underline">Dismiss</button>
+                  </div>
+                )}
+
                 {awarded ? (
                   <div className="py-12 text-center">
                     <div className="w-20 h-20 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-4">
@@ -410,9 +496,18 @@ export default function CompSystem() {
                     </div>
                     <h2 className="text-2xl font-bold text-white">Comp Issued</h2>
                     <p className="text-[#B0B3B8] mt-2">
-                      ${compAmount} {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} to {selectedMember?.first_name} {selectedMember?.last_name}
+                      ${compAmount} {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} To {selectedMember?.first_name} {selectedMember?.last_name}
                     </p>
                     <p className="text-xs text-[#31A24C] mt-1">PIN Verified And Documented</p>
+                    {lastAwardData && (
+                      <p className="text-xs text-[#B0B3B8] mt-1">Authorized By: {lastAwardData.authorizedBy}</p>
+                    )}
+                    {lastAwardData && (
+                      <button onClick={() => printCompReceipt(lastAwardData)}
+                        className="mt-4 px-6 py-2 rounded-xl bg-[#3A3B3C] text-white text-sm font-medium active:bg-[#4A4B4C]">
+                        Print Receipt Again
+                      </button>
+                    )}
                   </div>
 
                 ) : !selectedMember ? (
