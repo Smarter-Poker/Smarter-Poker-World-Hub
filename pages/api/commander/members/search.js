@@ -93,6 +93,55 @@ export default async function handler(req, res) {
 
     let results = (members || []).map(m => ({ ...m, phone: formatPhone(m.phone) }));
 
+    // ═══ ALSO search commander_staff (owners, managers, floor, dealers) ═══
+    // Staff/owners may not have a commander_members record.
+    try {
+      let staffQuery = supabase
+        .from('commander_staff')
+        .select('id, user_id, role, display_name, venue_id')
+        .eq('venue_id', venueFilter)
+        .eq('is_active', true)
+        .limit(limitNum);
+
+      if (!isPhone) {
+        staffQuery = staffQuery.ilike('display_name', `%${q}%`);
+      }
+
+      const { data: staffMatches } = await staffQuery;
+
+      if (staffMatches && staffMatches.length > 0) {
+        // De-duplicate: skip staff who already appear in member results (by display_name match)
+        const memberNames = new Set(results.map(r => `${(r.first_name || '').toLowerCase()} ${(r.last_name || '').toLowerCase()}`));
+
+        for (const s of staffMatches) {
+          const nameParts = (s.display_name || '').trim().split(/\s+/);
+          const firstName = nameParts[0] || s.display_name || 'Staff';
+          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+          const fullNameKey = `${firstName.toLowerCase()} ${lastName.toLowerCase()}`;
+
+          if (memberNames.has(fullNameKey)) continue; // already in results
+
+          results.push({
+            id: s.user_id || `staff-${s.id}`,
+            first_name: firstName,
+            last_name: lastName,
+            phone: null,
+            email: null,
+            last_visit: null,
+            comp_balance: 0,
+            membership_tier: null,
+            membership_status: null,
+            member_number: null,
+            _from_staff: true,
+            _staff_role: s.role,
+            _staff_id: s.id,
+          });
+        }
+      }
+    } catch (staffErr) {
+      console.warn('Staff search fallback warning:', staffErr);
+    }
+
     // ═══ FALLBACK: Also search commander_waitlist for active web/kiosk sign-ups ═══
     // Web sign-ups may not have a commander_members record yet.
     // This ensures the kiosk can find anyone who signed up online.
@@ -115,7 +164,6 @@ export default async function handler(req, res) {
         const { data: wlMatches } = await wlQuery.order('created_at', { ascending: false });
 
         if (wlMatches && wlMatches.length > 0) {
-          // De-duplicate by name+phone and convert to member-like shape
           const seen = new Set();
           for (const wl of wlMatches) {
             const dedupKey = `${(wl.player_name || '').toLowerCase()}::${wl.player_phone || ''}`;
@@ -127,7 +175,6 @@ export default async function handler(req, res) {
               id: `wl-${wl.id}`,
               first_name: nameParts[0] || wl.player_name,
               last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '',
-              name: wl.player_name,
               phone: formatPhone(wl.player_phone) || null,
               email: null,
               last_visit: null,
