@@ -1238,10 +1238,20 @@ class GameStateMachine {
       return b;
     });
     
-    // Split pot evenly across boards
+    // Split pot evenly across boards, AFTER applying rake
     const totalPot = this.potCalculator.totalPot;
-    const basePortion = Math.floor(totalPot / numBoards);
-    const remainder = totalPot - (basePortion * numBoards);
+    
+    // Apply rake to total pot (same as normal showdown)
+    const rakePercent = this.config.rakePercent || 0;
+    const rakeCap = this.config.rakeCap || 0;
+    let rake = 0;
+    if (rakePercent > 0) {
+      rake = Math.min(Math.floor(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
+    }
+    const distributablePot = totalPot - rake;
+    
+    const basePortion = Math.floor(distributablePot / numBoards);
+    const remainder = distributablePot - (basePortion * numBoards);
     
     // Build payouts — first board gets the remainder
     const payouts = {};
@@ -1293,6 +1303,7 @@ class GameStateMachine {
       })),
       runItMultiple: runoutData,
       potTotal: totalPot,
+      rake,
     };
     
     const eventName = numBoards === 2 ? 'run_it_twice' : 'run_it_thrice';
@@ -1418,7 +1429,15 @@ class GameStateMachine {
     
     const premium = Math.ceil(clampedAmount * offer.premiumRate);
     
-    // Deduct premium from the leader's potential winnings
+    // Deduct premium from the leader's stack NOW
+    const buyer = this.currentHand.players.find(p => p.id === playerId);
+    if (!buyer || buyer.stack < premium) {
+      this.currentHand.insurance = { declined: true };
+      this.emit('insurance_declined', { playerId, reason: 'Insufficient stack for premium' });
+      return;
+    }
+    buyer.stack -= premium;
+
     this.currentHand.insurance = {
       buyerId: playerId,
       amount: clampedAmount,
@@ -1450,10 +1469,14 @@ class GameStateMachine {
     const trailerWon = showdownResult?.winners?.some(w => w.playerId === ins.trailerId);
     
     if (trailerWon) {
-      // Insurance pays out: buyer gets their insured amount
+      // Insurance pays out: buyer gets their insured amount.
+      // Funds come from reducing the trailer's winnings (pot redistribution).
       const payout = ins.amount;
-      const player = this.currentHand.players.find(p => p.id === ins.buyerId);
-      if (player) player.stack += payout;
+      const buyer = this.currentHand.players.find(p => p.id === ins.buyerId);
+      const trailer = this.currentHand.players.find(p => p.id === ins.trailerId);
+      
+      if (buyer) buyer.stack += payout;
+      if (trailer) trailer.stack -= Math.min(payout, trailer.stack); // Can't go below 0
       
       this.emit('insurance_payout', {
         buyerId: ins.buyerId,
@@ -1463,10 +1486,9 @@ class GameStateMachine {
         reason: 'Trailer won — insurance pays out',
       });
       
-      console.log(`🛡️ Insurance payout: ${payout} to ${ins.buyerId}`);
       return { buyerId: ins.buyerId, payout, premium: ins.premium };
     } else {
-      // Leader won — insurance not needed, premium lost
+      // Leader won — insurance not needed, premium already deducted (goes to house/rake)
       this.emit('insurance_expired', {
         buyerId: ins.buyerId,
         premiumLost: ins.premium,
