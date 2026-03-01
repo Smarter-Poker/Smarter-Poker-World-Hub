@@ -34,14 +34,53 @@ async function awardComp(req, res, staffAuth) {
     const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes } = req.body;
     if (!member_id || !amount) return res.status(400).json({ success: false, error: 'member_id and amount required' });
 
-    // Get the member to find venue_id
-    const { data: member, error: memberErr } = await supabase
+    // Get the member — check commander_members first, then commander_staff
+    let member = null;
+    const { data: directMember, error: memberErr } = await supabase
       .from('commander_members')
       .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
       .eq('id', member_id)
       .single();
 
-    if (memberErr || !member) return res.status(404).json({ success: false, error: 'Member not found' });
+    if (directMember) {
+      member = directMember;
+    } else {
+      // member_id might be a commander_staff row ID — look up staff and auto-create member
+      const { data: staffMember } = await supabase
+        .from('commander_staff')
+        .select('id, venue_id, display_name, user_id, role')
+        .eq('id', member_id)
+        .single();
+
+      if (staffMember) {
+        const nameParts = (staffMember.display_name || '').trim().split(/\s+/);
+        const firstName = nameParts[0] || staffMember.role || 'Staff';
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+        // Auto-create a commander_members record for this staff member
+        const { data: newMember, error: createErr } = await supabase
+          .from('commander_members')
+          .insert({
+            venue_id: staffMember.venue_id,
+            first_name: firstName,
+            last_name: lastName,
+            user_id: staffMember.user_id || null,
+            comp_balance: 0,
+            comp_lifetime_earned: 0,
+            comp_lifetime_redeemed: 0,
+            membership_tier: staffMember.role,
+          })
+          .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+          .single();
+
+        if (createErr || !newMember) {
+          return res.status(500).json({ success: false, error: 'Could not create member record for staff' });
+        }
+        member = newMember;
+      }
+    }
+
+    if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
 
     // Verify staff is at the same venue as the member
     if (String(staffRecord.venue_id) !== String(member.venue_id)) {
@@ -62,7 +101,7 @@ async function awardComp(req, res, staffAuth) {
     const { error: updateErr } = await supabase
       .from('commander_members')
       .update(updateFields)
-      .eq('id', member_id);
+      .eq('id', member.id);
 
     if (updateErr) throw updateErr;
 
@@ -71,7 +110,7 @@ async function awardComp(req, res, staffAuth) {
       .from('commander_member_comp_log')
       .insert({
         venue_id: member.venue_id,
-        member_id: member_id,
+        member_id: member.id,
         amount: parsedAmount,
         type: type || 'award',
         reason: reason || 'Manual comp award',
@@ -87,7 +126,7 @@ async function awardComp(req, res, staffAuth) {
     return res.json({
       success: true,
       data: {
-        member_id,
+        member_id: member.id,
         amount: parsedAmount,
         new_balance: Math.round(newBalance * 100) / 100,
         authorized_by: authorized_by || staffRecord.display_name
