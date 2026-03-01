@@ -193,6 +193,28 @@ export default function TableTabletsPage() {
         }
     }, [lockedTable, tables]);
 
+    // Cleanup tournament clock interval on fullscreen close or unmount
+    useEffect(() => {
+        return () => {
+            if (tournamentClockInterval.current) {
+                clearInterval(tournamentClockInterval.current);
+                tournamentClockInterval.current = null;
+            }
+        };
+    }, [fullscreenTable]);
+
+    // When fullscreen table changes, close tournament clock overlay
+    useEffect(() => {
+        if (!fullscreenTable) {
+            setShowTournamentClock(false);
+            setTournamentClockData(null);
+            if (tournamentClockInterval.current) {
+                clearInterval(tournamentClockInterval.current);
+                tournamentClockInterval.current = null;
+            }
+        }
+    }, [fullscreenTable]);
+
     // Browser back/navigation prevention when locked
     useEffect(() => {
         if (!lockedTable) return;
@@ -1145,18 +1167,27 @@ export default function TableTabletsPage() {
                     {!lockedTable && (
                         <div style={{
                             padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            background: fullscreenTable.status === 'in_use'
-                                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                                : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                            color: '#fff', flexShrink: 0,
+                            background: isTournamentTable(fullscreenTable)
+                                ? 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)'
+                                : fullscreenTable.status === 'in_use'
+                                    ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                    : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                            color: isTournamentTable(fullscreenTable) ? '#000' : '#fff', flexShrink: 0,
                         }}>
                             <div>
                                 <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.1 }}>
-                                    Table {fullscreenTable.table_number}
-                                    {fullscreenTable.table_name && fullscreenTable.table_name !== `Table ${fullscreenTable.table_number}` ? ` · ${fullscreenTable.table_name}` : ''}
+                                    {isTournamentTable(fullscreenTable) && fullscreenTable.tournament
+                                        ? `${fullscreenTable.tournament.name}`
+                                        : `Table ${fullscreenTable.table_number}`}
+                                    {!isTournamentTable(fullscreenTable) && fullscreenTable.table_name && fullscreenTable.table_name !== `Table ${fullscreenTable.table_number}` ? ` · ${fullscreenTable.table_name}` : ''}
                                 </div>
                                 <div style={{ fontSize: 18, fontWeight: 700, opacity: 0.95, marginTop: 4 }}>
                                     {(() => {
+                                        if (isTournamentTable(fullscreenTable) && fullscreenTable.tournament) {
+                                            const t = fullscreenTable.tournament;
+                                            const buyIn = t.buyin_amount > 0 ? `$${t.buyin_amount}${t.buyin_fee ? `+$${t.buyin_fee}` : ''} Buy-In` : 'Freeroll';
+                                            return `Table ${fullscreenTable.table_number} · ${buyIn} · ${getSeatedCount(fullscreenTable)}/${fullscreenTable.max_seats || 9} seated`;
+                                        }
                                         const g = getTableGame(fullscreenTable);
                                         const gameType = getFullGameName(g?.game_type || fullscreenTable.game_type);
                                         const stakes = formatStakes(g?.stakes || fullscreenTable.stakes);
@@ -1166,7 +1197,7 @@ export default function TableTabletsPage() {
                                     })()}
                                 </div>
                                 {fullscreenTable.table_purpose && (
-                                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(255,215,0,0.4)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#FFD700' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(0,0,0,0.2)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#000' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
                                         {isTournamentTable(fullscreenTable) ? 'Tournament' : fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
                                     </span>
                                 )}
