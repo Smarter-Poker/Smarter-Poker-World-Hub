@@ -301,6 +301,12 @@ export function useTableConnection({ supabase, tableId, userId }) {
             apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
           });
         }, HEARTBEAT_MS);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        // Connection dropped mid-session — mark disconnected and try state recovery
+        setConnected(false);
+        console.warn(`[useTableConnection] Channel ${status} — will auto-reconnect`);
+        // Supabase client auto-reconnects channels, but refresh state when it does
+        setTimeout(() => requestState(), 2000);
       }
     });
 

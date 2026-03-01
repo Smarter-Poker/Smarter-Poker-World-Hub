@@ -2111,6 +2111,32 @@ export default function LivePokerTable({
           Connecting to table...
         </div>
       )}
+
+      {/* Mid-game reconnection banner */}
+      {tableState && !connected && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(250, 56, 62, 0.9)',
+            color: '#fff',
+            padding: '8px 20px',
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          }}
+        >
+          <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
+          Reconnecting...
+        </div>
+      )}
     </div>
   );
 }

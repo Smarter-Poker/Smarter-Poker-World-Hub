@@ -295,12 +295,45 @@ export default async function handler(req, res) {
           })
           .eq('id', tournamentId);
 
-        // Auto-start SNG when full
+        // Auto-start SNG when full — init engine THEN mark running
         if (tourn.type === 'sng' && tourn.registered_count + 1 >= tourn.max_players) {
-          await supabaseAdmin
-            .from('club_tournaments')
-            .update({ status: 'running' })
-            .eq('id', tournamentId);
+          try {
+            const { getController } = require('../../../../src/lib/poker-engine/GameController');
+            const controller = await getController();
+
+            const { data: sngRegs } = await supabaseAdmin
+              .from('tournament_registrations')
+              .select('user_id, display_name')
+              .eq('tournament_id', tournamentId)
+              .eq('status', 'registered');
+
+            const sngCreate = await controller.createTournament({
+              tournamentId,
+              tournamentType: 'sng',
+              name: tourn.name,
+              variant: tourn.variant || 'holdem',
+              startingChips: tourn.starting_chips || 5000,
+              buyinAmount: tourn.buy_in || 100,
+              maxEntries: tourn.max_players || 9,
+              clubId: tourn.club_id,
+            });
+
+            if (sngCreate.success) {
+              for (const reg of (sngRegs || [])) {
+                await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player');
+              }
+              await controller.startTournament(tournamentId);
+              await supabaseAdmin
+                .from('club_tournaments')
+                .update({ status: 'running', started_at: new Date().toISOString() })
+                .eq('id', tournamentId);
+            } else {
+              console.error('[Tournament] SNG engine create failed:', sngCreate.error);
+            }
+          } catch (sngErr) {
+            console.error('[Tournament] SNG auto-start engine error:', sngErr.message);
+            // Don't mark running — stays in registering until manually started
+          }
         }
 
         return res.json({ success: true, registeredCount: tourn.registered_count + 1 });
@@ -385,12 +418,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Need at least 2 players' });
         }
 
-        await supabaseAdmin
-          .from('club_tournaments')
-          .update({ status: 'running', started_at: new Date().toISOString() })
-          .eq('id', tournamentId);
-
-        // Initialize engine tournament via GameController
+        // Initialize engine tournament via GameController FIRST, then mark running
         try {
           const { getController } = require('../../../../src/lib/poker-engine/GameController');
           const controller = await getController();
@@ -420,17 +448,31 @@ export default async function handler(req, res) {
 
           if (!createResult.success) {
             console.error('[Tournament] Engine create failed:', createResult.error);
-          } else {
-            // Register all players in engine
-            for (const reg of (registrations || [])) {
-              await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player');
-            }
-            // Start it
-            await controller.startTournament(tournamentId);
+            return res.status(500).json({ error: 'Engine failed to create tournament: ' + (createResult.error || 'unknown') });
           }
+
+          // Register all players in engine
+          for (const reg of (registrations || [])) {
+            await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player');
+          }
+
+          // Start the engine tournament
+          await controller.startTournament(tournamentId);
+
+          // Engine started successfully — NOW mark running in DB
+          await supabaseAdmin
+            .from('club_tournaments')
+            .update({ status: 'running', started_at: new Date().toISOString() })
+            .eq('id', tournamentId);
+
         } catch (engineErr) {
           console.error('[Tournament] Engine init error:', engineErr.message);
-          // DB is already marked running — engine will catch up on next connect
+          // Engine failed — do NOT mark as running, revert to registering
+          await supabaseAdmin
+            .from('club_tournaments')
+            .update({ status: 'registering' })
+            .eq('id', tournamentId);
+          return res.status(500).json({ error: 'Engine failed to start tournament. Please try again.' });
         }
 
         return res.json({ success: true });
