@@ -960,7 +960,7 @@ export default function Cashier() {
               {/* Hotspot 2: Add Time To Player's Balance */}
               <button
                 onClick={() => {
-                  setSelectedTime(null); setCustomMinutes(''); setShowAddTime(true);
+                  setSelectedTime(null); setShowAddTime(true);
                 }}
                 style={{
                   position: 'absolute', top: '26%', left: '8%', width: '84%', height: '12.5%',
@@ -1158,7 +1158,7 @@ export default function Cashier() {
                 <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Select Time Package</p>
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   {TIME_OPTIONS.map(opt => (
-                    <button key={opt.minutes} onClick={() => { setSelectedTime(opt.minutes); setCustomMinutes(''); }}
+                    <button key={opt.minutes} onClick={() => { setSelectedTime(opt.minutes); }}
                       className={`py-3 px-2 rounded-xl text-left ${selectedTime === opt.minutes ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
                       <span className="text-sm font-bold block">{opt.label}</span>
                       <span className={`text-xs font-semibold ${selectedTime === opt.minutes ? 'text-white/80' : 'text-[#31A24C]'}`}>
