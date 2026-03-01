@@ -45,6 +45,21 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: 'Active session not found' });
     }
 
+    // TOURNAMENT GUARD: Never add time to tournament sessions
+    const { data: tableRow } = await supabase
+      .from('commander_tables')
+      .select('mode')
+      .eq('venue_id', session.venue_id)
+      .eq('table_number', session.table_number)
+      .single();
+
+    if (tableRow?.mode === 'tournament') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot add time to tournament sessions — tournaments pay a one-time seat fee'
+      });
+    }
+
     // Add time to session
     const newAddedMinutes = (session.time_added_minutes || 0) + parseInt(minutes);
 

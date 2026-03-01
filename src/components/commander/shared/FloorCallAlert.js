@@ -83,6 +83,15 @@ export default function FloorCallAlert({ venueId }) {
                     if (age < 60) {
                         handleNewCall(call);
                     }
+                } else {
+                    // No active calls — if we're showing an alert, the call was cancelled/resolved
+                    setActiveCall(prev => {
+                        if (prev) {
+                            lastSeenId.current = null;
+                            if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
+                        }
+                        return null;
+                    });
                 }
             } catch { /* ignore polling errors */ }
         };

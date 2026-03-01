@@ -87,30 +87,50 @@ export default async function handler(req, res) {
 
             console.log(`[HARD STOP] Triggering for venue ${venue.venue_id} at ${stopTime} CST`);
 
-            // 1. Close all open tables for this venue
+            // 1. Close all open CASH tables for this venue (NEVER close tournament tables)
             const { data: openTables } = await supabase
                 .from('commander_tables')
                 .select('id')
                 .eq('venue_id', venue.venue_id)
-                .in('status', ['active', 'open']);
+                .in('status', ['active', 'open'])
+                .neq('mode', 'tournament');
 
             if (openTables && openTables.length > 0) {
                 await supabase
                     .from('commander_tables')
                     .update({ status: 'closed', updated_at: cst.isoNow })
                     .eq('venue_id', venue.venue_id)
-                    .in('status', ['active', 'open']);
+                    .in('status', ['active', 'open'])
+                    .neq('mode', 'tournament');
 
-                console.log(`[HARD STOP] Closed ${openTables.length} tables for venue ${venue.venue_id}`);
+                console.log(`[HARD STOP] Closed ${openTables.length} cash tables for venue ${venue.venue_id} (tournament tables untouched)`);
             }
 
-            // 2. End all active table sessions (dealer-scanned) + auto-comp awards
+            // 2. End all active CASH table sessions (dealer-scanned) + auto-comp awards
+            // Tournament sessions are NEVER ended by hard-stop
             let compsAwarded = 0;
-            const { data: tableSessions } = await supabase
+
+            // Get tournament table numbers to exclude
+            const { data: tournTables } = await supabase
+                .from('commander_tables')
+                .select('table_number')
+                .eq('venue_id', venue.venue_id)
+                .eq('mode', 'tournament');
+            const tournTableNums = (tournTables || []).map(t => t.table_number);
+
+            let sessionQuery = supabase
                 .from('commander_table_sessions')
-                .select('id, member_id, started_at')
+                .select('id, member_id, started_at, table_number')
                 .eq('venue_id', venue.venue_id)
                 .eq('status', 'active');
+
+            // Exclude tournament table sessions if any exist
+            if (tournTableNums.length > 0) {
+                // Use NOT filter — sessions at tournament tables are untouched
+                sessionQuery = sessionQuery.not('table_number', 'in', `(${tournTableNums.join(',')})`);
+            }
+
+            const { data: tableSessions } = await sessionQuery;
 
             if (tableSessions && tableSessions.length > 0) {
                 // Check if venue has auto-comp enabled
@@ -160,7 +180,8 @@ export default async function handler(req, res) {
                     }
                 }
 
-                // End all table sessions
+                // End CASH table sessions only (by ID, not bulk venue update)
+                const sessionIds = tableSessions.map(s => s.id);
                 await supabase
                     .from('commander_table_sessions')
                     .update({
@@ -168,11 +189,10 @@ export default async function handler(req, res) {
                         ended_at: cst.isoNow,
                         updated_at: cst.isoNow
                     })
-                    .eq('venue_id', venue.venue_id)
-                    .eq('status', 'active');
+                    .in('id', sessionIds);
 
-                // Clear all seats
-                await supabase
+                // Clear CASH seats only (exclude tournament table numbers)
+                let seatQuery = supabase
                     .from('commander_table_seats')
                     .update({
                         status: 'empty',
@@ -183,7 +203,12 @@ export default async function handler(req, res) {
                     .eq('venue_id', venue.venue_id)
                     .eq('status', 'occupied');
 
-                console.log(`[HARD STOP] Ended ${tableSessions.length} table sessions, awarded $${compsAwarded.toFixed(2)} in auto-comps for venue ${venue.venue_id}`);
+                if (tournTableNums.length > 0) {
+                    seatQuery = seatQuery.not('table_number', 'in', `(${tournTableNums.join(',')})`);
+                }
+                await seatQuery;
+
+                console.log(`[HARD STOP] Ended ${tableSessions.length} cash table sessions, awarded $${compsAwarded.toFixed(2)} in auto-comps (tournament sessions untouched)`);
             }
 
             // 3. End all active time billing sessions for this venue

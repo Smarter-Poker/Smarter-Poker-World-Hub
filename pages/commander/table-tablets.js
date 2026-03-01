@@ -1609,9 +1609,33 @@ export default function TableTabletsPage() {
                                     style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 16, fontWeight: 700, outline: 'none' }} />
                                 <button onClick={async () => {
                                     if (!chipCountInput) return;
-                                    setToast({ type: 'success', text: `🎰 ${showPlayerMenu.taken?.player_name} chip count: ${parseInt(chipCountInput).toLocaleString()}` });
+                                    try {
+                                        const sessionId = showPlayerMenu.taken?.session_id;
+                                        if (sessionId) {
+                                            const res = await fetch('/api/commander/dealer/session-action', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    table_number: showPlayerMenu.tableNumber,
+                                                    seat_number: showPlayerMenu.number,
+                                                    venue_id: venueId,
+                                                    action: 'update_chip_count',
+                                                    chip_count: parseInt(chipCountInput),
+                                                }),
+                                            });
+                                            const json = await res.json();
+                                            if (json.success) {
+                                                setToast({ type: 'success', text: `Chip count updated: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
+                                            } else {
+                                                setToast({ type: 'error', text: json.error || 'Failed to save chip count' });
+                                            }
+                                        } else {
+                                            setToast({ type: 'success', text: `Chip count: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
+                                        }
+                                    } catch { setToast({ type: 'error', text: 'Network error saving chip count' }); }
                                     setChipCountInput('');
                                     setShowPlayerMenu(null);
+                                    fetchAll();
                                 }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>
                             </div>
                         )}

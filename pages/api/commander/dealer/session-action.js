@@ -40,6 +40,24 @@ export default async function handler(req, res) {
             return res.status(404).json({ success: false, error: 'No active session at this seat' });
         }
 
+        // TOURNAMENT GUARD: Block timer-based actions for tournament sessions
+        // Move is still allowed — dealers need to move tournament players between tables
+        if (['pause', 'resume', 'meal_break', 'missed_blinds'].includes(action)) {
+            const { data: tableRow } = await supabase
+                .from('commander_tables')
+                .select('mode')
+                .eq('table_number', parseInt(table_number))
+                .eq('venue_id', session.venue_id)
+                .single();
+
+            if (tableRow?.mode === 'tournament') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Timer actions are not available for tournament sessions — tournaments have no individual timers'
+                });
+            }
+        }
+
         switch (action) {
             /* ─── PAUSE TIMER ──────────────────────────── */
             case 'pause': {
@@ -188,6 +206,31 @@ export default async function handler(req, res) {
                         from_seat: parseInt(seat_number),
                         to_seat: targetSeatNum,
                         session_id: session.id
+                    }
+                });
+            }
+
+            /* ─── UPDATE CHIP COUNT (Tournament) ─── */
+            case 'update_chip_count': {
+                const chipCount = extra?.chip_count || req.body?.chip_count;
+                if (!chipCount && chipCount !== 0) {
+                    return res.status(400).json({ success: false, error: 'chip_count required' });
+                }
+                const { error } = await supabase
+                    .from('commander_table_sessions')
+                    .update({
+                        chip_count: parseInt(chipCount),
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', session.id);
+                if (error) throw error;
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        action: 'update_chip_count',
+                        player_name: session.player_name,
+                        session_id: session.id,
+                        chip_count: parseInt(chipCount),
                     }
                 });
             }
