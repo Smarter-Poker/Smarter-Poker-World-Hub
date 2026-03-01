@@ -2018,6 +2018,42 @@ export default function LivePokerTable({
     send('player_action', { action });
   }, [send]);
 
+  // ═══ KEYBOARD SHORTCUTS ═══
+  // F=Fold, C=Check/Call, R=Raise/Bet, A=All-In, Space=Check/Call, Esc=Cancel
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      // Don't trigger if typing in an input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (!isMyTurn || !legalActions?.length) return;
+
+      const key = e.key.toLowerCase();
+      const canFold = legalActions.some(a => a.type === 'fold');
+      const canCheck = legalActions.some(a => a.type === 'check');
+      const canCall = legalActions.find(a => a.type === 'call');
+      const canAllIn = legalActions.some(a => a.type === 'all_in');
+
+      switch (key) {
+        case 'f':
+          if (canFold) { e.preventDefault(); handleAction({ type: 'fold' }); }
+          break;
+        case 'c':
+        case ' ':
+          e.preventDefault();
+          if (canCheck) handleAction({ type: 'check' });
+          else if (canCall) handleAction({ type: 'call' });
+          break;
+        case 'a':
+          if (canAllIn) { e.preventDefault(); handleAction({ type: 'all_in' }); }
+          break;
+        // R just focuses the bet/raise — actual amount is via slider
+        default:
+          break;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isMyTurn, legalActions, handleAction]);
+
   const handleSitDown = useCallback((amount) => {
     send('sit_down', { seatIndex: buyInSeat, buyIn: amount, displayName, avatarUrl });
     setBuyInSeat(null);

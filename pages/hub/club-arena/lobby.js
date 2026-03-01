@@ -503,11 +503,29 @@ export default function ClubLobby() {
 
                                     const dateStr = table.created_at ? new Date(table.created_at).toISOString().replace('T', ' ').substring(0, 19) : '2026-02-24 19:00:00';
 
+                                    // Status badge
+                                    const statusColors = {
+                                        running: { bg: '#31A24C', label: '● LIVE' },
+                                        waiting: { bg: '#2374E1', label: '○ OPEN' },
+                                        paused: { bg: '#ea580c', label: '⏸ PAUSED' },
+                                        closed: { bg: '#666', label: '✕ CLOSED' },
+                                    };
+                                    const statusInfo = statusColors[table.status] || statusColors.waiting;
+
                                     return (
                                         <div key={table.id} style={styles.iconItemWrapper} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>
                                             <div style={{ ...styles.pillOuter, background: outerBg }}>
                                                 <div style={styles.pillInner}>
                                                     <div style={styles.pushPin}>📌</div>
+
+                                                    {/* Status badge */}
+                                                    <div style={{
+                                                        position: 'absolute', top: 4, right: 4, zIndex: 5,
+                                                        background: statusInfo.bg, color: '#fff',
+                                                        fontSize: 8, fontWeight: 800, padding: '2px 6px',
+                                                        borderRadius: 4, letterSpacing: 0.3,
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                                    }}>{statusInfo.label}</div>
 
                                                     {/* Left Graphic */}
                                                     <div style={styles.pillLeftArt}>
