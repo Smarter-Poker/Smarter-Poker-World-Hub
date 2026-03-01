@@ -285,6 +285,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
       'game_length_warning', 'game_length_expired', 'game_length_extended',
       'nit_warning', 'nit_sitout',
+      'config_updated',
+      'table_paused', 'table_resumed',
     ];
 
     for (const evt of events) {
