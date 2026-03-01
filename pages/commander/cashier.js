@@ -61,6 +61,7 @@ export default function Cashier() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef(null);
+  const pendingModalRef = useRef(null); // Track which modal to return to after player search
 
   // Modals
   const [showBuyIn, setShowBuyIn] = useState(false);
@@ -284,6 +285,12 @@ export default function Cashier() {
     setShowPlayerSearch(false);
     setSearchQuery('');
     setSearchResults([]);
+
+    // Re-open the modal that initiated the search
+    if (pendingModalRef.current === 'buyin') { setShowBuyIn(true); }
+    else if (pendingModalRef.current === 'addtime') { setShowAddTime(true); }
+    else if (pendingModalRef.current === 'membership') { setSelectedTier(member.membership_tier || null); setShowMembership(true); }
+    pendingModalRef.current = null;
   };
 
   // Manual player search — supports empty query (returns staff + recent members)
@@ -1129,7 +1136,7 @@ export default function Cashier() {
                 <Users className="w-4 h-4 text-[#B0B3B8]" />
                 <span className="text-sm text-white font-medium">{selectedPlayer?.player_name || 'Walk-Up Player'}</span>
                 {!selectedPlayer && (
-                  <button onClick={() => { setShowBuyIn(false); setShowPlayerSearch(true); }}
+                  <button onClick={() => { setShowBuyIn(false); pendingModalRef.current = 'buyin'; setShowPlayerSearch(true); }}
                     className="text-xs text-[#1877F2] ml-auto font-semibold">Find Player</button>
                 )}
               </div>
@@ -1184,7 +1191,7 @@ export default function Cashier() {
                 ) : (
                   <div className="mb-4">
                     <p className="text-xs text-[#EF4444] font-semibold mb-2">⚠ Select a player first</p>
-                    <button onClick={() => { setShowAddTime(false); setShowPlayerSearch(true); }}
+                    <button onClick={() => { setShowAddTime(false); pendingModalRef.current = 'addtime'; setShowPlayerSearch(true); }}
                       className="w-full bg-[#1877F2] text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
                       <Search className="w-4 h-4" /> Scan or Search for Player
                     </button>
@@ -1284,7 +1291,7 @@ export default function Cashier() {
                 ) : (
                   <div className="mb-4">
                     <p className="text-xs text-[#1877F2] font-semibold mb-2">Select a player first:</p>
-                    <button onClick={() => { setShowMembership(false); setShowPlayerSearch(true); }}
+                    <button onClick={() => { setShowMembership(false); pendingModalRef.current = 'membership'; setShowPlayerSearch(true); }}
                       className="w-full bg-[#1877F2]/15 border border-[#1877F2]/30 text-[#1877F2] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
                       <Search className="w-4 h-4" /> Scan or Search for Player
                     </button>
