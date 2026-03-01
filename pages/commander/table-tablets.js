@@ -1487,22 +1487,8 @@ export default function TableTabletsPage() {
                                 position: 'absolute', inset: 0, zIndex: 10001,
                                 background: '#0D192E',
                             }}>
-                                {/* Back to Table button — floats over the iframe */}
-                                <button
-                                    onClick={() => { haptic('light'); setShowTournamentClock(false); setLockedTournamentId(null); }}
-                                    style={{
-                                        position: 'absolute', top: 20, left: 20, zIndex: 10,
-                                        background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
-                                        borderRadius: 12, padding: '10px 20px', cursor: 'pointer',
-                                        fontSize: 14, fontWeight: 700, color: '#fff',
-                                        backdropFilter: 'blur(8px)',
-                                        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                                        transition: 'background 0.2s',
-                                    }}
-                                >
-                                    ← Back to Table
-                                </button>
-                                {/* Full clock-display page — ONLY uses lockedTournamentId (never derived live) */}
+
+
                                 <iframe
                                     src={'/commander/tournaments/' + lockedTournamentId + '/clock-display'}
                                     style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
