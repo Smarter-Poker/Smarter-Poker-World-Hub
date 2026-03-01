@@ -159,6 +159,12 @@ export default function TableTabletsPage() {
     const [callFloorSending, setCallFloorSending] = useState(false);
     const [callFloorSent, setCallFloorSent] = useState(false);
     const [callFloorId, setCallFloorId] = useState(null);
+    // Tournament Clock overlay
+    const [showTournamentClock, setShowTournamentClock] = useState(false);
+    const [tournamentClockData, setTournamentClockData] = useState(null);
+    const tournamentClockInterval = useRef(null);
+    // Chip count input
+    const [chipCountInput, setChipCountInput] = useState('');
 
     useEffect(() => {
         try {
@@ -984,10 +990,10 @@ export default function TableTabletsPage() {
                                                         <div>
                                                             <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                 <Trophy size={16} />
-                                                                {formatStakes(game?.stakes || table.stakes)} {game?.game_type || table.game_type ? getFullGameName(game?.game_type || table.game_type) : 'Tournament'}
+                                                                {table.tournament?.name || 'Tournament'}
                                                             </div>
                                                             <div style={{ fontSize: 13, opacity: 0.9 }}>
-                                                                Table {tNum}{table.table_name && table.table_name !== `Table ${tNum}` ? ` · ${table.table_name}` : ''} · {maxSeats}-max · Tournament
+                                                                Table {tNum} · {table.tournament?.buyin_amount > 0 ? `$${table.tournament.buyin_amount}${table.tournament.buyin_fee ? `+$${table.tournament.buyin_fee}` : ''} Buy-In` : 'Freeroll'} · {maxSeats}-max
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -1344,11 +1350,193 @@ export default function TableTabletsPage() {
                                     Call Clock (60s)
                                 </button>
                             )}
+
+                            {/* Tournament Clock — only shown for tournament tables */}
+                            {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
+                                <button
+                                    onClick={async () => {
+                                        setShowTournamentClock(true);
+                                        // Fetch clock data
+                                        try {
+                                            const staffSession = localStorage.getItem('commander_staff') || '';
+                                            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+                                            const res = await fetch(`/api/commander/tournaments/${fullscreenTable.tournament_id}/clock`, {
+                                                headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` }
+                                            });
+                                            const json = await res.json();
+                                            if (json.success) setTournamentClockData(json.data);
+                                        } catch { /* ignore */ }
+                                        // Auto-refresh every second
+                                        if (tournamentClockInterval.current) clearInterval(tournamentClockInterval.current);
+                                        tournamentClockInterval.current = setInterval(async () => {
+                                            try {
+                                                const staffSession = localStorage.getItem('commander_staff') || '';
+                                                const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+                                                const res = await fetch(`/api/commander/tournaments/${fullscreenTable.tournament_id}/clock`, {
+                                                    headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` }
+                                                });
+                                                const json = await res.json();
+                                                if (json.success) setTournamentClockData(json.data);
+                                            } catch { /* ignore */ }
+                                        }, 1000);
+                                    }}
+                                    style={{
+                                        pointerEvents: 'auto',
+                                        background: 'linear-gradient(135deg, #FFD700, #B8860B)', border: 'none',
+                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        fontSize: 15, fontWeight: 800, color: '#000',
+                                        boxShadow: '0 4px 16px rgba(255,215,0,0.4)',
+                                    }}
+                                >
+                                    <Trophy size={16} /> Tournament Clock
+                                </button>
+                            )}
                         </div>
                     </div>
 
+                    {/* ── TOURNAMENT CLOCK OVERLAY ── */}
+                    {showTournamentClock && tournamentClockData && (
+                        <div style={{
+                            position: 'absolute', inset: 0, zIndex: 10001,
+                            background: 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 50%, #0a0a1e 100%)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            color: '#fff', padding: 40,
+                        }}>
+                            {/* Back to Table button */}
+                            <button
+                                onClick={() => {
+                                    setShowTournamentClock(false);
+                                    setTournamentClockData(null);
+                                    if (tournamentClockInterval.current) { clearInterval(tournamentClockInterval.current); tournamentClockInterval.current = null; }
+                                }}
+                                style={{
+                                    position: 'absolute', top: 20, left: 20,
+                                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                    borderRadius: 12, padding: '10px 20px', cursor: 'pointer',
+                                    fontSize: 14, fontWeight: 700, color: '#fff', zIndex: 10,
+                                    backdropFilter: 'blur(8px)',
+                                }}
+                            >
+                                Back to Table
+                            </button>
 
-                    {/* ── Toast Notification ── */}
+                            {/* Tournament Name */}
+                            <div style={{ fontSize: 18, fontWeight: 700, color: '#FFD700', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
+                                {tournamentClockData.tournament?.name || 'Tournament'}
+                            </div>
+
+                            {/* Status */}
+                            <div style={{
+                                fontSize: 13, fontWeight: 600, padding: '4px 16px', borderRadius: 20,
+                                background: tournamentClockData.clock?.isRunning ? 'rgba(49,162,76,0.3)' : 'rgba(239,68,68,0.3)',
+                                color: tournamentClockData.clock?.isRunning ? '#4ade80' : '#f87171',
+                                border: `1px solid ${tournamentClockData.clock?.isRunning ? 'rgba(49,162,76,0.5)' : 'rgba(239,68,68,0.5)'}`,
+                                marginBottom: 24,
+                            }}>
+                                {tournamentClockData.clock?.isRunning ? 'RUNNING' : tournamentClockData.clock?.isPaused ? 'PAUSED' : 'STOPPED'}
+                            </div>
+
+                            {/* Current Level */}
+                            {tournamentClockData.currentBlind && (
+                                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                                    <div style={{ fontSize: 14, color: '#8A8D91', fontWeight: 600, marginBottom: 4 }}>
+                                        LEVEL {tournamentClockData.currentBlind.level}
+                                    </div>
+                                    <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 1, letterSpacing: -2 }}>
+                                        {tournamentClockData.currentBlind.smallBlind?.toLocaleString()} / {tournamentClockData.currentBlind.bigBlind?.toLocaleString()}
+                                    </div>
+                                    {tournamentClockData.currentBlind.ante > 0 && (
+                                        <div style={{ fontSize: 24, fontWeight: 700, color: '#FFD700', marginTop: 4 }}>
+                                            Ante: {tournamentClockData.currentBlind.ante.toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Timer */}
+                            <div style={{
+                                fontSize: 120, fontWeight: 900, fontFamily: 'monospace', lineHeight: 1,
+                                color: tournamentClockData.clock?.timeRemaining <= 60 ? '#EF4444'
+                                    : tournamentClockData.clock?.timeRemaining <= 300 ? '#F59E0B' : '#fff',
+                                textShadow: tournamentClockData.clock?.timeRemaining <= 60 ? '0 0 40px rgba(239,68,68,0.5)' : 'none',
+                                marginBottom: 24, letterSpacing: 4,
+                            }}>
+                                {(() => {
+                                    const secs = tournamentClockData.clock?.timeRemaining || 0;
+                                    const m = Math.floor(secs / 60);
+                                    const s = secs % 60;
+                                    return `${m}:${s.toString().padStart(2, '0')}`;
+                                })()}
+                            </div>
+
+                            {/* Level Progress Bar */}
+                            {tournamentClockData.clock?.levelDuration > 0 && (
+                                <div style={{ width: '80%', maxWidth: 600, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.1)', marginBottom: 32, overflow: 'hidden' }}>
+                                    <div style={{
+                                        height: '100%', borderRadius: 4,
+                                        background: 'linear-gradient(90deg, #FFD700, #B8860B)',
+                                        width: `${Math.max(0, (tournamentClockData.clock.timeRemaining / (tournamentClockData.clock.levelDuration * 60)) * 100)}%`,
+                                        transition: 'width 1s linear',
+                                    }} />
+                                </div>
+                            )}
+
+                            {/* Next Blind */}
+                            {tournamentClockData.nextBlind && (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: '16px 32px',
+                                    border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', marginBottom: 24,
+                                }}>
+                                    <div style={{ fontSize: 12, color: '#8A8D91', fontWeight: 600, marginBottom: 4 }}>
+                                        NEXT LEVEL {tournamentClockData.nextBlind.level}
+                                    </div>
+                                    <div style={{ fontSize: 28, fontWeight: 800 }}>
+                                        {tournamentClockData.nextBlind.smallBlind?.toLocaleString()} / {tournamentClockData.nextBlind.bigBlind?.toLocaleString()}
+                                        {tournamentClockData.nextBlind.ante > 0 && (
+                                            <span style={{ color: '#FFD700', fontSize: 20, marginLeft: 12 }}>
+                                                Ante {tournamentClockData.nextBlind.ante.toLocaleString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Stats Row */}
+                            <div style={{ display: 'flex', gap: 32, fontSize: 16, fontWeight: 700 }}>
+                                {tournamentClockData.tournament?.players_remaining != null && (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: '#FFD700' }}>
+                                            {tournamentClockData.tournament.players_remaining}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#8A8D91', fontWeight: 600, textTransform: 'uppercase' }}>
+                                            Players Left
+                                        </div>
+                                    </div>
+                                )}
+                                {tournamentClockData.tournament?.current_entries != null && (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 28, fontWeight: 900 }}>
+                                            {tournamentClockData.tournament.current_entries}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#8A8D91', fontWeight: 600, textTransform: 'uppercase' }}>
+                                            Total Entries
+                                        </div>
+                                    </div>
+                                )}
+                                {tournamentClockData.tournament?.average_stack != null && (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: '#60a5fa' }}>
+                                            {tournamentClockData.tournament.average_stack.toLocaleString()}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#8A8D91', fontWeight: 600, textTransform: 'uppercase' }}>
+                                            Avg Stack
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     {toast && (
                         <div style={{
                             position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10001,
@@ -1390,22 +1578,44 @@ export default function TableTabletsPage() {
                             <p style={{ margin: '4px 0 0', fontSize: 13, color: '#8A8D91' }}>Seat {showPlayerMenu.number} · Table {showPlayerMenu.tableNumber}</p>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {[
-                                { label: '🪑 Move Player', color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: showPlayerMenu.taken?.player_name || 'Player', tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${showPlayerMenu.taken?.player_name || 'player'}` }); } },
-                                { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
-                                ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
-                                    ? [{ label: '▶️ Resume Timer', color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: `▶️ ${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
-                                    : [{ label: '⏸️ Pause Timer', color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: `⏸️ ${json.data.player_name} paused` }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
-                                ),
-                                { label: '⚠️ Missed Blinds', color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: `🚫 ${json.data.player_name} removed — 3 missed blinds` }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: `⚠️ Missed blind #${count} for ${json.data.player_name}` }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
-                                { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: `🍽️ 30-min meal break for ${json.data.player_name}` }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
-                            ].map((btn, i) => (
-                                <button key={i} onClick={btn.action} disabled={playerActionLoading}
-                                    style={{ padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
-                                >{btn.label}</button>
-                            ))}
+                            {(() => {
+                                const menuTable = tables.find(t => (t.table_number || t.number) === showPlayerMenu.tableNumber);
+                                const isTournMenu = menuTable && isTournamentTable(menuTable);
+                                const actions = [
+                                    { label: '🪑 Move Player', color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: showPlayerMenu.taken?.player_name || 'Player', tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${showPlayerMenu.taken?.player_name || 'player'}` }); } },
+                                    ...(isTournMenu ? [
+                                        { label: '💀 Bust Player', color: '#EF4444', action: async () => { if (!confirm(`Bust ${showPlayerMenu.taken?.player_name}?`)) return; await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); setShowPlayerMenu(null); } },
+                                        { label: '🎰 Update Chip Count', color: '#FFD700', action: () => { setChipCountInput(''); } },
+                                    ] : [
+                                        { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
+                                        ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
+                                            ? [{ label: '▶️ Resume Timer', color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: `▶️ ${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                            : [{ label: '⏸️ Pause Timer', color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: `⏸️ ${json.data.player_name} paused` }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                        ),
+                                        { label: '⚠️ Missed Blinds', color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: `🚫 ${json.data.player_name} removed — 3 missed blinds` }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: `⚠️ Missed blind #${count} for ${json.data.player_name}` }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
+                                        { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: `🍽️ 30-min meal break for ${json.data.player_name}` }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
+                                    ]),
+                                ];
+                                return actions.map((btn, i) => (
+                                    <button key={i} onClick={btn.action} disabled={playerActionLoading}
+                                        style={{ padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
+                                    >{btn.label}</button>
+                                ));
+                            })()}
                         </div>
-                        <button onClick={() => setShowPlayerMenu(null)} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                        {chipCountInput !== null && chipCountInput !== undefined && typeof chipCountInput === 'string' && tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber && isTournamentTable(t)) && (
+                            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                                <input type="number" value={chipCountInput} onChange={e => setChipCountInput(e.target.value)} placeholder="Enter chip count..."
+                                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 16, fontWeight: 700, outline: 'none' }} />
+                                <button onClick={async () => {
+                                    if (!chipCountInput) return;
+                                    setToast({ type: 'success', text: `🎰 ${showPlayerMenu.taken?.player_name} chip count: ${parseInt(chipCountInput).toLocaleString()}` });
+                                    setChipCountInput('');
+                                    setShowPlayerMenu(null);
+                                }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>
+                            </div>
+                        )}
+                        <button onClick={() => { setShowPlayerMenu(null); setChipCountInput(''); }} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                     </div>
                 </div>
             )}
