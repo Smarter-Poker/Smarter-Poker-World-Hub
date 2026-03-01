@@ -219,7 +219,7 @@ export default function LeaderboardDisplay() {
       const vips = [...members].filter(m => m.membership_tier && m.membership_tier !== 'daily')
         .sort((a, b) => { const o = { platinum: 0, gold: 1, vip: 2, silver: 3, annual: 4, monthly: 5, weekly: 6 }; return (o[(a.membership_tier || '').toLowerCase()] ?? 99) - (o[(b.membership_tier || '').toLowerCase()] ?? 99) || (b.visit_count || 0) - (a.visit_count || 0); })
         .slice(0, 15);
-      if (vips.length > 0) {
+      if (vips.length > 0 && vips.some(m => (m.visit_count || 0) > 0)) {
         built.push({
           id: 'vip', icon: '⭐', title: 'VIP Hall of Fame',
           subtitle: `${vips.length} premium members | Ranked by tier and activity`,
