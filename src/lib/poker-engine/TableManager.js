@@ -1154,9 +1154,19 @@ class TableManager {
         minBuyIn: this.minBuyIn,
         maxBuyIn: this.maxBuyIn,
         tableName: this.tableName,
+        // Feature flags for UI indicators
         anonymousTable: this.anonymousTable,
         capAmount: this.game.config.capAmount || 0,
         autoMuck: this.game.config.autoMuck,
+        privateGame: this.privateGame,
+        vipOnly: this.vipOnly,
+        nitGame: this.nitGame,
+        maintainPercent: this.maintainPercent || 0,
+        numBoards: this.game.config.numBoards || 1,
+        bombPot: !!this.bombPotConfig?.enabled,
+        sevenDeuce: this.sevenDeuce,
+        noRathole: this.noRathole,
+        pineapple: this.game.config.variant === 'pineapple',
       },
     };
   }
