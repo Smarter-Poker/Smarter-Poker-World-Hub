@@ -706,23 +706,26 @@ class LobbyManager {
             }
           }
 
-          // Now run cascading commission for each dealt player
-          // This credits agents up the hierarchy
+          // Run cascading commission for each dealt player IN PARALLEL (non-blocking)
+          // Credits agents up the hierarchy — don't block hand progression
           if (dealtPlayerIds.length > 0) {
             const perPlayerRake = rakeAmount / dealtPlayerIds.length;
-            for (const playerId of dealtPlayerIds) {
-              try {
-                await sb.rpc('calculate_cascading_commission', {
-                  p_hand_id: data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`,
+            const handId = data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`;
+            Promise.allSettled(
+              dealtPlayerIds.map(playerId =>
+                sb.rpc('calculate_cascading_commission', {
+                  p_hand_id: handId,
                   p_club_id: clubId,
                   p_player_user_id: playerId,
                   p_rake_amount: perPlayerRake,
-                });
-              } catch (commErr) {
-                // Don't block on commission failures
-                console.error('[LobbyManager] Commission calc failed for', playerId, commErr.message);
+                })
+              )
+            ).then(results => {
+              const failures = results.filter(r => r.status === 'rejected' || r.value?.error);
+              if (failures.length > 0) {
+                console.error(`[LobbyManager] ${failures.length}/${dealtPlayerIds.length} commission calcs failed`);
               }
-            }
+            });
           }
         } catch (rakeErr) {
           console.error('[LobbyManager] Rake recording failed:', rakeErr);
