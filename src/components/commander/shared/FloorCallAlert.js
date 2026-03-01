@@ -15,7 +15,11 @@ export default function FloorCallAlert({ venueId }) {
     const pollInterval = useRef(null);
     const lastSeenId = useRef(null);
 
-    const isCashier = typeof window !== 'undefined' && window.location.pathname.includes('/cashier');
+    // Cashier and tournament registration pages don't see floor calls
+    const isExcluded = typeof window !== 'undefined' && (
+        window.location.pathname.includes('/cashier') ||
+        window.location.pathname.includes('/tournament-registration')
+    );
 
     const dismissCall = useCallback(() => {
         setActiveCall(null);
@@ -41,7 +45,7 @@ export default function FloorCallAlert({ venueId }) {
     }, []);
 
     useEffect(() => {
-        if (!venueId || isCashier) return;
+        if (!venueId || isExcluded) return;
         const client = supabase;
         if (!client) return;
 
@@ -91,9 +95,9 @@ export default function FloorCallAlert({ venueId }) {
             if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
             if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
         };
-    }, [venueId, isCashier, handleNewCall]);
+    }, [venueId, isExcluded, handleNewCall]);
 
-    if (!activeCall || isCashier) return null;
+    if (!activeCall || isExcluded) return null;
 
     return (
         <div style={{

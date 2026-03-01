@@ -79,6 +79,21 @@ async function handleGet(req, res) {
           data = data.map(t => ({ ...t, seats: seatsByTable[t.table_number] || [] }));
         }
       } catch { /* seats table may not exist yet — non-critical */ }
+
+      // Fetch tournament details for tournament tables
+      try {
+        const tournamentIds = [...new Set((data || []).filter(t => t.tournament_id).map(t => t.tournament_id))];
+        if (tournamentIds.length > 0) {
+          const { data: tournaments } = await supabase
+            .from('commander_tournaments')
+            .select('id, name, status, buyin_amount, buyin_fee, current_level, players_remaining, current_entries, starting_chips, tournament_type')
+            .in('id', tournamentIds);
+          if (tournaments) {
+            const tournMap = Object.fromEntries(tournaments.map(t => [t.id, t]));
+            data = data.map(t => t.tournament_id ? { ...t, tournament: tournMap[t.tournament_id] || null } : t);
+          }
+        }
+      } catch { /* tournament join non-critical */ }
     } catch {
       // Fallback: simple query without FK join
       const result = await supabase
