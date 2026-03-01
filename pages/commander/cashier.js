@@ -370,6 +370,7 @@ export default function Cashier() {
 
   // Buy-In Receipt
   const doBuyIn = async (staff) => {
+    if (actionLoading) return; // Double-click protection
     if (!buyInAmount || parseFloat(buyInAmount) <= 0) {
       setMessage({ type: 'error', text: 'Enter A Valid Amount' });
       return;
@@ -421,10 +422,13 @@ export default function Cashier() {
 
   // Add Time to Player
   const doAddTime = async (staff) => {
+    if (actionLoading) return; // Double-click protection
     const mins = selectedTime || 0;
     if (mins <= 0) { setMessage({ type: 'error', text: 'Select A Time Amount' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
     const price = getTimePrice();
+    const timeOpt = TIME_OPTIONS.find(o => o.minutes === mins);
+    const timeLabel2 = timeOpt?.label || `${mins} min`;
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -438,16 +442,16 @@ export default function Cashier() {
       const json = await res.json();
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Add Time' }); setActionLoading(false); return; }
 
-      // 2. Record cash transaction
+      // 2. Record transaction (type: time_purchase, NOT buy_in)
       const txRes = await fetch('/api/commander/cashier', {
         method: 'POST', headers,
         body: JSON.stringify({
           venue_id: venueId,
           player_name: selectedPlayer.player_name,
-          type: 'buy_in',
+          type: 'time_purchase',
           amount: price,
           payment_method: timePayMethod,
-          notes: `Time Purchase: ${mins} minutes`,
+          notes: `Time Purchase: ${mins} minutes (${timeLabel2})`,
           pin_verified_by: staff?.id || null
         })
       });
@@ -480,6 +484,7 @@ export default function Cashier() {
 
   // Update Membership
   const doUpdateMembership = async (staff) => {
+    if (actionLoading) return; // Double-click protection
     if (!selectedTier) { setMessage({ type: 'error', text: 'Select A Membership Tier' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
     const tierInfo = MEMBERSHIP_TIERS.find(t => t.tier === selectedTier);
@@ -499,13 +504,13 @@ export default function Cashier() {
       const json = await res.json();
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Update Membership' }); setActionLoading(false); return; }
 
-      // 2. Record cash transaction
+      // 2. Record transaction (type: membership, NOT buy_in)
       const txRes = await fetch('/api/commander/cashier', {
         method: 'POST', headers,
         body: JSON.stringify({
           venue_id: venueId,
           player_name: selectedPlayer.player_name,
-          type: 'buy_in',
+          type: 'membership',
           amount: price,
           payment_method: memberPayMethod,
           notes: `Membership: ${tierInfo?.label} (Expires ${expires.toLocaleDateString()})`,
@@ -554,29 +559,39 @@ export default function Cashier() {
   };
 
   const executeVoid = async (txId, type, details, actionLabel, staff) => {
+    if (actionLoading) return; // Double-click protection
     if (!confirm(`${actionLabel} this ${type} transaction for $${details.amount}?`)) return;
     setActionLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
-      // Record void/refund transaction (skip for $0 transactions like free time)
       const voidAmount = details.amount || 0;
-      if (voidAmount > 0) {
-        await fetch('/api/commander/cashier', {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            venue_id: venueId,
-            player_name: details.player_name || 'Unknown',
-            type: 'cash_out',
-            amount: voidAmount,
-            payment_method: details.payment_method || 'cash',
-            notes: `${actionLabel.toUpperCase()} — TX #${txId}: ${details.notes || type} [by ${staff?.display_name || 'Staff'}]`,
-            pin_verified_by: staff?.id || null
-          })
-        });
-      }
 
-      // If time void, subtract the minutes back
+      // 1. ALWAYS record the void/refund transaction (even for $0 — creates audit trail)
+      await fetch('/api/commander/cashier', {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          venue_id: venueId,
+          player_name: details.player_name || 'Unknown',
+          type: 'void',
+          amount: voidAmount,
+          payment_method: details.payment_method || 'cash',
+          notes: `${actionLabel.toUpperCase()} — TX #${txId}: ${details.notes || type} [by ${staff?.display_name || 'Staff'}]`,
+          pin_verified_by: staff?.id || null
+        })
+      });
+
+      // 2. Mark the ORIGINAL transaction as voided (audit trail)
+      await fetch('/api/commander/cashier', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({
+          transaction_id: txId,
+          voided_by: staff?.display_name || staff?.id || 'Staff',
+          void_reason: `${actionLabel} by ${staff?.display_name || 'Staff'} — ${type}`
+        })
+      });
+
+      // 3. If time void, subtract the minutes back
       if (type === 'time' && selectedPlayer?.id && details.minutes) {
         const newBal = Math.max(0, (selectedPlayer.time_balance_minutes || 0) - details.minutes);
         await fetch(`/api/commander/members/${selectedPlayer.id}`, {
@@ -586,7 +601,7 @@ export default function Cashier() {
         setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
       }
 
-      // If membership void, revert membership to none
+      // 4. If membership void, revert membership to none
       if (type === 'membership' && selectedPlayer?.id) {
         await fetch(`/api/commander/members/${selectedPlayer.id}`, {
           method: 'PUT', headers,
@@ -1049,7 +1064,7 @@ export default function Cashier() {
                       const txTime = new Date(tx.created_at);
                       const minsAgo = (Date.now() - txTime.getTime()) / 60000;
                       const isVoidable = minsAgo <= 15;
-                      const isVoidTx = (tx.notes || '').includes('VOID') || (tx.notes || '').includes('REFUND');
+                      const isVoidTx = !!tx.voided_at || tx.type === 'void' || (tx.notes || '').includes('VOID') || (tx.notes || '').includes('REFUND');
                       return (
                         <div key={tx.id} className="px-4 py-2.5 flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1071,11 +1086,16 @@ export default function Cashier() {
                               <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
                             </button>
                             {!isVoidTx && (
-                              <button onClick={() => voidTransaction(tx.id, tx.notes?.includes('Time') ? 'time' : tx.notes?.includes('Membership') ? 'membership' : 'buyin', {
-                                player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method,
-                                notes: tx.notes, minutes: parseInt((tx.notes || '').match(/(\d+)/)?.[1] || '0'),
-                                created_at: tx.created_at
-                              })}
+                              <button onClick={() => {
+                                const txType = tx.type === 'time_purchase' ? 'time' : tx.type === 'membership' ? 'membership' : 'buyin';
+                                // Reliably extract minutes from structured notes: "Time Purchase: 300 minutes (5 Hr Pack)"
+                                const minsMatch = (tx.notes || '').match(/Time Purchase:\s*(\d+)\s*minutes/);
+                                const mins = minsMatch ? parseInt(minsMatch[1]) : 0;
+                                voidTransaction(tx.id, txType, {
+                                  player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method,
+                                  notes: tx.notes, minutes: mins, created_at: tx.created_at
+                                });
+                              }}
                                 className={`px-1.5 py-1 rounded-lg text-[9px] font-bold ${isVoidable ? 'bg-[#F02849]/15 text-[#F02849]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'}`}>
                                 {isVoidable ? 'VOID' : 'REFUND'}
                               </button>
@@ -1212,22 +1232,26 @@ export default function Cashier() {
                 )}
 
                 {/* Recent Time Transactions */}
-                {transactions.filter(tx => tx.notes?.includes('Time Purchase')).length > 0 && (
+                {transactions.filter(tx => (tx.type === 'time_purchase' || tx.notes?.includes('Time Purchase')) && !tx.voided_at && tx.type !== 'void').length > 0 && (
                   <div className="mt-4">
                     <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Recent Time Sales (Void If Mistake)</p>
                     <div className="space-y-1">
-                      {transactions.filter(tx => tx.notes?.includes('Time Purchase')).slice(0, 5).map(tx => (
-                        <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-semibold text-white">{tx.player_name}</p>
-                            <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                      {transactions.filter(tx => (tx.type === 'time_purchase' || tx.notes?.includes('Time Purchase')) && !tx.voided_at && tx.type !== 'void').slice(0, 5).map(tx => {
+                        const minsMatch = (tx.notes || '').match(/Time Purchase:\s*(\d+)\s*minutes/);
+                        const mins = minsMatch ? parseInt(minsMatch[1]) : 0;
+                        return (
+                          <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-semibold text-white">{tx.player_name}</p>
+                              <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            <button onClick={() => voidTransaction(tx.id, 'time', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, minutes: mins, created_at: tx.created_at })}
+                              className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
+                              VOID
+                            </button>
                           </div>
-                          <button onClick={() => voidTransaction(tx.id, 'time', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, minutes: parseInt((tx.notes || '').match(/(\d+)/)?.[1] || '0') })}
-                            className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
-                            VOID
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1316,17 +1340,17 @@ export default function Cashier() {
                   disabled={!selectedTier || !selectedPlayer?.id} />
 
                 {/* Recent Membership Transactions */}
-                {transactions.filter(tx => tx.notes?.includes('Membership')).length > 0 && (
+                {transactions.filter(tx => (tx.type === 'membership' || tx.notes?.includes('Membership')) && !tx.voided_at && tx.type !== 'void').length > 0 && (
                   <div className="mt-4">
                     <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Recent Membership Sales (Void If Mistake)</p>
                     <div className="space-y-1">
-                      {transactions.filter(tx => tx.notes?.includes('Membership')).slice(0, 5).map(tx => (
+                      {transactions.filter(tx => (tx.type === 'membership' || tx.notes?.includes('Membership')) && !tx.voided_at && tx.type !== 'void').slice(0, 5).map(tx => (
                         <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
                           <div>
                             <p className="text-xs font-semibold text-white">{tx.player_name}</p>
                             <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                           </div>
-                          <button onClick={() => voidTransaction(tx.id, 'membership', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes })}
+                          <button onClick={() => voidTransaction(tx.id, 'membership', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, created_at: tx.created_at })}
                             className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
                             VOID
                           </button>
