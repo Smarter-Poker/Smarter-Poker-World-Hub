@@ -660,13 +660,16 @@ export default function CompSystem() {
                                 <button key={dur.key}
                                   onClick={() => {
                                     setCompAmount(dur.key);
-                                    // Auto-populate cost from membership plans
-                                    const plan = membershipPlans[0]; // Use first active plan
-                                    if (plan) {
+                                    // Search ALL plans to find the one with the matching price field
+                                    let cost = 0;
+                                    for (const plan of membershipPlans) {
                                       const basePrice = parseFloat(plan[dur.priceField]) || 0;
-                                      const cost = basePrice * dur.multiplier;
-                                      if (cost > 0) setMembershipCost(String(cost.toFixed(2)));
+                                      if (basePrice > 0) {
+                                        cost = basePrice * dur.multiplier;
+                                        break;
+                                      }
                                     }
+                                    setMembershipCost(cost > 0 ? String(cost.toFixed(2)) : '0.00');
                                   }}
                                   className={`py-3 rounded-xl text-sm font-semibold ${compAmount === dur.key ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'}`}>
                                   {dur.label}
