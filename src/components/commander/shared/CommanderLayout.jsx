@@ -207,7 +207,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           font-weight: 700;
           color: #FFFFFF;
           letter-spacing: 1.5px;
-          text-transform: uppercase;
+          text-transform: capitalize;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;

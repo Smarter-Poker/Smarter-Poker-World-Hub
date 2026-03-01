@@ -669,10 +669,11 @@ export default function TablesDisplay() {
                       const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
                       let timerText = null, timerColor = null;
+                      const isPausedOrBreak = seat.player?.session_status === 'paused' || seat.player?.session_status === 'meal_break';
                       if (isOccupied && seat.player?.time_remaining != null) {
-                        const rem = adjustTime(seat.player.time_remaining);
-                        timerText = rem <= 0 ? 'EXPIRED' : formatTime(rem);
-                        timerColor = getTimerColor(rem);
+                        const rem = isPausedOrBreak ? Math.max(0, seat.player.time_remaining) : adjustTime(seat.player.time_remaining);
+                        timerText = rem <= 0 ? 'EXPIRED' : (isPausedOrBreak ? `⏸ ${formatTime(rem)}` : formatTime(rem));
+                        timerColor = isPausedOrBreak ? '#8A8D91' : getTimerColor(rem);
                       }
                       const isExpired = seat.player?.is_expired;
                       const borderColor = isOccupied

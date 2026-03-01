@@ -635,13 +635,14 @@ export default function TableTabletsPage() {
                                 : 'translate(-50%, -50%)';
                         const badgeDirection = isRightSide ? 'row-reverse' : 'row';
 
-                        // Timer computation — live 1-second countdown
+                        // Timer computation — live 1-second countdown (FREEZE when paused/meal_break)
                         let timerText = null, timerColor = null;
+                        const isPausedOrBreak = seat.taken?.session_status === 'paused' || seat.taken?.session_status === 'meal_break';
                         if (isOccupied && seat.taken) {
                             if (seat.taken.time_remaining != null) {
-                                const rem = adjustTime(seat.taken.time_remaining);
-                                timerText = rem <= 0 ? 'EXPIRED' : formatTime(rem);
-                                timerColor = getTimerColor(rem);
+                                const rem = isPausedOrBreak ? Math.max(0, seat.taken.time_remaining) : adjustTime(seat.taken.time_remaining);
+                                timerText = rem <= 0 ? 'EXPIRED' : (isPausedOrBreak ? `⏸ ${formatTime(rem)}` : formatTime(rem));
+                                timerColor = isPausedOrBreak ? '#8A8D91' : getTimerColor(rem);
                             }
                         }
 
@@ -697,6 +698,22 @@ export default function TableTabletsPage() {
                                     ) : (
                                         <span style={{ fontSize: isFullscreen ? 18 : 16, fontWeight: 600, color: movingPlayer && isFullscreen ? '#22c55e' : '#B0B3B8' }}>{seat.number}</span>
                                     )}
+                                    {/* Missed Blinds Sticker — overlays top-right of avatar */}
+                                    {isOccupied && (seat.taken?.missed_blinds || 0) > 0 && (
+                                        <div style={{
+                                            position: 'absolute', top: -4, right: -4,
+                                            width: isFullscreen ? 22 : 18, height: isFullscreen ? 22 : 18,
+                                            borderRadius: '50%',
+                                            background: (seat.taken.missed_blinds >= 2) ? '#EF4444' : '#F97316',
+                                            border: '2px solid #242526',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: isFullscreen ? 10 : 8, fontWeight: 900, color: '#fff',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                                            zIndex: 3,
+                                        }}>
+                                            {seat.taken.missed_blinds}
+                                        </div>
+                                    )}
                                 </div>
                                 {/* Name + Timer */}
                                 <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
@@ -707,19 +724,7 @@ export default function TableTabletsPage() {
                                         maxWidth: nameMaxWidth, position: 'relative',
                                     }}>
                                         {isOccupied ? fullName : (movingPlayer && isFullscreen ? 'Move here' : (isFullscreen ? 'Open' : 'Open'))}
-                                        {/* Missed Blinds Badge */}
-                                        {isOccupied && (seat.taken?.missed_blinds || 0) > 0 && (
-                                            <span style={{
-                                                position: 'absolute', top: -8, right: -8,
-                                                background: (seat.taken.missed_blinds >= 2) ? '#EF4444' : '#F97316',
-                                                color: '#fff', fontSize: 9, fontWeight: 800,
-                                                padding: '1px 5px', borderRadius: 6,
-                                                boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                                                lineHeight: 1.4, whiteSpace: 'nowrap',
-                                            }}>
-                                                ⚠️ {seat.taken.missed_blinds}x
-                                            </span>
-                                        )}
+
                                     </div>
                                     {/* Session Status (Paused / Meal Break) */}
                                     {isOccupied && seat.taken?.session_status && seat.taken.session_status !== 'active' && (

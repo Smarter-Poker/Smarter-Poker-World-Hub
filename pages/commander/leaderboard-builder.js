@@ -22,12 +22,12 @@ import { useState, useEffect, useCallback } from 'react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const BOARD_TYPES = [
-    { value: 'custom', label: 'Custom Points', icon: '🏆', desc: 'Manually assign points to players' },
-    { value: 'hours_played', label: 'Hours Played', icon: '⏱️', desc: 'Auto-calculated from player sessions' },
-    { value: 'sessions', label: 'Session Count', icon: '📊', desc: 'Number of play sessions' },
-    { value: 'high_hand', label: 'High Hand', icon: '🃏', desc: 'High hand promotion tracker' },
-    { value: 'tournament_points', label: 'Tournament Points', icon: '🏅', desc: 'Points from tournament finishes' },
-    { value: 'referrals', label: 'Referral Count', icon: '🎯', desc: 'Player referral leaderboard' },
+    { value: 'custom', label: 'Custom Points', icon: '', desc: 'Manually assign points to players' },
+    { value: 'hours_played', label: 'Hours Played', icon: '', desc: 'Auto-calculated from player sessions' },
+    { value: 'sessions', label: 'Session Count', icon: '', desc: 'Number of play sessions' },
+    { value: 'high_hand', label: 'High Hand', icon: '', desc: 'High hand promotion tracker' },
+    { value: 'tournament_points', label: 'Tournament Points', icon: '', desc: 'Points from tournament finishes' },
+    { value: 'referrals', label: 'Referral Count', icon: '', desc: 'Player referral leaderboard' },
 ];
 
 const PERIOD_TYPES = [
@@ -238,7 +238,7 @@ export default function LeaderboardBuilder() {
                 {/* HEADER */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>📋 Leaderboard Builder</h1>
+                        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>Leaderboard Builder</h1>
                         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', margin: '4px 0 0' }}>Create and manage custom leaderboards for the TV display</p>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
@@ -246,7 +246,7 @@ export default function LeaderboardBuilder() {
                             {showCreate ? '✕ Cancel' : '+ Create Board'}
                         </button>
                         <a href="/commander/displays/leaderboard" target="_blank" rel="noopener" style={{ ...s.btn, background: 'rgba(255,255,255,0.1)', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            📺 Preview Display
+                            Preview Display
                         </a>
                     </div>
                 </div>
@@ -279,9 +279,9 @@ export default function LeaderboardBuilder() {
                             <div>
                                 <label style={s.label}>Status</label>
                                 <select style={s.select} value={newBoard.status} onChange={e => setNewBoard({ ...newBoard, status: e.target.value })}>
-                                    <option value="active">🟢 Active (shows on display)</option>
-                                    <option value="upcoming">🟡 Upcoming (hidden)</option>
-                                    <option value="completed">🔴 Completed (archived)</option>
+                                    <option value="active">Active (shows on display)</option>
+                                    <option value="upcoming">Upcoming (hidden)</option>
+                                    <option value="completed">Completed (archived)</option>
                                 </select>
                             </div>
                             <div>
@@ -314,7 +314,7 @@ export default function LeaderboardBuilder() {
                     <div style={{ textAlign: 'center', padding: '60px', color: 'rgba(255,255,255,0.3)' }}>Loading boards...</div>
                 ) : boards.length === 0 ? (
                     <div style={{ ...s.card, textAlign: 'center', padding: '60px' }}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
                         <p style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Custom Boards Yet</p>
                         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.25)', maxWidth: '400px', margin: '8px auto 0' }}>Click "Create Board" to build your first custom leaderboard. It will automatically appear on the TV display.</p>
                     </div>
@@ -326,7 +326,7 @@ export default function LeaderboardBuilder() {
                         const isActive = board.status === 'active';
 
                         return (
-                            <div key={board.id} style={{ ...s.card, borderLeft: isActive ? '4px solid #31A24C' : '4px solid #64748B' }}>
+                            <div key={board.id} style={{ ...s.card, borderLeft: isActive ? '4px solid #31A24C' : '4px solid #64748B', border: '2px solid rgba(255,255,255,0.12)' }}>
                                 {/* Board header */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => expandBoard(board.id)}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -345,7 +345,7 @@ export default function LeaderboardBuilder() {
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                         <button onClick={e => { e.stopPropagation(); toggleStatus(board); }} style={{ ...s.btn, background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(49,162,76,0.15)', color: isActive ? '#EF4444' : '#31A24C', fontSize: '12px', padding: '6px 12px' }}>
-                                            {isActive ? '⏸ Deactivate' : '▶ Activate'}
+                                            {isActive ? 'Deactivate' : 'Activate'}
                                         </button>
                                         <span style={{ fontSize: '18px', color: 'rgba(255,255,255,0.3)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
                                     </div>
@@ -358,7 +358,7 @@ export default function LeaderboardBuilder() {
                                         {['hours_played', 'sessions'].includes(board.leaderboard_type) && (
                                             <div style={{ marginBottom: '16px' }}>
                                                 <button onClick={() => autoCalculate(board.id)} style={{ ...s.btn, background: 'rgba(99,102,241,0.15)', color: '#6366F1', fontSize: '12px' }}>
-                                                    🔄 Auto-Calculate from Player Sessions
+                                                    Auto-Calculate from Player Sessions
                                                 </button>
                                                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginLeft: '10px' }}>
                                                     Pulls data from player session history
@@ -397,7 +397,7 @@ export default function LeaderboardBuilder() {
                                         )}
 
                                         {/* Add entry form */}
-                                        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '14px', border: '1px solid rgba(255,255,255,0.12)' }}>
                                             <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: '10px' }}>+ ADD PLAYER ENTRY</p>
                                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
                                                 <div>
@@ -432,23 +432,23 @@ export default function LeaderboardBuilder() {
                 )}
 
                 {/* INFO SECTION */}
-                <div style={{ ...s.card, marginTop: '24px', background: 'rgba(24,119,242,0.05)', border: '1px solid rgba(24,119,242,0.15)' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>ℹ️ How Leaderboards Work</h3>
+                <div style={{ ...s.card, marginTop: '24px', background: 'rgba(24,119,242,0.05)', border: '2px solid rgba(24,119,242,0.25)' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>How Leaderboards Work</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
                         <div>
-                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>📋 Custom Boards</p>
+                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>Custom Boards</p>
                             <p>Boards you create here appear on the TV display automatically when set to "Active". Add players and scores manually.</p>
                         </div>
                         <div>
-                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>⏱️ Auto-Calculate</p>
+                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>Auto-Calculate</p>
                             <p>For Hours/Sessions types, click "Auto-Calculate" to pull data from player session history.</p>
                         </div>
                         <div>
-                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>🏅 League Boards</p>
+                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>League Boards</p>
                             <p>League standings from Commander → Leagues also appear on the display automatically.</p>
                         </div>
                         <div>
-                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>📺 Display Priority</p>
+                            <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>Display Priority</p>
                             <p>Custom boards show first, then league standings, then auto-generated boards (visits, hours, VIP).</p>
                         </div>
                     </div>

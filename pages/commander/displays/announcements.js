@@ -36,21 +36,21 @@ const ANNOUNCEMENT_TYPES = [
 ];
 
 const TEMPLATES = [
-  { emoji: '🍻', name: 'Happy Hour', title: 'Happy Hour', message: 'Happy hour is now in effect! Enjoy drink specials at the bar.', priority: 'high', type: 'promotion' },
-  { emoji: '🃏', name: 'High Hand Bonus', title: 'High Hand Bonus', message: 'High hand bonus is active! Check the board for the current qualifying hand and prize amount.', priority: 'high', type: 'promotion' },
-  { emoji: '🔄', name: 'Dealer Push', title: 'Dealer Push', message: 'Dealer push in progress. Please have your dealer locks and tips ready.', priority: 'normal', type: 'update' },
-  { emoji: '🏆', name: 'Tournament Starting', title: 'Tournament Starting Soon', message: 'Tournament registration is closing soon! Head to the front desk to register.', priority: 'urgent', type: 'event' },
-  { emoji: '🍔', name: 'Food Service', title: 'Food Service Available', message: 'Kitchen is now open! Menus available at your table. Flag down your dealer to place an order.', priority: 'normal', type: 'general' },
-  { emoji: '🎰', name: 'New Game Opening', title: 'New Game Opening', message: 'A new game is opening! Check with the floor for available seats.', priority: 'high', type: 'announcement' },
-  { emoji: '⏰', name: 'Last Call', title: 'Last Call', message: 'Last call for drinks and food. Kitchen closes in 30 minutes.', priority: 'normal', type: 'general' },
-  { emoji: '🔧', name: 'Table Maintenance', title: 'Table Maintenance', message: 'A table is temporarily closed for maintenance. Players will be moved to available seats.', priority: 'low', type: 'maintenance' },
-  { emoji: '🎁', name: 'Special Promotion', title: 'Special Promotion', message: 'Special promotion running today! Ask the front desk for details.', priority: 'high', type: 'promotion' },
-  { emoji: '📋', name: 'Waitlist Update', title: 'Waitlist Update', message: 'Seats are opening up! If you are on the waitlist, please check in with the front desk.', priority: 'normal', type: 'announcement' },
+  { emoji: '', name: 'Happy Hour', title: 'Happy Hour', message: 'Happy hour is now in effect! Enjoy drink specials at the bar.', priority: 'high', type: 'promotion' },
+  { emoji: '', name: 'High Hand Bonus', title: 'High Hand Bonus', message: 'High hand bonus is active! Check the board for the current qualifying hand and prize amount.', priority: 'high', type: 'promotion' },
+  { emoji: '', name: 'Dealer Push', title: 'Dealer Push', message: 'Dealer push in progress. Please have your dealer locks and tips ready.', priority: 'normal', type: 'update' },
+  { emoji: '', name: 'Tournament Starting', title: 'Tournament Starting Soon', message: 'Tournament registration is closing soon! Head to the front desk to register.', priority: 'urgent', type: 'event' },
+  { emoji: '', name: 'Food Service', title: 'Food Service Available', message: 'Kitchen is now open! Menus available at your table. Flag down your dealer to place an order.', priority: 'normal', type: 'general' },
+  { emoji: '', name: 'New Game Opening', title: 'New Game Opening', message: 'A new game is opening! Check with the floor for available seats.', priority: 'high', type: 'announcement' },
+  { emoji: '', name: 'Last Call', title: 'Last Call', message: 'Last call for drinks and food. Kitchen closes in 30 minutes.', priority: 'normal', type: 'general' },
+  { emoji: '', name: 'Table Maintenance', title: 'Table Maintenance', message: 'A table is temporarily closed for maintenance. Players will be moved to available seats.', priority: 'low', type: 'maintenance' },
+  { emoji: '', name: 'Special Promotion', title: 'Special Promotion', message: 'Special promotion running today! Ask the front desk for details.', priority: 'high', type: 'promotion' },
+  { emoji: '', name: 'Waitlist Update', title: 'Waitlist Update', message: 'Seats are opening up! If you are on the waitlist, please check in with the front desk.', priority: 'normal', type: 'announcement' },
 ];
 
 const TYPE_ICONS = {
-  general: '📢', announcement: '📢', game_reminder: '🎮', event: '🎉',
-  update: '🔄', urgent: '🚨', promotion: '🎁', maintenance: '🔧',
+  general: '', announcement: '', game_reminder: '', event: '',
+  update: '', urgent: '', promotion: '', maintenance: '',
 };
 
 export default function AnnouncementsDisplay() {
@@ -330,7 +330,7 @@ export default function AnnouncementsDisplay() {
                   {pageAnnouncements.map((a, i) => {
                     const pr = a.priority || 'normal';
                     const cfg = PRIORITY_CONFIG[pr] || PRIORITY_CONFIG.normal;
-                    const icon = TYPE_ICONS[a.type || a.message_type] || '📢';
+                    const icon = TYPE_ICONS[a.type || a.message_type] || '';
                     return (
                       <div key={a.id || i}
                         className={`announcement-card ${cfg.pulse ? 'urgent-pulse' : ''}`}
@@ -480,7 +480,7 @@ export default function AnnouncementsDisplay() {
                             <span style={{
                               fontSize: 9, fontWeight: 700, color: '#A855F7', textTransform: 'uppercase',
                               letterSpacing: 0.5, padding: '2px 6px', borderRadius: 4, background: 'rgba(168,85,247,0.15)',
-                            }}>⏱ Scheduled</span>
+                            }}>Scheduled</span>
                           )}
                           <span style={{ fontSize: 9, color: '#6A6B6D', marginLeft: 'auto' }}>
                             {isScheduled
@@ -579,7 +579,7 @@ export default function AnnouncementsDisplay() {
                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     }}>
-                    📄 {showTemplates ? 'Hide Templates' : 'Use a Template'}
+                    {showTemplates ? 'Hide Templates' : 'Use a Template'}
                     <ChevronDown size={14} style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </button>
                   {showTemplates && (
@@ -699,7 +699,7 @@ export default function AnnouncementsDisplay() {
                   opacity: saving ? 0.6 : 1,
                 }}>
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
-                {editingAnnouncement ? 'Save Changes' : (formData.starts_at ? '⏱ Schedule' : 'Publish')}
+                {editingAnnouncement ? 'Save Changes' : (formData.starts_at ? 'Schedule' : 'Publish')}
               </button>
             </div>
           </div>
