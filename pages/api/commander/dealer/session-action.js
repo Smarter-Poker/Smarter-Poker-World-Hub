@@ -30,7 +30,7 @@ export default async function handler(req, res) {
             .select('*')
             .eq('table_number', parseInt(table_number))
             .eq('seat_number', parseInt(seat_number))
-            .eq('status', 'active')
+            .in('status', ['active', 'paused', 'meal_break'])
             .limit(1);
 
         if (fetchError) throw fetchError;

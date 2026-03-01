@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       .from('commander_table_sessions')
       .select('*')
       .eq('table_number', parseInt(table))
-      .eq('status', 'active')
+      .in('status', ['active', 'paused', 'meal_break'])
       .order('seat_number', { ascending: true });
 
     // Filter by venue_id if provided (security: prevents cross-venue leakage)
@@ -73,6 +73,7 @@ export default async function handler(req, res) {
         player_name: s.player_name,
         table_number: s.table_number,
         seat_number: s.seat_number,
+        session_status: s.status, // 'active' | 'paused' | 'meal_break'
         membership_tier: member?.membership_tier || s.membership_tier,
         membership_status: member?.membership_status || null,
         membership_expires: member?.membership_expires || null,
@@ -80,6 +81,7 @@ export default async function handler(req, res) {
         time_allocated_minutes: s.time_allocated_minutes,
         time_added_minutes: s.time_added_minutes,
         time_balance_minutes: member?.time_balance_minutes || 0,
+        missed_blinds: s.missed_blinds || 0,
         started_at: s.started_at,
         time_remaining: timeRemaining, // seconds
         is_low: timeRemaining <= 900 && timeRemaining > 0,    // < 15 min

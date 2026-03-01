@@ -193,7 +193,7 @@ export default async function handler(req, res) {
                                     .from('commander_table_sessions')
                                     .select('*')
                                     .in('table_number', tableNumbers)
-                                    .eq('status', 'active')
+                                    .in('status', ['active', 'paused', 'meal_break'])
                                     .order('seat_number', { ascending: true });
                                 allSessions = sessions || [];
                             } catch (e) { /* no session data */ }
