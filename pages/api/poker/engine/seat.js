@@ -106,8 +106,26 @@ export default async function handler(req, res) {
           }
         }
 
+        // Fetch player's club membership for access control
+        let memberRole = null;
+        let memberTier = null;
+        if (clubId) {
+          const { data: mem } = await supabaseAdmin
+            .from('club_members')
+            .select('role, tier')
+            .eq('club_id', clubId)
+            .eq('user_id', playerId)
+            .single();
+          if (mem) {
+            memberRole = mem.role;
+            memberTier = mem.tier;
+          }
+        }
+
         result = await controller.sitDown(tableId, playerId, parseInt(seatIndex), buyInAmount, {
           displayName, avatarUrl,
+          role: memberRole,
+          tier: memberTier,
         });
 
         // If engine rejected the sit_down, rollback the chip lock
@@ -251,6 +269,32 @@ export default async function handler(req, res) {
         // value: true = top up to max, number = specific amount, false = off
         const topUpValue = body.amount ? Number(body.amount) : (body.enabled !== false);
         result = controller.setAutoTopUp(tableId, playerId, topUpValue);
+        break;
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // ADMIN: Private game invite
+      // ═══════════════════════════════════════════════════════════
+      case 'invite_player': {
+        const targetId = body.targetPlayerId;
+        if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        result = controller.invitePlayer(tableId, targetId);
+        break;
+      }
+
+      // ADMIN: Approve pending buy-in authorization
+      case 'approve_buyin': {
+        const targetId = body.targetPlayerId;
+        if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        result = controller.approveBuyIn(tableId, targetId);
+        break;
+      }
+
+      // ADMIN: Reject pending buy-in authorization
+      case 'reject_buyin': {
+        const targetId = body.targetPlayerId;
+        if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        result = controller.rejectBuyIn(tableId, targetId);
         break;
       }
 

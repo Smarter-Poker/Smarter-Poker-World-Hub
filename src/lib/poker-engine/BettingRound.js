@@ -38,6 +38,7 @@ class BettingRound {
     this.street = config.street;
     this.validator = config.validator;
     this.status = ROUND_STATUS.WAITING;
+    this.capAmount = config.capAmount || 0; // 0 = no cap
     
     // Player state
     this.players = config.players.map(p => ({
@@ -169,8 +170,23 @@ class BettingRound {
     const player = this.getCurrentPlayer();
     if (!player) return [];
     
-    return this.validator.getLegalActions({
-      playerStack: player.stack,
+    // Calculate effective stack: reduced by cap if applicable
+    let effectiveStack = player.stack;
+    if (this.capAmount > 0) {
+      const capRemaining = Math.max(0, this.capAmount - player.totalInvested - player.invested);
+      effectiveStack = Math.min(player.stack, capRemaining);
+      // If cap exhausted, player can only check or fold
+      if (effectiveStack <= 0) {
+        const actions = [{ type: 'fold' }];
+        if (player.invested >= this.currentBet) {
+          actions.unshift({ type: 'check' });
+        }
+        return actions;
+      }
+    }
+    
+    const actions = this.validator.getLegalActions({
+      playerStack: effectiveStack,
       playerInvested: player.invested,
       currentBet: this.currentBet,
       lastRaiseSize: this.lastRaiseSize,
@@ -178,6 +194,8 @@ class BettingRound {
       street: this.street,
       numRaises: this.numRaises,
     });
+    
+    return actions;
   }
 
   /**

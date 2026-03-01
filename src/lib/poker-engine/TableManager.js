@@ -128,6 +128,17 @@ class TableManager {
     // Bomb pot tracking
     this._lastBombPotHand = 0;
     
+    // Table access control
+    this.anonymousTable = config.anonymousTable || config.clubSettings?.anonymous_table || false;
+    this.privateGame = config.privateGame || config.clubSettings?.private_game || false;
+    this.vipOnly = config.vipOnly || config.clubSettings?.vip_only || false;
+    this.buyInAuthorization = config.clubSettings?.buy_in_authorization || false;
+    
+    // Private game invite list + buy-in auth pending queue
+    this._privateInvites = new Set(); // Set<playerId>
+    this._pendingBuyIns = new Map();  // Map<playerId, { playerId, seatIndex, buyIn, playerInfo, requestedAt }>
+    this._approvedBuyIns = new Set(); // Set<playerId>
+    
     // Auto-rebuy preferences: Map<playerId, boolean>
     this._autoRebuyPrefs = new Map();
     
@@ -211,6 +222,49 @@ class TableManager {
    * @returns {{ success: boolean, error?: string }}
    */
   sitDown(playerId, seatIndex, buyIn, playerInfo = {}) {
+    // ── Access Control ──
+    
+    // Private game: only invited players or staff can sit
+    if (this.privateGame) {
+      const isInvited = this._privateInvites?.has(String(playerId));
+      const isStaff = playerInfo.role === 'owner' || playerInfo.role === 'admin' || playerInfo.role === 'agent';
+      if (!isInvited && !isStaff) {
+        return { success: false, error: 'Private table — ask admin for an invitation', code: 'PRIVATE_TABLE' };
+      }
+    }
+    
+    // VIP-only table: check member tier
+    if (this.vipOnly) {
+      const tier = (playerInfo.tier || 'bronze').toLowerCase();
+      const vipTiers = ['vip', 'gold', 'platinum', 'diamond'];
+      const isStaff = playerInfo.role === 'owner' || playerInfo.role === 'admin' || playerInfo.role === 'agent';
+      if (!vipTiers.includes(tier) && !isStaff) {
+        return { success: false, error: 'VIP-only table — upgrade your membership', code: 'VIP_ONLY' };
+      }
+    }
+    
+    // Buy-in authorization: queue for admin approval
+    if (this.buyInAuthorization) {
+      const isStaff = playerInfo.role === 'owner' || playerInfo.role === 'admin' || playerInfo.role === 'agent';
+      if (!isStaff && !this._approvedBuyIns?.has(String(playerId))) {
+        // Add to pending queue and notify admin
+        if (!this._pendingBuyIns) this._pendingBuyIns = new Map();
+        this._pendingBuyIns.set(String(playerId), {
+          playerId, seatIndex, buyIn, playerInfo,
+          requestedAt: Date.now(),
+        });
+        this.emit('buyin_authorization_requested', {
+          playerId,
+          displayName: playerInfo.displayName || playerId,
+          seatIndex,
+          buyIn,
+        });
+        return { success: false, error: 'Buy-in requires admin authorization. Request submitted.', code: 'BUYIN_AUTH_PENDING' };
+      }
+      // Clear approval after use
+      this._approvedBuyIns?.delete(String(playerId));
+    }
+    
     // Validate seat
     if (seatIndex < 0 || seatIndex >= this.maxSeats) {
       return { success: false, error: `Invalid seat: ${seatIndex}` };
@@ -473,6 +527,66 @@ class TableManager {
     
     this._autoTopUpPrefs.set(String(playerId), target);
     return { success: true, autoTopUp: true, targetAmount: target };
+  }
+
+  // ============ ACCESS CONTROL ============
+
+  /**
+   * Invite a player to a private table.
+   * @param {string} playerId
+   */
+  invitePlayer(playerId) {
+    this._privateInvites.add(String(playerId));
+    this.emit('player_invited', { playerId });
+    return { success: true };
+  }
+
+  /**
+   * Revoke a private table invitation.
+   * @param {string} playerId
+   */
+  uninvitePlayer(playerId) {
+    this._privateInvites.delete(String(playerId));
+    return { success: true };
+  }
+
+  /**
+   * Approve a pending buy-in request (buy_in_authorization).
+   * @param {string} playerId
+   */
+  approveBuyIn(playerId) {
+    const pending = this._pendingBuyIns.get(String(playerId));
+    if (!pending) return { success: false, error: 'No pending buy-in for this player' };
+    
+    this._pendingBuyIns.delete(String(playerId));
+    this._approvedBuyIns.add(String(playerId));
+    
+    this.emit('buyin_authorized', {
+      playerId,
+      displayName: pending.playerInfo?.displayName,
+      seatIndex: pending.seatIndex,
+      buyIn: pending.buyIn,
+    });
+    
+    // Auto-seat the player if the seat is still available
+    const result = this.sitDown(playerId, pending.seatIndex, pending.buyIn, pending.playerInfo);
+    return result;
+  }
+
+  /**
+   * Reject a pending buy-in request.
+   * @param {string} playerId
+   */
+  rejectBuyIn(playerId) {
+    const pending = this._pendingBuyIns.get(String(playerId));
+    if (!pending) return { success: false, error: 'No pending buy-in' };
+    
+    this._pendingBuyIns.delete(String(playerId));
+    this.emit('buyin_rejected', {
+      playerId,
+      displayName: pending.playerInfo?.displayName,
+    });
+    return { success: true };
   }
 
   /**
@@ -922,13 +1036,18 @@ class TableManager {
       status: this.status,
       handCount: this.handCount,
       maxSeats: this.maxSeats,
-      seats: this.seats.map(s => ({
+      seats: this.seats.map((s, idx) => ({
         seatIndex: s.seatIndex,
         status: s.status,
         player: s.player ? {
           id: s.player.id,
-          displayName: s.player.displayName,
-          avatarUrl: s.player.avatarUrl,
+          // Anonymous table: hide real names unless it's the requesting player
+          displayName: this.anonymousTable && String(s.player.id) !== String(forPlayerId)
+            ? `Player ${idx + 1}`
+            : s.player.displayName,
+          avatarUrl: this.anonymousTable && String(s.player.id) !== String(forPlayerId)
+            ? null
+            : s.player.avatarUrl,
         } : null,
         stack: s.stack,
         // Only show hole cards for the requesting player
@@ -964,6 +1083,9 @@ class TableManager {
         minBuyIn: this.minBuyIn,
         maxBuyIn: this.maxBuyIn,
         tableName: this.tableName,
+        anonymousTable: this.anonymousTable,
+        capAmount: this.game.config.capAmount || 0,
+        autoMuck: this.game.config.autoMuck,
       },
     };
   }

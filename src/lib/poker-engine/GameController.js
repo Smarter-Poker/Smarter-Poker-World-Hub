@@ -368,6 +368,12 @@ class GameController {
         noRathole: row.settings?.no_rathole || false,
         sevenDeuce: row.settings?.seven_deuce || false,
         bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
+        // Muck, cap, privacy settings
+        autoMuck: row.settings?.auto_muck !== false, // default true
+        capAmount: Number(row.settings?.cap_amount) || 0,
+        anonymousTable: row.settings?.anonymous_table || false,
+        privateGame: row.settings?.private_game || false,
+        vipOnly: row.settings?.vip_only || false,
         // Anti-cheat settings from Club Arena table configuration
         clubSettings: {
           ip_restriction: row.settings?.ip_restriction !== false, // default ON
@@ -567,6 +573,33 @@ class GameController {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
     return entry.table.setAutoTopUp(playerId, value);
+  }
+
+  /**
+   * Invite a player to a private table.
+   */
+  invitePlayer(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.invitePlayer(playerId);
+  }
+
+  /**
+   * Approve a pending buy-in authorization request.
+   */
+  approveBuyIn(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.approveBuyIn(playerId);
+  }
+
+  /**
+   * Reject a pending buy-in authorization request.
+   */
+  rejectBuyIn(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.rejectBuyIn(playerId);
   }
 
   /**

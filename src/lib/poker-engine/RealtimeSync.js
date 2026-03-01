@@ -167,6 +167,9 @@ class RealtimeSync {
       // Auto-rebuy / top-up
       'auto_rebuy_success', 'auto_rebuy_attempt',
       'auto_topup_success', 'auto_topup_attempt',
+      // Access control
+      'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
+      'player_invited',
       // Seven-Deuce bonus
       'seven_deuce_bonus',
     ];

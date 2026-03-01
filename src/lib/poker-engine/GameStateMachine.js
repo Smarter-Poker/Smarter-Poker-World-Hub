@@ -84,6 +84,10 @@ class GameStateMachine {
       straddle: config.straddle || false,
       autoUtgStraddle: config.autoUtgStraddle || false,
       voluntaryStraddle: config.voluntaryStraddle || false,
+      // Muck control: when true (default), losers' cards hidden; when false, all shown
+      autoMuck: config.autoMuck !== false,
+      // Cap game: max total investment per player per hand (0 = no cap)
+      capAmount: config.capAmount || 0,
     };
     
     // Engine components
@@ -644,6 +648,7 @@ class GameStateMachine {
       })),
       street,
       validator: this.actionValidator,
+      capAmount: this.config.capAmount || 0,
     });
     
     this.bettingRound.start({
@@ -1469,9 +1474,18 @@ class GameStateMachine {
       );
     }
     
-    // Mark cards as shown
+    // Mark cards as shown based on auto-muck setting
+    const winnerIds = new Set(
+      (showdownResult.hiWinners || showdownResult.winners || []).map(w => String(w.playerId))
+    );
     for (const player of activePlayers) {
-      player.showCards = true;
+      if (this.config.autoMuck) {
+        // Auto-muck ON: only winners show cards (standard behavior)
+        player.showCards = winnerIds.has(String(player.id));
+      } else {
+        // Auto-muck OFF: all active players show cards
+        player.showCards = true;
+      }
     }
 
     // ── BBJ DETECTION ───────────────────────────────────────
