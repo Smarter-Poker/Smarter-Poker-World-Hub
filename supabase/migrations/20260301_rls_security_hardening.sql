@@ -2,10 +2,14 @@
 -- Enable RLS on all unprotected club-arena tables
 -- SECURITY FIX: Without RLS, any authenticated user can read/write
 -- all rows in these tables via the anon Supabase client.
+--
+-- IDEMPOTENT: Safe to re-run. Drops existing policies before creating.
 -- ================================================================
 
 -- 1. agents: Only club owners/admins can manage agents
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS agents_select ON agents;
+DROP POLICY IF EXISTS agents_service ON agents;
 
 CREATE POLICY agents_select ON agents FOR SELECT
   USING (
@@ -22,6 +26,8 @@ CREATE POLICY agents_service ON agents FOR ALL
 
 -- 2. unions: Only union admins can see their unions
 ALTER TABLE unions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS unions_select ON unions;
+DROP POLICY IF EXISTS unions_service ON unions;
 
 CREATE POLICY unions_select ON unions FOR SELECT
   USING (
@@ -38,6 +44,8 @@ CREATE POLICY unions_service ON unions FOR ALL
 
 -- 3. union_clubs: Only union admins or club owners
 ALTER TABLE union_clubs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS union_clubs_select ON union_clubs;
+DROP POLICY IF EXISTS union_clubs_service ON union_clubs;
 
 CREATE POLICY union_clubs_select ON union_clubs FOR SELECT
   USING (
@@ -58,6 +66,8 @@ CREATE POLICY union_clubs_service ON union_clubs FOR ALL
 
 -- 4. union_admins: Only union admins
 ALTER TABLE union_admins ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS union_admins_select ON union_admins;
+DROP POLICY IF EXISTS union_admins_service ON union_admins;
 
 CREATE POLICY union_admins_select ON union_admins FOR SELECT
   USING (
@@ -74,6 +84,8 @@ CREATE POLICY union_admins_service ON union_admins FOR ALL
 
 -- 5. rake_records: Club owners/admins/agents only
 ALTER TABLE rake_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS rake_records_select ON rake_records;
+DROP POLICY IF EXISTS rake_records_service ON rake_records;
 
 CREATE POLICY rake_records_select ON rake_records FOR SELECT
   USING (
@@ -88,8 +100,10 @@ CREATE POLICY rake_records_select ON rake_records FOR SELECT
 CREATE POLICY rake_records_service ON rake_records FOR ALL
   USING (auth.role() = 'service_role');
 
--- 6. rakeback_periods: Club owners/admins and players for own records
+-- 6. rakeback_periods: Club members can see their club's rakeback
 ALTER TABLE rakeback_periods ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS rakeback_periods_select ON rakeback_periods;
+DROP POLICY IF EXISTS rakeback_periods_service ON rakeback_periods;
 
 CREATE POLICY rakeback_periods_select ON rakeback_periods FOR SELECT
   USING (
@@ -103,8 +117,10 @@ CREATE POLICY rakeback_periods_select ON rakeback_periods FOR SELECT
 CREATE POLICY rakeback_periods_service ON rakeback_periods FOR ALL
   USING (auth.role() = 'service_role');
 
--- 7. settlement_periods: Club owners/admins only
+-- 7. settlement_periods: Club owners/admins/agents only
 ALTER TABLE settlement_periods ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS settlement_periods_select ON settlement_periods;
+DROP POLICY IF EXISTS settlement_periods_service ON settlement_periods;
 
 CREATE POLICY settlement_periods_select ON settlement_periods FOR SELECT
   USING (
@@ -119,8 +135,10 @@ CREATE POLICY settlement_periods_select ON settlement_periods FOR SELECT
 CREATE POLICY settlement_periods_service ON settlement_periods FOR ALL
   USING (auth.role() = 'service_role');
 
--- 8. cashout_requests: Players see own, agents see their players, owners see all
+-- 8. cashout_requests: Players see own, agents/owners see club's
 ALTER TABLE cashout_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS cashout_requests_own ON cashout_requests;
+DROP POLICY IF EXISTS cashout_requests_service ON cashout_requests;
 
 CREATE POLICY cashout_requests_own ON cashout_requests FOR SELECT
   USING (
@@ -138,6 +156,8 @@ CREATE POLICY cashout_requests_service ON cashout_requests FOR ALL
 
 -- 9. chip_escrow: Players see own locks
 ALTER TABLE chip_escrow ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS chip_escrow_own ON chip_escrow;
+DROP POLICY IF EXISTS chip_escrow_service ON chip_escrow;
 
 CREATE POLICY chip_escrow_own ON chip_escrow FOR SELECT
   USING (player_id = auth.uid());
@@ -145,8 +165,10 @@ CREATE POLICY chip_escrow_own ON chip_escrow FOR SELECT
 CREATE POLICY chip_escrow_service ON chip_escrow FOR ALL
   USING (auth.role() = 'service_role');
 
--- 10. club_shop_items: Club members can see shop items
+-- 10. club_shop_items: Club members can browse shop
 ALTER TABLE club_shop_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS shop_items_select ON club_shop_items;
+DROP POLICY IF EXISTS shop_items_service ON club_shop_items;
 
 CREATE POLICY shop_items_select ON club_shop_items FOR SELECT
   USING (
@@ -162,6 +184,8 @@ CREATE POLICY shop_items_service ON club_shop_items FOR ALL
 
 -- 11. club_shop_purchases: Players see own purchases
 ALTER TABLE club_shop_purchases ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS shop_purchases_own ON club_shop_purchases;
+DROP POLICY IF EXISTS shop_purchases_service ON club_shop_purchases;
 
 CREATE POLICY shop_purchases_own ON club_shop_purchases FOR SELECT
   USING (user_id = auth.uid());
