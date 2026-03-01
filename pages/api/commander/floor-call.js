@@ -1,6 +1,10 @@
 /**
  * Commander Floor Call API - POST /api/commander/floor-call
  * Creates a floor call alert that broadcasts to all Commander screens in real-time
+ * 
+ * Schema: commander_floor_calls
+ *   id, venue_id, table_number, reason, description, priority, status,
+ *   called_by, responded_by, responded_at, resolution, created_at
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,7 +19,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { venue_id, table_number, table_name } = req.body;
+        const { venue_id, table_number, table_name, called_by } = req.body;
 
         if (!venue_id || !table_number) {
             return res.status(400).json({ success: false, error: 'venue_id and table_number are required' });
@@ -41,18 +45,21 @@ export default async function handler(req, res) {
             // Resolve old call
             await supabase
                 .from('commander_floor_calls')
-                .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                .update({ status: 'resolved', responded_at: new Date().toISOString(), resolution: 'auto-expired' })
                 .eq('id', existing[0].id);
         }
 
-        // Create new floor call
+        // Create new floor call using actual schema columns
         const { data: call, error } = await supabase
             .from('commander_floor_calls')
             .insert({
                 venue_id,
                 table_number,
-                table_name: table_name || `Table ${table_number}`,
+                reason: 'floor_request',
+                description: `Table ${table_number}${table_name ? ` (${table_name})` : ''} needs floor assistance`,
+                priority: 'normal',
                 status: 'active',
+                called_by: called_by || 'tablet',
             })
             .select()
             .single();
@@ -64,7 +71,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            data: { id: call.id, table_number, table_name: call.table_name }
+            data: { id: call.id, table_number, description: call.description }
         });
     } catch (error) {
         console.error('Floor call error:', error);

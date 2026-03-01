@@ -392,7 +392,11 @@ export default function CompSystem() {
                   </div>
                   <h3 className="text-lg font-bold text-white">Staff PIN Required</h3>
                   <p className="text-sm text-[#B0B3B8] mt-1">
-                    Authorize <span className="text-[#31A24C] font-bold">${compAmount}</span>{' '}
+                    Authorize{' '}
+                    {selectedCategory === 'free_membership'
+                      ? <span className="text-[#8B5CF6] font-bold">{MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'}</span>
+                      : <span className="text-[#31A24C] font-bold">${compAmount}</span>
+                    }{' '}
                     <span className="text-white font-medium">
                       {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label}
                     </span>{' '}
@@ -729,9 +733,15 @@ export default function CompSystem() {
                             )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className={`text-sm font-bold ${(t.amount || 0) > 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
-                              {(t.amount || 0) > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}
-                            </p>
+                            {(t.comp_category === 'free_membership' && t.amount === 0) ? (
+                              <p className="text-sm font-bold text-[#8B5CF6]">
+                                {(t.reason || '').replace('Free Membership — ', '').split(' — ')[0] || 'Membership'}
+                              </p>
+                            ) : (
+                              <p className={`text-sm font-bold ${(t.amount || 0) > 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
+                                {(t.amount || 0) > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}
+                              </p>
+                            )}
                             <p className="text-[10px] text-[#6A6B6D]">
                               {t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
                             </p>

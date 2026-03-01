@@ -121,13 +121,17 @@ async function awardComp(req, res, staffAuth) {
     if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
 
     // Check membership status — provide specific messaging
+    // BYPASS for free_membership comps: the whole point is to renew/activate membership
+    const isMembershipComp = comp_category === 'free_membership' || (membership_days && parseInt(membership_days) > 0);
     const mStatus = (member.membership_status || 'active').toLowerCase();
-    if (mStatus === 'expired') {
-      const expDate = member.membership_expires ? new Date(member.membership_expires).toLocaleDateString() : 'unknown';
-      return res.status(403).json({ success: false, error: `Membership Expired (${expDate}) — Please Renew Before Issuing Comps` });
-    }
-    if (mStatus === 'suspended') {
-      return res.status(403).json({ success: false, error: 'Membership Is Suspended — Cannot Issue Comps To This Member' });
+    if (!isMembershipComp) {
+      if (mStatus === 'expired') {
+        const expDate = member.membership_expires ? new Date(member.membership_expires).toLocaleDateString() : 'unknown';
+        return res.status(403).json({ success: false, error: `Membership Expired (${expDate}) — Please Renew Before Issuing Comps` });
+      }
+      if (mStatus === 'suspended') {
+        return res.status(403).json({ success: false, error: 'Membership Is Suspended — Cannot Issue Comps To This Member' });
+      }
     }
     if (mStatus === 'banned') {
       return res.status(403).json({ success: false, error: 'Member Is Banned — Cannot Issue Comps' });

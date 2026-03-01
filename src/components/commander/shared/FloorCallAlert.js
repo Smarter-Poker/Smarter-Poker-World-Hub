@@ -47,7 +47,7 @@ export default function FloorCallAlert({ venueId }) {
                     setActiveCall({
                         id: call.id,
                         table_number: call.table_number,
-                        table_name: call.table_name || `Table ${call.table_number}`,
+                        description: call.description || `Table ${call.table_number} needs floor`,
                         created_at: call.created_at,
                     });
                     // Auto-dismiss after 30 seconds
@@ -94,9 +94,9 @@ export default function FloorCallAlert({ venueId }) {
             <div style={{ fontSize: 28, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginTop: 8, textTransform: 'uppercase', letterSpacing: 3 }}>
                 NEEDS FLOOR
             </div>
-            {activeCall.table_name && activeCall.table_name !== `Table ${activeCall.table_number}` && (
+            {activeCall.description && (
                 <div style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>
-                    {activeCall.table_name}
+                    {activeCall.description}
                 </div>
             )}
 
