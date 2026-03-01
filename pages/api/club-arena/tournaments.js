@@ -252,14 +252,17 @@ export default async function handler(req, res) {
 
         if (existing) return res.status(400).json({ error: 'Already registered' });
 
-        // Deduct buy-in
-        const { error: deductErr } = await supabaseAdmin
-          .from('club_members')
-          .update({ chip_balance: (member.chip_balance || 0) - tourn.buy_in })
-          .eq('club_id', tourn.club_id)
-          .eq('user_id', user.id);
+        // Deduct buy-in (atomic — uses FOR UPDATE row lock to prevent race conditions)
+        const { data: lockResult, error: lockErr } = await supabaseAdmin.rpc('lock_chips_for_table', {
+          p_user_id: user.id,
+          p_club_id: tourn.club_id,
+          p_table_id: tournamentId, // Use tournament ID as "table" for audit trail
+          p_amount: tourn.buy_in,
+        });
 
-        if (deductErr) return res.status(500).json({ error: 'Failed to deduct buy-in' });
+        if (lockErr || !lockResult?.success) {
+          return res.status(400).json({ error: lockResult?.error || lockErr?.message || 'Failed to deduct buy-in' });
+        }
 
         // Register
         const { error: regErr } = await supabaseAdmin
@@ -273,10 +276,13 @@ export default async function handler(req, res) {
           });
 
         if (regErr) {
-          // Rollback chip deduction
-          await supabaseAdmin.from('club_members')
-            .update({ chip_balance: member.chip_balance })
-            .eq('club_id', tourn.club_id).eq('user_id', user.id);
+          // Rollback chip deduction via atomic RPC
+          await supabaseAdmin.rpc('unlock_chips_from_table', {
+            p_user_id: user.id,
+            p_club_id: tourn.club_id,
+            p_table_id: tournamentId,
+            p_amount: tourn.buy_in,
+          });
           return res.status(500).json({ error: regErr.message });
         }
 

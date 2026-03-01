@@ -4,10 +4,17 @@
  *
  * Used by:
  *   - /api/poker/engine/seat.js (lock/unlock/rebuy on sit/stand/add)
- *   - LobbyManager.js (rake recording after each hand)
+ *   - LobbyManager.js (rake recording after each hand, auto-unlock safety net)
  *
- * All operations use service_role for server-side atomic DB writes.
+ * All chip lock/unlock operations use ATOMIC Supabase RPCs with
+ * FOR UPDATE row locking — no race conditions possible.
+ *
  * Non-club tables (clubId is null) skip all chip operations.
+ *
+ * CHANGE LOG:
+ *   2026-03-01: Rewrote lock/unlock to use lock_chips_for_table /
+ *               unlock_chips_from_table RPCs. Eliminates table_chip_locks
+ *               table dependency and race conditions (CRIT-1 + CRIT-3 fix).
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -25,151 +32,118 @@ function getSupabase() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// In-memory tracking of which player/table combos have active locks.
+// Used by LobbyManager auto-unlock safety net to avoid double-unlock.
+// Keyed by `${tableId}:${userId}` → { amount, lockedAt }
+// ═══════════════════════════════════════════════════════════════
+const _activeLocks = new Map();
+
+function _lockKey(tableId, userId) {
+  return `${tableId}:${userId}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // LOCK CHIPS — Player sits down at table
-// Deducts from club_members.chip_balance → table_chip_locks
+// Uses lock_chips_for_table RPC (atomic, FOR UPDATE row lock)
 // ═══════════════════════════════════════════════════════════════
 
 async function lockChips(clubId, userId, tableId, amount) {
   if (!clubId) return { success: true, skipped: true }; // Non-club table
   const sb = getSupabase();
 
-  // 1. Read fresh balance
-  const { data: member, error: memErr } = await sb
-    .from('club_members')
-    .select('chip_balance')
-    .eq('club_id', clubId)
-    .eq('user_id', userId)
-    .single();
-
-  if (memErr || !member) {
-    return { success: false, error: 'Not a member of this club' };
-  }
-
-  const balance = member.chip_balance || 0;
-  if (balance < amount) {
-    return {
-      success: false,
-      error: `Insufficient chips. Have ${balance}, need ${amount}`,
-      available: balance,
-    };
-  }
-
-  // 2. Deduct from chip_balance
-  const { error: deductErr } = await sb
-    .from('club_members')
-    .update({ chip_balance: balance - amount })
-    .eq('club_id', clubId)
-    .eq('user_id', userId);
-
-  if (deductErr) {
-    return { success: false, error: 'Failed to deduct chips', details: deductErr.message };
-  }
-
-  // 3. Create/update lock record
-  const { data: existingLock } = await sb
-    .from('table_chip_locks')
-    .select('id, amount')
-    .eq('table_id', tableId)
-    .eq('user_id', userId)
-    .single();
-
-  if (existingLock) {
-    await sb
-      .from('table_chip_locks')
-      .update({
-        amount: (existingLock.amount || 0) + amount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existingLock.id);
-  } else {
-    await sb.from('table_chip_locks').insert({
-      table_id: tableId,
-      user_id: userId,
-      amount,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+  try {
+    const { data: result, error: rpcErr } = await sb.rpc('lock_chips_for_table', {
+      p_user_id: userId,
+      p_club_id: clubId,
+      p_table_id: tableId,
+      p_amount: amount,
     });
+
+    if (rpcErr) {
+      console.error('[ChipBridge.lockChips] RPC error:', rpcErr);
+      return { success: false, error: rpcErr.message };
+    }
+
+    if (!result?.success) {
+      return {
+        success: false,
+        error: result?.error || 'Lock failed',
+        available: result?.balance,
+      };
+    }
+
+    // Track the lock in memory for auto-unlock safety net
+    const key = _lockKey(tableId, userId);
+    const existing = _activeLocks.get(key);
+    _activeLocks.set(key, {
+      amount: (existing?.amount || 0) + amount,
+      lockedAt: Date.now(),
+    });
+
+    return {
+      success: true,
+      locked: amount,
+      remainingBalance: result.balance_after,
+    };
+  } catch (err) {
+    console.error('[ChipBridge.lockChips] Error:', err);
+    return { success: false, error: err.message };
   }
-
-  // 4. Record transaction
-  await sb.from('chip_transactions').insert({
-    from_user_id: userId,
-    to_user_id: userId,
-    club_id: clubId,
-    transaction_type: 'table_lock',
-    amount: -amount,
-    notes: `Chips locked for table ${tableId.slice(0, 8)}`,
-  });
-
-  return {
-    success: true,
-    locked: amount,
-    remainingBalance: balance - amount,
-  };
 }
 
 // ═══════════════════════════════════════════════════════════════
 // UNLOCK CHIPS — Player stands up from table
-// Returns chips from engine stack → club_members.chip_balance
-// Deletes table_chip_locks record
+// Uses unlock_chips_from_table RPC (atomic, FOR UPDATE row lock)
+// cashoutAmount = player's current engine stack (may be > or < buy-in)
 // ═══════════════════════════════════════════════════════════════
 
 async function unlockChips(clubId, userId, tableId, cashoutAmount) {
   if (!clubId) return { success: true, skipped: true };
   const sb = getSupabase();
 
-  // 1. Read fresh balance
-  const { data: member } = await sb
-    .from('club_members')
-    .select('chip_balance')
-    .eq('club_id', clubId)
-    .eq('user_id', userId)
-    .single();
-
-  const currentBalance = member?.chip_balance || 0;
-
-  // 2. Return engine cashout to chip_balance
-  if (cashoutAmount > 0) {
-    await sb
-      .from('club_members')
-      .update({ chip_balance: currentBalance + cashoutAmount })
-      .eq('club_id', clubId)
-      .eq('user_id', userId);
+  // Clear in-memory lock tracking first to prevent double-unlock
+  const key = _lockKey(tableId, userId);
+  if (!_activeLocks.has(key)) {
+    // Lock already cleared (seat.js already handled this stand-up)
+    console.log(`[ChipBridge.unlockChips] No active lock for ${userId} at table ${tableId?.slice(0, 8)} — skipping (already handled)`);
+    return { success: true, returned: 0, alreadyHandled: true };
   }
+  _activeLocks.delete(key);
 
-  // 3. Delete lock record
-  await sb
-    .from('table_chip_locks')
-    .delete()
-    .eq('table_id', tableId)
-    .eq('user_id', userId);
-
-  // 4. Record transaction
-  if (cashoutAmount > 0) {
-    await sb.from('chip_transactions').insert({
-      from_user_id: userId,
-      to_user_id: userId,
-      club_id: clubId,
-      transaction_type: 'table_unlock',
-      amount: cashoutAmount,
-      notes: `Chips returned from table ${tableId.slice(0, 8)}`,
+  try {
+    const { data: result, error: rpcErr } = await sb.rpc('unlock_chips_from_table', {
+      p_user_id: userId,
+      p_club_id: clubId,
+      p_table_id: tableId,
+      p_amount: cashoutAmount || 0,
     });
-  }
 
-  return {
-    success: true,
-    returned: cashoutAmount,
-    newBalance: currentBalance + cashoutAmount,
-  };
+    if (rpcErr) {
+      console.error('[ChipBridge.unlockChips] RPC error:', rpcErr);
+      return { success: false, error: rpcErr.message };
+    }
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Unlock failed' };
+    }
+
+    return {
+      success: true,
+      returned: cashoutAmount || 0,
+      newBalance: result.balance_after,
+    };
+  } catch (err) {
+    console.error('[ChipBridge.unlockChips] Error:', err);
+    return { success: false, error: err.message };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // REBUY CHIPS — Player adds chips at table
-// Same as lockChips but for an already-seated player
+// Same as lockChips — deducts additional chips from balance
 // ═══════════════════════════════════════════════════════════════
 
 async function rebuyChips(clubId, userId, tableId, amount) {
-  // Reuses lockChips logic — deducts from balance, adds to lock
   return lockChips(clubId, userId, tableId, amount);
 }
 
@@ -222,7 +196,6 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
     }
 
     // 3. Track rake per agent (for commission calculations)
-    // Get all players at the table who have agents
     if (playerContributions && playerContributions.length > 0) {
       const playerIds = playerContributions.map(p => p.playerId);
 
@@ -233,7 +206,6 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
         .in('user_id', playerIds);
 
       if (members) {
-        // Group rake by agent
         const agentRake = {};
         for (const member of members) {
           if (member.agent_id) {
@@ -244,7 +216,6 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
           }
         }
 
-        // Update each agent's weekly_rake_generated
         for (const [agentUserId, rakeGenerated] of Object.entries(agentRake)) {
           const { data: agent } = await sb
             .from('agents')
@@ -274,19 +245,13 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHECK LOCK EXISTS — Used by LobbyManager auto-unlock
-// Returns true if a table_chip_locks record exists for this player/table
+// CHECK LOCK EXISTS — Used by LobbyManager auto-unlock safety net
+// Returns true if an in-memory lock exists for this player/table.
+// This prevents double-unlock when seat.js already handled stand-up.
 // ═══════════════════════════════════════════════════════════════
 
 async function checkLockExists(tableId, userId) {
-  const sb = getSupabase();
-  const { data } = await sb
-    .from('table_chip_locks')
-    .select('id')
-    .eq('table_id', tableId)
-    .eq('user_id', userId)
-    .single();
-  return !!data;
+  return _activeLocks.has(_lockKey(tableId, userId));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -305,6 +270,21 @@ async function getChipBalance(clubId, userId) {
   return data?.chip_balance || 0;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CLEAR ALL LOCKS FOR TABLE — Emergency cleanup on table destroy
+// ═══════════════════════════════════════════════════════════════
+
+function clearLocksForTable(tableId) {
+  let cleared = 0;
+  for (const [key] of _activeLocks) {
+    if (key.startsWith(`${tableId}:`)) {
+      _activeLocks.delete(key);
+      cleared++;
+    }
+  }
+  return cleared;
+}
+
 module.exports = {
   lockChips,
   unlockChips,
@@ -313,5 +293,5 @@ module.exports = {
   getChipBalance,
   getSupabase,
   checkLockExists,
-  getSupabase,
+  clearLocksForTable,
 };

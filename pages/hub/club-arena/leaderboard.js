@@ -115,7 +115,7 @@ export default function Leaderboard() {
                     if (boardType !== 'chips') {
                         try {
                             let handQuery = supabase
-                                .from('hand_history')
+                                .from('hand_histories')
                                 .select('*');
 
                             if (dateFilter) {

@@ -631,6 +631,29 @@ class LobbyManager {
           // Don't block hand progression on rake recording failure
         }
       }
+
+      // ── PROMO PLAYTHROUGH: Record wagering per player ──
+      // Each player's invested amount in this hand counts toward their 3x playthrough
+      if (clubId && data.players?.length > 0) {
+        try {
+          const sb = ChipBridge.getSupabase();
+          for (const player of data.players) {
+            const invested = player.invested || 0;
+            if (invested > 0) {
+              sb.rpc('record_promo_wagering', {
+                p_club_id: clubId,
+                p_player_user_id: player.id,
+                p_amount_wagered: invested,
+              }).catch(err => {
+                // Non-blocking — don't fail hand on wagering tracking
+                console.error('[LobbyManager] Promo wagering track failed:', player.id, err.message);
+              });
+            }
+          }
+        } catch (promoErr) {
+          console.error('[LobbyManager] Promo wagering tracking failed:', promoErr.message);
+        }
+      }
     });
   }
 

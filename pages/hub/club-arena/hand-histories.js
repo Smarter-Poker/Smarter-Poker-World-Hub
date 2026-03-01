@@ -102,7 +102,7 @@ export default function HandHistories() {
                 // Build a resilient query that doesn't filter on columns that may not exist
                 try {
                     let query = supabase
-                        .from('hand_history')
+                        .from('hand_histories')
                         .select('*')
                         .order('created_at', { ascending: false })
                         .range(reset ? 0 : page * PAGE_SIZE, (reset ? 0 : page) * PAGE_SIZE + PAGE_SIZE - 1);
