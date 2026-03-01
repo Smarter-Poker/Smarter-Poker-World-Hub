@@ -1484,11 +1484,17 @@ class GameStateMachine {
       const player = this.currentHand.players.find(p => String(p.id) === String(playerId));
       if (player) player.stack += amount;
     }
+
+    // Rabbit hunt: peek at remaining board cards
+    const boardSize = this.currentHand.communityCards.length;
+    const rabbitCards = this.deck.peekRabbitCards(boardSize);
     
     this.currentHand.result = {
       type: 'fold',
       winners: [{ playerId: winner.id, amount: payouts.get(winner.id) }],
       rake,
+      rabbitCards: rabbitCards.length > 0 ? rabbitCards : null,
+      boardAtEnd: [...this.currentHand.communityCards],
     };
     
     this.emit('payout', {
@@ -1581,6 +1587,8 @@ class GameStateMachine {
       result: this.currentHand.result,
       rake: this.currentHand.result?.rake || 0,
       potTotal: this.potCalculator.totalPot,
+      rabbitCards: this.currentHand.result?.rabbitCards || null,
+      boardAtEnd: this.currentHand.result?.boardAtEnd || this.currentHand.communityCards,
       players: this.currentHand.players.map(p => ({
         id: p.id,
         stack: p.stack,

@@ -355,6 +355,37 @@ class Deck {
   }
 
   /**
+   * Peek at remaining community cards without advancing the deck.
+   * Simulates burn+deal for each remaining street.
+   * @param {number} boardSize - Current community card count (0-5)
+   * @returns {number[]} Cards that would be dealt for remaining streets
+   */
+  peekRabbitCards(boardSize) {
+    const result = [];
+    let pos = this._position;
+    const cards = this._cards;
+    const len = cards.length;
+
+    // Simulate remaining streets: flop (3), turn (1), river (1)
+    if (boardSize < 3) {
+      // Need flop: burn 1, deal 3
+      if (pos < len) pos++; // burn
+      for (let i = 0; i < 3 && pos < len; i++) result.push(cards[pos++]);
+    }
+    if (boardSize < 4 && result.length >= (boardSize < 3 ? 3 : 0)) {
+      // Need turn: burn 1, deal 1
+      if (pos < len) pos++; // burn
+      if (pos < len) result.push(cards[pos++]);
+    }
+    if (boardSize < 5 && result.length >= (boardSize < 3 ? 4 : boardSize < 4 ? 1 : 0)) {
+      // Need river: burn 1, deal 1
+      if (pos < len) pos++; // burn
+      if (pos < len) result.push(cards[pos++]);
+    }
+    return result;
+  }
+
+  /**
    * Check if this is a short deck.
    * @returns {boolean}
    */

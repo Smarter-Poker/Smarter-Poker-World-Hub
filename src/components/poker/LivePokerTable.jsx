@@ -1256,8 +1256,98 @@ function RunItOfferOverlay({ offer, userId, onRespond }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CHIP FLY ANIMATION — chips fly from pot center to winner seat
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ChipFlyAnimation({ winners, seatPositions, seats }) {
+  const [chips, setChips] = useState([]);
+
+  useEffect(() => {
+    if (!winners?.length || !seatPositions || !seats) return;
+
+    const newChips = [];
+    const chipColors = ['#e53935', '#1e88e5', '#43a047', '#000000', '#9c27b0', '#ff9800', '#fdd835'];
+
+    winners.forEach((w, wi) => {
+      const seat = seats.find(s => s.player && String(s.player.id) === String(w.playerId));
+      if (!seat) return;
+      const pos = seatPositions[seat.seatIndex];
+      if (!pos) return;
+
+      // 5-8 chips per winner
+      const count = Math.min(Math.max(3, Math.ceil((w.amount || 0) / 200)), 8);
+      for (let i = 0; i < count; i++) {
+        newChips.push({
+          id: `chip-${wi}-${i}`,
+          targetX: pos.x,
+          targetY: pos.y,
+          color: chipColors[(wi * 3 + i) % chipColors.length],
+          delay: 0.3 + wi * 0.15 + i * 0.05,
+          size: 12 + Math.random() * 4,
+        });
+      }
+    });
+
+    setChips(newChips);
+    const timer = setTimeout(() => setChips([]), 2500);
+    return () => clearTimeout(timer);
+  }, [winners, seatPositions, seats]);
+
+  if (!chips.length) return null;
+
+  return (
+    <>
+      {chips.map(chip => (
+        <motion.div
+          key={chip.id}
+          initial={{
+            left: '50%', top: '28%',
+            scale: 1, opacity: 1,
+            x: '-50%', y: '-50%',
+          }}
+          animate={{
+            left: `${chip.targetX}%`,
+            top: `${chip.targetY}%`,
+            scale: [1, 1.3, 0.8],
+            opacity: [1, 1, 0],
+          }}
+          transition={{
+            duration: 0.6,
+            delay: chip.delay,
+            ease: [0.25, 0.1, 0.25, 1],
+          }}
+          style={{
+            position: 'absolute',
+            width: chip.size, height: chip.size,
+            borderRadius: '50%',
+            background: `radial-gradient(circle at 35% 35%, ${chip.color}dd, ${chip.color})`,
+            border: '1.5px solid rgba(255,255,255,0.45)',
+            boxShadow: `0 2px 6px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.3)`,
+            zIndex: 55,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RESULT OVERLAY (showdown / hand complete) + RABBIT HUNT
+// ═══════════════════════════════════════════════════════════════════════════
+
 function ResultOverlay({ result }) {
+  const [showRabbit, setShowRabbit] = useState(false);
+
+  // Reset rabbit state when result changes
+  useEffect(() => { setShowRabbit(false); }, [result]);
+
   if (!result) return null;
+
+  const isFoldWin = result.type === 'fold' || result.result?.type === 'fold';
+  const rabbitCards = result.rabbitCards || result.result?.rabbitCards;
+  const boardAtEnd = result.boardAtEnd || result.result?.boardAtEnd || [];
 
   return (
     <motion.div
@@ -1275,6 +1365,7 @@ function ResultOverlay({ result }) {
         padding: '16px 32px',
         zIndex: 50,
         textAlign: 'center',
+        minWidth: 200,
       }}
     >
       {result.winners?.map((w, i) => (
@@ -1287,6 +1378,75 @@ function ResultOverlay({ result }) {
           )}
         </div>
       ))}
+
+      {/* Rabbit Hunt — only on fold wins with remaining cards */}
+      {isFoldWin && rabbitCards && rabbitCards.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          {!showRabbit ? (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => { e.stopPropagation(); setShowRabbit(true); }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: 20,
+                padding: '6px 16px',
+                color: '#B0B3B8',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🐇</span>
+              Rabbit Hunt
+            </motion.button>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.3 }}
+            >
+              <div style={{
+                fontSize: 10, color: '#65676B', marginBottom: 6,
+                textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700,
+              }}>
+                🐇 Would have been dealt
+              </div>
+
+              {/* Show existing board + rabbit cards */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
+                {/* Existing board cards (dimmed) */}
+                {boardAtEnd.map((card, i) => (
+                  <div key={`board-${i}`} style={{ opacity: 0.45 }}>
+                    <CardImg card={card} width={38} delay={0} />
+                  </div>
+                ))}
+
+                {/* Rabbit cards (bright, animated reveal) */}
+                {rabbitCards.map((card, i) => (
+                  <motion.div
+                    key={`rabbit-${i}`}
+                    initial={{ rotateY: 180, opacity: 0 }}
+                    animate={{ rotateY: 0, opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.15 + i * 0.2 }}
+                    style={{
+                      filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.4))',
+                      border: '1px solid rgba(255,215,0,0.3)',
+                      borderRadius: 4,
+                    }}
+                  >
+                    <CardImg card={card} width={38} delay={0.15 + i * 0.2} />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -1541,6 +1701,15 @@ export default function LivePokerTable({
             <AnimatePresence>
               {result && <ResultOverlay result={result} />}
             </AnimatePresence>
+
+            {/* Chip fly animation — chips fly from pot to winner seats */}
+            {result?.winners && (
+              <ChipFlyAnimation
+                winners={result.winners}
+                seatPositions={positions}
+                seats={seats}
+              />
+            )}
           </div>
         </div>
 
