@@ -203,6 +203,10 @@ class LobbyManager {
       this._trackPlayerJoin(data.playerId, config.tableId);
       // Update current_players in DB for lobby display
       this._updateTablePlayerCount(config.tableId, table);
+      // Auto-create new table when all same-config tables are full
+      if (config.clubSettings?.auto_create_table) {
+        this._checkAutoCreateTable(config);
+      }
     });
     table.on('player_left', (data) => {
       this._trackPlayerLeave(data.playerId, config.tableId);
@@ -790,6 +794,58 @@ class LobbyManager {
           this.closeTable(tableId);
         }, EMPTY_TABLE_TIMEOUT_MS));
       }
+    }
+  }
+
+  /**
+   * Check if all tables with the same config are full; if so, create a new one.
+   * @private
+   */
+  _checkAutoCreateTable(templateConfig) {
+    const clubId = templateConfig.clubId;
+    if (!clubId) return;
+    
+    const variant = templateConfig.variant;
+    const bigBlind = templateConfig.bigBlind;
+    
+    // Find all tables for this club with same variant + stakes
+    let allFull = true;
+    let tableCount = 0;
+    
+    for (const [, entry] of this.tables) {
+      if (entry.config.clubId !== clubId) continue;
+      if (entry.config.variant !== variant || entry.config.bigBlind !== bigBlind) continue;
+      tableCount++;
+      
+      const seated = entry.table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
+      if (seated < entry.table.maxSeats) {
+        allFull = false;
+        break;
+      }
+    }
+    
+    // Max 5 auto-created tables per variant+stakes
+    if (allFull && tableCount < 5) {
+      const newConfig = {
+        ...templateConfig,
+        tableId: `auto_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        tableName: `${templateConfig.tableName || 'Table'} #${tableCount + 1}`,
+      };
+      
+      console.log(`[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`);
+      this.createTable(newConfig).then(result => {
+        if (result.success) {
+          this.emit('auto_table_created', {
+            tableId: newConfig.tableId,
+            clubId,
+            variant,
+            bigBlind,
+            reason: `All ${tableCount} tables full`,
+          });
+        }
+      }).catch(err => {
+        console.error('[LobbyManager] Auto-create table failed:', err.message);
+      });
     }
   }
 

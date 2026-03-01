@@ -322,6 +322,9 @@ class TableManager {
     // Sit down
     seat.status = SEAT_STATUS.OCCUPIED;
     seat.player = { id: playerId, displayName: playerInfo.displayName || playerId, avatarUrl: playerInfo.avatarUrl || null };
+    
+    // Reset VPIP tracker — fresh session for this player at this table
+    this._vpipTracker.delete(String(playerId));
     seat.stack = buyIn;
     seat.sittingOutHands = 0;
     seat.reservedFor = null;
@@ -811,6 +814,8 @@ class TableManager {
    * @private
    */
   _vacateSeat(seat) {
+    // Clear session VPIP tracking for nit game
+    if (seat.player?.id) this._vpipTracker.delete(String(seat.player.id));
     seat.status = SEAT_STATUS.EMPTY;
     seat.player = null;
     seat.stack = 0;

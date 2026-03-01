@@ -122,6 +122,30 @@ export default async function handler(req, res) {
           }
         }
 
+        // ── Career Percent Gate: require minimum career VPIP to sit ──
+        const careerPercent = entry.config?.clubSettings?.career_percent || 0;
+        if (careerPercent > 0 && clubId && !['owner', 'admin', 'manager', 'agent'].includes(memberRole)) {
+          try {
+            const { HandHistoryQuery } = require('../../../../src/lib/poker-engine/HandHistory');
+            const hq = new HandHistoryQuery(supabaseAdmin);
+            const stats = await hq.getPlayerStats(clubId, playerId, { limit: 100 });
+            if (stats.handsPlayed >= 10 && parseFloat(stats.vpipRate) < careerPercent) {
+              // Unlock chips since we locked them above
+              if (clubId) await ChipBridge.unlockChips(clubId, playerId, tableId, buyInAmount);
+              return res.status(403).json({
+                success: false,
+                error: `Minimum career VPIP of ${careerPercent}% required. Your VPIP: ${stats.vpipRate}%`,
+                code: 'CAREER_VPIP_TOO_LOW',
+                vpipRate: stats.vpipRate,
+                required: careerPercent,
+              });
+            }
+          } catch (e) {
+            // If stats query fails, allow entry (don't block on stats errors)
+            console.warn('[seat.js] Career percent check failed:', e.message);
+          }
+        }
+
         result = await controller.sitDown(tableId, playerId, parseInt(seatIndex), buyInAmount, {
           displayName, avatarUrl,
           role: memberRole,

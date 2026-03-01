@@ -390,6 +390,9 @@ class GameController {
           photo_rotation_verification: row.settings?.photo_rotation_verification || false,
           gps_min_distance_meters: row.settings?.gps_min_distance_meters || 100,
           game_length_hours: row.settings?.game_length_hours || 0,
+          career_percent: Number(row.settings?.career_percent) || 0,
+          auto_create_table: row.settings?.auto_create_table || false,
+          auto_extension: row.settings?.auto_extension || false,
         },
       };
 
