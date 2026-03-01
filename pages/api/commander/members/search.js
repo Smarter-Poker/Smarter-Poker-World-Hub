@@ -2,7 +2,8 @@
  * Member Search API
  * GET /api/commander/members/search?q=query&limit=10&venue_id=xxx
  * Search members by name or phone number
- * Venue scoping enforced: venue_id from query param, x-staff-session, or Bearer auth
+ * Also returns staff/owners/managers alongside members
+ * When no query provided, returns staff + recent members for quick access
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -25,14 +26,12 @@ export default async function handler(req, res) {
 
   try {
     const { q, limit = '10', venue_id } = req.query;
-    if (!q || q.length < 2) return res.status(200).json({ success: true, data: [] });
-
+    const searchQuery = (q || '').trim();
     const limitNum = Math.min(parseInt(limit) || 10, 50);
 
-    // Determine venue scope (required for security — prevents cross-venue data exposure)
+    // Determine venue scope (required for security)
     let venueFilter = venue_id || null;
 
-    // Try x-staff-session header (Commander staff session)
     if (!venueFilter) {
       const staffSession = req.headers['x-staff-session'];
       if (staffSession) {
@@ -43,7 +42,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Try Bearer auth token (owner/user login)
     if (!venueFilter) {
       const authHeader = req.headers.authorization;
       if (authHeader) {
@@ -61,91 +59,104 @@ export default async function handler(req, res) {
       }
     }
 
-    // SECURITY: Refuse to search without venue scope
     if (!venueFilter) {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    // Search by phone (digits only) or name (ilike)
-    const isPhone = /^\d+$/.test(q.replace(/[\s\-\(\)]/g, ''));
-    let query = supabase
-      .from('commander_members')
-      .select('id, first_name, last_name, phone, email, last_visit, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number')
-      .eq('venue_id', venueFilter)
-      .limit(limitNum);
+    let results = [];
 
-    if (isPhone) {
-      const digits = q.replace(/\D/g, '');
-      query = query.ilike('phone', `%${digits}%`);
-    } else {
-      // Search first_name, last_name, member_number, phone, email (matching the proven working members API pattern)
-      query = query.or(
-        `first_name.ilike.%${q}%,last_name.ilike.%${q}%,member_number.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`
-      );
-    }
-
-    const { data: members, error } = await query.order('last_visit', { ascending: false, nullsFirst: false });
-
-    if (error) {
-      console.error('Member search error:', error, 'query:', q, 'venue:', venueFilter);
-      return res.status(200).json({ success: true, data: [] });
-    }
-
-    let results = (members || []).map(m => ({ ...m, phone: formatPhone(m.phone) }));
-
-    // ═══ ALSO search commander_staff (owners, managers, floor, dealers) ═══
-    // Staff/owners may not have a commander_members record.
+    // ═══ 1. Always fetch active staff (owners, managers, floor) ═══
     try {
-      let staffQuery = supabase
+      let staffQ = supabase
         .from('commander_staff')
-        .select('id, user_id, role, display_name, venue_id')
+        .select('id, display_name, role, user_id, is_active')
         .eq('venue_id', venueFilter)
         .eq('is_active', true)
-        .limit(limitNum);
+        .in('role', ['owner', 'manager', 'floor']);
 
-      if (!isPhone) {
-        staffQuery = staffQuery.ilike('display_name', `%${q}%`);
+      if (searchQuery.length >= 2) {
+        staffQ = staffQ.ilike('display_name', `%${searchQuery}%`);
       }
 
-      const { data: staffMatches } = await staffQuery;
+      const { data: staffMembers } = await staffQ.order('role', { ascending: true });
 
-      if (staffMatches && staffMatches.length > 0) {
-        // De-duplicate: skip staff who already appear in member results (by display_name match)
-        const memberNames = new Set(results.map(r => `${(r.first_name || '').toLowerCase()} ${(r.last_name || '').toLowerCase()}`));
-
-        for (const s of staffMatches) {
+      if (staffMembers && staffMembers.length > 0) {
+        for (const s of staffMembers) {
           const nameParts = (s.display_name || '').trim().split(/\s+/);
-          const firstName = nameParts[0] || s.display_name || 'Staff';
-          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-          const fullNameKey = `${firstName.toLowerCase()} ${lastName.toLowerCase()}`;
-
-          if (memberNames.has(fullNameKey)) continue; // already in results
-
           results.push({
-            id: s.user_id || `staff-${s.id}`,
-            first_name: firstName,
-            last_name: lastName,
+            id: s.id,
+            user_id: s.user_id,
+            first_name: nameParts[0] || s.display_name,
+            last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '',
+            name: s.display_name,
             phone: null,
             email: null,
             last_visit: null,
             comp_balance: 0,
             membership_tier: null,
             membership_status: null,
-            member_number: null,
-            _from_staff: true,
+            time_balance_minutes: 0,
+            _is_staff: true,
             _staff_role: s.role,
-            _staff_id: s.id,
           });
         }
       }
     } catch (staffErr) {
-      console.warn('Staff search fallback warning:', staffErr);
+      console.warn('Staff search warning:', staffErr);
     }
 
-    // ═══ FALLBACK: Also search commander_waitlist for active web/kiosk sign-ups ═══
-    // Web sign-ups may not have a commander_members record yet.
-    // This ensures the kiosk can find anyone who signed up online.
-    if (results.length === 0) {
+    // ═══ 2. Search commander_members ═══
+    if (searchQuery.length >= 2) {
+      const isPhone = /^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, ''));
+      let query = supabase
+        .from('commander_members')
+        .select('id, first_name, last_name, phone, email, last_visit, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number, user_id')
+        .eq('venue_id', venueFilter)
+        .limit(limitNum);
+
+      if (isPhone) {
+        const digits = searchQuery.replace(/\D/g, '');
+        query = query.ilike('phone', `%${digits}%`);
+      } else {
+        query = query.or(
+          `first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,member_number.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`
+        );
+      }
+
+      const { data: members, error } = await query.order('last_visit', { ascending: false, nullsFirst: false });
+      if (!error && members) {
+        const existingIds = new Set(results.map(r => r.id));
+        const existingUserIds = new Set(results.filter(r => r.user_id).map(r => r.user_id));
+        for (const m of members) {
+          // Skip if already in staff results (by user_id or id)
+          if (existingIds.has(m.id)) continue;
+          if (m.user_id && existingUserIds.has(m.user_id)) continue;
+          results.push({ ...m, phone: formatPhone(m.phone) });
+        }
+      }
+    } else {
+      // No search query — show recent members alongside staff
+      try {
+        const { data: recentMembers } = await supabase
+          .from('commander_members')
+          .select('id, first_name, last_name, phone, email, last_visit, membership_tier, membership_status, time_balance_minutes, member_number, user_id')
+          .eq('venue_id', venueFilter)
+          .order('last_visit', { ascending: false, nullsFirst: false })
+          .limit(Math.max(limitNum - results.length, 5));
+        if (recentMembers) {
+          const existingIds = new Set(results.map(r => r.id));
+          const existingUserIds = new Set(results.filter(r => r.user_id).map(r => r.user_id));
+          for (const m of recentMembers) {
+            if (existingIds.has(m.id)) continue;
+            if (m.user_id && existingUserIds.has(m.user_id)) continue;
+            results.push({ ...m, phone: formatPhone(m.phone) });
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // ═══ 3. Waitlist fallback (for web/kiosk sign-ups without member record) ═══
+    if (searchQuery.length >= 2 && results.length === 0) {
       try {
         let wlQuery = supabase
           .from('commander_waitlist')
@@ -154,27 +165,27 @@ export default async function handler(req, res) {
           .in('status', ['waiting', 'called'])
           .limit(limitNum);
 
+        const isPhone = /^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, ''));
         if (isPhone) {
-          const digits = q.replace(/\D/g, '');
+          const digits = searchQuery.replace(/\D/g, '');
           wlQuery = wlQuery.ilike('player_phone', `%${digits}%`);
         } else {
-          wlQuery = wlQuery.ilike('player_name', `%${q}%`);
+          wlQuery = wlQuery.ilike('player_name', `%${searchQuery}%`);
         }
 
         const { data: wlMatches } = await wlQuery.order('created_at', { ascending: false });
-
         if (wlMatches && wlMatches.length > 0) {
           const seen = new Set();
           for (const wl of wlMatches) {
             const dedupKey = `${(wl.player_name || '').toLowerCase()}::${wl.player_phone || ''}`;
             if (seen.has(dedupKey)) continue;
             seen.add(dedupKey);
-
             const nameParts = (wl.player_name || '').trim().split(/\s+/);
             results.push({
               id: `wl-${wl.id}`,
               first_name: nameParts[0] || wl.player_name,
               last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '',
+              name: wl.player_name,
               phone: formatPhone(wl.player_phone) || null,
               email: null,
               last_visit: null,

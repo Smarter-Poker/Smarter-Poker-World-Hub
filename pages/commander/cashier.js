@@ -286,24 +286,31 @@ export default function Cashier() {
     setSearchResults([]);
   };
 
-  // Manual player search
+  // Manual player search — supports empty query (returns staff + recent members)
   const searchPlayers = async (query) => {
     setSearchQuery(query);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (!query || query.length < 2) { setSearchResults([]); return; }
     searchTimeoutRef.current = setTimeout(async () => {
       setSearchLoading(true);
       try {
         const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-        const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
+        const params = query ? `q=${encodeURIComponent(query)}&` : '';
+        const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
         const json = await res.json();
         setSearchResults(json.data || []);
       } catch { setSearchResults([]); }
       finally { setSearchLoading(false); }
-    }, 300);
+    }, query ? 300 : 50);
   };
+
+  // Auto-load staff + recent members when search modal opens
+  useEffect(() => {
+    if (showPlayerSearch && venueId && searchResults.length === 0) {
+      searchPlayers('');
+    }
+  }, [showPlayerSearch, venueId]);
 
   // === PIN Logic ===
   const requestPinFor = (action) => {
@@ -893,12 +900,13 @@ export default function Cashier() {
                         return (
                           <button key={m.id} onClick={() => selectMember(m)}
                             className="w-full bg-[#3A3B3C]/50 border border-[#4A4B4C] rounded-xl p-3 flex items-center gap-3 text-left active:bg-[#4A4B4C]">
-                            <div className="w-10 h-10 rounded-full bg-[#1877F2]/20 flex items-center justify-center shrink-0">
-                              <span className="text-sm font-bold text-[#1877F2]">{(name[0] || '?').toUpperCase()}</span>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${m._is_staff ? 'bg-[#F59E0B]/20' : 'bg-[#1877F2]/20'}`}>
+                              <span className={`text-sm font-bold ${m._is_staff ? 'text-[#F59E0B]' : 'text-[#1877F2]'}`}>{(name[0] || '?').toUpperCase()}</span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold text-white truncate">{name || 'Unknown'}</p>
                               <p className="text-[10px] text-[#B0B3B8]">
+                                {m._is_staff && <span className="text-[#F59E0B] font-semibold">{(m._staff_role || 'staff').toUpperCase()} • </span>}
                                 {m.phone || 'No Phone'}
                                 {m.membership_tier && ` • ${m.membership_tier.charAt(0).toUpperCase() + m.membership_tier.slice(1)} Member`}
                               </p>
@@ -916,10 +924,10 @@ export default function Cashier() {
                     </div>
                   )}
 
-                  {searchQuery.length < 2 && (
+                  {searchResults.length === 0 && !searchQuery && !searchLoading && (
                     <div className="text-center py-6">
-                      <Users className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
-                      <p className="text-sm text-[#B0B3B8]">Type a name or phone number to search</p>
+                      <Loader2 className="w-5 h-5 text-[#1877F2] animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-[#B0B3B8]">Loading...</p>
                     </div>
                   )}
                 </div>

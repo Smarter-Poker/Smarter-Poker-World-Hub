@@ -232,6 +232,11 @@ export default function TableTabletsPage() {
                                 is_low: s.is_low,
                                 is_critical: s.is_critical,
                                 is_expired: s.is_expired,
+                                session_status: s.session_status || 'active',
+                                missed_blinds: s.missed_blinds || 0,
+                                session_id: s.session_id,
+                                member_number: s.member_number,
+                                status: 'occupied',
                             }))
                         };
                     });
@@ -567,10 +572,29 @@ export default function TableTabletsPage() {
                                         fontSize, fontWeight: 600, lineHeight: 1.2,
                                         color: isOccupied ? '#E4E6EB' : '#B0B3B8',
                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        maxWidth: nameMaxWidth,
+                                        maxWidth: nameMaxWidth, position: 'relative',
                                     }}>
                                         {isOccupied ? fullName : 'Open'}
+                                        {/* Missed Blinds Badge */}
+                                        {isOccupied && (seat.taken?.missed_blinds || 0) > 0 && (
+                                            <span style={{
+                                                position: 'absolute', top: -8, right: -8,
+                                                background: (seat.taken.missed_blinds >= 2) ? '#EF4444' : '#F97316',
+                                                color: '#fff', fontSize: 9, fontWeight: 800,
+                                                padding: '1px 5px', borderRadius: 6,
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                                                lineHeight: 1.4, whiteSpace: 'nowrap',
+                                            }}>
+                                                ⚠️ {seat.taken.missed_blinds}x
+                                            </span>
+                                        )}
                                     </div>
+                                    {/* Session Status (Paused / Meal Break) */}
+                                    {isOccupied && seat.taken?.session_status && seat.taken.session_status !== 'active' && (
+                                        <div style={{ fontSize: isFullscreen ? 11 : 10, fontWeight: 700, color: seat.taken.session_status === 'meal_break' ? '#22c55e' : '#F59E0B', lineHeight: 1.2 }}>
+                                            {seat.taken.session_status === 'paused' ? '⏸️ PAUSED' : '🍽️ MEAL BREAK'}
+                                        </div>
+                                    )}
                                     {timerText && (
                                         <div style={{
                                             fontSize: isFullscreen ? 13 : 12, fontWeight: 700, color: timerColor,
