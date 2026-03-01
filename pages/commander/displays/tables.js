@@ -222,14 +222,14 @@ export default function TablesDisplay() {
   };
 
   const handleUnlockAttempt = async () => {
-    if (!pinValue || pinValue.length < 4) { setPinError('Enter your 4+ digit PIN'); return; }
+    if (!pinValue || pinValue.length !== 4) { setPinError('Enter your 4-digit PIN'); return; }
     setPinLoading(true);
     setPinError('');
     try {
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pinValue, venue_id: venueId }),
+        body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
       });
       const json = await res.json();
       if (json.success && json.data?.staff) {
@@ -532,7 +532,7 @@ export default function TablesDisplay() {
                       <button key={i}
                         onClick={() => {
                           if (isDelete) setPinValue(v => v.slice(0, -1));
-                          else if (pinValue.length < 8) setPinValue(v => v + key);
+                          else if (pinValue.length < 4) setPinValue(v => v + key);
                         }}
                         style={{
                           padding: '14px', borderRadius: 12, fontSize: isDelete ? 14 : 22,
@@ -548,12 +548,12 @@ export default function TablesDisplay() {
                 </div>
                 <button
                   onClick={handleUnlockAttempt}
-                  disabled={pinLoading || pinValue.length < 4}
+                  disabled={pinLoading || pinValue.length !== 4}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 12,
-                    background: pinValue.length >= 4 ? '#1877F2' : '#3A3B3C',
+                    background: pinValue.length === 4 ? '#1877F2' : '#3A3B3C',
                     color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
-                    cursor: pinValue.length >= 4 ? 'pointer' : 'default',
+                    cursor: pinValue.length === 4 ? 'pointer' : 'default',
                     opacity: pinLoading ? 0.6 : 1,
                   }}
                 >

@@ -156,14 +156,14 @@ export default function TableTabletsPage() {
 
     // Unlock with PIN
     const handleUnlockAttempt = async () => {
-        if (!pinValue || pinValue.length < 4) { setPinError('Enter your 4+ digit PIN'); return; }
+        if (!pinValue || pinValue.length !== 4) { setPinError('Enter your 4-digit PIN'); return; }
         setPinLoading(true);
         setPinError('');
         try {
             const res = await fetch('/api/commander/staff/verify-pin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin: pinValue, venue_id: venueId }),
+                body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
             });
             const json = await res.json();
             if (json.success && json.data?.staff) {
@@ -1059,7 +1059,7 @@ export default function TableTabletsPage() {
                         <div style={{
                             display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20,
                         }}>
-                            {[0, 1, 2, 3, 4, 5].map(i => (
+                            {[0, 1, 2, 3].map(i => (
                                 <div key={i} style={{
                                     width: 40, height: 48, borderRadius: 10,
                                     background: pinValue.length > i ? '#1877F2' : '#3A3B3C',
@@ -1093,7 +1093,7 @@ export default function TableTabletsPage() {
                                     onClick={() => {
                                         if (key === null) return;
                                         if (key === 'del') { setPinValue(v => v.slice(0, -1)); setPinError(''); }
-                                        else if (pinValue.length < 6) { setPinValue(v => v + key); setPinError(''); }
+                                        else if (pinValue.length < 4) { setPinValue(v => v + key); setPinError(''); }
                                     }}
                                     style={{
                                         padding: '16px 0', borderRadius: 12,
@@ -1113,12 +1113,12 @@ export default function TableTabletsPage() {
                         {/* Submit */}
                         <button
                             onClick={handleUnlockAttempt}
-                            disabled={pinLoading || pinValue.length < 4}
+                            disabled={pinLoading || pinValue.length !== 4}
                             style={{
                                 width: '100%', padding: '14px', borderRadius: 12,
-                                background: pinValue.length >= 4 ? '#EF4444' : '#3A3B3C',
+                                background: pinValue.length === 4 ? '#EF4444' : '#3A3B3C',
                                 color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
-                                cursor: pinValue.length >= 4 ? 'pointer' : 'not-allowed',
+                                cursor: pinValue.length === 4 ? 'pointer' : 'not-allowed',
                                 opacity: pinLoading ? 0.7 : 1,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                                 transition: 'all 0.2s',
