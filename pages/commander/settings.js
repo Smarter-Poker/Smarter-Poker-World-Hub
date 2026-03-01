@@ -301,9 +301,8 @@ export default function CommanderSettingsPage() {
                             setLogoUploading(true);
                             setError(null);
                             try {
-                              const token = (() => {
-                                try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').token; } catch { return null; }
-                              })();
+                              const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+                              const token = staffData.token || staffData.access_token;
                               // Read file as base64
                               const base64 = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -330,7 +329,8 @@ export default function CommanderSettingsPage() {
                                 setSuccess('Logo uploaded successfully!');
                                 setTimeout(() => setSuccess(null), 3000);
                               } else {
-                                setError(json.error || 'Upload failed');
+                                const errMsg = typeof json.error === 'string' ? json.error : (json.error?.message || 'Upload failed');
+                                setError(errMsg);
                               }
                             } catch (err) { setError('Upload failed: ' + (err.message || 'Network error')); }
                             setLogoUploading(false);
@@ -341,9 +341,8 @@ export default function CommanderSettingsPage() {
                       {logoUrl && canManageSettings && (
                         <button onClick={async () => {
                           try {
-                            const token = (() => {
-                              try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').token; } catch { return null; }
-                            })();
+                            const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+                            const token = staffData.token || staffData.access_token;
                             const res = await fetch('/api/commander/settings/logo', {
                               method: 'DELETE',
                               headers: { Authorization: `Bearer ${token}` }

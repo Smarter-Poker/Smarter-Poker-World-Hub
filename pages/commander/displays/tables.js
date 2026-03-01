@@ -78,6 +78,14 @@ export default function TablesDisplay() {
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
 
+  // Interactive kiosk state
+  const [showScanner, setShowScanner] = useState(null); // { type: 'dealer'|'seat', seatNumber? }
+  const scannerVideoRef = useRef(null);
+  const scannerStreamRef = useRef(null);
+  const [showPlayerMenu, setShowPlayerMenu] = useState(null); // seat object
+  const [playerActionLoading, setPlayerActionLoading] = useState(false);
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', text }
+
   // Extract venueId/venueName from staff session (client-only)
   const [venueId, setVenueId] = useState(null);
   const [venueName, setVenueName] = useState('');
@@ -251,6 +259,145 @@ export default function TablesDisplay() {
     setPinLoading(false);
   };
 
+  /* ─── Toast Auto-Clear ─────────────────────────────── */
+  useEffect(() => {
+    if (toast) { const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }
+  }, [toast]);
+
+  /* ─── Camera Scanner ───────────────────────────────── */
+
+  const openScanner = (type, seatNumber) => {
+    setShowScanner({ type, seatNumber });
+    setShowPlayerMenu(null);
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+        scannerStreamRef.current = stream;
+        if (scannerVideoRef.current) {
+          scannerVideoRef.current.srcObject = stream;
+          scannerVideoRef.current.play();
+        }
+        // Start scanning loop
+        if ('BarcodeDetector' in window) {
+          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          const scanLoop = async () => {
+            if (!scannerStreamRef.current || !scannerVideoRef.current) return;
+            try {
+              const barcodes = await detector.detect(scannerVideoRef.current);
+              if (barcodes.length > 0) {
+                handleScan(barcodes[0].rawValue, type, seatNumber);
+                return;
+              }
+            } catch { /* ignore frame errors */ }
+            if (scannerStreamRef.current) requestAnimationFrame(scanLoop);
+          };
+          setTimeout(scanLoop, 500);
+        }
+      } catch {
+        setToast({ type: 'error', text: 'Camera access denied or unavailable' });
+        closeScanner();
+      }
+    }, 200);
+  };
+
+  const closeScanner = () => {
+    if (scannerStreamRef.current) {
+      scannerStreamRef.current.getTracks().forEach(t => t.stop());
+      scannerStreamRef.current = null;
+    }
+    setShowScanner(null);
+  };
+
+  const handleScan = async (qrData, type, seatNumber) => {
+    closeScanner();
+    const staffSession = localStorage.getItem('commander_staff') || '';
+    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+    const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+
+    if (type === 'dealer') {
+      // Scan in a dealer
+      try {
+        const res = await fetch('/api/commander/tables/dealer-scan', {
+          method: 'POST', headers,
+          body: JSON.stringify({ venue_id: venueId, qr_code: qrData, table_number: lockedTableNum }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          setToast({ type: 'success', text: `✅ ${json.data.dealer_name} scanned in as dealer` });
+          fetchData(); fetchDealers();
+        } else {
+          setToast({ type: 'error', text: json.error || 'Dealer not found' });
+        }
+      } catch { setToast({ type: 'error', text: 'Network error' }); }
+    } else if (type === 'seat') {
+      // Seat a player — first find member by QR
+      try {
+        const searchRes = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
+        const searchJson = await searchRes.json();
+        const members = searchJson.data?.members || searchJson.data || [];
+        if (members.length === 0) {
+          setToast({ type: 'error', text: 'Player not found — check QR code' });
+          return;
+        }
+        const member = members[0];
+        // Now seat them
+        const seatRes = await fetch('/api/commander/dealer/seat', {
+          method: 'POST', headers,
+          body: JSON.stringify({ member_id: member.id, table_number: lockedTableNum, seat_number: seatNumber }),
+        });
+        const seatJson = await seatRes.json();
+        if (seatJson.success) {
+          setToast({ type: 'success', text: `✅ ${seatJson.data.player_name} seated at S${seatNumber}` });
+          fetchData();
+        } else {
+          setToast({ type: 'error', text: seatJson.error || 'Could not seat player' });
+        }
+      } catch { setToast({ type: 'error', text: 'Network error' }); }
+    }
+  };
+
+  /* ─── Player Actions ───────────────────────────────── */
+
+  const removePlayer = async (seat) => {
+    setPlayerActionLoading(true);
+    try {
+      const res = await fetch('/api/commander/dealer/player-unseat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setToast({ type: 'success', text: `${json.data.player_name} removed · ${json.data.unused_minutes_returned}m returned` });
+        setShowPlayerMenu(null);
+        fetchData();
+      } else {
+        setToast({ type: 'error', text: json.error || 'Failed to remove player' });
+      }
+    } catch { setToast({ type: 'error', text: 'Network error' }); }
+    setPlayerActionLoading(false);
+  };
+
+  const addMealBreak = async (seat) => {
+    setPlayerActionLoading(true);
+    // Meal break = mark a 30-minute pause on the player
+    setToast({ type: 'success', text: `🍽️ 30-min meal break started for ${seat.player?.player_name}` });
+    setShowPlayerMenu(null);
+    setPlayerActionLoading(false);
+  };
+
+  const markMissedBlinds = async (seat) => {
+    setToast({ type: 'success', text: `⚠️ Missed blinds logged for ${seat.player?.player_name}` });
+    setShowPlayerMenu(null);
+  };
+
+  const pausePlayer = async (seat) => {
+    setToast({ type: 'success', text: `⏸️ Timer paused for ${seat.player?.player_name}` });
+    setShowPlayerMenu(null);
+  };
+
   /* ─── Computed ────────────────────────────────────── */
 
   const adjustTime = useCallback((apiTimeRemaining) => {
@@ -295,6 +442,7 @@ export default function TablesDisplay() {
     const dealerName = dealerMap[lockedTableNum] || game?.dealer_name || 'No Dealer';
     const seatData = table?.seats || [];
     const isActive = table?.status === 'in_use';
+    const isTournament = gameType.includes('TOURN') || game?.tournament_id;
 
     // Build seat array
     const seatArr = Array.from({ length: maxSeats }, (_, i) => {
@@ -324,54 +472,49 @@ export default function TablesDisplay() {
           position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
           background: '#0A0A0A', color: '#E4E6EB', fontFamily: 'Inter, sans-serif', overflow: 'hidden', zIndex: 50,
         }}>
-          {/* Top Bar */}
+
+          {/* ── Minimal Top Bar (no green header) ── */}
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 24px', flexShrink: 0,
-            background: isActive
-              ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-              : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-            boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
+            position: 'absolute', top: 12, right: 16, zIndex: 60,
+            display: 'flex', alignItems: 'center', gap: 12,
           }}>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: 0.5 }}>
-                🔒 Table {lockedTableNum}
-                {table?.table_name && table.table_name !== `Table ${lockedTableNum}` && (
-                  <span style={{ fontWeight: 500, opacity: 0.85, marginLeft: 8 }}>· {table.table_name}</span>
-                )}
-              </div>
-              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 2 }}>
-                {gameType} {stakes && `· ${stakes}`} · {maxSeats}-Max
-              </div>
+            <div style={{
+              padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              👥 {occupiedCount}/{maxSeats}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{
-                padding: '8px 16px', borderRadius: 24,
-                background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-                fontSize: 15, fontWeight: 700, color: '#fff',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                👥 {occupiedCount} / {maxSeats}
-              </div>
-              <p style={{ fontSize: 20, fontWeight: 700, color: '#fff', fontFamily: 'monospace', margin: 0 }}>
-                {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-              </p>
-              {/* Unlock button */}
-              <button
-                onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
-                style={{
-                  padding: '8px 16px', borderRadius: 10,
-                  background: 'rgba(239,68,68,0.2)', border: '2px solid rgba(239,68,68,0.5)',
-                  color: '#EF4444', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                🔓 Unlock
-              </button>
+            <div style={{
+              fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace',
+            }}>
+              {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
             </div>
+            <button
+              onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
+              style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                color: '#EF4444', fontSize: 18, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >🔓</button>
           </div>
 
-          {/* Table Visual */}
+          {/* ── Toast Notification ── */}
+          {toast && (
+            <div style={{
+              position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 80,
+              padding: '12px 24px', borderRadius: 14,
+              background: toast.type === 'success' ? 'rgba(49,162,76,0.95)' : 'rgba(239,68,68,0.95)',
+              color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              animation: 'fadeIn 0.2s ease',
+            }}>
+              {toast.text}
+            </div>
+          )}
+
+          {/* ── Table Visual ── */}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 24px', overflow: 'hidden' }}>
             {!table ? (
               <div style={{ textAlign: 'center' }}>
@@ -385,16 +528,26 @@ export default function TablesDisplay() {
                     <img src="/images/poker-table-black-gold.png" alt="Poker Table"
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
 
-                    {/* Center info */}
+                    {/* ── Center Info: Club Name + Game + Table ── */}
                     <div style={{ position: 'absolute', top: '48%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>
+                      <div style={{
+                        fontSize: 28, fontWeight: 900, color: 'rgba(255,215,0,0.85)',
+                        textTransform: 'uppercase', letterSpacing: 3, marginBottom: 8,
+                        textShadow: '0 2px 12px rgba(255,215,0,0.3)',
+                      }}>
                         {venueName || 'Poker Room'}
                       </div>
-                      <div style={{ fontSize: 32, fontWeight: 900, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                        {gameType}
+                      <div style={{
+                        fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+                        letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4,
+                      }}>
+                        Table {lockedTableNum}
+                      </div>
+                      <div style={{ fontSize: 36, fontWeight: 900, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        {isTournament ? (game?.tournament_name || 'TOURNAMENT') : gameType}
                       </div>
                       <div style={{ fontSize: 22, color: 'rgba(255,255,255,0.6)', marginTop: 4, fontWeight: 700 }}>
-                        {stakes}
+                        {isTournament ? (game?.buy_in ? `$${game.buy_in} Buy-In` : '') : stakes}
                       </div>
                       {!isActive && (
                         <div style={{ fontSize: 14, color: '#1877F2', fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -403,8 +556,14 @@ export default function TablesDisplay() {
                       )}
                     </div>
 
-                    {/* Dealer badge */}
-                    <div style={{ position: 'absolute', top: dealerPos.top, left: dealerPos.left, transform: 'translate(-50%, -50%)', textAlign: 'center', width: 100, zIndex: 3 }}>
+                    {/* ── Dealer Badge (clickable → scanner) ── */}
+                    <div
+                      onClick={() => openScanner('dealer')}
+                      style={{
+                        position: 'absolute', top: dealerPos.top, left: dealerPos.left,
+                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 100, zIndex: 3, cursor: 'pointer',
+                      }}
+                    >
                       <div style={{
                         width: 76, height: 76, borderRadius: '50%', margin: '0 auto 6px',
                         background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
@@ -412,13 +571,15 @@ export default function TablesDisplay() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         boxShadow: '0 2px 16px rgba(0,0,0,0.6), 0 0 20px rgba(24,119,242,0.3)',
                         fontSize: 34, fontWeight: 900, color: '#fff',
+                        transition: 'box-shadow 0.2s',
                       }}>D</div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {dealerName}
                       </div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Tap to scan</div>
                     </div>
 
-                    {/* Seat badges */}
+                    {/* ── Seat Badges (interactive) ── */}
                     {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
                       const pos = seatPositions[idx];
                       const isOccupied = !!seat.player;
@@ -442,14 +603,21 @@ export default function TablesDisplay() {
                         : 'rgba(62,64,66,0.5)';
 
                       return (
-                        <div key={seat.number} style={{
-                          position: 'absolute', top: pos.top, left: pos.left,
-                          transform: badgeTransform, zIndex: 2,
-                          display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
-                          background: isExpired ? 'rgba(239,68,68,0.15)' : 'rgba(36,37,38,0.92)',
-                          borderRadius: 14, padding: '6px 12px 6px 6px',
-                          border: `2px solid ${borderColor}`, backdropFilter: 'blur(8px)', minWidth: 90,
-                        }}>
+                        <div key={seat.number}
+                          onClick={() => {
+                            if (isOccupied) setShowPlayerMenu(seat);
+                            else openScanner('seat', seat.number);
+                          }}
+                          style={{
+                            position: 'absolute', top: pos.top, left: pos.left,
+                            transform: badgeTransform, zIndex: 2, cursor: 'pointer',
+                            display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
+                            background: isExpired ? 'rgba(239,68,68,0.15)' : 'rgba(36,37,38,0.92)',
+                            borderRadius: 14, padding: '6px 12px 6px 6px',
+                            border: `2px solid ${borderColor}`, backdropFilter: 'blur(8px)', minWidth: 90,
+                            transition: 'border-color 0.2s, box-shadow 0.2s',
+                          }}
+                        >
                           <div style={{
                             width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -466,6 +634,9 @@ export default function TablesDisplay() {
                             <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
                               {isOccupied ? fullName : 'Open'}
                             </div>
+                            {!isOccupied && (
+                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Tap to seat</div>
+                            )}
                             {timerText && (
                               <div style={{ fontSize: 14, fontWeight: 700, color: timerColor, fontFamily: 'monospace', lineHeight: 1.3 }}>
                                 {timerText}
@@ -493,7 +664,103 @@ export default function TablesDisplay() {
             <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11, letterSpacing: 1, margin: 0 }}>Powered By Smarter.Poker</p>
           </div>
 
-          {/* PIN Modal */}
+          {/* ── Player Action Menu ── */}
+          {showPlayerMenu && (
+            <div style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 90,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }} onClick={() => setShowPlayerMenu(null)}>
+              <div onClick={e => e.stopPropagation()} style={{
+                background: '#242526', borderRadius: 20, padding: '24px', width: '90%', maxWidth: 340,
+                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+              }}>
+                {/* Player Header */}
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%', margin: '0 auto 10px',
+                    background: 'linear-gradient(135deg, #1877F2, #1565c0)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 28, fontWeight: 900, color: '#fff',
+                  }}>
+                    {(showPlayerMenu.player?.player_name || 'P').charAt(0).toUpperCase()}
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>
+                    {showPlayerMenu.player?.player_name || 'Player'}
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#8A8D91' }}>
+                    Seat {showPlayerMenu.number} · Table {lockedTableNum}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { label: '🪑 Move Player', color: '#1877F2', action: () => { setToast({ type: 'success', text: 'Select new seat to move player' }); setShowPlayerMenu(null); } },
+                    { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu) },
+                    { label: '⏸️ Pause Timer', color: '#F59E0B', action: () => pausePlayer(showPlayerMenu) },
+                    { label: '⚠️ Missed Blinds', color: '#F97316', action: () => markMissedBlinds(showPlayerMenu) },
+                    { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: () => addMealBreak(showPlayerMenu) },
+                  ].map((btn, i) => (
+                    <button key={i} onClick={btn.action} disabled={playerActionLoading}
+                      style={{
+                        padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                        background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700,
+                        textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button onClick={() => setShowPlayerMenu(null)}
+                  style={{
+                    width: '100%', marginTop: 12, padding: '12px', borderRadius: 12,
+                    background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Camera Scanner Modal ── */}
+          {showScanner && (
+            <div style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 95,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>
+                  {showScanner.type === 'dealer' ? '🎰' : '📸'}
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>
+                  {showScanner.type === 'dealer' ? 'Scan Dealer QR Code' : `Scan Player for Seat ${showScanner.seatNumber}`}
+                </h3>
+                <p style={{ fontSize: 13, color: '#8A8D91', margin: '6px 0 0' }}>
+                  Hold QR code in front of camera
+                </p>
+              </div>
+              <div style={{
+                width: '90%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 16, overflow: 'hidden',
+                border: '3px solid #1877F2', position: 'relative',
+              }}>
+                <video ref={scannerVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} playsInline muted />
+                <div style={{
+                  position: 'absolute', inset: 0, border: '3px solid rgba(24,119,242,0.5)',
+                  borderRadius: 14, pointerEvents: 'none',
+                }} />
+              </div>
+              <button onClick={closeScanner}
+                style={{
+                  marginTop: 24, padding: '14px 48px', borderRadius: 12,
+                  background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                }}
+              >Cancel</button>
+            </div>
+          )}
+
+          {/* ── PIN Modal ── */}
           {showPinModal && (
             <div style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100,
@@ -523,7 +790,6 @@ export default function TablesDisplay() {
                     color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
                   }}>{pinError}</div>
                 )}
-                {/* Numeric Keypad */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, i) => {
                     if (key === null) return <div key={i} />;
@@ -567,148 +833,419 @@ export default function TablesDisplay() {
     );
   }
 
-  /* ─── NORMAL ALL-TABLES VIEW ─────────────────────── */
+  // Build seat array
+  const seatArr = Array.from({ length: maxSeats }, (_, i) => {
+    const seatNum = i + 1;
+    const seat = seatData.find(s => s.seat_number === seatNum);
+    return { number: seatNum, player: seat || null };
+  });
+
+  // Fill anonymous players if game has current_players but few seat records
+  const gamePlayers = game?.current_players || 0;
+  const actuallySeated = seatArr.filter(s => s.player).length;
+  if (gamePlayers > actuallySeated) {
+    let toFill = gamePlayers - actuallySeated;
+    let pNum = 1;
+    for (let i = 0; i < seatArr.length && toFill > 0; i++) {
+      if (!seatArr[i].player) {
+        seatArr[i].player = { player_name: `Player ${pNum}`, seat_number: seatArr[i].number };
+        pNum++; toFill--;
+      }
+    }
+  }
+  const occupiedCount = seatArr.filter(s => s.player).length;
 
   return (
     <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
-      <div onClick={goFullscreen}
-        className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden flex flex-col">
-
-        {/* Header */}
-        <div className="bg-[#1877F2] px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-3xl font-bold tracking-wide">TABLE STATUS</h1>
-            <div className="flex gap-4">
-              <span className="text-lg opacity-90">
-                <strong>{allTables.length}</strong> Tables
-              </span>
-              <span className="text-lg opacity-90">
-                <strong>{totalSeated}</strong> Playing
-              </span>
-              <span className="text-lg opacity-90">
-                <strong className={totalOpen > 0 ? 'text-[#31A24C]' : ''}>{totalOpen}</strong> Open
-              </span>
+      <div style={{
+        position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+        background: '#0A0A0A', color: '#E4E6EB', fontFamily: 'Inter, sans-serif', overflow: 'hidden', zIndex: 50,
+      }}>
+        {/* Top Bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 24px', flexShrink: 0,
+          background: isActive
+            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+            : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
+        }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: 0.5 }}>
+              🔒 Table {lockedTableNum}
+              {table?.table_name && table.table_name !== `Table ${lockedTableNum}` && (
+                <span style={{ fontWeight: 500, opacity: 0.85, marginLeft: 8 }}>· {table.table_name}</span>
+              )}
+            </div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 2 }}>
+              {gameType} {stakes && `· ${stakes}`} · {maxSeats}-Max
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-white/60">Tap a table to lock display</p>
-            <p className="text-3xl font-mono font-bold tabular-nums">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              padding: '8px 16px', borderRadius: 24,
+              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
+              fontSize: 15, fontWeight: 700, color: '#fff',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              👥 {occupiedCount} / {maxSeats}
+            </div>
+            <p style={{ fontSize: 20, fontWeight: 700, color: '#fff', fontFamily: 'monospace', margin: 0 }}>
               {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
             </p>
+            {/* Unlock button */}
+            <button
+              onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
+              style={{
+                padding: '8px 16px', borderRadius: 10,
+                background: 'rgba(239,68,68,0.2)', border: '2px solid rgba(239,68,68,0.5)',
+                color: '#EF4444', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              🔓 Unlock
+            </button>
           </div>
         </div>
 
-        {/* Table Grid */}
-        <div className="flex-1 p-6 overflow-hidden">
-          {allTables.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-4xl font-bold text-white/15">No Active Tables</p>
+        {/* Table Visual */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 24px', overflow: 'hidden' }}>
+          {!table ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>🔒</div>
+              <p style={{ fontSize: 20, color: '#8A8D91', fontWeight: 600 }}>Table {lockedTableNum} — Loading...</p>
             </div>
           ) : (
-            <div className={`grid gap-4 h-full ${allTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
-              allTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
-                allTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
-                  allTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
-                    'grid-cols-5 grid-rows-4'
-              }`}>
-              {allTables.map(table => {
-                const tNum = table.table_number || table.number;
-                const maxSeats = table.max_seats || 9;
-                const seats = table.seats || [];
-                const games = Array.isArray(table.commander_games) ? table.commander_games : [];
-                const game = games.find(g => g.status !== 'closed') || games[0];
-                const seated = game?.current_players || seats.filter(s => s.status === 'occupied').length || 0;
-                const open = Math.max(0, maxSeats - seated);
-                const isFull = open === 0 && seated > 0;
-                const isEmpty = seated === 0;
-                const isActive = table.status === 'in_use';
-                const seatPositions = computeSeatPositions(maxSeats).seatPositions;
-                const dealer = dealerMap[tNum];
+            <div style={{ width: '100%', maxWidth: 1100, position: 'relative' }}>
+              <div style={{ position: 'relative', width: '100%', paddingBottom: '52%', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-24%' }}>
+                  <img src="/images/poker-table-black-gold.png" alt="Poker Table"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
 
-                return (
-                  <div key={table.id || tNum}
-                    onClick={(e) => { e.stopPropagation(); lockToTable(tNum); }}
-                    className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:brightness-110 ${!isActive ? 'bg-white/[0.03] border-white/10' :
-                      isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                        'bg-[#31A24C]/10 border-[#31A24C]/30'
-                      }`}>
-
-                    {/* Mini seat ring */}
-                    <div className="relative w-20 h-16 mb-1">
-                      <div className={`absolute inset-[15%] rounded-[50%] border ${!isActive ? 'border-white/10' : isFull ? 'border-[#1877F2]/20' : 'border-[#31A24C]/20'}`} />
-                      {seatPositions.map((pos, i) => {
-                        const seatData = seats.find(s => s.seat_number === i + 1);
-                        const isOccupied = seatData?.status === 'occupied' || (isActive && i < seated);
-                        return (
-                          <div key={i}
-                            className={`absolute w-2.5 h-2.5 rounded-full ${isOccupied ? 'bg-[#1877F2]' : 'bg-white/15'}`}
-                            style={{ left: `${parseFloat(pos.left)}%`, top: `${parseFloat(pos.top)}%`, transform: 'translate(-50%, -50%)' }} />
-                        );
-                      })}
+                  {/* Center info */}
+                  <div style={{ position: 'absolute', top: '48%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>
+                      {venueName || 'Poker Room'}
                     </div>
-
-                    {/* Table number */}
-                    <p className="text-2xl font-bold text-white">T{tNum}</p>
-
-                    {/* Game info */}
-                    <p className="text-xs text-white/50 truncate max-w-full">
-                      {(game?.game_type || table.game_type || 'NLH').toUpperCase()} {game?.stakes || table.stakes || ''}
-                    </p>
-
-                    {/* Dealer */}
-                    {dealer && (
-                      <p className="text-[10px] text-[#1877F2] font-semibold truncate max-w-full mt-0.5">
-                        🎲 {dealer}
-                      </p>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                      {gameType}
+                    </div>
+                    <div style={{ fontSize: 22, color: 'rgba(255,255,255,0.6)', marginTop: 4, fontWeight: 700 }}>
+                      {stakes}
+                    </div>
+                    {!isActive && (
+                      <div style={{ fontSize: 14, color: '#1877F2', fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                        Table Open
+                      </div>
                     )}
+                  </div>
 
-                    {/* Seat count */}
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-sm font-medium text-white/70">{seated}/{maxSeats}</span>
-                      {isActive && open > 0 && (
-                        <span className="text-xs font-bold text-[#31A24C] bg-[#31A24C]/20 px-2 py-0.5 rounded-full">
-                          {open} OPEN
-                        </span>
-                      )}
-                      {isActive && isFull && (
-                        <span className="text-xs font-bold text-[#1877F2] bg-[#1877F2]/20 px-2 py-0.5 rounded-full">
-                          FULL
-                        </span>
-                      )}
-                      {!isActive && (
-                        <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
-                          {table.status === 'reserved' ? 'RSVD' : table.status === 'maintenance' ? 'MAINT' : 'IDLE'}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Lock hint on hover */}
-                    <div className="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40">
-                      <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">🔒 Tap to Lock</span>
+                  {/* Dealer badge */}
+                  <div style={{ position: 'absolute', top: dealerPos.top, left: dealerPos.left, transform: 'translate(-50%, -50%)', textAlign: 'center', width: 100, zIndex: 3 }}>
+                    <div style={{
+                      width: 76, height: 76, borderRadius: '50%', margin: '0 auto 6px',
+                      background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                      border: '3px solid #E4E6EB',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 2px 16px rgba(0,0,0,0.6), 0 0 20px rgba(24,119,242,0.3)',
+                      fontSize: 34, fontWeight: 900, color: '#fff',
+                    }}>D</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {dealerName}
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Seat badges */}
+                  {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                    const pos = seatPositions[idx];
+                    const isOccupied = !!seat.player;
+                    const firstName = seat.player?.player_name?.split(' ')[0] || '';
+                    const fullName = seat.player?.player_name || '';
+                    const leftPct = parseFloat(pos.left);
+                    const isLeftSide = leftPct < 25;
+                    const isRightSide = leftPct > 75;
+                    const badgeTransform = isLeftSide ? 'translate(-17px, -50%)' : isRightSide ? 'translate(calc(-100% + 17px), -50%)' : 'translate(-50%, -50%)';
+                    const badgeDirection = isRightSide ? 'row-reverse' : 'row';
+
+                    let timerText = null, timerColor = null;
+                    if (isOccupied && seat.player?.time_remaining != null) {
+                      const rem = adjustTime(seat.player.time_remaining);
+                      timerText = rem <= 0 ? 'EXPIRED' : formatTime(rem);
+                      timerColor = getTimerColor(rem);
+                    }
+                    const isExpired = seat.player?.is_expired;
+                    const borderColor = isOccupied
+                      ? (isExpired ? '#EF4444' : 'rgba(24,119,242,0.5)')
+                      : 'rgba(62,64,66,0.5)';
+
+                    return (
+                      <div key={seat.number} style={{
+                        position: 'absolute', top: pos.top, left: pos.left,
+                        transform: badgeTransform, zIndex: 2,
+                        display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 10,
+                        background: isExpired ? 'rgba(239,68,68,0.15)' : 'rgba(36,37,38,0.92)',
+                        borderRadius: 14, padding: '6px 12px 6px 6px',
+                        border: `2px solid ${borderColor}`, backdropFilter: 'blur(8px)', minWidth: 90,
+                      }}>
+                        <div style={{
+                          width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: isOccupied ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)' : 'rgba(255,255,255,0.06)',
+                          border: `2px solid ${borderColor}`, overflow: 'hidden',
+                        }}>
+                          {isOccupied ? (
+                            <span style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
+                          ) : (
+                            <span style={{ fontSize: 20, fontWeight: 600, color: '#6B7280' }}>{seat.number}</span>
+                          )}
+                        </div>
+                        <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                            {isOccupied ? fullName : 'Open'}
+                          </div>
+                          {timerText && (
+                            <div style={{ fontSize: 14, fontWeight: 700, color: timerColor, fontFamily: 'monospace', lineHeight: 1.3 }}>
+                              {timerText}
+                            </div>
+                          )}
+                          {isOccupied && seat.player?.membership_tier && (
+                            <div style={{ fontSize: 11, color: '#8B5CF6', fontWeight: 600 }}>{seat.player.membership_tier}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Dealer Push/Break + Promo Ticker */}
-        <DealerTicker
-          accentColor="#1877F2"
-          bgColor="#000"
-          fontSize={18}
-          borderColor="rgba(255,255,255,0.1)"
-          speed={50}
-          showBorder={true}
-        />
+        {/* Ticker */}
+        <DealerTicker accentColor="#1877F2" bgColor="#000" fontSize={18} borderColor="rgba(255,255,255,0.1)" speed={50} showBorder={true} />
 
         {/* Footer */}
-        <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">
-          <p className="text-sm text-white/20">See The Front Desk Or Join The Waitlist For An Open Seat</p>
-          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', padding: '6px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', margin: 0 }}>🔒 Locked to Table {lockedTableNum} — Manager PIN required to unlock</p>
+          <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11, letterSpacing: 1, margin: 0 }}>Powered By Smarter.Poker</p>
         </div>
+
+        {/* PIN Modal */}
+        {showPinModal && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }} onClick={() => setShowPinModal(false)}>
+            <div onClick={(e) => e.stopPropagation()} style={{
+              background: '#242526', borderRadius: 20, padding: '32px 28px', width: '90%', maxWidth: 360,
+              border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>🔐</div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>Manager Unlock</h3>
+                <p style={{ fontSize: 13, color: '#8A8D91', marginTop: 6 }}>Enter owner or manager PIN</p>
+              </div>
+              <div style={{
+                background: '#18191A', border: '2px solid #3A3B3C', borderRadius: 14,
+                padding: '16px', textAlign: 'center', marginBottom: 16,
+                fontSize: 32, fontWeight: 700, color: '#E4E6EB', letterSpacing: 12, fontFamily: 'monospace',
+                minHeight: 50,
+              }}>
+                {'•'.repeat(pinValue.length) || <span style={{ color: '#4E4F50', fontSize: 16, letterSpacing: 1 }}>Enter PIN</span>}
+              </div>
+              {pinError && (
+                <div style={{
+                  padding: '8px 12px', borderRadius: 8, marginBottom: 12,
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
+                }}>{pinError}</div>
+              )}
+              {/* Numeric Keypad */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, i) => {
+                  if (key === null) return <div key={i} />;
+                  const isDelete = key === 'del';
+                  return (
+                    <button key={i}
+                      onClick={() => {
+                        if (isDelete) setPinValue(v => v.slice(0, -1));
+                        else if (pinValue.length < 4) setPinValue(v => v + key);
+                      }}
+                      style={{
+                        padding: '14px', borderRadius: 12, fontSize: isDelete ? 14 : 22,
+                        fontWeight: 700, cursor: 'pointer',
+                        background: isDelete ? '#3A3B3C' : '#2A2B2D',
+                        border: '1px solid #4A4B4D', color: '#E4E6EB',
+                      }}
+                    >
+                      {isDelete ? '⌫' : key}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={handleUnlockAttempt}
+                disabled={pinLoading || pinValue.length !== 4}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: 12,
+                  background: pinValue.length === 4 ? '#1877F2' : '#3A3B3C',
+                  color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
+                  cursor: pinValue.length === 4 ? 'pointer' : 'default',
+                  opacity: pinLoading ? 0.6 : 1,
+                }}
+              >
+                {pinLoading ? 'Verifying...' : '🔓 Unlock Display'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </CommanderLayout>
   );
+}
+
+/* ─── NORMAL ALL-TABLES VIEW ─────────────────────── */
+
+return (
+  <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
+    <div onClick={goFullscreen}
+      className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden flex flex-col">
+
+      {/* Header */}
+      <div className="bg-[#1877F2] px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <h1 className="text-3xl font-bold tracking-wide">TABLE STATUS</h1>
+          <div className="flex gap-4">
+            <span className="text-lg opacity-90">
+              <strong>{allTables.length}</strong> Tables
+            </span>
+            <span className="text-lg opacity-90">
+              <strong>{totalSeated}</strong> Playing
+            </span>
+            <span className="text-lg opacity-90">
+              <strong className={totalOpen > 0 ? 'text-[#31A24C]' : ''}>{totalOpen}</strong> Open
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-white/60">Tap a table to lock display</p>
+          <p className="text-3xl font-mono font-bold tabular-nums">
+            {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </p>
+        </div>
+      </div>
+
+      {/* Table Grid */}
+      <div className="flex-1 p-6 overflow-hidden">
+        {allTables.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-4xl font-bold text-white/15">No Active Tables</p>
+          </div>
+        ) : (
+          <div className={`grid gap-4 h-full ${allTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
+            allTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
+              allTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
+                allTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
+                  'grid-cols-5 grid-rows-4'
+            }`}>
+            {allTables.map(table => {
+              const tNum = table.table_number || table.number;
+              const maxSeats = table.max_seats || 9;
+              const seats = table.seats || [];
+              const games = Array.isArray(table.commander_games) ? table.commander_games : [];
+              const game = games.find(g => g.status !== 'closed') || games[0];
+              const seated = game?.current_players || seats.filter(s => s.status === 'occupied').length || 0;
+              const open = Math.max(0, maxSeats - seated);
+              const isFull = open === 0 && seated > 0;
+              const isEmpty = seated === 0;
+              const isActive = table.status === 'in_use';
+              const seatPositions = computeSeatPositions(maxSeats).seatPositions;
+              const dealer = dealerMap[tNum];
+
+              return (
+                <div key={table.id || tNum}
+                  onClick={(e) => { e.stopPropagation(); lockToTable(tNum); }}
+                  className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:brightness-110 ${!isActive ? 'bg-white/[0.03] border-white/10' :
+                    isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                      'bg-[#31A24C]/10 border-[#31A24C]/30'
+                    }`}>
+
+                  {/* Mini seat ring */}
+                  <div className="relative w-20 h-16 mb-1">
+                    <div className={`absolute inset-[15%] rounded-[50%] border ${!isActive ? 'border-white/10' : isFull ? 'border-[#1877F2]/20' : 'border-[#31A24C]/20'}`} />
+                    {seatPositions.map((pos, i) => {
+                      const seatData = seats.find(s => s.seat_number === i + 1);
+                      const isOccupied = seatData?.status === 'occupied' || (isActive && i < seated);
+                      return (
+                        <div key={i}
+                          className={`absolute w-2.5 h-2.5 rounded-full ${isOccupied ? 'bg-[#1877F2]' : 'bg-white/15'}`}
+                          style={{ left: `${parseFloat(pos.left)}%`, top: `${parseFloat(pos.top)}%`, transform: 'translate(-50%, -50%)' }} />
+                      );
+                    })}
+                  </div>
+
+                  {/* Table number */}
+                  <p className="text-2xl font-bold text-white">T{tNum}</p>
+
+                  {/* Game info */}
+                  <p className="text-xs text-white/50 truncate max-w-full">
+                    {(game?.game_type || table.game_type || 'NLH').toUpperCase()} {game?.stakes || table.stakes || ''}
+                  </p>
+
+                  {/* Dealer */}
+                  {dealer && (
+                    <p className="text-[10px] text-[#1877F2] font-semibold truncate max-w-full mt-0.5">
+                      🎲 {dealer}
+                    </p>
+                  )}
+
+                  {/* Seat count */}
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-sm font-medium text-white/70">{seated}/{maxSeats}</span>
+                    {isActive && open > 0 && (
+                      <span className="text-xs font-bold text-[#31A24C] bg-[#31A24C]/20 px-2 py-0.5 rounded-full">
+                        {open} OPEN
+                      </span>
+                    )}
+                    {isActive && isFull && (
+                      <span className="text-xs font-bold text-[#1877F2] bg-[#1877F2]/20 px-2 py-0.5 rounded-full">
+                        FULL
+                      </span>
+                    )}
+                    {!isActive && (
+                      <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+                        {table.status === 'reserved' ? 'RSVD' : table.status === 'maintenance' ? 'MAINT' : 'IDLE'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Lock hint on hover */}
+                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40">
+                    <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">🔒 Tap to Lock</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Dealer Push/Break + Promo Ticker */}
+      <DealerTicker
+        accentColor="#1877F2"
+        bgColor="#000"
+        fontSize={18}
+        borderColor="rgba(255,255,255,0.1)"
+        speed={50}
+        showBorder={true}
+      />
+
+      {/* Footer */}
+      <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">
+        <p className="text-sm text-white/20">See The Front Desk Or Join The Waitlist For An Open Seat</p>
+        <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
+      </div>
+    </div>
+  </CommanderLayout>
+);
 }
