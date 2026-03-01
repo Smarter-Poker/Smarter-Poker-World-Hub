@@ -996,6 +996,135 @@ function PreActionBar({ preAction, setPreAction }) {
 // BUY-IN DIALOG
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN TABLE PANEL — In-game controls for admin/owner/manager
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AdminTablePanel({ tableId, clubId, tableState, seats, userId, userRole, send, onClose, supabase: sb }) {
+  const [loading, setLoading] = useState(null); // action name
+  const [message, setMessage] = useState(null);
+
+  const apiCall = async (endpoint, body) => {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch (e) { return { error: e.message }; }
+  };
+
+  const doAction = async (action, extra = {}) => {
+    setLoading(action); setMessage(null);
+    const r = await apiCall('/api/club-arena/manage-table', {
+      tableId, clubId, userId, action, ...extra,
+    });
+    setLoading(null);
+    if (r.error) setMessage({ type: 'error', text: r.error });
+    else setMessage({ type: 'success', text: `${action} successful` });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const doKick = async (targetPlayerId, displayName) => {
+    if (!confirm(`Kick ${displayName}?`)) return;
+    send('kick_player', { targetPlayerId, role: userRole, reason: 'admin_kick' });
+    setMessage({ type: 'success', text: `${displayName} kicked` });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const isPaused = tableState?.status === 'paused';
+  const seatedPlayers = seats?.filter(s => s.player && s.status !== 'empty') || [];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 300 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 300 }}
+      style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 280,
+        background: 'rgba(24,25,26,0.97)', borderLeft: '1px solid #3E4042',
+        zIndex: 300, display: 'flex', flexDirection: 'column',
+        backdropFilter: 'blur(12px)', overflowY: 'auto',
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #3E4042' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB' }}>⚙️ Admin Controls</div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 20, cursor: 'pointer' }}>✕</button>
+      </div>
+
+      {/* Status */}
+      {message && (
+        <div style={{ padding: '8px 16px', background: message.type === 'error' ? 'rgba(244,67,54,0.15)' : 'rgba(76,175,80,0.15)', color: message.type === 'error' ? '#ef5350' : '#66bb6a', fontSize: 12, fontWeight: 600 }}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Table Actions */}
+      <div style={{ padding: '12px 16px' }}>
+        <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Table Actions</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <AdminBtn label={isPaused ? '▶️ Resume Table' : '⏸️ Pause Table'} onClick={() => doAction(isPaused ? 'resume' : 'pause')} loading={loading === 'pause' || loading === 'resume'} />
+          <AdminBtn label="🛑 Close Table" onClick={() => { if (confirm('Close this table? All players will be cashed out.')) doAction('close'); }} color="#FA383E" loading={loading === 'close'} />
+        </div>
+      </div>
+
+      {/* Seated Players — Kick */}
+      <div style={{ padding: '12px 16px', borderTop: '1px solid #3E4042' }}>
+        <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Players ({seatedPlayers.length})</div>
+        {seatedPlayers.length === 0 ? (
+          <div style={{ color: '#666', fontSize: 12 }}>No players seated</div>
+        ) : seatedPlayers.map((s, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #2a2b2c' }}>
+            <div>
+              <div style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 600 }}>{s.player?.displayName || `Seat ${s.seatIndex + 1}`}</div>
+              <div style={{ color: '#B0B3B8', fontSize: 11 }}>Stack: {(s.stack || 0).toLocaleString()}</div>
+            </div>
+            {String(s.player?.id) !== String(userId) && (
+              <button onClick={() => doKick(s.player.id, s.player.displayName || 'Player')}
+                style={{ background: 'rgba(244,67,54,0.15)', color: '#ef5350', border: '1px solid rgba(244,67,54,0.3)', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                Kick
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Settings */}
+      <div style={{ padding: '12px 16px', borderTop: '1px solid #3E4042' }}>
+        <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Info</div>
+        <div style={{ fontSize: 12, color: '#B0B3B8' }}>
+          <div>Variant: {tableState?.config?.variant?.toUpperCase() || 'NLH'}</div>
+          <div>Stakes: {tableState?.config?.smallBlind}/{tableState?.config?.bigBlind}</div>
+          <div>Hands: {tableState?.handCount || 0}</div>
+          <div>Status: {tableState?.status || 'unknown'}</div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function AdminBtn({ label, onClick, color = '#2374E1', loading = false }) {
+  return (
+    <button onClick={onClick} disabled={loading}
+      style={{
+        background: loading ? '#333' : `${color}22`, color: loading ? '#666' : color,
+        border: `1px solid ${color}44`, borderRadius: 8, padding: '8px 12px',
+        fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
+        transition: 'all 0.15s',
+      }}>
+      {loading ? '...' : label}
+    </button>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUY-IN DIALOG
+// ═══════════════════════════════════════════════════════════════════════════
+
 function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, onConfirm, onCancel }) {
   const effectiveMax = maxBuyIn < minBuyIn ? minBuyIn : maxBuyIn;
   const [amount, setAmount] = useState(Math.floor((minBuyIn + effectiveMax) / 2));
@@ -1692,6 +1821,17 @@ export default function LivePokerTable({
   // Theme system
   const [themeId, setThemeId] = useState(() => getStoredThemeId());
   const [cardBack, setCardBack] = useState(() => getStoredCardBack());
+
+  // Admin role detection
+  const [userRole, setUserRole] = useState(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  useEffect(() => {
+    if (!supabase || !userId || !tableState?.clubId) return;
+    supabase.from('club_members').select('role')
+      .eq('club_id', tableState.clubId).eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data?.role) setUserRole(data.role); });
+  }, [supabase, userId, tableState?.clubId]);
+  const isAdmin = ['owner', 'admin', 'manager'].includes(userRole);
 
   // Update module-level T when theme changes so all sub-components see it
   T = TABLE_THEMES[themeId] || TABLE_THEMES.classicGreen;
@@ -2539,6 +2679,34 @@ export default function LivePokerTable({
               )}
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ ADMIN TABLE PANEL ═══════════ */}
+      {isAdmin && (
+        <button onClick={() => setShowAdminPanel(!showAdminPanel)} style={{
+          position: 'fixed', top: 8, right: 8, zIndex: 250,
+          background: showAdminPanel ? '#FA383E' : 'rgba(35,116,225,0.85)',
+          color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px',
+          fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        }}>
+          {showAdminPanel ? '✕ Close' : '⚙️ Admin'}
+        </button>
+      )}
+      <AnimatePresence>
+        {showAdminPanel && isAdmin && (
+          <AdminTablePanel
+            tableId={tableId}
+            clubId={tableState?.clubId}
+            tableState={tableState}
+            seats={seats}
+            userId={userId}
+            userRole={userRole}
+            send={send}
+            onClose={() => setShowAdminPanel(false)}
+            supabase={supabase}
+          />
         )}
       </AnimatePresence>
 
