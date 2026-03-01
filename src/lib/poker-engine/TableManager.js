@@ -1242,6 +1242,9 @@ class TableManager {
         noRathole: this.noRathole,
         pineapple: this.game.config.variant === 'pineapple',
         banChat: this.banChat,
+        mixedGame: this.mixedGame,
+        variantRotation: this.variantRotation,
+        currentVariantIndex: this._mixedGameIndex,
       },
     };
   }

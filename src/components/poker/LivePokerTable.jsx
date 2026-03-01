@@ -229,10 +229,19 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, ca
 
 function PlayerSeat({
   seat, position, isHero, isCurrentActor, timerState, onClick, onNote, noteColor, noteType,
-  numHoleCards = 2, isWinner = false, equity = null,
+  numHoleCards = 2, isWinner = false, equity = null, gamePosition = null,
 }) {
   const { status, player, stack, holeCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
+
+  // Position badge config
+  const POSITION_BADGES = {
+    btn: { label: 'D', bg: '#FFD700', color: '#000' },
+    sb: { label: 'SB', bg: '#4FC3F7', color: '#000' },
+    bb: { label: 'BB', bg: '#81C784', color: '#000' },
+    utg: { label: 'UTG', bg: '#E0E0E0', color: '#333' },
+  };
+  const posBadge = !isEmpty && gamePosition ? POSITION_BADGES[gamePosition] : null;
   const isSittingOut = status === 'sitting_out';
   const isDisconnected = status === 'disconnected';
   const avatarSize = isHero ? 80 : 65;
@@ -387,6 +396,17 @@ function PlayerSeat({
             borderRadius: '50%', background: noteColor, border: '1px solid rgba(0,0,0,0.3)',
             zIndex: 5,
           }} />
+        )}
+
+        {/* Position badge (D / SB / BB / UTG) */}
+        {posBadge && (
+          <div style={{
+            position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
+            background: posBadge.bg, color: posBadge.color,
+            fontSize: 8, fontWeight: 900, padding: '1px 5px', borderRadius: 6,
+            lineHeight: 1.3, zIndex: 5, border: '1px solid rgba(0,0,0,0.2)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          }}>{posBadge.label}</div>
         )}
       </div>
 
@@ -1217,7 +1237,7 @@ function ChatOverlay({ messages, onSend }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, lastHandResult, onShowLastHand }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, lastHandResult, onShowLastHand, sessionStats, myStack }) {
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -1262,6 +1282,26 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
         <span style={{ color: T.textMuted, fontSize: 12 }}>
           Hand #{game?.handNumber || 0}
         </span>
+
+        {/* Mixed game rotation indicator */}
+        {tableState?.config?.mixedGame && tableState?.config?.variantRotation && (
+          <span style={{ color: '#e1bee7', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(156,39,176,0.2)', border: '1px solid rgba(156,39,176,0.3)' }}>
+            🔄 {(tableState.config.currentVariantIndex || 0) + 1}/{tableState.config.variantRotation.length}
+          </span>
+        )}
+
+        {/* Session P&L */}
+        {isSitting && sessionStats?.initialBuyIn > 0 && (() => {
+          const pnl = myStack - sessionStats.initialBuyIn - (sessionStats.totalAdded || 0);
+          const color = pnl > 0 ? '#4caf50' : pnl < 0 ? '#ef5350' : T.textMuted;
+          const hrs = sessionStats.sessionStart ? ((Date.now() - sessionStats.sessionStart) / 3600000).toFixed(1) : '0';
+          return (
+            <span style={{ color, fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.05)' }}>
+              {pnl >= 0 ? '+' : ''}{pnl.toLocaleString()} • {sessionStats.handsPlayed}h • {hrs}hr
+            </span>
+          );
+        })()}
+
         <span style={{
           color: game?.phase === 'idle' ? T.textMuted : T.callGreen,
           fontSize: 11,
@@ -1646,6 +1686,7 @@ export default function LivePokerTable({
   const {
     tableState, myCards, legalActions, timerState,
     chatMessages, result, lastHandResult, error, connected, send,
+    sessionStats, tableAlert,
   } = useTableConnection({ supabase, tableId, userId });
 
   // Theme system
@@ -1980,6 +2021,11 @@ export default function LivePokerTable({
           const noteColorVal = noteData?.color_label && noteData.color_label !== 'none'
             ? COLOR_LABELS.find(c => c.value === noteData.color_label)?.color
             : null;
+          // Poker position from game state (btn, sb, bb, utg, mp)
+          const gamePlayer = tableState?.game?.players?.find(p => String(p.id) === String(pid));
+          const gamePosition = gamePlayer?.position || null;
+          // Button seat fallback
+          const isButton = tableState?.game?.buttonSeat === i;
           return (
           <PlayerSeat
             key={i}
@@ -1994,6 +2040,7 @@ export default function LivePokerTable({
             noteType={noteData?.player_type}
             isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
             equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
+            gamePosition={gamePosition || (isButton ? 'btn' : null)}
             numHoleCards={
               ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2, pineapple: 3 })[
               tableState?.config?.variant
@@ -2003,6 +2050,36 @@ export default function LivePokerTable({
           );
         })}
       </div>
+
+      {/* Table alert banner (game length warning, paused, auto-removed, etc.) */}
+      <AnimatePresence>
+        {tableAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            style={{
+              position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)',
+              zIndex: 200, padding: '8px 20px', borderRadius: 10,
+              background: tableAlert.type === 'warning' ? 'rgba(255,152,0,0.95)'
+                : tableAlert.type === 'expired' ? 'rgba(244,67,54,0.95)'
+                : tableAlert.type === 'paused' ? 'rgba(33,150,243,0.95)'
+                : tableAlert.type === 'removed' ? 'rgba(244,67,54,0.95)'
+                : 'rgba(76,175,80,0.95)',
+              color: '#fff', fontSize: 13, fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            {tableAlert.type === 'warning' && '⚠️ '}
+            {tableAlert.type === 'expired' && '🛑 '}
+            {tableAlert.type === 'paused' && '⏸️ '}
+            {tableAlert.type === 'removed' && '🚪 '}
+            {tableAlert.type === 'extended' && '🔄 '}
+            {tableAlert.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Table info bar */}
       <TableInfoBar
@@ -2020,6 +2097,8 @@ export default function LivePokerTable({
         onToggleAutoTopUp={handleToggleAutoTopUp}
         lastHandResult={lastHandResult}
         onShowLastHand={() => setShowLastHand(true)}
+        sessionStats={sessionStats}
+        myStack={mySeat?.stack || 0}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}

@@ -549,6 +549,7 @@ export default function ClubLobby() {
                                                                 {table.settings.private_game && <span style={styles.modeBadge} title="Private">🔒</span>}
                                                                 {table.settings.anonymous_table && <span style={styles.modeBadge} title="Anonymous">🎭</span>}
                                                                 {table.settings.nit_game && <span style={styles.modeBadge} title={`VPIP ${table.settings.maintain_percent}%+`}>📊</span>}
+                                                                {table.settings.mixed_game && <span style={styles.modeBadge} title="Mixed Game Rotation">🔄</span>}
                                                                 {table.settings.cap && <span style={styles.modeBadge} title={`Cap ${table.settings.cap_amount}`}>🧢</span>}
                                                                 {table.settings.no_rathole && <span style={styles.modeBadge} title="No Rathole">🚫</span>}
                                                                 {table.settings.pineapple && <span style={styles.modeBadge} title="Pineapple">🍍</span>}

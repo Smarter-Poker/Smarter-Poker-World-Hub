@@ -57,7 +57,9 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const [result, setResult] = useState(null);
   const [lastHandResult, setLastHandResult] = useState(null); // Persists after result clears
   const [error, setError] = useState(null);
+  const [tableAlert, setTableAlert] = useState(null);
   const [connected, setConnected] = useState(false);
+  const sessionStatsRef = useRef({ initialBuyIn: 0, totalAdded: 0, handsPlayed: 0, sessionStart: null });
 
   const channelRef = useRef(null);
   const resultTimeoutRef = useRef(null);
@@ -137,6 +139,14 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'table_state':
         setTableState(data);
         if (data.yourCards) setMyCards(data.yourCards);
+        // Track session: record initial buy-in on first state with our seat
+        if (!sessionStatsRef.current.sessionStart && data.seats) {
+          const mySeat = data.seats.find(s => s.player?.id === userId);
+          if (mySeat && mySeat.stack > 0) {
+            sessionStatsRef.current.initialBuyIn = mySeat.stack;
+            sessionStatsRef.current.sessionStart = Date.now();
+          }
+        }
         break;
       case 'hand_start':
         setResult(null); setMyCards(null); setLegalActions(null); setTimerState(null);
@@ -166,6 +176,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'hand_complete':
         setResult(data); setLegalActions(null);
         setLastHandResult(data);  // Persist for "last hand" review
+        sessionStatsRef.current.handsPlayed++;
         if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
         resultTimeoutRef.current = setTimeout(() => setResult(null), 5000);
         requestState();
@@ -226,6 +237,14 @@ export function useTableConnection({ supabase, tableId, userId }) {
         // Store equity data for UI display
         setResult(prev => ({ ...prev, allInEquity: data }));
         break;
+      case 'variant_changed':
+        // Mixed game rotation — refresh state to get new variant config
+        requestState();
+        // Add chat message so players see the change
+        setChatMessages(prev => [...prev.slice(-100), {
+          type: 'system', message: `🔄 Game changed to ${data.variant?.toUpperCase() || 'next variant'}`,
+        }]);
+        break;
       case 'emoji_thrown':
         // Emoji/sticker thrown between players (handled by LivePokerTable)
         setChatMessages(prev => [...prev.slice(-100), { type: 'emoji', ...data }]);
@@ -249,6 +268,34 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'bbj_triggered':
         // Bad Beat Jackpot hit — same as bbj_won
         setResult(prev => ({ ...prev, bbj: data }));
+        break;
+      case 'game_length_warning':
+        setTableAlert({ type: 'warning', message: `Table closing in ${data.minutesRemaining || 5} minutes`, expiresAt: data.closeAt });
+        break;
+      case 'game_length_expired':
+        setTableAlert({ type: 'expired', message: 'Game time has ended — table closing after current hand' });
+        break;
+      case 'game_length_extended':
+        setTableAlert({ type: 'extended', message: `Game extended (${data.seatedPlayers} players still seated)` });
+        setTimeout(() => setTableAlert(null), 8000);
+        break;
+      case 'table_paused':
+        setTableAlert({ type: 'paused', message: 'Table paused by admin' });
+        requestState();
+        break;
+      case 'table_resumed':
+        setTableAlert(null);
+        requestState();
+        break;
+      case 'cards_shown':
+        requestState();
+        break;
+      case 'player_auto_removed':
+        if (String(data.playerId) === String(userId)) {
+          setTableAlert({ type: 'removed', message: `You were removed: ${data.reason?.replace(/_/g, ' ')}` });
+          setTimeout(() => setTableAlert(null), 8000);
+        }
+        requestState();
         break;
       default:
         requestState();
@@ -290,7 +337,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'nit_warning', 'nit_sitout',
       'config_updated',
       'table_paused', 'table_resumed', 'table_waiting',
-      'cards_shown',
+      'cards_shown', 'variant_changed',
+      'player_auto_removed',
     ];
 
     for (const evt of events) {
@@ -377,7 +425,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
 
   return {
     tableState, myCards, legalActions, timerState, chatMessages,
-    result, lastHandResult, error, connected,
+    result, lastHandResult, error, connected, tableAlert,
+    sessionStats: sessionStatsRef.current,
     send, requestState,
     sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat,
     joinWaitlist, leaveWaitlist,

@@ -394,6 +394,9 @@ class GameController {
           auto_create_table: row.settings?.auto_create_table || false,
           auto_extension: row.settings?.auto_extension || false,
           ban_chat: row.settings?.ban_chat || false,
+          mixed_game: row.settings?.mixed_game || false,
+          variant_rotation: row.settings?.variant_rotation || null,
+          auto_restart: row.settings?.auto_restart || false,
         },
       };
 
