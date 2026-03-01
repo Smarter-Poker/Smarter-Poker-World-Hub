@@ -802,7 +802,7 @@ export default function TableTabletsPage() {
     return (
         <CommanderLayout title="Table Tablets | Commander" backHref="/commander/dashboard?card=floor">
             <SEOHead title="Commander — Table Tablets" description="Dealer tablet view for all tables." noindex={true} />
-            <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: 'Inter, sans-serif' }}>
+            <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#E4E6EB', fontFamily: 'Inter, sans-serif' }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px' }}>
 
                     {/* Header */}
@@ -1102,92 +1102,93 @@ export default function TableTabletsPage() {
 
             {/* ── FULLSCREEN TABLE POPUP ── */}
             {fullscreenTable && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0A0A0A', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out' }}>
-                    {/* Fullscreen header */}
-                    <div style={{
-                        padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        background: fullscreenTable.status === 'in_use'
-                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                            : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                        color: '#fff', flexShrink: 0,
-                    }}>
-                        <div>
-                            <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.1 }}>
-                                Table {fullscreenTable.table_number}
-                                {fullscreenTable.table_name && fullscreenTable.table_name !== `Table ${fullscreenTable.table_number}` ? ` · ${fullscreenTable.table_name}` : ''}
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0a0a0a', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out' }}>
+                    {/* Fullscreen header — hidden when locked for true fullscreen */}
+                    {!lockedTable && (
+                        <div style={{
+                            padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            background: fullscreenTable.status === 'in_use'
+                                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                            color: '#fff', flexShrink: 0,
+                        }}>
+                            <div>
+                                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.1 }}>
+                                    Table {fullscreenTable.table_number}
+                                    {fullscreenTable.table_name && fullscreenTable.table_name !== `Table ${fullscreenTable.table_number}` ? ` · ${fullscreenTable.table_name}` : ''}
+                                </div>
+                                <div style={{ fontSize: 18, fontWeight: 700, opacity: 0.95, marginTop: 4 }}>
+                                    {(() => {
+                                        const g = getTableGame(fullscreenTable);
+                                        const gameType = getFullGameName(g?.game_type || fullscreenTable.game_type);
+                                        const stakes = formatStakes(g?.stakes || fullscreenTable.stakes);
+                                        return g
+                                            ? `${stakes} ${gameType} · ${getSeatedCount(fullscreenTable)}/${fullscreenTable.max_seats || 9} seated`
+                                            : `${stakes} ${gameType} · ${fullscreenTable.max_seats || 9} seats`;
+                                    })()}
+                                </div>
+                                {fullscreenTable.table_purpose && (
+                                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(245,158,11,0.4)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#FCD34D' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
+                                        {isTournamentTable(fullscreenTable) ? 'Tournament' : fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
+                                    </span>
+                                )}
                             </div>
-                            <div style={{ fontSize: 18, fontWeight: 700, opacity: 0.95, marginTop: 4 }}>
-                                {(() => {
-                                    const g = getTableGame(fullscreenTable);
-                                    const gameType = getFullGameName(g?.game_type || fullscreenTable.game_type);
-                                    const stakes = formatStakes(g?.stakes || fullscreenTable.stakes);
-                                    return g
-                                        ? `${stakes} ${gameType} · ${getSeatedCount(fullscreenTable)}/${fullscreenTable.max_seats || 9} seated`
-                                        : `${stakes} ${gameType} · ${fullscreenTable.max_seats || 9} seats`;
-                                })()}
-                            </div>
-                            {fullscreenTable.table_purpose && (
-                                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(245,158,11,0.4)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#FCD34D' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
-                                    {isTournamentTable(fullscreenTable) ? 'Tournament' : fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
-                                </span>
-                            )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <button
-                                onClick={() => openDealerScan(fullscreenTable.table_number)}
-                                style={{
-                                    background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                                    borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                    fontSize: 13, fontWeight: 700, color: '#fff',
-                                }}
-                            >
-                                <ScanLine size={14} /> Scan Dealer
-                            </button>
-                            {!lockedTable ? (
-                                <>
-                                    {/* Lock button */}
-                                    <button
-                                        onClick={() => lockToTable(fullscreenTable.table_number || fullscreenTable.number)}
-                                        style={{
-                                            background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
-                                            borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', gap: 6,
-                                            fontSize: 13, fontWeight: 700, color: '#F59E0B',
-                                        }}
-                                        title="Lock tablet to this table"
-                                    >
-                                        <Lock size={14} /> Lock Tablet
-                                    </button>
-                                    {/* Close button */}
-                                    <button
-                                        onClick={() => setFullscreenTable(null)}
-                                        style={{
-                                            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
-                                            width: 40, height: 40, cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        }}
-                                    >
-                                        <X size={22} color="#fff" />
-                                    </button>
-                                </>
-                            ) : (
-                                /* Locked — show unlock button */
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <button
-                                    onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
+                                    onClick={() => openDealerScan(fullscreenTable.table_number)}
                                     style={{
-                                        background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)',
+                                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
                                         borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', gap: 6,
-                                        fontSize: 13, fontWeight: 700, color: '#EF4444',
+                                        fontSize: 13, fontWeight: 700, color: '#fff',
                                     }}
-                                    title="Unlock — requires manager PIN"
                                 >
-                                    <Unlock size={14} /> Unlock
+                                    <ScanLine size={14} /> Scan Dealer
                                 </button>
-                            )}
+                                {/* Lock button */}
+                                <button
+                                    onClick={() => lockToTable(fullscreenTable.table_number || fullscreenTable.number)}
+                                    style={{
+                                        background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
+                                        borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        fontSize: 13, fontWeight: 700, color: '#F59E0B',
+                                    }}
+                                    title="Lock tablet to this table"
+                                >
+                                    <Lock size={14} /> Lock Tablet
+                                </button>
+                                {/* Close button */}
+                                <button
+                                    onClick={() => setFullscreenTable(null)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                                        width: 40, height: 40, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                >
+                                    <X size={22} color="#fff" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    {/* Locked: show small unlock button in top-right corner */}
+                    {lockedTable && (
+                        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+                            <button
+                                onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
+                                style={{
+                                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                    borderRadius: 10, padding: '6px 14px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+                                }}
+                                title="Unlock — requires manager PIN"
+                            >
+                                <Unlock size={12} /> Unlock
+                            </button>
+                        </div>
+                    )}
 
                     {/* Fullscreen table visual */}
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', overflow: 'hidden', position: 'relative' }}>
@@ -1231,7 +1232,7 @@ export default function TableTabletsPage() {
                                         const json = await res.json();
                                         if (json.success) {
                                             setCallFloorSent(true);
-                                            setToast({ type: 'success', text: `📢 Floor called — Table ${tNum}` });
+                                            setToast({ type: 'success', text: `Floor called — Table ${tNum}` });
                                             broadcastChange('floor_calls');
                                             setTimeout(() => setCallFloorSent(false), 30000);
                                         } else {
@@ -1242,7 +1243,7 @@ export default function TableTabletsPage() {
                                 }}
                                 style={{
                                     pointerEvents: 'auto',
-                                    background: callFloorSent ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)', border: 'none',
+                                    background: callFloorSent ? 'rgba(34,197,94,0.9)' : 'rgba(24,119,242,0.9)', border: 'none',
                                     borderRadius: 14, padding: '14px 24px', cursor: callFloorSent ? 'default' : 'pointer',
                                     display: 'flex', alignItems: 'center', gap: 8,
                                     fontSize: 15, fontWeight: 800, color: '#fff',
@@ -1250,8 +1251,7 @@ export default function TableTabletsPage() {
                                     opacity: callFloorSending ? 0.6 : 1,
                                 }}
                             >
-                                <Phone size={18} />
-                                {callFloorSent ? '✓ Floor Called' : callFloorSending ? 'Calling...' : 'Call Floor'}
+                                {callFloorSent ? 'Floor Called' : callFloorSending ? 'Calling...' : 'Call Floor'}
                             </button>
 
                             {/* Call Clock — bottom-right */}
@@ -1276,41 +1276,13 @@ export default function TableTabletsPage() {
                                         boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
                                     }}
                                 >
-                                    <Timer size={18} />
                                     Call Clock (60s)
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    {/* Fullscreen footer — timer summary */}
-                    {(() => {
-                        const seatData = fullscreenTable.seats || [];
-                        const timedSeats = seatData.filter(s => s.time_remaining !== undefined);
-                        if (timedSeats.length === 0) return null;
-                        return (
-                            <div style={{
-                                padding: '12px 20px', borderTop: '1px solid #3A3B3C',
-                                display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
-                                background: '#1a1a1a', flexShrink: 0,
-                            }}>
-                                {timedSeats.map((s, i) => {
-                                    const adjTime = adjustTime(s.time_remaining);
-                                    const tColor = getTimerColor(adjTime);
-                                    return (
-                                        <span key={i} style={{
-                                            fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 6,
-                                            background: `${tColor}20`, color: tColor,
-                                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                                        }}>
-                                            S{s.seat_number}: {adjTime <= 0 ? 'EXPIRED' : formatTime(adjTime)}
-                                            {s.player_name && <span style={{ fontSize: 10, opacity: 0.7 }}>({s.player_name.split(' ')[0]})</span>}
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })()}
+
                     {/* ── Toast Notification ── */}
                     {toast && (
                         <div style={{
