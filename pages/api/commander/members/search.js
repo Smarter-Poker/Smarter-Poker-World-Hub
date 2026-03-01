@@ -81,23 +81,43 @@ export default async function handler(req, res) {
       const { data: staffMembers } = await staffQ.order('role', { ascending: true });
 
       if (staffMembers && staffMembers.length > 0) {
+        // Cross-reference staff with commander_members to get real member IDs + balances
+        const staffUserIds = staffMembers.filter(s => s.user_id).map(s => s.user_id);
+        let memberByUserId = {};
+        if (staffUserIds.length > 0) {
+          const { data: memberRecords } = await supabase
+            .from('commander_members')
+            .select('id, user_id, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
+            .eq('venue_id', venueFilter)
+            .in('user_id', staffUserIds);
+          if (memberRecords) {
+            for (const mr of memberRecords) {
+              if (mr.user_id) memberByUserId[mr.user_id] = mr;
+            }
+          }
+        }
+
         for (const s of staffMembers) {
           const nameParts = (s.display_name || '').trim().split(/\s+/);
+          const memberRec = s.user_id ? memberByUserId[s.user_id] : null;
           results.push({
-            id: s.id,
+            id: memberRec?.id || s.id,  // Use commander_members.id if available
             user_id: s.user_id,
             first_name: nameParts[0] || s.display_name,
             last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '',
             name: s.display_name,
-            phone: null,
+            phone: memberRec?.phone ? formatPhone(memberRec.phone) : null,
             email: null,
             last_visit: null,
-            comp_balance: 0,
-            membership_tier: null,
-            membership_status: null,
-            time_balance_minutes: 0,
+            comp_balance: memberRec?.comp_balance || 0,
+            membership_tier: memberRec?.membership_tier || null,
+            membership_status: memberRec?.membership_status || null,
+            membership_expires: memberRec?.membership_expires || null,
+            time_balance_minutes: memberRec?.time_balance_minutes || 0,
+            member_number: memberRec?.member_number || null,
             _is_staff: true,
             _staff_role: s.role,
+            _staff_id: s.id,  // Keep original staff ID for reference
           });
         }
       }
