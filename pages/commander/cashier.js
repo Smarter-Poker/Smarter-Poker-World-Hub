@@ -47,6 +47,8 @@ export default function Cashier() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [successOverlay, setSuccessOverlay] = useState(null); // { title, amount, detail, balance }
+  const [showRecentTime, setShowRecentTime] = useState(false);
+  const [showRecentMembership, setShowRecentMembership] = useState(false);
 
   // Scanner
   const [scanning, setScanning] = useState(false);
@@ -1325,28 +1327,34 @@ export default function Cashier() {
                   </p>
                 )}
 
-                {/* Recent Time Transactions */}
+                {/* Recent Time Transactions — Collapsed */}
                 {transactions.filter(tx => (tx.type === 'time_purchase' || tx.notes?.includes('Time Purchase')) && !tx.voided_at && tx.type !== 'void').length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Recent Time Sales (Void If Mistake)</p>
-                    <div className="space-y-1">
-                      {transactions.filter(tx => (tx.type === 'time_purchase' || tx.notes?.includes('Time Purchase')) && !tx.voided_at && tx.type !== 'void').slice(0, 5).map(tx => {
-                        const minsMatch = (tx.notes || '').match(/Time Purchase:\s*(\d+)\s*minutes/);
-                        const mins = minsMatch ? parseInt(minsMatch[1]) : 0;
-                        return (
-                          <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-semibold text-white">{tx.player_name}</p>
-                              <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <button onClick={() => setShowRecentTime(!showRecentTime)}
+                      className="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-[#3A3B3C]/30 text-[#B0B3B8] text-xs font-semibold uppercase tracking-wider">
+                      <span>Recent Time Sales (Void If Mistake)</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showRecentTime ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showRecentTime && (
+                      <div className="space-y-1 mt-2">
+                        {transactions.filter(tx => (tx.type === 'time_purchase' || tx.notes?.includes('Time Purchase')) && !tx.voided_at && tx.type !== 'void').slice(0, 5).map(tx => {
+                          const minsMatch = (tx.notes || '').match(/Time Purchase:\s*(\d+)\s*minutes/);
+                          const mins = minsMatch ? parseInt(minsMatch[1]) : 0;
+                          return (
+                            <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-semibold text-white">{tx.player_name}</p>
+                                <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                              </div>
+                              <button onClick={() => voidTransaction(tx.id, 'time', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, minutes: mins, created_at: tx.created_at })}
+                                className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
+                                VOID
+                              </button>
                             </div>
-                            <button onClick={() => voidTransaction(tx.id, 'time', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, minutes: mins, created_at: tx.created_at })}
-                              className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
-                              VOID
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1358,8 +1366,8 @@ export default function Cashier() {
         {
           showMembership && (
             <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setShowMembership(false)}>
-              <div className="bg-[#242526] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-[#18191A] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#3A3B3C]">
                   <h3 className="text-lg font-bold text-white">Update Membership</h3>
                   <button onClick={() => setShowMembership(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
                 </div>
@@ -1433,24 +1441,30 @@ export default function Cashier() {
                   label={`Collect $${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.price || 0 : 0} — ${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.label : '...'}`}
                   disabled={!selectedTier || !selectedPlayer?.id} />
 
-                {/* Recent Membership Transactions */}
+                {/* Recent Membership Transactions — Collapsed */}
                 {transactions.filter(tx => (tx.type === 'membership' || tx.notes?.includes('Membership')) && !tx.voided_at && tx.type !== 'void').length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Recent Membership Sales (Void If Mistake)</p>
-                    <div className="space-y-1">
-                      {transactions.filter(tx => (tx.type === 'membership' || tx.notes?.includes('Membership')) && !tx.voided_at && tx.type !== 'void').slice(0, 5).map(tx => (
-                        <div key={tx.id} className="bg-[#18191A] rounded-lg p-2.5 flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-semibold text-white">{tx.player_name}</p>
-                            <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <button onClick={() => setShowRecentMembership(!showRecentMembership)}
+                      className="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-[#3A3B3C]/30 text-[#B0B3B8] text-xs font-semibold uppercase tracking-wider">
+                      <span>Recent Membership Sales (Void If Mistake)</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showRecentMembership ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showRecentMembership && (
+                      <div className="space-y-1 mt-2">
+                        {transactions.filter(tx => (tx.type === 'membership' || tx.notes?.includes('Membership')) && !tx.voided_at && tx.type !== 'void').slice(0, 5).map(tx => (
+                          <div key={tx.id} className="bg-[#242526] rounded-lg p-2.5 flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-semibold text-white">{tx.player_name}</p>
+                              <p className="text-[10px] text-[#B0B3B8]">{tx.notes} • ${parseFloat(tx.amount)} • {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            <button onClick={() => voidTransaction(tx.id, 'membership', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, created_at: tx.created_at })}
+                              className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
+                              VOID
+                            </button>
                           </div>
-                          <button onClick={() => voidTransaction(tx.id, 'membership', { player_name: tx.player_name, amount: parseFloat(tx.amount), payment_method: tx.payment_method, notes: tx.notes, created_at: tx.created_at })}
-                            className="px-2 py-1 rounded-lg bg-[#F02849]/15 text-[#F02849] text-[10px] font-bold">
-                            VOID
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1472,7 +1486,7 @@ export default function Cashier() {
                     <img
                       src="/images/commander/print-new-card.png"
                       alt="Print New Card"
-                      style={{ width: '240px', height: 'auto', display: 'block', userSelect: 'none' }}
+                      style={{ width: '480px', height: 'auto', display: 'block', userSelect: 'none' }}
                       draggable={false}
                     />
                   </button>
@@ -1554,7 +1568,7 @@ export default function Cashier() {
             <img
               src="/images/commander/print-new-card.png"
               alt="Print New Card"
-              style={{ width: '340px', height: 'auto', display: 'block', userSelect: 'none' }}
+              style={{ width: '680px', height: 'auto', display: 'block', userSelect: 'none' }}
               draggable={false}
             />
           </button>

@@ -104,13 +104,15 @@ export default async function handler(req, res) {
             memberByStaffId[s.id] = memberMatch;
           } else {
             // AUTO-CREATE a commander_members record for this staff member
+            const memberNum = `STAFF-${Date.now().toString(36).toUpperCase()}`;
             const { data: newMember, error: createErr } = await supabase
               .from('commander_members')
               .insert({
                 venue_id: venueFilter,
                 first_name: sfFirst,
                 last_name: sfLast,
-                player_name: s.display_name,
+                member_number: memberNum,
+                membership_tier: 'standard',
                 membership_status: 'active',
                 time_balance_minutes: 0,
                 created_at: new Date().toISOString(),
