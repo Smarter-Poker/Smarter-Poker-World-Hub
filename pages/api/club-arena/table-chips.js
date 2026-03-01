@@ -30,9 +30,11 @@ export default async function handler(req, res) {
   const validEngineKey = engineKey && process.env.ENGINE_INTERNAL_SECRET && engineKey === process.env.ENGINE_INTERNAL_SECRET;
   if (!validEngineKey && !token) return res.status(401).json({ error: 'Auth required' });
 
+  let callerUserId = null;
   if (token && !validEngineKey) {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+    callerUserId = user.id;
   }
 
   const { clubId, tableId, userId, action, amount } = req.body;
@@ -42,6 +44,19 @@ export default async function handler(req, res) {
 
   if (!['lock', 'unlock', 'rebuy'].includes(action)) {
     return res.status(400).json({ error: 'action must be lock, unlock, or rebuy' });
+  }
+
+  // JWT callers can only operate on themselves unless they're club admin
+  if (callerUserId && callerUserId !== userId) {
+    const { data: callerMember } = await supabaseAdmin
+      .from('club_members')
+      .select('role')
+      .eq('club_id', clubId)
+      .eq('user_id', callerUserId)
+      .single();
+    if (!callerMember || !['owner', 'admin', 'manager'].includes(callerMember.role)) {
+      return res.status(403).json({ error: 'Cannot operate on another user\'s chips' });
+    }
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
