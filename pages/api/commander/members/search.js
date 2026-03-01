@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     const isPhone = /^\d+$/.test(q.replace(/[\s\-\(\)]/g, ''));
     let query = supabase
       .from('commander_members')
-      .select('id, first_name, last_name, phone, email, last_checkin, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number')
+      .select('id, first_name, last_name, phone, email, last_visit, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number')
       .eq('venue_id', venueFilter)
       .limit(limitNum);
 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       );
     }
 
-    const { data: members, error } = await query.order('last_checkin', { ascending: false, nullsFirst: false });
+    const { data: members, error } = await query.order('last_visit', { ascending: false, nullsFirst: false });
 
     if (error) {
       console.error('Member search error:', error, 'query:', q, 'venue:', venueFilter);
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
               name: wl.player_name,
               phone: formatPhone(wl.player_phone) || null,
               email: null,
-              last_checkin: null,
+              last_visit: null,
               comp_balance: 0,
               _from_waitlist: true,
               _waitlist_id: wl.id,
