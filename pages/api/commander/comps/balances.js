@@ -12,64 +12,34 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
+  const staffAuth = await guardWriteStaff(req, res); if (!staffAuth) return;
 
   if (req.method === 'GET') {
     return getBalances(req, res);
   }
   if (req.method === 'POST') {
-    return awardComp(req, res);
+    return awardComp(req, res, staffAuth);
   }
 
   res.setHeader('Allow', ['GET', 'POST']);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-async function awardComp(req, res) {
+async function awardComp(req, res, staffAuth) {
   try {
-    // Auth: Use x-staff-session (already validated by guardWriteStaff) or Bearer token
-    let staffVenueId = null;
-    let staffRecord = null;
+    // staffAuth comes from guardWriteStaff — already verified via x-staff-session
+    // It's the staff record: { id, venue_id, role, is_active }
+    // For display_name, we look up the full staff record
+    let staffRecord = staffAuth;
 
-    // Primary auth: x-staff-session header (PIN-based login, always fresh)
-    const staffSessionHeader = req.headers['x-staff-session'];
-    if (staffSessionHeader) {
-      try {
-        const session = JSON.parse(staffSessionHeader);
-        staffVenueId = session.venue_id;
-        // Look up the staff record from the session
-        const { data: sessionStaff } = await supabase
-          .from('commander_staff')
-          .select('id, role, display_name, venue_id')
-          .eq('venue_id', session.venue_id)
-          .eq('id', session.id)
-          .eq('is_active', true)
-          .single();
-        if (sessionStaff) staffRecord = sessionStaff;
-      } catch { /* invalid session format */ }
-    }
-
-    // Fallback auth: Bearer token (Supabase JWT)
-    if (!staffRecord) {
-      const authHeader = req.headers.authorization;
-      if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !user) return res.status(401).json({ success: false, error: 'Session expired — please log in again' });
-
-      // Find staff record by user_id
-      const { data: tokenStaff } = await supabase
+    // If staffAuth doesn't have display_name (minimal record from guard), look it up
+    if (!staffRecord.display_name) {
+      const { data: fullStaff } = await supabase
         .from('commander_staff')
         .select('id, role, display_name, venue_id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1)
+        .eq('id', staffAuth.id)
         .single();
-      if (tokenStaff) {
-        staffRecord = tokenStaff;
-        staffVenueId = tokenStaff.venue_id;
-      }
+      if (fullStaff) staffRecord = fullStaff;
     }
 
     if (!staffRecord) return res.status(403).json({ success: false, error: 'Staff access required' });

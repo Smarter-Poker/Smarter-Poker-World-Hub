@@ -569,6 +569,7 @@ export default function Cashier() {
           amount: details.amount || 0,
           payment_method: details.payment_method || 'cash',
           notes: `${actionLabel.toUpperCase()} — TX #${txId}: ${details.notes || type} [by ${staff?.display_name || 'Staff'}]`,
+          pin_verified_by: staff?.id || null
         })
       });
 
