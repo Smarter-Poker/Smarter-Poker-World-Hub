@@ -441,7 +441,7 @@ export default function LeaderboardBuilder() {
                         </div>
                         <div>
                             <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>⏱️ Auto-Calculate</p>
-                            <p>For Hours/Sessions/Visits types, click "Auto-Calculate" to pull data from player session history.</p>
+                            <p>For Hours/Sessions types, click "Auto-Calculate" to pull data from player session history.</p>
                         </div>
                         <div>
                             <p style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>🏅 League Boards</p>

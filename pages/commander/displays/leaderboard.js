@@ -90,36 +90,36 @@ export default function LeaderboardDisplay() {
       // SECTION A: CUSTOM LEADERBOARDS (staff-created, first priority)
       // ════════════════════════════════════════════════════════════
       try {
-        const lbRes = await fetch('/api/commander/leaderboards');
+        const lbRes = await fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`);
         const lbJson = await lbRes.json();
         const customs = lbJson?.leaderboards || lbJson?.data || [];
         if (Array.isArray(customs)) {
-          for (const lb of customs.filter(l => l.status === 'active').slice(0, 4)) {
-            try {
-              const eRes = await fetch(`/api/commander/leaderboards/${lb.id}/entries`);
-              const eJson = await eRes.json();
-              const entries = eJson?.entries || eJson?.data || [];
-              if (entries.length > 0) {
-                const maxScore = Math.max(...entries.map(e => e.score || e.points || 0), 1);
-                const typeLabel = lb.leaderboard_type === 'hours_played' ? 'HOURS' :
-                  lb.leaderboard_type === 'sessions' ? 'SESSIONS' :
-                    lb.leaderboard_type === 'high_hand' ? 'HIGH HAND' :
-                      lb.leaderboard_type === 'referrals' ? 'REFERRALS' : 'POINTS';
-                built.push({
-                  id: `custom-${lb.id}`, icon: '📋', title: lb.name,
-                  subtitle: lb.description || `${entries.length} players • Staff-managed board`,
-                  scoreHeader: typeLabel, source: 'custom',
-                  entries: entries.slice(0, 15).map((e, i) => ({
-                    rank: e.rank || i + 1, name: e.player_name || e.profiles?.display_name || 'Player',
-                    avatar: e.profiles?.avatar_url, score: e.score || e.points || 0,
-                    scoreDisplay: lb.leaderboard_type === 'hours_played' ? fmtHours(e.hours_played || e.score || 0) : String(e.score || e.points || 0),
-                    detail: [e.hours_played ? `${fmtHours(e.hours_played)} played` : null, e.sessions_count ? `${e.sessions_count} sessions` : null].filter(Boolean).join(' • ') || '',
-                    barPct: Math.round(((e.score || e.points || 0) / maxScore) * 100),
-                  })),
-                });
-              }
-            } catch { }
-          }
+          const activeBoards = customs.slice(0, 4);
+          const entryResults = await Promise.all(
+            activeBoards.map(lb => fetch(`/api/commander/leaderboards/${lb.id}/entries`).then(r => r.json()).catch(() => ({})))
+          );
+          activeBoards.forEach((lb, idx) => {
+            const entries = entryResults[idx]?.entries || entryResults[idx]?.data || [];
+            if (entries.length > 0) {
+              const maxScore = Math.max(...entries.map(e => e.score || e.points || 0), 1);
+              const typeLabel = lb.leaderboard_type === 'hours_played' ? 'HOURS' :
+                lb.leaderboard_type === 'sessions' ? 'SESSIONS' :
+                  lb.leaderboard_type === 'high_hand' ? 'HIGH HAND' :
+                    lb.leaderboard_type === 'referrals' ? 'REFERRALS' : 'POINTS';
+              built.push({
+                id: `custom-${lb.id}`, icon: '📋', title: lb.name,
+                subtitle: lb.description || `${entries.length} players • Staff-managed board`,
+                scoreHeader: typeLabel, source: 'custom',
+                entries: entries.slice(0, 15).map((e, i) => ({
+                  rank: e.rank || i + 1, name: e.player_name || e.profiles?.display_name || 'Player',
+                  avatar: e.profiles?.avatar_url, score: e.score || e.points || 0,
+                  scoreDisplay: lb.leaderboard_type === 'hours_played' ? fmtHours(e.hours_played || e.score || 0) : String(e.score || e.points || 0),
+                  detail: [e.hours_played ? `${fmtHours(e.hours_played)} played` : null, e.sessions_count ? `${e.sessions_count} sessions` : null].filter(Boolean).join(' • ') || '',
+                  barPct: Math.round(((e.score || e.points || 0) / maxScore) * 100),
+                })),
+              });
+            }
+          });
         }
       } catch { }
 

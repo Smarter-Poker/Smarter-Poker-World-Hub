@@ -55,7 +55,9 @@ export default function CompSystem() {
     try {
       const venueId = getVenueId();
       const token = getToken();
+      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
       const headers = { Authorization: `Bearer ${token}` };
+      if (staffSession) headers['x-staff-session'] = staffSession;
       if (tab === 'balances') {
         // Get members with comp balances from members API
         const res = await fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers });

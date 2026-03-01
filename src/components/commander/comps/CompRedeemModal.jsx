@@ -78,9 +78,8 @@ export default function CompRedeemModal({
                     key={type.value}
                     type="button"
                     onClick={() => setRedemptionType(type.value)}
-                    className={`p-3 rounded-lg flex flex-col items-center gap-1 transition-colors ${
-                      isSelected ? 'ring-2' : ''
-                    }`}
+                    className={`p-3 rounded-lg flex flex-col items-center gap-1 transition-colors ${isSelected ? 'ring-2' : ''
+                      }`}
                     style={{
                       backgroundColor: isSelected ? `${type.color}20` : '#0B1426',
                       ringColor: type.color
@@ -151,7 +150,7 @@ export default function CompRedeemModal({
           )}
 
           {/* Summary */}
-          {amount && parseFloat(amount) > 0 && ParseFloat(amount) <= currentBalance && (
+          {amount && parseFloat(amount) > 0 && parseFloat(amount) <= currentBalance && (
             <div className="p-3 rounded-lg bg-[#0B1426]">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-[#64748B]">Redeeming</span>
