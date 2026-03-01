@@ -21,6 +21,7 @@ export default function CommanderSettingsPage() {
   const [error, setError] = useState(null);
   const [logoUrl, setLogoUrl] = useState(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   // Settings state
   const [settings, setSettings] = useState({
@@ -144,6 +145,7 @@ export default function CommanderSettingsPage() {
       if (data.success) {
         broadcastChange('settings');
         setSuccess('Settings saved successfully');
+        setIsDirty(false);
         setTimeout(() => setSuccess(null), 3000);
       } else {
         setError(typeof data.error === 'string' ? data.error : (data.error?.message || 'Failed to save settings'));
@@ -157,10 +159,12 @@ export default function CommanderSettingsPage() {
 
   function handleToggle(key) {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    setIsDirty(true);
   }
 
   function handleChange(key, value) {
     setSettings(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
   }
 
   if (!staff || loading) {
@@ -184,35 +188,41 @@ export default function CommanderSettingsPage() {
         />
 
         <div className="cmd-page">
-          {/* Header */}
-          <header className="cmd-header-bar sticky top-0 z-50">
-            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="font-bold text-white text-lg">Settings</h1>
-                  <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
-                </div>
-              </div>
-
-              {canManageSettings && (
+          {/* Main Content */}
+          <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+            {/* Floating Save Bar — only shows when dirty */}
+            {canManageSettings && isDirty && (
+              <div style={{
+                position: 'sticky', top: 56, zIndex: 40,
+                background: 'linear-gradient(135deg, #1877F2 0%, #166FE5 100%)',
+                borderRadius: 12, padding: '12px 20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                boxShadow: '0 4px 20px rgba(24,119,242,0.4)',
+                animation: 'slideDown 0.2s ease-out',
+              }}>
+                <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: 0 }}>You have unsaved changes</p>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary disabled:opacity-50"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 20px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.2)', color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    opacity: saving ? 0.6 : 1,
+                  }}
                 >
                   {saving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  Save
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
-              )}
-            </div>
-          </header>
+              </div>
+            )}
 
-          {/* Main Content */}
-          <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
             {/* Alerts */}
             {success && (
               <div className="p-4 bg-[#31A24C]/10 rounded-xl">
@@ -652,7 +662,11 @@ export default function CommanderSettingsPage() {
           </main>
         </div>
         <style jsx>{`
-`}</style>
+          @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </>
     </CommanderLayout>
   );
