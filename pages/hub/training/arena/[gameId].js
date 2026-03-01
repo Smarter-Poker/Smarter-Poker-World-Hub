@@ -1,156 +1,588 @@
 /**
- * Training Arena Page — God Mode Integration
- * ===========================================
- * Route: /hub/training/arena/[gameId]?level=X
- * 
- * This page wraps the GodModeArena component which provides:
- * - Poker table with cards, avatars, and timer
- * - Questions fetched from /api/god-mode/fetch-hand
- * - Action buttons from solver data
- * - Score tracking and session completion
+ * Training Arena Page — Golden Template (Full Screen)
+ * ====================================================
+ * Fixed avatar positioning using Aspect Ratio Container strategy.
+ * All avatars positioned relative to a 3:4 aspect wrapper that
+ * exactly matches the table image bounds.
+ *
+ * Route: /hub/training/arena/[gameId]?level=X&session=Y
  */
 
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import SEOHead from '../../../../src/components/seo/SEOHead';
-import dynamic from 'next/dynamic';
-import { getAuthUser } from '../../../../src/lib/authUtils';
+import Head from 'next/head';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import { supabase } from '../../../../src/lib/supabase';
 
-//  GOLDEN LOCK STANDARD - Fixed Canvas: 862x1024px
-const CANVAS_WIDTH = 862;
-const CANVAS_HEIGHT = 1024;
+// Villain avatars in seat order (1-8)
+const VILLAIN_AVATARS = [
+    '/avatars/free/lion.png',      // V1 - Bottom Right
+    '/avatars/vip/rock_legend.png', // V2 - Right Middle
+    '/avatars/free/shark.png',     // V3 - Top Right
+    '/avatars/vip/wolf.png',       // V4 - Top Right-Center
+    '/avatars/vip/spartan.png',    // V5 - Top Left-Center
+    '/avatars/vip/monarch.png',    // V6 - Top Left
+    '/avatars/vip/tech_mogul.png', // V7 - Left Middle
+    '/avatars/free/owl.png',       // V8 - Bottom Left
+];
 
-// Dynamic import for GodModeArena to avoid SSR issues
-const GodModeArena = dynamic(
-    () => import('../../../../src/components/training/GodModeArena'),
-    { ssr: false, loading: () => <LoadingScreen /> }
-);
+// Seat positions relative to the 3:4 aspect container (percentages)
+// These coordinates position avatars ON the gold table rail
+// Adjusted: side seats moved inward to stay inside table bounds
+const SEAT_POSITIONS = {
+    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
+    seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },    // V1 - Bottom Right
+    seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },  // V2 - Right Middle (moved in)
+    seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },       // V3 - Top Right (moved in)
+    seat4: { left: '62%', top: '6%', transform: 'translateX(-50%)' },        // V4 - Top Right-Center
+    seat5: { left: '38%', top: '6%', transform: 'translateX(-50%)' },        // V5 - Top Left-Center
+    seat6: { left: '22%', top: '20%', transform: 'translateX(-50%)' },       // V6 - Top Left (moved in)
+    seat7: { left: '15%', top: '48%', transform: 'translate(-50%, -50%)' },  // V7 - Left Middle (moved in)
+    seat8: { left: '22%', bottom: '20%', transform: 'translateX(-50%)' },    // V8 - Bottom Left
+};
 
-// Loading screen component
-function LoadingScreen() {
+// Suit symbols
+const SUITS = {
+    s: { symbol: '♠', color: '#1a1d24' },
+    h: { symbol: '♥', color: '#dc2626' },
+    d: { symbol: '♦', color: '#3b82f6' },
+    c: { symbol: '♣', color: '#22c55e' },
+};
+
+function parseCards(cardString) {
+    if (!cardString) return [];
+    const cards = [];
+    const regex = /([AKQJT98765432])([shdc])/g;
+    let match;
+    while ((match = regex.exec(cardString)) !== null) {
+        const [, rank, suit] = match;
+        cards.push({
+            rank,
+            suit: SUITS[suit]?.symbol || suit,
+            isRed: suit === 'h' || suit === 'd',
+        });
+    }
+    return cards;
+}
+
+// Avatar component with gold badge
+function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
+    const size = isHero ? 75 : 60;
+
     return (
         <div style={{
-            width: '100%',
-            height: '100vh',
-            background: 'linear-gradient(180deg, #080810 0%, #0d1628 100%)',
+            position: 'absolute',
+            ...position,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             flexDirection: 'column',
-            fontFamily: "'Inter', sans-serif",
+            alignItems: 'center',
+            zIndex: 15,
         }}>
+            <img
+                src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`}
+                alt={name}
+                style={{
+                    width: size,
+                    height: size,
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))',
+                }}
+            />
             <div style={{
-                fontSize: 64,
-                marginBottom: 24,
-                animation: 'pulse 1.5s infinite',
-            }}></div>
-            <p style={{ color: '#94a3b8', fontSize: 16 }}>Loading Training Arena...</p>
-            <style jsx>{`
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); opacity: 1; }
-                    50% { transform: scale(1.1); opacity: 0.8; }
-                }
-            `}</style>
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '2px 8px',
+                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)',
+                borderRadius: 4,
+                marginTop: -8,
+                minWidth: 50,
+            }}>
+                <span style={{ fontSize: 8, fontWeight: 600, color: '#1a1d24' }}>{name}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1d24' }}>{stack} BB</span>
+            </div>
         </div>
     );
 }
 
-// Game names mapping (fallback)
-const GAME_NAMES = {
-    'mtt-001': 'MTT Final Table Training',
-    'mtt-002': 'MTT Push/Fold',
-    'mtt-003': 'MTT ICM Spots',
-    'cash-001': 'Cash Game Fundamentals',
-    'cash-002': 'Cash 3-Bet Pots',
-    'spins-001': 'Spin & Go 3-Max',
-    'mental-001': 'Tilt Control',
-    'mental-002': 'Session Management',
-};
+// Card component
+function Card({ rank, suit, isRed, size = 'normal' }) {
+    const width = size === 'hero' ? 32 : 28;
+    const height = size === 'hero' ? 46 : 40;
+
+    return (
+        <div style={{
+            width,
+            height,
+            borderRadius: 4,
+            background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+        }}>
+            <span style={{
+                fontSize: size === 'hero' ? 16 : 13,
+                fontWeight: 800,
+                color: isRed ? '#dc2626' : '#1a1d24',
+                lineHeight: 1,
+            }}>{rank}</span>
+            <span style={{
+                fontSize: size === 'hero' ? 12 : 9,
+                color: isRed ? '#dc2626' : '#1a1d24',
+                lineHeight: 1,
+            }}>{suit}</span>
+        </div>
+    );
+}
 
 export default function TrainingArenaPage() {
     const router = useRouter();
     const { gameId, level = 1 } = router.query;
 
-    const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [scale, setScale] = useState(1);
+    const [gameName, setGameName] = useState('Training Game');
+    const [handNumber, setHandNumber] = useState(1);
+    const [totalHands] = useState(20);
+    const [timer, setTimer] = useState(15);
 
-    //  GOLDEN LOCK: Calculate viewport scale factor
+    const [heroCards, setHeroCards] = useState([]);
+    const [board, setBoard] = useState([]);
+    const [pot, setPot] = useState(0);
+    const [heroStack, setHeroStack] = useState(45);
+    const [villainStacks] = useState([32, 28, 55, 41, 38, 62, 29, 51]);
+    const [question, setQuestion] = useState("You Are On The Button (Last To Act). The Player To Your Right Bets 2.5 Big Blinds. What Is Your Best Move?");
+
     useEffect(() => {
-        const calculateScale = () => {
-            const scaleX = window.innerWidth / CANVAS_WIDTH;
-            const scaleY = window.innerHeight / CANVAS_HEIGHT;
-            const newScale = Math.min(scaleX, scaleY, 1); // Never scale UP, only down
-            setScale(newScale);
+        const init = async () => {
+            try {
+                if (gameId) {
+                    const { data: game } = await supabase
+                        .from('game_registry')
+                        .select('title')
+                        .eq('slug', gameId)
+                        .single();
+
+                    if (game?.title) setGameName(game.title);
+
+                    const { data: hand } = await supabase
+                        .from('god_mode_questions')
+                        .select('*')
+                        .eq('game_slug', gameId)
+                        .limit(1)
+                        .single();
+
+                    if (hand) {
+                        setHeroCards(parseCards(hand.hero_hand || 'AhKh'));
+                        setBoard(parseCards(hand.board || ''));
+                        setPot(hand.pot_size || 6);
+                        setHeroStack(hand.hero_stack || 45);
+                        setQuestion(hand.scenario_text || question);
+                    } else {
+                        setHeroCards(parseCards('AhKh'));
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                setHeroCards(parseCards('AhKh'));
+            } finally {
+                setLoading(false);
+            }
         };
+        init();
+    }, [gameId]);
 
-        calculateScale();
-        window.addEventListener('resize', calculateScale);
-        return () => window.removeEventListener('resize', calculateScale);
-    }, []);
-
-    // Get user on mount
     useEffect(() => {
-        const authUser = getAuthUser();
-        if (authUser?.id) {
-            setUserId(authUser.id);
-        } else {
-            // Generate anonymous user for demo
-            const anonId = `anon-${Date.now()}`;
-            setUserId(anonId);
-        }
-        setLoading(false);
-    }, []);
+        if (loading) return;
+        const interval = setInterval(() => {
+            setTimer(prev => (prev > 0 ? prev - 1 : 15));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [loading]);
 
-    const handleComplete = (results) => {
-        console.log('Session complete:', results);
-        // Could save results to database here
+    const handleAction = async (action) => {
+        setHandNumber(prev => Math.min(prev + 1, totalHands));
+        setTimer(15);
     };
 
-    const handleExit = () => {
-        router.push('/hub/training');
-    };
-
-    if (loading || !gameId) {
-        return <LoadingScreen />;
+    if (loading) {
+        return (
+            <div style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontFamily: 'Inter, sans-serif',
+                gap: 16,
+            }}>
+                <div style={{ fontSize: 48, animation: 'spin 1s linear infinite' }}>🎰</div>
+                <p>Loading arena...</p>
+            </div>
+        );
     }
-
-    const gameName = GAME_NAMES[gameId] || gameId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
     return (
         <>
-            <SEOHead
-                title="Training Arena — Play Game"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+            <Head>
+                <title>{gameName} — Training Arena | Smarter.Poker</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+            </Head>
 
-            {/*  GOLDEN LOCK: Scaled container wrapper */}
-            <div style={{
-                width: '100%',
-                height: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-            }}>
-                <div style={{
-                    width: `${CANVAS_WIDTH}px`,
-                    height: `${CANVAS_HEIGHT}px`,
-                    transform: `scale(${scale})`,
-                    transformOrigin: 'center center',
-                }}>
-                    <GodModeArena
-                        userId={userId}
-                        gameId={gameId}
-                        gameName={gameName}
-                        level={parseInt(level) || 1}
-                        sessionId={`session-${Date.now()}`}
-                        onComplete={handleComplete}
-                        onExit={handleExit}
-                    />
+            <div className="arena-root">
+                {/* HEADER - Universal Header matching Social Hub style */}
+                <UniversalHeader pageDepth={2} />
+
+                {/* QUESTION PROMPT */}
+                <div className="question-bar">
+                    <p>{question}</p>
+                </div>
+
+                {/* TABLE AREA - Centered with aspect ratio lock */}
+                <div className="table-area">
+                    {/* ASPECT RATIO CONTAINER - This is the key fix!
+                        The wrapper has aspect-ratio: 3/4 and explicit bounds.
+                        All children position relative to this container. */}
+                    <div className="table-wrapper">
+                        {/* Table Image - fills the wrapper exactly */}
+                        <img
+                            src="/images/training/table-vertical.jpg"
+                            alt="Poker Table"
+                            className="table-img"
+                        />
+
+                        {/* POT Display */}
+                        <div className="pot">
+                            <span className="pot-icon">●</span>
+                            <span className="pot-label">POT</span>
+                            <span className="pot-value">{pot}</span>
+                        </div>
+
+                        {/* Board Cards (community cards) */}
+                        {board.length > 0 && (
+                            <div className="board">
+                                {board.map((card, i) => (
+                                    <Card key={i} {...card} />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Game Title on Felt */}
+                        <div className="felt-title">
+                            <span className="felt-name">{gameName}</span>
+                            <span className="felt-sub">Smarter.Poker</span>
+                        </div>
+
+                        {/* Dealer Button */}
+                        <div className="dealer-btn">D</div>
+
+                        {/* VILLAIN SEATS (1-8) */}
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[0]}
+                            name="Villain 1"
+                            stack={villainStacks[0]}
+                            position={SEAT_POSITIONS.seat1}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[1]}
+                            name="Villain 2"
+                            stack={villainStacks[1]}
+                            position={SEAT_POSITIONS.seat2}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[2]}
+                            name="Villain 3"
+                            stack={villainStacks[2]}
+                            position={SEAT_POSITIONS.seat3}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[3]}
+                            name="Villain 4"
+                            stack={villainStacks[3]}
+                            position={SEAT_POSITIONS.seat4}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[4]}
+                            name="Villain 5"
+                            stack={villainStacks[4]}
+                            position={SEAT_POSITIONS.seat5}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[5]}
+                            name="Villain 6"
+                            stack={villainStacks[5]}
+                            position={SEAT_POSITIONS.seat6}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[6]}
+                            name="Villain 7"
+                            stack={villainStacks[6]}
+                            position={SEAT_POSITIONS.seat7}
+                        />
+                        <PlayerSeat
+                            avatar={VILLAIN_AVATARS[7]}
+                            name="Villain 8"
+                            stack={villainStacks[7]}
+                            position={SEAT_POSITIONS.seat8}
+                        />
+
+                        {/* HERO SEAT */}
+                        <PlayerSeat
+                            avatar="/avatars/vip/dragon.png"
+                            name="Hero"
+                            stack={heroStack}
+                            position={SEAT_POSITIONS.hero}
+                            isHero={true}
+                        />
+
+                        {/* Hero Cards - Right of hero avatar */}
+                        <div className="hero-cards">
+                            {heroCards.map((card, i) => (
+                                <div key={i} style={{
+                                    transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)',
+                                    marginLeft: i > 0 ? -8 : 0,
+                                    zIndex: i + 1,
+                                }}>
+                                    <Card {...card} size="hero" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Timer - Bottom left of table */}
+                        <div className="timer">
+                            <span>{timer}</span>
+                        </div>
+
+                        {/* Question Counter - Bottom right of table */}
+                        <div className="q-counter">
+                            <span>Question {handNumber} of {totalHands}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ACTION BUTTONS - 2x2 Grid */}
+                <div className="action-bar">
+                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
+                    <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
+                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
+                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
                 </div>
             </div>
+
+            <style jsx>{`
+                :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
+                :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
+
+                .arena-root {
+                    position: fixed;
+                    inset: 0;
+                    display: flex;
+                    flex-direction: column;
+                    background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+                    color: #fff;
+                }
+
+                /* QUESTION */
+                .question-bar {
+                    flex-shrink: 0;
+                    padding: 10px 16px;
+                    background: rgba(0,80,160,0.2);
+                    border-bottom: 1px solid rgba(0,150,255,0.25);
+                }
+                .question-bar p {
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: #00d4ff;
+                    text-align: center;
+                    line-height: 1.4;
+                }
+
+                /* TABLE AREA */
+                .table-area {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 25px 8px;
+                    overflow: hidden;
+                    background: transparent;
+                }
+
+                /* ASPECT RATIO CONTAINER - THE KEY FIX!
+                   This wrapper maintains 3:4 aspect ratio and provides
+                   the positioning context for all avatars */
+                .table-wrapper {
+                    position: relative;
+                    aspect-ratio: 3 / 4;
+                    max-height: 70vh;
+                    max-width: calc(70vh * 0.75); /* 3:4 ratio based on height */
+                    width: 100%;
+                    margin: 0 auto;
+                    background: transparent;
+                    border-radius: 30px;
+                    overflow: visible;
+                }
+                
+                /* Vignette overlay to mask black corners of table image */
+                .table-wrapper::before {
+                    content: '';
+                    position: absolute;
+                    inset: -10px;
+                    background: radial-gradient(ellipse 85% 90% at center, transparent 50%, #0a0e17 80%, #050810 100%);
+                    pointer-events: none;
+                    z-index: 15;
+                }
+
+                .table-img {
+                    position: absolute;
+                    inset: 0;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: fill; /* Fill the aspect container exactly */
+                    border-radius: 20px;
+                }
+
+                /* POT */
+                .pot {
+                    position: absolute;
+                    top: 16%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    padding: 4px 12px;
+                    background: rgba(0,0,0,0.85);
+                    border-radius: 14px;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    z-index: 20;
+                }
+                .pot-icon { color: #d4a020; font-size: 10px; }
+                .pot-label { font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 600; }
+                .pot-value { font-size: 13px; font-weight: 700; }
+
+                /* Board */
+                .board {
+                    position: absolute;
+                    top: 42%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    display: flex;
+                    gap: 4px;
+                    z-index: 20;
+                }
+
+                /* Felt Title */
+                .felt-title {
+                    position: absolute;
+                    top: 54%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    z-index: 10;
+                }
+                .felt-name { font-size: 12px; font-weight: 700; opacity: 0.9; }
+                .felt-sub { font-size: 9px; color: rgba(255,255,255,0.6); }
+
+                /* Dealer Button */
+                .dealer-btn {
+                    position: absolute;
+                    bottom: 22%;
+                    left: 43%;
+                    width: 20px;
+                    height: 20px;
+                    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 9px;
+                    font-weight: 800;
+                    color: #1a1d24;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                    z-index: 20;
+                }
+
+                /* Hero Cards - Positioned right of hero */
+                .hero-cards {
+                    position: absolute;
+                    bottom: 4%;
+                    right: 28%;
+                    display: flex;
+                    z-index: 25;
+                }
+
+                /* Timer - Bottom left */
+                .timer {
+                    position: absolute;
+                    bottom: 5%;
+                    left: 5%;
+                    width: 44px;
+                    height: 44px;
+                    background: rgba(0,0,0,0.9);
+                    border: 2px solid #dc2626;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 25;
+                }
+                .timer span { font-size: 20px; font-weight: 800; color: #dc2626; }
+
+                /* Question Counter - Bottom right */
+                .q-counter {
+                    position: absolute;
+                    bottom: 6%;
+                    right: 5%;
+                    padding: 6px 10px;
+                    background: rgba(37,99,235,0.2);
+                    border: 1px solid #3b82f6;
+                    border-radius: 6px;
+                    z-index: 25;
+                }
+                .q-counter span { font-size: 10px; color: #60a5fa; font-weight: 500; }
+
+                /* ACTION BUTTONS - 2x2 Grid */
+                .action-bar {
+                    flex-shrink: 0;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 8px;
+                    padding: 12px 16px 20px;
+                    background: rgba(10,14,23,0.98);
+                    border-top: 1px solid rgba(255,255,255,0.1);
+                }
+                .action-btn {
+                    padding: 14px;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: transform 0.1s, box-shadow 0.1s;
+                }
+                .action-btn:active {
+                    transform: scale(0.97);
+                }
+                .fold {
+                    background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
+                    color: #fff;
+                    border: 1px solid rgba(255,255,255,0.1);
+                }
+                .call, .raise, .allin {
+                    background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%);
+                    color: #fff;
+                    box-shadow: 0 3px 8px rgba(30,95,168,0.4);
+                }
+            `}</style>
         </>
     );
 }
