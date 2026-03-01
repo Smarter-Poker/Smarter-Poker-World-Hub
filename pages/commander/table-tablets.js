@@ -912,6 +912,7 @@ export default function TableTabletsPage() {
                         return (
                             <div key={seat.number}
                                 onClick={isFullscreen ? () => {
+                                    haptic('light');
                                     if (movingPlayer && !isOccupied) {
                                         // Complete the move
                                         (async () => {
@@ -1361,7 +1362,7 @@ export default function TableTabletsPage() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <button
-                                    onClick={() => openDealerScan(fullscreenTable.table_number)}
+                                    onClick={() => { haptic(); openDealerScan(fullscreenTable.table_number); }}
                                     style={{
                                         background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
                                         borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
@@ -1373,7 +1374,7 @@ export default function TableTabletsPage() {
                                 </button>
                                 {/* Lock button */}
                                 <button
-                                    onClick={() => lockToTable(fullscreenTable.table_number || fullscreenTable.number)}
+                                    onClick={() => { haptic(); lockToTable(fullscreenTable.table_number || fullscreenTable.number); }}
                                     style={{
                                         background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
                                         borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
@@ -1386,7 +1387,7 @@ export default function TableTabletsPage() {
                                 </button>
                                 {/* Close button */}
                                 <button
-                                    onClick={() => setFullscreenTable(null)}
+                                    onClick={() => { haptic('light'); setFullscreenTable(null); }}
                                     style={{
                                         background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
                                         width: 40, height: 40, cursor: 'pointer',
@@ -1402,7 +1403,7 @@ export default function TableTabletsPage() {
                     {lockedTable && (
                         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
                             <button
-                                onClick={() => { setShowPinModal(true); setPinValue(''); setPinError(''); }}
+                                onClick={() => { haptic(); setShowPinModal(true); setPinValue(''); setPinError(''); }}
                                 style={{
                                     background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
                                     borderRadius: 10, padding: '6px 14px', cursor: 'pointer',
@@ -1425,7 +1426,7 @@ export default function TableTabletsPage() {
                         {/* ── Call Clock Countdown (bottom-right) ── */}
                         {callClockSeconds !== null && (
                             <div
-                                onClick={() => { clearInterval(callClockRef.current); setCallClockSeconds(null); }}
+                                onClick={() => { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); }}
                                 style={{
                                     position: 'absolute', bottom: 20, right: 20, zIndex: 100,
                                     width: 100, height: 100, borderRadius: '50%',
@@ -1448,6 +1449,7 @@ export default function TableTabletsPage() {
                                 <button
                                     disabled={callFloorSending}
                                     onClick={async () => {
+                                        haptic('heavy');
                                         setCallFloorSending(true);
                                         try {
                                             const tNum = fullscreenTable.table_number;
@@ -1483,6 +1485,7 @@ export default function TableTabletsPage() {
                             ) : (
                                 <button
                                     onClick={async () => {
+                                        haptic();
                                         // Cancel the active floor call
                                         if (callFloorId) {
                                             try {
@@ -1517,7 +1520,7 @@ export default function TableTabletsPage() {
                             {callClockSeconds === null && (
                                 <button
                                     onClick={() => {
-                                        setCallClockSeconds(60);
+                                        haptic();
                                         if (callClockRef.current) clearInterval(callClockRef.current);
                                         callClockRef.current = setInterval(() => {
                                             setCallClockSeconds(prev => {
@@ -1543,6 +1546,7 @@ export default function TableTabletsPage() {
                             {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
                                 <button
                                     onClick={() => {
+                                        haptic();
                                         // SAFEGUARD: Validate tournament_id is a real UUID before locking
                                         const tid = fullscreenTable.tournament_id;
                                         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1592,7 +1596,7 @@ export default function TableTabletsPage() {
                             }}>
                                 {/* Back to Table button — floats over the iframe */}
                                 <button
-                                    onClick={() => { setShowTournamentClock(false); setLockedTournamentId(null); }}
+                                    onClick={() => { haptic('light'); setShowTournamentClock(false); setLockedTournamentId(null); }}
                                     style={{
                                         position: 'absolute', top: 20, left: 20, zIndex: 10,
                                         background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
@@ -1634,7 +1638,7 @@ export default function TableTabletsPage() {
                             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                         }}>
                             🪑 Moving {movingPlayer.player_name} — tap an empty seat
-                            <button onClick={() => { setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
+                            <button onClick={() => { haptic(); setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
                                 style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                             >Cancel</button>
                         </div>
@@ -1645,7 +1649,7 @@ export default function TableTabletsPage() {
             {/* ── PLAYER ACTION MENU (fullscreen mode) ── */}
             {showPlayerMenu && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => setShowPlayerMenu(null)}>
+                    onClick={() => { haptic('light'); setShowPlayerMenu(null); }}>
                     <div onClick={e => e.stopPropagation()} style={{ background: '#242526', borderRadius: 20, padding: '24px', width: '90%', maxWidth: 340, border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
                         <div style={{ textAlign: 'center', marginBottom: 20 }}>
                             <div style={{ width: 64, height: 64, borderRadius: '50%', margin: '0 auto 10px', background: 'linear-gradient(135deg, #1877F2, #1565c0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#fff' }}>
@@ -1674,7 +1678,7 @@ export default function TableTabletsPage() {
                                     ]),
                                 ];
                                 return actions.map((btn, i) => (
-                                    <button key={i} onClick={btn.action} disabled={playerActionLoading}
+                                    <button key={i} onClick={() => { haptic(); btn.action(); }} disabled={playerActionLoading}
                                         style={{ padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
                                     >{btn.label}</button>
                                 ));
