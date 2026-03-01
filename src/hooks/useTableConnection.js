@@ -55,6 +55,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const [timerState, setTimerState] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [result, setResult] = useState(null);
+  const [lastHandResult, setLastHandResult] = useState(null); // Persists after result clears
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(false);
 
@@ -164,6 +165,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'hand_complete':
         setResult(data); setLegalActions(null);
+        setLastHandResult(data);  // Persist for "last hand" review
         if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
         resultTimeoutRef.current = setTimeout(() => setResult(null), 5000);
         requestState();
@@ -375,7 +377,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
 
   return {
     tableState, myCards, legalActions, timerState, chatMessages,
-    result, error, connected,
+    result, lastHandResult, error, connected,
     send, requestState,
     sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat,
     joinWaitlist, leaveWaitlist,

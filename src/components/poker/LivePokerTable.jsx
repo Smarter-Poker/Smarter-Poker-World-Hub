@@ -1217,7 +1217,7 @@ function ChatOverlay({ messages, onSend }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, lastHandResult, onShowLastHand }) {
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -1287,6 +1287,7 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             />
           )}
           <SmallButton label="Add Chips" onClick={onAddChips} />
+          {lastHandResult && <SmallButton label="📋 Last Hand" onClick={onShowLastHand} />}
           <SmallButton
             label={autoTopUpOn ? '✓ Top Up' : 'Top Up'}
             onClick={onToggleAutoTopUp}
@@ -1644,7 +1645,7 @@ export default function LivePokerTable({
   // Connection via hook
   const {
     tableState, myCards, legalActions, timerState,
-    chatMessages, result, error, connected, send,
+    chatMessages, result, lastHandResult, error, connected, send,
   } = useTableConnection({ supabase, tableId, userId });
 
   // Theme system
@@ -1762,6 +1763,7 @@ export default function LivePokerTable({
   const maxSeats = tableState?.maxSeats || 9;
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
   const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
+  const [showLastHand, setShowLastHand] = useState(false);
 
   // Auto-execute pre-action when it's our turn
   useEffect(() => {
@@ -2016,6 +2018,8 @@ export default function LivePokerTable({
         onToggleStraddle={handleToggleStraddle}
         autoTopUpOn={autoTopUpOn}
         onToggleAutoTopUp={handleToggleAutoTopUp}
+        lastHandResult={lastHandResult}
+        onShowLastHand={() => setShowLastHand(true)}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}
@@ -2387,6 +2391,77 @@ export default function LivePokerTable({
           Reconnecting...
         </div>
       )}
+
+      {/* ═══════════ LAST HAND REVIEW POPUP ═══════════ */}
+      <AnimatePresence>
+        {showLastHand && lastHandResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLastHand(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+              zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#242526', borderRadius: 16, padding: 20,
+                width: 360, border: '1px solid #3a3b3c',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ color: '#e4e6eb', fontSize: 16, fontWeight: 700 }}>📋 Last Hand</span>
+                <button onClick={() => setShowLastHand(false)} style={{ background: 'none', border: 'none', color: '#b0b3b8', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              </div>
+              
+              {/* Hand number */}
+              {lastHandResult.handNumber && (
+                <div style={{ color: '#b0b3b8', fontSize: 11, marginBottom: 8 }}>Hand #{lastHandResult.handNumber}</div>
+              )}
+
+              {/* Winners */}
+              {(lastHandResult.winners || []).map((w, i) => (
+                <div key={i} style={{ marginBottom: 8, padding: '8px 12px', background: '#3a3b3c', borderRadius: 8 }}>
+                  <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>
+                    🏆 {w.displayName || w.playerId} won {w.amount?.toLocaleString()}
+                  </div>
+                  {w.handDescription && <div style={{ color: '#b0b3b8', fontSize: 12 }}>{w.handDescription}</div>}
+                  {w.holeCards && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                      {w.holeCards.map((c, j) => <CardImg key={j} card={c} width={32} />)}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Board */}
+              {lastHandResult.board?.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ color: '#b0b3b8', fontSize: 11, marginBottom: 4 }}>Board</div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {lastHandResult.board.map((c, i) => <CardImg key={i} card={c} width={36} />)}
+                  </div>
+                </div>
+              )}
+
+              {/* Pot */}
+              {lastHandResult.potTotal > 0 && (
+                <div style={{ color: '#b0b3b8', fontSize: 12, marginTop: 8 }}>
+                  Pot: <span style={{ color: '#e4e6eb', fontWeight: 600 }}>{lastHandResult.potTotal.toLocaleString()}</span>
+                  {lastHandResult.rake > 0 && <span> (rake: {lastHandResult.rake})</span>}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══════════ PLAYER NOTES MODAL ═══════════ */}
       <PlayerNoteModal
