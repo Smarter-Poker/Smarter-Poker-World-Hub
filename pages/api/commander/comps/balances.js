@@ -27,22 +27,9 @@ export default async function handler(req, res) {
 
 async function awardComp(req, res, staffAuth) {
   try {
-    // staffAuth comes from guardWriteStaff — already verified via x-staff-session
-    // It's the staff record: { id, venue_id, role, is_active }
-    // For display_name, we look up the full staff record
-    let staffRecord = staffAuth;
-
-    // If staffAuth doesn't have display_name (minimal record from guard), look it up
-    if (!staffRecord.display_name) {
-      const { data: fullStaff } = await supabase
-        .from('commander_staff')
-        .select('id, role, display_name, venue_id')
-        .eq('id', staffAuth.id)
-        .single();
-      if (fullStaff) staffRecord = fullStaff;
-    }
-
-    if (!staffRecord) return res.status(403).json({ success: false, error: 'Staff access required' });
+    // staffAuth: { id, venue_id, role, is_active } from guardWriteStaff
+    // display_name comes from request body (authorized_by) — set by PIN verifier
+    const staffRecord = staffAuth;
 
     const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes } = req.body;
     if (!member_id || !amount) return res.status(400).json({ success: false, error: 'member_id and amount required' });
