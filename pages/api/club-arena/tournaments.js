@@ -496,6 +496,18 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Cannot cancel running tournament' });
         }
 
+        // Verify admin
+        const { data: cancelMember } = await supabaseAdmin
+          .from('club_members')
+          .select('role')
+          .eq('club_id', tourn.club_id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!cancelMember || !['owner', 'admin', 'manager'].includes(cancelMember.role)) {
+          return res.status(403).json({ error: 'Only club admins can cancel tournaments' });
+        }
+
         // Refund all registered players
         const { data: registrations } = await supabaseAdmin
           .from('tournament_registrations')
@@ -504,10 +516,12 @@ export default async function handler(req, res) {
           .eq('status', 'registered');
 
         for (const reg of (registrations || [])) {
-          await supabaseAdmin.from('club_members')
-            .update({ chip_balance: supabaseAdmin.rpc('raw', { sql: `chip_balance + ${reg.buy_in_amount}` }) })
-            .eq('club_id', tourn.club_id)
-            .eq('user_id', reg.user_id);
+          // Atomic refund via RPC
+          await supabaseAdmin.rpc('fn_credit_chips', {
+            p_club_id: tourn.club_id,
+            p_user_id: reg.user_id,
+            p_amount: reg.buy_in_amount,
+          });
 
           await supabaseAdmin.from('tournament_registrations')
             .update({ status: 'refunded' })

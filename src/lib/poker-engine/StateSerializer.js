@@ -107,7 +107,9 @@ class StateSerializer {
           totalBet: p.totalBet,
           folded: p.folded,
           allIn: p.allIn,
-          holeCards: p.holeCards, // Will be encrypted in DB
+          // SECURITY: Hole cards stored in separate restricted table (hand_private_state)
+          // NOT stored here — live_state is readable by all club members via RLS.
+          holeCards: null,
           acted: p.acted,
           showdownRevealed: p.showdownRevealed || false,
         })),
@@ -254,6 +256,7 @@ class StateSerializer {
     this._pendingState = null;
 
     try {
+      // Save public state (no hole cards — visible to club members via RLS)
       await this.supabase
         .from('tables')
         .update({
@@ -261,6 +264,25 @@ class StateSerializer {
           status: this.table?.status === 'RUNNING' ? 'running' : 'waiting',
         })
         .eq('id', this.tableId);
+
+      // Save private state (hole cards) in restricted table
+      // hand_private_state has NO select policy for regular members
+      if (state.hand && this.table?.game?.currentHand) {
+        const holeCardData = {};
+        for (const p of this.table.game.currentHand.players) {
+          if (p.holeCards?.length > 0) {
+            holeCardData[p.id] = p.holeCards;
+          }
+        }
+        await this.supabase
+          .from('hand_private_state')
+          .upsert({
+            table_id: this.tableId,
+            hand_number: state.hand.handNumber,
+            hole_cards: holeCardData,
+            saved_at: new Date().toISOString(),
+          }, { onConflict: 'table_id' });
+      }
     } catch (err) {
       console.error(`[StateSerializer] Save failed for ${this.tableId}:`, err.message);
     }
@@ -283,6 +305,12 @@ class StateSerializer {
         .from('tables')
         .update({ live_state: null })
         .eq('id', this.tableId);
+
+      // Also clear private hole card state
+      await this.supabase
+        .from('hand_private_state')
+        .delete()
+        .eq('table_id', this.tableId);
     } catch (err) {
       // Non-critical
     }
@@ -310,6 +338,21 @@ class StateSerializer {
       if (state.savedAt && Date.now() - state.savedAt > 300000) {
         console.log(`[StateSerializer] Stale state for ${tableId} (${Math.round((Date.now() - state.savedAt) / 1000)}s old) — skipping recovery`);
         return null;
+      }
+
+      // Load private hole cards from restricted table
+      if (state.hand) {
+        const { data: privateData } = await supabase
+          .from('hand_private_state')
+          .select('hole_cards')
+          .eq('table_id', tableId)
+          .single();
+
+        if (privateData?.hole_cards && state.hand.players) {
+          for (const player of state.hand.players) {
+            player.holeCards = privateData.hole_cards[player.id] || [];
+          }
+        }
       }
 
       return state;

@@ -62,6 +62,23 @@ export default async function handler(req, res) {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Table id required' });
 
+      // Verify caller is staff or table creator
+      const entry = controller.lobby?.tables?.get(id);
+      const clubId = entry?.config?.clubId;
+      if (clubId) {
+        const { createClient } = require('@supabase/supabase-js');
+        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const { data: member } = await sb
+          .from('club_members')
+          .select('role')
+          .eq('club_id', clubId)
+          .eq('user_id', auth.userId)
+          .single();
+        if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
+          return res.status(403).json({ error: 'Only owners, admins, or managers can close tables' });
+        }
+      }
+
       const result = await controller.closeTable(id);
       return res.json(result);
     }

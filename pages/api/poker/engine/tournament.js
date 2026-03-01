@@ -96,6 +96,18 @@ export default async function handler(req, res) {
       case 'start': {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+
+        // Verify caller is staff of the tournament's club
+        const startState = controller.getTournamentState(tournamentId);
+        if (!startState) return res.status(404).json({ error: 'Tournament not found' });
+        if (startState.clubId) {
+          const { data: mem } = await supabase.from('club_members').select('role')
+            .eq('club_id', startState.clubId).eq('user_id', user.id).single();
+          if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
+            return res.status(403).json({ error: 'Only staff can start tournaments' });
+          }
+        }
+
         const result = await controller.startTournament(tournamentId);
         return res.status(result.success ? 200 : 400).json(result);
       }
@@ -137,6 +149,18 @@ export default async function handler(req, res) {
       case 'cancel': {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+
+        // Verify caller is staff of the tournament's club
+        const cancelState = controller.getTournamentState(tournamentId);
+        if (!cancelState) return res.status(404).json({ error: 'Tournament not found' });
+        if (cancelState.clubId) {
+          const { data: mem } = await supabase.from('club_members').select('role')
+            .eq('club_id', cancelState.clubId).eq('user_id', user.id).single();
+          if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
+            return res.status(403).json({ error: 'Only staff can cancel tournaments' });
+          }
+        }
+
         const result = await controller.cancelTournament(tournamentId);
         return res.status(result.success ? 200 : 400).json(result);
       }

@@ -29,8 +29,11 @@ export default async function handler(req, res) {
   try {
     const controller = await getController();
 
-    // GET /api/poker/engine/connect → Controller stats
+    // GET /api/poker/engine/connect → Controller stats (auth required)
     if (req.method === 'GET') {
+      const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+      const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
+      if (!auth) return;
       return res.json(controller.getStats());
     }
 

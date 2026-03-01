@@ -49,36 +49,23 @@ export default async function handler(req, res) {
   if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
   try {
-    // Get current membership
-    const { data: member, error: memErr } = await supabaseAdmin
-      .from('club_members')
-      .select('user_id, chip_balance, role')
-      .eq('club_id', clubId)
-      .eq('user_id', userId)
-      .single();
-
-    if (memErr || !member) {
-      return res.status(404).json({ error: 'Player not found in club' });
-    }
-
     if (action === 'lock' || action === 'rebuy') {
-      // Deduct chips from balance (player buying in / rebuying at table)
-      if (amount > member.chip_balance) {
+      // Atomic debit via RPC — no read-modify-write race
+      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('lock_chips_for_table', {
+        p_user_id: userId,
+        p_club_id: clubId,
+        p_table_id: tableId || null,
+        p_amount: amount,
+      });
+
+      if (rpcErr) throw rpcErr;
+      if (!result?.success) {
         return res.status(400).json({
-          error: 'Insufficient chips',
-          available: member.chip_balance,
+          error: result?.error || 'Insufficient chips',
+          available: result?.balance,
           requested: amount,
         });
       }
-
-      const newBalance = member.chip_balance - amount;
-      const { error: updateErr } = await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: newBalance })
-        .eq('club_id', clubId)
-        .eq('user_id', userId);
-
-      if (updateErr) throw updateErr;
 
       // Record transaction
       await supabaseAdmin.from('chip_transactions').insert({
@@ -86,28 +73,28 @@ export default async function handler(req, res) {
         from_user_id: userId,
         to_user_id: userId,
         amount: -amount,
-        transaction_type: 'send',
-        notes: `${action === 'rebuy' ? 'Rebuy' : 'Table buy-in'}: ${amount.toLocaleString()} chips locked for table ${tableId || 'unknown'}`,
+        transaction_type: 'table_lock',
+        notes: `${action === 'rebuy' ? 'Rebuy' : 'Table buy-in'}: ${amount} chips locked for table ${tableId || 'unknown'}`,
       });
 
       return res.status(200).json({
         success: true,
         action,
         locked: amount,
-        remainingBalance: newBalance,
+        remainingBalance: result.balance_after,
         tableId,
       });
 
     } else if (action === 'unlock') {
-      // Return chips to player balance (player leaving table with remaining stack)
-      const newBalance = member.chip_balance + amount;
-      const { error: updateErr } = await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: newBalance })
-        .eq('club_id', clubId)
-        .eq('user_id', userId);
+      // Atomic unlock via RPC
+      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('unlock_chips_from_table', {
+        p_user_id: userId,
+        p_club_id: clubId,
+        p_table_id: tableId || null,
+        p_amount: amount,
+      });
 
-      if (updateErr) throw updateErr;
+      if (rpcErr) throw rpcErr;
 
       // Record transaction
       await supabaseAdmin.from('chip_transactions').insert({
@@ -115,15 +102,15 @@ export default async function handler(req, res) {
         from_user_id: userId,
         to_user_id: userId,
         amount,
-        transaction_type: 'send',
-        notes: `Table cash-out: ${amount.toLocaleString()} chips unlocked from table ${tableId || 'unknown'}`,
+        transaction_type: 'table_unlock',
+        notes: `Table cash-out: ${amount} chips unlocked from table ${tableId || 'unknown'}`,
       });
 
       return res.status(200).json({
         success: true,
         action: 'unlocked',
         returned: amount,
-        newBalance,
+        newBalance: result?.balance_after,
         tableId,
       });
     }
