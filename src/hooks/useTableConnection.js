@@ -286,7 +286,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'game_length_warning', 'game_length_expired', 'game_length_extended',
       'nit_warning', 'nit_sitout',
       'config_updated',
-      'table_paused', 'table_resumed',
+      'table_paused', 'table_resumed', 'table_waiting',
+      'cards_shown',
     ];
 
     for (const evt of events) {

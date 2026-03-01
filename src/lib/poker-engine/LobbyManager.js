@@ -210,6 +210,7 @@ class LobbyManager {
     });
     table.on('player_left', (data) => {
       this._trackPlayerLeave(data.playerId, config.tableId);
+      this._updateTablePlayerCount(config.tableId, table);
 
       // ── Auto-unlock chips for engine-initiated removals (busted, auto-kicked) ──
       // If a player was removed by the engine (not via seat.js stand_up),
@@ -751,6 +752,28 @@ class LobbyManager {
           console.error('[LobbyManager] Promo wagering tracking failed:', promoErr.message);
         }
       }
+
+      // ── TABLE STATS: Update hands_dealt + avg_pot for lobby display ──
+      try {
+        const sb = ChipBridge.getSupabase();
+        if (sb) {
+          const potTotal = data.potTotal || data.result?.pots?.reduce((s, p) => s + p.amount, 0) || 0;
+          // Increment hands_dealt; update running avg_pot using exponential moving average
+          // avg_pot = (old_avg * 0.9) + (new_pot * 0.1) — smoothed over many hands
+          await sb.rpc('update_table_stats', {
+            p_table_id: config.tableId,
+            p_pot_total: potTotal,
+          }).catch(() => {
+            // RPC might not exist — fallback to simple update
+            sb.from('tables').update({
+              hands_dealt: table.handCount || 0,
+              updated_at: new Date().toISOString(),
+            }).eq('id', config.tableId).then(() => {});
+          });
+        }
+      } catch (_) {
+        // Non-fatal
+      }
     });
   }
 
@@ -811,6 +834,29 @@ class LobbyManager {
    * Check if all tables with the same config are full; if so, create a new one.
    * @private
    */
+  /**
+   * Update current_players count in DB for lobby display.
+   * @private
+   */
+  async _updateTablePlayerCount(tableId, table) {
+    try {
+      const count = table.seats.filter(s => 
+        s.status === SEAT_STATUS.OCCUPIED || s.status === SEAT_STATUS.SITTING_OUT
+      ).length;
+      
+      const sb = ChipBridge.getSupabase();
+      if (sb) {
+        await sb.from('tables').update({ 
+          current_players: count,
+          updated_at: new Date().toISOString(),
+        }).eq('id', tableId);
+      }
+    } catch (e) {
+      // Non-fatal — lobby count update is best-effort
+      console.warn('[LobbyManager] Player count update failed:', e.message);
+    }
+  }
+
   _checkAutoCreateTable(templateConfig) {
     const clubId = templateConfig.clubId;
     if (!clubId) return;

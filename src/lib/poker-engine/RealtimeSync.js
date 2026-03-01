@@ -457,9 +457,11 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
     // Config update
     'config_updated',
     // Table lifecycle
-    'table_paused', 'table_resumed',
+    'table_paused', 'table_resumed', 'table_waiting',
     // Seven-Deuce
     'seven_deuce_bonus',
+    // Voluntary show
+    'cards_shown',
   ];
   
   for (const event of serverEvents) {
