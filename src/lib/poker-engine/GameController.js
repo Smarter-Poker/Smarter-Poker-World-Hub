@@ -393,6 +393,7 @@ class GameController {
           career_percent: Number(row.settings?.career_percent) || 0,
           auto_create_table: row.settings?.auto_create_table || false,
           auto_extension: row.settings?.auto_extension || false,
+          ban_chat: row.settings?.ban_chat || false,
         },
       };
 
@@ -737,12 +738,26 @@ class GameController {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
 
+    // Ban chat enforcement
+    const settings = entry.config?.clubSettings || {};
+    if (settings.ban_chat) {
+      return { success: false, error: 'Chat is disabled at this table' };
+    }
+
     // Sanitize
     const clean = String(message).slice(0, 200).trim();
     if (!clean) return { success: false, error: 'Empty message' };
 
     const seat = entry.table.seats.find(s => s.player?.id === playerId);
-    const displayName = seat?.player?.displayName || playerId;
+    
+    // Anonymous table: hide real name
+    let displayName;
+    if (entry.table.anonymousTable) {
+      const seatIdx = seat?.seatIndex ?? '?';
+      displayName = `Player ${seatIdx + 1}`;
+    } else {
+      displayName = seat?.player?.displayName || playerId;
+    }
 
     // Broadcast via sync
     entry.sync._broadcast('chat_message', {
