@@ -158,6 +158,7 @@ export default function TableTabletsPage() {
     // Call Floor state
     const [callFloorSending, setCallFloorSending] = useState(false);
     const [callFloorSent, setCallFloorSent] = useState(false);
+    const [callFloorId, setCallFloorId] = useState(null);
 
     useEffect(() => {
         try {
@@ -1249,41 +1250,74 @@ export default function TableTabletsPage() {
                         {/* ── Floating Action Buttons (bottom corners) ── */}
                         <div style={{ position: 'absolute', bottom: 16, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', zIndex: 50, pointerEvents: 'none' }}>
                             {/* Call Floor — bottom-left */}
-                            <button
-                                disabled={callFloorSending || callFloorSent}
-                                onClick={async () => {
-                                    setCallFloorSending(true);
-                                    try {
-                                        const tNum = fullscreenTable.table_number;
-                                        const res = await fetch('/api/commander/floor-call', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ venue_id: venueId, table_number: tNum, table_name: fullscreenTable.table_name || `Table ${tNum}` }),
-                                        });
-                                        const json = await res.json();
-                                        if (json.success) {
-                                            setCallFloorSent(true);
-                                            setToast({ type: 'success', text: `Floor called — Table ${tNum}` });
-                                            broadcastChange('floor_calls');
-                                            setTimeout(() => setCallFloorSent(false), 30000);
-                                        } else {
-                                            setToast({ type: 'error', text: json.error || 'Floor call failed' });
+                            {!callFloorSent ? (
+                                <button
+                                    disabled={callFloorSending}
+                                    onClick={async () => {
+                                        setCallFloorSending(true);
+                                        try {
+                                            const tNum = fullscreenTable.table_number;
+                                            const res = await fetch('/api/commander/floor-call', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ venue_id: venueId, table_number: tNum, table_name: fullscreenTable.table_name || `Table ${tNum}` }),
+                                            });
+                                            const json = await res.json();
+                                            if (json.success) {
+                                                setCallFloorSent(true);
+                                                setCallFloorId(json.data?.id || null);
+                                                setToast({ type: 'success', text: `Floor called — Table ${tNum}` });
+                                                broadcastChange('floor_calls');
+                                            } else {
+                                                setToast({ type: 'error', text: json.error || 'Floor call failed' });
+                                            }
+                                        } catch { setToast({ type: 'error', text: 'Network error' }); }
+                                        setCallFloorSending(false);
+                                    }}
+                                    style={{
+                                        pointerEvents: 'auto',
+                                        background: 'rgba(24,119,242,0.9)', border: 'none',
+                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        fontSize: 15, fontWeight: 800, color: '#fff',
+                                        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                                        opacity: callFloorSending ? 0.6 : 1,
+                                    }}
+                                >
+                                    {callFloorSending ? 'Calling...' : 'Call Floor'}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={async () => {
+                                        // Cancel the active floor call
+                                        if (callFloorId) {
+                                            try {
+                                                const res = await fetch('/api/commander/floor-call', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ action: 'cancel', call_id: callFloorId }),
+                                                });
+                                                const json = await res.json();
+                                                if (json.success) {
+                                                    setToast({ type: 'success', text: 'Floor call cancelled' });
+                                                }
+                                            } catch { /* ignore */ }
                                         }
-                                    } catch { setToast({ type: 'error', text: 'Network error' }); }
-                                    setCallFloorSending(false);
-                                }}
-                                style={{
-                                    pointerEvents: 'auto',
-                                    background: callFloorSent ? 'rgba(34,197,94,0.9)' : 'rgba(24,119,242,0.9)', border: 'none',
-                                    borderRadius: 14, padding: '14px 24px', cursor: callFloorSent ? 'default' : 'pointer',
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    fontSize: 15, fontWeight: 800, color: '#fff',
-                                    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-                                    opacity: callFloorSending ? 0.6 : 1,
-                                }}
-                            >
-                                {callFloorSent ? 'Floor Called' : callFloorSending ? 'Calling...' : 'Call Floor'}
-                            </button>
+                                        setCallFloorSent(false);
+                                        setCallFloorId(null);
+                                    }}
+                                    style={{
+                                        pointerEvents: 'auto',
+                                        background: 'rgba(239,68,68,0.9)', border: 'none',
+                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        fontSize: 15, fontWeight: 800, color: '#fff',
+                                        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                                    }}
+                                >
+                                    Cancel Floor
+                                </button>
+                            )}
 
                             {/* Call Clock — bottom-right */}
                             {callClockSeconds === null && (

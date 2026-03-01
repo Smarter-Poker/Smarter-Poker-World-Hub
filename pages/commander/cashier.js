@@ -46,6 +46,7 @@ export default function Cashier() {
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [successOverlay, setSuccessOverlay] = useState(null); // { title, amount, detail, balance }
 
   // Scanner
   const [scanning, setScanning] = useState(false);
@@ -653,21 +654,39 @@ export default function Cashier() {
     finally { setActionLoading(false); }
   };
 
-  // Confirmation sound
+  // Ka-ching cash register sound — loud and unmistakable
   const playSuccessSound = () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
+      // Tone 1: bright ascending chime
+      const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+      o1.type = 'triangle'; o1.connect(g1); g1.connect(ctx.destination);
+      o1.frequency.setValueAtTime(1200, ctx.currentTime);
+      o1.frequency.setValueAtTime(1600, ctx.currentTime + 0.08);
+      g1.gain.setValueAtTime(0.6, ctx.currentTime);
+      g1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.15);
+      // Tone 2: confirmation bell
+      const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+      o2.type = 'sine'; o2.connect(g2); g2.connect(ctx.destination);
+      o2.frequency.setValueAtTime(1800, ctx.currentTime + 0.12);
+      g2.gain.setValueAtTime(0.5, ctx.currentTime + 0.12);
+      g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      o2.start(ctx.currentTime + 0.12); o2.stop(ctx.currentTime + 0.5);
+      // Tone 3: resonant finish
+      const o3 = ctx.createOscillator(); const g3 = ctx.createGain();
+      o3.type = 'sine'; o3.connect(g3); g3.connect(ctx.destination);
+      o3.frequency.setValueAtTime(2400, ctx.currentTime + 0.25);
+      g3.gain.setValueAtTime(0.4, ctx.currentTime + 0.25);
+      g3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
+      o3.start(ctx.currentTime + 0.25); o3.stop(ctx.currentTime + 0.7);
     } catch { /* audio not available */ }
+  };
+
+  // Show full-screen success overlay
+  const showSuccessPopup = ({ title, amount, detail, balance }) => {
+    setSuccessOverlay({ title, amount, detail, balance });
+    setTimeout(() => setSuccessOverlay(null), 3500);
   };
 
   // Load player transaction history

@@ -1,6 +1,10 @@
 /**
  * Commander Floor Call API - POST /api/commander/floor-call
- * Creates a floor call alert that broadcasts to all Commander screens in real-time
+ * Creates or cancels a floor call alert that broadcasts to all Commander screens in real-time
+ * 
+ * Actions:
+ *   - default: Create a new floor call
+ *   - cancel: Resolve/cancel an active floor call
  * 
  * Schema: commander_floor_calls
  *   id, venue_id, table_number, reason, description, priority, status,
@@ -19,8 +23,27 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { venue_id, table_number, table_name, called_by } = req.body;
+        const { action, call_id, venue_id, table_number, table_name, called_by } = req.body;
 
+        // ── Cancel an active floor call ──
+        if (action === 'cancel' && call_id) {
+            const { error } = await supabase
+                .from('commander_floor_calls')
+                .update({
+                    status: 'resolved',
+                    responded_at: new Date().toISOString(),
+                    resolution: 'cancelled_by_tablet',
+                })
+                .eq('id', call_id);
+
+            if (error) {
+                console.error('Floor call cancel error:', error);
+                return res.status(500).json({ success: false, error: 'Failed to cancel floor call' });
+            }
+            return res.status(200).json({ success: true, data: { cancelled: true } });
+        }
+
+        // ── Create a new floor call ──
         if (!venue_id || !table_number) {
             return res.status(400).json({ success: false, error: 'venue_id and table_number are required' });
         }
@@ -49,7 +72,7 @@ export default async function handler(req, res) {
                 .eq('id', existing[0].id);
         }
 
-        // Create new floor call using actual schema columns
+        // Create new floor call
         const { data: call, error } = await supabase
             .from('commander_floor_calls')
             .insert({
