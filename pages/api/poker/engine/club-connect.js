@@ -15,6 +15,7 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
