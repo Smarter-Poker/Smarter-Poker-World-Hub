@@ -10,13 +10,20 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Fallback credentials for production stability
-const FALLBACK_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
-
 // CRITICAL: .trim() removes trailing newlines/whitespace that cause connection issues
-const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_URL).trim();
-const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY).trim();
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  const msg = '[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY';
+  console.error(msg);
+  // In browser, show error instead of silently failing
+  if (typeof window !== 'undefined') {
+    console.error(msg + ' — check your .env.local file');
+  }
+  // Don't throw — allow build-time imports to succeed
+  // Runtime calls will fail with a clear error
+}
 
 // Minimal logging
 if (typeof window !== 'undefined') {
