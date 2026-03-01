@@ -608,7 +608,7 @@ export default function TableTabletsPage() {
         const nameMaxWidth = isFullscreen ? 140 : 110;
 
         return (
-            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '56%' : '64%', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '56%' : '64%', overflow: 'hidden', background: '#0a0a0a', borderRadius: isFullscreen ? 0 : 12 }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: isFullscreen ? '-22%' : '-18%' }}>
                     {/* Poker table image */}
                     <img
@@ -641,23 +641,49 @@ export default function TableTabletsPage() {
                         )}
                     </div>
 
-                    {/* Dealer badge */}
-                    <div style={{
-                        position: 'absolute', top: dealerPos.top, left: dealerPos.left,
-                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: isFullscreen ? 90 : 80, zIndex: 3,
-                    }}>
-                        <div style={{
-                            width: isFullscreen ? 72 : 64, height: isFullscreen ? 72 : 64, borderRadius: '50%', margin: '0 auto 4px',
-                            background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                            border: '3px solid #E4E6EB',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                            fontSize: isFullscreen ? 32 : 28, fontWeight: 900, color: '#fff',
-                        }}>D</div>
-                        <div style={{ fontSize: isFullscreen ? 12 : 11, fontWeight: 700, color: '#1877F2', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {dealerMap[tNum] || game?.dealer_name || 'No Dealer'}
-                        </div>
-                    </div>
+                    {/* Dealer badge — card style matching player cards */}
+                    {(() => {
+                        const dealerName = dealerMap[tNum] || game?.dealer_name || 'No Dealer';
+                        return (
+                            <div style={{
+                                position: 'absolute', top: dealerPos.top, left: dealerPos.left,
+                                transform: 'translate(-50%, -50%)', zIndex: 3,
+                                display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8,
+                                background: 'rgba(36,37,38,0.9)',
+                                borderRadius: 12,
+                                padding: '5px 10px 5px 5px',
+                                border: '2px solid rgba(24,119,242,0.6)',
+                                backdropFilter: 'blur(6px)',
+                                minWidth: isFullscreen ? 80 : 70,
+                            }}>
+                                {/* D avatar circle */}
+                                <div style={{
+                                    width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                    border: '2px solid #1877F2',
+                                    boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                                    fontSize: isFullscreen ? 28 : 24, fontWeight: 900, color: '#fff',
+                                }}>
+                                    D
+                                </div>
+                                {/* Name + DEALER label */}
+                                <div style={{ overflow: 'hidden' }}>
+                                    <div style={{
+                                        fontSize, fontWeight: 600, lineHeight: 1.2,
+                                        color: '#E4E6EB',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        maxWidth: nameMaxWidth,
+                                    }}>
+                                        {dealerName}
+                                    </div>
+                                    <div style={{ fontSize: isFullscreen ? 11 : 10, fontWeight: 700, color: '#1877F2', lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                        Dealer
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Seat badges — matching tables.js avatar style */}
                     {seatArr.slice(0, seatPositions.length).map((seat, idx) => {

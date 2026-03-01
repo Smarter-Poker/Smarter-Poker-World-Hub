@@ -19,7 +19,7 @@ const STATUS_COLORS = {
 
 const PURPOSE_COLORS = {
   cash_game: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Cash Game' },
-  tournament: { bg: 'rgba(245,158,11,0.15)', border: '#F59E0B', text: '#F59E0B', label: 'Tournament' },
+  tournament: { bg: 'rgba(255,215,0,0.15)', border: '#FFD700', text: '#FFD700', label: 'Tournament' },
 };
 
 const GAME_TYPES = ['NLH', 'PLO', 'NLO8', 'PLO8', 'Mixed', 'Stud', 'Razz', 'Draw'];
