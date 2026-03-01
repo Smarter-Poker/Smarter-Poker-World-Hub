@@ -409,6 +409,36 @@ class TableManager {
   }
 
   /**
+   * Admin kicks a player from the table.
+   * Forces immediate removal — if in a hand, auto-folds first.
+   * @param {string|number} playerId
+   * @param {string} [reason='admin_kick']
+   * @returns {{ success: boolean, cashout?: number, error?: string }}
+   */
+  kickPlayer(playerId, reason = 'admin_kick') {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+
+    // If in active hand, force-fold them
+    if (this.game.phase !== GAME_PHASE.IDLE) {
+      const handPlayer = this.game.currentHand?.players.find(p => String(p.id) === String(playerId));
+      if (handPlayer && !handPlayer.folded) {
+        this.game.processAction(playerId, { type: 'fold' });
+      }
+    }
+
+    const cashout = seat.stack;
+    this._vacateSeat(seat);
+
+    this.emit('player_kicked', { playerId, seatIndex: seat.seatIndex, cashout, reason });
+    this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout, kicked: true });
+
+    this._seatFromWaitlist(seat.seatIndex);
+
+    return { success: true, cashout };
+  }
+
+  /**
    * Player sits out (still occupies seat but won't be dealt in).
    * @param {string|number} playerId
    * @returns {{ success: boolean, error?: string }}
@@ -771,6 +801,7 @@ class TableManager {
       if (handsSinceLastBomb >= 5 && Math.random() < 0.10) {
         isBombPot = true;
         this._lastBombPotHand = this.handCount;
+        this.emit('bomb_pot_starting', { handNumber: this.handCount });
       }
     }
     

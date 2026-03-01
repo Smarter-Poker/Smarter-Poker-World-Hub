@@ -297,6 +297,38 @@ export function useTableConnection({ supabase, tableId, userId }) {
         }
         requestState();
         break;
+      case 'nit_warning':
+        if (String(data.playerId) === String(userId)) {
+          setTableAlert({ type: 'warning', message: `⚠️ VPIP warning: ${data.vpip}% — play more hands or you'll be sat out` });
+          setTimeout(() => setTableAlert(null), 8000);
+        }
+        break;
+      case 'nit_sitout':
+        if (String(data.playerId) === String(userId)) {
+          setTableAlert({ type: 'removed', message: `Sat out for low VPIP (${data.vpip}%). Play more hands to continue.` });
+          setTimeout(() => setTableAlert(null), 10000);
+        }
+        requestState();
+        break;
+      case 'config_updated':
+        // Table settings changed by admin — refresh full state
+        requestState();
+        setChatMessages(prev => [...prev.slice(-100), {
+          type: 'system', message: '⚙️ Table settings updated by admin',
+        }]);
+        break;
+      case 'bomb_pot_starting':
+        setChatMessages(prev => [...prev.slice(-100), {
+          type: 'system', message: '💣 BOMB POT! Everyone posts!',
+        }]);
+        requestState();
+        break;
+      case 'player_kicked':
+        if (String(data.playerId) === String(userId)) {
+          setTableAlert({ type: 'removed', message: `You were kicked from the table: ${data.reason?.replace(/_/g, ' ') || 'admin decision'}` });
+        }
+        requestState();
+        break;
       default:
         requestState();
         break;
@@ -338,7 +370,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'config_updated',
       'table_paused', 'table_resumed', 'table_waiting',
       'cards_shown', 'variant_changed',
-      'player_auto_removed',
+      'player_auto_removed', 'bomb_pot_starting',
+      'player_kicked',
     ];
 
     for (const evt of events) {
@@ -419,6 +452,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'decline_insurance': return apiPost('action', { tableId, playerId: userId, type: 'decline_insurance' });
       case 'respond_run_it': return apiPost('seat', { tableId, playerId: userId, action: 'respond_run_it', choice: payload.choice });
       case 'show_cards': return apiPost('seat', { tableId, playerId: userId, action: 'show_cards' });
+      case 'kick_player': return apiPost('seat', { tableId, playerId: userId, action: 'kick_player', targetPlayerId: payload.targetPlayerId, role: payload.role, reason: payload.reason });
       default: console.warn('[useTableConnection] Unknown event:', event);
     }
   }, [sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat, requestState, joinWaitlist, leaveWaitlist]);

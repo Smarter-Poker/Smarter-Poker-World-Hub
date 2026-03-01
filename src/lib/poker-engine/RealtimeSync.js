@@ -148,6 +148,7 @@ class RealtimeSync {
       'player_seated', 'player_left', 'player_sitting_out',
       'player_sitting_in', 'player_disconnected', 'player_reconnected',
       'player_auto_removed', 'seat_offered', 'table_paused', 'table_resumed',
+      'player_kicked',
       // Run It Twice/Thrice
       'run_it_offer', 'run_it_response', 'run_it_agreed',
       'run_it_declined', 'run_it_multiple', 'run_it_twice', 'run_it_thrice',
@@ -174,6 +175,7 @@ class RealtimeSync {
       'game_length_warning', 'game_length_expired', 'game_length_extended',
       // Nit game
       'nit_warning', 'nit_sitout',
+      'bomb_pot_starting',
       // Config update (admin changed settings)
       'config_updated',
       // Table lifecycle
@@ -464,10 +466,14 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
     'table_paused', 'table_resumed', 'table_waiting',
     // Seven-Deuce
     'seven_deuce_bonus',
+    // Bomb Pot
+    'bomb_pot_starting',
     // Voluntary show
     'cards_shown',
     // Mixed game rotation
     'variant_changed',
+    // Player removal
+    'player_auto_removed', 'player_kicked',
   ];
   
   for (const event of serverEvents) {

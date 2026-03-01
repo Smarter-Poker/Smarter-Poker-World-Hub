@@ -327,6 +327,24 @@ export default async function handler(req, res) {
         break;
       }
 
+      case 'kick_player': {
+        // Admin-only: kick a player from the table
+        const targetId = body.targetPlayerId;
+        if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        // Verify admin/manager/owner role
+        const kickerRole = body.role || 'player';
+        if (!['owner', 'admin', 'manager'].includes(kickerRole)) {
+          return res.status(403).json({ error: 'Only admins can kick players' });
+        }
+        const reason = body.reason || 'admin_kick';
+        result = await controller.kickPlayer(tableId, targetId, reason);
+        // Unlock kicked player's chips
+        if (result.success && clubId) {
+          await ChipBridge.unlockChips(clubId, targetId, tableId, result.cashout || 0);
+        }
+        break;
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

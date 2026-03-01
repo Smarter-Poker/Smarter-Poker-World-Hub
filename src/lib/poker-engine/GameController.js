@@ -536,6 +536,22 @@ class GameController {
   }
 
   /**
+   * Admin kicks a player from the table.
+   */
+  async kickPlayer(tableId, targetPlayerId, reason = 'admin_kick') {
+    await this._ensureInit();
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+
+    const result = entry.table.kickPlayer(targetPlayerId, reason);
+    if (result.success) {
+      this._broadcastTableState(tableId);
+      this._updateTablePlayerCount(tableId);
+    }
+    return result;
+  }
+
+  /**
    * Player sits back in.
    */
   async sitIn(tableId, playerId) {
