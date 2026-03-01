@@ -1,101 +1,161 @@
 /**
- * Comp System
+ * Comp System — Enhanced
  * /commander/comps
  * 
- * Floor managers use this to:
- * - View comp rates per game/hour
- * - Award manual comps to players
- * - View top comp earners
- * - Process comp redemptions
- * - Set auto-comp rules based on play time
+ * Two pillars:
+ * 1. Auto Rake-Back — comps earned per hour of play (configured in Settings)
+ * 2. Manual Comp Issuance — categorized comps, PIN-gated, fully documented
+ * 
+ * All comp issuance requires staff PIN verification. No exceptions.
+ * 
+ * Tabs: Dashboard | Issue Comp | Comp Log | Rates
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
-  Gift, DollarSign, Users, Clock, Search,
-  Plus, Loader2, RefreshCw, Check, Star, TrendingUp, Lock, X, Shield
+  Gift, DollarSign, Users, Clock, Search, TrendingUp,
+  Plus, Loader2, RefreshCw, Check, Star, Shield, X,
+  UtensilsCrossed, Ticket, Coins, Timer, CreditCard,
+  ShoppingBag, FileText, Award, ChevronDown, Filter, BarChart3
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
+// ─── Comp Categories ─────────────────────────────────────────
+const COMP_CATEGORIES = [
+  { key: 'free_time', label: 'Free Time', icon: Timer, color: '#3B82F6', desc: 'Comp table time' },
+  { key: 'free_membership', label: 'Free Membership', icon: CreditCard, color: '#8B5CF6', desc: 'Comp membership period' },
+  { key: 'free_chips', label: 'Free Chips', icon: Coins, color: '#F59E0B', desc: 'Bonus chips' },
+  { key: 'free_food', label: 'Food & Beverage', icon: UtensilsCrossed, color: '#EF4444', desc: 'Meals, drinks, snacks' },
+  { key: 'cash_bonus', label: 'Cash Bonus', icon: DollarSign, color: '#31A24C', desc: 'Straight cash comp' },
+  { key: 'tournament_entry', label: 'Tournament Entry', icon: Ticket, color: '#EC4899', desc: 'Free tournament seat' },
+  { key: 'merchandise', label: 'Merchandise', icon: ShoppingBag, color: '#06B6D4', desc: 'Club store items' },
+  { key: 'other', label: 'Other', icon: FileText, color: '#6B7280', desc: 'Custom comp' },
+];
+
+const QUICK_AMOUNTS = [5, 10, 15, 20, 25, 50, 75, 100];
+
 export default function CompSystem() {
   const router = useRouter();
-  const [tab, setTab] = useState('award'); // award, balances, rates, history
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState([]);
-  const [balances, setBalances] = useState([]);
-  const [rates, setRates] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  const [tab, setTab] = useState('dashboard');
+  const [loading, setLoading] = useState(false);
+
+  // ─── Dashboard state ───
+  const [stats, setStats] = useState({ today: 0, week: 0, allTime: 0, count: 0 });
+  const [topEarners, setTopEarners] = useState([]);
+
+  // ─── Issue Comp state ───
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [compAmount, setCompAmount] = useState('');
-  const [compReason, setCompReason] = useState('');
+  const [compNotes, setCompNotes] = useState('');
   const [awarding, setAwarding] = useState(false);
   const [awarded, setAwarded] = useState(false);
 
-  // PIN authorization state
+  // ─── PIN auth state ───
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinCode, setPinCode] = useState('');
   const [pinError, setPinError] = useState('');
   const [verifying, setVerifying] = useState(false);
 
+  // ─── Comp Log state ───
+  const [compLog, setCompLog] = useState([]);
+  const [logFilter, setLogFilter] = useState('all');
+
+  // ─── Settings state ───
+  const [autoCompRate, setAutoCompRate] = useState(1);
+
+  // ─── Auth helpers ───
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
   const getVenueId = () => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   };
+  const getStaffSession = () => typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
+  const getHeaders = () => {
+    const token = getToken();
+    const staffSession = getStaffSession();
+    const headers = { Authorization: `Bearer ${token}` };
+    if (staffSession) headers['x-staff-session'] = staffSession;
+    return headers;
+  };
 
-  useEffect(() => { fetchData(); }, [tab]);
+  // ─── Load settings (auto comp rate) ───
+  useEffect(() => {
+    const staffSession = getStaffSession();
+    if (!staffSession) return;
+    fetch('/api/commander/settings', { headers: { 'x-staff-session': staffSession } })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.data?.auto_comp_rate !== undefined) {
+          setAutoCompRate(data.data.auto_comp_rate);
+        }
+      })
+      .catch(() => { });
+  }, []);
 
-  const fetchData = async () => {
+  // ─── Fetch tab data ───
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const venueId = getVenueId();
-      const token = getToken();
-      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
-      const headers = { Authorization: `Bearer ${token}` };
-      if (staffSession) headers['x-staff-session'] = staffSession;
-      if (tab === 'balances') {
-        // Get members with comp balances from members API
-        const res = await fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers });
-        const json = await res.json();
-        if (json.success) {
-          const members = json.data?.members || json.data || [];
-          setBalances(members.filter(m => (m.comp_balance || 0) > 0).map(m => ({
-            member_id: m.id,
-            member_name: m.first_name,
-            last_name: m.last_name,
-            balance: m.comp_balance || 0,
-            lifetime_earned: m.comp_lifetime_earned || 0,
-            membership_tier: m.membership_tier
-          })));
-        }
-      } else if (tab === 'rates') {
-        const res = await fetch(`/api/commander/comps/rates?venue_id=${venueId}`, { headers });
-        const json = await res.json();
-        if (json.success) setRates(json.data || []);
-      } else if (tab === 'history') {
+      const headers = getHeaders();
+
+      if (tab === 'dashboard') {
+        const [membersRes, logRes] = await Promise.all([
+          fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }),
+          fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers })
+        ]);
+        const membersJson = await membersRes.json();
+        const logJson = await logRes.json();
+
+        const members = membersJson.data?.members || membersJson.data || [];
+        const withComps = members
+          .filter(m => (m.comp_balance || 0) > 0)
+          .sort((a, b) => (b.comp_balance || 0) - (a.comp_balance || 0))
+          .slice(0, 5);
+        setTopEarners(withComps);
+
+        const txns = logJson.data?.transactions || [];
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const weekStart = new Date(todayStart);
+        weekStart.setDate(weekStart.getDate() - 7);
+
+        let today = 0, week = 0, allTime = 0, count = txns.length;
+        txns.forEach(t => {
+          const amt = Math.abs(t.amount || 0);
+          allTime += amt;
+          const d = new Date(t.created_at);
+          if (d >= todayStart) today += amt;
+          if (d >= weekStart) week += amt;
+        });
+        setStats({ today, week, allTime, count });
+
+      } else if (tab === 'log') {
         const res = await fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
         const json = await res.json();
-        setTransactions(json.data?.transactions || json.transactions || []);
+        setCompLog(json.data?.transactions || []);
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [tab]);
 
-  // Commander Data Bus — sync members/comps across tabs
+  useEffect(() => { fetchData(); }, [fetchData]);
   useCommanderSync(getVenueId(), fetchData, { entities: ['members'] });
 
+  // ─── Member search ───
   const searchMembers = async () => {
     if (!searchQuery || searchQuery.length < 2) return;
     setSearching(true);
     try {
       const venueId = getVenueId();
-      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') : null;
       const headers = {};
+      const staffSession = getStaffSession();
       if (staffSession) headers['x-staff-session'] = staffSession;
       const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(searchQuery)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
       const json = await res.json();
@@ -104,15 +164,15 @@ export default function CompSystem() {
     finally { setSearching(false); }
   };
 
-  // Step 1: User clicks "Award" → show PIN modal
+  // ─── Step 1: Click Issue Comp → show PIN modal ───
   const requestComp = () => {
-    if (!selectedMember || !compAmount) return;
+    if (!selectedMember || !compAmount || !selectedCategory) return;
     setPinCode('');
     setPinError('');
     setShowPinModal(true);
   };
 
-  // Step 2: Verify PIN, then award
+  // ─── Step 2: Verify PIN → award comp ───
   const verifyPinAndAward = async () => {
     if (!pinCode || pinCode.length !== 4) {
       setPinError('Enter your 4-digit staff PIN');
@@ -122,7 +182,6 @@ export default function CompSystem() {
     setPinError('');
     try {
       const venueId = getVenueId();
-      // Verify PIN
       const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,19 +195,25 @@ export default function CompSystem() {
       }
 
       const authorizer = pinData.data?.staff;
-
-      // PIN valid → award comp
       setShowPinModal(false);
       setAwarding(true);
       const token = getToken();
+      const staffSession = getStaffSession();
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      if (staffSession) headers['x-staff-session'] = staffSession;
+
+      const catLabel = COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label || selectedCategory;
+
       const res = await fetch('/api/commander/comps/balances', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers,
         body: JSON.stringify({
           member_id: selectedMember.id,
           amount: parseFloat(compAmount),
-          reason: compReason || 'Manual comp award',
+          reason: `${catLabel}${compNotes ? ' — ' + compNotes : ''}`,
           type: 'award',
+          comp_category: selectedCategory,
+          notes: compNotes || '',
           authorized_by: authorizer?.display_name || authorizer?.id || 'Staff',
           authorized_pin: true
         })
@@ -160,25 +225,37 @@ export default function CompSystem() {
         setTimeout(() => {
           setAwarded(false);
           setSelectedMember(null);
+          setSelectedCategory(null);
           setCompAmount('');
-          setCompReason('');
+          setCompNotes('');
           setSearchQuery('');
           setSearchResults([]);
-        }, 2000);
+        }, 2500);
       }
     } catch (err) { console.error(err); }
-    finally { setAwarding(false); }
+    finally { setAwarding(false); setVerifying(false); }
+  };
+
+  const resetIssueFlow = () => {
+    setSelectedMember(null);
+    setSelectedCategory(null);
+    setCompAmount('');
+    setCompNotes('');
+    setSearchQuery('');
+    setSearchResults([]);
+    setAwarded(false);
   };
 
   const TABS = [
-    { key: 'award', label: 'Award', icon: Gift },
-    { key: 'balances', label: 'Balances', icon: DollarSign },
+    { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { key: 'issue', label: 'Issue Comp', icon: Gift },
+    { key: 'log', label: 'Comp Log', icon: FileText },
     { key: 'rates', label: 'Rates', icon: TrendingUp },
-    { key: 'history', label: 'History', icon: Clock }
   ];
 
-  const QUICK_AMOUNTS = [5, 10, 15, 20, 25, 50];
-  const REASONS = ['Play Time', 'Tournament Entry', 'Bad Beat Bonus', 'Promotion', 'Loyalty Reward', 'Manager Discretion'];
+  const filteredLog = logFilter === 'all'
+    ? compLog
+    : compLog.filter(t => (t.comp_category || 'cash_bonus') === logFilter);
 
   return (
     <CommanderLayout title="Comp System" backHref="/commander/dashboard?card=displays">
@@ -190,7 +267,7 @@ export default function CompSystem() {
         />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-          {/* PIN Authorization Modal */}
+          {/* ═══ PIN Authorization Modal ═══ */}
           {showPinModal && (
             <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
               <div className="bg-[#242526] rounded-2xl w-full max-w-sm border border-[#3A3B3C] shadow-2xl">
@@ -198,9 +275,12 @@ export default function CompSystem() {
                   <div className="w-14 h-14 rounded-full bg-[#F59E0B]/10 flex items-center justify-center mx-auto mb-3">
                     <Shield className="w-7 h-7 text-[#F59E0B]" />
                   </div>
-                  <h3 className="text-lg font-bold text-white">Staff Authorization</h3>
+                  <h3 className="text-lg font-bold text-white">Staff PIN Required</h3>
                   <p className="text-sm text-[#B0B3B8] mt-1">
-                    Enter your staff PIN to award <span className="text-[#31A24C] font-bold">${compAmount}</span> comp
+                    Authorize <span className="text-[#31A24C] font-bold">${compAmount}</span>{' '}
+                    <span className="text-white font-medium">
+                      {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label}
+                    </span>{' '}
                     to <span className="text-white font-medium">{selectedMember?.first_name} {selectedMember?.last_name}</span>
                   </p>
                 </div>
@@ -226,7 +306,7 @@ export default function CompSystem() {
                     </button>
                     <button onClick={verifyPinAndAward} disabled={verifying || pinCode.length !== 4}
                       className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 active:bg-[#28883F]">
-                      {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
                       {verifying ? 'Verifying...' : 'Authorize'}
                     </button>
                   </div>
@@ -235,21 +315,24 @@ export default function CompSystem() {
             </div>
           )}
 
-          {/* Header */}
+          {/* ═══ Header ═══ */}
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-bold text-white">Comp System</h1>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#31A24C]/20 text-[#31A24C] font-medium">
+                ${autoCompRate}/hr rake-back
+              </span>
             </div>
             <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
               <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 flex gap-1">
+          {/* ═══ Tabs ═══ */}
+          <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 flex gap-1 overflow-x-auto">
             {TABS.map(t => (
               <button key={t.key} onClick={() => setTab(t.key)}
-                className={`px-3 py-3 text-sm font-medium flex items-center gap-1.5 border-b-2 -mb-px ${tab === t.key ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent'
+                className={`px-3 py-3 text-sm font-medium flex items-center gap-1.5 border-b-2 -mb-px whitespace-nowrap ${tab === t.key ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent'
                   }`}>
                 <t.icon className="w-4 h-4" /> {t.label}
               </button>
@@ -258,27 +341,80 @@ export default function CompSystem() {
 
           <div className="p-4 max-w-lg mx-auto">
 
-            {/* ===== AWARD TAB ===== */}
-            {tab === 'award' && (
+            {/* ═══════════ DASHBOARD TAB ═══════════ */}
+            {tab === 'dashboard' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <StatCard label="Today" value={`$${stats.today.toFixed(2)}`} icon={Clock} color="#1877F2" />
+                  <StatCard label="This Week" value={`$${stats.week.toFixed(2)}`} icon={TrendingUp} color="#31A24C" />
+                  <StatCard label="All Time" value={`$${stats.allTime.toFixed(2)}`} icon={Award} color="#F59E0B" />
+                  <StatCard label="Total Comps" value={stats.count} icon={Gift} color="#8B5CF6" />
+                </div>
+
+                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-[#31A24C]/10 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-[#31A24C]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">Auto Rake-Back Rate</p>
+                      <p className="text-xs text-[#B0B3B8]">Players earn comps per hour of play</p>
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-[#31A24C] text-center py-2">
+                    ${autoCompRate.toFixed(2)}<span className="text-base text-[#B0B3B8] font-normal">/hour</span>
+                  </div>
+                  <p className="text-xs text-[#6A6B6D] text-center">Configured in Settings → Time Billing</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Top Comp Balances</p>
+                  {loading ? (
+                    <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 text-[#1877F2] animate-spin" /></div>
+                  ) : topEarners.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-[#B0B3B8]">No comp balances yet</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {topEarners.map((m, i) => (
+                        <div key={m.id} className="flex items-center gap-3 px-4 py-2.5 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+                          <span className="text-xs text-[#6A6B6D] w-5 font-bold">#{i + 1}</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white">{m.first_name} {m.last_name}</p>
+                          </div>
+                          <span className="text-base font-bold text-[#31A24C]">${(m.comp_balance || 0).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ═══════════ ISSUE COMP TAB ═══════════ */}
+            {tab === 'issue' && (
               <div className="space-y-4">
                 {awarded ? (
                   <div className="py-12 text-center">
                     <div className="w-20 h-20 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-4">
                       <Check className="w-10 h-10 text-[#31A24C]" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Comp Awarded</h2>
-                    <p className="text-[#B0B3B8] mt-2">${compAmount} to {selectedMember?.first_name} {selectedMember?.last_name}</p>
+                    <h2 className="text-2xl font-bold text-white">Comp Issued</h2>
+                    <p className="text-[#B0B3B8] mt-2">
+                      ${compAmount} {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} to {selectedMember?.first_name} {selectedMember?.last_name}
+                    </p>
+                    <p className="text-xs text-[#31A24C] mt-1">✓ PIN Verified & Documented</p>
                   </div>
+
                 ) : !selectedMember ? (
                   <>
-                    {/* Search */}
+                    <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">Step 1: Select Member</p>
                     <div className="flex gap-2">
                       <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
                         <input type="text" value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && searchMembers()}
-                          placeholder="Search Member By Name Or Phone..."
+                          placeholder="Search By Name Or Phone..."
                           className="w-full pl-10 pr-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
                       </div>
                       <button onClick={searchMembers} disabled={searching}
@@ -287,7 +423,6 @@ export default function CompSystem() {
                       </button>
                     </div>
 
-                    {/* Results */}
                     {searchResults.length > 0 && (
                       <div className="space-y-1">
                         {searchResults.map(m => (
@@ -300,17 +435,15 @@ export default function CompSystem() {
                               <p className="text-sm font-medium text-white">{m.first_name} {m.last_name}</p>
                               <p className="text-xs text-[#B0B3B8]">{m.phone || m.email || m.member_number || ''}</p>
                             </div>
-                            {m.comp_balance !== undefined && (
-                              <span className="text-sm font-bold text-[#31A24C]">${(m.comp_balance || 0).toFixed(2)}</span>
-                            )}
+                            <span className="text-sm font-bold text-[#31A24C]">${(m.comp_balance || 0).toFixed(2)}</span>
                           </button>
                         ))}
                       </div>
                     )}
                   </>
+
                 ) : (
                   <>
-                    {/* Selected member */}
                     <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4 flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
                         <Users className="w-6 h-6 text-[#1877F2]" />
@@ -321,139 +454,223 @@ export default function CompSystem() {
                           Balance: <span className="text-[#31A24C] font-bold">${(selectedMember.comp_balance || 0).toFixed(2)}</span>
                         </p>
                       </div>
-                      <button onClick={() => { setSelectedMember(null); setSearchResults([]); }}
-                        className="text-xs text-[#B0B3B8]">Change</button>
+                      <button onClick={resetIssueFlow}
+                        className="text-xs text-[#B0B3B8] px-2 py-1 rounded-lg active:bg-[#3A3B3C]">Change</button>
                     </div>
 
-                    {/* Quick amounts */}
-                    <div>
-                      <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Amount</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {QUICK_AMOUNTS.map(amt => (
-                          <button key={amt}
-                            onClick={() => setCompAmount(String(amt))}
-                            className={`py-3 rounded-xl text-base font-semibold ${compAmount === String(amt) ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
-                              }`}>${amt}</button>
-                        ))}
-                      </div>
-                      <input type="number" value={compAmount}
-                        onChange={e => setCompAmount(e.target.value)}
-                        placeholder="Custom Amount"
-                        className="w-full mt-2 px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] text-center text-lg" />
-                    </div>
+                    {!selectedCategory ? (
+                      <>
+                        <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">Step 2: Comp Type</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {COMP_CATEGORIES.map(cat => {
+                            const Icon = cat.icon;
+                            return (
+                              <button key={cat.key} onClick={() => setSelectedCategory(cat.key)}
+                                className="p-4 bg-[#242526] border border-[#3A3B3C] rounded-xl text-left flex flex-col gap-2 active:border-[#1877F2] hover:border-[#4A4B4C] transition-colors">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '20' }}>
+                                  <Icon className="w-5 h-5" style={{ color: cat.color }} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white">{cat.label}</p>
+                                  <p className="text-[10px] text-[#6A6B6D]">{cat.desc}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">Step 3: Amount</p>
+                          <button onClick={() => setSelectedCategory(null)}
+                            className="ml-auto text-xs px-2 py-1 rounded-lg flex items-center gap-1 active:bg-[#3A3B3C]"
+                            style={{ color: COMP_CATEGORIES.find(c => c.key === selectedCategory)?.color }}>
+                            {(() => { const Cat = COMP_CATEGORIES.find(c => c.key === selectedCategory); const Icon = Cat?.icon; return Icon ? <Icon className="w-3 h-3" /> : null; })()}
+                            {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label}
+                            <X className="w-3 h-3 ml-1 text-[#6A6B6D]" />
+                          </button>
+                        </div>
 
-                    {/* Reason */}
-                    <div>
-                      <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Reason</p>
-                      <div className="flex flex-wrap gap-2">
-                        {REASONS.map(r => (
-                          <button key={r} onClick={() => setCompReason(r)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium ${compReason === r ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                              }`}>{r}</button>
-                        ))}
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {QUICK_AMOUNTS.map(amt => (
+                            <button key={amt}
+                              onClick={() => setCompAmount(String(amt))}
+                              className={`py-2.5 rounded-xl text-sm font-semibold ${compAmount === String(amt) ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
+                                }`}>${amt}</button>
+                          ))}
+                        </div>
+                        <input type="number" value={compAmount}
+                          onChange={e => setCompAmount(e.target.value)}
+                          placeholder="Custom Amount"
+                          className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] text-center text-lg" />
 
-                    {/* Award button */}
-                    <button onClick={requestComp} disabled={awarding || !compAmount}
-                      className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
-                      {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Gift className="w-5 h-5" />}
-                      Award ${compAmount || '0'} Comp
-                    </button>
+                        <div>
+                          <p className="text-xs text-[#B0B3B8] mb-1">Notes (optional)</p>
+                          <input type="text" value={compNotes}
+                            onChange={e => setCompNotes(e.target.value)}
+                            placeholder="e.g., Birthday bonus, 2 hours free table time..."
+                            className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
+                        </div>
+
+                        <button onClick={requestComp} disabled={awarding || !compAmount || parseFloat(compAmount) <= 0}
+                          className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
+                          {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
+                          Issue ${compAmount || '0'} — Requires PIN
+                        </button>
+                        <p className="text-[10px] text-[#6A6B6D] text-center">
+                          All comps require staff PIN verification and are fully documented
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
               </div>
             )}
 
-            {/* ===== BALANCES TAB ===== */}
-            {tab === 'balances' && (
-              <div className="space-y-2">
-                <p className="text-sm text-[#B0B3B8] mb-3">Members With Comp Balances (Sorted By Highest)</p>
-                {loading ? (
-                  <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-[#1877F2] animate-spin" /></div>
-                ) : balances.length === 0 ? (
-                  <p className="py-10 text-center text-[#B0B3B8]">No Comp Balances Yet</p>
-                ) : (
-                  balances.sort((a, b) => (b.balance || 0) - (a.balance || 0)).map((b, i) => (
-                    <div key={b.member_id || i} className="flex items-center gap-3 px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
-                      <span className="text-xs text-[#B0B3B8] w-6">{i + 1}</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{b.member_name || b.first_name || 'Member'} {b.last_name || ''}</p>
-                      </div>
-                      <span className="text-lg font-bold text-[#31A24C]">${(b.balance || 0).toFixed(2)}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            {/* ═══════════ COMP LOG TAB ═══════════ */}
+            {tab === 'log' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  <button onClick={() => setLogFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${logFilter === 'all' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                    All
+                  </button>
+                  {COMP_CATEGORIES.map(cat => (
+                    <button key={cat.key} onClick={() => setLogFilter(cat.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1 ${logFilter === cat.key ? 'text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}
+                      style={logFilter === cat.key ? { backgroundColor: cat.color } : {}}>
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
 
-            {/* ===== RATES TAB ===== */}
-            {tab === 'rates' && (
-              <div className="space-y-4">
-                <p className="text-sm text-[#B0B3B8]">Auto-Comp Earning Rates Per Hour Of Play</p>
+                <p className="text-xs text-[#6A6B6D]">{filteredLog.length} comp transaction{filteredLog.length !== 1 ? 's' : ''}</p>
+
                 {loading ? (
                   <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-[#1877F2] animate-spin" /></div>
+                ) : filteredLog.length === 0 ? (
+                  <p className="py-10 text-center text-[#B0B3B8]">No Comp Transactions Yet</p>
                 ) : (
-                  <div className="space-y-2">
-                    {[
-                      { game: '$1/$2 NLH', rate: 1.00, tier: 'standard' },
-                      { game: '$2/$5 NLH', rate: 2.00, tier: 'standard' },
-                      { game: '$5/$10 NLH', rate: 4.00, tier: 'standard' },
-                      { game: '$1/$2 PLO', rate: 1.50, tier: 'standard' },
-                      { game: '$2/$5 PLO', rate: 3.00, tier: 'standard' }
-                    ].concat(rates).map((r, i) => (
-                      <div key={i} className="flex items-center justify-between px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
-                        <div>
-                          <p className="text-sm font-medium text-white">{r.game || r.game_type}</p>
-                          <p className="text-xs text-[#B0B3B8]">{r.tier || 'All Tiers'}</p>
+                  <div className="space-y-1">
+                    {filteredLog.slice(0, 50).map((t, i) => {
+                      const cat = COMP_CATEGORIES.find(c => c.key === (t.comp_category || 'cash_bonus')) || COMP_CATEGORIES[4];
+                      const CatIcon = cat.icon;
+                      return (
+                        <div key={t.id || i} className="flex items-center gap-3 px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: cat.color + '20' }}>
+                            <CatIcon className="w-4 h-4" style={{ color: cat.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{t.member_name || 'Member'}</p>
+                            <p className="text-[10px] text-[#6A6B6D] truncate">
+                              {t.reason || cat.label}
+                              {t.authorized_pin && <span className="text-[#31A24C] ml-1">✓ PIN</span>}
+                            </p>
+                            {t.authorized_by && (
+                              <p className="text-[10px] text-[#4A4B4C]">By: {t.authorized_by}</p>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className={`text-sm font-bold ${(t.amount || 0) > 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
+                              {(t.amount || 0) > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}
+                            </p>
+                            <p className="text-[10px] text-[#6A6B6D]">
+                              {t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
+                            </p>
+                          </div>
                         </div>
-                        <span className="text-base font-bold text-[#1877F2]">${(r.rate || r.rate_per_hour || 0).toFixed(2)}/hr</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
 
-            {/* ===== HISTORY TAB ===== */}
-            {tab === 'history' && (
-              <div className="space-y-1">
-                <p className="text-sm text-[#B0B3B8] mb-3">Recent Comp Transactions</p>
-                {loading ? (
-                  <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 text-[#1877F2] animate-spin" /></div>
-                ) : transactions.length === 0 ? (
-                  <p className="py-10 text-center text-[#B0B3B8]">No Transactions Yet</p>
-                ) : (
-                  transactions.slice(0, 30).map((t, i) => (
-                    <div key={t.id || i} className="flex items-center gap-3 px-4 py-2.5 border-b border-[#3A3B3C]/50">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.type === 'award' || t.amount > 0 ? 'bg-[#31A24C]/10' : 'bg-[#EF4444]/10'
-                        }`}>
-                        {t.type === 'award' || t.amount > 0
-                          ? <Plus className="w-4 h-4 text-[#31A24C]" />
-                          : <DollarSign className="w-4 h-4 text-[#EF4444]" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">{t.member_name || 'Member'}</p>
-                        <p className="text-[10px] text-[#B0B3B8]">{t.reason || t.type}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-sm font-bold ${t.amount > 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
-                          {t.amount > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}
-                        </p>
-                        <p className="text-[10px] text-[#B0B3B8]">
-                          {t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                        </p>
-                      </div>
+            {/* ═══════════ RATES TAB ═══════════ */}
+            {tab === 'rates' && (
+              <div className="space-y-4">
+                <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#31A24C]/10 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-[#31A24C]" />
                     </div>
-                  ))
-                )}
+                    <div>
+                      <p className="text-base font-bold text-white">Auto Rake-Back</p>
+                      <p className="text-xs text-[#B0B3B8]">Comps earned automatically per hour of play</p>
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold text-[#31A24C] text-center py-3">
+                    ${autoCompRate.toFixed(2)}<span className="text-lg text-[#B0B3B8] font-normal">/hour</span>
+                  </div>
+                  <p className="text-xs text-[#6A6B6D] text-center mb-3">Applied to all seated players. Configure in Settings.</p>
+                  <button onClick={() => router.push('/commander/settings')}
+                    className="w-full py-2.5 rounded-xl bg-[#3A3B3C] text-white text-sm font-medium active:bg-[#4A4B4C]">
+                    Edit Rate In Settings
+                  </button>
+                </div>
+
+                <div>
+                  <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Rate Per Game Type</p>
+                  <div className="space-y-2">
+                    {[
+                      { game: '$1/$2 NLH', rate: autoCompRate },
+                      { game: '$2/$5 NLH', rate: autoCompRate * 1.5 },
+                      { game: '$5/$10 NLH', rate: autoCompRate * 2.5 },
+                      { game: '$1/$2 PLO', rate: autoCompRate * 1.2 },
+                      { game: '$2/$5 PLO', rate: autoCompRate * 2.0 },
+                    ].map((r, i) => (
+                      <div key={i} className="flex items-center justify-between px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+                        <p className="text-sm font-medium text-white">{r.game}</p>
+                        <span className="text-base font-bold text-[#1877F2]">${r.rate.toFixed(2)}/hr</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Manual Comp Categories</p>
+                  <div className="space-y-1">
+                    {COMP_CATEGORIES.map(cat => {
+                      const Icon = cat.icon;
+                      return (
+                        <div key={cat.key} className="flex items-center gap-3 px-4 py-2.5 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '20' }}>
+                            <Icon className="w-4 h-4" style={{ color: cat.color }} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white">{cat.label}</p>
+                            <p className="text-[10px] text-[#6A6B6D]">{cat.desc}</p>
+                          </div>
+                          <Shield className="w-3 h-3 text-[#F59E0B]" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-[#6A6B6D] text-center mt-2 flex items-center justify-center gap-1">
+                    <Shield className="w-3 h-3 text-[#F59E0B]" /> All manual comps require staff PIN verification
+                  </p>
+                </div>
               </div>
             )}
+
           </div>
         </div>
-        <style jsx>{`
-`}</style>
+        <style jsx>{``}</style>
       </>
     </CommanderLayout>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className="w-4 h-4" style={{ color }} />
+        <span className="text-xs text-[#B0B3B8]">{label}</span>
+      </div>
+      <p className="text-xl font-bold text-white">{value}</p>
+    </div>
   );
 }

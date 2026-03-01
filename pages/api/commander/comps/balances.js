@@ -34,7 +34,7 @@ async function awardComp(req, res) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { member_id, amount, reason, type, authorized_by, authorized_pin } = req.body;
+    const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes } = req.body;
     if (!member_id || !amount) return res.status(400).json({ success: false, error: 'member_id and amount required' });
 
     // Get the member to find venue_id
@@ -75,7 +75,7 @@ async function awardComp(req, res) {
 
     if (updateErr) throw updateErr;
 
-    // Log the transaction
+    // Log the transaction with category and notes
     await supabase
       .from('commander_member_comp_log')
       .insert({
@@ -87,7 +87,9 @@ async function awardComp(req, res) {
         authorized_by: authorized_by || staff.display_name,
         authorized_pin: authorized_pin || false,
         processed_by: staff.id,
-        balance_after: Math.round(newBalance * 100) / 100
+        balance_after: Math.round(newBalance * 100) / 100,
+        comp_category: comp_category || 'cash_bonus',
+        notes: notes || null
       });
 
     // Ignore log error if table doesn't have all columns - comp was still awarded
