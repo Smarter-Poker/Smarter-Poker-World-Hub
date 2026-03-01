@@ -143,7 +143,7 @@ export default function DealerRotationDisplay() {
                   {onBreak.map(d => (
                     <div key={d.id} className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-3 flex items-center gap-3 break-pulse">
                       <div className="w-8 h-8 rounded-full bg-[#F59E0B]/20 flex items-center justify-center">
-                        <span className="text-sm font-bold text-[#F59E0B]">☕</span>
+                        <span className="text-sm font-bold text-[#F59E0B]">B</span>
                       </div>
                       <div>
                         <p className="text-base font-medium text-white">{d.name || d.first_name}</p>

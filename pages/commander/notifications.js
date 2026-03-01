@@ -544,7 +544,7 @@ export default function NotificationCenter() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                         transition: 'all 0.2s',
                       }}>
-                      📄 {showTemplates ? 'Hide Templates' : 'Use a Template'}
+                      {showTemplates ? 'Hide Templates' : 'Use a Template'}
                       <ChevronDown size={14} style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                     </button>
                     {showTemplates && (

@@ -702,30 +702,33 @@ export default function TablesDisplay() {
                             width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             background: isOccupied ? 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)' : 'rgba(255,255,255,0.06)',
-                            border: `2px solid ${borderColor}`, overflow: 'hidden',
+                            border: `2px solid ${borderColor}`,
+                            position: 'relative',
                           }}>
                             {isOccupied ? (
                               <span style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                             ) : (
                               <span style={{ fontSize: 20, fontWeight: 600, color: '#6B7280' }}>{seat.number}</span>
                             )}
+                            {/* Missed Blinds Sticker — overlays top-right of avatar */}
+                            {isOccupied && (seat.player?.missed_blinds || 0) > 0 && (
+                              <div style={{
+                                position: 'absolute', top: -4, right: -4,
+                                width: 22, height: 22, borderRadius: '50%',
+                                background: (seat.player.missed_blinds >= 2) ? '#EF4444' : '#F97316',
+                                border: '2px solid #18191A',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 10, fontWeight: 900, color: '#fff',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                                zIndex: 3, overflow: 'visible',
+                              }}>
+                                {seat.player.missed_blinds}
+                              </div>
+                            )}
                           </div>
                           <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
-                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : (movingPlayer ? '#22c55e' : '#6B7280'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140, position: 'relative' }}>
+                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : (movingPlayer ? '#22c55e' : '#6B7280'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
                               {isOccupied ? fullName : (movingPlayer ? 'Move here' : 'Open')}
-                              {/* Missed Blinds Overlay */}
-                              {isOccupied && (seat.player?.missed_blinds || 0) > 0 && (
-                                <span style={{
-                                  position: 'absolute', top: -8, right: -8,
-                                  background: (seat.player.missed_blinds >= 2) ? '#EF4444' : '#F97316',
-                                  color: '#fff', fontSize: 9, fontWeight: 800,
-                                  padding: '1px 5px', borderRadius: 6,
-                                  boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                                  lineHeight: 1.4, whiteSpace: 'nowrap',
-                                }}>
-                                  ⚠️ {seat.player.missed_blinds}x
-                                </span>
-                              )}
                             </div>
                             {/* Session Status Overlay (Paused / Meal Break) */}
                             {isOccupied && seat.player?.session_status && seat.player.session_status !== 'active' && (

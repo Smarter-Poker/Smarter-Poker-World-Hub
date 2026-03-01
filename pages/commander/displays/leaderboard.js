@@ -7,16 +7,16 @@
  * Self-generating + staff-managed leaderboard display.
  * 
  * AUTO-GENERATED BOARDS (from commander_members + sessions):
- *   🏆 Most Visits         — visit_count ranked
- *   ⏱️ Hours Played        — from commander_player_sessions or estimate
- *   🕐 Today's Check-Ins   — who's here today
- *   ⭐ VIP Hall of Fame    — tier + lifetime visits
+ *   Most Visits         — visit_count ranked
+ *   Hours Played        — from commander_player_sessions or estimate
+ *   Today's Check-Ins   — who's here today
+ *   VIP Hall of Fame    — tier + lifetime visits
  * 
  * LEAGUE BOARDS (from commander_leagues):
- *   🏅 [League Name]       — live standings with points, events, wins
+ *   [League Name]       — live standings with points, events, wins
  * 
  * CUSTOM BOARDS (from commander_leaderboards):
- *   📋 [Custom Name]       — staff-created via leaderboard builder
+ *   [Custom Name]       — staff-created via leaderboard builder
  * 
  * Priority: Custom boards first → League boards → Auto boards
  * Auto-rotates 12s. Wake lock. Real-time via Commander Data Bus.
@@ -28,7 +28,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
-const MEDAL_E = ['🥇', '🥈', '🥉'];
+const MEDAL_E = ['1st', '2nd', '3rd'];
 
 export default function LeaderboardDisplay() {
   const [boards, setBoards] = useState([]);
@@ -64,12 +64,12 @@ export default function LeaderboardDisplay() {
     return h >= 100 ? `${Math.round(h)}h` : `${h.toFixed(1)}h`;
   }
   const TIERS = {
-    platinum: { l: 'Platinum', i: '💎', c: '#E5E4E2' }, gold: { l: 'Gold', i: '🥇', c: '#FFD700' },
-    vip: { l: 'VIP', i: '⭐', c: '#FFD700' }, silver: { l: 'Silver', i: '🥈', c: '#C0C0C0' },
-    annual: { l: 'Annual', i: '📆', c: '#8B5CF6' }, monthly: { l: 'Monthly', i: '📅', c: '#3B82F6' },
-    weekly: { l: 'Weekly', i: '📋', c: '#10B981' }, daily: { l: 'Daily', i: '🎫', c: '#6B7280' },
+    platinum: { l: 'Platinum', i: '', c: '#E5E4E2' }, gold: { l: 'Gold', i: '', c: '#FFD700' },
+    vip: { l: 'VIP', i: '', c: '#FFD700' }, silver: { l: 'Silver', i: '', c: '#C0C0C0' },
+    annual: { l: 'Annual', i: '', c: '#8B5CF6' }, monthly: { l: 'Monthly', i: '', c: '#3B82F6' },
+    weekly: { l: 'Weekly', i: '', c: '#10B981' }, daily: { l: 'Daily', i: '', c: '#6B7280' },
   };
-  function ti(t) { return TIERS[(t || '').toLowerCase()] || { l: t || 'Member', i: '🎴', c: '#6B7280' }; }
+  function ti(t) { return TIERS[(t || '').toLowerCase()] || { l: t || 'Member', i: '', c: '#6B7280' }; }
 
   // ═══════════════════════════════════════════════════════════════
   // FETCH & BUILD ALL BOARDS
@@ -108,7 +108,7 @@ export default function LeaderboardDisplay() {
                   lb.leaderboard_type === 'high_hand' ? 'HIGH HAND' :
                     lb.leaderboard_type === 'referrals' ? 'REFERRALS' : 'POINTS';
               built.push({
-                id: `custom-${lb.id}`, icon: '📋', title: lb.name,
+                id: `custom-${lb.id}`, icon: '', title: lb.name,
                 subtitle: lb.description || `${entries.length} players • Staff-managed board`,
                 scoreHeader: typeLabel, source: 'custom',
                 entries: entries.slice(0, 15).map((e, i) => ({
@@ -140,7 +140,7 @@ export default function LeaderboardDisplay() {
               if (standings.length > 0) {
                 const maxPts = Math.max(...standings.map(s => s.points || 0), 1);
                 built.push({
-                  id: `league-${lg.id}`, icon: '🏅', title: lg.name,
+                  id: `league-${lg.id}`, icon: '', title: lg.name,
                   subtitle: `${standings.length} players • ${typeof lg.scoring_system === 'string' && !lg.scoring_system.startsWith('{') ? lg.scoring_system : 'Custom points'} system${lg.prize_pool ? ` • $${Number(lg.prize_pool).toLocaleString()} prize pool` : ''}`,
                   scoreHeader: 'POINTS', source: 'league',
                   entries: standings.slice(0, 15).map((s, i) => ({
@@ -168,7 +168,7 @@ export default function LeaderboardDisplay() {
         if (players.length > 0 && players.some(p => p.total_hours > 0)) {
           const maxH = Math.max(...players.map(p => p.total_hours), 1);
           built.push({
-            id: 'hours', icon: '⏱️', title: 'Hours Played — All Time',
+            id: 'hours', icon: '', title: 'Hours Played — All Time',
             subtitle: `${players.length} players ranked by total play time${!hJson?.data?.has_session_data ? ' (estimated from visits)' : ''}`,
             scoreHeader: 'HOURS', source: 'auto',
             entries: players.slice(0, 15).map((p, i) => ({
@@ -188,7 +188,7 @@ export default function LeaderboardDisplay() {
       if (byVisits.length > 0) {
         const topV = byVisits[0].visit_count || 1;
         built.push({
-          id: 'visits', icon: '🏆', title: 'Most Visits — All Time',
+          id: 'visits', icon: '', title: 'Most Visits — All Time',
           subtitle: `Top ${byVisits.length} by total check-ins | ${members.length} total members`,
           scoreHeader: 'VISITS', source: 'auto',
           entries: byVisits.map((m, i) => ({
@@ -204,7 +204,7 @@ export default function LeaderboardDisplay() {
       const todayIn = [...members].filter(m => m.last_checkin && new Date(m.last_checkin) >= tStart).sort((a, b) => new Date(b.last_checkin) - new Date(a.last_checkin)).slice(0, 15);
       if (todayIn.length > 0) {
         built.push({
-          id: 'today', icon: '🕐', title: "Today's Check-Ins",
+          id: 'today', icon: '', title: "Today's Check-Ins",
           subtitle: `${todayIn.length} player${todayIn.length !== 1 ? 's' : ''} today | ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`,
           scoreHeader: 'CHECKED IN', source: 'auto',
           entries: todayIn.map((m, i) => ({
@@ -221,7 +221,7 @@ export default function LeaderboardDisplay() {
         .slice(0, 15);
       if (vips.length > 0 && vips.some(m => (m.visit_count || 0) > 0)) {
         built.push({
-          id: 'vip', icon: '⭐', title: 'VIP Hall of Fame',
+          id: 'vip', icon: '', title: 'VIP Hall of Fame',
           subtitle: `${vips.length} premium members | Ranked by tier and activity`,
           scoreHeader: 'VISITS', source: 'auto',
           entries: vips.map((m, i) => ({
@@ -234,7 +234,7 @@ export default function LeaderboardDisplay() {
 
       // ── FALLBACK ──
       if (built.length === 0) {
-        built.push({ id: 'setup', icon: '🏆', title: 'Leaderboard Setup', subtitle: 'Check in members or create custom boards', scoreHeader: '', source: 'none', entries: [] });
+        built.push({ id: 'setup', icon: '', title: 'Leaderboard Setup', subtitle: 'Check in members or create custom boards', scoreHeader: '', source: 'none', entries: [] });
       }
 
       setBoards(built);
@@ -293,15 +293,15 @@ export default function LeaderboardDisplay() {
         <div className="flex-1 overflow-y-auto min-h-0">
           {!board || board.entries.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-6 px-8">
-              <div className="text-7xl">🏆</div>
+              <div className="text-7xl"></div>
               <div className="text-center max-w-lg">
                 <p className="text-2xl font-bold text-white/40 mb-3">No Leaderboard Data Yet</p>
                 <div className="text-left bg-white/5 rounded-xl p-6 border border-white/10 space-y-3">
                   <p className="text-sm text-white/50 font-semibold uppercase tracking-wider mb-3">How to get started:</p>
-                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">1️⃣</span><p><strong className="text-white/60">Add Members</strong> — Register players in Commander → Members</p></div>
-                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">2️⃣</span><p><strong className="text-white/60">Check In Players</strong> — Track visits via kiosk or manual check-in</p></div>
-                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">3️⃣</span><p><strong className="text-white/60">Create Custom Boards</strong> — Go to Commander → Leaderboard Builder to add custom boards</p></div>
-                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">4️⃣</span><p><strong className="text-white/60">Create a League</strong> — Go to Commander → Leagues to set up a poker league with custom points</p></div>
+                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">1.</span><p><strong className="text-white/60">Add Members</strong> — Register players in Commander → Members</p></div>
+                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">2.</span><p><strong className="text-white/60">Check In Players</strong> — Track visits via kiosk or manual check-in</p></div>
+                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">3.</span><p><strong className="text-white/60">Create Custom Boards</strong> — Go to Commander → Leaderboard Builder to add custom boards</p></div>
+                  <div className="flex items-start gap-3 text-sm text-white/40"><span className="text-lg">4.</span><p><strong className="text-white/60">Create a League</strong> — Go to Commander → Leagues to set up a poker league with custom points</p></div>
                 </div>
               </div>
             </div>

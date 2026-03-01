@@ -1432,7 +1432,7 @@ export default function Cashier() {
             <img
               src="/images/commander/print-new-card.png"
               alt="Print New Card"
-              style={{ width: '260px', height: 'auto', display: 'block', userSelect: 'none' }}
+              style={{ width: '340px', height: 'auto', display: 'block', userSelect: 'none' }}
               draggable={false}
             />
           </button>
