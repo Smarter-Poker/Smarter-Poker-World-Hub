@@ -449,6 +449,7 @@ export default function Cashier() {
     const mins = selectedTime || 0;
     if (mins <= 0) { setMessage({ type: 'error', text: 'Select A Time Amount' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
+    if (String(selectedPlayer.id).startsWith('wl-')) { setMessage({ type: 'error', text: 'This player is on the waitlist only — register them as a member first' }); return; }
     const price = getTimePrice();
     const timeOpt = TIME_OPTIONS.find(o => o.minutes === mins);
     const timeLabel2 = timeOpt?.label || `${mins} min`;
@@ -513,6 +514,7 @@ export default function Cashier() {
     if (actionLoading) return; // Double-click protection
     if (!selectedTier) { setMessage({ type: 'error', text: 'Select A Membership Tier' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
+    if (String(selectedPlayer.id).startsWith('wl-')) { setMessage({ type: 'error', text: 'This player is on the waitlist only — register them as a member first' }); return; }
     const tierInfo = MEMBERSHIP_TIERS.find(t => t.tier === selectedTier);
     const price = tierInfo?.price || 0;
     setActionLoading(true);
@@ -712,6 +714,8 @@ export default function Cashier() {
       g3.gain.setValueAtTime(0.4, ctx.currentTime + 0.25);
       g3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
       o3.start(ctx.currentTime + 0.25); o3.stop(ctx.currentTime + 0.7);
+      // Close AudioContext after sounds finish to prevent memory leak
+      setTimeout(() => { try { ctx.close(); } catch { } }, 1000);
     } catch { /* audio not available */ }
   };
 

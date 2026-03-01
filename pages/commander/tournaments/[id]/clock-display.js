@@ -49,14 +49,7 @@ function formatElapsed(startTime) {
   return `0:${m.toString().padStart(2, '0')}`;
 }
 
-const CHIP_DENOMS = [
-  { value: 25, bg: '#2E7D32', border: '#1B5E20', textColor: '#fff', label: '25' },
-  { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '100' },
-  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '500' },
-  { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '1,000' },
-  { value: 5000, bg: '#E65100', border: '#BF360C', textColor: '#fff', label: '5,000' },
-  { value: 25000, bg: '#880E4F', border: '#6A0036', textColor: '#fff', label: '25,000' },
-];
+// Chip denominations removed — replaced by prize payouts + chip leaders in right panel
 
 const DEFAULT_THEME = {
   background: '#0D192E', text: '#ffffff', accent: '#1877F2',
@@ -288,9 +281,15 @@ export default function ClockDisplay() {
   const theme = { ...DEFAULT_THEME, ...(preset?.theme || {}) };
   const displayOpts = preset?.display_options || {
     show_prize_pool: true, show_payouts: true, show_icm: false,
-    show_chip_chop: false, show_chip_colors: true, show_next_round: true,
+    show_chip_chop: false, show_chip_colors: false, show_next_round: true,
     show_schedule_preview: false, show_seating: false,
   };
+
+  // Chip leaders — top 5 sorted by stack
+  const chipLeaders = (stats.player_stacks || [])
+    .filter(p => p.chips > 0)
+    .sort((a, b) => b.chips - a.chips)
+    .slice(0, 5);
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
   const clockState = clock.clock_state || {};
@@ -442,21 +441,45 @@ export default function ClockDisplay() {
               )}
             </div>
 
-            {/* RIGHT — Time + Chips */}
+            {/* RIGHT — Time + Payouts + Chip Leaders */}
             <div style={S.rightPanel}>
               <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
               <StatCell label="Elapsed Time" value={elapsedDisplay} />
               <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
-              {displayOpts.show_chip_colors && (
-                <div style={S.chipStack}>
-                  {CHIP_DENOMS.map(chip => (
-                    <div key={chip.value} style={S.chipRow}>
-                      <div style={{ ...S.chipCircle, backgroundColor: chip.bg, borderColor: chip.border }}>
-                        <div style={S.chipInner} />
+
+              {/* Prize Payouts — scrollable */}
+              {payouts.length > 0 && (
+                <div style={S.rightSection}>
+                  <div style={S.rightSectionHeader}>Prizes</div>
+                  <div style={S.payoutScroll}>
+                    {payouts.map((p, i) => {
+                      const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
+                      const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+                      const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
+                      return (
+                        <div key={i} style={S.payoutRow}>
+                          <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
+                          <span style={{ color, fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Chip Leaders — top 5 */}
+              {chipLeaders.length > 0 && (
+                <div style={S.rightSection}>
+                  <div style={S.rightSectionHeader}>Chip Leaders</div>
+                  <div style={S.leadersScroll}>
+                    {chipLeaders.map((player, i) => (
+                      <div key={i} style={S.leaderRow}>
+                        <span style={S.leaderRank}>{i + 1}</span>
+                        <span style={S.leaderName}>{player.name || 'Player'}</span>
+                        <span style={S.leaderChips}>{formatChipCount(player.chips)}</span>
                       </div>
-                      <span style={S.chipLabel}>{chip.label}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -542,25 +565,7 @@ export default function ClockDisplay() {
           </div>
         )}
 
-        {/* ===== FOOTER — Payouts (on clock screen only) ===== */}
-        {activeScreen === SCREENS.CLOCK && displayOpts.show_payouts && (
-          <div style={S.footer}>
-            {payouts.length > 0 ? (
-              payouts.slice(0, 7).map((p, i) => {
-                const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-                const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                return (
-                  <span key={i} style={S.payoutItem}>
-                    <span style={{ opacity: 0.6 }}>{place} Place:</span>{' '}
-                    <span style={{ fontWeight: 700 }}>{formatMoney(amount)}</span>
-                  </span>
-                );
-              })
-            ) : (
-              <span style={{ opacity: 0.4 }}>Payouts TBD</span>
-            )}
-          </div>
-        )}
+        {/* Footer removed — payouts now displayed in right panel */}
 
         {/* Branding */}
         <div style={{ position: 'absolute', bottom: 4, right: 12, opacity: 0.15, fontSize: 10, color: '#fff' }}>
@@ -605,9 +610,9 @@ const S = {
   },
   headerTitle: { fontSize: 28, fontWeight: 700 },
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
-  main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 200px', minHeight: 0 },
+  main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 260px', minHeight: 0 },
   leftPanel: { display: 'flex', flexDirection: 'column' },
-  rightPanel: { display: 'flex', flexDirection: 'column' },
+  rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
     justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1
@@ -636,24 +641,45 @@ const S = {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
   },
-  chipStack: { flex: 3, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, justifyContent: 'center' },
-  chipRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  chipCircle: {
-    width: 44, height: 44, borderRadius: '50%', border: '3px solid',
-    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)',
-    position: 'relative', flexShrink: 0
+  // Right panel sections — Prizes + Chip Leaders
+  rightSection: {
+    flex: 1, display: 'flex', flexDirection: 'column',
+    background: 'rgba(255,255,255,0.04)',
+    border: '2px solid rgba(255,255,255,0.12)',
+    overflow: 'hidden', minHeight: 0,
   },
-  chipInner: {
-    position: 'absolute', inset: 4, borderRadius: '50%',
-    border: '2px dashed rgba(255,255,255,0.3)'
+  rightSectionHeader: {
+    fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+    textAlign: 'center', padding: '6px 8px', opacity: 0.6,
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(0,0,0,0.2)', flexShrink: 0,
   },
-  chipLabel: { fontSize: 18, fontWeight: 700 },
-  footer: {
-    background: 'rgba(0,0,0,0.35)', borderTop: '2px solid rgba(255,255,255,0.15)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
-    padding: '10px 20px', fontSize: 15, fontWeight: 600, flexShrink: 0, flexWrap: 'wrap'
+  payoutScroll: {
+    flex: 1, overflowY: 'auto', padding: '4px 10px',
+    display: 'flex', flexDirection: 'column', gap: 2,
   },
-  payoutItem: { whiteSpace: 'nowrap' },
+  payoutRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  leadersScroll: {
+    flex: 1, overflowY: 'auto', padding: '4px 8px',
+    display: 'flex', flexDirection: 'column', gap: 3,
+  },
+  leaderRow: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  leaderRank: {
+    fontSize: 13, fontWeight: 800, opacity: 0.5, minWidth: 18, textAlign: 'center',
+  },
+  leaderName: {
+    flex: 1, fontSize: 13, fontWeight: 600, overflow: 'hidden',
+    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  leaderChips: {
+    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
+  },
   breakBanner: {
     position: 'absolute', top: 8, background: 'rgba(245,158,11,0.2)',
     border: '2px solid rgba(245,158,11,0.5)', padding: '8px 32px', borderRadius: 8,

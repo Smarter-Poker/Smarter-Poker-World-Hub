@@ -823,6 +823,11 @@ export default function TableTabletsPage() {
                         <div style={{ fontSize: isFullscreen ? 16 : 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
                             {venueName || ''}{venueName ? ' · ' : ''}TABLE {tNum}
                         </div>
+                        {isTournamentTable(table) && (table.tournament?.name || table._tournamentData?.name) && (
+                            <div style={{ fontSize: isFullscreen ? 16 : 12, fontWeight: 900, color: '#FFD700', letterSpacing: 0.5, marginBottom: 4, textShadow: '0 0 12px rgba(255,215,0,0.3)' }}>
+                                {table.tournament?.name || table._tournamentData?.name}
+                            </div>
+                        )}
                         <div style={{ fontSize: isFullscreen ? 22 : 18, fontWeight: 800, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.5 }}>
                             {isTournamentTable(table) && !game?.game_type && !table.game_type ? 'Tournament' : getFullGameName(game?.game_type || table.game_type)}
                         </div>
