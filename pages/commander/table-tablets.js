@@ -608,7 +608,7 @@ export default function TableTabletsPage() {
         const nameMaxWidth = isFullscreen ? 140 : 110;
 
         return (
-            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '56%' : '64%', overflow: 'hidden', background: '#0a0a0a', borderRadius: isFullscreen ? 0 : 12 }}>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '56%' : '64%', overflow: 'hidden', background: '#1a1f22', borderRadius: isFullscreen ? 0 : 12 }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: isFullscreen ? '-22%' : '-18%' }}>
                     {/* Poker table image */}
                     <img
@@ -828,7 +828,7 @@ export default function TableTabletsPage() {
     return (
         <CommanderLayout title="Table Tablets | Commander" backHref="/commander/dashboard?card=floor">
             <SEOHead title="Commander — Table Tablets" description="Dealer tablet view for all tables." noindex={true} />
-            <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#E4E6EB', fontFamily: 'Inter, sans-serif' }}>
+            <div style={{ minHeight: '100vh', background: '#1a1f22', color: '#E4E6EB', fontFamily: 'Inter, sans-serif' }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px' }}>
 
                     {/* Header */}
@@ -1124,7 +1124,7 @@ export default function TableTabletsPage() {
 
             {/* ── FULLSCREEN TABLE POPUP ── */}
             {fullscreenTable && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0a0a0a', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1a1f22', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out' }}>
                     {/* Fullscreen header — hidden when locked for true fullscreen */}
                     {!lockedTable && (
                         <div style={{
