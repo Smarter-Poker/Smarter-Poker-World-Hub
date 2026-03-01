@@ -10,7 +10,7 @@
  * 
  * Tabs: Dashboard | Issue Comp | Comp Log | Rates
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
@@ -55,6 +55,7 @@ export default function CompSystem() {
   const [compNotes, setCompNotes] = useState('');
   const [awarding, setAwarding] = useState(false);
   const [awarded, setAwarded] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
   // ─── PIN auth state ───
   const [showPinModal, setShowPinModal] = useState(false);
@@ -149,20 +150,29 @@ export default function CompSystem() {
   useCommanderSync(getVenueId(), fetchData, { entities: ['members'] });
 
   // ─── Member search ───
-  const searchMembers = async () => {
-    if (!searchQuery || searchQuery.length < 2) return;
+  const searchMembers = async (query) => {
+    const q = query !== undefined ? query : searchQuery;
+    if (!q || q.length < 2) { setSearchResults([]); return; }
     setSearching(true);
     try {
       const venueId = getVenueId();
       const headers = {};
       const staffSession = getStaffSession();
       if (staffSession) headers['x-staff-session'] = staffSession;
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(searchQuery)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
+      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(q)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
       const json = await res.json();
       if (json.success) setSearchResults(json.data || []);
     } catch (err) { console.error(err); }
     finally { setSearching(false); }
   };
+
+  // Auto-search with debounce as user types
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (!searchQuery || searchQuery.length < 2) { setSearchResults([]); return; }
+    searchTimeoutRef.current = setTimeout(() => { searchMembers(searchQuery); }, 300);
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
+  }, [searchQuery]);
 
   // ─── Step 1: Click Issue Comp → show PIN modal ───
   const requestComp = () => {
@@ -413,14 +423,11 @@ export default function CompSystem() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
                         <input type="text" value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && searchMembers()}
                           placeholder="Search By Name Or Phone..."
+                          autoFocus
                           className="w-full pl-10 pr-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
+                        {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1877F2] animate-spin" />}
                       </div>
-                      <button onClick={searchMembers} disabled={searching}
-                        className="px-4 py-3 bg-[#1877F2] rounded-xl text-white font-medium active:bg-[#1565D8]">
-                        {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
-                      </button>
                     </div>
 
                     {searchResults.length > 0 && (

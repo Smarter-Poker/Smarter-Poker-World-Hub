@@ -1154,16 +1154,9 @@ export default function Cashier() {
                     </button>
                   ))}
                 </div>
-                <div className="relative mb-4">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
-                  <input type="number" value={customMinutes}
-                    onChange={e => { setCustomMinutes(e.target.value); setSelectedTime(null); }}
-                    placeholder={`Custom Minutes${timeBillingRate > 0 ? ` ($${(timeBillingRate / 60).toFixed(2)}/min)` : ''}`}
-                    className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-white text-lg font-bold outline-none focus:border-[#F59E0B]" />
-                </div>
 
                 {/* Total Due */}
-                {(selectedTime || customMinutes) && (
+                {selectedTime && (
                   <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
                     <span className="text-sm font-semibold text-[#F59E0B]">Total Due</span>
                     <span className="text-2xl font-black text-[#F59E0B]">${getTimePrice()}</span>
@@ -1184,8 +1177,8 @@ export default function Cashier() {
                 </div>
 
                 <PinSubmitButton action="addtime" color="#F59E0B"
-                  label={`Collect $${getTimePrice()} — ${selectedTime ? TIME_OPTIONS.find(o => o.minutes === selectedTime)?.label : customMinutes ? customMinutes + ' Min' : 'Time'}`}
-                  disabled={(!selectedTime && !customMinutes) || !selectedPlayer?.id} />
+                  label={`Collect $${getTimePrice()} — ${selectedTime ? TIME_OPTIONS.find(o => o.minutes === selectedTime)?.label : 'Time'}`}
+                  disabled={!selectedTime || !selectedPlayer?.id} />
 
                 {/* Recent Time Transactions */}
                 {transactions.filter(tx => tx.notes?.includes('Time Purchase')).length > 0 && (
@@ -1371,6 +1364,29 @@ export default function Cashier() {
             </div>
           </div>
         )}
+
+        {/* ═══ PRINT NEW CARD BUTTON ═══ */}
+        <div className="px-4 py-6">
+          <button
+            onClick={() => {
+              if (!selectedPlayer?.id) {
+                setMessage({ type: 'error', text: 'Select A Player First' });
+                setShowPlayerSearch(true);
+                return;
+              }
+              router.push(`/commander/members/${selectedPlayer.id}?action=print-card`);
+            }}
+            className="w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-3 text-white relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              border: '2px solid rgba(0, 212, 255, 0.4)',
+              boxShadow: '0 0 20px rgba(0, 212, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.4)',
+            }}
+          >
+            <CreditCard className="w-5 h-5" style={{ color: '#00d4ff' }} />
+            <span style={{ letterSpacing: '0.05em' }}>PRINT NEW CARD</span>
+          </button>
+        </div>
 
         {/* PIN Keypad Overlay */}
         {pinStep && <PinKeypad />}
