@@ -171,7 +171,10 @@ class RealtimeSync {
       'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
       'player_invited',
       // Game length
-      'game_length_warning', 'game_length_expired',
+      'game_length_warning', 'game_length_expired', 'game_length_extended',
+      'nit_warning', 'nit_sitout', 'game_length_extended',
+      // Nit game
+      'nit_warning', 'nit_sitout',
       // Seven-Deuce bonus
       'seven_deuce_bonus',
     ];

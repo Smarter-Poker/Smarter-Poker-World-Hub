@@ -366,6 +366,9 @@ class GameController {
         // Game modes
         noRathole: row.settings?.no_rathole || false,
         sevenDeuce: row.settings?.seven_deuce || false,
+        nitGame: row.settings?.nit_game || false,
+        maintainPercent: Number(row.settings?.maintain_percent) || 0,
+        maintainHands: Number(row.settings?.maintain_hands) || 10,
         bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
         // Muck, cap, privacy settings
         autoMuck: row.settings?.auto_muck !== false, // default true

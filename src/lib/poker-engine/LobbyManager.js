@@ -268,6 +268,26 @@ class LobbyManager {
       // Auto-close: finish current hand then close
       setTimeout(() => {
         console.log(`[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`);
+        
+        // Auto-extension: if players are seated and auto_extension enabled, extend
+        const autoExtension = config.clubSettings?.auto_extension || config.autoExtension;
+        const seatedCount = table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
+        
+        if (autoExtension && seatedCount >= 2) {
+          console.log(`[LobbyManager] Auto-extending table ${config.tableId} (${seatedCount} players seated)`);
+          table.emit('game_length_extended', { hours: gameLengthHours, seatedPlayers: seatedCount });
+          // Schedule another check after 1 hour
+          setTimeout(() => {
+            const stillSeated = table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
+            if (stillSeated < 2) {
+              this.closeTable(config.tableId);
+            } else {
+              table.emit('game_length_extended', { hours: 1, seatedPlayers: stillSeated });
+            }
+          }, 60 * 60 * 1000);
+          return;
+        }
+        
         table.emit('game_length_expired', { hours: gameLengthHours });
         // Wait for current hand to finish, then close
         if (table.game.phase === 'idle') {

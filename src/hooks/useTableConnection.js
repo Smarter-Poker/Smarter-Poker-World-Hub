@@ -283,7 +283,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'auto_topup_success', 'auto_topup_attempt',
       'auto_rebuy_success', 'auto_rebuy_attempt',
       'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
-      'game_length_warning', 'game_length_expired',
+      'game_length_warning', 'game_length_expired', 'game_length_extended',
+      'nit_warning', 'nit_sitout',
     ];
 
     for (const evt of events) {

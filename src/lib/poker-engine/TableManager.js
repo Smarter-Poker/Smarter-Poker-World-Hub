@@ -128,6 +128,13 @@ class TableManager {
     // Bomb pot tracking
     this._lastBombPotHand = 0;
     
+    // Nit game / VPIP enforcement
+    this.nitGame = config.nitGame || config.clubSettings?.nit_game || false;
+    this.maintainPercent = config.maintainPercent || config.clubSettings?.maintain_percent || 0;
+    this.maintainHands = config.maintainHands || config.clubSettings?.maintain_hands || 10;
+    // Per-player tracking: Map<playerId, { handsDealt, vpipHands, warned }>
+    this._vpipTracker = new Map();
+    
     // Table access control
     this.anonymousTable = config.anonymousTable || config.clubSettings?.anonymous_table || false;
     this.privateGame = config.privateGame || config.clubSettings?.private_game || false;
@@ -886,6 +893,64 @@ class TableManager {
     }
     
     this.emit('hand_complete', data);
+    
+    // ── NIT GAME / VPIP ENFORCEMENT ──
+    // Track VPIP per player and warn/sit-out players who play too tight
+    if (this.nitGame && this.maintainPercent > 0 && this.game.currentHand) {
+      const handPlayers = this.game.currentHand.players || [];
+      const actions = this.game.currentHand.actions || [];
+      
+      for (const player of handPlayers) {
+        const pid = String(player.id);
+        let tracker = this._vpipTracker.get(pid);
+        if (!tracker) {
+          tracker = { handsDealt: 0, vpipHands: 0, warned: false };
+          this._vpipTracker.set(pid, tracker);
+        }
+        
+        tracker.handsDealt++;
+        
+        // Check if player VPIP'd (voluntarily put money in preflop)
+        const playerPreflopActions = actions.filter(a =>
+          String(a.playerId) === pid && a.street === 'preflop' &&
+          ['call', 'raise', 'bet', 'all_in'].includes(a.type)
+        );
+        if (playerPreflopActions.length > 0) {
+          tracker.vpipHands++;
+        }
+        
+        // Enforce after minimum hands played
+        if (tracker.handsDealt >= this.maintainHands) {
+          const vpipRate = (tracker.vpipHands / tracker.handsDealt) * 100;
+          
+          if (vpipRate < this.maintainPercent) {
+            if (!tracker.warned) {
+              // First offense: warning
+              tracker.warned = true;
+              this.emit('nit_warning', {
+                playerId: pid,
+                vpipRate: vpipRate.toFixed(1),
+                required: this.maintainPercent,
+                handsPlayed: tracker.handsDealt,
+              });
+            } else {
+              // Second offense: sit-out
+              this.emit('nit_sitout', {
+                playerId: pid,
+                vpipRate: vpipRate.toFixed(1),
+                required: this.maintainPercent,
+              });
+              this.sitOut(pid);
+              // Reset tracker after sit-out
+              this._vpipTracker.delete(pid);
+            }
+          } else {
+            // Reset warning if they improved
+            tracker.warned = false;
+          }
+        }
+      }
+    }
     
     // Handle pending stand-ups and busted players
     for (const seat of this.seats) {
