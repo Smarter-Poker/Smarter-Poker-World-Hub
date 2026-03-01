@@ -99,7 +99,7 @@ async function awardComp(req, res, staffAuth) {
               comp_balance: 0,
               comp_lifetime_earned: 0,
               comp_lifetime_redeemed: 0,
-              membership_tier: staffMember.role,
+              membership_tier: 'vip', // Staff get VIP tier (constraint: standard|gold|platinum|vip)
             })
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
             .single();
