@@ -15,7 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
   QrCode, Clock, CreditCard, Loader2, Search,
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
-  Receipt, Lock, Delete, DollarSign, Banknote, Users, Trophy
+  Receipt, Lock, Delete, DollarSign, Banknote, Users, Trophy, Printer
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -67,7 +67,13 @@ export default function Cashier() {
   const [showAddTime, setShowAddTime] = useState(false);
   const [showMembership, setShowMembership] = useState(false);
   const [showPlayerHistory, setShowPlayerHistory] = useState(false);
+  const [showPrintCard, setShowPrintCard] = useState(false);
   const [playerHistory, setPlayerHistory] = useState([]);
+  const [printCardSearchQuery, setPrintCardSearchQuery] = useState('');
+  const [printCardSearchResults, setPrintCardSearchResults] = useState([]);
+  const [printCardSearchLoading, setPrintCardSearchLoading] = useState(false);
+  const [printCardSelectedPlayer, setPrintCardSelectedPlayer] = useState(null);
+  const printCardSearchTimeoutRef = useRef(null);
   const [playerHistoryLoading, setPlayerHistoryLoading] = useState(false);
 
   // Buy-In form
@@ -1366,27 +1372,187 @@ export default function Cashier() {
         )}
 
         {/* ═══ PRINT NEW CARD BUTTON ═══ */}
-        <div className="px-4 py-6">
+        <div className="px-4 py-4 flex justify-center">
           <button
             onClick={() => {
-              if (!selectedPlayer?.id) {
-                setMessage({ type: 'error', text: 'Select A Player First' });
-                setShowPlayerSearch(true);
-                return;
-              }
-              router.push(`/commander/members/${selectedPlayer.id}?action=print-card`);
+              setPrintCardSearchQuery('');
+              setPrintCardSearchResults([]);
+              setPrintCardSelectedPlayer(null);
+              setShowPrintCard(true);
             }}
-            className="w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-3 text-white relative overflow-hidden"
-            style={{
-              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-              border: '2px solid rgba(0, 212, 255, 0.4)',
-              boxShadow: '0 0 20px rgba(0, 212, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.4)',
-            }}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            aria-label="Print New Card"
           >
-            <CreditCard className="w-5 h-5" style={{ color: '#00d4ff' }} />
-            <span style={{ letterSpacing: '0.05em' }}>PRINT NEW CARD</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/commander/print-new-card.png"
+              alt="Print New Card"
+              style={{ width: '260px', height: 'auto', display: 'block', userSelect: 'none' }}
+              draggable={false}
+            />
           </button>
         </div>
+
+        {/* ═══ PRINT CARD MODAL ═══ */}
+        {showPrintCard && (
+          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setShowPrintCard(false)}>
+            <div className="bg-[#242526] w-full h-full overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Printer className="w-5 h-5 text-[#00d4ff]" /> Print New Card
+                </h3>
+                <button onClick={() => setShowPrintCard(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
+              </div>
+
+              {!printCardSelectedPlayer ? (
+                <>
+                  <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Search For Player</p>
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
+                    <input
+                      type="text"
+                      value={printCardSearchQuery}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setPrintCardSearchQuery(val);
+                        if (printCardSearchTimeoutRef.current) clearTimeout(printCardSearchTimeoutRef.current);
+                        if (!val || val.length < 2) { setPrintCardSearchResults([]); return; }
+                        printCardSearchTimeoutRef.current = setTimeout(async () => {
+                          setPrintCardSearchLoading(true);
+                          try {
+                            const token = getToken();
+                            const staffSession = localStorage.getItem('commander_staff') || '';
+                            const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+                            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(val)}&venue_id=${venueId}&limit=8`, { headers });
+                            const json = await res.json();
+                            setPrintCardSearchResults(json.data || []);
+                          } catch { setPrintCardSearchResults([]); }
+                          finally { setPrintCardSearchLoading(false); }
+                        }, 300);
+                      }}
+                      placeholder="Search by Name or Phone..."
+                      autoFocus
+                      className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-white text-base font-medium outline-none focus:border-[#1877F2] placeholder:text-[#666]"
+                    />
+                    {printCardSearchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1877F2] animate-spin" />}
+                  </div>
+
+                  {printCardSearchResults.length > 0 && (
+                    <div className="space-y-2">
+                      {printCardSearchResults.map(m => {
+                        const name = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
+                        return (
+                          <button key={m.id} onClick={() => setPrintCardSelectedPlayer(m)}
+                            className="w-full bg-[#3A3B3C]/50 border border-[#4A4B4C] rounded-xl p-3 flex items-center gap-3 text-left active:bg-[#4A4B4C]">
+                            <div className="w-10 h-10 rounded-full bg-[#1877F2]/20 flex items-center justify-center shrink-0">
+                              <span className="text-sm font-bold text-[#1877F2]">{(name[0] || '?').toUpperCase()}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-white truncate">{name || 'Unknown'}</p>
+                              <p className="text-[10px] text-[#B0B3B8]">
+                                {m.phone || 'No Phone'}
+                                {m.membership_tier && ` • ${m.membership_tier.charAt(0).toUpperCase() + m.membership_tier.slice(1)} Member`}
+                              </p>
+                            </div>
+                            <Printer className="w-4 h-4 text-[#00d4ff] shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {printCardSearchQuery.length >= 2 && printCardSearchResults.length === 0 && !printCardSearchLoading && (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-[#B0B3B8]">No players found for &quot;{printCardSearchQuery}&quot;</p>
+                    </div>
+                  )}
+
+                  {printCardSearchQuery.length < 2 && (
+                    <div className="text-center py-6">
+                      <Printer className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
+                      <p className="text-sm text-[#B0B3B8]">Type a name or phone number to find player</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Selected player card preview */}
+                  <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
+                          <Users className="w-6 h-6 text-[#1877F2]" />
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-white">
+                            {printCardSelectedPlayer.name || `${printCardSelectedPlayer.first_name || ''} ${printCardSelectedPlayer.last_name || ''}`.trim()}
+                          </p>
+                          <p className="text-xs text-[#B0B3B8]">
+                            {printCardSelectedPlayer.phone || 'No Phone'}
+                            {printCardSelectedPlayer.membership_tier && ` • ${printCardSelectedPlayer.membership_tier.charAt(0).toUpperCase() + printCardSelectedPlayer.membership_tier.slice(1)}`}
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setPrintCardSelectedPlayer(null)}
+                        className="text-xs text-[#B0B3B8] px-2 py-1 rounded-lg active:bg-[#3A3B3C]">Change</button>
+                    </div>
+                    {printCardSelectedPlayer.member_number && (
+                      <p className="text-xs text-[#B0B3B8]">Member #: <span className="text-white font-medium">{printCardSelectedPlayer.member_number}</span></p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const m = printCardSelectedPlayer;
+                      const name = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
+                      const memberId = m.member_number || m.id;
+                      const tier = m.membership_tier ? m.membership_tier.charAt(0).toUpperCase() + m.membership_tier.slice(1) : 'Standard';
+                      const qrData = encodeURIComponent(m.id);
+
+                      const w = window.open('', '_blank', 'width=500,height=400');
+                      if (!w) { setMessage({ type: 'error', text: 'Pop-up blocked — allow pop-ups to print' }); return; }
+                      w.document.write(`<!DOCTYPE html><html><head><title>Member Card</title>
+<style>
+  @page { margin: 0; size: 86mm 54mm; }
+  body { margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; }
+  .card { width: 86mm; height: 54mm; background: linear-gradient(135deg, #0a0e27, #1a1a3e, #0d1b2a); color: white; position: relative; overflow: hidden; box-sizing: border-box; padding: 4mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #00d4ff, transparent); }
+  .card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #00d4ff, transparent); }
+  .logo { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; color: #00d4ff; }
+  .name { font-size: 16px; font-weight: 700; margin: 2mm 0 1mm; }
+  .tier { font-size: 10px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.15em; }
+  .id { font-size: 9px; color: #666; margin-top: 1mm; }
+  .qr { position: absolute; right: 4mm; top: 50%; transform: translateY(-50%); }
+  .qr img { width: 22mm; height: 22mm; border-radius: 2px; background: white; padding: 1mm; }
+</style></head><body>
+<div class="card">
+  <div class="logo">SMARTER.POKER</div>
+  <div>
+    <div class="name">${name}</div>
+    <div class="tier">${tier} Member</div>
+    <div class="id">ID: ${memberId}</div>
+  </div>
+  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR" /></div>
+</div>
+</body></html>`);
+                      w.document.close();
+                      setTimeout(() => { w.print(); }, 1000);
+                    }}
+                    className="w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 text-white active:opacity-80"
+                    style={{ background: 'linear-gradient(135deg, #0f3460 0%, #1877F2 100%)' }}
+                  >
+                    <Printer className="w-5 h-5" /> Print Member Card
+                  </button>
+
+                  <button onClick={() => setPrintCardSelectedPlayer(null)}
+                    className="w-full mt-2 py-3 rounded-xl bg-[#3A3B3C] text-[#B0B3B8] text-sm font-medium active:bg-[#4A4B4C]">
+                    Search Another Player
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* PIN Keypad Overlay */}
         {pinStep && <PinKeypad />}
