@@ -8,7 +8,7 @@
  * Usage: Add <FloorCallAlert venueId={venueId} /> to any Commander layout/page
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { Phone, X } from 'lucide-react';
 
 export default function FloorCallAlert({ venueId }) {
