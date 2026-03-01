@@ -84,9 +84,12 @@ export default function PokerToolsPage() {
         resetAll();
     }, [resetAll]);
 
+    /* Max players: PLO5/PLO6 = 4, everything else = 7 */
+    const maxPlayers = config.holeCards >= 5 ? 4 : 7;
+
     const addVillain = useCallback(() => {
-        if (hands.length < 7) setHands(h => [...h, []]);
-    }, [hands.length]);
+        if (hands.length < maxPlayers) setHands(h => [...h, []]);
+    }, [hands.length, maxPlayers]);
 
     const removePlayer = useCallback((idx) => {
         if (hands.length <= 2 || idx === 0) return;
@@ -233,12 +236,12 @@ export default function PokerToolsPage() {
                                     <div key={d.id} onClick={() => setCardBack(d.id)}
                                         style={{
                                             cursor: 'pointer', textAlign: 'center', borderRadius: 10,
-                                            border: cardBack === d.id ? '3px solid #FFD700' : '2px solid #333',
-                                            padding: 10, background: cardBack === d.id ? 'rgba(255,215,0,0.06)' : 'transparent',
+                                            border: cardBack === d.id ? '3px solid #1877F2' : '2px solid #333',
+                                            padding: 10, background: 'transparent',
                                         }}>
                                         <img src={`/images/card-backs/${d.id}.jpg`} alt={d.label}
                                             style={{ width: 60, height: 84, objectFit: 'cover', borderRadius: 6 }} />
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: cardBack === d.id ? '#FFD700' : '#666', marginTop: 6 }}>{d.label}</div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: cardBack === d.id ? '#1877F2' : '#666', marginTop: 6 }}>{d.label}</div>
                                     </div>
                                 ))}
                             </div>
@@ -331,7 +334,7 @@ export default function PokerToolsPage() {
                                                                     <img src={getCardImage(card.rank, card.suit)} alt=""
                                                                         style={{
                                                                             width: 65, height: 91, borderRadius: 5,
-                                                                            border: '2px solid rgba(255,255,255,0.3)',
+                                                                            border: '2px solid #1877F2',
                                                                             boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
                                                                             background: '#fff',
                                                                         }} />
@@ -386,6 +389,9 @@ export default function PokerToolsPage() {
                         const isSelected = selectedSlot?.type === 'hand' && selectedSlot.playerIdx === pi;
                         const equity = results?.[pi];
                         const color = PLAYER_COLORS[pi];
+                        /* Dynamic card sizing: smaller for more hole cards */
+                        const cw = config.holeCards <= 2 ? 65 : config.holeCards <= 4 ? 50 : config.holeCards <= 5 ? 42 : 36;
+                        const ch = Math.round(cw * 1.4);
 
                         return (
                             <div key={pi} style={{
@@ -397,8 +403,8 @@ export default function PokerToolsPage() {
                             }}
                                 onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
 
-                                {/* Cards — SAME SIZE as board (65x91) */}
-                                <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                                {/* Cards — ALL BLUE frames, dynamic size */}
+                                <div style={{ display: 'flex', gap: 3, marginBottom: 4 }}>
                                     {Array.from({ length: config.holeCards }).map((_, ci) => {
                                         const card = hand[ci];
                                         return card ? (
@@ -406,18 +412,18 @@ export default function PokerToolsPage() {
                                                 style={{ cursor: 'pointer' }}>
                                                 <img src={getCardImage(card.rank, card.suit)} alt=""
                                                     style={{
-                                                        width: 65, height: 91, borderRadius: 5,
-                                                        border: '2px solid rgba(255,255,255,0.3)',
+                                                        width: cw, height: ch, borderRadius: 4,
+                                                        border: '2px solid #1877F2',
                                                         boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
                                                         background: '#fff',
                                                     }} />
                                             </div>
                                         ) : (
                                             <div key={ci} style={{
-                                                width: 65, height: 91, borderRadius: 5,
+                                                width: cw, height: ch, borderRadius: 4,
                                                 overflow: 'hidden',
-                                                border: `2px solid ${isSelected ? color : 'rgba(255,255,255,0.12)'}`,
-                                                boxShadow: isSelected ? `0 0 12px ${color}44` : 'none',
+                                                border: `2px solid ${isSelected ? '#1877F2' : 'rgba(255,255,255,0.15)'}`,
+                                                boxShadow: isSelected ? '0 0 12px rgba(24,119,242,0.3)' : 'none',
                                             }}>
                                                 <img src={`/images/card-backs/${cardBack}.jpg`} alt=""
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -470,7 +476,7 @@ export default function PokerToolsPage() {
                     })}
 
                     {/* + ADD BUTTONS — Show at ALL empty seat positions */}
-                    {SEAT_POSITIONS.slice(hands.length).map((pos, idx) => (
+                    {SEAT_POSITIONS.slice(hands.length, maxPlayers).map((pos, idx) => (
                         <div key={`add-${idx}`} style={{
                             position: 'absolute',
                             left: `${pos.x}%`, top: `${pos.y}%`,
