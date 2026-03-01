@@ -322,6 +322,11 @@ export default async function handler(req, res) {
         break;
       }
 
+      case 'show_cards': {
+        result = await controller.showCards(tableId, playerId);
+        break;
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

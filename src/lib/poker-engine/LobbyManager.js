@@ -790,9 +790,19 @@ class LobbyManager {
       ).length;
       
       if (seatedCount === 0 && !this._emptyTimers.has(tableId)) {
-        this._emptyTimers.set(tableId, setTimeout(() => {
-          this.closeTable(tableId);
-        }, EMPTY_TABLE_TIMEOUT_MS));
+        const autoRestart = entry.config?.clubSettings?.auto_restart || entry.config?.autoRestart;
+        
+        if (autoRestart) {
+          // Auto-restart: keep table alive, just set status to waiting
+          entry.table.status = 'WAITING';
+          console.log(`[LobbyManager] Table ${tableId} empty — auto_restart ON, keeping alive`);
+          entry.table.emit('table_waiting', { reason: 'empty', autoRestart: true });
+        } else {
+          // Standard: close after timeout
+          this._emptyTimers.set(tableId, setTimeout(() => {
+            this.closeTable(tableId);
+          }, EMPTY_TABLE_TIMEOUT_MS));
+        }
       }
     }
   }

@@ -733,6 +733,17 @@ class GameController {
   // CHAT
   // ═══════════════════════════════════════════════════════════════════
 
+  /**
+   * Voluntarily show cards after a hand.
+   */
+  async showCards(tableId, playerId) {
+    await this._ensureInit();
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    const result = entry.table.game.voluntaryShowCards(playerId);
+    return result;
+  }
+
   async sendChat(tableId, playerId, message) {
     await this._ensureInit();
     const entry = this.lobby.tables.get(tableId);

@@ -2104,6 +2104,27 @@ class GameStateMachine {
   }
 
   /**
+   * Allow a player to voluntarily show their cards (e.g. after winning without showdown).
+   * Only valid during PAYOUT or SHOWDOWN phase, or right after hand_complete.
+   * @param {string|number} playerId
+   * @returns {{ success: boolean, error?: string }}
+   */
+  voluntaryShowCards(playerId) {
+    if (!this.currentHand) return { success: false, error: 'No active hand' };
+    const player = this.currentHand.players.find(p => String(p.id) === String(playerId));
+    if (!player) return { success: false, error: 'Player not in hand' };
+    if (!player.holeCards || player.holeCards.length === 0) return { success: false, error: 'No cards to show' };
+    if (player.showCards) return { success: true }; // already showing
+    
+    player.showCards = true;
+    this.emit('cards_shown', {
+      playerId,
+      holeCards: player.holeCards,
+    });
+    return { success: true };
+  }
+
+  /**
    * Get legal actions for the current player.
    * @returns {{ playerId: string|number, actions: Array }|null}
    */

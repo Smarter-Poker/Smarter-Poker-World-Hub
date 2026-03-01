@@ -1390,17 +1390,23 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
 // RESULT OVERLAY (showdown / hand complete) + RABBIT HUNT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ResultOverlay({ result }) {
+function ResultOverlay({ result, send, userId }) {
   const [showRabbit, setShowRabbit] = useState(false);
+  const [cardsShown, setCardsShown] = useState(false);
 
   // Reset rabbit state when result changes
-  useEffect(() => { setShowRabbit(false); }, [result]);
+  useEffect(() => { setShowRabbit(false); setCardsShown(false); }, [result]);
 
   if (!result) return null;
 
   const isFoldWin = result.type === 'fold' || result.result?.type === 'fold';
   const rabbitCards = result.rabbitCards || result.result?.rabbitCards;
   const boardAtEnd = result.boardAtEnd || result.result?.boardAtEnd || [];
+  
+  // Check if current user is the winner (for show cards option)
+  const isWinner = isFoldWin && result.winners?.some(w => 
+    String(w.playerId) === String(userId)
+  );
 
   return (
     <motion.div
@@ -1498,6 +1504,27 @@ function ResultOverlay({ result }) {
               </div>
             </motion.div>
           )}
+        </div>
+      )}
+
+      {/* Show Cards — voluntary reveal after fold win */}
+      {isWinner && send && !cardsShown && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => { send('show_cards', {}); setCardsShown(true); }}
+          style={{
+            marginTop: 8, padding: '6px 16px', background: 'rgba(33,150,243,0.3)',
+            border: '1px solid #2196F3', borderRadius: 8, color: '#fff',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          👁️ Show Cards
+        </motion.button>
+      )}
+      {cardsShown && (
+        <div style={{ marginTop: 6, color: '#4caf50', fontSize: 11, fontWeight: 600 }}>
+          Cards revealed ✓
         </div>
       )}
     </motion.div>
@@ -1768,7 +1795,7 @@ export default function LivePokerTable({
 
             {/* Result overlay */}
             <AnimatePresence>
-              {result && <ResultOverlay result={result} />}
+              {result && <ResultOverlay result={result} send={send} userId={userId} />}
             </AnimatePresence>
 
             {/* Chip fly animation — chips fly from pot to winner seats */}

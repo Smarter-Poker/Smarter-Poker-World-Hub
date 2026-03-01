@@ -177,7 +177,9 @@ class RealtimeSync {
       // Config update (admin changed settings)
       'config_updated',
       // Table lifecycle
-      'table_paused', 'table_resumed',
+      'table_paused', 'table_resumed', 'table_waiting',
+      // Voluntary show cards
+      'cards_shown',
       // Seven-Deuce bonus
       'seven_deuce_bonus',
     ];

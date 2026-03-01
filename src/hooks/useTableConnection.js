@@ -366,6 +366,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'buy_insurance': return apiPost('action', { tableId, playerId: userId, type: 'buy_insurance', amount: payload.amount });
       case 'decline_insurance': return apiPost('action', { tableId, playerId: userId, type: 'decline_insurance' });
       case 'respond_run_it': return apiPost('seat', { tableId, playerId: userId, action: 'respond_run_it', choice: payload.choice });
+      case 'show_cards': return apiPost('seat', { tableId, playerId: userId, action: 'show_cards' });
       default: console.warn('[useTableConnection] Unknown event:', event);
     }
   }, [sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat, requestState, joinWaitlist, leaveWaitlist]);
