@@ -916,12 +916,27 @@ export default function TableTabletsPage() {
                                     if (movingPlayer && !isOccupied) {
                                         // Complete the move
                                         (async () => {
-                                            const json = await callSessionAction(movingPlayer.tableNumber, movingPlayer.seat.number, 'move', { target_seat: seat.number });
-                                            if (json.success) {
-                                                setToast({ type: 'success', text: `✅ ${json.data.player_name} moved S${json.data.from_seat} → S${json.data.to_seat}` });
-                                                fetchAll();
+                                            const srcTable = tables.find(t => (t.table_number || t.number) === movingPlayer.tableNumber);
+                                            const isTournMove = srcTable && isTournamentTable(srcTable);
+                                            if (isTournMove && movingPlayer.seat?.taken?.entry_id && movingPlayer.seat?.taken?.tournament_id) {
+                                                await moveTournamentPlayer(
+                                                    movingPlayer.seat.taken.tournament_id,
+                                                    movingPlayer.seat.taken.entry_id,
+                                                    tNum,
+                                                    seat.number,
+                                                    movingPlayer.player_name
+                                                );
+                                            } else if (!isTournMove) {
+                                                const json = await callSessionAction(movingPlayer.tableNumber, movingPlayer.seat.number, 'move', { target_seat: seat.number });
+                                                if (json.success) {
+                                                    setToast({ type: 'success', text: `${json.data.player_name} moved S${json.data.from_seat} → S${json.data.to_seat}` });
+                                                    broadcastChange('tables');
+                                                    fetchAll();
+                                                } else {
+                                                    setToast({ type: 'error', text: json.error || 'Move failed' });
+                                                }
                                             } else {
-                                                setToast({ type: 'error', text: json.error || 'Move failed' });
+                                                setToast({ type: 'error', text: 'Missing entry data — try refreshing' });
                                             }
                                             setMovingPlayer(null);
                                         })();
@@ -1521,6 +1536,7 @@ export default function TableTabletsPage() {
                                 <button
                                     onClick={() => {
                                         haptic();
+                                        setCallClockSeconds(60);
                                         if (callClockRef.current) clearInterval(callClockRef.current);
                                         callClockRef.current = setInterval(() => {
                                             setCallClockSeconds(prev => {
@@ -1689,6 +1705,7 @@ export default function TableTabletsPage() {
                                 <input type="number" value={chipCountInput} onChange={e => setChipCountInput(e.target.value)} placeholder="Enter chip count..."
                                     style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 16, fontWeight: 700, outline: 'none' }} />
                                 <button onClick={async () => {
+                                    haptic();
                                     if (!chipCountInput) return;
                                     try {
                                         const sessionId = showPlayerMenu.taken?.session_id;
@@ -1720,7 +1737,7 @@ export default function TableTabletsPage() {
                                 }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>
                             </div>
                         )}
-                        <button onClick={() => { setShowPlayerMenu(null); setChipCountInput(null); }} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={() => { haptic('light'); setShowPlayerMenu(null); setChipCountInput(null); }} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                     </div>
                 </div>
             )}
@@ -1742,14 +1759,14 @@ export default function TableTabletsPage() {
                             style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C', background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none' }} autoComplete="off" />
                         <button type="submit" style={{ padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Scan</button>
                     </form>
-                    <button onClick={closeSeatScanner} style={{ marginTop: 12, padding: '14px 48px', borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => { haptic(); closeSeatScanner(); }} style={{ marginTop: 12, padding: '14px 48px', borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
                 </div>
             )}
 
             {/* ── DEALER SCAN-IN MODAL ── */}
             {scanningTable && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div onClick={closeDealerScan} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)' }} />
+                    <div onClick={() => { haptic('light'); closeDealerScan(); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)' }} />
                     <div style={{
                         position: 'relative', background: '#242526', borderRadius: 16,
                         width: '90%', maxWidth: 400, padding: 24,
@@ -1760,7 +1777,7 @@ export default function TableTabletsPage() {
                                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>Dealer Scan-In</h3>
                                 <p style={{ margin: 0, fontSize: 12, color: '#B0B3B8' }}>Table {scanningTable}</p>
                             </div>
-                            <button onClick={closeDealerScan} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                            <button onClick={() => { haptic('light'); closeDealerScan(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                                 <X size={20} color="#B0B3B8" />
                             </button>
                         </div>
@@ -1788,7 +1805,7 @@ export default function TableTabletsPage() {
                                             autoPlay playsInline
                                             style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 12 }}
                                         />
-                                        <button onClick={stopDealerCamera}
+                                        <button onClick={() => { haptic(); stopDealerCamera(); }}
                                             style={{ padding: '8px 20px', background: '#3A3B3C', color: '#E4E6EB', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
                                             Cancel
                                         </button>
@@ -1829,7 +1846,7 @@ export default function TableTabletsPage() {
             {/* ── PIN UNLOCK MODAL ── */}
             {showPinModal && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div onClick={() => setShowPinModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)' }} />
+                    <div onClick={() => { haptic('light'); setShowPinModal(false); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)' }} />
                     <div style={{
                         position: 'relative', background: '#242526', borderRadius: 20,
                         width: '90%', maxWidth: 360, padding: 32,
@@ -1886,6 +1903,7 @@ export default function TableTabletsPage() {
                                 <button
                                     key={idx}
                                     onClick={() => {
+                                        haptic('light');
                                         if (key === null) return;
                                         if (key === 'del') { setPinValue(v => v.slice(0, -1)); setPinError(''); }
                                         else if (pinValue.length < 4) { setPinValue(v => v + key); setPinError(''); }
@@ -1907,7 +1925,7 @@ export default function TableTabletsPage() {
 
                         {/* Submit */}
                         <button
-                            onClick={handleUnlockAttempt}
+                            onClick={() => { haptic('heavy'); handleUnlockAttempt(); }}
                             disabled={pinLoading || pinValue.length !== 4}
                             style={{
                                 width: '100%', padding: '14px', borderRadius: 12,
