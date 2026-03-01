@@ -676,15 +676,11 @@ export default function CompSystem() {
                             {compAmount && (
                               <div>
                                 <p className="text-xs text-[#B0B3B8] mb-1">Membership Value (Club Expense)</p>
-                                <div className="relative">
-                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B0B3B8] text-lg">$</span>
-                                  <input type="number" value={membershipCost}
-                                    onChange={e => setMembershipCost(e.target.value)}
-                                    placeholder="0.00"
-                                    className="w-full pl-8 pr-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#8B5CF6] text-center text-lg" />
+                                <div className="w-full px-4 py-3 bg-[#2D2E2F] border border-[#4A4B4C] rounded-xl text-center">
+                                  <span className="text-2xl font-bold text-[#31A24C]">${membershipCost || '0.00'}</span>
                                 </div>
-                                <p className="text-[10px] text-[#6A6B6D] mt-1">
-                                  {membershipPlans.length > 0 ? 'Auto-Pulled From Membership Plan Pricing — Editable' : 'Enter The Dollar Value Of This Comped Membership'}
+                                <p className="text-[10px] text-[#6A6B6D] mt-1 flex items-center justify-center gap-1">
+                                  <Shield className="w-3 h-3 text-[#F59E0B]" /> Locked — Pulled From Membership Plan Pricing
                                 </p>
                               </div>
                             )}

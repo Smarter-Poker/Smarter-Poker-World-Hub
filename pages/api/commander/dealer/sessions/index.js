@@ -58,10 +58,28 @@ export default async function handler(req, res) {
       }
     }
 
+    // Batch-fetch table modes to identify tournament tables (no timer for tournaments)
+    const tableNums = [...new Set((sessions || []).map(s => s.table_number))];
+    let tournamentTableNums = new Set();
+    if (tableNums.length > 0) {
+      let tableQuery = supabase
+        .from('commander_tables')
+        .select('table_number, mode, table_purpose')
+        .in('table_number', tableNums);
+      if (venue_id) tableQuery = tableQuery.eq('venue_id', parseInt(venue_id));
+      const { data: tables } = await tableQuery;
+      (tables || []).forEach(t => {
+        if (t.mode === 'tournament' || t.table_purpose === 'tournament') {
+          tournamentTableNums.add(t.table_number);
+        }
+      });
+    }
+
     const withTimeRemaining = (sessions || []).map(s => {
+      const isTournament = tournamentTableNums.has(s.table_number);
       const totalAllocatedSeconds = ((s.time_allocated_minutes || 0) + (s.time_added_minutes || 0)) * 60;
       const elapsedSeconds = Math.floor((now - new Date(s.started_at)) / 1000);
-      const timeRemaining = Math.max(0, totalAllocatedSeconds - elapsedSeconds);
+      const timeRemaining = isTournament ? null : Math.max(0, totalAllocatedSeconds - elapsedSeconds);
       const member = memberMap[s.member_id] || null;
 
       return {
@@ -80,10 +98,11 @@ export default async function handler(req, res) {
         time_balance_minutes: member?.time_balance_minutes || 0,
         missed_blinds: s.missed_blinds || 0,
         started_at: s.started_at,
-        time_remaining: timeRemaining, // seconds
-        is_low: timeRemaining <= 900 && timeRemaining > 0,    // < 15 min
-        is_critical: timeRemaining <= 300 && timeRemaining > 0, // < 5 min
-        is_expired: timeRemaining <= 0
+        is_tournament: isTournament,
+        time_remaining: timeRemaining, // null for tournaments (no clock)
+        is_low: isTournament ? false : (timeRemaining <= 900 && timeRemaining > 0),
+        is_critical: isTournament ? false : (timeRemaining <= 300 && timeRemaining > 0),
+        is_expired: isTournament ? false : (timeRemaining <= 0)
       };
     });
 

@@ -104,8 +104,20 @@ export default async function handler(req, res) {
 
         if (endError) throw endError;
 
-        // Return unused time to member balance (Texas mode)
-        if (session.member_id && unusedMinutes > 0 && session.time_allocated_minutes > 0) {
+        // Return unused time to member balance (Texas cash games ONLY — NEVER tournaments)
+        // Tournament tables use a one-time seat fee; no time was deducted, so none to return.
+        let isTournamentSession = false;
+        if (session.venue_id && session.table_number) {
+            const { data: tableRow } = await supabase
+                .from('commander_tables')
+                .select('mode, table_purpose')
+                .eq('table_number', session.table_number)
+                .eq('venue_id', session.venue_id)
+                .maybeSingle();
+            isTournamentSession = tableRow?.mode === 'tournament' || tableRow?.table_purpose === 'tournament';
+        }
+
+        if (!isTournamentSession && session.member_id && unusedMinutes > 0 && session.time_allocated_minutes > 0) {
             try {
                 const { data: member } = await supabase
                     .from('commander_members')
