@@ -266,10 +266,12 @@ class PotCalculator {
         continue;
       }
       
-      // Calculate rake
+      // Calculate rake — cap is GLOBAL across all pots in the hand
       let rake = 0;
       if (rakePercent > 0 && pot.eligible.size > 1) {
-        rake = Math.min(Math.floor(pot.amount * rakePercent / 100), rakeCap);
+        const uncappedRake = Math.floor(pot.amount * rakePercent / 100);
+        const remainingCap = rakeCap === Infinity ? Infinity : Math.max(0, rakeCap - totalRake);
+        rake = Math.min(uncappedRake, remainingCap);
         totalRake += rake;
       }
       
