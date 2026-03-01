@@ -22,16 +22,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { calculateICM, calculateChipChop, formatPrize } from '../../../../src/lib/commander/icm-utils';
-import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
-import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
-import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
+  const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
@@ -54,25 +49,14 @@ function formatElapsed(startTime) {
   return `0:${m.toString().padStart(2, '0')}`;
 }
 
-const DEFAULT_CHIP_DENOMS = [
-  { value: 25, color: '#2E7D32', label: '25' },
-  { value: 100, color: '#1A1A1A', label: '100' },
-  { value: 500, color: '#6B2D8B', label: '500' },
-  { value: 1000, color: '#DAA520', label: '1,000' },
-  { value: 5000, color: '#E65100', label: '5,000' },
-  { value: 25000, color: '#880E4F', label: '25,000' },
+const CHIP_DENOMS = [
+  { value: 25, bg: '#2E7D32', border: '#1B5E20', textColor: '#fff', label: '25' },
+  { value: 100, bg: '#1A1A1A', border: '#444', textColor: '#fff', label: '100' },
+  { value: 500, bg: '#6B2D8B', border: '#4A1D6B', textColor: '#fff', label: '500' },
+  { value: 1000, bg: '#DAA520', border: '#B8860B', textColor: '#000', label: '1,000' },
+  { value: 5000, bg: '#E65100', border: '#BF360C', textColor: '#fff', label: '5,000' },
+  { value: 25000, bg: '#880E4F', border: '#6A0036', textColor: '#fff', label: '25,000' },
 ];
-
-// Darken a hex color for chip border
-function darkenColor(hex, amount = 40) {
-  try {
-    const h = hex.replace('#', '');
-    const r = Math.max(0, parseInt(h.substring(0, 2), 16) - amount);
-    const g = Math.max(0, parseInt(h.substring(2, 4), 16) - amount);
-    const b = Math.max(0, parseInt(h.substring(4, 6), 16) - amount);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  } catch { return hex; }
-}
 
 const DEFAULT_THEME = {
   background: '#0D192E', text: '#ffffff', accent: '#1877F2',
@@ -93,10 +77,8 @@ export default function ClockDisplay() {
   const [preset, setPreset] = useState(null);
   const [activeScreen, setActiveScreen] = useState(SCREENS.CLOCK);
   const [handTimerActive, setHandTimerActive] = useState(false);
-  const [levelFlash, setLevelFlash] = useState(false);
   const [handTimerSeconds, setHandTimerSeconds] = useState(60);
   const [burnInOffset, setBurnInOffset] = useState({ x: 0, y: 0 });
-  const [isPortrait, setIsPortrait] = useState(false);
   const timerRef = useRef(null);
   const handTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
@@ -104,29 +86,7 @@ export default function ClockDisplay() {
   const controlsTimeoutRef = useRef(null);
   const cycleRef = useRef(null);
   const prevLevelRef = useRef(null);
-
-  // Restore from sessionStorage on mount (eliminates flash on refresh)
-  useEffect(() => {
-    if (!id) return;
-    try {
-      const cached = sessionStorage.getItem(`td_clock_${id}`);
-      if (cached) {
-        const { seconds: cachedSec, timestamp } = JSON.parse(cached);
-        const elapsed = Math.floor((Date.now() - timestamp) / 1000);
-        const restored = Math.max(0, cachedSec - elapsed);
-        if (restored > 0) setSeconds(restored);
-      }
-    } catch { }
-  }, [id]);
-
-  // Responsive portrait detection
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 900px)');
-    setIsPortrait(mq.matches);
-    const handler = (e) => setIsPortrait(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
+  const audioRef = useRef(null);
 
   // Wake lock
   useEffect(() => {
@@ -175,59 +135,51 @@ export default function ClockDisplay() {
   }, [preset]);
 
   // Fetch floor-view data
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     if (!id) return;
-    try {
-      const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-        headers: { 'x-staff-session': staffSession },
-      });
-      const json = await res.json();
-      if (json.success) {
-        setData(json.data);
-        const cs = json.data.clock?.clock_state;
-        if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
-          setSeconds(cs.remaining_seconds);
-        } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
-          const blindStructure = json.data.tournament?.blind_structure || [];
-          const currentLvl = json.data.clock?.current_level || 0;
-          const levelData = blindStructure[currentLvl];
-          if (levelData?.duration_minutes) {
-            setSeconds(levelData.duration_minutes * 60);
+    const fetchData = async () => {
+      try {
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
+          headers: { 'x-staff-session': staffSession },
+        });
+        const json = await res.json();
+        if (json.success) {
+          setData(json.data);
+          const cs = json.data.clock?.clock_state;
+          if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
+            setSeconds(cs.remaining_seconds);
+          } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
+            const blindStructure = json.data.tournament?.blind_structure || [];
+            const currentLvl = json.data.clock?.current_level || 0;
+            const levelData = blindStructure[currentLvl];
+            if (levelData?.duration_minutes) {
+              setSeconds(levelData.duration_minutes * 60);
+            }
+          }
+          isRunningRef.current = cs?.status === 'running';
+
+          // Sound alerts — detect level change
+          const currentLevel = json.data.clock?.current_level;
+          const displayOpts = preset?.display_options || {};
+          if (prevLevelRef.current !== null && currentLevel !== prevLevelRef.current) {
+            if (displayOpts.sound_level_change) playAlert('level');
+          }
+          if (json.data.alerts?.on_break && displayOpts.sound_break) playAlert('break');
+          if (json.data.alerts?.final_table && displayOpts.sound_final_table) playAlert('final');
+          prevLevelRef.current = currentLevel;
+
+          // Load preset if tournament has clock_preset_id
+          if (!preset && json.data.tournament?.clock_preset_id) {
+            fetchPreset(json.data.tournament.clock_preset_id);
           }
         }
-        isRunningRef.current = cs?.status === 'running';
-
-        // Sound alerts — detect level change
-        const currentLevel = json.data.clock?.current_level;
-        const displayOpts = preset?.display_options || {};
-        if (prevLevelRef.current !== null && currentLevel !== prevLevelRef.current) {
-          if (displayOpts.sound_level_change) playAlert('level');
-          // Trigger level-change flash
-          setLevelFlash(true);
-          setTimeout(() => setLevelFlash(false), 600);
-        }
-        if (json.data.alerts?.on_break && displayOpts.sound_break) playAlert('break');
-        if (json.data.alerts?.final_table && displayOpts.sound_final_table) playAlert('final');
-        prevLevelRef.current = currentLevel;
-
-        // Load preset if tournament has clock_preset_id (stored in settings)
-        const presetId = json.data.tournament?.settings?.clock_preset_id || json.data.tournament?.clock_preset_id;
-        if (!preset && presetId) {
-          fetchPreset(presetId);
-        }
-      }
-    } catch (err) { console.error(err); }
-  }, [id, preset]);
-
-  // Supabase Realtime — instant sync when tournament data changes
-  useTournamentRealtime(id, fetchData);
-
-  useEffect(() => {
+      } catch (err) { console.error(err); }
+    };
     fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+    const poll = setInterval(fetchData, 3000);
     return () => clearInterval(poll);
-  }, [fetchData]);
+  }, [id, preset]);
 
   // Fetch clock preset
   const fetchPreset = async (presetId) => {
@@ -244,50 +196,25 @@ export default function ClockDisplay() {
     } catch (err) { console.error(err); }
   };
 
-  // Sound alert playback — 5 distinct packs
+  // Sound alert playback
   const playAlert = (type) => {
-    const pack = preset?.display_options?.sound_pack || 'classic';
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const playTone = (freq, start, duration, vol = 0.3) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        gain.gain.setValueAtTime(vol, ctx.currentTime + start);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
-        osc.start(ctx.currentTime + start);
-        osc.stop(ctx.currentTime + start + duration);
-      };
-
-      if (pack === 'chime') {
-        if (type === 'break') { playTone(440, 0, 0.6); playTone(523, 0.3, 0.6); }
-        else if (type === 'final') { playTone(880, 0, 0.4); playTone(1047, 0.2, 0.4); playTone(1319, 0.4, 0.6); }
-        else { playTone(523, 0, 0.3); playTone(659, 0.15, 0.3); playTone(784, 0.3, 0.5); }
-      } else if (pack === 'bell') {
-        if (type === 'break') { playTone(600, 0, 1.5, 0.25); }
-        else if (type === 'final') { playTone(1000, 0, 0.5, 0.3); playTone(1000, 0.6, 0.5, 0.2); playTone(1200, 1.2, 0.8, 0.3); }
-        else { playTone(800, 0, 1.2, 0.25); }
-      } else if (pack === 'arcade') {
-        if (type === 'break') {
-          for (let i = 0; i < 5; i++) playTone(800 - i * 80, i * 0.08, 0.15, 0.25);
-        } else if (type === 'final') {
-          playTone(523, 0, 0.15, 0.3); playTone(659, 0.15, 0.15, 0.3);
-          playTone(784, 0.3, 0.15, 0.3); playTone(1047, 0.45, 0.4, 0.35);
-        } else {
-          for (let i = 0; i < 5; i++) playTone(400 + i * 80, i * 0.08, 0.15, 0.25);
-        }
-      } else {
-        // Classic (default)
-        if (type === 'break') { playTone(660, 0, 0.8); }
-        else if (type === 'final') { playTone(880, 0, 0.8); }
-        else { playTone(523, 0, 0.8); }
-      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      if (type === 'break') { osc.frequency.setValueAtTime(660, ctx.currentTime); }
+      else if (type === 'final') { osc.frequency.setValueAtTime(880, ctx.currentTime); }
+      else { osc.frequency.setValueAtTime(523, ctx.currentTime); }
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.8);
     } catch { }
   };
 
-  // Countdown tick + sessionStorage persistence
+  // Countdown tick
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     const status = data?.clock?.clock_state?.status;
@@ -295,19 +222,12 @@ export default function ClockDisplay() {
     if (status === 'running') {
       timerRef.current = setInterval(() => {
         if (isRunningRef.current) {
-          setSeconds(prev => {
-            const next = prev > 0 ? prev - 1 : 0;
-            // Persist to sessionStorage for refresh resilience
-            try {
-              if (id) sessionStorage.setItem(`td_clock_${id}`, JSON.stringify({ seconds: next, level: data?.clock?.current_level, timestamp: Date.now() }));
-            } catch { }
-            return next;
-          });
+          setSeconds(prev => (prev > 0 ? prev - 1 : 0));
         }
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [data?.clock?.clock_state?.status, id]);
+  }, [data?.clock?.clock_state?.status]);
 
   // Hand timer tick
   useEffect(() => {
@@ -346,7 +266,6 @@ export default function ClockDisplay() {
           if (cs?.remaining_seconds !== undefined) setSeconds(cs.remaining_seconds);
           isRunningRef.current = cs?.status === 'running';
         }
-        broadcastChange('tournaments');
       }
     } catch (err) { console.error('Clock action error:', err); }
     setActionLoading(false);
@@ -359,7 +278,7 @@ export default function ClockDisplay() {
     controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 10000);
   };
 
-  const goFullscreen = () => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* Fullscreen not granted — user gesture or permission denied */ } };
+  const goFullscreen = () => { document.documentElement.requestFullscreen?.(); };
 
   if (!data) return (
     <div style={S.loading}><p style={{ color: '#fff', fontSize: 24, fontFamily: 'Inter, sans-serif' }}>Loading Tournament Clock...</p></div>
@@ -367,12 +286,10 @@ export default function ClockDisplay() {
 
   const { tournament: t = {}, clock = {}, stats = {}, alerts = {} } = data;
   const theme = { ...DEFAULT_THEME, ...(preset?.theme || {}) };
-  const displayOpts = {
+  const displayOpts = preset?.display_options || {
     show_prize_pool: true, show_payouts: true, show_icm: false,
     show_chip_chop: false, show_chip_colors: true, show_next_round: true,
     show_schedule_preview: false, show_seating: false,
-    sound_level_change: true, sound_break: true, sound_final_table: true,
-    ...(preset?.display_options || {}),
   };
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
@@ -390,59 +307,16 @@ export default function ClockDisplay() {
   const avgStack = playersIn > 0 ? Math.round(totalChips / playersIn) : 0;
   const prizePool = stats.prize_pool || 0;
   const payouts = t.payout_structure || t.custom_payouts || stats.payouts || [];
-  const numPaid = payouts.length;
 
+  const nextBreakSec = clockState.next_break_seconds;
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
   const blindStructure = t.blind_structure || [];
-
-  // Next Break — compute wall-clock time (TD-style: "Next break at 3:26 PM")
-  const nextBreakSec = clockState.next_break_seconds;
-  let nextBreakDisplay = '--:--';
-  if (nextBreakSec && nextBreakSec > 0) {
-    const breakTime = new Date(Date.now() + nextBreakSec * 1000);
-    nextBreakDisplay = 'at ' + breakTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  } else {
-    // Compute from blind structure — find next break level
-    const currentLevelIdx = clock.current_level || 0;
-    let secsUntilBreak = displaySeconds;
-    for (let i = currentLevelIdx + 1; i < blindStructure.length; i++) {
-      const lvl = blindStructure[i];
-      if (lvl.is_break) {
-        const breakWallTime = new Date(Date.now() + secsUntilBreak * 1000);
-        nextBreakDisplay = 'at ' + breakWallTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        break;
-      }
-      secsUntilBreak += (lvl.duration_minutes || lvl.duration || 15) * 60;
-    }
-  }
-
-  // Dynamic chip denominations from preset (fallback to defaults)
-  const chipDenoms = (displayOpts.chip_denominations && displayOpts.chip_denominations.length > 0)
-    ? displayOpts.chip_denominations
-    : DEFAULT_CHIP_DENOMS;
-
-  // Color-up detection: chips whose value * 20 <= current small blind are obsolete
-  const smallBlind = blinds.small_blind || 0;
-  const colorUpChips = chipDenoms.filter(c => smallBlind >= c.value * 20);
-
-  // Rebuy/Add-on countdown
-  const rebuyEndLevel = t.rebuy_end_level || t.rebuy_levels || null;
-  const allowsRebuys = t.allows_rebuys || t.rebuy_allowed;
-  const allowsAddon = t.allows_addon || t.addon_allowed;
-  const rebuyLevelsRemaining = rebuyEndLevel ? Math.max(0, rebuyEndLevel - (clock.current_level || 0)) : null;
-  const rebuysClosed = rebuyEndLevel && (clock.current_level || 0) >= rebuyEndLevel;
 
   // ICM / Chop calculations
   const playerStacks = stats.player_stacks || [];
   const prizeAmounts = payouts.map(p => p.amount || (prizePool * (p.percentage || 0) / 100));
   const icmResults = playerStacks.length > 1 ? calculateICM(playerStacks.map(p => p.chips), prizeAmounts) : [];
   const chipChopResults = playerStacks.length > 1 ? calculateChipChop(playerStacks.map(p => p.chips), prizePool) : [];
-
-  // Top 3 chip leaders (sorted by chips descending)
-  const chipLeaders = [...playerStacks]
-    .filter(p => p.chips > 0)
-    .sort((a, b) => b.chips - a.chips)
-    .slice(0, 3);
 
   const bgStyle = displayOpts.background_image_url
     ? { backgroundImage: `url(${displayOpts.background_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -451,27 +325,18 @@ export default function ClockDisplay() {
   return (
     <>
       <SEOHead title="Commander — Clock Display" description="Club Commander Poker Room Management Tool." noindex={true} />
-      <style>{`
-        @keyframes levelFlash { from { opacity: 1; } to { opacity: 0; } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-      `}</style>
 
       <div style={{
         ...S.container, ...bgStyle,
         transform: `translate(${burnInOffset.x}px, ${burnInOffset.y}px)`,
       }} onClick={goFullscreen}>
 
-        {/* ===== LEVEL CHANGE FLASH OVERLAY ===== */}
-        {levelFlash && (
-          <div style={S.levelFlashOverlay} />
-        )}
-
         {/* ===== HAND TIMER OVERLAY ===== */}
         {handTimerActive && (
           <div style={S.handTimerOverlay} onClick={(e) => { e.stopPropagation(); setHandTimerActive(false); }}>
             <div style={S.handTimerBox}>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 2, opacity: 0.7, marginBottom: 4 }}>PLAYER ON THE CLOCK</div>
-              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', 'Segoe UI', sans-serif", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
+              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', monospace", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
                 {handTimerSeconds}
               </div>
               <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>Click to dismiss</div>
@@ -529,125 +394,69 @@ export default function ClockDisplay() {
               <span>{new Date(t.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} — </span>
             )}
             {formatMoney(t.buyin_amount || 0)} Buy-in
-            {(t.allows_rebuys || t.rebuy_allowed) && <>, {formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy</>}
-            {(t.allows_addon || t.addon_allowed) ? ', Add-ons allowed' : ', No add-ons'}
+            {t.rebuy_allowed ? `, ${formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy` : ''}
+            , {t.addon_allowed ? 'Add-ons allowed' : 'No add-ons'}
           </div>
-        </div>
-
-        {/* ===== TD-STYLE SUB-HEADER INFO ROW ===== */}
-        <div style={S.subHeader}>
-          <span style={{ fontWeight: 700 }}>Round: {isBreak ? 'Break' : currentLevel}</span>
-          <span>Next Break {nextBreakDisplay}</span>
-          <span style={{ color: '#31A24C', fontWeight: 700 }}>Players Remaining: {playersIn}</span>
         </div>
 
         {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}
         {activeScreen === SCREENS.CLOCK && (
-          <div style={isPortrait ? S.mainPortrait : S.main}>
-            {/* LEFT — Stats (portrait: horizontal bar) */}
-            <div style={isPortrait ? S.leftPanelPortrait : S.leftPanel}>
-              <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} portrait={isPortrait} />
-              <StatCell label="Entries" value={totalEntries} portrait={isPortrait} />
-              <StatCell label="Players In" value={playersIn} portrait={isPortrait} />
-              <StatCell label="Rebuys" value={totalRebuys} portrait={isPortrait} />
-              {!isPortrait && <StatCell label="Chip Count" value={formatChipCount(totalChips)} />}
-              <StatCell label="Avg Stack" value={formatChipCount(avgStack)} portrait={isPortrait} />
-              <StatCell label="Total Pot" value={formatMoney(prizePool)} portrait={isPortrait} />
+          <div style={S.main}>
+            {/* LEFT — Stats */}
+            <div style={S.leftPanel}>
+              <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
+              <StatCell label="Entries" value={totalEntries} />
+              <StatCell label="Players In" value={playersIn} />
+              <StatCell label="Rebuys" value={totalRebuys} />
+              <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
+              <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
+              <StatCell label="Total Pot" value={formatMoney(prizePool)} />
             </div>
 
-            {/* CENTER — Clock + Blinds (TD-style: timer fills upper area, blinds below) */}
+            {/* CENTER — Clock + Blinds */}
             <div style={S.centerPanel}>
               {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
               {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
 
-              {/* Chip Leaders on Break */}
-              {isBreak && chipLeaders.length > 0 && (
-                <div style={S.chipLeadersPanel}>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, opacity: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>Chip Leaders</div>
-                  {chipLeaders.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, marginBottom: 2 }}>
-                      <span style={{ color: '#fff', fontSize: 16, minWidth: 18, textAlign: 'center', opacity: 0.7 }}>
-                        {i + 1}.
-                      </span>
-                      <span style={{ flex: 1, textAlign: 'left' }}>{p.name || `Player ${i + 1}`}</span>
-                      <span style={{ fontVariantNumeric: 'tabular-nums', color: '#31A24C' }}>{formatChipCount(p.chips)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Color-up banner */}
-              {colorUpChips.length > 0 && !isBreak && !isH4H && (
-                <div style={S.colorUpBanner}>
-                  COLOR UP — Remove {colorUpChips.map(c => c.label || c.value.toLocaleString()).join(', ')} chips
-                </div>
-              )}
-
-              {/* Rebuy countdown banner */}
-              {allowsRebuys && !rebuysClosed && rebuyLevelsRemaining !== null && rebuyLevelsRemaining > 0 && (
-                <div style={S.rebuyBanner}>
-                  Rebuys close after Level {rebuyEndLevel} — {rebuyLevelsRemaining} level{rebuyLevelsRemaining !== 1 ? 's' : ''} remaining
-                </div>
-              )}
-              {allowsRebuys && rebuysClosed && (
-                <div style={S.rebuyClosedBanner}>Rebuy period closed</div>
-              )}
-              {allowsAddon && !rebuysClosed && (
-                <div style={S.addonBanner}>Add-on period open</div>
-              )}
-
-              {/* TIMER — fills all available space, text centered inside */}
-              <div style={S.timerZone} onClick={toggleControls}>
-                <div style={{ ...S.timer, color: '#FFFFFF' }}>
-                  {formatClock(displaySeconds)}
-                </div>
-                {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
+              <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>
+                {formatClock(displaySeconds)}
               </div>
 
-              {/* BLINDS — fills lower half of center panel */}
-              <div style={S.blindsZone}>
-                <div style={S.blindsBlock}>
-                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
-                  <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
-                  <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
-                    {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
-                  </div>
-                  {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
-                </div>
+              {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
 
-                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
-                  <div style={S.nextRound}>
-                    <strong>Next Round:</strong> {gameType}<br />
-                    Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                    {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
-                  </div>
-                )}
+              <div style={S.blindsBlock}>
+                <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
+                <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
+                <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
+                  {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                </div>
+                {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
               </div>
+
+              {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                <div style={S.nextRound}>
+                  <strong>Next Round:</strong> {gameType}<br />
+                  Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                  {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                </div>
+              )}
             </div>
 
-            {/* RIGHT — Time + Chips (portrait: below center) */}
-            <div style={isPortrait ? S.rightPanelPortrait : S.rightPanel}>
-              {!isPortrait && (
-                <>
-                  <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
-                  <StatCell label="Elapsed Time" value={elapsedDisplay} />
-                  <StatCell label="Next Break" value={nextBreakDisplay} />
-                </>
-              )}
+            {/* RIGHT — Time + Chips */}
+            <div style={S.rightPanel}>
+              <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
+              <StatCell label="Elapsed Time" value={elapsedDisplay} />
+              <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
               {displayOpts.show_chip_colors && (
-                <div style={isPortrait ? S.chipStackPortrait : S.chipStack}>
-                  {chipDenoms.map(chip => {
-                    const isObsolete = smallBlind >= chip.value * 20;
-                    const chipColor = chip.color || chip.bg || '#333';
-                    return (
-                      <div key={chip.value} style={{ ...S.chipRow, opacity: isObsolete ? 0.25 : 1, textDecoration: isObsolete ? 'line-through' : 'none' }}>
-                        <div style={{ ...S.chipCircle, backgroundColor: chipColor, borderColor: darkenColor(chipColor) }}>
-                          <div style={S.chipInner} />
-                        </div>
-                        <span style={{ ...S.chipLabel, color: isObsolete ? '#666' : '#fff' }}>{chip.label || chip.value.toLocaleString()}</span>
+                <div style={S.chipStack}>
+                  {CHIP_DENOMS.map(chip => (
+                    <div key={chip.value} style={S.chipRow}>
+                      <div style={{ ...S.chipCircle, backgroundColor: chip.bg, borderColor: chip.border }}>
+                        <div style={S.chipInner} />
                       </div>
-                    );
-                  })}
+                      <span style={S.chipLabel}>{chip.label}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -736,33 +545,26 @@ export default function ClockDisplay() {
         {/* ===== FOOTER — Payouts (on clock screen only) ===== */}
         {activeScreen === SCREENS.CLOCK && displayOpts.show_payouts && (
           <div style={S.footer}>
-            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}># Entries:</span> <span style={{ fontWeight: 700 }}>{totalEntries}</span></span>
-            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}># Paid:</span> <span style={{ fontWeight: 700 }}>{numPaid}</span></span>
-            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}># Chips:</span> <span style={{ fontWeight: 700 }}>{formatChipCount(totalChips)}</span></span>
-            <span style={S.payoutItem}><span style={{ opacity: 0.6 }}>Prize Pool:</span> <span style={{ fontWeight: 700 }}>{formatMoney(prizePool)}</span></span>
+            {payouts.length > 0 ? (
+              payouts.slice(0, 7).map((p, i) => {
+                const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
+                const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+                return (
+                  <span key={i} style={S.payoutItem}>
+                    <span style={{ opacity: 0.6 }}>{place} Place:</span>{' '}
+                    <span style={{ fontWeight: 700 }}>{formatMoney(amount)}</span>
+                  </span>
+                );
+              })
+            ) : (
+              <span style={{ opacity: 0.4 }}>Payouts TBD</span>
+            )}
           </div>
         )}
 
-        {/* ===== DEALER PUSH & BREAK TICKER ===== */}
-        <DealerTicker
-          accentColor={theme.accent || '#1877F2'}
-          bgColor="rgba(0,0,0,0.35)"
-          fontSize={16}
-          borderColor="rgba(255,255,255,0.15)"
-          speed={50}
-          showBorder={true}
-        />
-
-        {/* Branding + QR Code */}
-        <div style={{ position: 'absolute', bottom: 4, right: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {id && (
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/commander/tournaments/${id}/public`)}&bgcolor=000000&color=ffffff`}
-              alt="Scan for chip counts"
-              style={{ width: 48, height: 48, opacity: 0.4, borderRadius: 4 }}
-            />
-          )}
-          <span style={{ opacity: 0.15, fontSize: 10, color: '#fff' }}>Powered by Smarter.Poker</span>
+        {/* Branding */}
+        <div style={{ position: 'absolute', bottom: 4, right: 12, opacity: 0.15, fontSize: 10, color: '#fff' }}>
+          Powered by Smarter.Poker
         </div>
       </div>
     </>
@@ -780,11 +582,11 @@ function adjustColor(hex, amount) {
   } catch { return hex; }
 }
 
-function StatCell({ label, value, portrait }) {
+function StatCell({ label, value }) {
   return (
-    <div style={portrait ? S.statCellPortrait : S.statCell}>
-      <div style={portrait ? S.statLabelPortrait : S.statLabel}>{label}</div>
-      <div style={portrait ? S.statValuePortrait : S.statValue}>{value}</div>
+    <div style={S.statCell}>
+      <div style={S.statLabel}>{label}</div>
+      <div style={S.statValue}>{value}</div>
     </div>
   );
 }
@@ -801,88 +603,41 @@ const S = {
     background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
     borderBottom: '2px solid rgba(255,255,255,0.15)', flexShrink: 0
   },
-  subHeader: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '6px 24px', background: 'rgba(0,0,0,0.25)',
-    borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 14,
-    fontWeight: 500, flexShrink: 0, color: '#fff'
-  },
   headerTitle: { fontSize: 28, fontWeight: 700 },
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
   main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 200px', minHeight: 0 },
-  mainPortrait: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
   leftPanel: { display: 'flex', flexDirection: 'column' },
-  leftPanelPortrait: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', borderBottom: '2px solid rgba(255,255,255,0.15)' },
   rightPanel: { display: 'flex', flexDirection: 'column' },
-  rightPanelPortrait: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', borderTop: '2px solid rgba(255,255,255,0.15)', padding: '8px 0' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    position: 'relative', padding: 0, flex: 1, minHeight: 0, overflow: 'hidden'
-  },
-  timerZone: {
-    flex: 3, display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', width: '100%', cursor: 'pointer', minHeight: 0
+    justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1
   },
   statCell: {
     flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '4px 8px', textAlign: 'center'
   },
-  statCellPortrait: {
-    flex: 1, minWidth: 80, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '6px 4px', textAlign: 'center'
-  },
   statLabel: { fontSize: 13, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
-  statLabelPortrait: { fontSize: 10, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
   statValue: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
-  statValuePortrait: { fontSize: 16, fontWeight: 700, lineHeight: 1.3 },
   timer: {
-    fontSize: 'min(28vw, 28vh)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1, textShadow: '0 6px 30px rgba(0,0,0,0.6)', letterSpacing: -4,
-    fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", fontFeatureSettings: '"zero" 0',
-    textAlign: 'center', width: '100%', flexShrink: 0
-  },
-  blindsZone: {
-    flex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', width: '100%', minHeight: 0
+    fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
+    fontFamily: "'Inter', monospace", padding: '8px 0', textAlign: 'center', width: '100%'
   },
   blindsBlock: {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
-    width: '100%', textAlign: 'center', padding: '12px 16px'
+    width: '100%', textAlign: 'center', padding: '8px 16px'
   },
-  blindsGame: { fontSize: 18, opacity: 0.8, fontWeight: 500 },
-  blindsLabel: { fontSize: 32, fontWeight: 600, opacity: 0.5 },
-  blindsValue: { fontSize: 56, fontWeight: 800, lineHeight: 1.15 },
-  blindsAnte: { fontSize: 40, fontWeight: 700 },
+  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500 },
+  blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5 },
+  blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15 },
+  blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
   },
-  colorUpBanner: {
-    position: 'absolute', top: 8, background: 'rgba(168,85,247,0.2)',
-    border: '2px solid rgba(168,85,247,0.5)', padding: '6px 24px', borderRadius: 8,
-    color: '#A855F7', fontSize: 18, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
-    animation: 'pulse 2s infinite', zIndex: 10
-  },
-  rebuyBanner: {
-    background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)',
-    padding: '4px 20px', borderRadius: 6, color: '#F59E0B', fontSize: 13,
-    fontWeight: 600, marginBottom: 4
-  },
-  rebuyClosedBanner: {
-    background: 'rgba(100,100,100,0.15)', border: '1px solid rgba(100,100,100,0.3)',
-    padding: '4px 20px', borderRadius: 6, color: '#888', fontSize: 13,
-    fontWeight: 600, marginBottom: 4
-  },
-  addonBanner: {
-    background: 'rgba(24,119,242,0.15)', border: '1px solid rgba(24,119,242,0.4)',
-    padding: '4px 20px', borderRadius: 6, color: '#1877F2', fontSize: 13,
-    fontWeight: 600, marginBottom: 4
-  },
   chipStack: { flex: 3, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, justifyContent: 'center' },
-  chipStackPortrait: { display: 'flex', flexDirection: 'row', gap: 12, padding: '8px 12px', justifyContent: 'center', flexWrap: 'wrap' },
-  chipRow: { display: 'flex', alignItems: 'center', gap: 10, transition: 'opacity 0.3s' },
+  chipRow: { display: 'flex', alignItems: 'center', gap: 10 },
   chipCircle: {
     width: 44, height: 44, borderRadius: '50%', border: '3px solid',
     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)',
@@ -903,16 +658,6 @@ const S = {
     position: 'absolute', top: 8, background: 'rgba(245,158,11,0.2)',
     border: '2px solid rgba(245,158,11,0.5)', padding: '8px 32px', borderRadius: 8,
     color: '#F59E0B', fontSize: 28, fontWeight: 800, letterSpacing: 4, zIndex: 10
-  },
-  chipLeadersPanel: {
-    position: 'absolute', top: 52, background: 'rgba(0,0,0,0.6)',
-    border: '1px solid rgba(255,255,255,0.15)', padding: '10px 20px', borderRadius: 8,
-    zIndex: 10, minWidth: 220, backdropFilter: 'blur(4px)'
-  },
-  levelFlashOverlay: {
-    position: 'absolute', inset: 0, zIndex: 200, pointerEvents: 'none',
-    background: 'rgba(255,255,255,0.35)',
-    animation: 'levelFlash 0.6s ease-out forwards'
   },
   h4hBanner: {
     position: 'absolute', top: 8, background: 'rgba(239,68,68,0.2)',
