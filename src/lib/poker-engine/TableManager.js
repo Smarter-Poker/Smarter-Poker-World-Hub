@@ -138,6 +138,23 @@ class TableManager {
     
     // Table access control
     this.anonymousTable = config.anonymousTable || config.clubSettings?.anonymous_table || false;
+
+    // ── Mixed Game Rotation ──────────────────────────────────
+    // Supported rotations: HORSE (holdem, omaha4, razz, stud, stud_hilo) 
+    // or custom list like ['holdem', 'omaha4', 'omaha5', 'short_deck']
+    this.mixedGame = config.mixedGame || config.clubSettings?.mixed_game || false;
+    this.variantRotation = config.variantRotation || config.clubSettings?.variant_rotation || null;
+    this._mixedGameIndex = 0;
+    this._mixedOrbitStart = -1; // buttonSeat when current variant started
+    this._mixedHandsSinceRotation = 0;
+    
+    if (this.mixedGame && !this.variantRotation) {
+      // Default HORSE rotation
+      this.variantRotation = ['holdem', 'omaha4', 'omaha_hilo', 'short_deck'];
+    }
+    if (this.variantRotation?.length > 0) {
+      this.game.config.variant = this.variantRotation[0];
+    }
     this.privateGame = config.privateGame || config.clubSettings?.private_game || false;
     this.vipOnly = config.vipOnly || config.clubSettings?.vip_only || false;
     this.buyInAuthorization = config.clubSettings?.buy_in_authorization || false;
@@ -1006,6 +1023,9 @@ class TableManager {
       }
     }
     
+    // ── Mixed Game Rotation: Check if we need to switch variants ──
+    this._checkMixedGameRotation();
+    
     // Auto-start next hand after delay
     this._checkAutoStart();
   }
@@ -1014,6 +1034,59 @@ class TableManager {
    * Check if we should auto-start the next hand.
    * @private
    */
+  /**
+   * Check if mixed game should rotate to next variant.
+   * Rotates after one full orbit (N hands where N = active players).
+   * @private
+   */
+  _checkMixedGameRotation() {
+    if (!this.variantRotation || this.variantRotation.length <= 1) return;
+    
+    this._mixedHandsSinceRotation++;
+    
+    // One orbit = number of active players at time of rotation start
+    const activePlayers = this.seats.filter(s => 
+      s.status === SEAT_STATUS.OCCUPIED && s.stack > 0
+    ).length;
+    
+    // Initialize orbit tracking
+    if (this._mixedOrbitStart === -1) {
+      this._mixedOrbitStart = this.game.buttonSeat;
+      this._mixedHandsSinceRotation = 1;
+      return;
+    }
+    
+    // Rotate when button has gone around once (hands >= players)
+    if (this._mixedHandsSinceRotation >= Math.max(activePlayers, 2)) {
+      this._mixedGameIndex = (this._mixedGameIndex + 1) % this.variantRotation.length;
+      const newVariant = this.variantRotation[this._mixedGameIndex];
+      
+      // Update game config
+      this.game.config.variant = newVariant;
+      
+      // Reset deck for short deck variant
+      if (newVariant === 'short_deck') {
+        this.game.deck = new (require('./Deck').Deck)({ shortDeck: true });
+      } else if (this.game.deck?.shortDeck) {
+        this.game.deck = new (require('./Deck').Deck)({ shortDeck: false });
+      }
+      
+      // Reset orbit tracking
+      this._mixedOrbitStart = this.game.buttonSeat;
+      this._mixedHandsSinceRotation = 0;
+      
+      // Emit for UI + RealtimeSync
+      this.emit('variant_changed', {
+        variant: newVariant,
+        rotationIndex: this._mixedGameIndex,
+        rotation: this.variantRotation,
+        nextVariant: this.variantRotation[(this._mixedGameIndex + 1) % this.variantRotation.length],
+      });
+      
+      console.log(`[TableManager] Mixed game rotation: ${newVariant} (${this._mixedGameIndex + 1}/${this.variantRotation.length})`);
+    }
+  }
+
   _checkAutoStart() {
     if (this._autoStartTimer) {
       clearTimeout(this._autoStartTimer);

@@ -182,6 +182,8 @@ class RealtimeSync {
       'cards_shown',
       // Seven-Deuce bonus
       'seven_deuce_bonus',
+      // Mixed game rotation
+      'variant_changed',
     ];
     
     for (const event of broadcastEvents) {
@@ -464,6 +466,8 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
     'seven_deuce_bonus',
     // Voluntary show
     'cards_shown',
+    // Mixed game rotation
+    'variant_changed',
   ];
   
   for (const event of serverEvents) {
