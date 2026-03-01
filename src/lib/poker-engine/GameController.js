@@ -558,6 +558,18 @@ class GameController {
   }
 
   /**
+   * Set auto top-up preference for a player at a table.
+   * @param {string} tableId
+   * @param {string} playerId
+   * @param {boolean|number} value - true = top up to max buy-in, number = specific target, false = off
+   */
+  setAutoTopUp(tableId, playerId, value) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.setAutoTopUp(playerId, value);
+  }
+
+  /**
    * Respond to a run-it-twice/thrice offer.
    * @param {string} tableId
    * @param {string} playerId

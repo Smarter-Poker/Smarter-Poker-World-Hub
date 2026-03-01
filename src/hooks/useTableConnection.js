@@ -280,6 +280,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'discard_required', 'card_discarded',
       'chips_added',
       'seven_deuce_bonus',
+      'auto_topup_success', 'auto_topup_attempt',
+      'auto_rebuy_success', 'auto_rebuy_attempt',
     ];
 
     for (const evt of events) {
@@ -354,6 +356,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'cancel_straddle': return apiPost('seat', { tableId, playerId: userId, action: 'cancel_straddle' });
       case 'discard': return apiPost('seat', { tableId, playerId: userId, action: 'discard', cardIndex: data?.cardIndex });
       case 'set_auto_rebuy': return apiPost('seat', { tableId, playerId: userId, action: 'set_auto_rebuy', enabled: payload.enabled });
+      case 'set_auto_topup': return apiPost('seat', { tableId, playerId: userId, action: 'set_auto_topup', enabled: payload.enabled, amount: payload.amount });
       case 'throw_emoji': return apiPost('action', { tableId, playerId: userId, type: 'throw_emoji', ...payload });
       case 'buy_insurance': return apiPost('action', { tableId, playerId: userId, type: 'buy_insurance', amount: payload.amount });
       case 'decline_insurance': return apiPost('action', { tableId, playerId: userId, type: 'decline_insurance' });

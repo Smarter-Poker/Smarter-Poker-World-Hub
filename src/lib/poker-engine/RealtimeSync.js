@@ -164,8 +164,9 @@ class RealtimeSync {
       'discard_required', 'card_discarded',
       // Chips
       'chips_added',
-      // Auto-rebuy
+      // Auto-rebuy / top-up
       'auto_rebuy_success', 'auto_rebuy_attempt',
+      'auto_topup_success', 'auto_topup_attempt',
       // Seven-Deuce bonus
       'seven_deuce_bonus',
     ];
@@ -430,8 +431,9 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
     'discard_required', 'card_discarded',
     // Chips
     'chips_added',
-    // Auto-rebuy
+    // Auto-rebuy / top-up
     'auto_rebuy_success', 'auto_rebuy_attempt',
+    'auto_topup_success', 'auto_topup_attempt',
   ];
   
   for (const event of serverEvents) {

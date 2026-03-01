@@ -1091,7 +1091,7 @@ function ChatOverlay({ messages, onSend }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle }) {
+function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp }) {
   if (!tableState) return null;
 
   const { game } = tableState;
@@ -1161,6 +1161,11 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
             />
           )}
           <SmallButton label="Add Chips" onClick={onAddChips} />
+          <SmallButton
+            label={autoTopUpOn ? '✓ Top Up' : 'Top Up'}
+            onClick={onToggleAutoTopUp}
+            color={autoTopUpOn ? '#34C759' : undefined}
+          />
           <SmallButton label="Leave" onClick={onStandUp} color={T.foldRed} />
         </div>
       )}
@@ -1612,6 +1617,12 @@ export default function LivePokerTable({
     setStraddleOn(newVal);
     send(newVal ? 'declare_straddle' : 'cancel_straddle', {});
   }, [send, straddleOn]);
+  const [autoTopUpOn, setAutoTopUpOn] = useState(false);
+  const handleToggleAutoTopUp = useCallback(() => {
+    const newVal = !autoTopUpOn;
+    setAutoTopUpOn(newVal);
+    send('set_auto_topup', { enabled: newVal });
+  }, [send, autoTopUpOn]);
   const handleChat = useCallback((message) => {
     soundRef.current?.play('chat');
     send('send_chat', { message });
@@ -1774,6 +1785,8 @@ export default function LivePokerTable({
         straddleEnabled={tableState?.config?.voluntaryStraddle || tableState?.config?.straddleEnabled}
         straddleOn={straddleOn}
         onToggleStraddle={handleToggleStraddle}
+        autoTopUpOn={autoTopUpOn}
+        onToggleAutoTopUp={handleToggleAutoTopUp}
       />
 
       {/* Hand strength indicator (hero only, during active hand) */}

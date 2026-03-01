@@ -138,6 +138,25 @@ class LobbyManager {
           throw new Error(lockResult.error || 'Insufficient balance for auto-rebuy');
         }
       };
+      
+      // ── Auto Top-Up callback for club tables ──
+      // Between hands, if player stack < target, lock additional chips from balance
+      table.onAutoTopUp = async (playerId, amount, seatIndex) => {
+        const clubId = config.clubId;
+        const lockResult = await ChipBridge.lockChips(clubId, playerId, config.tableId, amount);
+        if (lockResult.success) {
+          const seat = table.seats[seatIndex];
+          if (seat && seat.player?.id === playerId) {
+            seat.stack += amount;
+            table.emit('auto_topup_success', { playerId, amount, newStack: seat.stack, seatIndex });
+            table.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex });
+            console.log(`[LobbyManager] Auto top-up: ${playerId} tops up ${amount} chips → ${seat.stack}`);
+          }
+        } else {
+          // Non-fatal for top-up — just log and continue
+          console.warn(`[LobbyManager] Auto top-up failed for ${playerId}: ${lockResult.error}`);
+        }
+      };
     }
     
     // Create ActionTimer
@@ -182,6 +201,8 @@ class LobbyManager {
     // Track player joins/leaves for multi-table tracking
     table.on('player_seated', (data) => {
       this._trackPlayerJoin(data.playerId, config.tableId);
+      // Update current_players in DB for lobby display
+      this._updateTablePlayerCount(config.tableId, table);
     });
     table.on('player_left', (data) => {
       this._trackPlayerLeave(data.playerId, config.tableId);

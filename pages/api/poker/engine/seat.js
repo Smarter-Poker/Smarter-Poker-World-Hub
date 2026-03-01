@@ -245,6 +245,15 @@ export default async function handler(req, res) {
         break;
       }
 
+      // AUTO TOP-UP — Top up to max buy-in between hands
+      // ═══════════════════════════════════════════════════════════
+      case 'set_auto_topup': {
+        // value: true = top up to max, number = specific amount, false = off
+        const topUpValue = body.amount ? Number(body.amount) : (body.enabled !== false);
+        result = controller.setAutoTopUp(tableId, playerId, topUpValue);
+        break;
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

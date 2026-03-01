@@ -131,8 +131,16 @@ class TableManager {
     // Auto-rebuy preferences: Map<playerId, boolean>
     this._autoRebuyPrefs = new Map();
     
+    // Auto top-up preferences: Map<playerId, number|boolean>
+    // When set to true: top up to max buy-in between hands
+    // When set to a number: top up to that specific amount
+    this._autoTopUpPrefs = new Map();
+    
     // Auto-rebuy callback — set by LobbyManager for club chip locking
     this.onAutoRebuy = null;
+    
+    // Auto top-up callback — set by LobbyManager for club chip locking
+    this.onAutoTopUp = null;
     
     // Event listeners
     this._listeners = new Map();
@@ -440,6 +448,31 @@ class TableManager {
     if (!seat) return { success: false, error: 'Player not at this table' };
     this._autoRebuyPrefs.set(String(playerId), !!enabled);
     return { success: true, autoRebuy: !!enabled };
+  }
+
+  /**
+   * Set auto top-up preference for a player.
+   * Between hands, if stack < target amount, automatically top up from club balance.
+   * @param {string|number} playerId
+   * @param {boolean|number} value - true = top up to maxBuyIn, number = top up to that amount, false = off
+   */
+  setAutoTopUp(playerId, value) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+    
+    if (value === false || value === 0) {
+      this._autoTopUpPrefs.delete(String(playerId));
+      return { success: true, autoTopUp: false };
+    }
+    
+    // Validate target amount
+    const target = (value === true) ? this.maxBuyIn : Math.min(Number(value), this.maxBuyIn);
+    if (target < this.minBuyIn) {
+      return { success: false, error: `Target must be at least ${this.minBuyIn}` };
+    }
+    
+    this._autoTopUpPrefs.set(String(playerId), target);
+    return { success: true, autoTopUp: true, targetAmount: target };
   }
 
   /**
@@ -765,6 +798,26 @@ class TableManager {
         this._vacateSeat(seat);
         this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted' });
         this._seatFromWaitlist(seat.seatIndex);
+      }
+    }
+    
+    // ── Auto Top-Up: top up seated players whose stack is below their target ──
+    if (this.onAutoTopUp) {
+      for (const seat of this.seats) {
+        if (seat.status !== SEAT_STATUS.OCCUPIED || !seat.player) continue;
+        const playerId = String(seat.player.id);
+        const target = this._autoTopUpPrefs.get(playerId);
+        if (!target || seat.stack >= target) continue;
+        
+        const topUpAmount = target - seat.stack;
+        if (topUpAmount <= 0) continue;
+        
+        this.emit('auto_topup_attempt', { playerId, amount: topUpAmount, currentStack: seat.stack, target, seatIndex: seat.seatIndex });
+        
+        Promise.resolve(this.onAutoTopUp(playerId, topUpAmount, seat.seatIndex)).catch(err => {
+          console.warn('[TableManager] Auto top-up failed for', playerId, err.message);
+          // Non-fatal — player just stays at current stack
+        });
       }
     }
     
