@@ -69,6 +69,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const channelRef = useRef(null);
   const resultTimeoutRef = useRef(null);
   const heartbeatRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
   const tokenRef = useRef(null);
 
   // ── Keep auth token fresh ──
@@ -459,7 +460,11 @@ export function useTableConnection({ supabase, tableId, userId }) {
         setConnected(false);
         console.warn(`[useTableConnection] Channel ${status} — will auto-reconnect`);
         // Supabase client auto-reconnects channels, but refresh state when it does
-        setTimeout(() => requestState(), 2000);
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null;
+          requestState();
+        }, 2000);
       }
     });
 
@@ -469,6 +474,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       setConnected(false);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       _post('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => { });
       channel.untrack().catch(() => { });
       supabase.removeChannel(channel);
