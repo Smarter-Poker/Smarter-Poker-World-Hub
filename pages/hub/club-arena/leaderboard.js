@@ -109,52 +109,64 @@ export default function Leaderboard() {
                         dateFilter = monthAgo.toISOString();
                     }
 
-                    // Batch fetch hand_history for ALL members at once (avoid N+1)
-                    // hand_history may have minimal schema — wrap in try/catch
+                    // Batch fetch hand_histories for this club
+                    // Schema: player_ids (UUID[]), winner_ids (UUID[]), hand_data (JSONB), pot_total
+                    // Per-player profit is inside hand_data.players[].netResult
                     let allHands = [];
                     if (boardType !== 'chips') {
                         try {
                             let handQuery = supabase
                                 .from('hand_histories')
-                                .select('*');
+                                .select('player_ids, winner_ids, hand_data, pot_total, completed_at')
+                                .eq('club_id', clubData.id);
 
                             if (dateFilter) {
-                                handQuery = handQuery.gte('created_at', dateFilter);
+                                handQuery = handQuery.gte('completed_at', dateFilter);
                             }
 
-                            const { data: handData, error: handErr } = await handQuery;
+                            const { data: handData, error: handErr } = await handQuery
+                                .order('completed_at', { ascending: false })
+                                .limit(2000);
+
                             if (!handErr && handData) {
-                                // Only use data if it has the columns we need
-                                if (handData.length > 0 && handData[0].user_id !== undefined) {
-                                    // Filter by club_id client-side if column exists
-                                    allHands = handData[0].club_id !== undefined
-                                        ? handData.filter(h => h.club_id === clubData.id)
-                                        : handData;
-                                }
+                                allHands = handData;
                             }
                         } catch (handQueryErr) {
-                            console.warn('[Leaderboard] hand_history query failed:', handQueryErr);
+                            console.warn('[Leaderboard] hand_histories query failed:', handQueryErr);
                         }
                     }
 
-                    // Group hand_history by user_id
-                    const handsByUser = {};
-                    allHands.forEach(h => {
-                        if (!handsByUser[h.user_id]) handsByUser[h.user_id] = [];
-                        handsByUser[h.user_id].push(h);
-                    });
+                    // Extract per-player stats from hand_data JSONB
+                    const statsByUser = {}; // { [userId]: { handsPlayed, wins, totalProfit } }
+                    for (const hand of allHands) {
+                        const hd = hand.hand_data || {};
+                        const players = hd.players || [];
+                        const winnerIds = hand.winner_ids || hd.result?.winners?.map(w => w.playerId) || [];
+
+                        for (const p of players) {
+                            const pid = String(p.id);
+                            if (!statsByUser[pid]) {
+                                statsByUser[pid] = { handsPlayed: 0, wins: 0, totalProfit: 0 };
+                            }
+                            statsByUser[pid].handsPlayed++;
+                            const netResult = p.netResult ?? 0;
+                            statsByUser[pid].totalProfit += netResult;
+                            if (netResult > 0 || winnerIds.some(w => String(w) === pid)) {
+                                statsByUser[pid].wins++;
+                            }
+                        }
+                    }
 
                     // Compute stats for each member
                     const membersWithStats = memberData.map(member => {
-                        const userHands = handsByUser[member.user_id] || [];
-                        const wins = userHands.filter(h => h.result === 'win' || h.profit > 0).length;
+                        const userStats = statsByUser[String(member.user_id)] || { handsPlayed: 0, wins: 0, totalProfit: 0 };
                         return {
                             ...member,
                             stats: {
                                 chip_balance: member.chip_balance || 0,
-                                total_profit: userHands.reduce((sum, h) => sum + (h.profit || 0), 0),
-                                hands_played: userHands.length,
-                                win_rate: userHands.length > 0 ? Math.round((wins / userHands.length) * 100) : 0,
+                                total_profit: Math.round(userStats.totalProfit),
+                                hands_played: userStats.handsPlayed,
+                                win_rate: userStats.handsPlayed > 0 ? Math.round((userStats.wins / userStats.handsPlayed) * 100) : 0,
                             },
                         };
                     });

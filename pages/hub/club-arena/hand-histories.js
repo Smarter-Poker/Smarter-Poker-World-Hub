@@ -98,28 +98,34 @@ export default function HandHistories() {
             if (clubData) {
                 setClub(clubData);
 
-                // hand_history table may have minimal schema (only id, winner_name, pot_size, created_at)
-                // Build a resilient query that doesn't filter on columns that may not exist
+                // Query hand_histories — schema: player_ids, winner_ids, hand_data (JSONB), pot_total, variant, completed_at
+                // Per-player profit/cards are inside hand_data.players[]
                 try {
                     let query = supabase
                         .from('hand_histories')
-                        .select('*')
-                        .order('created_at', { ascending: false })
+                        .select('id, hand_number, variant, pot_total, player_ids, winner_ids, hand_data, rake, completed_at, club_id')
+                        .eq('club_id', clubData.id)
+                        .order('completed_at', { ascending: false })
                         .range(reset ? 0 : page * PAGE_SIZE, (reset ? 0 : page) * PAGE_SIZE + PAGE_SIZE - 1);
 
-                    // Date filter (created_at always exists)
+                    // Date filter
                     if (period === 'today') {
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-                        query = query.gte('created_at', today.toISOString());
+                        query = query.gte('completed_at', today.toISOString());
                     } else if (period === 'week') {
                         const weekAgo = new Date();
                         weekAgo.setDate(weekAgo.getDate() - 7);
-                        query = query.gte('created_at', weekAgo.toISOString());
+                        query = query.gte('completed_at', weekAgo.toISOString());
                     } else if (period === 'month') {
                         const monthAgo = new Date();
                         monthAgo.setMonth(monthAgo.getMonth() - 1);
-                        query = query.gte('created_at', monthAgo.toISOString());
+                        query = query.gte('completed_at', monthAgo.toISOString());
+                    }
+
+                    // Filter to only hands the user was in
+                    if (authUser?.id) {
+                        query = query.contains('player_ids', [authUser.id]);
                     }
 
                     const { data: handData, error } = await query;
@@ -129,29 +135,39 @@ export default function HandHistories() {
                         setHands([]);
                         setHasMore(false);
                     } else {
-                        // Client-side filtering for columns that may not exist in schema
-                        let filtered = handData || [];
+                        const userId = authUser?.id;
 
-                        // Filter by user if column exists
-                        if (filtered.length > 0 && filtered[0].user_id !== undefined) {
-                            filtered = filtered.filter(h => h.user_id === authUser?.id);
+                        // Transform each hand: extract per-player data from hand_data JSONB
+                        let filtered = (handData || []).map(hand => {
+                            const hd = hand.hand_data || {};
+                            const player = hd.players?.find(p => String(p.id) === String(userId));
+                            const winnerIds = hand.winner_ids || [];
+                            const isWinner = winnerIds.some(w => String(w) === String(userId));
+                            const netResult = player?.netResult ?? 0;
+
+                            return {
+                                ...hand,
+                                // Computed per-player fields for display
+                                profit: netResult,
+                                result: isWinner ? 'win' : netResult >= 0 ? 'push' : 'loss',
+                                hole_cards: player?.holeCards || hd.result?.playerCards?.[userId] || null,
+                                community_cards: hd.communityCards || hd.result?.communityCards || null,
+                                game_type: hand.variant || hd.variant || 'nlh',
+                                pot_size: hand.pot_total || 0,
+                                winner_name: hd.result?.winners?.[0]?.displayName || null,
+                                created_at: hand.completed_at,
+                            };
+                        });
+
+                        // Filter by result
+                        if (resultFilter === 'wins') {
+                            filtered = filtered.filter(h => h.profit > 0);
+                        } else if (resultFilter === 'losses') {
+                            filtered = filtered.filter(h => h.profit < 0);
                         }
-                        // Filter by club if column exists
-                        if (filtered.length > 0 && filtered[0].club_id !== undefined) {
-                            filtered = filtered.filter(h =>
-                                h.club_id === clubData.id || h.club_id === clubData.club_id
-                            );
-                        }
-                        // Filter by result if column exists
-                        if (resultFilter !== 'all' && filtered.length > 0 && filtered[0].profit !== undefined) {
-                            if (resultFilter === 'wins') {
-                                filtered = filtered.filter(h => h.result === 'win' || h.profit > 0);
-                            } else if (resultFilter === 'losses') {
-                                filtered = filtered.filter(h => h.result === 'loss' || h.profit < 0);
-                            }
-                        }
-                        // Filter by game type if column exists
-                        if (gameType !== 'all' && filtered.length > 0 && filtered[0].game_type !== undefined) {
+
+                        // Filter by game type
+                        if (gameType !== 'all') {
                             filtered = filtered.filter(h => h.game_type === gameType);
                         }
 
