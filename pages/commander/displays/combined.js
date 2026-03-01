@@ -154,7 +154,7 @@ export default function CombinedDisplay() {
           bgColor="#000"
           fontSize={16}
           borderColor="rgba(255,255,255,0.1)"
-          speed={22}
+          speed={50}
           showBorder={true}
         />
       </div>

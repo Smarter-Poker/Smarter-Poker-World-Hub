@@ -485,7 +485,7 @@ export default function TablesDisplay() {
           </div>
 
           {/* Ticker */}
-          <DealerTicker accentColor="#1877F2" bgColor="#000" fontSize={18} borderColor="rgba(255,255,255,0.1)" speed={22} showBorder={true} />
+          <DealerTicker accentColor="#1877F2" bgColor="#000" fontSize={18} borderColor="rgba(255,255,255,0.1)" speed={50} showBorder={true} />
 
           {/* Footer */}
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', padding: '6px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -699,7 +699,7 @@ export default function TablesDisplay() {
           bgColor="#000"
           fontSize={18}
           borderColor="rgba(255,255,255,0.1)"
-          speed={22}
+          speed={50}
           showBorder={true}
         />
 

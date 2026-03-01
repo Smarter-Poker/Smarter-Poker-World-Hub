@@ -110,15 +110,18 @@ export default function CloseDay() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
+      const venueId = getVenueId();
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ pin })
+        body: JSON.stringify({ pin_code: pin, venue_id: venueId })
       });
       const json = await res.json();
-      if (json.success || pin.length === 4) {
+      if (json.success && json.data?.valid && json.data?.staff) {
         // Generate daily report
         setStep(4);
+      } else {
+        setPin('');
       }
     } catch (err) { console.error(err); }
     finally { setVerifying(false); }

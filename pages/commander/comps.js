@@ -112,8 +112,8 @@ export default function CompSystem() {
 
   // Step 2: Verify PIN, then award
   const verifyPinAndAward = async () => {
-    if (!pinCode || pinCode.length < 4) {
-      setPinError('Enter your 4+ digit staff PIN');
+    if (!pinCode || pinCode.length !== 4) {
+      setPinError('Enter your 4-digit staff PIN');
       return;
     }
     setVerifying(true);
@@ -206,11 +206,11 @@ export default function CompSystem() {
                   <input
                     type="password"
                     inputMode="numeric"
-                    maxLength={8}
+                    maxLength={4}
                     value={pinCode}
                     onChange={e => { setPinCode(e.target.value.replace(/\D/g, '')); setPinError(''); }}
                     onKeyDown={e => e.key === 'Enter' && verifyPinAndAward()}
-                    placeholder="Enter 4+ Digit PIN"
+                    placeholder="Enter 4-Digit PIN"
                     autoFocus
                     className="w-full px-4 py-4 bg-[#18191A] border border-[#4A4B4C] rounded-xl text-white text-center text-2xl tracking-[0.5em] placeholder:text-[#6A6B6D] placeholder:tracking-normal placeholder:text-base focus:outline-none focus:border-[#1877F2]"
                   />
@@ -222,7 +222,7 @@ export default function CompSystem() {
                       className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-white font-medium active:bg-[#4A4B4C]">
                       Cancel
                     </button>
-                    <button onClick={verifyPinAndAward} disabled={verifying || pinCode.length < 4}
+                    <button onClick={verifyPinAndAward} disabled={verifying || pinCode.length !== 4}
                       className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 active:bg-[#28883F]">
                       {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       {verifying ? 'Verifying...' : 'Authorize'}

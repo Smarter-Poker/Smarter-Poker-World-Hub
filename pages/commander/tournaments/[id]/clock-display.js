@@ -749,7 +749,7 @@ export default function ClockDisplay() {
           bgColor="rgba(0,0,0,0.35)"
           fontSize={16}
           borderColor="rgba(255,255,255,0.15)"
-          speed={22}
+          speed={50}
           showBorder={true}
         />
 
