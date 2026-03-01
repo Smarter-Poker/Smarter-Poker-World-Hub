@@ -861,13 +861,18 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
           />
         )}
 
-        {canCall && (
-          <ActionButton
-            label={`Call ${canCall.amount?.toLocaleString() || ''}`}
-            color={T.callGreen}
-            onClick={() => onAction({ type: 'call' })}
-          />
-        )}
+        {canCall && (() => {
+          const callAmt = canCall.amount || 0;
+          const potOdds = callAmt > 0 ? ((callAmt / (potTotal + callAmt)) * 100).toFixed(0) : 0;
+          return (
+            <ActionButton
+              label={`Call ${callAmt.toLocaleString()}`}
+              sublabel={potTotal > 0 ? `${potOdds}% pot odds` : null}
+              color={T.callGreen}
+              onClick={() => onAction({ type: 'call' })}
+            />
+          );
+        })()}
 
         {betOrRaise && (
           <ActionButton
@@ -895,29 +900,28 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
   );
 }
 
-function ActionButton({ label, color, onClick }) {
+function ActionButton({ label, sublabel, color, onClick }) {
   return (
     <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.94 }}
       onClick={onClick}
       style={{
-        background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+        background: `linear-gradient(180deg, ${color}, ${color}CC)`,
         color: '#fff',
         border: 'none',
         borderRadius: 10,
-        padding: '10px 22px',
+        padding: sublabel ? '6px 16px 4px' : '10px 16px',
         fontSize: 14,
         fontWeight: 800,
         cursor: 'pointer',
-        boxShadow: `0 4px 15px ${color}40`,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        minWidth: 80,
-        textAlign: 'center',
+        minWidth: 72,
+        boxShadow: `0 3px 12px ${color}66`,
+        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0,
       }}
     >
-      {label}
+      <span>{label}</span>
+      {sublabel && <span style={{ fontSize: 9, fontWeight: 600, opacity: 0.75, marginTop: -1 }}>{sublabel}</span>}
     </motion.button>
   );
 }
@@ -1838,9 +1842,21 @@ export default function LivePokerTable({
 
   // Sound manager
   const soundRef = useRef(null);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('poker-sound-enabled');
+      return stored !== 'false'; // default true
+    }
+    return true;
+  });
   if (!soundRef.current && typeof window !== 'undefined') {
     soundRef.current = new PokerSoundManager();
   }
+  // Sync mute state
+  useEffect(() => {
+    if (soundRef.current) soundRef.current.muted = !soundEnabled;
+    if (typeof window !== 'undefined') localStorage.setItem('poker-sound-enabled', String(soundEnabled));
+  }, [soundEnabled]);
 
   // Sound triggers based on game events
   const prevPhaseRef = useRef(null);
@@ -2414,6 +2430,8 @@ export default function LivePokerTable({
         onThemeChange={(id) => setThemeId(id)}
         currentCardBack={cardBack}
         onCardBackChange={(path) => setCardBack(path)}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => setSoundEnabled(prev => !prev)}
       />
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
@@ -2685,7 +2703,7 @@ export default function LivePokerTable({
       {/* ═══════════ ADMIN TABLE PANEL ═══════════ */}
       {isAdmin && (
         <button onClick={() => setShowAdminPanel(!showAdminPanel)} style={{
-          position: 'fixed', top: 8, right: 8, zIndex: 250,
+          position: 'fixed', top: 8, right: 48, zIndex: 250,
           background: showAdminPanel ? '#FA383E' : 'rgba(35,116,225,0.85)',
           color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px',
           fontSize: 12, fontWeight: 700, cursor: 'pointer',

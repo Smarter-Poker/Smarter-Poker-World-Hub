@@ -47,6 +47,8 @@ export class PokerSoundManager {
   setVolume(vol) { this._volume = Math.max(0, Math.min(1, vol)); }
   get enabled() { return this._enabled; }
   get volume() { return this._volume; }
+  set muted(val) { this._enabled = !val; }
+  get muted() { return !this._enabled; }
 
   /**
    * Play a sound by name
