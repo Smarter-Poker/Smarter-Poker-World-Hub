@@ -253,7 +253,7 @@ export default function LeaderboardBuilder() {
 
                 {/* CREATE FORM */}
                 {showCreate && (
-                    <div style={{ ...s.card, border: '1px solid #1877F2' }}>
+                    <div style={{ ...s.card, border: '2px solid #1877F2' }}>
                         <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Create New Leaderboard</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div>
@@ -326,7 +326,7 @@ export default function LeaderboardBuilder() {
                         const isActive = board.status === 'active';
 
                         return (
-                            <div key={board.id} style={{ ...s.card, borderLeft: isActive ? '4px solid #31A24C' : '4px solid #64748B', border: '2px solid rgba(255,255,255,0.12)' }}>
+                            <div key={board.id} style={{ ...s.card, borderLeft: isActive ? '4px solid #31A24C' : '4px solid #64748B' }}>
                                 {/* Board header */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => expandBoard(board.id)}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
