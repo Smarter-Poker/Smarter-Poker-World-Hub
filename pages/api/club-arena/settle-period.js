@@ -14,6 +14,7 @@
  * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -36,6 +37,9 @@ export default async function handler(req, res) {
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
   }
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/settle-period')) return;
 
   try {
     // Verify authorization

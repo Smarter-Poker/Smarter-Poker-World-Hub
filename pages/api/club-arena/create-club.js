@@ -4,6 +4,7 @@
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,7 +23,10 @@ export default async function handler(req, res) {
     const { name } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Club name required' });
 
-    try {
+    // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/create-club')) return;
+
+  try {
         // Generate unique 5-digit code
         const clubCode = Math.floor(10000 + Math.random() * 90000);
 

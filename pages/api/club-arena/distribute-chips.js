@@ -6,6 +6,7 @@
  * Auth: Bearer token (owner, admin, or agent with credit)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
@@ -30,6 +31,9 @@ export default async function handler(req, res) {
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
   if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/distribute-chips')) return;
 
   try {
     // Verify caller is owner/admin/agent

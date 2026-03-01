@@ -28,6 +28,9 @@ export default async function handler(req, res) {
 
   let controller;
   try {
+    // Rate limit
+    if (!applyRateLimit(req, res, 'poker/engine/tournament')) return;
+
     controller = await getController();
   } catch (err) {
     return res.status(500).json({ error: 'Engine unavailable', details: err.message });

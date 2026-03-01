@@ -14,6 +14,7 @@
  * Auth: Bearer token (agent who owns the player, or club owner/admin)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
@@ -34,6 +35,9 @@ export default async function handler(req, res) {
   if (!cashoutId || !['approve', 'cancel'].includes(action)) {
     return res.status(400).json({ error: 'cashoutId and action (approve/cancel) required' });
   }
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/approve-cashout')) return;
 
   try {
     // ═════════════════════════════════════════════════════════════
@@ -204,6 +208,9 @@ export default async function handler(req, res) {
  */
 async function notifyPlayer(cashout, playerName, agentName, messageText, pushText) {
   // In-app message
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/approve-cashout')) return;
+
   try {
     const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
       p_user_id: cashout.agent_id,
@@ -221,6 +228,9 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
   }
 
   // Push notification
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/approve-cashout')) return;
+
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');

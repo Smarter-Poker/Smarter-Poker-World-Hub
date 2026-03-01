@@ -186,6 +186,9 @@ class RealtimeSync {
       'seven_deuce_bonus',
       // Mixed game rotation
       'variant_changed',
+      // Missing events: timed out, waitlist, table close, reservation
+      'player_timed_out', 'table_closed',
+      'waitlist_joined', 'waitlist_left', 'reservation_expired',
     ];
     
     for (const event of broadcastEvents) {

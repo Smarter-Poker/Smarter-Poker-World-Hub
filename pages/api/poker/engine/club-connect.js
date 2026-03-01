@@ -33,6 +33,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   try {
+    // Rate limit
+    if (!applyRateLimit(req, res, 'poker/engine/club-connect')) return;
+
     const { tableId, userId } = req.body;
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
 

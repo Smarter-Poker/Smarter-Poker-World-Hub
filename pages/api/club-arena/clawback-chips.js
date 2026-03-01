@@ -16,6 +16,7 @@
  * Auth: Bearer token (must be the agent who sent the chips)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
@@ -42,6 +43,9 @@ export default async function handler(req, res) {
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
   if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/clawback-chips')) return;
 
   try {
     // ═════════════════════════════════════════════════════════════

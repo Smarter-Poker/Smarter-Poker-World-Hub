@@ -2579,7 +2579,94 @@ export default function LivePokerTable({
         )}
       </AnimatePresence>
 
-      {/* ═══════════ SOUND TOGGLE ═══════════ */}
+      {/* ═══════════ ALL-IN EQUITY DISPLAY ═══════════ */}
+      {result?.allInEquity && Array.isArray(result.allInEquity) && result.allInEquity.length > 0 && (
+        <div style={{
+          position: 'absolute', bottom: '18%', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', gap: 6, zIndex: 70, padding: '6px 12px',
+          background: 'rgba(0,0,0,0.85)', borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        }}>
+          {result.allInEquity.map((eq, i) => {
+            const pct = typeof eq === 'object' ? (eq.equity || eq.winPct || 0) : eq;
+            const pid = typeof eq === 'object' ? eq.playerId : null;
+            const colors = ['#4ade80', '#60a5fa', '#f472b6', '#facc15', '#a78bfa', '#fb923c', '#34d399', '#f87171', '#38bdf8'];
+            return (
+              <div key={i} style={{ textAlign: 'center', minWidth: 50 }}>
+                <div style={{ fontSize: 9, color: '#B0B3B8', marginBottom: 2 }}>
+                  {pid ? (tableState?.seats?.find(s => s?.player?.id === pid)?.player?.displayName?.slice(0, 8) || `P${i + 1}`) : `P${i + 1}`}
+                </div>
+                <div style={{
+                  width: 50, height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden',
+                }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: colors[i % colors.length], borderRadius: 3 }} />
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: colors[i % colors.length], marginTop: 2 }}>
+                  {(pct || 0).toFixed(1)}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ═══════════ SEVEN-DEUCE BONUS ═══════════ */}
+      <AnimatePresence>
+        {result?.sevenDeuceBonus && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            style={{
+              position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
+              background: 'linear-gradient(135deg, rgba(36,37,38,0.97), rgba(60,40,0,0.97))',
+              border: '2px solid #FFD700', borderRadius: 16, padding: '16px 28px',
+              zIndex: 80, textAlign: 'center', boxShadow: '0 0 40px rgba(255,215,0,0.3)',
+            }}
+          >
+            <div style={{ fontSize: 24, marginBottom: 4 }}>🃏💰</div>
+            <div style={{ color: '#FFD700', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+              7-2 BONUS!
+            </div>
+            <div style={{ color: '#E4E6EB', fontSize: 13 }}>
+              {result.sevenDeuceBonus.winnerName || 'Player'} wins{' '}
+              <span style={{ color: '#4ade80', fontWeight: 700 }}>
+                {(result.sevenDeuceBonus.bonus || 0).toLocaleString()}
+              </span>
+              {' '}with 7-2 offsuit!
+            </div>
+            {result.sevenDeuceBonus.payers?.length > 0 && (
+              <div style={{ color: '#B0B3B8', fontSize: 11, marginTop: 4 }}>
+                {result.sevenDeuceBonus.perPlayer?.toLocaleString()} each from {result.sevenDeuceBonus.payers.length} player{result.sevenDeuceBonus.payers.length > 1 ? 's' : ''}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ BOMB POT OVERLAY ═══════════ */}
+      <AnimatePresence>
+        {tableState?.bombPot && (
+          <motion.div
+            initial={{ opacity: 0, scale: 2 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, type: 'spring' }}
+            style={{
+              position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)',
+              zIndex: 85, textAlign: 'center', pointerEvents: 'none',
+            }}
+          >
+            <div style={{ fontSize: 48 }}>💣</div>
+            <div style={{
+              color: '#FF6B35', fontSize: 22, fontWeight: 900, textShadow: '0 2px 10px rgba(255,107,53,0.5)',
+              letterSpacing: 3,
+            }}>
+              BOMB POT
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <button
         onClick={() => {
           if (soundRef.current) {

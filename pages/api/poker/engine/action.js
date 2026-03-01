@@ -9,6 +9,7 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
+const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseAdmin = createClient(
@@ -31,6 +32,9 @@ export default async function handler(req, res) {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'poker/engine/action')) return;
 
   try {
     const { tableId, playerId, action, type, ...extra } = req.body;

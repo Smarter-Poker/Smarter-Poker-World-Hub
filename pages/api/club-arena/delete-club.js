@@ -8,6 +8,7 @@
  * Auth: Bearer token (must be club owner)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -27,6 +28,9 @@ export default async function handler(req, res) {
   if (!clubId || !confirmName) {
     return res.status(400).json({ error: 'clubId and confirmName required' });
   }
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/delete-club')) return;
 
   try {
     // 1. Verify club exists and caller is owner
@@ -66,7 +70,10 @@ export default async function handler(req, res) {
     ];
 
     for (const table of tables) {
-      try {
+      // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/delete-club')) return;
+
+  try {
         await supabaseAdmin.from(table).delete().eq('club_id', clubId);
       } catch (e) {
         // Table may not exist or have no matching rows — continue

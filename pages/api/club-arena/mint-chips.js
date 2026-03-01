@@ -6,6 +6,7 @@
  * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,6 +26,9 @@ export default async function handler(req, res) {
   if (!clubId || !amount || amount <= 0) {
     return res.status(400).json({ error: 'clubId and positive amount required' });
   }
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/mint-chips')) return;
 
   try {
     // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging

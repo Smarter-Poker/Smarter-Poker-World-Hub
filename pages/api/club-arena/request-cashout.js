@@ -20,6 +20,7 @@
  * Auth: Bearer token (player requesting cashout)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
@@ -44,6 +45,9 @@ export default async function handler(req, res) {
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
   if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
 
   try {
     // ═════════════════════════════════════════════════════════════
@@ -153,7 +157,10 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     // 7. Send in-app message to agent via messenger
     // ═════════════════════════════════════════════════════════════
-    try {
+    // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
+
+  try {
       const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
         p_user_id: user.id,
         p_other_user_id: member.agent_id,
@@ -172,7 +179,10 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     // 8. Send push notification to agent
     // ═════════════════════════════════════════════════════════════
-    try {
+    // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
+
+  try {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
         || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
 

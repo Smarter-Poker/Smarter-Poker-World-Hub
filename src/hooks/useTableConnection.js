@@ -263,6 +263,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'seven_deuce_bonus':
         // 7-2 bonus game — winner collected bonus from other players
         setResult(prev => ({ ...prev, sevenDeuceBonus: data }));
+        setTimeout(() => setResult(prev => prev ? { ...prev, sevenDeuceBonus: null } : prev), 6000);
         requestState();
         break;
       case 'bbj_triggered':
