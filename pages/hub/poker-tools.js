@@ -20,12 +20,6 @@ const SUITS = ['spades', 'hearts', 'diamonds', 'clubs'];
 const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
 const SUIT_COLORS = { spades: '#E4E6EB', hearts: '#EF4444', diamonds: '#3B82F6', clubs: '#31A24C' };
 
-const DECK_OPTIONS = [
-    { id: 'white', label: 'White' },
-    { id: 'black', label: 'Black' },
-    { id: 'red', label: 'Red' },
-    { id: 'blue', label: 'Blue' },
-];
 
 const PLAYER_COLORS = ['#F59E0B', '#EF4444', '#31A24C', '#A855F7', '#3B82F6', '#EC4899', '#14B8A6'];
 
@@ -57,7 +51,6 @@ export default function PokerToolsPage() {
     const [results, setResults] = useState(null);
     const [calculating, setCalculating] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState({ type: 'hand', playerIdx: 0 });
-    const [cardBack, setCardBack] = useState('white');
     const [showMenu, setShowMenu] = useState(false);
     const [showPresets, setShowPresets] = useState(false);
 
@@ -230,21 +223,6 @@ export default function PokerToolsPage() {
                                 <button onClick={() => setShowMenu(false)}
                                     style={{ background: 'none', border: 'none', color: '#888', fontSize: 20, cursor: 'pointer' }}>✕</button>
                             </div>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1, marginBottom: 12 }}>CARD BACK STYLE</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 28 }}>
-                                {DECK_OPTIONS.map(d => (
-                                    <div key={d.id} onClick={() => setCardBack(d.id)}
-                                        style={{
-                                            cursor: 'pointer', textAlign: 'center', borderRadius: 10,
-                                            border: cardBack === d.id ? '3px solid #1877F2' : '2px solid #333',
-                                            padding: 10, background: 'transparent',
-                                        }}>
-                                        <img src={`/images/card-backs/${d.id}.jpg`} alt={d.label}
-                                            style={{ width: 60, height: 84, objectFit: 'cover', borderRadius: 6 }} />
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: cardBack === d.id ? '#1877F2' : '#666', marginTop: 6 }}>{d.label}</div>
-                                    </div>
-                                ))}
-                            </div>
                             <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1, marginBottom: 10 }}>LINKS</p>
                             <Link href="/hub" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none', borderBottom: '1px solid #222' }}>← Back To World Hub</Link>
                             <Link href="/hub/profile-edit" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none' }}>Edit Profile</Link>
@@ -355,11 +333,7 @@ export default function PokerToolsPage() {
                                                                         width: 65, height: 91, borderRadius: 5,
                                                                         border: `2px dashed ${isActive ? '#1877F2' : 'rgba(255,255,255,0.12)'}`,
                                                                         background: 'rgba(255,255,255,0.03)',
-                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                        fontSize: 12, color: 'rgba(255,255,255,0.15)', fontWeight: 700,
-                                                                    }}>
-                                                                        {['F', 'F', 'F', 'T', 'R'][i]}
-                                                                    </div>
+                                                                    }} />
                                                                 );
                                                             })}
                                                         </div>
@@ -401,9 +375,7 @@ export default function PokerToolsPage() {
                         const isSelected = selectedSlot?.type === 'hand' && selectedSlot.playerIdx === pi;
                         const equity = results?.[pi];
                         const color = PLAYER_COLORS[pi];
-                        /* Dynamic card sizing: smaller for more hole cards */
-                        const cw = config.holeCards <= 2 ? 65 : config.holeCards <= 4 ? 50 : config.holeCards <= 5 ? 42 : 36;
-                        const ch = Math.round(cw * 1.4);
+
 
                         return (
                             <div key={pi} style={{
@@ -415,8 +387,8 @@ export default function PokerToolsPage() {
                             }}
                                 onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
 
-                                {/* Cards — ALL BLUE frames, dynamic size */}
-                                <div style={{ display: 'flex', gap: 3, marginBottom: 4 }}>
+                                {/* Cards — ALL BLUE frames, full 65x91 size */}
+                                <div style={{ display: 'flex', gap: config.holeCards >= 5 ? 1 : 3, marginBottom: 4 }}>
                                     {Array.from({ length: config.holeCards }).map((_, ci) => {
                                         const card = hand[ci];
                                         return card ? (
@@ -424,7 +396,7 @@ export default function PokerToolsPage() {
                                                 style={{ cursor: 'pointer' }}>
                                                 <img src={getCardImage(card.rank, card.suit)} alt=""
                                                     style={{
-                                                        width: cw, height: ch, borderRadius: 4,
+                                                        width: 65, height: 91, borderRadius: 4,
                                                         border: '2px solid #1877F2',
                                                         boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
                                                         background: '#fff',
@@ -432,14 +404,11 @@ export default function PokerToolsPage() {
                                             </div>
                                         ) : (
                                             <div key={ci} style={{
-                                                width: cw, height: ch, borderRadius: 4,
-                                                overflow: 'hidden',
+                                                width: 65, height: 91, borderRadius: 4,
                                                 border: `2px solid ${isSelected ? '#1877F2' : 'rgba(255,255,255,0.15)'}`,
                                                 boxShadow: isSelected ? '0 0 12px rgba(24,119,242,0.3)' : 'none',
-                                            }}>
-                                                <img src={`/images/card-backs/${cardBack}.jpg`} alt=""
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            </div>
+                                                background: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d15 100%)',
+                                            }} />
                                         );
                                     })}
                                 </div>
