@@ -550,8 +550,23 @@ export default function ClubLobby() {
                                                             </div>
                                                             <div style={styles.statItem}>
                                                                 <span style={styles.statIcon}>👤</span>
-                                                                {table.current_players || 0}
+                                                                {table.current_players || 0}/{table.max_players || 9}
                                                             </div>
+                                                        </div>
+
+                                                        {/* Mini seat map */}
+                                                        <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
+                                                            {Array.from({ length: table.max_players || 9 }).map((_, si) => {
+                                                                const filled = si < (table.current_players || 0);
+                                                                return (
+                                                                    <div key={si} style={{
+                                                                        width: 8, height: 8, borderRadius: '50%',
+                                                                        background: filled ? '#31A24C' : 'rgba(255,255,255,0.12)',
+                                                                        border: filled ? '1px solid #4caf50' : '1px solid rgba(255,255,255,0.08)',
+                                                                        transition: 'all 0.3s',
+                                                                    }} />
+                                                                );
+                                                            })}
                                                         </div>
 
                                                         {/* Game mode badges */}

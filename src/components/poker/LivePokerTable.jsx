@@ -1419,7 +1419,10 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, o
 function ChatOverlay({ messages, onSend }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
+
+  const QUICK_EMOJIS = ['😀','😂','😎','🤔','👍','👎','🔥','❤️','💀','🎰','♠️','♦️','♣️','♥️','🏆','💰','🤑','😱','🤷','GG'];
 
   useEffect(() => {
     if (listRef.current) {
@@ -1512,7 +1515,45 @@ function ChatOverlay({ messages, onSend }) {
                   outline: 'none',
                 }}
               />
+              <button
+                onClick={() => setShowEmoji(!showEmoji)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 14, padding: '4px 6px', opacity: showEmoji ? 1 : 0.5,
+                }}
+              >😀</button>
             </div>
+
+            {/* Emoji quick picker */}
+            <AnimatePresence>
+              {showEmoji && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  style={{
+                    display: 'flex', flexWrap: 'wrap', gap: 2, padding: '4px 6px',
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {QUICK_EMOJIS.map((em) => (
+                    <button
+                      key={em}
+                      onClick={() => { onSend(em); setShowEmoji(false); }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: em.length > 2 ? 9 : 14, padding: '2px 3px',
+                        borderRadius: 4, color: em.length > 2 ? '#FFD700' : undefined,
+                        fontWeight: em.length > 2 ? 800 : undefined,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >{em}</button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
