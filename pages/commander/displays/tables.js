@@ -162,6 +162,9 @@ export default function TablesDisplay() {
                 time_remaining: s.time_remaining,
                 is_expired: s.is_expired,
                 is_critical: s.is_critical,
+                missed_blinds: s.missed_blinds || 0,
+                session_status: s.session_status || 'active',
+                session_id: s.session_id,
                 status: 'occupied',
               }))
             };
@@ -430,7 +433,15 @@ export default function TablesDisplay() {
   const markMissedBlinds = async (seat) => {
     const json = await callSessionAction(seat, 'missed_blinds');
     if (json.success) {
-      setToast({ type: 'success', text: `⚠️ Missed blind #${json.data.missed_blinds_count} for ${json.data.player_name}` });
+      const count = json.data.missed_blinds_count;
+      if (count >= 3) {
+        // Auto-remove player after 3rd missed blind
+        setToast({ type: 'error', text: `🚫 ${json.data.player_name} removed — 3 missed blinds` });
+        await removePlayer(seat);
+      } else {
+        setToast({ type: 'success', text: `⚠️ Missed blind #${count} for ${json.data.player_name}` });
+      }
+      fetchData();
     } else {
       setToast({ type: 'error', text: json.error || 'Failed to log missed blind' });
     }
@@ -707,9 +718,28 @@ export default function TablesDisplay() {
                             )}
                           </div>
                           <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
-                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : (movingPlayer ? '#22c55e' : '#6B7280'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : (movingPlayer ? '#22c55e' : '#6B7280'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140, position: 'relative' }}>
                               {isOccupied ? fullName : (movingPlayer ? 'Move here' : 'Open')}
+                              {/* Missed Blinds Overlay */}
+                              {isOccupied && (seat.player?.missed_blinds || 0) > 0 && (
+                                <span style={{
+                                  position: 'absolute', top: -8, right: -8,
+                                  background: (seat.player.missed_blinds >= 2) ? '#EF4444' : '#F97316',
+                                  color: '#fff', fontSize: 9, fontWeight: 800,
+                                  padding: '1px 5px', borderRadius: 6,
+                                  boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                                  lineHeight: 1.4, whiteSpace: 'nowrap',
+                                }}>
+                                  ⚠️ {seat.player.missed_blinds}x
+                                </span>
+                              )}
                             </div>
+                            {/* Session Status Overlay (Paused / Meal Break) */}
+                            {isOccupied && seat.player?.session_status && seat.player.session_status !== 'active' && (
+                              <div style={{ fontSize: 10, fontWeight: 700, color: seat.player.session_status === 'meal_break' ? '#22c55e' : '#F59E0B', lineHeight: 1.2 }}>
+                                {seat.player.session_status === 'paused' ? '⏸️ PAUSED' : '🍽️ MEAL BREAK'}
+                              </div>
+                            )}
                             {!isOccupied && (
                               <div style={{ fontSize: 10, color: movingPlayer ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.25)' }}>{movingPlayer ? 'Tap to confirm' : 'Tap to seat'}</div>
                             )}
