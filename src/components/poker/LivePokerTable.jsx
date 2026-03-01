@@ -38,39 +38,14 @@ import { getHandStrength } from '../../lib/handStrength';
 // DESIGN TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const T = {
-  // Table
-  feltDark: '#0c1a0e',
-  feltGrad1: '#0a1f0d',
-  feltGrad2: '#0f2912',
-  railGold: '#FFD700',
-  railGoldDark: '#B8860B',
-  edgeGlow: 'rgba(255,215,0,0.15)',
+import {
+  TABLE_THEMES, getStoredThemeId, getStoredCardBack,
+  getActiveTheme, setStoredThemeId, setStoredCardBack,
+} from './TableThemes';
+import ThemePicker from './ThemePicker';
 
-  // UI
-  bgDark: '#050505',
-  bgCard: '#0e0e12',
-  bgPanel: '#111116',
-  accent: '#FFD700',
-  accentDim: '#B8860B',
-  textPrimary: '#f0f0f0',
-  textSecondary: '#8a8a9a',
-  textMuted: '#555566',
-
-  // Actions
-  foldRed: '#dc2626',
-  checkBlue: '#2563eb',
-  callGreen: '#16a34a',
-  betOrange: '#ea580c',
-  raiseYellow: '#eab308',
-  allInPurple: '#9333ea',
-
-  // Status
-  timerWarning: '#ef4444',
-  timerNormal: '#22c55e',
-  disconnected: '#6b7280',
-  sittingOut: '#4b5563',
-};
+// Dynamic theme — updated when user changes theme, read by all sub-components
+let T = getActiveTheme();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEAT POSITIONS — 2 to 10 seats (percentages of table container)
@@ -169,9 +144,10 @@ function cardIntToPath(card) {
   return `/cards/${SUITS[suit]}_${RANKS[rank]}.png`;
 }
 
-function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0 }) {
+function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, cardBackPath }) {
   const height = Math.round(width * 1.4);
-  const src = faceDown ? '/images/card-backs/blue.jpg' : cardIntToPath(card);
+  const backPath = cardBackPath || getStoredCardBack();
+  const src = faceDown ? backPath : cardIntToPath(card);
 
   return (
     <motion.div
@@ -308,14 +284,14 @@ function PlayerSeat({
             borderRadius: '50%',
             background: isEmpty
               ? 'rgba(255,255,255,0.05)'
-              : `linear-gradient(135deg, ${T.railGold}, ${T.railGoldDark})`,
+              : `linear-gradient(135deg, ${T.railColor}, ${T.railColorDark})`,
             border: isEmpty
               ? '2px dashed rgba(255,255,255,0.2)'
               : isWinner
                 ? '3px solid #FFD700'
                 : isCurrentActor
                   ? `3px solid ${T.accent}`
-                  : `2px solid ${T.railGoldDark}`,
+                  : `2px solid ${T.railColorDark}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -376,7 +352,7 @@ function PlayerSeat({
         <div
           style={{
             background: isCurrentActor
-              ? `linear-gradient(135deg, ${T.railGold}, ${T.railGoldDark})`
+              ? `linear-gradient(135deg, ${T.railColor}, ${T.railColorDark})`
               : 'rgba(0,0,0,0.75)',
             color: isCurrentActor ? T.bgDark : T.textPrimary,
             padding: '2px 10px',
@@ -385,7 +361,7 @@ function PlayerSeat({
             fontWeight: 700,
             textAlign: 'center',
             minWidth: 60,
-            border: `1px solid ${isCurrentActor ? T.railGold : 'rgba(255,255,255,0.1)'}`,
+            border: `1px solid ${isCurrentActor ? T.railColor : 'rgba(255,255,255,0.1)'}`,
             lineHeight: 1.4,
           }}
         >
@@ -1468,6 +1444,13 @@ export default function LivePokerTable({
     chatMessages, result, error, connected, send,
   } = useTableConnection({ supabase, tableId, userId });
 
+  // Theme system
+  const [themeId, setThemeId] = useState(() => getStoredThemeId());
+  const [cardBack, setCardBack] = useState(() => getStoredCardBack());
+
+  // Update module-level T when theme changes so all sub-components see it
+  T = TABLE_THEMES[themeId] || TABLE_THEMES.classicGreen;
+
   // Sound manager
   const soundRef = useRef(null);
   if (!soundRef.current && typeof window !== 'undefined') {
@@ -1653,7 +1636,7 @@ export default function LivePokerTable({
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            background: `linear-gradient(135deg, ${T.railGold}, ${T.railGoldDark}, ${T.railGold})`,
+            background: `linear-gradient(135deg, ${T.railColor}, ${T.railColorDark}, ${T.railColor})`,
             padding: 5,
           }}
         >
@@ -1905,6 +1888,14 @@ export default function LivePokerTable({
           soundRef.current?.play('chat');
           send('throw_emoji', { emoji: throwable, throwable, targetId });
         }}
+      />
+
+      {/* ═══════════ TABLE THEME PICKER ═══════════ */}
+      <ThemePicker
+        currentThemeId={themeId}
+        onThemeChange={(id) => setThemeId(id)}
+        currentCardBack={cardBack}
+        onCardBackChange={(path) => setCardBack(path)}
       />
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
