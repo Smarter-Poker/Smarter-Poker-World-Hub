@@ -80,6 +80,17 @@ async function lockChips(clubId, userId, tableId, amount) {
       lockedAt: Date.now(),
     });
 
+    // Track in chip_escrow for cold-start recovery (non-blocking)
+    sb.from('chip_escrow').insert({
+      club_id: clubId,
+      player_id: userId,
+      table_id: tableId,
+      amount: amount,
+      status: 'locked',
+    }).then(({ error }) => {
+      if (error) console.warn('[ChipBridge] Escrow insert warning:', error.message);
+    });
+
     return {
       success: true,
       locked: amount,
@@ -101,14 +112,7 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
   if (!clubId) return { success: true, skipped: true };
   const sb = getSupabase();
 
-  // Clear in-memory lock tracking first to prevent double-unlock
   const key = _lockKey(tableId, userId);
-  if (!_activeLocks.has(key)) {
-    // Lock already cleared (seat.js already handled this stand-up)
-    console.log(`[ChipBridge.unlockChips] No active lock for ${userId} at table ${tableId?.slice(0, 8)} — skipping (already handled)`);
-    return { success: true, returned: 0, alreadyHandled: true };
-  }
-  _activeLocks.delete(key);
 
   try {
     const { data: result, error: rpcErr } = await sb.rpc('unlock_chips_from_table', {
@@ -120,12 +124,29 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
 
     if (rpcErr) {
       console.error('[ChipBridge.unlockChips] RPC error:', rpcErr);
+      // DO NOT clear in-memory lock — allows retry
       return { success: false, error: rpcErr.message };
     }
 
     if (!result?.success) {
+      // RPC returned an application-level error (e.g. no lock found)
+      // Clear in-memory tracking since DB has no lock to clean up
+      _activeLocks.delete(key);
       return { success: false, error: result?.error || 'Unlock failed' };
     }
+
+    // SUCCESS: clear in-memory lock only after confirmed DB unlock
+    _activeLocks.delete(key);
+
+    // Clear chip_escrow record (non-blocking)
+    sb.from('chip_escrow')
+      .update({ status: 'unlocked', unlocked_at: new Date().toISOString() })
+      .eq('player_id', userId)
+      .eq('table_id', tableId)
+      .eq('status', 'locked')
+      .then(({ error }) => {
+        if (error) console.warn('[ChipBridge] Escrow update warning:', error.message);
+      });
 
     return {
       success: true,
@@ -134,6 +155,7 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
     };
   } catch (err) {
     console.error('[ChipBridge.unlockChips] Error:', err);
+    // DO NOT clear in-memory lock — allows retry
     return { success: false, error: err.message };
   }
 }
@@ -251,7 +273,27 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
 // ═══════════════════════════════════════════════════════════════
 
 async function checkLockExists(tableId, userId) {
-  return _activeLocks.has(_lockKey(tableId, userId));
+  // Check in-memory first (fast path for normal operation)
+  if (_activeLocks.has(_lockKey(tableId, userId))) return true;
+
+  // CRITICAL: On cold start, in-memory map is empty but DB may have locks.
+  // Query chip_escrow as source of truth.
+  try {
+    const sb = getSupabase();
+    const { data } = await sb
+      .from('chip_escrow')
+      .select('id')
+      .eq('table_id', tableId)
+      .eq('player_id', userId)
+      .eq('status', 'locked')
+      .limit(1)
+      .maybeSingle();
+    return !!data;
+  } catch (err) {
+    console.error('[ChipBridge.checkLockExists] DB check failed:', err.message);
+    // Fail safe: assume lock exists to allow cleanup attempt
+    return true;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
