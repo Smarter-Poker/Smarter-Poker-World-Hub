@@ -42,77 +42,24 @@ export default async function handler(req, res) {
   const diamondCost = Math.ceil((amount / 100) * 38);
 
   try {
-    // 1. Read fresh balances
-    const { data: profile, error: profErr } = await supabaseAdmin
-      .from('profiles')
-      .select('diamonds')
-      .eq('id', user.id)
-      .single();
-
-    if (profErr || !profile) return res.status(404).json({ error: 'Profile not found' });
-
-    const currentDiamonds = profile.diamonds || 0;
-    if (diamondCost > currentDiamonds) {
-      return res.status(400).json({
-        error: 'Insufficient diamonds',
-        needed: diamondCost,
-        available: currentDiamonds,
-        chipAmount: amount,
-      });
-    }
-
-    const { data: member, error: memErr } = await supabaseAdmin
-      .from('club_members')
-      .select('chip_balance')
-      .eq('club_id', clubId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (memErr || !member) return res.status(404).json({ error: 'Not a member of this club' });
-
-    const currentChips = member.chip_balance || 0;
-
-    // 2. Deduct diamonds
-    const { error: deductErr } = await supabaseAdmin
-      .from('profiles')
-      .update({ diamonds: currentDiamonds - diamondCost })
-      .eq('id', user.id);
-
-    if (deductErr) throw deductErr;
-
-    // 3. Add chips
-    const { error: addErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: currentChips + amount })
-      .eq('club_id', clubId)
-      .eq('user_id', user.id);
-
-    if (addErr) {
-      // Rollback diamonds
-      await supabaseAdmin
-        .from('profiles')
-        .update({ diamonds: currentDiamonds })
-        .eq('id', user.id);
-      throw addErr;
-    }
-
-    // 4. Record transaction
-    await supabaseAdmin.from('chip_transactions').insert({
-      from_user_id: user.id,
-      to_user_id: user.id,
-      club_id: clubId,
-      transaction_type: 'buyin',
-      amount,
-      notes: `Buy-in: ${amount.toLocaleString()} chips for ${diamondCost} 💎`,
+    // Atomic buy-in via RPC — prevents TOCTOU race on diamonds/chips
+    const { data: result, error: rpcErr } = await supabaseAdmin.rpc('fn_atomic_buyin', {
+      p_user_id: user.id,
+      p_club_id: clubId,
+      p_chip_amount: amount,
+      p_diamond_cost: diamondCost,
     });
 
-    return res.status(200).json({
-      success: true,
-      chipAmount: amount,
-      diamondCost,
-      newChipBalance: currentChips + amount,
-      newDiamondBalance: currentDiamonds - diamondCost,
-    });
+    if (rpcErr) throw rpcErr;
+
+    if (!result?.success) {
+      const status = result?.error === 'Insufficient diamonds' ? 400
+        : result?.error === 'Not a club member' ? 404
+        : result?.error === 'Profile not found' ? 404 : 400;
+      return res.status(status).json(result);
+    }
+
+    return res.status(200).json(result);
   } catch (err) {
     console.error('[buyin]', err);
     return res.status(500).json({ error: 'Buy-in failed', details: err.message });

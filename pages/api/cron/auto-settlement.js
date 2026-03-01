@@ -322,12 +322,12 @@ export default async function handler(req, res) {
               .single();
 
             if (agentMember) {
-              // Add to agent's chip balance
-              await supabaseAdmin
-                .from('club_members')
-                .update({ chip_balance: (agentMember.chip_balance || 0) + netCommission })
-                .eq('club_id', club.id)
-                .eq('user_id', agent.user_id);
+              // Add to agent's chip balance atomically
+              await supabaseAdmin.rpc('fn_credit_chips', {
+                p_club_id: club.id,
+                p_user_id: agent.user_id,
+                p_amount: netCommission,
+              });
 
               // Update agents table
               await supabaseAdmin

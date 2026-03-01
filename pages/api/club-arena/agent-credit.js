@@ -117,18 +117,30 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Insufficient club treasury', available: treasury, requested: amount });
       }
 
-      // Deduct from treasury
-      await supabaseAdmin
-        .from('clubs')
-        .update({ chip_treasury: treasury - amount })
-        .eq('id', clubId);
+      // Deduct from treasury atomically
+      const { error: treasuryErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
+        p_club_id: clubId,
+        p_amount: amount,
+      });
+      if (treasuryErr) {
+        // Fallback: if RPC doesn't exist, use manual (legacy)
+        if (treasuryErr.message?.includes('function') || treasuryErr.message?.includes('does not exist')) {
+          await supabaseAdmin
+            .from('clubs')
+            .update({ chip_treasury: treasury - amount })
+            .eq('id', clubId);
+        } else {
+          throw treasuryErr;
+        }
+      }
 
-      // Add to agent's chip_balance in club_members
-      await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: (agentMember.chip_balance || 0) + amount })
-        .eq('club_id', clubId)
-        .eq('user_id', agentUserId);
+      // Add to agent's chip_balance atomically
+      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+        p_club_id: clubId,
+        p_user_id: agentUserId,
+        p_amount: amount,
+      });
+      if (creditErr) throw creditErr;
 
       // Update agents table
       await supabaseAdmin

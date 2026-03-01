@@ -231,14 +231,16 @@ export default async function handler(req, res) {
 
       // ─── CLAIM RAKEBACK (player) ───
       if (action === 'claim') {
-        // Get all unclaimed rakeback for this player
+        // Atomically claim pending periods — prevents double-claim race
+        // Mark as 'claiming' first (only succeeds if still 'closed')
         const { data: pending } = await supabaseAdmin
           .from('rakeback_periods')
-          .select('id, rakeback_amount')
+          .update({ status: 'claiming' })
           .eq('club_id', clubId)
           .eq('player_id', user.id)
           .eq('status', 'closed')
-          .gt('rakeback_amount', 0);
+          .gt('rakeback_amount', 0)
+          .select('id, rakeback_amount');
 
         if (!pending || pending.length === 0) {
           return res.status(400).json({ error: 'No pending rakeback to claim' });
@@ -246,23 +248,32 @@ export default async function handler(req, res) {
 
         const totalClaim = pending.reduce((s, p) => s + (p.rakeback_amount || 0), 0);
 
-        // Add to player's chip balance
-        const { data: currentMember } = await supabaseAdmin
+        // Atomic credit via RPC (no read-modify-write race)
+        const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+          p_club_id: clubId,
+          p_user_id: user.id,
+          p_amount: totalClaim,
+        });
+
+        if (creditErr) {
+          // Rollback period status
+          const ids = pending.map(p => p.id);
+          await supabaseAdmin
+            .from('rakeback_periods')
+            .update({ status: 'closed' })
+            .in('id', ids);
+          throw creditErr;
+        }
+
+        // Get fresh balance for response
+        const { data: freshMember } = await supabaseAdmin
           .from('club_members')
           .select('chip_balance')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
           .single();
 
-        const newBalance = (currentMember?.chip_balance || 0) + totalClaim;
-
-        const { error: updateErr } = await supabaseAdmin
-          .from('club_members')
-          .update({ chip_balance: newBalance })
-          .eq('club_id', clubId)
-          .eq('user_id', user.id);
-
-        if (updateErr) throw updateErr;
+        const newBalance = freshMember?.chip_balance || 0;
 
         // Record transaction
         await supabaseAdmin
@@ -276,7 +287,7 @@ export default async function handler(req, res) {
             balance_after: newBalance,
           });
 
-        // Mark periods as claimed
+        // Mark periods as fully claimed
         const ids = pending.map(p => p.id);
         await supabaseAdmin
           .from('rakeback_periods')

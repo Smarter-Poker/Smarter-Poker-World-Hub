@@ -152,12 +152,18 @@ export default async function handler(req, res) {
                   continue;
                 }
 
-                // Credit player
-                await supabaseAdmin
-                  .from('club_members')
-                  .update({ chip_balance: (playerMember.chip_balance || 0) + dist.rakeback_amount })
-                  .eq('club_id', parseInt(clubId))
-                  .eq('user_id', dist.player_user_id);
+                // Credit player atomically
+                const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+                  p_club_id: clubId,
+                  p_user_id: dist.player_user_id,
+                  p_amount: dist.rakeback_amount,
+                });
+
+                if (creditErr) {
+                  await markDistributionFailed(dist.id, 'Credit failed: ' + creditErr.message);
+                  results.distributions_failed++;
+                  continue;
+                }
 
                 // Record chip transaction
                 const { data: txn } = await supabaseAdmin

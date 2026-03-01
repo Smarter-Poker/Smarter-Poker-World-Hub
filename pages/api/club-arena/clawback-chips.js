@@ -77,6 +77,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Can only clawback agent→player distributions' });
     }
 
+    // Check if already clawed back (idempotency)
+    if (txn.notes?.includes('[CLAWED BACK]')) {
+      return res.status(409).json({ error: 'This transaction has already been clawed back' });
+    }
+
     // ═════════════════════════════════════════════════════════════
     // 3. Check the 10-minute window
     // ═════════════════════════════════════════════════════════════
@@ -107,7 +112,23 @@ export default async function handler(req, res) {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 5. Verify player still has enough chips
+    // 5. Atomically claim the transaction (prevents double-clawback)
+    // ═════════════════════════════════════════════════════════════
+    const clawbackNote = `${txn.notes || ''} [CLAWED BACK: ${clawbackAmount} at ${new Date().toISOString()}]`;
+    const { data: claimed, error: claimErr } = await supabaseAdmin
+      .from('chip_transactions')
+      .update({ notes: clawbackNote })
+      .eq('id', transactionId)
+      .not('notes', 'like', '%[CLAWED BACK]%')  // Only if not already claimed
+      .select('id')
+      .single();
+
+    if (claimErr || !claimed) {
+      return res.status(409).json({ error: 'Transaction already clawed back or claim failed' });
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // 6. Verify player has enough chips
     // ═════════════════════════════════════════════════════════════
     const { data: playerMember } = await supabaseAdmin
       .from('club_members')
@@ -121,6 +142,11 @@ export default async function handler(req, res) {
     }
 
     if (playerMember.chip_balance < clawbackAmount) {
+      // Unclaim the transaction since we can't execute
+      await supabaseAdmin
+        .from('chip_transactions')
+        .update({ notes: txn.notes || '' })
+        .eq('id', transactionId);
       return res.status(400).json({
         error: 'Player has insufficient chips for full clawback',
         playerBalance: playerMember.chip_balance,
@@ -130,43 +156,34 @@ export default async function handler(req, res) {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 6. Execute clawback: player → agent
+    // 7. Execute clawback: atomic debit player, credit agent
     // ═════════════════════════════════════════════════════════════
-    const { data: agentMember } = await supabaseAdmin
-      .from('club_members')
-      .select('chip_balance')
-      .eq('club_id', clubId)
-      .eq('user_id', user.id)
-      .single();
+    const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+      p_club_id: clubId,
+      p_user_id: txn.to_user_id,
+      p_amount: clawbackAmount,
+    });
 
-    // Deduct from player
-    const { error: deductErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: playerMember.chip_balance - clawbackAmount })
-      .eq('club_id', clubId)
-      .eq('user_id', txn.to_user_id);
+    if (debitErr) throw debitErr;
 
-    if (deductErr) throw deductErr;
+    const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+      p_club_id: clubId,
+      p_user_id: user.id,
+      p_amount: clawbackAmount,
+    });
 
-    // Return to agent
-    const { error: returnErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: (agentMember?.chip_balance || 0) + clawbackAmount })
-      .eq('club_id', clubId)
-      .eq('user_id', user.id);
-
-    if (returnErr) {
-      // Rollback player deduction
-      await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: playerMember.chip_balance })
-        .eq('club_id', clubId)
-        .eq('user_id', txn.to_user_id);
-      throw returnErr;
+    if (creditErr) {
+      // Rollback player debit
+      await supabaseAdmin.rpc('fn_credit_chips', {
+        p_club_id: clubId,
+        p_user_id: txn.to_user_id,
+        p_amount: clawbackAmount,
+      });
+      throw creditErr;
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 7. Record clawback transaction
+    // 8. Record clawback transaction
     // ═════════════════════════════════════════════════════════════
     await supabaseAdmin.from('chip_transactions').insert({
       club_id: clubId,
@@ -177,12 +194,20 @@ export default async function handler(req, res) {
       notes: `Clawback: ${clawbackAmount.toLocaleString()} chips reversed (original txn: ${transactionId})`,
     });
 
+    // Read fresh balances for response
+    const { data: freshPlayer } = await supabaseAdmin
+      .from('club_members').select('chip_balance')
+      .eq('club_id', clubId).eq('user_id', txn.to_user_id).single();
+    const { data: freshAgent } = await supabaseAdmin
+      .from('club_members').select('chip_balance')
+      .eq('club_id', clubId).eq('user_id', user.id).single();
+
     return res.status(200).json({
       success: true,
       clawbackAmount,
       originalAmount: txn.amount,
-      playerNewBalance: playerMember.chip_balance - clawbackAmount,
-      agentNewBalance: (agentMember?.chip_balance || 0) + clawbackAmount,
+      playerNewBalance: freshPlayer?.chip_balance || 0,
+      agentNewBalance: freshAgent?.chip_balance || 0,
       windowRemaining: `${remainingSeconds}s`,
     });
   } catch (err) {

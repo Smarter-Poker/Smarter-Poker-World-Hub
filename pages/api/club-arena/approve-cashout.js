@@ -50,8 +50,18 @@ export default async function handler(req, res) {
       .single();
 
     if (coErr || !cashout) return res.status(404).json({ error: 'Cashout request not found' });
-    if (cashout.status !== 'pending') {
-      return res.status(409).json({ error: `Cashout already ${cashout.status}` });
+
+    // Atomic status claim — prevents concurrent double-processing
+    const { data: claimed, error: claimErr } = await supabaseAdmin
+      .from('cashout_requests')
+      .update({ status: action === 'approve' ? 'completing' : 'cancelling' })
+      .eq('id', cashoutId)
+      .eq('status', 'pending')  // Only succeeds if still pending
+      .select('id')
+      .single();
+
+    if (claimErr || !claimed) {
+      return res.status(409).json({ error: 'Cashout already processed or claimed by another request' });
     }
 
     // Settlement lock check — block during Monday 4:00-4:10 AM CST
@@ -96,20 +106,20 @@ export default async function handler(req, res) {
       // Rate: 100 chips = 38 diamonds
       const diamondsReturned = Math.floor((cashout.amount / 100) * 38);
 
-      // Add diamonds to player's profile
-      const { data: playerProfFull } = await supabaseAdmin
-        .from('profiles')
-        .select('diamonds')
-        .eq('id', cashout.player_id)
-        .single();
+      // Atomic diamond credit via RPC
+      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_diamonds', {
+        p_user_id: cashout.player_id,
+        p_amount: diamondsReturned,
+      });
 
-      const currentDiamonds = playerProfFull?.diamonds || 0;
-      await supabaseAdmin
-        .from('profiles')
-        .update({ diamonds: currentDiamonds + diamondsReturned })
-        .eq('id', cashout.player_id);
+      if (creditErr) {
+        // Revert status claim
+        await supabaseAdmin.from('cashout_requests')
+          .update({ status: 'pending' }).eq('id', cashoutId);
+        throw creditErr;
+      }
 
-      // Mark cashout completed
+      // Mark cashout completed (from 'completing' → 'completed')
       await supabaseAdmin
         .from('cashout_requests')
         .update({
@@ -148,6 +158,21 @@ export default async function handler(req, res) {
     // CANCEL: Return held chips to player's balance
     // ═════════════════════════════════════════════════════════════
     if (action === 'cancel') {
+      // Atomic chip credit via RPC
+      const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+        p_club_id: cashout.club_id,
+        p_user_id: cashout.player_id,
+        p_amount: cashout.amount,
+      });
+
+      if (creditErr) {
+        // Revert status claim
+        await supabaseAdmin.from('cashout_requests')
+          .update({ status: 'pending' }).eq('id', cashoutId);
+        throw creditErr;
+      }
+
+      // Get new balance for response
       const { data: playerMember } = await supabaseAdmin
         .from('club_members')
         .select('chip_balance')
@@ -155,14 +180,7 @@ export default async function handler(req, res) {
         .eq('user_id', cashout.player_id)
         .single();
 
-      const currentChips = playerMember?.chip_balance || 0;
-      await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: currentChips + cashout.amount })
-        .eq('club_id', cashout.club_id)
-        .eq('user_id', cashout.player_id);
-
-      // Mark cashout cancelled
+      // Mark cashout cancelled (from 'cancelling' → 'cancelled')
       await supabaseAdmin
         .from('cashout_requests')
         .update({
@@ -193,7 +211,7 @@ export default async function handler(req, res) {
         action: 'cancelled',
         amount: cashout.amount,
         chipsReturned: cashout.amount,
-        playerNewBalance: currentChips + cashout.amount,
+        playerNewBalance: playerMember?.chip_balance || 0,
         playerId: cashout.player_id,
       });
     }

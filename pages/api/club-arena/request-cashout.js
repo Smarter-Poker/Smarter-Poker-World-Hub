@@ -90,16 +90,21 @@ export default async function handler(req, res) {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 3. HOLD chips — deduct from balance (escrow)
-    //    Player can't play or spend these while pending
+    // 3. HOLD chips — atomic debit (escrow)
+    //    Uses fn_debit_chips to prevent TOCTOU race
     // ═════════════════════════════════════════════════════════════
-    const { error: holdErr } = await supabaseAdmin
-      .from('club_members')
-      .update({ chip_balance: member.chip_balance - amount })
-      .eq('club_id', clubId)
-      .eq('user_id', user.id);
+    const { error: holdErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+      p_club_id: clubId,
+      p_user_id: user.id,
+      p_amount: amount,
+    });
 
-    if (holdErr) throw holdErr;
+    if (holdErr) {
+      if (holdErr.message?.includes('Insufficient')) {
+        return res.status(400).json({ error: 'Insufficient chips', details: holdErr.message });
+      }
+      throw holdErr;
+    }
 
     // ═════════════════════════════════════════════════════════════
     // 4. Create cashout_request
@@ -118,12 +123,12 @@ export default async function handler(req, res) {
       .single();
 
     if (cashoutErr) {
-      // Rollback: restore chips
-      await supabaseAdmin
-        .from('club_members')
-        .update({ chip_balance: member.chip_balance })
-        .eq('club_id', clubId)
-        .eq('user_id', user.id);
+      // Rollback: restore chips atomically
+      await supabaseAdmin.rpc('fn_credit_chips', {
+        p_club_id: clubId,
+        p_user_id: user.id,
+        p_amount: amount,
+      });
       throw cashoutErr;
     }
 

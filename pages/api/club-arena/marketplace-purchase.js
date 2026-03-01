@@ -54,14 +54,19 @@ export default async function handler(req, res) {
             });
         }
 
-        // Deduct chips
-        const { error: deductErr } = await supabaseAdmin
-            .from('club_members')
-            .update({ chip_balance: balance - price })
-            .eq('club_id', clubId)
-            .eq('user_id', user.id);
+        // Deduct chips atomically
+        const { error: deductErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+            p_club_id: clubId,
+            p_user_id: user.id,
+            p_amount: price,
+        });
 
-        if (deductErr) throw deductErr;
+        if (deductErr) {
+            if (deductErr.message?.includes('Insufficient')) {
+                return res.status(400).json({ error: 'Insufficient chips', available: balance, price });
+            }
+            throw deductErr;
+        }
 
         // Record purchase
         const { error: purchaseErr } = await supabaseAdmin
@@ -75,12 +80,12 @@ export default async function handler(req, res) {
             });
 
         if (purchaseErr) {
-            // Rollback chip deduction
-            await supabaseAdmin
-                .from('club_members')
-                .update({ chip_balance: balance })
-                .eq('club_id', clubId)
-                .eq('user_id', user.id);
+            // Rollback chip deduction atomically
+            await supabaseAdmin.rpc('fn_credit_chips', {
+                p_club_id: clubId,
+                p_user_id: user.id,
+                p_amount: price,
+            });
             throw purchaseErr;
         }
 
