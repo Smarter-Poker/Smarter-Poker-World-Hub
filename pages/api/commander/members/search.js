@@ -81,22 +81,49 @@ export default async function handler(req, res) {
       const { data: staffMembers } = await staffQ.order('role', { ascending: true });
 
       if (staffMembers && staffMembers.length > 0) {
-        // Cross-reference staff with commander_members by name to get real member IDs + balances
-        // NOTE: commander_members does NOT have a user_id column, so we match by name + venue
-        let memberByStaffId = {};
+        // Cross-reference staff with commander_members to get real member IDs + balances
+        // Auto-create commander_members records for staff who don't have one
+        const memberByStaffId = {};
+
+        // Batch lookup: find all existing member records for these staff (by name match)
         for (const s of staffMembers) {
           const nameParts = (s.display_name || '').trim().split(/\s+/);
-          const sfFirst = nameParts[0] || '';
-          const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-          if (sfFirst) {
-            let mq = supabase
+          const sfFirst = (nameParts[0] || '').trim();
+          const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ').trim() : '';
+          if (!sfFirst) continue;
+
+          let mq = supabase
+            .from('commander_members')
+            .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
+            .eq('venue_id', venueFilter)
+            .ilike('first_name', sfFirst);
+          if (sfLast) mq = mq.ilike('last_name', sfLast);
+          const { data: memberMatch } = await mq.maybeSingle();
+
+          if (memberMatch) {
+            memberByStaffId[s.id] = memberMatch;
+          } else {
+            // AUTO-CREATE a commander_members record for this staff member
+            const { data: newMember, error: createErr } = await supabase
               .from('commander_members')
+              .insert({
+                venue_id: venueFilter,
+                first_name: sfFirst,
+                last_name: sfLast,
+                player_name: s.display_name,
+                membership_status: 'active',
+                time_balance_minutes: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
               .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
-              .eq('venue_id', venueFilter)
-              .ilike('first_name', sfFirst);
-            if (sfLast) mq = mq.ilike('last_name', sfLast);
-            const { data: memberMatch } = await mq.maybeSingle();
-            if (memberMatch) memberByStaffId[s.id] = memberMatch;
+              .single();
+            if (!createErr && newMember) {
+              memberByStaffId[s.id] = newMember;
+              console.log(`Auto-created commander_members record for staff: ${s.display_name} → ${newMember.id}`);
+            } else {
+              console.warn(`Failed to auto-create member record for ${s.display_name}:`, createErr?.message);
+            }
           }
         }
 
@@ -120,7 +147,7 @@ export default async function handler(req, res) {
             member_number: memberRec?.member_number || null,
             _is_staff: true,
             _staff_role: s.role,
-            _staff_id: s.id,  // Keep original staff ID for reference
+            _staff_id: s.id,
           });
         }
       }
