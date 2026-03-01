@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, Image, Upload, X as XIcon } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -98,6 +98,35 @@ export default function CommanderSettingsPage() {
         .catch(() => { });
     } catch (e) { }
   }, [venueId]);
+
+  // Cross-tab + cross-device real-time sync — reload settings when changed from other pages
+  useCommanderSync(venueId, () => {
+    if (!venueId) return;
+    const storedStaffData = localStorage.getItem('commander_staff');
+    if (!storedStaffData) return;
+    fetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData } })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.data) {
+          setSettings(prev => ({
+            ...prev,
+            auto_refresh_interval: data.data.auto_refresh_interval ?? prev.auto_refresh_interval,
+            show_player_names_on_display: data.data.show_player_names_on_display ?? prev.show_player_names_on_display,
+            sms_notifications_enabled: data.data.sms_notifications_enabled ?? prev.sms_notifications_enabled,
+            push_notifications_enabled: data.data.push_notifications_enabled ?? prev.push_notifications_enabled,
+            max_waitlist_size: data.data.max_waitlist_size ?? prev.max_waitlist_size,
+            call_timeout_minutes: data.data.call_timeout_minutes ?? prev.call_timeout_minutes,
+            default_wait_time_per_player: data.data.default_wait_time_per_player ?? prev.default_wait_time_per_player,
+            venue_type: data.data.venue_type ?? prev.venue_type,
+            time_billing_rate: data.data.time_billing_rate ?? prev.time_billing_rate,
+            auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
+            bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages
+          }));
+          if (data.data.club_logo_url !== undefined) setLogoUrl(data.data.club_logo_url || null);
+        }
+      })
+      .catch(() => { });
+  }, { entities: ['settings'] });
 
   async function handleSave() {
     setSaving(true);
@@ -501,6 +530,7 @@ export default function CommanderSettingsPage() {
                   onChange={(v) => handleChange('auto_comp_rate', v)}
                   min={0}
                   max={25}
+                  step={0.25}
                   disabled={!canManageSettings}
                 />
               </div>
@@ -700,7 +730,7 @@ function SettingToggle({ label, description, enabled, onChange, disabled }) {
   );
 }
 
-function SettingNumber({ label, description, value, onChange, min, max, disabled }) {
+function SettingNumber({ label, description, value, onChange, min, max, step, disabled }) {
   return (
     <div className="p-4 flex items-center justify-between">
       <div>
@@ -710,9 +740,10 @@ function SettingNumber({ label, description, value, onChange, min, max, disabled
       <input
         type="number"
         value={value}
-        onChange={(e) => onChange(parseInt(e.target.value) || min)}
+        onChange={(e) => onChange(step && step < 1 ? (parseFloat(e.target.value) || min) : (parseInt(e.target.value) || min))}
         min={min}
         max={max}
+        step={step || 1}
         disabled={disabled}
         className="w-20 h-10 px-3 cmd-input text-center disabled:opacity-50 disabled:cursor-not-allowed"
       />
