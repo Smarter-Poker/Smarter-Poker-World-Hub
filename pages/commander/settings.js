@@ -301,8 +301,7 @@ export default function CommanderSettingsPage() {
                             setLogoUploading(true);
                             setError(null);
                             try {
-                              const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-                              const token = staffData.token || staffData.access_token;
+                              const staffSession = localStorage.getItem('commander_staff') || '';
                               // Read file as base64
                               const base64 = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -314,7 +313,7 @@ export default function CommanderSettingsPage() {
                                 method: 'POST',
                                 headers: {
                                   'Content-Type': 'application/json',
-                                  Authorization: `Bearer ${token}`
+                                  'x-staff-session': staffSession
                                 },
                                 body: JSON.stringify({
                                   data: base64,
@@ -341,11 +340,10 @@ export default function CommanderSettingsPage() {
                       {logoUrl && canManageSettings && (
                         <button onClick={async () => {
                           try {
-                            const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-                            const token = staffData.token || staffData.access_token;
+                            const staffSession = localStorage.getItem('commander_staff') || '';
                             const res = await fetch('/api/commander/settings/logo', {
                               method: 'DELETE',
-                              headers: { Authorization: `Bearer ${token}` }
+                              headers: { 'x-staff-session': staffSession }
                             });
                             const json = await res.json();
                             if (json.success) {
