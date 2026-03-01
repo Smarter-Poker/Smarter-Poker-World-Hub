@@ -15,7 +15,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Gift, DollarSign, Users, Clock, Search, TrendingUp,
-  Plus, Loader2, RefreshCw, Check, Star, Shield, X,
+  Plus, Loader2, RefreshCw, Check, CheckCircle2, Star, Shield, X,
   UtensilsCrossed, Ticket, Coins, Timer, CreditCard,
   ShoppingBag, FileText, Award, ChevronDown, Filter, BarChart3
 } from 'lucide-react';
@@ -66,6 +66,7 @@ export default function CompSystem() {
   const [awarded, setAwarded] = useState(false);
   const [awardError, setAwardError] = useState('');
   const [lastAwardData, setLastAwardData] = useState(null);
+  const [successOverlay, setSuccessOverlay] = useState(null);
   const searchTimeoutRef = useRef(null);
 
   // ─── PIN auth state ───
@@ -286,6 +287,17 @@ export default function CompSystem() {
         setLastAwardData(receiptData);
         setAwarded(true);
 
+        // Play ka-ching and show full-screen success overlay
+        playSuccessSound();
+        showSuccessPopup({
+          title: 'Comp Issued',
+          amount: isMembership ? receiptData.durationLabel : `$${receiptData.amount.toFixed(2)}`,
+          detail: `${catLabel} > ${receiptData.memberName}`,
+          balance: isMembership && json.data?.membership_expires
+            ? `Active Through ${new Date(json.data.membership_expires).toLocaleDateString()}`
+            : `Comp Balance: $${(json.data?.new_balance || 0).toFixed(2)}`
+        });
+
         // Auto-print receipt
         printCompReceipt(receiptData);
 
@@ -379,6 +391,38 @@ export default function CompSystem() {
     setAwardError('');
   };
 
+  // Ka-ching cash register sound — loud and unmistakable
+  const playSuccessSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+      o1.type = 'triangle'; o1.connect(g1); g1.connect(ctx.destination);
+      o1.frequency.setValueAtTime(1200, ctx.currentTime);
+      o1.frequency.setValueAtTime(1600, ctx.currentTime + 0.08);
+      g1.gain.setValueAtTime(0.6, ctx.currentTime);
+      g1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.15);
+      const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+      o2.type = 'sine'; o2.connect(g2); g2.connect(ctx.destination);
+      o2.frequency.setValueAtTime(1800, ctx.currentTime + 0.12);
+      g2.gain.setValueAtTime(0.5, ctx.currentTime + 0.12);
+      g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      o2.start(ctx.currentTime + 0.12); o2.stop(ctx.currentTime + 0.5);
+      const o3 = ctx.createOscillator(); const g3 = ctx.createGain();
+      o3.type = 'sine'; o3.connect(g3); g3.connect(ctx.destination);
+      o3.frequency.setValueAtTime(2400, ctx.currentTime + 0.25);
+      g3.gain.setValueAtTime(0.4, ctx.currentTime + 0.25);
+      g3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
+      o3.start(ctx.currentTime + 0.25); o3.stop(ctx.currentTime + 0.7);
+    } catch (e) { /* audio not available */ }
+  };
+
+  // Show full-screen success overlay
+  const showSuccessPopup = ({ title, amount, detail, balance }) => {
+    setSuccessOverlay({ title, amount, detail, balance });
+    setTimeout(() => { setSuccessOverlay(null); }, 3500);
+  };
+
   const TABS = [
     { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { key: 'issue', label: 'Issue Comp', icon: Gift },
@@ -399,6 +443,27 @@ export default function CompSystem() {
           noindex={true}
         />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+
+          {/* === SUCCESS OVERLAY — fullscreen popup === */}
+          {successOverlay && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+              <div className="text-center" style={{ animation: 'scaleIn 0.3s ease-out' }}>
+                <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-5" style={{ animation: 'pulse 1s ease-in-out infinite' }}>
+                  <CheckCircle2 className="w-14 h-14 text-[#31A24C]" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">{successOverlay.title}</h2>
+                <p className="text-4xl font-black text-[#31A24C] mb-3">{successOverlay.amount}</p>
+                <p className="text-base text-[#B0B3B8] mb-1">{successOverlay.detail}</p>
+                {successOverlay.balance && (
+                  <p className="text-sm font-semibold text-[#1877F2] mt-2 bg-[#1877F2]/10 px-4 py-2 rounded-xl inline-block">{successOverlay.balance}</p>
+                )}
+              </div>
+            </div>
+          )}
+          <style jsx>{`
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+          `}</style>
 
           {/* ═══ PIN Authorization Modal ═══ */}
           {showPinModal && (

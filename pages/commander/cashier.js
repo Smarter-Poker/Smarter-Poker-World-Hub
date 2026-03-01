@@ -273,7 +273,6 @@ export default function Cashier() {
   const selectMember = (member) => {
     const name = member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim();
     setMessage({ type: 'success', text: `Found: ${name}` });
-    playSuccessSound();
     setSelectedPlayer({
       id: member.id,
       player_name: name,
@@ -894,8 +893,8 @@ export default function Cashier() {
 
         {/* === SUCCESS OVERLAY — fullscreen popup === */}
         {successOverlay && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80" style={{ animation: 'fadeIn 0.2s ease-out' }}>
-            <div className="text-center" style={{ animation: 'scaleIn 0.3s ease-out' }}>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+            <div className="bg-[#242526] rounded-2xl px-10 py-8 text-center border border-[#3A3B3C] shadow-2xl" style={{ animation: 'scaleIn 0.3s ease-out', minWidth: '320px' }}>
               <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-5" style={{ animation: 'pulse 1s ease-in-out infinite' }}>
                 <CheckCircle2 className="w-14 h-14 text-[#31A24C]" />
               </div>
@@ -921,44 +920,7 @@ export default function Cashier() {
           </div>
         )}
 
-        {/* Scanned Player Banner — Enhanced */}
-        {selectedPlayer && (
-          <div className="mx-4 mt-3 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-[#1877F2]" />
-                </div>
-                <p className="text-sm font-bold text-white">{selectedPlayer.player_name}</p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button onClick={loadPlayerHistory}
-                  className="text-[10px] text-[#1877F2] px-2 py-1 rounded-lg bg-[#1877F2]/15 font-semibold">History</button>
-                <button onClick={() => setSelectedPlayer(null)}
-                  className="text-[10px] text-[#B0B3B8] px-2 py-1 rounded-lg active:bg-[#3A3B3C]">Clear</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-[#F59E0B] font-semibold uppercase">Time Balance</p>
-                <p className="text-lg font-black text-[#F59E0B]">
-                  {Math.floor((selectedPlayer.time_balance_minutes || 0) / 60)}h {(selectedPlayer.time_balance_minutes || 0) % 60}m
-                </p>
-              </div>
-              <div className="bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-[#8B5CF6] font-semibold uppercase">Membership</p>
-                <p className="text-sm font-bold text-[#8B5CF6]">
-                  {selectedPlayer.membership_tier ? selectedPlayer.membership_tier.charAt(0).toUpperCase() + selectedPlayer.membership_tier.slice(1) : 'None'}
-                </p>
-                {selectedPlayer.membership_expires && (
-                  <p className="text-[9px] text-[#B0B3B8]">
-                    Exp: {new Date(selectedPlayer.membership_expires).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Player info is shown inside each modal — no top-of-page banner */}
 
         {loading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" /></div>
@@ -1397,17 +1359,17 @@ export default function Cashier() {
                     expires.setDate(expires.getDate() + t.duration);
                     return (
                       <button key={t.tier} onClick={() => setSelectedTier(t.tier)}
-                        className={`w-full rounded-xl p-3 flex items-center gap-3 text-left border-2 ${selectedTier === t.tier ? '' : 'border-[#3A3B3C] bg-[#3A3B3C]/30'
-                          }`} style={selectedTier === t.tier ? { borderColor: t.color, backgroundColor: `${t.color}15` } : {}}>
+                        className={`w-full rounded-xl p-3 flex items-center gap-3 text-left border-2 ${selectedTier === t.tier ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#3A3B3C]/30'
+                          }`}>
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-bold text-white">{t.label}</p>
-                            <span className="text-sm font-bold" style={{ color: t.color }}>{t.price > 0 ? `$${t.price}` : 'Free'}</span>
+                            <span className={`text-sm font-bold ${selectedTier === t.tier ? 'text-[#1877F2]' : 'text-[#B0B3B8]'}`}>{t.price > 0 ? `$${t.price}` : 'Free'}</span>
                           </div>
                           <p className="text-[10px] text-[#B0B3B8]">Expires {expires.toLocaleDateString()}</p>
                         </div>
-                        {selectedTier === t.tier && <CheckCircle2 className="w-5 h-5" style={{ color: t.color }} />}
+                        {selectedTier === t.tier && <CheckCircle2 className="w-5 h-5 text-[#1877F2]" />}
                       </button>
                     );
                   })}
@@ -1417,9 +1379,9 @@ export default function Cashier() {
                 {selectedTier && (() => {
                   const tierInfo = MEMBERSHIP_TIERS.find(t => t.tier === selectedTier);
                   return tierInfo?.price > 0 ? (
-                    <div className="rounded-xl p-4 mb-4 flex items-center justify-between" style={{ background: `${tierInfo.color}15`, border: `1px solid ${tierInfo.color}40` }}>
-                      <span className="text-sm font-semibold" style={{ color: tierInfo.color }}>Total Due</span>
-                      <span className="text-2xl font-black" style={{ color: tierInfo.color }}>${tierInfo.price}</span>
+                    <div className="rounded-xl p-4 mb-4 flex items-center justify-between bg-[#1877F2]/10 border border-[#1877F2]/30">
+                      <span className="text-sm font-semibold text-[#1877F2]">Total Due</span>
+                      <span className="text-2xl font-black text-[#1877F2]">${tierInfo.price}</span>
                     </div>
                   ) : null;
                 })()}
