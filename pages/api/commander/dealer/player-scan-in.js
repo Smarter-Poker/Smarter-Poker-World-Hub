@@ -88,9 +88,25 @@ export default async function handler(req, res) {
             }
         }
 
-        const isTimeBilled = venueType === 'texas';
+        const isTimeBilledVenue = venueType === 'texas';
 
-        // ── 3. Check membership (Texas mode only) ──
+        // ── 2b. Tournament table check — NEVER bill time for tournaments ──
+        // Tournaments use a one-time seat fee (rake), not time-based billing.
+        let isTournamentTable = false;
+        {
+            const { data: tableRow } = await supabase
+                .from('commander_tables')
+                .select('mode, table_purpose')
+                .eq('table_number', tableNum)
+                .eq('venue_id', resolvedVenueId)
+                .maybeSingle();
+            isTournamentTable = tableRow?.mode === 'tournament' || tableRow?.table_purpose === 'tournament';
+        }
+
+        // Final billing decision: time-billed only if venue is texas AND table is NOT tournament
+        const isTimeBilled = isTimeBilledVenue && !isTournamentTable;
+
+        // ── 3. Check membership (Texas mode only, NEVER for tournaments) ──
         if (isTimeBilled) {
             const membershipActive =
                 member.membership_status !== 'suspended' &&
@@ -202,6 +218,7 @@ export default async function handler(req, res) {
 
         // ── 6. Create session ──
         const playerName = `${member.first_name} ${member.last_name}`.trim();
+        // Tournament tables: allocate 0 time (no clock). Cash: allocate full balance.
         const timeToAllocate = isTimeBilled ? (member.time_balance_minutes || 0) : 0;
 
         const { data: session, error: sessionError } = await supabase
@@ -224,7 +241,7 @@ export default async function handler(req, res) {
 
         if (sessionError) throw sessionError;
 
-        // ── 7. Deduct time from member balance (Texas only) ──
+        // ── 7. Deduct time from member balance (Texas cash games ONLY — NEVER tournaments) ──
         if (isTimeBilled && timeToAllocate > 0) {
             await supabase
                 .from('commander_members')
@@ -236,7 +253,7 @@ export default async function handler(req, res) {
                 })
                 .eq('id', member.id);
         } else {
-            // Charity/home: just update visit tracking
+            // Tournament or charity/home: just update visit tracking, NO time deduction
             await supabase
                 .from('commander_members')
                 .update({
