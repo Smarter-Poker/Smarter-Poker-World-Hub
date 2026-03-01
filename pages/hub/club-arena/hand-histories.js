@@ -152,9 +152,17 @@ export default function HandHistories() {
                                 result: isWinner ? 'win' : netResult >= 0 ? 'push' : 'loss',
                                 hole_cards: player?.holeCards || hd.result?.playerCards?.[userId] || null,
                                 community_cards: hd.communityCards || hd.result?.communityCards || null,
+                                board: hd.communityCards || hd.result?.communityCards || null,
                                 game_type: hand.variant || hd.variant || 'nlh',
                                 pot_size: hand.pot_total || 0,
                                 winner_name: hd.result?.winners?.[0]?.displayName || null,
+                                winning_hand: hd.result?.winners?.[0]?.handName || hd.result?.winners?.[0]?.hand || null,
+                                position: player?.position || null,
+                                table_name: hd.tableName || null,
+                                // Full replay data
+                                streets: hd.streets || null,
+                                players: hd.players || [],
+                                buttonSeat: hd.buttonSeat,
                                 created_at: hand.completed_at,
                             };
                         });
@@ -530,12 +538,92 @@ export default function HandHistories() {
                             </div>
 
                             {/* Actions / Notes */}
-                            {selectedHand.actions && (
+                            {selectedHand.actions && !selectedHand.streets && (
                                 <div style={S.modalSection}>
                                     <div style={S.modalLabel}>Actions</div>
                                     <div style={{ fontSize: '13px', color: FB.textSecondary, whiteSpace: 'pre-wrap' }}>
                                         {selectedHand.actions}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* ═══ STREET-BY-STREET ACTION REPLAY ═══ */}
+                            {selectedHand.streets && (
+                                <div style={S.modalSection}>
+                                    <div style={S.modalLabel}>Action Timeline</div>
+                                    {['preflop', 'flop', 'turn', 'river'].map(street => {
+                                        const sd = selectedHand.streets[street];
+                                        if (!sd || !sd.actions || sd.actions.length === 0) return null;
+
+                                        // Player name lookup
+                                        const pName = (pid) => {
+                                            const p = selectedHand.players?.find(pl => String(pl.id) === String(pid));
+                                            return p?.displayName || `Player`;
+                                        };
+
+                                        // Action label
+                                        const aLabel = (a) => {
+                                            const name = String(a.playerId) === String(user?.id) ? 'You' : pName(a.playerId);
+                                            const type = a.type || a.action || '';
+                                            const amt = a.amount ? ` ${a.amount.toLocaleString()}` : '';
+                                            return { name, type: type.charAt(0).toUpperCase() + type.slice(1), amt };
+                                        };
+
+                                        const actionColor = (type) => {
+                                            const t = (type || '').toLowerCase();
+                                            if (t === 'fold') return '#FA383E';
+                                            if (t === 'raise' || t === 'bet') return '#FFD700';
+                                            if (t === 'all_in' || t === 'allin') return '#FF6B6B';
+                                            if (t === 'call') return '#4ECDC4';
+                                            if (t === 'check') return '#81C784';
+                                            return FB.textSecondary;
+                                        };
+
+                                        const streetLabel = street === 'preflop' ? '🃏 Preflop'
+                                            : street === 'flop' ? '🟢 Flop' : street === 'turn' ? '🔵 Turn' : '🔴 River';
+
+                                        return (
+                                            <div key={street} style={{ marginBottom: 12 }}>
+                                                {/* Street header + board cards */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: FB.textPrimary }}>{streetLabel}</div>
+                                                    {sd.cards && sd.cards.length > 0 && (
+                                                        <div style={{ display: 'flex', gap: 3 }}>
+                                                            {sd.cards.map((c, ci) => <span key={ci}>{renderCard(c, 'small')}</span>)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Actions */}
+                                                <div style={{ paddingLeft: 8, borderLeft: `2px solid ${FB.border}` }}>
+                                                    {sd.actions.map((a, ai) => {
+                                                        const { name, type, amt } = aLabel(a);
+                                                        return (
+                                                            <div key={ai} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 12 }}>
+                                                                <span style={{ color: FB.textSecondary, minWidth: 60 }}>{name}</span>
+                                                                <span style={{ color: actionColor(type), fontWeight: 700 }}>{type}</span>
+                                                                {amt && <span style={{ color: FB.gold, fontWeight: 600 }}>{amt}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Final stacks */}
+                                    {selectedHand.players && selectedHand.players.length > 0 && (
+                                        <div style={{ marginTop: 12, padding: '8px 10px', background: FB.background, borderRadius: 6 }}>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 6, fontWeight: 600 }}>Results</div>
+                                            {selectedHand.players.filter(p => p.netResult !== 0 && p.netResult !== undefined).sort((a, b) => (b.netResult || 0) - (a.netResult || 0)).map((p, i) => (
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
+                                                    <span style={{ color: FB.textPrimary }}>{String(p.id) === String(user?.id) ? 'You' : p.displayName}</span>
+                                                    <span style={{ color: (p.netResult || 0) >= 0 ? FB.success : FB.danger, fontWeight: 700 }}>
+                                                        {(p.netResult || 0) >= 0 ? '+' : ''}{(p.netResult || 0).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
