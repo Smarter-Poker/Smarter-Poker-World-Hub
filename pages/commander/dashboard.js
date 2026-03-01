@@ -95,7 +95,7 @@ const CARDS = [
       { label: 'Display: Announcements', href: '/commander/displays/announcements', icon: '/images/commander/icons/mg-display-announcements.png' },
       { label: 'Display: Promotions', href: '/commander/displays/promotions', icon: '/images/commander/icons/mg-display-promotions.png' },
       { label: 'Display: Leaderboard', href: '/commander/displays/leaderboard', icon: '/images/commander/icons/mg-display-leaderboard.png' },
-      { label: 'Leaderboard Builder', href: '/commander/leaderboard-builder', icon: '/images/commander/icons/mg-leaderboard-builder.png' },
+      { label: 'Leaderboard Builder', href: '/commander/leaderboard-builder', icon: '/images/commander/icons/mg-leaderboard-builder.png?v=2' },
       { label: 'Display: Combined', href: '/commander/displays/combined', icon: '/images/commander/icons/mg-display-combined.png' },
       { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/mg-streaming.png' },
       { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/mg-notifications.png' },
