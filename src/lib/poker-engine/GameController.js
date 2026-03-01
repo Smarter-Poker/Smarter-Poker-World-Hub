@@ -14,7 +14,7 @@
  * Lifecycle:
  *   1. First API call → GameController.getInstance() → boots from DB
  *   2. Creates LobbyManager with Supabase client
- *   3. Recovers active tables from poker_tables
+ *   3. Recovers active tables from DB
  *   4. Subsequent API calls reuse the same instance
  *   5. Hand completions persist to hand_histories automatically
  *   6. Table state snapshots saved periodically + on significant events
@@ -234,23 +234,21 @@ class GameController {
     let tableId = null;
     if (this.supabase) {
       const { data, error } = await this.supabase
-        .from('poker_tables')
+        .from('tables')
         .insert({
           name: name || `${sb}/${bb} ${variant === 'holdem' ? 'NLH' : variant.toUpperCase()}`,
-          game_type: variant,
-          betting_structure: 'no_limit',
-          table_size: Math.min(Math.max(parseInt(maxSeats) || 9, 2), 10),
+          game_type: 'cash',
+          game_variant: variant === 'holdem' ? 'nlh' : variant,
+          stakes: `${sb}/${bb}`,
+          max_players: Math.min(Math.max(parseInt(maxSeats) || 9, 2), 10),
           small_blind: sb,
           big_blind: bb,
           min_buy_in: parseInt(minBuyIn) || bb * 20,
           max_buy_in: parseInt(maxBuyIn) || bb * 100,
           created_by: createdBy,
           status: 'waiting',
-          hand_number: 0,
-          hands_played: 0,
-          pot_total: 0,
-          current_bet: 0,
-          dealer_seat: 0,
+          current_players: 0,
+          settings: {},
         })
         .select('id')
         .single();
@@ -393,7 +391,7 @@ class GameController {
       // Update Club Arena table status
       await this.supabase
         .from('tables')
-        .update({ status: 'active' })
+        .update({ status: 'running' })
         .eq('id', clubTableId);
 
       console.log(`[GameController] Connected to club table: ${clubTableId} (${row.name})`);
@@ -429,7 +427,7 @@ class GameController {
       // Update DB
       if (this.supabase) {
         await this.supabase
-          .from('poker_tables')
+          .from('tables')
           .update({ status: 'closed' })
           .eq('id', tableId);
       }
@@ -922,9 +920,9 @@ class GameController {
 
     try {
       const { data: tables, error } = await this.supabase
-        .from('poker_tables')
+        .from('tables')
         .select('*')
-        .in('status', ['waiting', 'active', 'playing', 'between_hands'])
+        .in('status', ['waiting', 'running', 'paused'])
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -944,11 +942,12 @@ class GameController {
         try {
           const config = {
             tableId: row.id,
+            clubId: row.club_id,
             name: row.name,
             tableName: row.name,
-            variant: VARIANT_MAP[row.game_type] || GAME_VARIANT.HOLDEM,
-            bettingStructure: STRUCTURE_MAP[row.betting_structure] || BETTING_STRUCTURES.NO_LIMIT,
-            maxSeats: row.table_size || 9,
+            variant: VARIANT_MAP[row.game_variant] || GAME_VARIANT.HOLDEM,
+            bettingStructure: BETTING_STRUCTURES.NO_LIMIT,
+            maxSeats: row.max_players || 9,
             smallBlind: row.small_blind || 1,
             bigBlind: row.big_blind || 2,
             minBuyIn: row.min_buy_in || (row.big_blind || 2) * 20,
@@ -1014,28 +1013,22 @@ class GameController {
           savedAt: new Date().toISOString(),
         };
 
+        // Store snapshot + hand tracking in settings JSONB
+        const currentSettings = entry.config?.clubSettings || {};
         await this.supabase
-          .from('poker_tables')
+          .from('tables')
           .update({
-            status: entry.table.status,
-            hand_number: entry.table.game?.handNumber || 0,
-            hands_played: entry.table.handCount,
-            settings: { snapshot },
+            status: entry.table.status === 'RUNNING' ? 'running' : 
+                    entry.table.status === 'WAITING' ? 'waiting' : 
+                    (entry.table.status || 'running').toLowerCase(),
+            settings: {
+              ...currentSettings,
+              _snapshot: snapshot,
+              _hand_number: entry.table.game?.handNumber || 0,
+              _hands_played: entry.table.handCount,
+            },
           })
-          .eq('id', tableId)
-          .then(({ error }) => {
-            // Fallback: if settings column doesn't exist, update without it
-            if (error?.message?.includes('settings')) {
-              return this.supabase
-                .from('poker_tables')
-                .update({
-                  status: entry.table.status,
-                  hand_number: entry.table.game?.handNumber || 0,
-                  hands_played: entry.table.handCount,
-                })
-                .eq('id', tableId);
-            }
-          });
+          .eq('id', tableId);
       } catch (err) {
         console.error(`[GameController] Snapshot save failed for ${tableId}:`, err.message);
       }
@@ -1082,7 +1075,7 @@ class GameController {
 
     try {
       await this.supabase
-        .from('poker_tables')
+        .from('tables')
         .update({ current_players: count })
         .eq('id', tableId);
     } catch (_) {

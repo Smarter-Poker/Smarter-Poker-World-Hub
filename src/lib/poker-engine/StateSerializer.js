@@ -233,10 +233,10 @@ class StateSerializer {
 
     try {
       await this.supabase
-        .from('poker_tables')
+        .from('tables')
         .update({
           live_state: state,
-          status: this.table?.status || 'active',
+          status: this.table?.status === 'RUNNING' ? 'running' : 'waiting',
         })
         .eq('id', this.tableId);
     } catch (err) {
@@ -258,7 +258,7 @@ class StateSerializer {
 
     try {
       await this.supabase
-        .from('poker_tables')
+        .from('tables')
         .update({ live_state: null })
         .eq('id', this.tableId);
     } catch (err) {
@@ -276,7 +276,7 @@ class StateSerializer {
     if (!supabase) return null;
     try {
       const { data, error } = await supabase
-        .from('poker_tables')
+        .from('tables')
         .select('live_state')
         .eq('id', tableId)
         .single();
