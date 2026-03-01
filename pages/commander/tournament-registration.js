@@ -82,10 +82,48 @@ export default function TournamentRegistration() {
             setMessage({ type: 'error', text: 'Select a player and tournament' });
             return;
         }
-        setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}` });
-        broadcastChange('tournaments');
-        setSelectedPlayer(null);
-        setSelectedTournament(null);
+        try {
+            const token = getToken();
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+
+            // 1. Register player in tournament via API
+            const regRes = await fetch(`/api/commander/tournaments/${selectedTournament.id}/register`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ player_id: selectedPlayer.id })
+            });
+            const regJson = await regRes.json();
+
+            if (!regJson.success) {
+                const errMsg = regJson.error?.message || regJson.error || 'Registration failed';
+                setMessage({ type: 'error', text: errMsg });
+                return;
+            }
+
+            // 2. Record buy-in as cashier transaction (if tournament has a buy-in)
+            const buyinAmount = selectedTournament.buyin_amount || selectedTournament.buy_in || 0;
+            if (buyinAmount > 0) {
+                await fetch('/api/commander/cashier', {
+                    method: 'POST', headers,
+                    body: JSON.stringify({
+                        venue_id: venueId,
+                        player_name: selectedPlayer.player_name,
+                        type: 'buy_in',
+                        amount: buyinAmount,
+                        payment_method: 'cash',
+                        notes: `Tournament: ${selectedTournament.name || 'Tournament'} (Buy-In)`,
+                    })
+                });
+            }
+
+            setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}${buyinAmount > 0 ? ` — $${buyinAmount} buy-in` : ''}` });
+            broadcastChange('tournaments');
+            setSelectedPlayer(null);
+            setSelectedTournament(null);
+        } catch (err) {
+            console.error('Registration error:', err);
+            setMessage({ type: 'error', text: 'Network error — try again' });
+        }
     };
 
     useEffect(() => {

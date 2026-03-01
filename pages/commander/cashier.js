@@ -582,6 +582,15 @@ export default function Cashier() {
         setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
       }
 
+      // If membership void, revert membership to none
+      if (type === 'membership' && selectedPlayer?.id) {
+        await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ membership_tier: null, membership_status: 'expired', membership_expires: new Date().toISOString() })
+        });
+        setSelectedPlayer(prev => ({ ...prev, membership_tier: null, membership_status: 'expired', membership_expires: null }));
+      }
+
       setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });
       playSuccessSound();
       fetchData();

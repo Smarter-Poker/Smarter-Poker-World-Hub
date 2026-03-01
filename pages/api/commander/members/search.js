@@ -110,7 +110,7 @@ export default async function handler(req, res) {
       const isPhone = /^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, ''));
       let query = supabase
         .from('commander_members')
-        .select('id, first_name, last_name, phone, email, last_visit, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number, user_id')
+        .select('id, first_name, last_name, phone, email, last_visit, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number')
         .eq('venue_id', venueFilter)
         .limit(limitNum);
 
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
       try {
         const { data: recentMembers } = await supabase
           .from('commander_members')
-          .select('id, first_name, last_name, phone, email, last_visit, membership_tier, membership_status, time_balance_minutes, member_number, user_id')
+          .select('id, first_name, last_name, phone, email, last_visit, membership_tier, membership_status, time_balance_minutes, member_number')
           .eq('venue_id', venueFilter)
           .order('last_visit', { ascending: false, nullsFirst: false })
           .limit(Math.max(limitNum - results.length, 5));
