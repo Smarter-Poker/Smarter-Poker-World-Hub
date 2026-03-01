@@ -457,7 +457,34 @@ function PlayerSeat({
 // COMMUNITY CARDS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CommunityCards({ cards = [] }) {
+function CommunityCards({ cards = [], boards }) {
+  // Multi-board mode (double/triple board)
+  if (boards && boards.length > 1 && boards.some(b => b.length > 0)) {
+    return (
+      <div style={{
+        position: 'absolute', top: '35%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex', flexDirection: 'column', gap: 8, zIndex: 15,
+        alignItems: 'center',
+      }}>
+        {boards.map((board, bi) => (
+          board.length > 0 && (
+            <div key={`board-${bi}`} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <span style={{
+                fontSize: 10, color: bi === 0 ? '#FFD700' : bi === 1 ? '#4fc3f7' : '#ce93d8',
+                fontWeight: 700, marginRight: 4, minWidth: 12, textAlign: 'center',
+              }}>{bi + 1}</span>
+              {board.map((card, ci) => (
+                <CardImg key={`b${bi}-c${ci}`} card={card} width={42} delay={ci * 0.1} />
+              ))}
+            </div>
+          )
+        ))}
+      </div>
+    );
+  }
+
+  // Standard single board
   if (cards.length === 0) return null;
 
   return (
@@ -1717,7 +1744,10 @@ export default function LivePokerTable({
             )}
 
             {/* Community cards */}
-            <CommunityCards cards={tableState?.game?.communityCards || []} />
+            <CommunityCards 
+              cards={tableState?.game?.communityCards || []} 
+              boards={tableState?.game?.boards}
+            />
 
             {/* Pot */}
             <PotDisplay
