@@ -61,10 +61,10 @@ export default async function handler(req, res) {
       const table = controller.lobby?.tables?.get(tableId);
       if (!table) return res.status(404).json({ error: 'Table not found' });
 
-      // Broadcast emoji event to all players at the table
-      const channel = controller.supabase?.channel(`table:${tableId}`);
-      if (channel) {
-        channel.send({
+      // Broadcast emoji event via existing table sync channel
+      const sync = table.sync;
+      if (sync?.channel) {
+        sync.channel.send({
           type: 'broadcast',
           event: 'emoji_thrown',
           payload: {

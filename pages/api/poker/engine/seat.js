@@ -37,6 +37,11 @@ const CORS = {
 const VALID_SEAT_ACTIONS = new Set([
   'sit_down', 'stand_up', 'sit_out', 'sit_in',
   'add_chips', 'join_waitlist', 'leave_waitlist',
+  'declare_straddle', 'cancel_straddle',
+  'discard', 'respond_run_it',
+  'set_auto_rebuy', 'set_auto_topup',
+  'invite_player', 'approve_buyin', 'reject_buyin',
+  'show_cards', 'kick_player',
 ]);
 
 export default async function handler(req, res) {
@@ -287,14 +292,14 @@ export default async function handler(req, res) {
       // PINEAPPLE DISCARD — Discard 1 of 3 hole cards after flop
       // ═══════════════════════════════════════════════════════════
       case 'discard':
-        result = controller.processDiscard(tableId, playerId, body.cardIndex);
+        result = controller.processDiscard(tableId, playerId, params.cardIndex);
         break;
 
       // ═══════════════════════════════════════════════════════════
       // RUN IT TWICE/THRICE — Accept/decline offer
       // ═══════════════════════════════════════════════════════════
       case 'respond_run_it': {
-        const { choice } = body; // 'twice' | 'thrice' | 'decline'
+        const { choice } = params; // 'twice' | 'thrice' | 'decline'
         result = controller.respondRunIt(tableId, playerId, choice);
         break;
       }
@@ -303,7 +308,7 @@ export default async function handler(req, res) {
       // AUTO-REBUY — Toggle auto-rebuy preference for this player
       // ═══════════════════════════════════════════════════════════
       case 'set_auto_rebuy': {
-        const enabled = body.enabled !== false;
+        const enabled = params.enabled !== false;
         result = controller.setAutoRebuy(tableId, playerId, enabled);
         break;
       }
@@ -312,7 +317,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════
       case 'set_auto_topup': {
         // value: true = top up to max, number = specific amount, false = off
-        const topUpValue = body.amount ? Number(body.amount) : (body.enabled !== false);
+        const topUpValue = params.amount ? Number(params.amount) : (params.enabled !== false);
         result = controller.setAutoTopUp(tableId, playerId, topUpValue);
         break;
       }
@@ -321,7 +326,7 @@ export default async function handler(req, res) {
       // ADMIN: Private game invite
       // ═══════════════════════════════════════════════════════════
       case 'invite_player': {
-        const targetId = body.targetPlayerId;
+        const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
         result = controller.invitePlayer(tableId, targetId);
         break;
@@ -329,7 +334,7 @@ export default async function handler(req, res) {
 
       // ADMIN: Approve pending buy-in authorization
       case 'approve_buyin': {
-        const targetId = body.targetPlayerId;
+        const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
         result = controller.approveBuyIn(tableId, targetId);
         break;
@@ -337,7 +342,7 @@ export default async function handler(req, res) {
 
       // ADMIN: Reject pending buy-in authorization
       case 'reject_buyin': {
-        const targetId = body.targetPlayerId;
+        const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
         result = controller.rejectBuyIn(tableId, targetId);
         break;
@@ -350,14 +355,23 @@ export default async function handler(req, res) {
 
       case 'kick_player': {
         // Admin-only: kick a player from the table
-        const targetId = body.targetPlayerId;
+        const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
-        // Verify admin/manager/owner role
-        const kickerRole = body.role || 'player';
-        if (!['owner', 'admin', 'manager'].includes(kickerRole)) {
-          return res.status(403).json({ error: 'Only admins can kick players' });
+
+        // Verify admin/manager/owner role from DATABASE, not request body
+        if (clubId) {
+          const { data: kickerMember } = await supabaseAdmin
+            .from('club_members')
+            .select('role')
+            .eq('club_id', clubId)
+            .eq('user_id', playerId)
+            .single();
+          if (!kickerMember || !['owner', 'admin', 'manager'].includes(kickerMember.role)) {
+            return res.status(403).json({ error: 'Only owners, admins, or managers can kick players' });
+          }
         }
-        const reason = body.reason || 'admin_kick';
+
+        const reason = params.reason || 'admin_kick';
         result = await controller.kickPlayer(tableId, targetId, reason);
         // Unlock kicked player's chips
         if (result.success && clubId) {
