@@ -100,7 +100,7 @@ export default function LeaderboardBuilder() {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
             const json = await res.json();
-            setEntries(prev => ({ ...prev, [boardId]: json?.entries || json?.data || [] }));
+            setEntries(prev => ({ ...prev, [boardId]: (json?.entries || json?.data || []).sort((a, b) => (b.score || 0) - (a.score || 0)) }));
         } catch { }
     };
 
