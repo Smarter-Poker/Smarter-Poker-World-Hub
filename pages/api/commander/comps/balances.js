@@ -108,6 +108,8 @@ async function awardComp(req, res, staffAuth) {
               comp_balance: 0,
               comp_lifetime_earned: 0,
               comp_lifetime_redeemed: 0,
+              membership_tier: 'standard',
+              membership_status: 'active',
             })
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
             .single();

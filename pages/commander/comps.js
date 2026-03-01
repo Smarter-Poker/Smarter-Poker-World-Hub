@@ -586,11 +586,14 @@ export default function CompSystem() {
                         {searchResults.map(m => (
                           <button key={m.id} onClick={() => setSelectedMember(m)}
                             className="w-full px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl text-left flex items-center gap-3 active:bg-[#2D2E2F]">
-                            <div className="w-10 h-10 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
-                              <Users className="w-5 h-5 text-[#1877F2]" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${m._is_staff ? 'bg-[#F59E0B]/20' : 'bg-[#1877F2]/20'}`}>
+                              <Users className={`w-5 h-5 ${m._is_staff ? 'text-[#F59E0B]' : 'text-[#1877F2]'}`} />
                             </div>
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-white">{m.first_name} {m.last_name}</p>
+                              <p className="text-sm font-medium text-white">
+                                {m._is_staff && <span className="text-[#F59E0B] font-semibold">{(m._staff_role || 'STAFF').toUpperCase()} · </span>}
+                                {m.first_name} {m.last_name}
+                              </p>
                               <p className="text-xs text-[#B0B3B8]">{m.phone || m.email || m.member_number || ''}</p>
                             </div>
                             <span className="text-sm font-bold text-[#31A24C]">${(m.comp_balance || 0).toFixed(2)}</span>
@@ -603,11 +606,18 @@ export default function CompSystem() {
                 ) : (
                   <>
                     <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4 flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-[#1877F2]" />
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${selectedMember._is_staff ? 'bg-[#F59E0B]/20' : 'bg-[#1877F2]/20'}`}>
+                        <Users className={`w-6 h-6 ${selectedMember._is_staff ? 'text-[#F59E0B]' : 'text-[#1877F2]'}`} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-lg font-bold text-white">{selectedMember.first_name} {selectedMember.last_name}</p>
+                        <p className="text-lg font-bold text-white">
+                          {selectedMember.first_name} {selectedMember.last_name}
+                          {selectedMember._is_staff && (
+                            <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-[#F59E0B]/20 text-[#F59E0B] font-semibold align-middle">
+                              {(selectedMember._staff_role || 'STAFF').toUpperCase()}
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-[#B0B3B8]">
                           Balance: <span className="text-[#31A24C] font-bold">${(selectedMember.comp_balance || 0).toFixed(2)}</span>
                         </p>
