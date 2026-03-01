@@ -47,11 +47,16 @@ export default async function handler(req, res) {
   // Rate limit
   if (!applyRateLimit(req, res, 'poker/engine/seat')) return;
 
+  // ── Auth: verify JWT identity matches playerId ──
+  const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+  const auth = await authenticatePlayer(req, res);
+  if (!auth) return; // 401/403 already sent
+
   try {
-    const { tableId, playerId, action, ...params } = req.body;
+    const { tableId, action, ...params } = req.body;
+    const playerId = auth.playerId; // Guaranteed to match JWT
 
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
-    if (!playerId) return res.status(400).json({ error: 'playerId required' });
     if (!action || !VALID_SEAT_ACTIONS.has(action)) {
       return res.status(400).json({ error: `Invalid action: ${action}` });
     }

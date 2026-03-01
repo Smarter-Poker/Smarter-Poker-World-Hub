@@ -45,9 +45,15 @@ export default function ClubArenaTable() {
           .from('tables').select('*, clubs(name, logo_url)').eq('id', tableId).single();
         if (fe || !td) { setError('Table not found'); setLoading(false); return; }
 
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
         const res = await fetch('/api/poker/engine/club-connect', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tableId, userId: user.id }),
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ tableId }),
         });
         const r = await res.json();
         if (!r.success) {

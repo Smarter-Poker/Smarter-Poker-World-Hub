@@ -36,10 +36,16 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST or GET' });
 
-    const { tableId, playerId, type, message, latitude, longitude } = req.body;
+    // ── Auth: verify JWT identity matches playerId ──
+    const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+    const auth = await authenticatePlayer(req, res);
+    if (!auth) return;
+    const playerId = auth.playerId;
 
-    if (!tableId || !playerId || !type) {
-      return res.status(400).json({ error: 'tableId, playerId, type required' });
+    const { tableId, type, message, latitude, longitude } = req.body;
+
+    if (!tableId || !type) {
+      return res.status(400).json({ error: 'tableId, type required' });
     }
 
     switch (type) {

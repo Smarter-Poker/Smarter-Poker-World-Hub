@@ -21,11 +21,13 @@ const API_BASE = '/api/poker/engine';
 
 // ─── HTTP helpers ────────────────────────────────────────────
 
-async function apiPost(endpoint, body) {
+async function apiPost(endpoint, body, token) {
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(`${API_BASE}/${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     });
     return await res.json();
@@ -35,10 +37,12 @@ async function apiPost(endpoint, body) {
   }
 }
 
-async function apiGet(endpoint, params = {}) {
+async function apiGet(endpoint, params = {}, token) {
   try {
     const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`, { headers });
     return await res.json();
   } catch (err) {
     console.error(`[API] GET ${endpoint} failed:`, err);
@@ -65,11 +69,32 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const channelRef = useRef(null);
   const resultTimeoutRef = useRef(null);
   const heartbeatRef = useRef(null);
+  const tokenRef = useRef(null);
+
+  // ── Keep auth token fresh ──
+  useEffect(() => {
+    if (!supabase) return;
+    // Get initial token
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      tokenRef.current = session?.access_token || null;
+    });
+    // Listen for refreshes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      tokenRef.current = session?.access_token || null;
+    });
+    return () => subscription?.unsubscribe();
+  }, [supabase]);
+
+  // ── Authenticated API wrappers ──
+  const _post = useCallback((endpoint, body) =>
+    apiPost(endpoint, body, tokenRef.current), []);
+  const _get = useCallback((endpoint, params) =>
+    apiGet(endpoint, params, tokenRef.current), []);
 
   // ── Write operations (HTTP) ────────────────────────────────
 
   const sendAction = useCallback(async (action) => {
-    const r = await apiPost('action', { tableId, playerId: userId, action });
+    const r = await _post('action', { tableId, playerId: userId, action });
     if (!r.success) { setError(r.error); setTimeout(() => setError(null), 4000); }
     return r;
   }, [tableId, userId]);
@@ -90,7 +115,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       console.warn('[AntiCheat] Data collection failed:', err.message);
     }
 
-    const r = await apiPost('seat', {
+    const r = await _post('seat', {
       tableId, playerId: userId, action: 'sit_down',
       seatIndex, buyIn,
       displayName: info.displayName, avatarUrl: info.avatarUrl,
@@ -101,30 +126,30 @@ export function useTableConnection({ supabase, tableId, userId }) {
   }, [tableId, userId]);
 
   const standUp = useCallback(() =>
-    apiPost('seat', { tableId, playerId: userId, action: 'stand_up' }), [tableId, userId]);
+    _post('seat', { tableId, playerId: userId, action: 'stand_up' }), [tableId, userId]);
 
   const sitOut = useCallback(() =>
-    apiPost('seat', { tableId, playerId: userId, action: 'sit_out' }), [tableId, userId]);
+    _post('seat', { tableId, playerId: userId, action: 'sit_out' }), [tableId, userId]);
 
   const sitIn = useCallback(() =>
-    apiPost('seat', { tableId, playerId: userId, action: 'sit_in' }), [tableId, userId]);
+    _post('seat', { tableId, playerId: userId, action: 'sit_in' }), [tableId, userId]);
 
   const addChips = useCallback((amount) =>
-    apiPost('seat', { tableId, playerId: userId, action: 'add_chips', amount }), [tableId, userId]);
+    _post('seat', { tableId, playerId: userId, action: 'add_chips', amount }), [tableId, userId]);
 
   const sendChat = useCallback((message) =>
-    apiPost('connect', { tableId, playerId: userId, type: 'chat', message }), [tableId, userId]);
+    _post('connect', { tableId, playerId: userId, type: 'chat', message }), [tableId, userId]);
 
   const joinWaitlist = useCallback((opts = {}) =>
-    apiPost('seat', { tableId, playerId: userId, action: 'join_waitlist', ...opts }), [tableId, userId]);
+    _post('seat', { tableId, playerId: userId, action: 'join_waitlist', ...opts }), [tableId, userId]);
 
   const leaveWaitlist = useCallback(() =>
-    apiPost('seat', { tableId, playerId: userId, action: 'leave_waitlist' }), [tableId, userId]);
+    _post('seat', { tableId, playerId: userId, action: 'leave_waitlist' }), [tableId, userId]);
 
   // ── Read operations ────────────────────────────────────────
 
   const requestState = useCallback(async () => {
-    const state = await apiGet('state', { tableId, playerId: userId });
+    const state = await _get('state', { tableId, playerId: userId });
     if (state && !state.error) {
       setTableState(state);
       if (state.yourCards) setMyCards(state.yourCards);
@@ -414,13 +439,13 @@ export function useTableConnection({ supabase, tableId, userId }) {
           // Send GPS on every heartbeat — feeds the anti-cheat background
           // monitor for continuous proximity scanning. Fully automated.
           getGPSLocation(2000).then(gps => {
-            apiPost('connect', {
+            _post('connect', {
               tableId, playerId: userId, type: 'heartbeat',
               latitude: gps?.lat || null,
               longitude: gps?.lng || null,
             }).catch(() => {});
           }).catch(() => {
-            apiPost('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
+            _post('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
           });
         }, HEARTBEAT_MS);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -438,7 +463,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       setConnected(false);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
-      apiPost('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => { });
+      _post('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => { });
       channel.untrack().catch(() => { });
       supabase.removeChannel(channel);
       channelRef.current = null;
@@ -459,20 +484,20 @@ export function useTableConnection({ supabase, tableId, userId }) {
       case 'request_state': return requestState();
       case 'join_waitlist': return joinWaitlist(payload);
       case 'leave_waitlist': return leaveWaitlist();
-      case 'declare_straddle': return apiPost('seat', { tableId, playerId: userId, action: 'declare_straddle' });
-      case 'cancel_straddle': return apiPost('seat', { tableId, playerId: userId, action: 'cancel_straddle' });
-      case 'discard': return apiPost('seat', { tableId, playerId: userId, action: 'discard', cardIndex: payload?.cardIndex });
-      case 'set_auto_rebuy': return apiPost('seat', { tableId, playerId: userId, action: 'set_auto_rebuy', enabled: payload.enabled });
-      case 'set_auto_topup': return apiPost('seat', { tableId, playerId: userId, action: 'set_auto_topup', enabled: payload.enabled, amount: payload.amount });
-      case 'throw_emoji': return apiPost('action', { tableId, playerId: userId, type: 'throw_emoji', ...payload });
-      case 'buy_insurance': return apiPost('action', { tableId, playerId: userId, type: 'buy_insurance', amount: payload.amount });
-      case 'decline_insurance': return apiPost('action', { tableId, playerId: userId, type: 'decline_insurance' });
-      case 'respond_run_it': return apiPost('seat', { tableId, playerId: userId, action: 'respond_run_it', choice: payload.choice });
-      case 'show_cards': return apiPost('seat', { tableId, playerId: userId, action: 'show_cards' });
-      case 'kick_player': return apiPost('seat', { tableId, playerId: userId, action: 'kick_player', targetPlayerId: payload.targetPlayerId, role: payload.role, reason: payload.reason });
-      case 'invite_player': return apiPost('seat', { tableId, playerId: userId, action: 'invite_player', targetPlayerId: payload.targetPlayerId });
-      case 'approve_buyin': return apiPost('seat', { tableId, playerId: userId, action: 'approve_buyin', targetPlayerId: payload.targetPlayerId });
-      case 'reject_buyin': return apiPost('seat', { tableId, playerId: userId, action: 'reject_buyin', targetPlayerId: payload.targetPlayerId });
+      case 'declare_straddle': return _post('seat', { tableId, playerId: userId, action: 'declare_straddle' });
+      case 'cancel_straddle': return _post('seat', { tableId, playerId: userId, action: 'cancel_straddle' });
+      case 'discard': return _post('seat', { tableId, playerId: userId, action: 'discard', cardIndex: payload?.cardIndex });
+      case 'set_auto_rebuy': return _post('seat', { tableId, playerId: userId, action: 'set_auto_rebuy', enabled: payload.enabled });
+      case 'set_auto_topup': return _post('seat', { tableId, playerId: userId, action: 'set_auto_topup', enabled: payload.enabled, amount: payload.amount });
+      case 'throw_emoji': return _post('action', { tableId, playerId: userId, type: 'throw_emoji', ...payload });
+      case 'buy_insurance': return _post('action', { tableId, playerId: userId, type: 'buy_insurance', amount: payload.amount });
+      case 'decline_insurance': return _post('action', { tableId, playerId: userId, type: 'decline_insurance' });
+      case 'respond_run_it': return _post('seat', { tableId, playerId: userId, action: 'respond_run_it', choice: payload.choice });
+      case 'show_cards': return _post('seat', { tableId, playerId: userId, action: 'show_cards' });
+      case 'kick_player': return _post('seat', { tableId, playerId: userId, action: 'kick_player', targetPlayerId: payload.targetPlayerId, role: payload.role, reason: payload.reason });
+      case 'invite_player': return _post('seat', { tableId, playerId: userId, action: 'invite_player', targetPlayerId: payload.targetPlayerId });
+      case 'approve_buyin': return _post('seat', { tableId, playerId: userId, action: 'approve_buyin', targetPlayerId: payload.targetPlayerId });
+      case 'reject_buyin': return _post('seat', { tableId, playerId: userId, action: 'reject_buyin', targetPlayerId: payload.targetPlayerId });
       default: console.warn('[useTableConnection] Unknown event:', event);
     }
   }, [sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat, requestState, joinWaitlist, leaveWaitlist]);

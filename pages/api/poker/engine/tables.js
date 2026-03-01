@@ -40,12 +40,13 @@ export default async function handler(req, res) {
 
     // ── CREATE TABLE ──
     if (req.method === 'POST') {
-      const userId = req.headers['x-user-id'] || req.body.userId;
-      if (!userId) return res.status(400).json({ error: 'userId required' });
+      const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+      const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
+      if (!auth) return;
 
       const result = await controller.createTable({
         ...req.body,
-        createdBy: userId,
+        createdBy: auth.userId,
       });
 
       if (!result.success) return res.status(400).json(result);
@@ -54,6 +55,10 @@ export default async function handler(req, res) {
 
     // ── CLOSE TABLE ──
     if (req.method === 'DELETE') {
+      const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+      const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
+      if (!auth) return;
+
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Table id required' });
 

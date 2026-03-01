@@ -22,11 +22,18 @@ export default async function handler(req, res) {
   // Rate limit
   if (!applyRateLimit(req, res, 'poker/engine/state')) return;
 
+  // ── Auth: verify JWT identity matches playerId ──
+  // CRITICAL: This endpoint returns private hole cards.
+  // Without auth, anyone can view any player's cards.
+  const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+  const auth = await authenticatePlayer(req, res);
+  if (!auth) return;
+
   try {
-    const { tableId, playerId } = req.query;
+    const { tableId } = req.query;
+    const playerId = auth.playerId; // Guaranteed to match JWT
 
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
-    if (!playerId) return res.status(400).json({ error: 'playerId required' });
 
     const controller = await getController();
     const state = await controller.getTableState(tableId, playerId);

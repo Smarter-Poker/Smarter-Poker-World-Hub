@@ -37,7 +37,13 @@ export default async function handler(req, res) {
     // Rate limit
     if (!applyRateLimit(req, res, 'poker/engine/club-connect')) return;
 
-    const { tableId, userId } = req.body;
+    // ── Auth: verify JWT identity ──
+    const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
+    const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
+    if (!auth) return;
+
+    const { tableId } = req.body;
+    const userId = auth.userId; // Guaranteed from JWT
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
 
     const controller = await getController();
