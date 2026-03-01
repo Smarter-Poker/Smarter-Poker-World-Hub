@@ -43,16 +43,17 @@ export default async function handler(req, res) {
         switch (action) {
             /* ─── PAUSE TIMER ──────────────────────────── */
             case 'pause': {
+                if (session.status === 'paused') {
+                    return res.status(200).json({ success: true, data: { action: 'pause', player_name: session.player_name, session_id: session.id, note: 'Already paused' } });
+                }
+                if (session.status === 'meal_break') {
+                    return res.status(400).json({ success: false, error: `${session.player_name} is on meal break — resume first` });
+                }
                 const { error } = await supabase
                     .from('commander_table_sessions')
-                    .update({
-                        status: 'paused',
-                        updated_at: new Date().toISOString(),
-                    })
+                    .update({ status: 'paused', updated_at: new Date().toISOString() })
                     .eq('id', session.id);
-
                 if (error) throw error;
-
                 return res.status(200).json({
                     success: true,
                     data: { action: 'pause', player_name: session.player_name, session_id: session.id }
@@ -61,16 +62,14 @@ export default async function handler(req, res) {
 
             /* ─── RESUME TIMER ─────────────────────────── */
             case 'resume': {
+                if (session.status === 'active') {
+                    return res.status(200).json({ success: true, data: { action: 'resume', player_name: session.player_name, session_id: session.id, note: 'Already active' } });
+                }
                 const { error } = await supabase
                     .from('commander_table_sessions')
-                    .update({
-                        status: 'active',
-                        updated_at: new Date().toISOString(),
-                    })
+                    .update({ status: 'active', updated_at: new Date().toISOString() })
                     .eq('id', session.id);
-
                 if (error) throw error;
-
                 return res.status(200).json({
                     success: true,
                     data: { action: 'resume', player_name: session.player_name, session_id: session.id }
@@ -79,16 +78,14 @@ export default async function handler(req, res) {
 
             /* ─── MEAL BREAK (30 min) ──────────────────── */
             case 'meal_break': {
+                if (session.status === 'meal_break') {
+                    return res.status(200).json({ success: true, data: { action: 'meal_break', player_name: session.player_name, session_id: session.id, duration_minutes: 30, note: 'Already on meal break' } });
+                }
                 const { error } = await supabase
                     .from('commander_table_sessions')
-                    .update({
-                        status: 'meal_break',
-                        updated_at: new Date().toISOString(),
-                    })
+                    .update({ status: 'meal_break', updated_at: new Date().toISOString() })
                     .eq('id', session.id);
-
                 if (error) throw error;
-
                 return res.status(200).json({
                     success: true,
                     data: {

@@ -852,9 +852,22 @@ export default function TablesDisplay() {
                   borderRadius: 14, pointerEvents: 'none',
                 }} />
               </div>
+              {/* Manual QR Entry */}
+              <form onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.qr.value.trim(); if (val) handleScan(val, showScanner.type, showScanner.seatNumber); }}
+                style={{ display: 'flex', gap: 8, marginTop: 16, width: '90%', maxWidth: 400 }}>
+                <input name="qr" type="text" placeholder="Or enter QR code manually..."
+                  style={{
+                    flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C',
+                    background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
+                  }} autoComplete="off" />
+                <button type="submit" style={{
+                  padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none',
+                  color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>Scan</button>
+              </form>
               <button onClick={closeScanner}
                 style={{
-                  marginTop: 24, padding: '14px 48px', borderRadius: 12,
+                  marginTop: 12, padding: '14px 48px', borderRadius: 12,
                   background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer',
                 }}
               >Cancel</button>

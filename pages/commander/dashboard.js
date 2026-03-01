@@ -88,7 +88,7 @@ const CARDS = [
     title: 'Promotions & Displays',
     subtitle: 'TV Screens, Streaming, Alerts',
     image: '/images/commander/card-displays.jpg',
-    glow: '#8B5CF6',
+    glow: '#22D3EE',
     features: [
       { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/mg-tv-displays.png' },
       { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps.png' },
