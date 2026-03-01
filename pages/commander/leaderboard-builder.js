@@ -218,10 +218,10 @@ export default function LeaderboardBuilder() {
     // RENDER
     // ═══════════════════════════════════════════════════════════════
     const s = {
-        card: { background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px', marginBottom: '12px' },
-        btn: { padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px' },
-        input: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none' },
-        select: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none' },
+        card: { background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '20px', marginBottom: '12px' },
+        btn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' },
+        input: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
+        select: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
         label: { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
     };
 
@@ -253,7 +253,7 @@ export default function LeaderboardBuilder() {
 
                 {/* CREATE FORM */}
                 {showCreate && (
-                    <div style={{ ...s.card, border: '1px solid #1877F2' }}>
+                    <div style={{ ...s.card, border: '2px solid #1877F2' }}>
                         <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Create New Leaderboard</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div>
@@ -326,7 +326,7 @@ export default function LeaderboardBuilder() {
                         const isActive = board.status === 'active';
 
                         return (
-                            <div key={board.id} style={{ ...s.card, borderLeft: isActive ? '4px solid #31A24C' : '4px solid #64748B', border: '2px solid rgba(255,255,255,0.12)' }}>
+                            <div key={board.id} style={{ ...s.card, borderLeft: isActive ? '4px solid #31A24C' : '4px solid #64748B' }}>
                                 {/* Board header */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => expandBoard(board.id)}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

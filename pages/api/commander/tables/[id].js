@@ -133,6 +133,53 @@ async function handlePatch(req, res, tableId) {
       updates.table_purpose = mode === 'tournament' ? 'tournament' : mode === 'cash' ? 'cash_game' : null;
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // CRITICAL RULE: A tournament can NEVER be a cash game, and a cash
+    // game can NEVER be a tournament. Block mode changes when an active
+    // game of the opposite type exists on this table.
+    // ═══════════════════════════════════════════════════════════════════
+    const newMode = updates.mode || updates.table_purpose;
+    if (newMode) {
+      // Fetch the table's current mode and check for active games
+      const { data: tableWithGames } = await supabase
+        .from('commander_tables')
+        .select(`
+          mode, table_purpose,
+          commander_games!commander_games_table_id_fkey (id, status, game_type, stakes)
+        `)
+        .eq('id', tableId)
+        .single();
+
+      if (tableWithGames) {
+        const currentMode = tableWithGames.mode || tableWithGames.table_purpose || 'cash';
+        const activeGames = (tableWithGames.commander_games || []).filter(
+          g => ['running', 'waiting', 'breaking'].includes(g.status)
+        );
+
+        // Switching from cash → tournament while cash game is active
+        if (currentMode !== 'tournament' && (newMode === 'tournament') && activeGames.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'MODE_CONFLICT',
+              message: `Cannot switch to tournament mode — table has ${activeGames.length} active cash game(s). Close all games first.`
+            }
+          });
+        }
+
+        // Switching from tournament → cash while tournament game is active
+        if (currentMode === 'tournament' && (newMode === 'cash' || newMode === 'cash_game') && activeGames.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'MODE_CONFLICT',
+              message: `Cannot switch to cash mode — table has ${activeGames.length} active tournament game(s). Close all games first.`
+            }
+          });
+        }
+      }
+    }
+
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({

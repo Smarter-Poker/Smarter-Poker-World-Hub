@@ -1,7 +1,8 @@
 /**
  * Cash Game Transactions API
  * GET /api/commander/cashier?venue_id=X - List transactions (optional: table_number, session_id, type, date)
- * POST /api/commander/cashier - Record buy-in, cash-out, or add-on
+ * POST /api/commander/cashier - Record buy-in, cash-out, add-on, time_purchase, or membership
+ * PATCH /api/commander/cashier - Mark a transaction as voided (sets voided_at, voided_by, void_reason)
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardStaff } from '../../../src/lib/commander/auth';
@@ -11,11 +12,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const VALID_TYPES = ['buy_in', 'cash_out', 'add_on', 'time_purchase', 'membership', 'void'];
+
 export default async function handler(req, res) {
   const staff = await guardStaff(req, res); if (!staff) return;
 
   if (req.method === 'GET') return handleGet(req, res, staff);
   if (req.method === 'POST') return handlePost(req, res, staff);
+  if (req.method === 'PATCH') return handlePatch(req, res, staff);
   return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
@@ -46,10 +50,9 @@ async function handleGet(req, res, staff) {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Compute summary
     const transactions = data || [];
-    const buyIns = transactions.filter(t => t.type === 'buy_in' || t.type === 'add_on');
-    const cashOuts = transactions.filter(t => t.type === 'cash_out');
+    const buyIns = transactions.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type));
+    const cashOuts = transactions.filter(t => ['cash_out', 'void'].includes(t.type));
 
     const summary = {
       total_buy_ins: buyIns.reduce((s, t) => s + parseFloat(t.amount), 0),
@@ -70,14 +73,15 @@ async function handlePost(req, res, staff) {
   try {
     const { venue_id, session_id, player_name, table_number, seat_number, type, amount, chip_count, payment_method, notes, pin_verified_by } = req.body;
 
-    if (!venue_id || !player_name || !type || !amount) {
-      return res.status(400).json({ success: false, error: 'venue_id, player_name, type, and amount required' });
+    if (!venue_id || !player_name || !type) {
+      return res.status(400).json({ success: false, error: 'venue_id, player_name, and type required' });
     }
-    if (!['buy_in', 'cash_out', 'add_on'].includes(type)) {
-      return res.status(400).json({ success: false, error: 'type must be buy_in, cash_out, or add_on' });
+    if (!VALID_TYPES.includes(type)) {
+      return res.status(400).json({ success: false, error: `type must be one of: ${VALID_TYPES.join(', ')}` });
     }
-    if (parseFloat(amount) <= 0) {
-      return res.status(400).json({ success: false, error: 'amount must be positive' });
+    const parsedAmount = parseFloat(amount) || 0;
+    if (parsedAmount < 0) {
+      return res.status(400).json({ success: false, error: 'amount cannot be negative' });
     }
 
     const { data, error } = await supabase
@@ -89,8 +93,8 @@ async function handlePost(req, res, staff) {
         table_number: table_number ? parseInt(table_number) : null,
         seat_number: seat_number ? parseInt(seat_number) : null,
         type,
-        amount: parseFloat(amount),
-        chip_count: chip_count ? parseFloat(chip_count) : parseFloat(amount),
+        amount: parsedAmount,
+        chip_count: chip_count ? parseFloat(chip_count) : parsedAmount,
         payment_method: payment_method || 'cash',
         processed_by: pin_verified_by || staff.id,
         notes: notes || null,
@@ -109,8 +113,8 @@ async function handlePost(req, res, staff) {
         .eq('session_id', session_id);
 
       if (txns) {
-        const ins = txns.filter(t => t.type === 'buy_in' || t.type === 'add_on').reduce((s, t) => s + parseFloat(t.amount), 0);
-        const outs = txns.filter(t => t.type === 'cash_out').reduce((s, t) => s + parseFloat(t.amount), 0);
+        const ins = txns.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
+        const outs = txns.filter(t => ['cash_out', 'void'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
         playerTotals = { total_bought: ins, total_cashed: outs, net: outs - ins };
       }
     }
@@ -118,6 +122,34 @@ async function handlePost(req, res, staff) {
     return res.status(201).json({ success: true, data, player_totals: playerTotals });
   } catch (err) {
     console.error('Cashier POST error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// PATCH — Mark transaction as voided (audit trail)
+async function handlePatch(req, res, staff) {
+  try {
+    const { transaction_id, voided_by, void_reason } = req.body;
+    if (!transaction_id) {
+      return res.status(400).json({ success: false, error: 'transaction_id required' });
+    }
+
+    const { data, error } = await supabase
+      .from('commander_cash_transactions')
+      .update({
+        voided_at: new Date().toISOString(),
+        voided_by: voided_by || staff.id,
+        void_reason: void_reason || 'Voided by staff',
+      })
+      .eq('id', transaction_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.error('Cashier PATCH error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

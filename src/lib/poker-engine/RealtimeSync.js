@@ -147,7 +147,7 @@ class RealtimeSync {
       // Player state
       'player_seated', 'player_left', 'player_sitting_out',
       'player_sitting_in', 'player_disconnected', 'player_reconnected',
-      'player_auto_removed', 'seat_offered', 'table_paused', 'table_resumed',
+      'player_auto_removed', 'seat_offered', 'reservation_expired', 'table_paused', 'table_resumed',
       'player_kicked',
       // Run It Twice/Thrice
       'run_it_offer', 'run_it_response', 'run_it_agreed',

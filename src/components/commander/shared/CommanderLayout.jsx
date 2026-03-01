@@ -21,6 +21,7 @@ import {
   Package, Briefcase, Globe, Crown
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
+import FloorCallAlert from './FloorCallAlert';
 import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
 import useClubBranding from '../../../lib/commander/useClubBranding';
 
@@ -634,6 +635,9 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             </div>
           </div>
         )}
+
+        {/* ── FLOOR CALL REAL-TIME ALERT ── */}
+        {staff?.venue_id && <FloorCallAlert venueId={staff.venue_id} />}
 
         {/* ── PAGE CONTENT ── */}
         {children}

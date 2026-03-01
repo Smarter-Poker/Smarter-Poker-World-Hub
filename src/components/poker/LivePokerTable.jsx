@@ -257,9 +257,9 @@ function PlayerSeat({
   const turnTime = timerState?.turnTime || 30;
   const isTimebank = timerState?.isTimebank;
   const timerPct = showTimer ? (timerState.remaining / (isTimebank ? 30 : turnTime)) * 100 : 0;
-  const timerColor = showTimer 
+  const timerColor = showTimer
     ? isTimebank ? '#FF9800'  // Orange for timebank
-    : timerState.remaining <= 10 ? T.timerWarning : T.timerNormal
+      : timerState.remaining <= 10 ? T.timerWarning : T.timerNormal
     : T.timerNormal;
 
   return (
@@ -312,43 +312,45 @@ function PlayerSeat({
       {/* Avatar + Timer ring */}
       <div style={{ position: 'relative' }}>
         {showTimer && (
-          <svg
-            width={avatarSize + 10}
-            height={avatarSize + 10}
-            style={{
-              position: 'absolute',
-              top: -5, left: -5,
-              transform: 'rotate(-90deg)',
-            }}
-          >
-            <circle
-              cx={(avatarSize + 10) / 2}
-              cy={(avatarSize + 10) / 2}
-              r={(avatarSize + 6) / 2}
-              fill="none"
-              stroke="rgba(255,255,255,0.1)"
-              strokeWidth={3}
-            />
-            <circle
-              cx={(avatarSize + 10) / 2}
-              cy={(avatarSize + 10) / 2}
-              r={(avatarSize + 6) / 2}
-              fill="none"
-              stroke={timerColor}
-              strokeWidth={3}
-              strokeDasharray={Math.PI * (avatarSize + 6)}
-              strokeDashoffset={Math.PI * (avatarSize + 6) * (1 - timerPct / 100)}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
-            />
-          </svg>
-          {isTimebank && (
-            <div style={{
-              position: 'absolute', top: -6, right: -6, background: '#FF9800',
-              color: '#000', fontSize: 8, fontWeight: 900, padding: '1px 4px',
-              borderRadius: 4, zIndex: 3, lineHeight: 1.2,
-            }}>TB</div>
-          )}
+          <>
+            <svg
+              width={avatarSize + 10}
+              height={avatarSize + 10}
+              style={{
+                position: 'absolute',
+                top: -5, left: -5,
+                transform: 'rotate(-90deg)',
+              }}
+            >
+              <circle
+                cx={(avatarSize + 10) / 2}
+                cy={(avatarSize + 10) / 2}
+                r={(avatarSize + 6) / 2}
+                fill="none"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth={3}
+              />
+              <circle
+                cx={(avatarSize + 10) / 2}
+                cy={(avatarSize + 10) / 2}
+                r={(avatarSize + 6) / 2}
+                fill="none"
+                stroke={timerColor}
+                strokeWidth={3}
+                strokeDasharray={Math.PI * (avatarSize + 6)}
+                strokeDashoffset={Math.PI * (avatarSize + 6) * (1 - timerPct / 100)}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+              />
+            </svg>
+            {isTimebank && (
+              <div style={{
+                position: 'absolute', top: -6, right: -6, background: '#FF9800',
+                color: '#000', fontSize: 8, fontWeight: 900, padding: '1px 4px',
+                borderRadius: 4, zIndex: 3, lineHeight: 1.2,
+              }}>TB</div>
+            )}
+          </>
         )}
 
         <div
@@ -1126,6 +1128,160 @@ function AdminBtn({ label, onClick, color = '#2374E1', loading = false }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// OBSERVER / WAITLIST BAR — Shows when player is NOT seated
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
+  const seats = tableState?.seats || [];
+  const waitlist = tableState?.waitlist || [];
+  const emptySeats = seats.filter(s => s.status === 'empty');
+  const isOnWaitlist = waitlist.some(w => String(w.playerId) === String(userId));
+  const myWaitPos = waitlist.findIndex(w => String(w.playerId) === String(userId));
+  const tableFull = emptySeats.length === 0 && !seatOffer;
+
+  // Countdown for seat offer
+  const [offerSecs, setOfferSecs] = useState(0);
+  useEffect(() => {
+    if (!seatOffer) { setOfferSecs(0); return; }
+    const total = Math.round((seatOffer.timeout || 30000) / 1000);
+    const elapsed = Math.round((Date.now() - seatOffer.offeredAt) / 1000);
+    setOfferSecs(Math.max(0, total - elapsed));
+    const iv = setInterval(() => setOfferSecs(s => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(iv);
+  }, [seatOffer]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 120,
+        background: 'linear-gradient(180deg, rgba(24,25,26,0.0) 0%, rgba(24,25,26,0.95) 30%)',
+        padding: '32px 16px 16px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 8,
+      }}
+    >
+      {/* Observer badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 20, padding: '4px 16px',
+      }}>
+        <span style={{ fontSize: 14 }}>👁️</span>
+        <span style={{ color: '#B0B3B8', fontSize: 12, fontWeight: 600 }}>Watching</span>
+        {tableState?.game?.phase && tableState.game.phase !== 'idle' && (
+          <span style={{ color: '#4ECDC4', fontSize: 11, fontWeight: 700 }}>LIVE</span>
+        )}
+      </div>
+
+      {/* Seat offer (urgent) */}
+      {seatOffer && offerSecs > 0 && (
+        <motion.div
+          initial={{ scale: 0.9 }}
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+          style={{
+            background: 'linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.1))',
+            border: '2px solid #4caf50', borderRadius: 12,
+            padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12,
+          }}
+        >
+          <div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>🎉 Seat Available!</div>
+            <div style={{ color: '#81C784', fontSize: 12 }}>Seat #{seatOffer.seatIndex + 1} reserved for you</div>
+          </div>
+          <div style={{
+            fontSize: 22, fontWeight: 900, color: offerSecs < 10 ? '#FF6B6B' : '#4caf50',
+            fontVariantNumeric: 'tabular-nums', minWidth: 36, textAlign: 'center',
+          }}>{offerSecs}s</div>
+          <button
+            onClick={() => onClickSeat(seatOffer.seatIndex)}
+            style={{
+              background: 'linear-gradient(135deg, #31A24C, #268a3e)',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 20px', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(49,162,76,0.5)',
+              animation: 'pulse 1s infinite',
+            }}
+          >Take Seat</button>
+        </motion.div>
+      )}
+
+      {/* Waitlist status OR sit prompt */}
+      {isOnWaitlist ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.4)',
+            borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: '#2374E1' }}>#{myWaitPos + 1}</span>
+            <div>
+              <div style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>On Waitlist</div>
+              <div style={{ color: '#B0B3B8', fontSize: 11 }}>
+                {waitlist.length === 1 ? "You're next!" : `${myWaitPos} ahead of you`}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => send('leave_waitlist', {})}
+            style={{
+              background: 'rgba(244,67,54,0.15)', color: '#ef5350',
+              border: '1px solid rgba(244,67,54,0.3)', borderRadius: 8,
+              padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >Leave</button>
+        </div>
+      ) : tableFull ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ color: '#B0B3B8', fontSize: 13 }}>
+            Table full ({seats.filter(s => s.player).length}/{seats.length})
+          </div>
+          <button
+            onClick={() => send('join_waitlist', {})}
+            style={{
+              background: 'linear-gradient(135deg, #2374E1, #1a5cbf)',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 24px', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(35,116,225,0.4)',
+            }}
+          >
+            Join Waitlist {waitlist.length > 0 ? `(${waitlist.length} waiting)` : ''}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ color: '#81C784', fontSize: 13 }}>
+            {emptySeats.length} seat{emptySeats.length !== 1 ? 's' : ''} available
+          </div>
+          <button
+            onClick={() => {
+              // Click first empty seat
+              const firstEmpty = seats.findIndex(s => s.status === 'empty');
+              if (firstEmpty >= 0) onClickSeat(firstEmpty);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #31A24C, #268a3e)',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 24px', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(49,162,76,0.4)',
+            }}
+          >
+            Sit Down
+          </button>
+        </div>
+      )}
+
+      {/* Waitlist count (when not on it) */}
+      {!isOnWaitlist && waitlist.length > 0 && (
+        <div style={{ color: '#B0B3B8', fontSize: 11 }}>
+          {waitlist.length} player{waitlist.length !== 1 ? 's' : ''} on waitlist
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // BUY-IN DIALOG
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1265,7 +1421,10 @@ function BuyInDialog({ minBuyIn, maxBuyIn, bigBlind, chipBalance, isClubTable, o
 function ChatOverlay({ messages, onSend }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
+
+  const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🎰', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
 
   useEffect(() => {
     if (listRef.current) {
@@ -1358,6 +1517,189 @@ function ChatOverlay({ messages, onSend }) {
                   outline: 'none',
                 }}
               />
+              <button
+                onClick={() => setShowEmoji(!showEmoji)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 14, padding: '4px 6px', opacity: showEmoji ? 1 : 0.5,
+                }}
+              >😀</button>
+            </div>
+
+            {/* Emoji quick picker */}
+            <AnimatePresence>
+              {showEmoji && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  style={{
+                    display: 'flex', flexWrap: 'wrap', gap: 2, padding: '4px 6px',
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {QUICK_EMOJIS.map((em) => (
+                    <button
+                      key={em}
+                      onClick={() => { onSend(em); setShowEmoji(false); }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: em.length > 2 ? 9 : 14, padding: '2px 3px',
+                        borderRadius: 4, color: em.length > 2 ? '#FFD700' : undefined,
+                        fontWeight: em.length > 2 ? 800 : undefined,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >{em}</button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TABLE INFO BAR
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOURNAMENT HUD — Blind clock, level, players, prize pool
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TournamentHUD({ tournamentId, userId }) {
+  const [state, setState] = useState(null);
+  const [countdown, setCountdown] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+
+  // Poll tournament state every 5s
+  useEffect(() => {
+    if (!tournamentId) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/poker/engine/tournament', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'state', tournamentId }),
+        });
+        const d = await res.json();
+        if (d.success && active) {
+          setState(d);
+          if (d.levelTimeRemaining > 0) setCountdown(d.levelTimeRemaining);
+        }
+      } catch (_) { }
+    };
+    poll();
+    const iv = setInterval(poll, 5000);
+    return () => { active = false; clearInterval(iv); };
+  }, [tournamentId]);
+
+  // Local countdown timer
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const iv = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(iv);
+  }, [countdown > 0]);
+
+  if (!state) return null;
+
+  const min = Math.floor(countdown / 60);
+  const sec = countdown % 60;
+  const isLow = countdown > 0 && countdown < 60;
+  const blinds = state.blinds || {};
+
+  return (
+    <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 200 }}>
+      {/* Compact bar */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'rgba(24,25,26,0.95)', border: '1px solid rgba(255,215,0,0.3)',
+          borderRadius: 10, padding: '6px 14px', cursor: 'pointer',
+          backdropFilter: 'blur(10px)', boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 10, minWidth: 200,
+        }}
+      >
+        <div style={{ fontSize: 10, fontWeight: 800, color: '#FFD700', textTransform: 'uppercase' }}>🏆 LVL {state.currentLevel}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{blinds.smallBlind || '?'}/{blinds.bigBlind || '?'}</div>
+        {blinds.ante > 0 && <div style={{ fontSize: 11, color: '#B0B3B8' }}>A:{blinds.ante}</div>}
+        <div style={{
+          fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+          color: isLow ? '#FF6B6B' : countdown > 0 ? '#4ECDC4' : '#666',
+          marginLeft: 'auto',
+        }}>
+          {countdown > 0 ? `${min}:${sec.toString().padStart(2, '0')}` : '--:--'}
+        </div>
+      </div>
+
+      {/* Expanded panel */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            style={{
+              background: 'rgba(24,25,26,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 10, padding: '12px 14px', overflow: 'hidden',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
+              <div><span style={{ color: '#B0B3B8' }}>Players:</span> <strong style={{ color: '#fff' }}>{state.playersRemaining}/{state.totalEntries}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Avg Stack:</span> <strong style={{ color: '#fff' }}>{(state.averageStack || 0).toLocaleString()}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Prize Pool:</span> <strong style={{ color: '#FFD700' }}>{(state.prizePool || 0).toLocaleString()}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Tables:</span> <strong style={{ color: '#fff' }}>{state.tablesActive || 0}</strong></div>
+              {state.nextBlinds && (
+                <div style={{ gridColumn: '1/3' }}>
+                  <span style={{ color: '#B0B3B8' }}>Next:</span>{' '}
+                  <strong style={{ color: '#81C784' }}>
+                    {state.nextBlinds.smallBlind}/{state.nextBlinds.bigBlind}
+                    {state.nextBlinds.ante > 0 ? ` (A:${state.nextBlinds.ante})` : ''}
+                  </strong>
+                </div>
+              )}
+              {state.lateRegOpen && (
+                <div style={{ gridColumn: '1/3', color: '#4ECDC4', fontWeight: 700 }}>
+                  📝 Late Registration Open
+                </div>
+              )}
+            </div>
+
+            {/* Rebuy/Addon buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              {state.rebuyEndLevel && state.currentLevel <= state.rebuyEndLevel && (
+                <button onClick={async () => {
+                  const res = await fetch('/api/poker/engine/tournament', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'rebuy', tournamentId }),
+                  });
+                  const d = await res.json();
+                  if (!d.success) alert(d.error || 'Rebuy failed');
+                }} style={{
+                  flex: 1, padding: '6px 10px', background: 'rgba(35,116,225,0.2)', color: '#4FC3F7',
+                  border: '1px solid rgba(35,116,225,0.4)', borderRadius: 6, fontSize: 11,
+                  fontWeight: 700, cursor: 'pointer',
+                }}>🔄 Rebuy</button>
+              )}
+              {state.addonAtBreak && state.status === 'break' && (
+                <button onClick={async () => {
+                  const res = await fetch('/api/poker/engine/tournament', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addon', tournamentId }),
+                  });
+                  const d = await res.json();
+                  if (!d.success) alert(d.error || 'Add-on failed');
+                }} style={{
+                  flex: 1, padding: '6px 10px', background: 'rgba(76,175,80,0.2)', color: '#81C784',
+                  border: '1px solid rgba(76,175,80,0.4)', borderRadius: 6, fontSize: 11,
+                  fontWeight: 700, cursor: 'pointer',
+                }}>➕ Add-on</button>
+              )}
             </div>
           </motion.div>
         )}
@@ -1675,9 +2017,9 @@ function ResultOverlay({ result, send, userId }) {
   const isFoldWin = result.type === 'fold' || result.result?.type === 'fold';
   const rabbitCards = result.rabbitCards || result.result?.rabbitCards;
   const boardAtEnd = result.boardAtEnd || result.result?.boardAtEnd || [];
-  
+
   // Check if current user is the winner (for show cards option)
-  const isWinner = isFoldWin && result.winners?.some(w => 
+  const isWinner = isFoldWin && result.winners?.some(w =>
     String(w.playerId) === String(userId)
   );
 
@@ -1817,12 +2159,13 @@ export default function LivePokerTable({
   onActionRequired = null,
   onActionCleared = null,
   onLeave = null,
+  tournamentId = null,
 }) {
   // Connection via hook
   const {
     tableState, myCards, legalActions, timerState,
     chatMessages, result, lastHandResult, error, connected, send,
-    sessionStats, tableAlert,
+    sessionStats, tableAlert, seatOffer,
   } = useTableConnection({ supabase, tableId, userId });
 
   // Notify parent (MultiTableView) when action state changes
@@ -1917,6 +2260,14 @@ export default function LivePokerTable({
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
   const [clubChipBalance, setClubChipBalance] = useState(null);
+
+  // Auto-open buy-in when waitlist seat is offered
+  useEffect(() => {
+    if (seatOffer && !isSitting && buyInSeat === null) {
+      setBuyInSeat(seatOffer.seatIndex);
+    }
+  }, [seatOffer, isSitting, buyInSeat]);
+
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
   const [playerNotes, setPlayerNotes] = useState({}); // { targetUserId: { color_label, player_type, ... } }
 
@@ -1935,7 +2286,7 @@ export default function LivePokerTable({
     })
       .then(r => r.json())
       .then(r => { if (r.notes) setPlayerNotes(r.notes); })
-      .catch(() => {});
+      .catch(() => { });
   }, [userId, seats?.map(s => s.player?.id).join(',')]);
 
   // Fetch club chip balance when buy-in dialog opens
@@ -2180,8 +2531,8 @@ export default function LivePokerTable({
             )}
 
             {/* Community cards */}
-            <CommunityCards 
-              cards={tableState?.game?.communityCards || []} 
+            <CommunityCards
+              cards={tableState?.game?.communityCards || []}
               boards={tableState?.game?.boards}
             />
 
@@ -2231,29 +2582,37 @@ export default function LivePokerTable({
           // Button seat fallback
           const isButton = tableState?.game?.buttonSeat === i;
           return (
-          <PlayerSeat
-            key={i}
-            seat={seat}
-            position={positions[i] || positions[0]}
-            isHero={seat.player?.id === userId}
-            isCurrentActor={seat.isCurrentActor}
-            timerState={seat.isCurrentActor ? timerState : null}
-            onClick={() => setBuyInSeat(i)}
-            onNote={pid && String(pid) !== String(userId) ? () => setNoteTarget({ id: pid, displayName: seat.player?.displayName }) : undefined}
-            noteColor={noteColorVal}
-            noteType={noteData?.player_type}
-            isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
-            equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
-            gamePosition={gamePosition || (isButton ? 'btn' : null)}
-            numHoleCards={
-              ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2, pineapple: 3 })[
-              tableState?.config?.variant
-              ] || 2
-            }
-          />
+            <PlayerSeat
+              key={i}
+              seat={seat}
+              position={positions[i] || positions[0]}
+              isHero={seat.player?.id === userId}
+              isCurrentActor={seat.isCurrentActor}
+              timerState={seat.isCurrentActor ? timerState : null}
+              onClick={() => setBuyInSeat(i)}
+              onNote={pid && String(pid) !== String(userId) ? () => setNoteTarget({ id: pid, displayName: seat.player?.displayName }) : undefined}
+              noteColor={noteColorVal}
+              noteType={noteData?.player_type}
+              isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
+              equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
+              gamePosition={gamePosition || (isButton ? 'btn' : null)}
+              numHoleCards={
+                ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2, pineapple: 3 })[
+                tableState?.config?.variant
+                ] || 2
+              }
+            />
           );
         })}
       </div>
+
+      {/* Tournament HUD — blind clock, level, players */}
+      {(tournamentId || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tournament'))) && (
+        <TournamentHUD
+          tournamentId={tournamentId || new URLSearchParams(window.location.search).get('tournament')}
+          userId={userId}
+        />
+      )}
 
       {/* Table alert banner (game length warning, paused, auto-removed, etc.) */}
       <AnimatePresence>
@@ -2267,9 +2626,9 @@ export default function LivePokerTable({
               zIndex: 200, padding: '8px 20px', borderRadius: 10,
               background: tableAlert.type === 'warning' ? 'rgba(255,152,0,0.95)'
                 : tableAlert.type === 'expired' ? 'rgba(244,67,54,0.95)'
-                : tableAlert.type === 'paused' ? 'rgba(33,150,243,0.95)'
-                : tableAlert.type === 'removed' ? 'rgba(244,67,54,0.95)'
-                : 'rgba(76,175,80,0.95)',
+                  : tableAlert.type === 'paused' ? 'rgba(33,150,243,0.95)'
+                    : tableAlert.type === 'removed' ? 'rgba(244,67,54,0.95)'
+                      : 'rgba(76,175,80,0.95)',
               color: '#fff', fontSize: 13, fontWeight: 700,
               boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
               backdropFilter: 'blur(8px)',
@@ -2366,6 +2725,17 @@ export default function LivePokerTable({
       {/* Chat — hidden when ban_chat enabled */}
       {!tableState?.config?.banChat && (
         <ChatOverlay messages={chatMessages} onSend={handleChat} />
+      )}
+
+      {/* Observer / Waitlist bar — shown when NOT seated */}
+      {!isSitting && buyInSeat === null && tableState && (
+        <ObserverBar
+          tableState={tableState}
+          userId={userId}
+          send={send}
+          onClickSeat={(idx) => setBuyInSeat(idx)}
+          seatOffer={seatOffer}
+        />
       )}
 
       {/* Buy-in dialog */}
@@ -2792,7 +3162,7 @@ export default function LivePokerTable({
                 <span style={{ color: '#e4e6eb', fontSize: 16, fontWeight: 700 }}>📋 Last Hand</span>
                 <button onClick={() => setShowLastHand(false)} style={{ background: 'none', border: 'none', color: '#b0b3b8', fontSize: 18, cursor: 'pointer' }}>✕</button>
               </div>
-              
+
               {/* Hand number */}
               {lastHandResult.handNumber && (
                 <div style={{ color: '#b0b3b8', fontSize: 11, marginBottom: 8 }}>Hand #{lastHandResult.handNumber}</div>
@@ -2875,7 +3245,7 @@ export default function LivePokerTable({
               fetch('/api/club-arena/player-notes', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get_bulk', userId, targetUserIds: opIds }),
-              }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => {});
+              }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => { });
             }
           }
         }}
