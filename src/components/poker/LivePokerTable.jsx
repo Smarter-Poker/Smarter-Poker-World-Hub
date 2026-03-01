@@ -902,6 +902,76 @@ function ActionButton({ label, color, onClick }) {
   );
 }
 
+/**
+ * PreActionBar — Checkboxes for pre-selecting actions before your turn
+ * Shows when you're seated, not your turn, and a hand is in progress
+ */
+function PreActionBar({ preAction, setPreAction }) {
+  const options = [
+    { value: 'fold', label: 'Fold', color: '#ef5350' },
+    { value: 'check_fold', label: 'Check/Fold', color: '#ff9800' },
+    { value: 'check', label: 'Check', color: '#42a5f5' },
+    { value: 'call_any', label: 'Call Any', color: '#66bb6a' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      style={{
+        position: 'absolute',
+        bottom: 10,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: 6,
+        zIndex: 30,
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(8px)',
+        borderRadius: 10,
+        padding: '6px 12px',
+        border: '1px solid rgba(255,255,255,0.08)',
+      }}
+    >
+      {options.map(opt => {
+        const active = preAction === opt.value;
+        return (
+          <button
+            key={opt.value}
+            onClick={() => setPreAction(active ? null : opt.value)}
+            style={{
+              background: active ? `${opt.color}33` : 'transparent',
+              border: `1px solid ${active ? opt.color : 'rgba(255,255,255,0.15)'}`,
+              borderRadius: 8,
+              padding: '6px 14px',
+              color: active ? opt.color : '#b0b3b8',
+              fontSize: 12,
+              fontWeight: active ? 700 : 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              transition: 'all 0.15s',
+            }}
+          >
+            <span style={{
+              width: 14, height: 14, borderRadius: 3, display: 'inline-flex',
+              alignItems: 'center', justifyContent: 'center',
+              border: `1.5px solid ${active ? opt.color : 'rgba(255,255,255,0.3)'}`,
+              background: active ? opt.color : 'transparent',
+              fontSize: 10, color: '#fff', fontWeight: 900,
+            }}>
+              {active ? '✓' : ''}
+            </span>
+            {opt.label}
+          </button>
+        );
+      })}
+    </motion.div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // BUY-IN DIALOG
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1691,6 +1761,49 @@ export default function LivePokerTable({
   const isMyTurn = tableState?.game?.currentPlayerId === userId;
   const maxSeats = tableState?.maxSeats || 9;
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
+  const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
+
+  // Auto-execute pre-action when it's our turn
+  useEffect(() => {
+    if (!isMyTurn || !legalActions?.length || !preAction) return;
+
+    const canCheck = legalActions.some(a => a.type === 'check');
+    const canCall = legalActions.some(a => a.type === 'call');
+    const canFold = legalActions.some(a => a.type === 'fold');
+
+    let autoAction = null;
+    switch (preAction) {
+      case 'fold':
+        if (canFold) autoAction = { type: 'fold' };
+        break;
+      case 'check_fold':
+        autoAction = canCheck ? { type: 'check' } : canFold ? { type: 'fold' } : null;
+        break;
+      case 'check':
+        if (canCheck) autoAction = { type: 'check' };
+        break;
+      case 'call_any':
+        autoAction = canCall ? { type: 'call' } : canCheck ? { type: 'check' } : null;
+        break;
+    }
+
+    if (autoAction) {
+      // Small delay so player sees the action happening
+      const timer = setTimeout(() => {
+        send('player_action', { action: autoAction });
+        setPreAction(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      // Pre-action doesn't match — clear it, let player decide manually
+      setPreAction(null);
+    }
+  }, [isMyTurn, legalActions, preAction, send]);
+
+  // Clear pre-action when hand ends
+  useEffect(() => {
+    if (result) setPreAction(null);
+  }, [result]);
 
   // ═══════════════════════════════════════════════════════════════════
   // ACTION HANDLERS (use send from hook)
@@ -1947,6 +2060,11 @@ export default function LivePokerTable({
             bigBlind={tableState?.config?.bigBlind || tableState?.bigBlind || 2}
             potTotal={tableState?.game?.potTotal || 0}
           />
+        )}
+
+        {/* Pre-action buttons: show when seated, not your turn, hand in progress */}
+        {!isMyTurn && isSitting && !isSittingOut && tableState?.game?.phase && tableState.game.phase !== 'idle' && !result && (
+          <PreActionBar preAction={preAction} setPreAction={setPreAction} />
         )}
       </AnimatePresence>
 
