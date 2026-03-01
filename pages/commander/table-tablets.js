@@ -208,6 +208,14 @@ export default function TableTabletsPage() {
             setShowTournamentClock(false);
             setLockedTournamentId(null);
         }
+        // Reset transient per-table state when switching tables
+        setCallFloorSent(false);
+        setCallFloorId(null);
+        if (callClockRef.current) { clearInterval(callClockRef.current); callClockRef.current = null; }
+        setCallClockSeconds(null);
+        setShowPlayerMenu(null);
+        setMovingPlayer(null);
+        setChipCountInput(null);
     }, [fullscreenTable, lockedTournamentId]);
 
     // Browser back/navigation prevention when locked
@@ -1548,7 +1556,7 @@ export default function TableTabletsPage() {
                                             setToast({ type: 'success', text: `Chip count: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
                                         }
                                     } catch { setToast({ type: 'error', text: 'Network error saving chip count' }); }
-                                    setChipCountInput('');
+                                    setChipCountInput(null);
                                     setShowPlayerMenu(null);
                                     fetchAll();
                                 }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>

@@ -54,6 +54,7 @@ async function handleUpdate(req, res, id) {
         'id_type', 'id_number', 'id_state', 'id_expiry',
         'photo_url', 'address', 'membership_tier', 'membership_status',
         'membership_expires', 'notes', 'time_balance_minutes',
+        'comp_balance', 'comp_lifetime_earned', 'comp_lifetime_redeemed',
     ];
 
     const updates = {};

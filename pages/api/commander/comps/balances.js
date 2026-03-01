@@ -20,8 +20,11 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     return awardComp(req, res, staffAuth);
   }
+  if (req.method === 'PATCH') {
+    return voidComp(req, res, staffAuth);
+  }
 
-  res.setHeader('Allow', ['GET', 'POST']);
+  res.setHeader('Allow', ['GET', 'POST', 'PATCH']);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
@@ -183,6 +186,52 @@ async function awardComp(req, res, staffAuth) {
         data: {
           member_id: member.id, amount: compCost, membership_days: days,
           membership_expires: newExpiry.toISOString(), new_balance: member.comp_balance || 0,
+          authorized_by: authorized_by || 'Staff'
+        }
+      });
+    }
+
+    // ═══ FREE TIME COMP: Add time_balance_minutes + comp_balance ═══
+    if (comp_category === 'free_time' && req.body.time_minutes) {
+      const timeMinutes = parseInt(req.body.time_minutes);
+      if (timeMinutes <= 0) return res.status(400).json({ success: false, error: 'time_minutes must be positive' });
+
+      const dollarValue = parseFloat(amount) || 0;
+
+      // Update time_balance_minutes and comp tracking
+      const updateFields = {
+        time_balance_minutes: (member.time_balance_minutes || 0) + timeMinutes,
+      };
+      if (dollarValue > 0) {
+        updateFields.comp_balance = Math.round(((member.comp_balance || 0) + dollarValue) * 100) / 100;
+        updateFields.comp_lifetime_earned = (member.comp_lifetime_earned || 0) + dollarValue;
+      }
+
+      const { error: updateErr } = await supabase
+        .from('commander_members')
+        .update(updateFields)
+        .eq('id', member.id);
+
+      if (updateErr) throw updateErr;
+
+      const hrs = Math.floor(timeMinutes / 60);
+      const mins = timeMinutes % 60;
+      const timeLabel = hrs > 0 ? `${hrs}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`;
+
+      await supabase.from('commander_member_comp_log').insert({
+        venue_id: member.venue_id, member_id: member.id, amount: dollarValue,
+        type: type || 'award', reason: reason || `Free Time — ${timeLabel}`,
+        authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
+        processed_by: staffRecord.id, balance_after: updateFields.comp_balance || member.comp_balance || 0,
+        comp_category: 'free_time', notes: `${timeMinutes} minutes${notes ? ' — ' + notes : ''}`
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          member_id: member.id, amount: dollarValue, time_minutes: timeMinutes,
+          new_balance: updateFields.comp_balance || member.comp_balance || 0,
+          new_time_balance: updateFields.time_balance_minutes,
           authorized_by: authorized_by || 'Staff'
         }
       });
@@ -410,5 +459,122 @@ async function getBalances(req, res) {
   } catch (error) {
     console.error('Get comp balances error:', error);
     return res.status(500).json({ error: error.message });
+  }
+}
+
+// ═══════════════════════════════════════════
+// PATCH — Void / Revoke a comp
+// ═══════════════════════════════════════════
+async function voidComp(req, res, staffAuth) {
+  try {
+    const { comp_log_id, authorized_by, authorized_pin, void_reason } = req.body;
+    if (!comp_log_id) return res.status(400).json({ success: false, error: 'comp_log_id required' });
+
+    // 1. Fetch the original comp log entry
+    const { data: logEntry, error: logErr } = await supabase
+      .from('commander_member_comp_log')
+      .select('*')
+      .eq('id', comp_log_id)
+      .single();
+
+    if (logErr || !logEntry) return res.status(404).json({ success: false, error: 'Comp log entry not found' });
+
+    // 2. Check if already voided (prevent double-void)
+    if (logEntry.type === 'void') return res.status(400).json({ success: false, error: 'This is already a void entry' });
+
+    // Check if there's already a void entry referencing this one
+    const { data: existingVoid } = await supabase
+      .from('commander_member_comp_log')
+      .select('id')
+      .eq('venue_id', logEntry.venue_id)
+      .eq('member_id', logEntry.member_id)
+      .eq('type', 'void')
+      .ilike('notes', `%VOID-REF:${comp_log_id}%`)
+      .maybeSingle();
+
+    if (existingVoid) return res.status(400).json({ success: false, error: 'This comp has already been voided' });
+
+    // 3. Fetch the member
+    const { data: member, error: memberErr } = await supabase
+      .from('commander_members')
+      .select('id, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, time_balance_minutes, membership_status, membership_expires')
+      .eq('id', logEntry.member_id)
+      .single();
+
+    if (memberErr || !member) return res.status(404).json({ success: false, error: 'Member not found' });
+
+    // 4. Verify staff has access to this venue
+    if (String(staffAuth.venue_id) !== String(logEntry.venue_id)) {
+      return res.status(403).json({ success: false, error: 'Staff not authorized for this venue' });
+    }
+
+    const updateFields = {};
+    const compCategory = logEntry.comp_category || 'cash_bonus';
+    const originalAmount = parseFloat(logEntry.amount) || 0;
+
+    // 5. Reverse based on comp category
+    if (compCategory === 'free_membership') {
+      // Revert membership: if comp extended it, we can't perfectly undo but we set to expired
+      updateFields.membership_status = 'expired';
+      updateFields.membership_expires = new Date().toISOString();
+    } else if (compCategory === 'free_time') {
+      // Reverse time_balance_minutes — parse from notes (e.g., "120 minutes")
+      const minuteMatch = (logEntry.notes || '').match(/^(\d+)\s*minutes/);
+      if (minuteMatch) {
+        const mins = parseInt(minuteMatch[1]);
+        updateFields.time_balance_minutes = Math.max(0, (member.time_balance_minutes || 0) - mins);
+      }
+      // Also reverse dollar comp_balance
+      if (originalAmount > 0) {
+        updateFields.comp_balance = Math.max(0, Math.round(((member.comp_balance || 0) - originalAmount) * 100) / 100);
+        updateFields.comp_lifetime_redeemed = (member.comp_lifetime_redeemed || 0) + originalAmount;
+      }
+    } else {
+      // Dollar-based comps: reverse comp_balance
+      if (originalAmount > 0) {
+        updateFields.comp_balance = Math.max(0, Math.round(((member.comp_balance || 0) - originalAmount) * 100) / 100);
+        updateFields.comp_lifetime_redeemed = (member.comp_lifetime_redeemed || 0) + originalAmount;
+      }
+    }
+
+    // 6. Update the member record
+    if (Object.keys(updateFields).length > 0) {
+      const { error: updateErr } = await supabase
+        .from('commander_members')
+        .update(updateFields)
+        .eq('id', member.id);
+
+      if (updateErr) throw updateErr;
+    }
+
+    // 7. Log the void with full audit trail
+    await supabase.from('commander_member_comp_log').insert({
+      venue_id: logEntry.venue_id,
+      member_id: logEntry.member_id,
+      amount: -originalAmount, // Negative to indicate reversal
+      type: 'void',
+      reason: `VOIDED: ${logEntry.reason || logEntry.comp_category || 'Comp'}`,
+      authorized_by: authorized_by || 'Staff',
+      authorized_pin: authorized_pin || false,
+      processed_by: staffAuth.id,
+      balance_after: updateFields.comp_balance !== undefined ? updateFields.comp_balance : (member.comp_balance || 0),
+      comp_category: compCategory,
+      notes: `VOID-REF:${comp_log_id} | ${void_reason || 'Voided by staff'}`,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        voided_comp_id: comp_log_id,
+        member_id: member.id,
+        reversed_amount: originalAmount,
+        new_balance: updateFields.comp_balance !== undefined ? updateFields.comp_balance : (member.comp_balance || 0),
+        comp_category: compCategory,
+        voided_by: authorized_by || 'Staff',
+      }
+    });
+  } catch (error) {
+    console.error('Void comp error:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
