@@ -337,20 +337,11 @@ export default function TablesDisplay() {
         }
       } catch { setToast({ type: 'error', text: 'Network error' }); }
     } else if (type === 'seat') {
-      // Seat a player — first find member by QR
+      // Seat a player — single call to unauthenticated player-scan-in
       try {
-        const searchRes = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
-        const searchJson = await searchRes.json();
-        const members = searchJson.data?.members || searchJson.data || [];
-        if (members.length === 0) {
-          setToast({ type: 'error', text: 'Player not found — check QR code' });
-          return;
-        }
-        const member = members[0];
-        // Now seat them
-        const seatRes = await fetch('/api/commander/dealer/seat', {
+        const seatRes = await fetch('/api/commander/dealer/player-scan-in', {
           method: 'POST', headers,
-          body: JSON.stringify({ member_id: member.id, table_number: lockedTableNum, seat_number: seatNumber }),
+          body: JSON.stringify({ qr_code: qrData, table_number: lockedTableNum, seat_number: seatNumber, venue_id: venueId }),
         });
         const seatJson = await seatRes.json();
         if (seatJson.success) {
@@ -804,7 +795,10 @@ export default function TablesDisplay() {
                   {[
                     { label: '🪑 Move Player', color: '#1877F2', action: () => startMovePlayer(showPlayerMenu) },
                     { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu) },
-                    { label: '⏸️ Pause Timer', color: '#F59E0B', action: () => pausePlayer(showPlayerMenu) },
+                    ...(showPlayerMenu.player?.session_status === 'paused' || showPlayerMenu.player?.session_status === 'meal_break'
+                      ? [{ label: '▶️ Resume Timer', color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu, 'resume'); if (json.success) { setToast({ type: 'success', text: `▶️ ${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchData(); } }]
+                      : [{ label: '⏸️ Pause Timer', color: '#F59E0B', action: () => pausePlayer(showPlayerMenu) }]
+                    ),
                     { label: '⚠️ Missed Blinds', color: '#F97316', action: () => markMissedBlinds(showPlayerMenu) },
                     { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: () => addMealBreak(showPlayerMenu) },
                   ].map((btn, i) => (

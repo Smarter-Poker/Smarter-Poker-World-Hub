@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       .from('commander_table_sessions')
       .select('id, table_number, seat_number')
       .eq('member_id', member_id)
-      .eq('status', 'active')
+      .in('status', ['active', 'paused', 'meal_break'])
       .limit(1);
 
     if (existing?.length > 0) {
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       .select('id, player_name')
       .eq('table_number', table_number)
       .eq('seat_number', seat_number)
-      .eq('status', 'active')
+      .in('status', ['active', 'paused', 'meal_break'])
       .limit(1);
 
     if (seatTaken?.length > 0) {

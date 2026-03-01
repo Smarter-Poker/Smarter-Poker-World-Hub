@@ -139,7 +139,7 @@ export default async function handler(req, res) {
                     .select('id, player_name')
                     .eq('table_number', parseInt(table_number))
                     .eq('seat_number', targetSeatNum)
-                    .eq('status', 'active')
+                    .in('status', ['active', 'paused', 'meal_break'])
                     .limit(1);
 
                 if (occupied?.length > 0) {

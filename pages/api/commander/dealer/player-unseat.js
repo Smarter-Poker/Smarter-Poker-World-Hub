@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         let sessionQuery = supabase
             .from('commander_table_sessions')
             .select('*')
-            .eq('status', 'active');
+            .in('status', ['active', 'paused', 'meal_break']);
 
         if (session_id) {
             sessionQuery = sessionQuery.eq('id', session_id);

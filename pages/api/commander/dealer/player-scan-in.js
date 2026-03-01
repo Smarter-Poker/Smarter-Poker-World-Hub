@@ -128,7 +128,7 @@ export default async function handler(req, res) {
                 .from('commander_table_sessions')
                 .select('id, table_number, seat_number')
                 .eq('member_id', member.id)
-                .eq('status', 'active')
+                .in('status', ['active', 'paused', 'meal_break'])
                 .limit(1);
 
             if (existing?.length > 0) {
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
                     .from('commander_table_sessions')
                     .select('seat_number')
                     .eq('table_number', tableNum)
-                    .eq('status', 'active');
+                    .in('status', ['active', 'paused', 'meal_break']);
                 occupiedSeats = (activeSessions || []).map(s => s.seat_number);
             } catch (e) { /* table might not exist */ }
 
@@ -188,7 +188,7 @@ export default async function handler(req, res) {
                     .select('id, player_name')
                     .eq('table_number', tableNum)
                     .eq('seat_number', seatNum)
-                    .eq('status', 'active')
+                    .in('status', ['active', 'paused', 'meal_break'])
                     .limit(1);
 
                 if (seatTaken?.length > 0) {
