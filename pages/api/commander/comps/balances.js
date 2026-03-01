@@ -45,7 +45,7 @@ async function awardComp(req, res, staffAuth) {
     // Attempt 1: Direct lookup in commander_members by ID
     const { data: directMember } = await supabase
       .from('commander_members')
-      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
+      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
       .eq('id', member_id)
       .maybeSingle();
 
@@ -60,13 +60,18 @@ async function awardComp(req, res, staffAuth) {
         .maybeSingle();
 
       if (staffMember) {
-        // Check if this staff member already has a commander_members record (via user_id)
-        if (staffMember.user_id) {
-          const { data: existingMember } = await supabase
+        // Check if this staff member already has a commander_members record (via name + venue)
+        const nameParts = (staffMember.display_name || '').trim().split(/\s+/);
+        const sfFirst = nameParts[0] || '';
+        const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+        if (sfFirst) {
+          let matchQuery = supabase
             .from('commander_members')
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
-            .eq('user_id', staffMember.user_id)
-            .maybeSingle();
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
+            .eq('venue_id', staffRecord.venue_id)
+            .ilike('first_name', sfFirst);
+          if (sfLast) matchQuery = matchQuery.ilike('last_name', sfLast);
+          const { data: existingMember } = await matchQuery.maybeSingle();
           if (existingMember) {
             member = existingMember;
           }
@@ -100,13 +105,12 @@ async function awardComp(req, res, staffAuth) {
               member_number: memberNumber,
               first_name: firstName,
               last_name: lastName,
-              user_id: staffMember.user_id || null,
               comp_balance: 0,
               comp_lifetime_earned: 0,
               comp_lifetime_redeemed: 0,
-              membership_tier: 'vip', // Staff get VIP tier (constraint: standard|gold|platinum|vip)
+              membership_tier: 'vip',
             })
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
             .single();
 
           if (createErr) {

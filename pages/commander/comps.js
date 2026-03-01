@@ -36,12 +36,12 @@ const COMP_CATEGORIES = [
 
 const QUICK_AMOUNTS = [5, 10, 15, 20, 25, 50, 75, 100];
 const MEMBERSHIP_DURATIONS = [
-  { key: '1', label: '1 Day', days: 1 },
-  { key: '7', label: '1 Week', days: 7 },
-  { key: '30', label: '1 Month', days: 30 },
-  { key: '90', label: '3 Months', days: 90 },
-  { key: '180', label: '6 Months', days: 180 },
-  { key: '365', label: '1 Year', days: 365 },
+  { key: '1', label: '1 Day', days: 1, priceField: 'price_daily', multiplier: 1 },
+  { key: '7', label: '1 Week', days: 7, priceField: 'price_weekly', multiplier: 1 },
+  { key: '30', label: '1 Month', days: 30, priceField: 'price_monthly', multiplier: 1 },
+  { key: '90', label: '3 Months', days: 90, priceField: 'price_monthly', multiplier: 3 },
+  { key: '180', label: '6 Months', days: 180, priceField: 'price_monthly', multiplier: 6 },
+  { key: '365', label: '1 Year', days: 365, priceField: 'price_yearly', multiplier: 1 },
 ];
 
 export default function CompSystem() {
@@ -80,6 +80,7 @@ export default function CompSystem() {
 
   // ─── Settings state ───
   const [autoCompRate, setAutoCompRate] = useState(1);
+  const [membershipPlans, setMembershipPlans] = useState([]);
 
   // ─── Auth helpers ───
   const getToken = () => typeof window !== 'undefined'
@@ -108,6 +109,19 @@ export default function CompSystem() {
         }
       })
       .catch(() => { });
+
+    // Fetch membership plans for auto-populating comp costs
+    const venueId = getVenueId();
+    if (venueId) {
+      fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers: { 'x-staff-session': staffSession } })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.success && data.data?.plans) {
+            setMembershipPlans(data.data.plans);
+          }
+        })
+        .catch(() => { });
+    }
   }, []);
 
   // ─── Fetch tab data ───
@@ -644,7 +658,16 @@ export default function CompSystem() {
                             <div className="grid grid-cols-3 gap-2">
                               {MEMBERSHIP_DURATIONS.map(dur => (
                                 <button key={dur.key}
-                                  onClick={() => setCompAmount(dur.key)}
+                                  onClick={() => {
+                                    setCompAmount(dur.key);
+                                    // Auto-populate cost from membership plans
+                                    const plan = membershipPlans[0]; // Use first active plan
+                                    if (plan) {
+                                      const basePrice = parseFloat(plan[dur.priceField]) || 0;
+                                      const cost = basePrice * dur.multiplier;
+                                      if (cost > 0) setMembershipCost(String(cost.toFixed(2)));
+                                    }
+                                  }}
                                   className={`py-3 rounded-xl text-sm font-semibold ${compAmount === dur.key ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'}`}>
                                   {dur.label}
                                 </button>
@@ -660,7 +683,9 @@ export default function CompSystem() {
                                     placeholder="0.00"
                                     className="w-full pl-8 pr-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#8B5CF6] text-center text-lg" />
                                 </div>
-                                <p className="text-[10px] text-[#6A6B6D] mt-1">Enter The Dollar Value Of This Comped Membership</p>
+                                <p className="text-[10px] text-[#6A6B6D] mt-1">
+                                  {membershipPlans.length > 0 ? 'Auto-Pulled From Membership Plan Pricing — Editable' : 'Enter The Dollar Value Of This Comped Membership'}
+                                </p>
                               </div>
                             )}
                           </>
