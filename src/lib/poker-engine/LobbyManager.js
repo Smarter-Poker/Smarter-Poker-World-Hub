@@ -586,6 +586,20 @@ class LobbyManager {
 
     table.on('insurance_purchased', (data) => {
       getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_purchased', payload: data });
+      // Record premium as union/club revenue (non-blocking)
+      if (config.clubId) {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_insurance_transaction', {
+          p_club_id: config.clubId,
+          p_table_id: config.tableId,
+          p_player_id: data.buyerId,
+          p_amount: data.premium,
+          p_type: 'premium',
+          p_metadata: { coverage: data.amount, equity: data.trailerEquity },
+        }).then(({ error }) => {
+          if (error) console.error('[LobbyManager] Insurance premium recording failed:', error.message);
+        });
+      }
     });
 
     table.on('insurance_declined', (data) => {
@@ -594,10 +608,26 @@ class LobbyManager {
 
     table.on('insurance_payout', (data) => {
       getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_payout', payload: data });
+      // Record payout as union/club expense (non-blocking)
+      if (config.clubId) {
+        const sb = ChipBridge.getSupabase();
+        sb.rpc('record_insurance_transaction', {
+          p_club_id: config.clubId,
+          p_table_id: config.tableId,
+          p_player_id: data.buyerId,
+          p_amount: data.payout,
+          p_type: 'payout',
+          p_metadata: { premium: data.premium, netGain: data.netGain },
+        }).then(({ error }) => {
+          if (error) console.error('[LobbyManager] Insurance payout recording failed:', error.message);
+        });
+      }
     });
 
     table.on('insurance_expired', (data) => {
       getSyncChannel()?.send({ type: 'broadcast', event: 'insurance_expired', payload: data });
+      // Premium already recorded on purchase — no additional action needed.
+      // The premium is pure profit for the union/club.
     });
 
     // ── RUN IT MULTIPLE (2x / 3x boards) ────────────────────────

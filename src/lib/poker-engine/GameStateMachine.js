@@ -1452,6 +1452,8 @@ class GameStateMachine {
       amount: clampedAmount,
       premium,
       trailerEquity: Math.round(offer.trailerEquity * 100),
+      // Premium goes to union treasury (or club if standalone)
+      houseRevenue: premium,
     });
     
     console.log(`🛡️ Insurance purchased: ${clampedAmount} coverage for ${premium} premium`);
@@ -1470,25 +1472,26 @@ class GameStateMachine {
     
     if (trailerWon) {
       // Insurance pays out: buyer gets their insured amount.
-      // Funds come from reducing the trailer's winnings (pot redistribution).
+      // Funds come from the UNION treasury (or club if standalone).
+      // The trailer keeps their full winnings — insurance is a house product.
       const payout = ins.amount;
       const buyer = this.currentHand.players.find(p => p.id === ins.buyerId);
-      const trailer = this.currentHand.players.find(p => p.id === ins.trailerId);
-      
       if (buyer) buyer.stack += payout;
-      if (trailer) trailer.stack -= Math.min(payout, trailer.stack); // Can't go below 0
+      // NOTE: Trailer stack is NOT touched — they keep full pot winnings.
+      // The union/club absorbs the payout as an insurance expense.
       
       this.emit('insurance_payout', {
         buyerId: ins.buyerId,
         payout,
         premium: ins.premium,
         netGain: payout - ins.premium,
-        reason: 'Trailer won — insurance pays out',
+        reason: 'Trailer won — union/club pays insurance claim',
       });
       
-      return { buyerId: ins.buyerId, payout, premium: ins.premium };
+      return { buyerId: ins.buyerId, payout, premium: ins.premium, source: 'house' };
     } else {
-      // Leader won — insurance not needed, premium already deducted (goes to house/rake)
+      // Leader won — insurance not needed. Premium already deducted from
+      // buyer's stack and recorded as union/club insurance revenue.
       this.emit('insurance_expired', {
         buyerId: ins.buyerId,
         premiumLost: ins.premium,
