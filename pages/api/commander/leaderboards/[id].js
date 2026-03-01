@@ -5,7 +5,7 @@
  * PUT /api/commander/leaderboards/[id] - Update leaderboard
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { guardWriteStaff, verifyStaffSession } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -72,17 +72,12 @@ async function getLeaderboard(req, res, id) {
 
 async function updateLeaderboard(req, res, id) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+    // Staff already validated by guardWriteStaff — get venue from staff session
+    const staffResult = await verifyStaffSession(req);
+    if (staffResult.error) {
+      return res.status(staffResult.error.status || 401).json({ error: staffResult.error.message });
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    const staff = staffResult.staff;
 
     // Get leaderboard to check venue
     const { data: existing } = await supabase
@@ -95,17 +90,9 @@ async function updateLeaderboard(req, res, id) {
       return res.status(404).json({ error: 'Leaderboard not found' });
     }
 
-    // Check if user is staff at this venue
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id, role')
-      .eq('venue_id', existing.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-
-    if (!staff) {
-      return res.status(403).json({ error: 'You are not authorized to update this leaderboard' });
+    // Verify staff is authorized for this venue
+    if (staff.venue_id && staff.venue_id !== existing.venue_id) {
+      return res.status(403).json({ error: 'Not authorized for this venue' });
     }
 
     const updates = {};
