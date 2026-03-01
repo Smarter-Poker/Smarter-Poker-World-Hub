@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, staff) {
   try {
-    const { table_number, session_id, type, date, limit = 100 } = req.query;
+    const { table_number, session_id, type, date, player_name, limit = 100 } = req.query;
     const venue_id = req.query.venue_id || staff.venue_id;
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
@@ -39,6 +39,7 @@ async function handleGet(req, res, staff) {
     if (table_number) query = query.eq('table_number', parseInt(table_number));
     if (session_id) query = query.eq('session_id', session_id);
     if (type) query = query.eq('type', type);
+    if (player_name) query = query.eq('player_name', player_name);
     if (date) {
       const start = new Date(date);
       start.setHours(0, 0, 0, 0);
@@ -51,8 +52,10 @@ async function handleGet(req, res, staff) {
     if (error) throw error;
 
     const transactions = data || [];
-    const buyIns = transactions.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type));
-    const cashOuts = transactions.filter(t => ['cash_out', 'void'].includes(t.type));
+    // Exclude voided transactions from summary calculations for accuracy
+    const active = transactions.filter(t => !t.voided_at);
+    const buyIns = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type));
+    const cashOuts = active.filter(t => ['cash_out', 'void'].includes(t.type));
 
     const summary = {
       total_buy_ins: buyIns.reduce((s, t) => s + parseFloat(t.amount), 0),

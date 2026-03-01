@@ -410,6 +410,7 @@ export default function Cashier() {
           staff_name: staff?.display_name || 'Staff'
         });
         playSuccessSound();
+        showSuccessPopup({ title: 'Buy-In Recorded', amount: `$${parseFloat(buyInAmount).toLocaleString()}`, detail: selectedPlayer?.player_name || 'Walk-Up' });
         fetchData();
         broadcastChange('members');
       } else {
@@ -473,6 +474,8 @@ export default function Cashier() {
       setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
       setShowAddTime(false);
       playSuccessSound();
+      const newHrs = Math.floor(newBalance / 60); const newRm = newBalance % 60;
+      showSuccessPopup({ title: 'Time Added', amount: `$${price}`, detail: `${timeLabel} → ${selectedPlayer.player_name}`, balance: `New Balance: ${newHrs}h ${newRm > 0 ? newRm + 'm' : ''}` });
       fetchData();
       broadcastChange('members');
 
@@ -533,6 +536,7 @@ export default function Cashier() {
       setSelectedPlayer(prev => ({ ...prev, membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() }));
       setShowMembership(false);
       playSuccessSound();
+      showSuccessPopup({ title: 'Membership Updated', amount: `$${price}`, detail: `${tierInfo?.label} Membership → ${selectedPlayer.player_name}`, balance: `Expires: ${expires.toLocaleDateString()}` });
       fetchData();
       broadcastChange('members');
 
@@ -648,6 +652,7 @@ export default function Cashier() {
 
       setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });
       playSuccessSound();
+      showSuccessPopup({ title: `${actionLabel} Processed`, amount: `$${details.amount}`, detail: details.player_name || 'Unknown' });
       fetchData();
       broadcastChange('members');
     } catch { setMessage({ type: 'error', text: `${actionLabel} Failed` }); }
@@ -698,11 +703,10 @@ export default function Cashier() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&limit=100`, { headers });
+      // Use server-side player_name filter for efficiency
+      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });
       const json = await res.json();
-      const allTx = json.data || [];
-      const playerTx = allTx.filter(tx => tx.player_name === selectedPlayer.player_name);
-      setPlayerHistory(playerTx);
+      setPlayerHistory(json.data || []);
     } catch { setPlayerHistory([]); }
     finally { setPlayerHistoryLoading(false); }
   };
@@ -870,6 +874,27 @@ export default function Cashier() {
     <CommanderLayout title="Cashier" backHref="/commander/dashboard">
       <SEOHead title="Commander — Cashier" description="Club Commander Poker Room Management Tool." noindex={true} />
       <div className="min-h-screen bg-black text-[#E4E6EB] font-['Inter']">
+
+        {/* === SUCCESS OVERLAY — fullscreen popup === */}
+        {successOverlay && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+            <div className="text-center" style={{ animation: 'scaleIn 0.3s ease-out' }}>
+              <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-5" style={{ animation: 'pulse 1s ease-in-out infinite' }}>
+                <CheckCircle2 className="w-14 h-14 text-[#31A24C]" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">{successOverlay.title}</h2>
+              <p className="text-4xl font-black text-[#31A24C] mb-3">{successOverlay.amount}</p>
+              <p className="text-base text-[#B0B3B8] mb-1">{successOverlay.detail}</p>
+              {successOverlay.balance && (
+                <p className="text-sm font-semibold text-[#1877F2] mt-2 bg-[#1877F2]/10 px-4 py-2 rounded-xl inline-block">{successOverlay.balance}</p>
+              )}
+            </div>
+          </div>
+        )}
+        <style jsx>{`
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        `}</style>
 
         {/* Message Toast */}
         {message && (
