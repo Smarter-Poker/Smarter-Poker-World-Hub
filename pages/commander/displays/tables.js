@@ -78,16 +78,17 @@ export default function TablesDisplay() {
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
 
-  // Extract venueId from staff session
-  const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
-  const [venueName] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_name; } catch { return ''; }
-  });
+  // Extract venueId/venueName from staff session (client-only)
+  const [venueId, setVenueId] = useState(null);
+  const [venueName, setVenueName] = useState('');
 
-  // Restore lock state from localStorage on mount
+  // Mount: read localStorage for staff session + restore lock state
   useEffect(() => {
+    try {
+      const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      if (staff.venue_id) setVenueId(staff.venue_id);
+      if (staff.venue_name) setVenueName(staff.venue_name);
+    } catch { /* ignore */ }
     try {
       const saved = localStorage.getItem('display_locked_table');
       if (saved) {
