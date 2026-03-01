@@ -172,13 +172,18 @@ export default function LeaderboardBuilder() {
         const newStatus = board.status === 'active' ? 'completed' : 'active';
         try {
             const token = getToken();
-            await fetch(`/api/commander/leaderboards/${board.id}`, {
+            const res = await fetch(`/api/commander/leaderboards/${board.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify({ status: newStatus }),
             });
-            flash('success', `Board ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
-            fetchBoards();
+            if (res.ok) {
+                flash('success', `Board ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+                fetchBoards();
+            } else {
+                const json = await res.json().catch(() => ({}));
+                flash('error', json.error || `Failed to update (${res.status})`);
+            }
         } catch { flash('error', 'Failed to update'); }
     };
 
@@ -191,8 +196,12 @@ export default function LeaderboardBuilder() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify({ action: 'calculate' }),
             });
-            const json = await res.json();
-            flash('success', `Calculated ${json.entries_updated || 0} entries`);
+            const json = await res.json().catch(() => ({}));
+            if (res.ok) {
+                flash('success', `Calculated ${json.entries_updated || 0} entries`);
+            } else {
+                flash('error', json.error || `Calculation failed (${res.status})`);
+            }
             fetchEntries(boardId);
         } catch { flash('error', 'Calculation failed'); }
     };
