@@ -363,18 +363,18 @@ export default function ClockDisplay() {
               Next Level →
             </button>
             <button style={{ ...S.controlBtn, background: 'rgba(139,92,246,0.3)', borderColor: '#8B5CF6' }} onClick={() => { setHandTimerSeconds(60); setHandTimerActive(true); }}>
-              ⏱ Hand Timer
+              Hand Timer
             </button>
             {/* Screen selector */}
             <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
               {[
-                { key: SCREENS.CLOCK, label: '🕐' },
-                { key: SCREENS.PAYOUTS, label: '🏆' },
-                { key: SCREENS.SCHEDULE, label: '📋' },
-                { key: SCREENS.ICM, label: '📊' },
+                { key: SCREENS.CLOCK, label: 'Clock' },
+                { key: SCREENS.PAYOUTS, label: 'Payouts' },
+                { key: SCREENS.SCHEDULE, label: 'Schedule' },
+                { key: SCREENS.ICM, label: 'ICM' },
               ].map(({ key, label }) => (
                 <button key={key} onClick={() => setActiveScreen(key)} style={{
-                  ...S.controlBtn, padding: '8px 12px', fontSize: 18,
+                  ...S.controlBtn, padding: '8px 14px', fontSize: 13,
                   background: activeScreen === key ? 'rgba(24,119,242,0.4)' : 'rgba(255,255,255,0.1)',
                   borderColor: activeScreen === key ? '#1877F2' : 'rgba(255,255,255,0.2)',
                 }}>{label}</button>

@@ -15,7 +15,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Gift, DollarSign, Users, Clock, Search, TrendingUp,
-  Plus, Loader2, RefreshCw, Check, CheckCircle2, Star, Shield, X,
+  Plus, Loader2, RefreshCw, Check, Star, Shield, X,
   UtensilsCrossed, Ticket, Coins, Timer, CreditCard,
   ShoppingBag, FileText, Award, ChevronDown, Filter, BarChart3
 } from 'lucide-react';
@@ -444,12 +444,11 @@ export default function CompSystem() {
         />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-          {/* === SUCCESS OVERLAY — fullscreen popup === */}
           {successOverlay && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80" style={{ animation: 'fadeIn 0.2s ease-out' }}>
-              <div className="text-center" style={{ animation: 'scaleIn 0.3s ease-out' }}>
-                <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-5" style={{ animation: 'pulse 1s ease-in-out infinite' }}>
-                  <CheckCircle2 className="w-14 h-14 text-[#31A24C]" />
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80">
+              <div className="text-center">
+                <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-5">
+                  <Check className="w-14 h-14 text-[#31A24C]" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">{successOverlay.title}</h2>
                 <p className="text-4xl font-black text-[#31A24C] mb-3">{successOverlay.amount}</p>
@@ -460,10 +459,6 @@ export default function CompSystem() {
               </div>
             </div>
           )}
-          <style jsx>{`
-            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-          `}</style>
 
           {/* ═══ PIN Authorization Modal ═══ */}
           {showPinModal && (
@@ -829,12 +824,14 @@ export default function CompSystem() {
                             className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
                         </div>
 
-                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory === 'free_membership' ? (!membershipCost || parseFloat(membershipCost) <= 0) : parseFloat(compAmount) <= 0)}
+                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory === 'free_membership' ? (!membershipCost || parseFloat(membershipCost) <= 0) : selectedCategory === 'free_time' ? !timeMinutes : parseFloat(compAmount) <= 0)}
                           className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
                           {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
                           {selectedCategory === 'free_membership'
                             ? `Issue ${MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'} ($${membershipCost || '0'}) — Requires PIN`
-                            : `Issue $${compAmount || '0'} — Requires PIN`}
+                            : selectedCategory === 'free_time'
+                              ? `Issue ${(() => { const m = parseInt(timeMinutes || 0); const h = Math.floor(m / 60); const mins = m % 60; return h > 0 ? `${h}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`; })()} ($${compAmount || '0'}) — Requires PIN`
+                              : `Issue $${compAmount || '0'} — Requires PIN`}
                         </button>
                         <p className="text-[10px] text-[#6A6B6D] text-center">
                           All Comps Require Staff PIN Verification And Are Fully Documented
@@ -874,40 +871,55 @@ export default function CompSystem() {
                     {filteredLog.slice(0, 50).map((t, i) => {
                       const cat = COMP_CATEGORIES.find(c => c.key === (t.comp_category || 'cash_bonus')) || COMP_CATEGORIES[4];
                       const CatIcon = cat.icon;
+                      const isVoidEntry = t.type === 'void';
+                      const isVoided = isVoidEntry || compLog.some(v => v.type === 'void' && (v.notes || '').includes(`VOID-REF:${t.id}`));
+                      const txTime = t.created_at ? new Date(t.created_at) : new Date();
+                      const minutesAgo = (Date.now() - txTime.getTime()) / 60000;
+                      const voidLabel = minutesAgo <= 15 ? 'Void' : 'Revoke';
                       return (
-                        <div key={t.id || i} className="flex items-center gap-3 px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl">
+                        <div key={t.id || i} className={`flex items-center gap-3 px-4 py-3 bg-[#242526] border rounded-xl ${isVoided ? 'border-[#EF4444]/30 opacity-50' : 'border-[#3A3B3C]'}`}>
                           <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: cat.color + '20' }}>
-                            <CatIcon className="w-4 h-4" style={{ color: cat.color }} />
+                            style={{ backgroundColor: isVoidEntry ? '#EF444420' : cat.color + '20' }}>
+                            {isVoidEntry ? <X className="w-4 h-4 text-[#EF4444]" /> : <CatIcon className="w-4 h-4" style={{ color: cat.color }} />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{t.member_name || 'Member'}</p>
+                            <p className={`text-sm font-medium truncate ${isVoided ? 'text-[#6A6B6D] line-through' : 'text-white'}`}>{t.member_name || 'Member'}</p>
                             <p className="text-[10px] text-[#6A6B6D] truncate">
+                              {isVoidEntry ? <span className="text-[#EF4444] font-semibold">VOID — </span> : null}
                               {t.reason || cat.label}
                               {t.authorized_pin && <span className="text-[#31A24C] ml-1">[PIN]</span>}
                             </p>
                             {t.authorized_by && (
                               <p className="text-[10px] text-[#4A4B4C]">By: {t.authorized_by}</p>
                             )}
+                            {isVoided && !isVoidEntry && (
+                              <p className="text-[10px] text-[#EF4444] font-semibold">VOIDED</p>
+                            )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            {t.comp_category === 'free_membership' ? (
+                            {t.comp_category === 'free_membership' && !isVoidEntry ? (
                               <>
-                                <p className="text-sm font-bold text-[#8B5CF6]">
+                                <p className={`text-sm font-bold ${isVoided ? 'text-[#6A6B6D] line-through' : 'text-[#8B5CF6]'}`}>
                                   {(t.reason || '').replace('Free Membership — ', '').split(' — ')[0] || 'Membership'}
                                 </p>
                                 {(t.amount || 0) > 0 && (
-                                  <p className="text-[10px] font-medium text-[#31A24C]">${(t.amount || 0).toFixed(2)}</p>
+                                  <p className={`text-[10px] font-medium ${isVoided ? 'text-[#6A6B6D] line-through' : 'text-[#31A24C]'}`}>${(t.amount || 0).toFixed(2)}</p>
                                 )}
                               </>
                             ) : (
-                              <p className={`text-sm font-bold ${(t.amount || 0) > 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
-                                {(t.amount || 0) > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}
+                              <p className={`text-sm font-bold ${isVoidEntry ? 'text-[#EF4444]' : (t.amount || 0) > 0 ? (isVoided ? 'text-[#6A6B6D] line-through' : 'text-[#31A24C]') : 'text-[#EF4444]'}`}>
+                                {isVoidEntry ? '−' : (t.amount || 0) > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}
                               </p>
                             )}
                             <p className="text-[10px] text-[#6A6B6D]">
                               {t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
                             </p>
+                            {!isVoided && !isVoidEntry && (
+                              <button onClick={() => voidCompEntry(t)}
+                                className={`mt-1 text-[10px] px-2 py-0.5 rounded font-medium ${minutesAgo <= 15 ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
+                                {voidLabel}
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -986,7 +998,6 @@ export default function CompSystem() {
 
           </div>
         </div>
-        <style jsx>{``}</style>
       </>
     </CommanderLayout>
   );

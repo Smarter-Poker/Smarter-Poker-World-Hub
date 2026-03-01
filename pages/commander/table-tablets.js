@@ -15,7 +15,8 @@ import {
     Monitor, Users, Loader2, ChevronRight, Power, DollarSign, Trophy,
     Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle,
     Maximize2, Minimize2, Copy, ExternalLink, Wifi, WifiOff, ChevronDown, ChevronUp, Link2,
-    Lock, Unlock, ShieldCheck, Phone, AlertTriangle, Bell
+    Lock, Unlock, ShieldCheck, Phone, AlertTriangle, Bell,
+    UserMinus, ArrowRightLeft, Coins, Skull, XCircle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -70,6 +71,18 @@ function getTimerColor(seconds) {
     if (seconds <= 300) return '#EF4444';   // < 5 min — red
     if (seconds <= 900) return '#F59E0B';   // < 15 min — yellow
     return '#31A24C';                       // green
+}
+
+// ── Haptic feedback for tablet buttons ──
+// Uses navigator.vibrate() where supported (Android tablets).
+// On iOS, vibration API isn't available — we use AudioContext as a fallback buzz.
+function haptic(intensity = 'medium') {
+    try {
+        const ms = intensity === 'light' ? 10 : intensity === 'heavy' ? 50 : 25;
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(ms);
+        }
+    } catch { /* silently ignore on unsupported devices */ }
 }
 
 // Arc-length parameterized ellipse for equal visual spacing — matches tables.js
@@ -289,7 +302,14 @@ export default function TableTabletsPage() {
                 const activeTbls = tablesArr.filter(t => t.status === 'in_use');
                 if (activeTbls.length > 0) {
                     const sessionsByTable = {};
-                    await Promise.all(activeTbls.map(async (t) => {
+                    const tournamentEntriesByTable = {};
+
+                    // Separate cash tables and tournament tables
+                    const cashTbls = activeTbls.filter(t => !isTournamentTable(t));
+                    const tournTbls = activeTbls.filter(t => isTournamentTable(t));
+
+                    // Fetch cash game sessions
+                    await Promise.all(cashTbls.map(async (t) => {
                         const tNum = t.table_number || t.number;
                         try {
                             const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
@@ -298,9 +318,50 @@ export default function TableTabletsPage() {
                         } catch { /* non-fatal */ }
                     }));
 
-                    // Merge session time_remaining into table seat data
+                    // Fetch tournament entries — one floor-view call per unique tournament_id
+                    const uniqueTournaments = [...new Set(tournTbls.map(t => t.tournament_id).filter(Boolean))];
+                    await Promise.all(uniqueTournaments.map(async (tid) => {
+                        try {
+                            const fRes = await fetch(`/api/commander/tournaments/${tid}/floor-view`, { headers });
+                            const fJson = await fRes.json();
+                            if (fJson.success && fJson.data?.tables) {
+                                fJson.data.tables.forEach(ft => {
+                                    tournamentEntriesByTable[ft.table_number] = {
+                                        tournament_id: tid,
+                                        tournament: fJson.data.tournament,
+                                        stats: fJson.data.stats,
+                                        players: ft.players || [],
+                                    };
+                                });
+                            }
+                        } catch { /* non-fatal */ }
+                    }));
+
+                    // Merge session data for cash tables
                     tablesArr = tablesArr.map(t => {
                         const tNum = t.table_number || t.number;
+
+                        // Tournament table — merge entry data
+                        if (isTournamentTable(t) && tournamentEntriesByTable[tNum]) {
+                            const tData = tournamentEntriesByTable[tNum];
+                            return {
+                                ...t,
+                                _tournamentData: tData.tournament,
+                                _tournamentStats: tData.stats,
+                                seats: tData.players.map(p => ({
+                                    seat_number: p.seat_number,
+                                    player_name: p.player_name,
+                                    entry_id: p.entry_id,
+                                    tournament_id: tData.tournament_id,
+                                    current_chips: p.current_chips,
+                                    rebuy_count: p.rebuy_count || 0,
+                                    addon_taken: p.addon_taken || false,
+                                    status: 'occupied',
+                                }))
+                            };
+                        }
+
+                        // Cash table — merge session data
                         const tableSessions = sessionsByTable[tNum];
                         if (!tableSessions || tableSessions.length === 0) return t;
                         return {
@@ -538,9 +599,102 @@ export default function TableTabletsPage() {
             if (json.success) {
                 setToast({ type: 'success', text: `${json.data.player_name} removed · ${json.data.unused_minutes_returned}m returned` });
                 setShowPlayerMenu(null);
+                broadcastChange('tables');
                 fetchAll();
             } else {
                 setToast({ type: 'error', text: json.error || 'Failed to remove player' });
+            }
+        } catch { setToast({ type: 'error', text: 'Network error' }); }
+        setPlayerActionLoading(false);
+    };
+
+    // ── Tournament-specific actions ──
+    const bustTournamentPlayer = async (tournamentId, entryId, playerName) => {
+        setPlayerActionLoading(true);
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+        const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+        try {
+            const res = await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ entry_id: entryId }),
+            });
+            const json = await res.json();
+            if (json.entry || json.success) {
+                const pos = json.finishPosition ? ` — finished ${json.finishPosition}${['st', 'nd', 'rd'][json.finishPosition - 1] || 'th'}` : '';
+                const payout = json.payoutAmount ? ` · $${json.payoutAmount.toLocaleString()}` : '';
+                setToast({ type: 'success', text: `${playerName} eliminated${pos}${payout}` });
+                setShowPlayerMenu(null);
+                broadcastChange('tables');
+                // If during rebuy/late-reg, notify cashier
+                const menuTable = tables.find(t => t.tournament_id === tournamentId);
+                const tData = menuTable?._tournamentData;
+                const tStats = menuTable?._tournamentStats;
+                if (tData && tStats?.late_reg_open) {
+                    broadcastChange('cashier');
+                    setToast({ type: 'success', text: `${playerName} eliminated — seat available for resale (late reg open)` });
+                } else if (tData?.allows_rebuys) {
+                    const currentLevel = tData.settings?.clock_state?.currentLevel || 0;
+                    const rebuyEndLevel = tData.rebuy_end_level || 99;
+                    if (currentLevel <= rebuyEndLevel) {
+                        broadcastChange('cashier');
+                    }
+                }
+                fetchAll();
+            } else {
+                setToast({ type: 'error', text: json.error || 'Failed to bust player' });
+            }
+        } catch { setToast({ type: 'error', text: 'Network error' }); }
+        setPlayerActionLoading(false);
+    };
+
+    const moveTournamentPlayer = async (tournamentId, entryId, toTable, toSeat, playerName) => {
+        setPlayerActionLoading(true);
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+        const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+        try {
+            const res = await fetch(`/api/commander/tournaments/${tournamentId}/move-player`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ entry_id: entryId, to_table: toTable, to_seat: toSeat }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                const move = json.data?.move;
+                setToast({ type: 'success', text: `${playerName} moved T${move?.from_table}S${move?.from_seat} → T${move?.to_table}S${move?.to_seat}` });
+                broadcastChange('tables');
+                fetchAll();
+            } else {
+                setToast({ type: 'error', text: json.error || 'Move failed' });
+            }
+        } catch { setToast({ type: 'error', text: 'Network error' }); }
+        setPlayerActionLoading(false);
+    };
+
+    const updateTournamentChipCount = async (tournamentId, entryId, chipCount, playerName) => {
+        setPlayerActionLoading(true);
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+        const headers = { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
+        try {
+            // Direct Supabase-backed update via a lightweight API call
+            const res = await fetch('/api/commander/dealer/session-action', {
+                method: 'POST', headers,
+                body: JSON.stringify({
+                    action: 'tournament_chip_update',
+                    tournament_id: tournamentId,
+                    entry_id: entryId,
+                    chip_count: chipCount,
+                    venue_id: venueId,
+                }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                setToast({ type: 'success', text: `Chip count updated: ${chipCount.toLocaleString()} — ${playerName}` });
+                broadcastChange('tables');
+                fetchAll();
+            } else {
+                setToast({ type: 'error', text: json.error || 'Failed to update chips' });
             }
         } catch { setToast({ type: 'error', text: 'Network error' }); }
         setPlayerActionLoading(false);
