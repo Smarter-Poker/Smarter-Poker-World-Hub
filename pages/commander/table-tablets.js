@@ -43,6 +43,10 @@ function getFullGameName(type) {
     if (!type) return 'Cash Game';
     return GAME_TYPE_MAP[type.toLowerCase()] || type.toUpperCase();
 }
+function isTournamentTable(table) {
+    const mode = table.mode || table.table_purpose || 'cash';
+    return mode === 'tournament';
+}
 function formatStakes(stakes) {
     if (!stakes) return '';
     // Already has $ → return as is
@@ -372,7 +376,9 @@ export default function TableTabletsPage() {
         return 0;
     };
 
-    const activeTables = tables.filter(t => t.status === 'in_use');
+    const activeCashTables = tables.filter(t => t.status === 'in_use' && !isTournamentTable(t));
+    const activeTournamentTables = tables.filter(t => t.status === 'in_use' && isTournamentTable(t));
+    const activeTables = [...activeCashTables, ...activeTournamentTables];
     const idleTables = tables.filter(t => t.status !== 'in_use');
 
     // Dealer scan functions
@@ -629,8 +635,8 @@ export default function TableTabletsPage() {
                             {formatStakes(game?.stakes || table.stakes)}
                         </div>
                         {table.table_purpose && (
-                            <div style={{ fontSize: isFullscreen ? 11 : 9, fontWeight: 800, marginTop: 6, padding: '2px 10px', borderRadius: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)', color: table.table_purpose === 'must_move' ? '#F59E0B' : '#22c55e', border: `1px solid ${table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.5)' : 'rgba(34,197,94,0.5)'}` }}>
-                                {table.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
+                            <div style={{ fontSize: isFullscreen ? 11 : 9, fontWeight: 800, marginTop: 6, padding: '2px 10px', borderRadius: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(table) ? 'rgba(245,158,11,0.3)' : table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)', color: isTournamentTable(table) ? '#F59E0B' : table.table_purpose === 'must_move' ? '#F59E0B' : '#22c55e', border: `1px solid ${isTournamentTable(table) ? 'rgba(245,158,11,0.5)' : table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.5)' : 'rgba(34,197,94,0.5)'}` }}>
+                                {isTournamentTable(table) ? 'Tournament' : table.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
                             </div>
                         )}
                     </div>
@@ -911,14 +917,73 @@ export default function TableTabletsPage() {
                         </div>
                     ) : (
                         <>
-                            {/* ACTIVE TABLES — expanded cards with full table visual */}
-                            {activeTables.length > 0 && (
+                            {/* ACTIVE TOURNAMENT TABLES — amber section */}
+                            {activeTournamentTables.length > 0 && (
                                 <>
-                                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <Timer size={14} /> Active Tables ({activeTables.length})
+                                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Trophy size={14} /> Tournament Tables ({activeTournamentTables.length})
                                     </h2>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 12, marginBottom: 24 }}>
-                                        {activeTables.map(table => {
+                                        {activeTournamentTables.map(table => {
+                                            const tNum = table.table_number || table.number;
+                                            const maxSeats = table.max_seats || 9;
+                                            const game = getTableGame(table);
+                                            const seatedCount = getSeatedCount(table);
+
+                                            return (
+                                                <div key={table.id || tNum}
+                                                    onClick={() => setFullscreenTable(table)}
+                                                    style={{
+                                                        background: '#1a1a2e', border: '2px solid rgba(245,158,11,0.4)', borderRadius: 16,
+                                                        cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
+                                                    }}>
+
+                                                    {/* Table header — tournament amber gradient */}
+                                                    <div style={{
+                                                        padding: '12px 16px',
+                                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                                        color: '#fff',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <Trophy size={16} />
+                                                                {formatStakes(game?.stakes || table.stakes)} {getFullGameName(game?.game_type || table.game_type)}
+                                                            </div>
+                                                            <div style={{ fontSize: 13, opacity: 0.9 }}>
+                                                                Table {tNum}{table.table_name && table.table_name !== `Table ${tNum}` ? ` · ${table.table_name}` : ''} · {maxSeats}-max · Tournament
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700 }}>
+                                                                <Users size={14} /> {seatedCount}/{maxSeats}
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', animation: 'pulse 2s infinite' }} />
+                                                                <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.9 }}>TOURNAMENT</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Table visual */}
+                                                    <div style={{ padding: '12px 16px 16px' }}>
+                                                        {renderTableVisual(table)}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* ACTIVE CASH TABLES — expanded cards with full table visual */}
+                            {activeCashTables.length > 0 && (
+                                <>
+                                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Timer size={14} /> Active Cash Tables ({activeCashTables.length})
+                                    </h2>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 12, marginBottom: 24 }}>
+                                        {activeCashTables.map(table => {
                                             const tNum = table.table_number || table.number;
                                             const maxSeats = table.max_seats || 9;
                                             const game = getTableGame(table);
@@ -935,9 +1000,11 @@ export default function TableTabletsPage() {
                                                     {/* Table header — game info bar */}
                                                     <div style={{
                                                         padding: '12px 16px',
-                                                        background: game?.status === 'running'
-                                                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                                                            : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                        background: isTournamentTable(table)
+                                                            ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                                                            : game?.status === 'running'
+                                                                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                                                : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
                                                         color: '#fff',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                                     }}>
@@ -1060,8 +1127,8 @@ export default function TableTabletsPage() {
                                 })()}
                             </div>
                             {fullscreenTable.table_purpose && (
-                                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
-                                    {fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
+                                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(245,158,11,0.4)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#FCD34D' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
+                                    {isTournamentTable(fullscreenTable) ? 'Tournament' : fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
                                 </span>
                             )}
                         </div>
