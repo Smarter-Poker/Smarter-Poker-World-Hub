@@ -36,47 +36,80 @@ async function awardComp(req, res, staffAuth) {
 
     // Get the member — check commander_members first, then commander_staff
     let member = null;
-    const { data: directMember, error: memberErr } = await supabase
+
+    // Attempt 1: Direct lookup in commander_members by ID
+    const { data: directMember } = await supabase
       .from('commander_members')
       .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
       .eq('id', member_id)
-      .single();
+      .maybeSingle();
 
     if (directMember) {
       member = directMember;
     } else {
-      // member_id might be a commander_staff row ID — look up staff and auto-create member
+      // Attempt 2: member_id might be a commander_staff UUID
       const { data: staffMember } = await supabase
         .from('commander_staff')
         .select('id, venue_id, display_name, user_id, role')
         .eq('id', member_id)
-        .single();
+        .maybeSingle();
 
       if (staffMember) {
-        const nameParts = (staffMember.display_name || '').trim().split(/\s+/);
-        const firstName = nameParts[0] || staffMember.role || 'Staff';
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
-        // Auto-create a commander_members record for this staff member
-        const { data: newMember, error: createErr } = await supabase
-          .from('commander_members')
-          .insert({
-            venue_id: staffMember.venue_id,
-            first_name: firstName,
-            last_name: lastName,
-            user_id: staffMember.user_id || null,
-            comp_balance: 0,
-            comp_lifetime_earned: 0,
-            comp_lifetime_redeemed: 0,
-            membership_tier: staffMember.role,
-          })
-          .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
-          .single();
-
-        if (createErr || !newMember) {
-          return res.status(500).json({ success: false, error: 'Could not create member record for staff' });
+        // Check if this staff member already has a commander_members record (via user_id)
+        if (staffMember.user_id) {
+          const { data: existingMember } = await supabase
+            .from('commander_members')
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+            .eq('user_id', staffMember.user_id)
+            .maybeSingle();
+          if (existingMember) {
+            member = existingMember;
+          }
         }
-        member = newMember;
+
+        // If no existing member record, auto-create one
+        if (!member) {
+          const nameParts = (staffMember.display_name || '').trim().split(/\s+/);
+          const firstName = nameParts[0] || staffMember.role || 'Staff';
+          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+          // CRITICAL: Use venue_id from the staff session header (integer format)
+          // NOT from commander_staff.venue_id (UUID format) — type mismatch with commander_members
+          let memberVenueId = staffRecord.venue_id; // from guardWriteStaff
+          // Parse staff session header for the raw venue_id (guaranteed correct type)
+          try {
+            const sessionHeader = req.headers['x-staff-session'];
+            if (sessionHeader) {
+              const sess = JSON.parse(sessionHeader);
+              if (sess.venue_id) memberVenueId = sess.venue_id;
+            }
+          } catch { /* use staffRecord.venue_id */ }
+
+          // Generate member_number (required NOT NULL field)
+          const memberNumber = `STAFF-${Date.now().toString(36).toUpperCase()}`;
+
+          const { data: newMember, error: createErr } = await supabase
+            .from('commander_members')
+            .insert({
+              venue_id: memberVenueId,
+              member_number: memberNumber,
+              first_name: firstName,
+              last_name: lastName,
+              user_id: staffMember.user_id || null,
+              comp_balance: 0,
+              comp_lifetime_earned: 0,
+              comp_lifetime_redeemed: 0,
+              membership_tier: staffMember.role,
+            })
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+            .single();
+
+          if (createErr) {
+            console.error('Auto-create member error:', createErr);
+            return res.status(500).json({ success: false, error: `Could not create member record: ${createErr.message}` });
+          }
+          member = newMember;
+        }
       }
     }
 
