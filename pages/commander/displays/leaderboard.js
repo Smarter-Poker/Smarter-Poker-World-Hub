@@ -47,14 +47,7 @@ export default function LeaderboardDisplay() {
         );
         setLeaderboards(withEntries.filter(lb => lb.entries.length > 0));
       } else {
-        setLeaderboards([
-          {
-            id: 'demo-points', name: 'Monthly Points Leaders', type: 'points',
-            entries: [
-              { rank: 1, player_name: 'Loading...', points: 0 },
-            ]
-          }
-        ]);
+        setLeaderboards([]);
       }
     } catch (err) { console.error(err); }
   };
@@ -91,7 +84,8 @@ export default function LeaderboardDisplay() {
       `}</style>
 
       <div onClick={goFullscreen}
-        className="h-screen bg-black text-white font-['Inter'] select-none flex flex-col">
+        className="bg-black text-white font-['Inter'] select-none flex flex-col"
+        style={{ height: 'calc(100vh - 56px)' }}>
 
         {/* Header */}
         <div className="bg-gradient-to-r from-[#1877F2] to-[#6366F1] px-8 py-5 flex items-center justify-between flex-shrink-0">
@@ -158,14 +152,16 @@ export default function LeaderboardDisplay() {
         </div>
 
         {/* Dealer Push/Break + Promo Ticker */}
-        <DealerTicker
-          accentColor="#6366F1"
-          bgColor="#000"
-          fontSize={18}
-          borderColor="rgba(255,255,255,0.1)"
-          speed={22}
-          showBorder={true}
-        />
+        <div className="flex-shrink-0">
+          <DealerTicker
+            accentColor="#6366F1"
+            bgColor="#000"
+            fontSize={18}
+            borderColor="rgba(255,255,255,0.1)"
+            speed={22}
+            showBorder={true}
+          />
+        </div>
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between flex-shrink-0">
