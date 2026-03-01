@@ -600,23 +600,49 @@ export default function Cashier() {
         })
       });
 
-      // 3. If time void, subtract the minutes back
-      if (type === 'time' && selectedPlayer?.id && details.minutes) {
-        const newBal = Math.max(0, (selectedPlayer.time_balance_minutes || 0) - details.minutes);
-        await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+      // 3. Resolve the member to update — use selectedPlayer if name matches, otherwise lookup by name
+      let memberId = null;
+      let memberBalance = null;
+      if (selectedPlayer?.id && selectedPlayer.player_name === details.player_name) {
+        memberId = selectedPlayer.id;
+        memberBalance = selectedPlayer.time_balance_minutes || 0;
+      } else if (details.player_name && details.player_name !== 'Unknown') {
+        // Lookup member by name for balance correction
+        try {
+          const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { headers });
+          const searchJson = await searchRes.json();
+          const match = (searchJson.data || []).find(m => {
+            const mName = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
+            return mName.toLowerCase() === details.player_name.toLowerCase();
+          });
+          if (match) {
+            memberId = match.id;
+            memberBalance = match.time_balance_minutes || 0;
+          }
+        } catch { /* search failed — still record the void but can't update balance */ }
+      }
+
+      // 4. If time void, subtract the minutes back
+      if (type === 'time' && memberId && details.minutes) {
+        const newBal = Math.max(0, (memberBalance || 0) - details.minutes);
+        await fetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ time_balance_minutes: newBal })
         });
-        setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
+        if (selectedPlayer?.id === memberId) {
+          setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
+        }
       }
 
-      // 4. If membership void, revert membership to none
-      if (type === 'membership' && selectedPlayer?.id) {
-        await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+      // 5. If membership void, revert membership to none
+      if (type === 'membership' && memberId) {
+        await fetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ membership_tier: null, membership_status: 'expired', membership_expires: new Date().toISOString() })
         });
-        setSelectedPlayer(prev => ({ ...prev, membership_tier: null, membership_status: 'expired', membership_expires: null }));
+        if (selectedPlayer?.id === memberId) {
+          setSelectedPlayer(prev => ({ ...prev, membership_tier: null, membership_status: 'expired', membership_expires: null }));
+        }
       }
 
       setMessage({ type: 'success', text: `${actionLabel} Processed — $${details.amount}` });

@@ -101,6 +101,15 @@ function computeSeatPositions(maxSeats) {
     const dealerPos = allPos[0];
     const seatPositions = allPos.slice(1);
     seatPositions.forEach(p => { const t = parseFloat(p.top); if (t < 30) p.top = '30%'; });
+    // Per-seat vertical nudges (seats are 1-indexed, array is 0-indexed)
+    // Seats 3 & 7 down 3px (~0.5%), Seats 2 & 8 up 3px (~-0.5%)
+    const nudge = { 2: -0.5, 3: 0.5, 7: 0.5, 8: -0.5 };
+    Object.entries(nudge).forEach(([seat, offset]) => {
+        const idx = parseInt(seat) - 1;
+        if (seatPositions[idx]) {
+            seatPositions[idx].top = `${parseFloat(seatPositions[idx].top) + offset}%`;
+        }
+    });
     return { dealerPos, seatPositions };
 }
 
