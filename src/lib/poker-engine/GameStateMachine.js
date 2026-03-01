@@ -88,6 +88,8 @@ class GameStateMachine {
       autoMuck: config.autoMuck !== false,
       // Cap game: max total investment per player per hand (0 = no cap)
       capAmount: config.capAmount || 0,
+      // Multi-board: 1 = normal, 2 = double board, 3 = triple board
+      numBoards: config.doubleBoard ? 2 : config.tripleBoard ? 3 : (config.numBoards || 1),
     };
     
     // Engine components
@@ -192,6 +194,8 @@ class GameStateMachine {
         showCards: false,
       })),
       communityCards: [],
+      // Multi-board: boards[0] = primary (alias of communityCards), boards[1..N] = extra
+      boards: Array.from({ length: this.config.numBoards }, () => []),
       pot: 0,
       buttonSeat: this.buttonSeat,
       blinds: { sb: null, bb: null, straddle: null },
@@ -234,7 +238,11 @@ class GameStateMachine {
       
       // Deal flop immediately
       this._dealCommunityCards('flop');
-      this.emit('street_start', { street: 'flop', communityCards: [...this.currentHand.communityCards] });
+      this.emit('street_start', { 
+        street: 'flop', 
+        communityCards: [...this.currentHand.communityCards],
+        boards: this.config.numBoards > 1 ? this.currentHand.boards.map(b => [...b]) : undefined,
+      });
       
       // Start betting at flop (skip preflop entirely)
       this._startBettingRound('flop');
@@ -659,6 +667,7 @@ class GameStateMachine {
     this.emit('street_start', {
       street,
       communityCards: this.currentHand.communityCards.map(c => c),
+      boards: this.config.numBoards > 1 ? this.currentHand.boards.map(b => [...b]) : undefined,
       potTotal: this.potCalculator.totalPot,
     });
     
@@ -741,19 +750,42 @@ class GameStateMachine {
    * @private
    */
   _dealCommunityCards(street) {
+    // Deal to primary board (board[0] / communityCards)
     switch (street) {
       case 'flop':
         const flop = this.deck.dealFlop();
         this.currentHand.communityCards.push(...flop);
+        if (this.currentHand.boards?.[0]) this.currentHand.boards[0] = [...this.currentHand.communityCards];
         break;
       case 'turn':
         const turn = this.deck.dealTurn();
         this.currentHand.communityCards.push(turn);
+        if (this.currentHand.boards?.[0]) this.currentHand.boards[0] = [...this.currentHand.communityCards];
         break;
       case 'river':
         const river = this.deck.dealRiver();
         this.currentHand.communityCards.push(river);
+        if (this.currentHand.boards?.[0]) this.currentHand.boards[0] = [...this.currentHand.communityCards];
         break;
+    }
+    
+    // Multi-board: deal same street to extra boards (board[1], board[2])
+    const numBoards = this.config.numBoards || 1;
+    if (numBoards > 1) {
+      for (let b = 1; b < numBoards; b++) {
+        if (!this.currentHand.boards[b]) this.currentHand.boards[b] = [];
+        switch (street) {
+          case 'flop':
+            this.currentHand.boards[b].push(...this.deck.dealFlop());
+            break;
+          case 'turn':
+            this.currentHand.boards[b].push(this.deck.dealTurn());
+            break;
+          case 'river':
+            this.currentHand.boards[b].push(this.deck.dealRiver());
+            break;
+        }
+      }
     }
   }
 
@@ -1453,26 +1485,112 @@ class GameStateMachine {
     this.phase = GAME_PHASE.SHOWDOWN;
     
     const activePlayers = this.currentHand.players.filter(p => !p.folded);
-    const board = this.currentHand.communityCards;
     const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
     const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
     const isHiLo = this.config.variant === GAME_VARIANT.OMAHA_HILO;
+    const numBoards = this.config.numBoards || 1;
     
-    let showdownResult;
+    // Helper: evaluate a board
+    const evalBoard = (board) => {
+      if (isOmaha) {
+        return omahaShowdown(
+          activePlayers.map(p => ({ playerId: p.id, holeCards: p.holeCards })),
+          board, { shortDeck: isShortDeck, hiLo: isHiLo }
+        );
+      }
+      return holdemShowdown(
+        activePlayers.map(p => ({ playerId: p.id, holeCards: p.holeCards })),
+        board, { shortDeck: isShortDeck }
+      );
+    };
     
-    if (isOmaha) {
-      showdownResult = omahaShowdown(
-        activePlayers.map(p => ({ playerId: p.id, holeCards: p.holeCards })),
-        board,
-        { shortDeck: isShortDeck, hiLo: isHiLo }
+    // ── MULTI-BOARD SHOWDOWN ──────────────────────────────────
+    if (numBoards > 1 && this.currentHand.boards?.length > 1) {
+      const boardResults = [];
+      const allWinnerIds = new Set();
+      
+      for (let b = 0; b < numBoards; b++) {
+        const board = this.currentHand.boards[b];
+        if (!board || board.length < 5) continue; // need full board
+        const result = evalBoard(board);
+        const winners = result.hiWinners || result.winners || [];
+        winners.forEach(w => allWinnerIds.add(String(w.playerId)));
+        boardResults.push({ boardIndex: b, board, result, winners });
+      }
+      
+      // Mark cards shown
+      for (const player of activePlayers) {
+        player.showCards = this.config.autoMuck ? allWinnerIds.has(String(player.id)) : true;
+      }
+      
+      // Split pot across boards
+      const totalPot = this.potCalculator.totalPot;
+      const basePortion = Math.floor(totalPot / boardResults.length);
+      const remainder = totalPot - (basePortion * boardResults.length);
+      
+      // Calculate rake on full pot
+      const rakeAmount = Math.min(
+        Math.floor(totalPot * (this.config.rakePercent || 0) / 100),
+        this.config.rakeCap || Infinity
       );
-    } else {
-      showdownResult = holdemShowdown(
-        activePlayers.map(p => ({ playerId: p.id, holeCards: p.holeCards })),
-        board,
-        { shortDeck: isShortDeck }
-      );
+      const distributablePot = totalPot - rakeAmount;
+      const boardPortion = Math.floor(distributablePot / boardResults.length);
+      const boardRemainder = distributablePot - (boardPortion * boardResults.length);
+      
+      const payouts = {};
+      const boardWinners = [];
+      
+      boardResults.forEach((br, i) => {
+        const portion = boardPortion + (i === 0 ? boardRemainder : 0);
+        const winners = br.winners;
+        const perWinner = winners.length > 0 ? Math.floor(portion / winners.length) : 0;
+        const winnerRemainder = portion - (perWinner * winners.length);
+        
+        winners.forEach((w, wi) => {
+          const amount = perWinner + (wi === 0 ? winnerRemainder : 0);
+          payouts[w.playerId] = (payouts[w.playerId] || 0) + amount;
+        });
+        
+        boardWinners.push({
+          boardIndex: br.boardIndex,
+          board: br.board,
+          winners: winners.map(w => w.playerId),
+          portion,
+        });
+      });
+      
+      // Apply payouts
+      const winnerDetails = [];
+      for (const [pid, amount] of Object.entries(payouts)) {
+        const player = this.currentHand.players.find(p => String(p.id) === String(pid));
+        if (player) {
+          player.stack += amount;
+          winnerDetails.push({ playerId: pid, amount });
+        }
+      }
+      
+      this.emit('showdown', {
+        multiBoard: true,
+        numBoards,
+        boardResults: boardWinners,
+        players: activePlayers.map(p => ({ id: p.id, holeCards: p.holeCards })),
+        winners: [...allWinnerIds],
+      });
+      
+      this.currentHand.result = {
+        type: 'multi_board_showdown',
+        winners: winnerDetails,
+        boards: boardWinners,
+        rake: rakeAmount,
+      };
+      
+      this.emit('hand_complete', this.currentHand.result);
+      return;
     }
+    
+    // ── STANDARD SINGLE-BOARD SHOWDOWN ────────────────────────
+    const board = this.currentHand.communityCards;
+    let showdownResult = evalBoard(board);
     
     // Mark cards as shown based on auto-muck setting
     const winnerIds = new Set(
@@ -1480,16 +1598,13 @@ class GameStateMachine {
     );
     for (const player of activePlayers) {
       if (this.config.autoMuck) {
-        // Auto-muck ON: only winners show cards (standard behavior)
         player.showCards = winnerIds.has(String(player.id));
       } else {
-        // Auto-muck OFF: all active players show cards
         player.showCards = true;
       }
     }
 
     // ── BBJ DETECTION ───────────────────────────────────────
-    // Check if this hand qualifies for Bad Beat Jackpot
     const bbjResult = this._checkBBJ(activePlayers, showdownResult, board);
     if (bbjResult) {
       this.emit('bbj_triggered', bbjResult);
@@ -1956,6 +2071,7 @@ class GameStateMachine {
       handNumber: this.handNumber,
       buttonSeat: this.buttonSeat,
       communityCards: [...this.currentHand.communityCards],
+      boards: this.config.numBoards > 1 ? this.currentHand.boards.map(b => [...b]) : undefined,
       potTotal: this.potCalculator.totalPot,
       pots: this.potCalculator.calculatePots().map(p => p.toJSON()),
       currentBet: this.bettingRound?.currentBet || 0,

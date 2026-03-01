@@ -1068,6 +1068,7 @@ class TableManager {
         phase: gameState.phase,
         handNumber: gameState.handNumber,
         communityCards: gameState.communityCards || [],
+        boards: gameState.boards || undefined,
         potTotal: gameState.potTotal || 0,
         pots: gameState.pots || [],
         currentBet: gameState.currentBet || 0,

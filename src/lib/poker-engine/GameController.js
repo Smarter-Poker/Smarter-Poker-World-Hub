@@ -370,6 +370,8 @@ class GameController {
         // Muck, cap, privacy settings
         autoMuck: row.settings?.auto_muck !== false, // default true
         capAmount: Number(row.settings?.cap_amount) || 0,
+        doubleBoard: row.settings?.double_board || false,
+        tripleBoard: row.settings?.triple_board || false,
         anonymousTable: row.settings?.anonymous_table || false,
         privateGame: row.settings?.private_game || false,
         vipOnly: row.settings?.vip_only || false,
