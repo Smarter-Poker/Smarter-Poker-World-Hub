@@ -274,105 +274,117 @@ export default function PokerToolsPage() {
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════
-                   GOLDEN SMARTER TABLE — 6-LAYER
+                   GOLDEN TEMPLATE TABLE — EXACT MATCH (GoldenTemplateTable.jsx)
                 ═══════════════════════════════════════════════════════ */}
                 <div style={{ position: 'relative', width: '100%', paddingBottom: '55%', margin: '0 auto' }}>
 
-                    {/* Narrow Stadium Container */}
+                    {/* Table Container — matching GoldenTemplateTable positioning */}
                     <div style={{ position: 'absolute', top: '2%', left: '3%', right: '3%', bottom: '2%' }}>
 
-                        {/* LAYER 1: OUTER DARK MATTE RAIL */}
+                        {/* OUTER DARK FRAME — 3D raised effect */}
                         <div style={{
-                            position: 'absolute', inset: 0, borderRadius: 9999,
-                            background: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 30%, #0d0d0d 70%, #1a1a1a 100%)',
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.95), inset 0 2px 4px rgba(255,255,255,0.05)',
+                            position: 'absolute', inset: 0,
+                            borderRadius: '50% / 38%',
+                            background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
+                            boxShadow: '0 25px 80px rgba(0,0,0,0.95), 0 8px 30px rgba(0,0,0,0.8), inset 0 -8px 20px rgba(0,0,0,0.6), inset 0 8px 20px rgba(50,50,50,0.2)',
                         }}>
-                            {/* LAYER 2: OUTER GOLD RING */}
+                            {/* OUTER GOLD RAIL — gradient for 3D */}
                             <div style={{
-                                position: 'absolute', inset: 10, borderRadius: 9999,
-                                background: 'linear-gradient(135deg, #FFE066 0%, #FFD700 15%, #FFA500 40%, #CC8800 60%, #996600 80%, #FFD700 95%, #FFE066 100%)',
-                                boxShadow: 'inset 0 1px 2px rgba(255,255,200,0.8), inset 0 -1px 2px rgba(0,0,0,0.4), 0 0 8px rgba(255,200,0,0.3)',
+                                position: 'absolute', inset: 12,
+                                borderRadius: '50% / 37%',
+                                background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
+                                boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.5), inset 0 -3px 6px rgba(0,0,0,0.5)',
                             }}>
-                                {/* LAYER 3: INNER DARK */}
+                                {/* BLACK GAP */}
                                 <div style={{
-                                    position: 'absolute', inset: 5, borderRadius: 9999,
-                                    background: 'linear-gradient(180deg, #262626 0%, #1a1a1a 30%, #0f0f0f 70%, #1a1a1a 100%)',
-                                    boxShadow: 'inset 0 3px 8px rgba(0,0,0,0.6)',
+                                    position: 'absolute', inset: 10,
+                                    borderRadius: '50% / 36%',
+                                    background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
                                 }}>
-                                    {/* LAYER 4: INNER GOLD RING */}
+                                    {/* INNER GOLD RAIL */}
                                     <div style={{
-                                        position: 'absolute', inset: 8, borderRadius: 9999,
-                                        background: 'linear-gradient(135deg, #FFE066 0%, #FFD700 15%, #FFA500 40%, #CC8800 60%, #996600 80%, #FFD700 95%, #FFE066 100%)',
-                                        boxShadow: 'inset 0 1px 2px rgba(255,255,200,0.7), inset 0 -1px 2px rgba(0,0,0,0.3)',
+                                        position: 'absolute', inset: 8,
+                                        borderRadius: '50% / 35%',
+                                        background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
+                                        boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.6), inset 0 -3px 6px rgba(0,0,0,0.5)',
                                     }}>
-                                        {/* LAYER 5: FINAL DARK */}
+                                        {/* THIN DARK EDGE */}
                                         <div style={{
-                                            position: 'absolute', inset: 4, borderRadius: 9999,
-                                            background: 'linear-gradient(180deg, #222 0%, #111 50%, #1a1a1a 100%)',
-                                            boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.7)',
+                                            position: 'absolute', inset: 6,
+                                            borderRadius: '50% / 34%',
+                                            background: 'linear-gradient(180deg, #101010 0%, #080808 100%)',
                                         }}>
-                                            {/* LAYER 6: DARK FELT */}
+                                            {/* INNER GLOW LINE */}
                                             <div style={{
-                                                position: 'absolute', inset: 3, borderRadius: 9999,
-                                                background: 'radial-gradient(ellipse at 50% 40%, #1a1a1a 0%, #0f0f0f 30%, #080808 60%, #050505 100%)',
-                                                boxShadow: 'inset 0 0 50px rgba(0,0,0,0.9)',
+                                                position: 'absolute', inset: 4,
+                                                borderRadius: '50% / 33%',
+                                                border: '3px solid rgba(180,140,50,0.35)',
+                                                background: 'transparent',
                                             }}>
-
-                                                {/* COMMUNITY BOARD — Large, centered on felt */}
-                                                {config.hasBoard && (
-                                                    <div style={{
-                                                        position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%, -50%)',
-                                                        display: 'flex', gap: 6, cursor: 'pointer', zIndex: 10,
-                                                    }}
-                                                        onClick={() => setSelectedSlot({ type: 'board' })}>
-                                                        {Array.from({ length: 5 }).map((_, i) => {
-                                                            const card = board[i];
-                                                            const isActive = selectedSlot?.type === 'board';
-                                                            return card ? (
-                                                                <div key={i} onClick={e => { e.stopPropagation(); removeCard('board', 0, i); }}
-                                                                    style={{ cursor: 'pointer' }}>
-                                                                    <img src={getCardImage(card.rank, card.suit)} alt=""
-                                                                        style={{
-                                                                            width: 65, height: 91, borderRadius: 5,
-                                                                            border: '2px solid #1877F2',
-                                                                            boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
-                                                                            background: '#fff',
-                                                                        }} />
-                                                                </div>
-                                                            ) : (
-                                                                <div key={i} style={{
-                                                                    width: 65, height: 91, borderRadius: 5,
-                                                                    border: `2px dashed ${isActive ? '#1877F2' : 'rgba(255,255,255,0.12)'}`,
-                                                                    background: 'rgba(255,255,255,0.03)',
-                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                    fontSize: 12, color: 'rgba(255,255,255,0.15)', fontWeight: 700,
-                                                                }}>
-                                                                    {['F', 'F', 'F', 'T', 'R'][i]}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-
-                                                {/* SMARTER.POKER — LARGE and BRIGHT branding UNDER the board */}
+                                                {/* FELT with radial gradient depth */}
                                                 <div style={{
-                                                    position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)',
-                                                    textAlign: 'center', pointerEvents: 'none', zIndex: 5,
+                                                    position: 'absolute', inset: 0,
+                                                    borderRadius: '50% / 33%',
+                                                    background: 'radial-gradient(ellipse at 50% 35%, #181818 0%, #121212 25%, #0d0d0d 50%, #080808 75%, #050505 100%)',
+                                                    boxShadow: 'inset 0 0 120px rgba(0,0,0,0.9), inset 0 0 60px rgba(0,0,0,0.7), inset 0 -20px 40px rgba(0,0,0,0.5)',
                                                 }}>
-                                                    <div style={{
-                                                        fontSize: 28, fontWeight: 900, color: 'rgba(255,215,0,0.4)',
-                                                        letterSpacing: 8, textTransform: 'uppercase',
-                                                    }}>
-                                                        Smarter.Poker
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: 14, fontWeight: 700, color: 'rgba(255,215,0,0.25)',
-                                                        letterSpacing: 5, marginTop: 4,
-                                                    }}>
-                                                        Odds Calculator
-                                                    </div>
-                                                </div>
 
+                                                    {/* COMMUNITY BOARD — Large, centered on felt */}
+                                                    {config.hasBoard && (
+                                                        <div style={{
+                                                            position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%, -50%)',
+                                                            display: 'flex', gap: 6, cursor: 'pointer', zIndex: 10,
+                                                        }}
+                                                            onClick={() => setSelectedSlot({ type: 'board' })}>
+                                                            {Array.from({ length: 5 }).map((_, i) => {
+                                                                const card = board[i];
+                                                                const isActive = selectedSlot?.type === 'board';
+                                                                return card ? (
+                                                                    <div key={i} onClick={e => { e.stopPropagation(); removeCard('board', 0, i); }}
+                                                                        style={{ cursor: 'pointer' }}>
+                                                                        <img src={getCardImage(card.rank, card.suit)} alt=""
+                                                                            style={{
+                                                                                width: 65, height: 91, borderRadius: 5,
+                                                                                border: '2px solid #1877F2',
+                                                                                boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
+                                                                                background: '#fff',
+                                                                            }} />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div key={i} style={{
+                                                                        width: 65, height: 91, borderRadius: 5,
+                                                                        border: `2px dashed ${isActive ? '#1877F2' : 'rgba(255,255,255,0.12)'}`,
+                                                                        background: 'rgba(255,255,255,0.03)',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                        fontSize: 12, color: 'rgba(255,255,255,0.15)', fontWeight: 700,
+                                                                    }}>
+                                                                        {['F', 'F', 'F', 'T', 'R'][i]}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+
+                                                    {/* SMARTER.POKER — LARGE and BRIGHT branding UNDER the board */}
+                                                    <div style={{
+                                                        position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)',
+                                                        textAlign: 'center', pointerEvents: 'none', zIndex: 5,
+                                                    }}>
+                                                        <div style={{
+                                                            fontSize: 28, fontWeight: 900, color: 'rgba(255,215,0,0.4)',
+                                                            letterSpacing: 8, textTransform: 'uppercase',
+                                                        }}>
+                                                            Smarter.Poker
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: 14, fontWeight: 700, color: 'rgba(255,215,0,0.25)',
+                                                            letterSpacing: 5, marginTop: 4,
+                                                        }}>
+                                                            Odds Calculator
+                                                        </div>
+                                                    </div>
+
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
