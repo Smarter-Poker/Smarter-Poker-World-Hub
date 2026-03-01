@@ -382,7 +382,7 @@ export default function LeaderboardBuilder() {
                                                     <tbody>
                                                         {boardEntries.map((e, i) => (
                                                             <tr key={e.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                                                <td style={{ padding: '8px', color: i < 3 ? '#FFD700' : 'rgba(255,255,255,0.5)', fontWeight: 700 }}>{e.rank || i + 1}</td>
+                                                                <td style={{ padding: '8px', color: i < 3 ? '#FFD700' : 'rgba(255,255,255,0.5)', fontWeight: 700 }}>{i + 1}</td>
                                                                 <td style={{ padding: '8px', fontWeight: 600 }}>{e.player_name || e.profiles?.display_name || 'Player'}</td>
                                                                 <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#3B82F6' }}>{e.score || 0}</td>
                                                                 <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)' }}>{e.hours_played ? `${Number(e.hours_played).toFixed(1)}h` : '—'}</td>

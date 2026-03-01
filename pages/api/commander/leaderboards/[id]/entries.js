@@ -241,25 +241,25 @@ async function calculateAllEntries(req, res, leaderboard) {
 }
 
 async function updateRankings(leaderboardId) {
-  try {
-    // Use the DB function for a single-query ranking update (no N+1)
-    await supabase.rpc('update_leaderboard_rankings', { lb_id: leaderboardId });
-  } catch (rpcErr) {
-    // Fallback: manual ranking if RPC not available
-    console.warn('[updateRankings] RPC fallback:', rpcErr?.message);
-    const { data: entries } = await supabase
+  // Try the DB function first (single-query ranking update)
+  const { error: rpcErr } = await supabase.rpc('update_leaderboard_rankings', { lb_id: leaderboardId });
+
+  if (!rpcErr) return; // RPC succeeded
+
+  // Fallback: manual ranking via JS (RPC may not exist or may have failed)
+  console.warn('[updateRankings] RPC fallback:', rpcErr?.message);
+  const { data: entries } = await supabase
+    .from('commander_leaderboard_entries')
+    .select('id, score')
+    .eq('leaderboard_id', leaderboardId)
+    .order('score', { ascending: false });
+
+  if (!entries || entries.length === 0) return;
+
+  for (let i = 0; i < entries.length; i++) {
+    await supabase
       .from('commander_leaderboard_entries')
-      .select('id, score')
-      .eq('leaderboard_id', leaderboardId)
-      .order('score', { ascending: false });
-
-    if (!entries || entries.length === 0) return;
-
-    for (let i = 0; i < entries.length; i++) {
-      await supabase
-        .from('commander_leaderboard_entries')
-        .update({ rank: i + 1 })
-        .eq('id', entries[i].id);
-    }
+      .update({ rank: i + 1 })
+      .eq('id', entries[i].id);
   }
 }
