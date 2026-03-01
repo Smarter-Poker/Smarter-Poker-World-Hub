@@ -364,6 +364,10 @@ class GameController {
         runItThrice: row.settings?.run_it_thrice || false,
         runItMode: row.settings?.run_it_mode || 'none',
         insurance: row.settings?.insurance || false,
+        // Game modes
+        noRathole: row.settings?.no_rathole || false,
+        sevenDeuce: row.settings?.seven_deuce || false,
+        bombPot: row.settings?.bomb_pot_enabled || row.settings?.bomb_pot || false,
         // Anti-cheat settings from Club Arena table configuration
         clubSettings: {
           ip_restriction: row.settings?.ip_restriction !== false, // default ON
@@ -542,6 +546,15 @@ class GameController {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
     return entry.table.cancelStraddle(playerId);
+  }
+
+  /**
+   * Set auto-rebuy preference for a player at a table.
+   */
+  setAutoRebuy(tableId, playerId, enabled) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found' };
+    return entry.table.setAutoRebuy(playerId, enabled);
   }
 
   /**

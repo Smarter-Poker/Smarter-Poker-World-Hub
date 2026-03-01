@@ -236,6 +236,15 @@ export default async function handler(req, res) {
         break;
       }
 
+      // ═══════════════════════════════════════════════════════════
+      // AUTO-REBUY — Toggle auto-rebuy preference for this player
+      // ═══════════════════════════════════════════════════════════
+      case 'set_auto_rebuy': {
+        const enabled = body.enabled !== false;
+        result = controller.setAutoRebuy(tableId, playerId, enabled);
+        break;
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }

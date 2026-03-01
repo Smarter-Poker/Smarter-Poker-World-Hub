@@ -128,6 +128,12 @@ class TableManager {
     // Bomb pot tracking
     this._lastBombPotHand = 0;
     
+    // Auto-rebuy preferences: Map<playerId, boolean>
+    this._autoRebuyPrefs = new Map();
+    
+    // Auto-rebuy callback — set by LobbyManager for club chip locking
+    this.onAutoRebuy = null;
+    
     // Event listeners
     this._listeners = new Map();
     
@@ -421,6 +427,19 @@ class TableManager {
     
     this.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex: seat.seatIndex });
     return { success: true, newStack: seat.stack };
+  }
+
+  /**
+   * Set auto-rebuy preference for a player.
+   * When enabled, busted players are automatically re-bought in at min buy-in.
+   * @param {string|number} playerId
+   * @param {boolean} enabled
+   */
+  setAutoRebuy(playerId, enabled) {
+    const seat = this._findPlayerSeat(playerId);
+    if (!seat) return { success: false, error: 'Player not at this table' };
+    this._autoRebuyPrefs.set(String(playerId), !!enabled);
+    return { success: true, autoRebuy: !!enabled };
   }
 
   /**
@@ -721,10 +740,28 @@ class TableManager {
     
     this.emit('hand_complete', data);
     
-    // Handle pending stand-ups
+    // Handle pending stand-ups and busted players
     for (const seat of this.seats) {
       if (seat.status === SEAT_STATUS.SITTING_OUT && seat.stack <= 0) {
         const playerId = seat.player?.id;
+        
+        // ── Auto-Rebuy: if enabled and callback available, attempt rebuy ──
+        if (playerId && this._autoRebuyPrefs.get(String(playerId)) && this.onAutoRebuy) {
+          const rebuyAmount = this.minBuyIn;
+          this.emit('auto_rebuy_attempt', { playerId, amount: rebuyAmount, seatIndex: seat.seatIndex });
+          
+          // onAutoRebuy is async — set by LobbyManager for ChipBridge integration
+          // We fire-and-forget; LobbyManager will call addChips if successful
+          Promise.resolve(this.onAutoRebuy(playerId, rebuyAmount, seat.seatIndex)).catch(err => {
+            console.error('[TableManager] Auto-rebuy failed for', playerId, err.message);
+            // If rebuy fails, vacate the player
+            this._vacateSeat(seat);
+            this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted_rebuy_failed' });
+            this._seatFromWaitlist(seat.seatIndex);
+          });
+          continue; // Don't vacate yet — waiting for rebuy callback
+        }
+        
         this._vacateSeat(seat);
         this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted' });
         this._seatFromWaitlist(seat.seatIndex);

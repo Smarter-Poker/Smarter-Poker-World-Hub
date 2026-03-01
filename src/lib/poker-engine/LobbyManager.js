@@ -10,7 +10,7 @@
  *   - Auto-close empty tables after timeout
  */
 
-const { TableManager, TABLE_STATUS } = require('./TableManager');
+const { TableManager, TABLE_STATUS, SEAT_STATUS } = require('./TableManager');
 const { ActionTimer } = require('./ActionTimer');
 const { RealtimeSync } = require('./RealtimeSync');
 const ChipBridge = require('./ChipBridge');
@@ -112,7 +112,33 @@ class LobbyManager {
       voluntaryStraddle: config.voluntaryStraddle || config.straddleEnabled || false,
       bbjEnabled: config.bbjEnabled || false,
       bbjPercent: config.bbjPercent || 0,
+      noRathole: config.noRathole || config.clubSettings?.no_rathole || false,
+      sevenDeuce: config.sevenDeuce || config.clubSettings?.seven_deuce || false,
+      clubSettings: config.clubSettings || {},
     });
+    
+    // ── Auto-Rebuy callback for club tables ──
+    // When a player busts and has auto-rebuy ON, this locks chips from their balance
+    if (config.clubId) {
+      table.onAutoRebuy = async (playerId, amount, seatIndex) => {
+        const clubId = config.clubId;
+        const lockResult = await ChipBridge.lockChips(clubId, playerId, config.tableId, amount);
+        if (lockResult.success) {
+          // Add chips to the seat
+          const seat = table.seats[seatIndex];
+          if (seat && seat.player?.id === playerId) {
+            seat.stack += amount;
+            seat.status = SEAT_STATUS.OCCUPIED;
+            table.emit('auto_rebuy_success', { playerId, amount, newStack: seat.stack, seatIndex });
+            table.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex });
+            console.log(`[LobbyManager] Auto-rebuy: ${playerId} rebuys ${amount} chips`);
+          }
+        } else {
+          // Not enough balance — throw to trigger vacate in TableManager
+          throw new Error(lockResult.error || 'Insufficient balance for auto-rebuy');
+        }
+      };
+    }
     
     // Create ActionTimer
     const timer = new ActionTimer({
