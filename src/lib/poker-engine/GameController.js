@@ -855,6 +855,9 @@ class GameController {
       guaranteedPrize = 0, payoutStructure, sngSize = 6,
       levelDuration = 15, actionTime = 30, timeBankSeconds = 30,
       autoStartDelay = 3000, breakSchedule,
+      // Bounty config
+      bountyType = 'none', bountyAmount = 0,
+      mysteryThreshold = 0, mysteryTiers,
     } = config;
 
     let tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -868,7 +871,8 @@ class GameController {
             status: 'registering',
             settings: { maxTableSize, blindStructure, lateRegLevels, rebuyEnabled, rebuyLevels, maxRebuys,
               rebuyCost, rebuyChips, addonEnabled, addonCost, addonChips,
-              guaranteedPrize, payoutStructure, sngSize, levelDuration, actionTime, timeBankSeconds, autoStartDelay, breakSchedule },
+              guaranteedPrize, payoutStructure, sngSize, levelDuration, actionTime, timeBankSeconds, autoStartDelay, breakSchedule,
+              bountyType, bountyAmount, mysteryThreshold, mysteryTiers },
           })
           .select('id').single();
         if (!error && data) tournamentId = data.id;
@@ -887,6 +891,8 @@ class GameController {
       levelDuration: (levelDuration || 15) * 60000, actionTime: (actionTime || 30) * 1000,
       timeBankSeconds: (timeBankSeconds || 30) * 1000, autoStartDelay: autoStartDelay || 3000,
       breakSchedule,
+      // Bounty config
+      bountyType, bountyAmount, mysteryThreshold, mysteryTiers,
     });
 
     const bridge = new TournamentBridge(controller, this.lobby, this.supabase);

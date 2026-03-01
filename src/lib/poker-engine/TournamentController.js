@@ -26,6 +26,7 @@
  */
 
 const EventEmitter = require('events');
+const { BountyManager, BOUNTY_TYPE } = require('./BountyManager');
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -319,6 +320,25 @@ class TournamentController extends EventEmitter {
     // xMTT: per-club tracking
     this.clubEntries = new Map(); // Map<clubId, Set<playerId>>
     this.clubRake = new Map();    // Map<clubId, number>
+
+    // ── Bounty System ──
+    this.bountyType = config.bountyType || BOUNTY_TYPE.NONE;
+    this.bountyAmount = config.bountyAmount || 0;
+    this.bountyManager = null;
+    if (this.bountyType !== BOUNTY_TYPE.NONE && this.bountyAmount > 0) {
+      this.bountyManager = new BountyManager({
+        bountyType: this.bountyType,
+        bountyAmount: this.bountyAmount,
+        totalBuyIn: this.buyinAmount,
+        mysteryThreshold: config.mysteryThreshold || 0,
+        mysteryTiers: config.mysteryTiers || undefined,
+        tournamentId: this.tournamentId,
+      });
+    }
+
+    // ── Guarantee ──
+    this.guaranteedPrize = config.guaranteedPrize || 0;
+    this.overlay = 0; // club covers shortfall between prize pool and guarantee
   }
 
   // ═══════════════════════════════════════════════════════
@@ -460,6 +480,12 @@ class TournamentController extends EventEmitter {
     this.entries.set(playerId, entry);
     this.totalChipsInPlay += this.startingChips;
     this.totalRake += this.buyinFee;
+
+    // Bounty tracking
+    if (this.bountyManager) {
+      const bountyInfo = this.bountyManager.onPlayerRegister(playerId, entry.playerName);
+      entry.bountyOnHead = bountyInfo.bountyOnHead;
+    }
 
     // xMTT: track per-club
     if (playerClubId) {
@@ -751,10 +777,18 @@ class TournamentController extends EventEmitter {
     const tableInfo = this.tables.get(tableId);
     if (!tableInfo) return;
 
+    // Identify the primary eliminator (biggest pot winner)
+    let eliminatorId = null;
+    if (result?.winners && result.winners.length > 0) {
+      // Sort by amount won descending, primary winner is the eliminator
+      const sorted = [...result.winners].sort((a, b) => (b.amount || 0) - (a.amount || 0));
+      eliminatorId = sorted[0].playerId || sorted[0].id || null;
+    }
+
     // Check eliminations
     for (const seat of tableInfo.table.seats) {
       if (seat.player && seat.stack <= 0) {
-        this._handleElimination(seat.player.id, tableId);
+        this._handleElimination(seat.player.id, tableId, eliminatorId);
       }
     }
 
@@ -783,7 +817,7 @@ class TournamentController extends EventEmitter {
   }
 
   /** @private */
-  _handleElimination(playerId, tableId) {
+  _handleElimination(playerId, tableId, eliminatorId = null) {
     const entry = this.entries.get(playerId);
     if (!entry || entry.status === ENTRY_STATUS.ELIMINATED) return;
 
@@ -804,6 +838,24 @@ class TournamentController extends EventEmitter {
     entry.finishPosition = remaining.length;
     this.eliminationOrder.unshift(playerId);
 
+    // ── Bounty Award ──
+    let bountyResult = null;
+    if (this.bountyManager && eliminatorId && eliminatorId !== playerId) {
+      bountyResult = this.bountyManager.onElimination(playerId, eliminatorId, remaining.length - 1);
+      if (bountyResult?.awards) {
+        for (const award of bountyResult.awards) {
+          // Credit bounty earnings via ledger
+          if (this.ledger) {
+            const eliminatorEntry = this.entries.get(award.playerId);
+            if (eliminatorEntry?.clubId) {
+              this.ledger.creditWinnings(eliminatorEntry.clubId, award.playerId, award.amount,
+                { tournamentId: this.tournamentId, type: award.type });
+            }
+          }
+        }
+      }
+    }
+
     // Force-remove from seat (player has 0 chips)
     const tableInfo = this.tables.get(tableId);
     if (tableInfo) {
@@ -815,6 +867,7 @@ class TournamentController extends EventEmitter {
     this.emit('player_eliminated', {
       playerId, playerName: entry.playerName, clubId: entry.clubId,
       finishPosition: entry.finishPosition, remainingPlayers: remaining.length - 1,
+      bounty: bountyResult || undefined,
     });
 
     this._checkTableBalance();
@@ -846,6 +899,11 @@ class TournamentController extends EventEmitter {
     this.totalChipsInPlay += this.rebuyChips;
     this.totalRebuys++;
     this.prizePool = this._calculatePrizePool();
+
+    // Bounty: track rebuy contribution
+    if (this.bountyManager) {
+      this.bountyManager.onPlayerRebuy(playerId, this.bountyAmount);
+    }
 
     // Re-seat
     const tableInfo = this.tables.get(entry.tableId);
@@ -1010,6 +1068,37 @@ class TournamentController extends EventEmitter {
     winner.finishPosition = 1;
     this.eliminationOrder.unshift(winner.playerId);
 
+    // ── Guarantee enforcement ──
+    // If prize pool < guaranteed amount, club treasury covers the overlay
+    if (this.guaranteedPrize > 0 && this.prizePool < this.guaranteedPrize) {
+      this.overlay = this.guaranteedPrize - this.prizePool;
+      this.prizePool = this.guaranteedPrize;
+
+      // Debit overlay from club treasury via ledger
+      if (this.ledger && this.clubId) {
+        this.ledger.debitOverlay(this.clubId, this.overlay, {
+          tournamentId: this.tournamentId,
+          type: 'tournament_guarantee_overlay',
+        });
+      }
+      this.emit('guarantee_overlay', {
+        tournamentId: this.tournamentId,
+        guaranteedPrize: this.guaranteedPrize,
+        actualPool: this.prizePool - this.overlay,
+        overlay: this.overlay,
+      });
+    }
+
+    // ── PKO: winner collects their own accumulated bounty ──
+    let winnerBountyAward = null;
+    if (this.bountyManager) {
+      winnerBountyAward = this.bountyManager.onTournamentEnd(winner.playerId);
+      if (winnerBountyAward && this.ledger && winner.clubId) {
+        this.ledger.creditWinnings(winner.clubId, winner.playerId, winnerBountyAward.amount,
+          { tournamentId: this.tournamentId, type: 'pko_self_bounty' });
+      }
+    }
+
     const payouts = this.calculatePayouts();
     for (const payout of payouts) {
       const entry = this.entries.get(payout.playerId);
@@ -1046,6 +1135,10 @@ class TournamentController extends EventEmitter {
       payouts, totalHands: this.handsPlayed, totalEntries: this.entries.size,
       prizePool: this.prizePool, totalRake: this.totalRake,
       spinMultiplier: this.spinMultiplier || undefined,
+      overlay: this.overlay || undefined,
+      guaranteedPrize: this.guaranteedPrize || undefined,
+      bountyState: this.bountyManager ? this.bountyManager.getState() : undefined,
+      winnerBountyAward: winnerBountyAward || undefined,
     });
   }
 
@@ -1102,6 +1195,10 @@ class TournamentController extends EventEmitter {
         (this.status === TOURNAMENT_STATUS.RUNNING || this.status === TOURNAMENT_STATUS.LATE_REG),
       spinMultiplier: this.spinMultiplier || undefined,
       totalRebuys: this.totalRebuys, totalAddons: this.totalAddons,
+      bountyType: this.bountyType !== BOUNTY_TYPE.NONE ? this.bountyType : undefined,
+      bountyState: this.bountyManager ? this.bountyManager.getState() : undefined,
+      guaranteedPrize: this.guaranteedPrize || undefined,
+      overlay: this.overlay || undefined,
     };
   }
 
@@ -1160,12 +1257,21 @@ class TournamentController extends EventEmitter {
     if (this.tournamentType === TOURNAMENT_TYPE.SPIN) {
       return this.buyinAmount * 3 * (this.spinMultiplier || 2);
     }
+
+    // Base buy-in contribution per player (minus bounty portion)
+    const buyinToPool = this.bountyManager
+      ? this.buyinAmount - this.bountyAmount
+      : this.buyinAmount;
+    const rebuyToPool = this.bountyManager
+      ? this.rebuyAmount - this.bountyAmount
+      : this.rebuyAmount;
+
     let pool = 0;
     for (const entry of this.entries.values()) {
       if (entry.status !== ENTRY_STATUS.CANCELLED) {
-        pool += this.buyinAmount; // base buyin (no fee) goes to pool
-        pool += entry.rebuyCount * this.rebuyAmount;
-        if (entry.addonTaken) pool += this.addonAmount;
+        pool += buyinToPool;
+        pool += entry.rebuyCount * rebuyToPool;
+        if (entry.addonTaken) pool += this.addonAmount; // addons go fully to prize pool
       }
     }
     return pool;
@@ -1205,6 +1311,7 @@ module.exports = {
   TOURNAMENT_TYPE,
   TOURNAMENT_STATUS,
   ENTRY_STATUS,
+  BOUNTY_TYPE,
   DEFAULT_BLIND_STRUCTURE,
   SNG_BLIND_STRUCTURE,
   SPIN_BLIND_STRUCTURE,

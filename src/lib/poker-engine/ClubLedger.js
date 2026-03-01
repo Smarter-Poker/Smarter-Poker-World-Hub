@@ -206,6 +206,49 @@ class ClubLedger {
     const { data } = await query;
     return data || [];
   }
+
+  /**
+   * Debit overlay from club treasury to cover tournament guarantee shortfall.
+   * @param {string} clubId
+   * @param {number} amount — overlay amount (guarantee - actual prize pool)
+   * @param {Object} metadata
+   * @returns {{ success: boolean, error?: string }}
+   */
+  debitOverlay(clubId, amount, metadata = {}) {
+    if (!this.supabase || amount <= 0) return { success: true };
+
+    // Use atomic treasury debit RPC
+    const result = this.supabase.rpc('fn_debit_treasury', {
+      p_club_id: clubId,
+      p_amount: amount,
+    });
+
+    // Fire-and-forget with logging (tournament payouts proceed regardless)
+    result.then(({ error }) => {
+      if (error) {
+        console.error(`[ClubLedger] Overlay debit failed for club ${clubId}: ${error.message}`);
+        // Record as pending if treasury insufficient
+        this.supabase.from('chip_transactions').insert({
+          club_id: clubId,
+          transaction_type: 'guarantee_overlay',
+          amount: -amount,
+          notes: `Tournament guarantee overlay (pending): ${metadata.tournamentId}`,
+          metadata: { ...metadata, status: 'pending', error: error.message },
+        }).then(() => {});
+      } else {
+        // Record successful overlay transaction
+        this.supabase.from('chip_transactions').insert({
+          club_id: clubId,
+          transaction_type: 'guarantee_overlay',
+          amount: -amount,
+          notes: `Tournament guarantee overlay: ${metadata.tournamentId}`,
+          metadata,
+        }).then(() => {});
+      }
+    });
+
+    return { success: true };
+  }
 }
 
 module.exports = { ClubLedger, TRANSACTION_TYPE };
