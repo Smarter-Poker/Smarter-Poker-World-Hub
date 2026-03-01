@@ -142,7 +142,7 @@ DROP POLICY IF EXISTS cashout_requests_service ON cashout_requests;
 
 CREATE POLICY cashout_requests_own ON cashout_requests FOR SELECT
   USING (
-    player_user_id = auth.uid()
+    player_id = auth.uid()
     OR EXISTS (
       SELECT 1 FROM club_members cm
       WHERE cm.club_id = cashout_requests.club_id
