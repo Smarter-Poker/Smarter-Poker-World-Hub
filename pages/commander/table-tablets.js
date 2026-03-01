@@ -106,6 +106,14 @@ export default function TableTabletsPage() {
     const [pinValue, setPinValue] = useState('');
     const [pinError, setPinError] = useState('');
     const [pinLoading, setPinLoading] = useState(false);
+    // Player interactions (fullscreen mode)
+    const [showPlayerMenu, setShowPlayerMenu] = useState(null); // { number, taken, tableNumber }
+    const [playerActionLoading, setPlayerActionLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [seatScanner, setSeatScanner] = useState(null); // { tableNumber, seatNumber }
+    const seatScannerVideoRef = useRef(null);
+    const seatScannerStreamRef = useRef(null);
+    const [movingPlayer, setMovingPlayer] = useState(null); // { seat, player_name, tableNumber }
 
     useEffect(() => {
         try {
@@ -417,6 +425,109 @@ export default function TableTabletsPage() {
         if (manualDealerQR.trim()) handleDealerScan(manualDealerQR.trim());
     };
 
+    // ── Toast auto-clear ──
+    useEffect(() => {
+        if (toast) { const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }
+    }, [toast]);
+
+    // ── Player action handlers (for fullscreen mode) ──
+    const callSessionAction = async (tableNumber, seatNumber, action, extra = {}) => {
+        setPlayerActionLoading(true);
+        try {
+            const res = await fetch('/api/commander/dealer/session-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber, venue_id: venueId, action, ...extra }),
+            });
+            const json = await res.json();
+            setPlayerActionLoading(false);
+            return json;
+        } catch {
+            setPlayerActionLoading(false);
+            return { success: false, error: 'Network error' };
+        }
+    };
+
+    const removePlayer = async (tableNumber, seatNumber) => {
+        setPlayerActionLoading(true);
+        try {
+            const res = await fetch('/api/commander/dealer/player-unseat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                setToast({ type: 'success', text: `${json.data.player_name} removed · ${json.data.unused_minutes_returned}m returned` });
+                setShowPlayerMenu(null);
+                fetchAll();
+            } else {
+                setToast({ type: 'error', text: json.error || 'Failed to remove player' });
+            }
+        } catch { setToast({ type: 'error', text: 'Network error' }); }
+        setPlayerActionLoading(false);
+    };
+
+    const handleSeatScan = async (qrData, tableNumber, seatNumber) => {
+        closeSeatScanner();
+        try {
+            const res = await fetch('/api/commander/dealer/player-scan-in', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qr_code: qrData, table_number: tableNumber, seat_number: seatNumber, venue_id: venueId }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                setToast({ type: 'success', text: `✅ ${json.data.player_name} seated at S${seatNumber}` });
+                fetchAll();
+            } else {
+                setToast({ type: 'error', text: json.error || 'Could not seat player' });
+            }
+        } catch { setToast({ type: 'error', text: 'Network error' }); }
+    };
+
+    const openSeatScanner = (tableNumber, seatNumber) => {
+        setSeatScanner({ tableNumber, seatNumber });
+        setShowPlayerMenu(null);
+        setTimeout(async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                seatScannerStreamRef.current = stream;
+                if (seatScannerVideoRef.current) {
+                    seatScannerVideoRef.current.srcObject = stream;
+                    seatScannerVideoRef.current.play();
+                }
+                if ('BarcodeDetector' in window) {
+                    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                    const scanLoop = async () => {
+                        if (!seatScannerStreamRef.current || !seatScannerVideoRef.current) return;
+                        try {
+                            const barcodes = await detector.detect(seatScannerVideoRef.current);
+                            if (barcodes.length > 0) {
+                                handleSeatScan(barcodes[0].rawValue, tableNumber, seatNumber);
+                                return;
+                            }
+                        } catch { }
+                        if (seatScannerStreamRef.current) requestAnimationFrame(scanLoop);
+                    };
+                    setTimeout(scanLoop, 500);
+                }
+            } catch {
+                setToast({ type: 'error', text: 'Camera access denied — use manual entry' });
+            }
+        }, 200);
+    };
+
+    const closeSeatScanner = () => {
+        if (seatScannerStreamRef.current) {
+            seatScannerStreamRef.current.getTracks().forEach(t => t.stop());
+            seatScannerStreamRef.current = null;
+        }
+        setSeatScanner(null);
+    };
+
     // ── Renders a single table visualization (reused in grid and fullscreen) ──
     const renderTableVisual = (table, isFullscreen = false) => {
         const tNum = table.table_number || table.number;
@@ -535,19 +646,40 @@ export default function TableTabletsPage() {
                         }
 
                         return (
-                            <div key={seat.number} style={{
-                                position: 'absolute', top: pos.top, left: pos.left,
-                                transform: badgeTransform, zIndex: 2,
-                                display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 8,
-                                background: 'rgba(36,37,38,0.9)',
-                                borderRadius: 12,
-                                padding: '5px 10px 5px 5px',
-                                border: `2px solid ${isOccupied
-                                    ? (memberActive ? 'rgba(49,162,76,0.7)' : seat.taken?.membership_status ? 'rgba(239,68,68,0.5)' : 'rgba(24,119,242,0.5)')
-                                    : 'rgba(62,64,66,0.6)'}`,
-                                backdropFilter: 'blur(6px)',
-                                minWidth: isFullscreen ? 80 : 70,
-                            }}>
+                            <div key={seat.number}
+                                onClick={isFullscreen ? () => {
+                                    if (movingPlayer && !isOccupied) {
+                                        // Complete the move
+                                        (async () => {
+                                            const json = await callSessionAction(movingPlayer.tableNumber, movingPlayer.seat.number, 'move', { target_seat: seat.number });
+                                            if (json.success) {
+                                                setToast({ type: 'success', text: `✅ ${json.data.player_name} moved S${json.data.from_seat} → S${json.data.to_seat}` });
+                                                fetchAll();
+                                            } else {
+                                                setToast({ type: 'error', text: json.error || 'Move failed' });
+                                            }
+                                            setMovingPlayer(null);
+                                        })();
+                                        return;
+                                    }
+                                    if (movingPlayer && isOccupied) { setToast({ type: 'error', text: 'Seat occupied — pick an empty seat' }); return; }
+                                    if (isOccupied) setShowPlayerMenu({ ...seat, tableNumber: tNum });
+                                    else openSeatScanner(tNum, seat.number);
+                                } : undefined}
+                                style={{
+                                    position: 'absolute', top: pos.top, left: pos.left,
+                                    transform: badgeTransform, zIndex: 2,
+                                    cursor: isFullscreen ? 'pointer' : 'default',
+                                    display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 8,
+                                    background: 'rgba(36,37,38,0.9)',
+                                    borderRadius: 12,
+                                    padding: '5px 10px 5px 5px',
+                                    border: `2px solid ${isOccupied
+                                        ? (memberActive ? 'rgba(49,162,76,0.7)' : seat.taken?.membership_status ? 'rgba(239,68,68,0.5)' : 'rgba(24,119,242,0.5)')
+                                        : 'rgba(62,64,66,0.6)'}`,
+                                    backdropFilter: 'blur(6px)',
+                                    minWidth: isFullscreen ? 80 : 70,
+                                }}>
                                 {/* Avatar circle */}
                                 <div style={{
                                     width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
@@ -563,18 +695,18 @@ export default function TableTabletsPage() {
                                     {isOccupied ? (
                                         <span style={{ fontSize: isFullscreen ? 24 : 20, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                     ) : (
-                                        <span style={{ fontSize: isFullscreen ? 18 : 16, fontWeight: 600, color: '#B0B3B8' }}>{seat.number}</span>
+                                        <span style={{ fontSize: isFullscreen ? 18 : 16, fontWeight: 600, color: movingPlayer && isFullscreen ? '#22c55e' : '#B0B3B8' }}>{seat.number}</span>
                                     )}
                                 </div>
                                 {/* Name + Timer */}
                                 <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                     <div style={{
                                         fontSize, fontWeight: 600, lineHeight: 1.2,
-                                        color: isOccupied ? '#E4E6EB' : '#B0B3B8',
+                                        color: isOccupied ? '#E4E6EB' : (movingPlayer && isFullscreen ? '#22c55e' : '#B0B3B8'),
                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                         maxWidth: nameMaxWidth, position: 'relative',
                                     }}>
-                                        {isOccupied ? fullName : 'Open'}
+                                        {isOccupied ? fullName : (movingPlayer && isFullscreen ? 'Move here' : (isFullscreen ? 'Open' : 'Open'))}
                                         {/* Missed Blinds Badge */}
                                         {isOccupied && (seat.taken?.missed_blinds || 0) > 0 && (
                                             <span style={{
@@ -594,6 +726,9 @@ export default function TableTabletsPage() {
                                         <div style={{ fontSize: isFullscreen ? 11 : 10, fontWeight: 700, color: seat.taken.session_status === 'meal_break' ? '#22c55e' : '#F59E0B', lineHeight: 1.2 }}>
                                             {seat.taken.session_status === 'paused' ? '⏸️ PAUSED' : '🍽️ MEAL BREAK'}
                                         </div>
+                                    )}
+                                    {!isOccupied && isFullscreen && (
+                                        <div style={{ fontSize: 10, color: movingPlayer ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.25)' }}>{movingPlayer ? 'Tap to confirm' : 'Tap to seat'}</div>
                                     )}
                                     {timerText && (
                                         <div style={{
@@ -882,19 +1017,17 @@ export default function TableTabletsPage() {
                             </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            {!lockedTable && (
-                                <button
-                                    onClick={() => openDealerScan(fullscreenTable.table_number)}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 6,
-                                        fontSize: 13, fontWeight: 700, color: '#fff',
-                                    }}
-                                >
-                                    <ScanLine size={14} /> Scan Dealer
-                                </button>
-                            )}
+                            <button
+                                onClick={() => openDealerScan(fullscreenTable.table_number)}
+                                style={{
+                                    background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                                    borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    fontSize: 13, fontWeight: 700, color: '#fff',
+                                }}
+                            >
+                                <ScanLine size={14} /> Scan Dealer
+                            </button>
                             {!lockedTable ? (
                                 <>
                                     {/* Lock button */}
@@ -975,6 +1108,86 @@ export default function TableTabletsPage() {
                             </div>
                         );
                     })()}
+                    {/* ── Toast Notification ── */}
+                    {toast && (
+                        <div style={{
+                            position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10001,
+                            padding: '12px 24px', borderRadius: 14,
+                            background: toast.type === 'success' ? 'rgba(49,162,76,0.95)' : 'rgba(239,68,68,0.95)',
+                            color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                        }}>
+                            {toast.text}
+                        </div>
+                    )}
+
+                    {/* ── Move Mode Banner ── */}
+                    {movingPlayer && (
+                        <div style={{
+                            position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10001,
+                            padding: '10px 20px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
+                            background: 'rgba(24,119,242,0.95)', color: '#fff', fontSize: 14, fontWeight: 700,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                        }}>
+                            🪑 Moving {movingPlayer.player_name} — tap an empty seat
+                            <button onClick={() => { setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
+                                style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            >Cancel</button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── PLAYER ACTION MENU (fullscreen mode) ── */}
+            {showPlayerMenu && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => setShowPlayerMenu(null)}>
+                    <div onClick={e => e.stopPropagation()} style={{ background: '#242526', borderRadius: 20, padding: '24px', width: '90%', maxWidth: 340, border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+                        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                            <div style={{ width: 64, height: 64, borderRadius: '50%', margin: '0 auto 10px', background: 'linear-gradient(135deg, #1877F2, #1565c0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#fff' }}>
+                                {(showPlayerMenu.taken?.player_name || 'P').charAt(0).toUpperCase()}
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>{showPlayerMenu.taken?.player_name || 'Player'}</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#8A8D91' }}>Seat {showPlayerMenu.number} · Table {showPlayerMenu.tableNumber}</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {[
+                                { label: '🪑 Move Player', color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: showPlayerMenu.taken?.player_name || 'Player', tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${showPlayerMenu.taken?.player_name || 'player'}` }); } },
+                                { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
+                                ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
+                                    ? [{ label: '▶️ Resume Timer', color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: `▶️ ${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                    : [{ label: '⏸️ Pause Timer', color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: `⏸️ ${json.data.player_name} paused` }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                ),
+                                { label: '⚠️ Missed Blinds', color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: `🚫 ${json.data.player_name} removed — 3 missed blinds` }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: `⚠️ Missed blind #${count} for ${json.data.player_name}` }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
+                                { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: `🍽️ 30-min meal break for ${json.data.player_name}` }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
+                            ].map((btn, i) => (
+                                <button key={i} onClick={btn.action} disabled={playerActionLoading}
+                                    style={{ padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
+                                >{btn.label}</button>
+                            ))}
+                        </div>
+                        <button onClick={() => setShowPlayerMenu(null)} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── SEAT SCANNER MODAL ── */}
+            {seatScanner && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10003, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>📸</div>
+                        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>Scan Player for Seat {seatScanner.seatNumber}</h3>
+                        <p style={{ fontSize: 13, color: '#8A8D91', margin: '6px 0 0' }}>Hold QR code in front of camera</p>
+                    </div>
+                    <div style={{ width: '90%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 16, overflow: 'hidden', border: '3px solid #1877F2', position: 'relative' }}>
+                        <video ref={seatScannerVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} playsInline muted />
+                    </div>
+                    <form onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.qr.value.trim(); if (val) handleSeatScan(val, seatScanner.tableNumber, seatScanner.seatNumber); }}
+                        style={{ display: 'flex', gap: 8, marginTop: 16, width: '90%', maxWidth: 400 }}>
+                        <input name="qr" type="text" placeholder="Or enter QR code manually..."
+                            style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C', background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none' }} autoComplete="off" />
+                        <button type="submit" style={{ padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Scan</button>
+                    </form>
+                    <button onClick={closeSeatScanner} style={{ marginTop: 12, padding: '14px 48px', borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
                 </div>
             )}
 
