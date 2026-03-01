@@ -103,7 +103,8 @@ export default function LeaderboardDisplay() {
                 const maxScore = Math.max(...entries.map(e => e.score || e.points || 0), 1);
                 const typeLabel = lb.leaderboard_type === 'hours_played' ? 'HOURS' :
                   lb.leaderboard_type === 'sessions' ? 'SESSIONS' :
-                    lb.leaderboard_type === 'visits' ? 'VISITS' : 'POINTS';
+                    lb.leaderboard_type === 'high_hand' ? 'HIGH HAND' :
+                      lb.leaderboard_type === 'referrals' ? 'REFERRALS' : 'POINTS';
                 built.push({
                   id: `custom-${lb.id}`, icon: '📋', title: lb.name,
                   subtitle: lb.description || `${entries.length} players • Staff-managed board`,

@@ -22,18 +22,20 @@ import { useState, useEffect, useCallback } from 'react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const BOARD_TYPES = [
-    { value: 'custom_points', label: 'Custom Points', icon: '🏆', desc: 'Manually assign points to players' },
+    { value: 'custom', label: 'Custom Points', icon: '🏆', desc: 'Manually assign points to players' },
     { value: 'hours_played', label: 'Hours Played', icon: '⏱️', desc: 'Auto-calculated from player sessions' },
     { value: 'sessions', label: 'Session Count', icon: '📊', desc: 'Number of play sessions' },
-    { value: 'visits', label: 'Visit Count', icon: '🎯', desc: 'Number of check-ins' },
+    { value: 'high_hand', label: 'High Hand', icon: '🃏', desc: 'High hand promotion tracker' },
     { value: 'tournament_points', label: 'Tournament Points', icon: '🏅', desc: 'Points from tournament finishes' },
+    { value: 'referrals', label: 'Referral Count', icon: '🎯', desc: 'Player referral leaderboard' },
 ];
 
 const PERIOD_TYPES = [
+    { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },
     { value: 'monthly', label: 'Monthly' },
     { value: 'quarterly', label: 'Quarterly' },
-    { value: 'annual', label: 'Annual' },
+    { value: 'yearly', label: 'Annual' },
     { value: 'custom', label: 'Custom Dates' },
 ];
 
@@ -48,7 +50,7 @@ export default function LeaderboardBuilder() {
 
     // Create form state
     const [newBoard, setNewBoard] = useState({
-        name: '', description: '', leaderboard_type: 'custom_points',
+        name: '', description: '', leaderboard_type: 'custom',
         period_type: 'monthly', start_date: '', end_date: '',
         prizes: '', rules_description: '', status: 'active',
     });
@@ -132,7 +134,7 @@ export default function LeaderboardBuilder() {
             if (res.ok) {
                 flash('success', `Board "${newBoard.name}" created!`);
                 setShowCreate(false);
-                setNewBoard({ name: '', description: '', leaderboard_type: 'custom_points', period_type: 'monthly', start_date: '', end_date: '', prizes: '', rules_description: '', status: 'active' });
+                setNewBoard({ name: '', description: '', leaderboard_type: 'custom', period_type: 'monthly', start_date: '', end_date: '', prizes: '', rules_description: '', status: 'active' });
                 fetchBoards();
             } else {
                 flash('error', json.error || 'Failed to create board');
@@ -353,7 +355,7 @@ export default function LeaderboardBuilder() {
                                 {isExpanded && (
                                     <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
                                         {/* Auto-calculate button for session-based types */}
-                                        {['hours_played', 'sessions', 'visits'].includes(board.leaderboard_type) && (
+                                        {['hours_played', 'sessions'].includes(board.leaderboard_type) && (
                                             <div style={{ marginBottom: '16px' }}>
                                                 <button onClick={() => autoCalculate(board.id)} style={{ ...s.btn, background: 'rgba(99,102,241,0.15)', color: '#6366F1', fontSize: '12px' }}>
                                                     🔄 Auto-Calculate from Player Sessions
