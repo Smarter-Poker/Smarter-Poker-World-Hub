@@ -88,7 +88,7 @@ export default async function handler(req, res) {
     // If the engine has this table running, signal a config reload
     // The engine will pick up new settings on next hand start
     try {
-      const { getController } = require('../../../../src/lib/poker-engine/GameController');
+      const { getController } = require('../../../src/lib/poker-engine/GameController');
       const controller = await getController();
       const entry = controller.lobby?.tables?.get(tableId);
       if (entry) {

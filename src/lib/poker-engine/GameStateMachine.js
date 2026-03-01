@@ -81,7 +81,7 @@ class GameStateMachine {
       runItMode: config.runItMode || (config.runItThrice ? 'mandatory_thrice' : config.runItTwice ? 'mandatory_twice' : 'none'),
       insurance: config.insurance || false,
       bombPot: config.bombPot || false,
-      straddle: config.straddle || false,
+      straddle: config.straddle || config.autoUtgStraddle || config.voluntaryStraddle || false,
       autoUtgStraddle: config.autoUtgStraddle || false,
       voluntaryStraddle: config.voluntaryStraddle || false,
       // Muck control: when true (default), losers' cards hidden; when false, all shown
@@ -224,7 +224,7 @@ class GameStateMachine {
       for (const player of this.currentHand.players) {
         const amount = Math.min(bombPotAnte, player.stack);
         player.stack -= amount;
-        this.potCalculator.addBlind(player.id, amount);
+        this.potCalculator.addContribution(player.id, amount);
         if (player.stack <= 0) player.allIn = true;
       }
       this.emit('blinds_posted', {
@@ -536,8 +536,21 @@ class GameStateMachine {
     // If auto_utg_straddle: UTG always straddles (2x BB)
     // If voluntary_straddle: UTG can opt in (handled via pendingStraddle flag)
     // Straddle is posted AFTER blinds, BEFORE cards are dealt.
-    if (this.config.straddle) {
-      const utgPlayer = players.find(p => p.position === 'utg');
+    // Note: In 3-handed, UTG is the button. Position label may be 'btn' not 'utg'.
+    // We find the straddle-eligible player by seat order: next active player after BB.
+    if ((this.config.straddle || this.config.autoUtgStraddle || this.config.voluntaryStraddle) && players.length > 2) {
+      // Find UTG by seat: the player immediately after BB in seat order
+      const bbPlayerId = this.currentHand.blinds.bb?.playerId;
+      const bbPlayer2 = players.find(p => p.id === bbPlayerId);
+      let utgPlayer = null;
+      if (bbPlayer2) {
+        const bbSeatIdx = players.indexOf(bbPlayer2);
+        const utgIdx = (bbSeatIdx + 1) % players.length;
+        utgPlayer = players[utgIdx];
+      } else {
+        // Fallback: look for position label
+        utgPlayer = players.find(p => p.position === 'utg');
+      }
       if (utgPlayer && utgPlayer.stack > 0) {
         const isAuto = this.config.autoUtgStraddle;
         const isVoluntary = this.config.voluntaryStraddle;

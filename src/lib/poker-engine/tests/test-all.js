@@ -11,7 +11,7 @@ const {
   PotCalculator,
   ActionValidator, ACTION_TYPES, BETTING_STRUCTURES,
   GameStateMachine, GAME_VARIANT, GAME_PHASE,
-} = require('../src');
+} = require('..');
 
 let passed = 0;
 let failed = 0;

@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         const gt = VALID_GAME_TYPES.includes(gameType) ? gameType : 'cash';
 
         // Auto-fill rake/BBJ from tier config based on stakes
-        const { getRakeConfig } = require('../../src/lib/poker-engine/RakeConfig');
+        const { getRakeConfig } = require('../../../src/lib/poker-engine/RakeConfig');
         const tierConfig = getRakeConfig(bb, gv);
 
         // Buy-in defaults: min=40BB, max=200BB (or custom)

@@ -176,7 +176,7 @@ export default async function handler(req, res) {
         }
 
         // Import game controller to issue stand_up
-        const { getController } = require('../../../../src/lib/poker-engine/GameController');
+        const { getController } = require('../../../src/lib/poker-engine/GameController');
         const { controller } = getController();
 
         if (!controller) {
@@ -195,7 +195,7 @@ export default async function handler(req, res) {
           });
 
           // Handle chip return if club table
-          const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
+          const ChipBridge = require('../../../src/lib/poker-engine/ChipBridge');
           const cashoutAmount = result.cashout || 0;
           if (cashoutAmount > 0) {
             await ChipBridge.unlockChips(clubId, targetPlayerId, tableId, cashoutAmount);

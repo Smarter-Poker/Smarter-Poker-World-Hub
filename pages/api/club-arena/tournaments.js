@@ -298,7 +298,7 @@ export default async function handler(req, res) {
         // Auto-start SNG when full — init engine THEN mark running
         if (tourn.type === 'sng' && tourn.registered_count + 1 >= tourn.max_players) {
           try {
-            const { getController } = require('../../../../src/lib/poker-engine/GameController');
+            const { getController } = require('../../../src/lib/poker-engine/GameController');
             const controller = await getController();
 
             const { data: sngRegs } = await supabaseAdmin
@@ -420,7 +420,7 @@ export default async function handler(req, res) {
 
         // Initialize engine tournament via GameController FIRST, then mark running
         try {
-          const { getController } = require('../../../../src/lib/poker-engine/GameController');
+          const { getController } = require('../../../src/lib/poker-engine/GameController');
           const controller = await getController();
 
           // Get registered players

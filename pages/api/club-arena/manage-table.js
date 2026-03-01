@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
         // 2. Close in engine if running
         try {
-          const { getController } = require('../../../../src/lib/poker-engine/GameController');
+          const { getController } = require('../../../src/lib/poker-engine/GameController');
           const controller = await getController();
           await controller.closeTable(tableId);
         } catch (_) {
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
           .eq('id', tableId);
 
         try {
-          const { getController } = require('../../../../src/lib/poker-engine/GameController');
+          const { getController } = require('../../../src/lib/poker-engine/GameController');
           const controller = await getController();
           await controller.closeTable(tableId);
         } catch (_) {}
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
           .eq('id', tableId);
 
         try {
-          const { getController } = require('../../../../src/lib/poker-engine/GameController');
+          const { getController } = require('../../../src/lib/poker-engine/GameController');
           const controller = await getController();
           const entry = controller.lobby?.tables?.get(tableId);
           if (entry) {
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
           .eq('id', tableId);
 
         try {
-          const { getController } = require('../../../../src/lib/poker-engine/GameController');
+          const { getController } = require('../../../src/lib/poker-engine/GameController');
           const controller = await getController();
           const entry = controller.lobby?.tables?.get(tableId);
           if (entry) {
