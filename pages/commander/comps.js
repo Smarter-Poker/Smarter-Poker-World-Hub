@@ -60,6 +60,7 @@ export default function CompSystem() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [compAmount, setCompAmount] = useState('');
+  const [membershipCost, setMembershipCost] = useState('');
   const [compNotes, setCompNotes] = useState('');
   const [awarding, setAwarding] = useState(false);
   const [awarded, setAwarded] = useState(false);
@@ -234,7 +235,7 @@ export default function CompSystem() {
 
       const body = {
         member_id: selectedMember.id,
-        amount: isMembership ? 0 : parseFloat(compAmount),
+        amount: isMembership ? (parseFloat(membershipCost) || 0) : parseFloat(compAmount),
         reason: isMembership
           ? `Free Membership — ${durationLabel}${compNotes ? ' — ' + compNotes : ''}`
           : `${catLabel}${compNotes ? ' — ' + compNotes : ''}`,
@@ -258,7 +259,7 @@ export default function CompSystem() {
         broadcastChange('members');
         const receiptData = {
           memberName: `${selectedMember.first_name} ${selectedMember.last_name}`,
-          amount: isMembership ? 0 : parseFloat(compAmount),
+          amount: isMembership ? (parseFloat(membershipCost) || 0) : parseFloat(compAmount),
           category: catLabel,
           durationLabel: durationLabel,
           isMembership: isMembership,
@@ -279,6 +280,7 @@ export default function CompSystem() {
           setSelectedMember(null);
           setSelectedCategory(null);
           setCompAmount('');
+          setMembershipCost('');
           setCompNotes('');
           setSearchQuery('');
           setSearchResults([]);
@@ -300,7 +302,8 @@ export default function CompSystem() {
       const receiptWindow = window.open('', '_blank', 'width=400,height=600');
       if (!receiptWindow) return; // popup blocked
       const amountLine = data.isMembership
-        ? `<div class="amount" style="color:#8B5CF6">${data.durationLabel}</div>`
+        ? `<div class="amount" style="color:#8B5CF6">${data.durationLabel}</div>
+           <div style="text-align:center;font-size:18px;font-weight:bold;color:#31A24C;margin:-8px 0 4px">$${(data.amount || 0).toFixed(2)} Club Expense</div>`
         : `<div class="amount">$${data.amount.toFixed(2)}</div>`;
       const balanceLine = data.isMembership && data.newExpires
         ? `<div class="row"><span>Active Through:</span><span class="bold">${new Date(data.newExpires).toLocaleDateString()}</span></div>`
@@ -354,6 +357,7 @@ export default function CompSystem() {
     setSelectedMember(null);
     setSelectedCategory(null);
     setCompAmount('');
+    setMembershipCost('');
     setCompNotes('');
     setSearchQuery('');
     setSearchResults([]);
@@ -394,7 +398,7 @@ export default function CompSystem() {
                   <p className="text-sm text-[#B0B3B8] mt-1">
                     Authorize{' '}
                     {selectedCategory === 'free_membership'
-                      ? <span className="text-[#8B5CF6] font-bold">{MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'}</span>
+                      ? <><span className="text-[#8B5CF6] font-bold">{MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'}</span>{' '}<span className="text-[#31A24C] font-bold">(${membershipCost || '0'})</span></>
                       : <span className="text-[#31A24C] font-bold">${compAmount}</span>
                     }{' '}
                     <span className="text-white font-medium">
@@ -529,7 +533,7 @@ export default function CompSystem() {
                     <h2 className="text-2xl font-bold text-white">Comp Issued</h2>
                     <p className="text-[#B0B3B8] mt-2">
                       {lastAwardData?.isMembership
-                        ? `${lastAwardData.durationLabel} Free Membership To ${selectedMember?.first_name} ${selectedMember?.last_name}`
+                        ? `${lastAwardData.durationLabel} Free Membership ($${(lastAwardData.amount || 0).toFixed(2)}) To ${selectedMember?.first_name} ${selectedMember?.last_name}`
                         : `$${compAmount} ${COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} To ${selectedMember?.first_name} ${selectedMember?.last_name}`
                       }
                     </p>
@@ -635,16 +639,31 @@ export default function CompSystem() {
                         </div>
 
                         {selectedCategory === 'free_membership' ? (
-                          /* ── Membership Duration Picker ── */
-                          <div className="grid grid-cols-3 gap-2">
-                            {MEMBERSHIP_DURATIONS.map(dur => (
-                              <button key={dur.key}
-                                onClick={() => setCompAmount(dur.key)}
-                                className={`py-3 rounded-xl text-sm font-semibold ${compAmount === dur.key ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'}`}>
-                                {dur.label}
-                              </button>
-                            ))}
-                          </div>
+                          /* ── Membership Duration + Cost ── */
+                          <>
+                            <div className="grid grid-cols-3 gap-2">
+                              {MEMBERSHIP_DURATIONS.map(dur => (
+                                <button key={dur.key}
+                                  onClick={() => setCompAmount(dur.key)}
+                                  className={`py-3 rounded-xl text-sm font-semibold ${compAmount === dur.key ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'}`}>
+                                  {dur.label}
+                                </button>
+                              ))}
+                            </div>
+                            {compAmount && (
+                              <div>
+                                <p className="text-xs text-[#B0B3B8] mb-1">Membership Value (Club Expense)</p>
+                                <div className="relative">
+                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B0B3B8] text-lg">$</span>
+                                  <input type="number" value={membershipCost}
+                                    onChange={e => setMembershipCost(e.target.value)}
+                                    placeholder="0.00"
+                                    className="w-full pl-8 pr-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#8B5CF6] text-center text-lg" />
+                                </div>
+                                <p className="text-[10px] text-[#6A6B6D] mt-1">Enter The Dollar Value Of This Comped Membership</p>
+                              </div>
+                            )}
+                          </>
                         ) : (
                           /* ── Dollar Amount Picker ── */
                           <>
@@ -671,11 +690,11 @@ export default function CompSystem() {
                             className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
                         </div>
 
-                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory !== 'free_membership' && parseFloat(compAmount) <= 0)}
+                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory === 'free_membership' ? (!membershipCost || parseFloat(membershipCost) <= 0) : parseFloat(compAmount) <= 0)}
                           className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
                           {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
                           {selectedCategory === 'free_membership'
-                            ? `Issue ${MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'} — Requires PIN`
+                            ? `Issue ${MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'} ($${membershipCost || '0'}) — Requires PIN`
                             : `Issue $${compAmount || '0'} — Requires PIN`}
                         </button>
                         <p className="text-[10px] text-[#6A6B6D] text-center">
@@ -733,10 +752,15 @@ export default function CompSystem() {
                             )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            {(t.comp_category === 'free_membership' && t.amount === 0) ? (
-                              <p className="text-sm font-bold text-[#8B5CF6]">
-                                {(t.reason || '').replace('Free Membership — ', '').split(' — ')[0] || 'Membership'}
-                              </p>
+                            {(t.comp_category === 'free_membership' && (t.amount === 0 || t.amount)) ? (
+                              <>
+                                <p className="text-sm font-bold text-[#8B5CF6]">
+                                  {(t.reason || '').replace('Free Membership — ', '').split(' — ')[0] || 'Membership'}
+                                </p>
+                                {(t.amount || 0) > 0 && (
+                                  <p className="text-[10px] font-medium text-[#31A24C]">${(t.amount || 0).toFixed(2)}</p>
+                                )}
+                              </>
                             ) : (
                               <p className={`text-sm font-bold ${(t.amount || 0) > 0 ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
                                 {(t.amount || 0) > 0 ? '+' : ''}${Math.abs(t.amount || 0).toFixed(2)}

@@ -145,21 +145,28 @@ async function awardComp(req, res, staffAuth) {
     // ═══ MEMBERSHIP COMP: Extend membership_expires ═══
     if (membership_days && parseInt(membership_days) > 0) {
       const days = parseInt(membership_days);
+      const compCost = parseFloat(amount) || 0; // Dollar value of the comped membership
       const now = new Date();
       const currentExpiry = member.membership_expires ? new Date(member.membership_expires) : null;
       const startDate = (currentExpiry && currentExpiry > now) ? currentExpiry : now;
       const newExpiry = new Date(startDate);
       newExpiry.setDate(newExpiry.getDate() + days);
 
+      // Update membership status + expiry, and track expense in lifetime_earned
+      const updateFields = { membership_status: 'active', membership_expires: newExpiry.toISOString() };
+      if (compCost > 0) {
+        updateFields.comp_lifetime_earned = (member.comp_lifetime_earned || 0) + compCost;
+      }
+
       const { error: updateErr } = await supabase
         .from('commander_members')
-        .update({ membership_status: 'active', membership_expires: newExpiry.toISOString() })
+        .update(updateFields)
         .eq('id', member.id);
 
       if (updateErr) throw updateErr;
 
       await supabase.from('commander_member_comp_log').insert({
-        venue_id: member.venue_id, member_id: member.id, amount: 0,
+        venue_id: member.venue_id, member_id: member.id, amount: compCost,
         type: type || 'award', reason: reason || `Free Membership — ${days} days`,
         authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
         processed_by: staffRecord.id, balance_after: member.comp_balance || 0,
@@ -169,7 +176,7 @@ async function awardComp(req, res, staffAuth) {
       return res.json({
         success: true,
         data: {
-          member_id: member.id, amount: 0, membership_days: days,
+          member_id: member.id, amount: compCost, membership_days: days,
           membership_expires: newExpiry.toISOString(), new_balance: member.comp_balance || 0,
           authorized_by: authorized_by || 'Staff'
         }
