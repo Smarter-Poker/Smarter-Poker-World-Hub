@@ -99,20 +99,39 @@ export default async function handler(req, res) {
       tournamentFees += rebuys * (t.fee_amount || 0);
     }
 
-    // 3. Comp costs
+    // 3. Comp costs (from commander_member_comp_log — the actual comp log table)
     const { data: compTxns } = await supabase
-      .from('commander_comp_transactions')
-      .select('type, amount, created_at')
+      .from('commander_member_comp_log')
+      .select('type, amount, comp_category, created_at, notes')
       .eq('venue_id', venue_id)
       .gte('created_at', start)
       .lte('created_at', end);
 
-    const compsEarned = (compTxns || []).filter(c => c.type === 'earn').reduce((s, c) => s + (c.amount || 0), 0);
-    const compsRedeemed = (compTxns || []).filter(c => c.type === 'redeem').reduce((s, c) => s + (c.amount || 0), 0);
+    // Comps issued (type = 'award'), voids (type = 'void')
+    const compAwards = (compTxns || []).filter(c => c.type === 'award' || (!c.type));
+    const compVoids = (compTxns || []).filter(c => c.type === 'void');
+    const compsIssued = compAwards.reduce((s, c) => s + Math.abs(c.amount || 0), 0);
+    const compsVoided = compVoids.reduce((s, c) => s + Math.abs(c.amount || 0), 0);
+    const compsNet = Math.max(0, compsIssued - compsVoided);
+
+    // Per-category breakdown
+    const compsByCategory = {};
+    compAwards.forEach(c => {
+      const cat = c.comp_category || 'cash_bonus';
+      compsByCategory[cat] = (compsByCategory[cat] || 0) + Math.abs(c.amount || 0);
+    });
+
+    // Daily comp breakdown (for chart)
+    const compByDay = {};
+    compAwards.forEach(c => {
+      const day = c.created_at?.split('T')[0];
+      if (day) compByDay[day] = (compByDay[day] || 0) + Math.abs(c.amount || 0);
+    });
 
     // Build daily revenue chart data
     const allDays = new Set();
     Object.keys(timeByDay).forEach(d => allDays.add(d));
+    Object.keys(compByDay).forEach(d => allDays.add(d));
     (tournaments || []).forEach(t => {
       const d = t.created_at?.split('T')[0];
       if (d) allDays.add(d);
@@ -120,6 +139,7 @@ export default async function handler(req, res) {
     const dailyData = [...allDays].sort().map(day => ({
       date: day,
       time_revenue: timeByDay[day] || 0,
+      comps_cost: compByDay[day] || 0,
       tournament_fees: 0, // simplified — would need per-day aggregation
     }));
 
@@ -134,9 +154,10 @@ export default async function handler(req, res) {
           time_revenue: timeRevenue,
           tournament_fees: tournamentFees,
           tournament_prize_pools: tournamentBuyins,
-          comps_earned: compsEarned,
-          comps_redeemed: compsRedeemed,
-          net_after_comps: totalRevenue - compsRedeemed,
+          comps_issued: compsIssued,
+          comps_voided: compsVoided,
+          comps_net: compsNet,
+          net_after_comps: totalRevenue - compsNet,
         },
         time_billing: {
           sessions: timeSessionCount,
@@ -152,6 +173,14 @@ export default async function handler(req, res) {
           tournaments: (tournaments || []).map(t => ({
             id: t.id, name: t.name, buyin: t.buyin_amount, fee: t.fee_amount, status: t.status
           })),
+        },
+        comps: {
+          issued: compsIssued,
+          voided: compsVoided,
+          net: compsNet,
+          count: compAwards.length,
+          void_count: compVoids.length,
+          by_category: compsByCategory,
         },
         daily_chart: dailyData,
       }
