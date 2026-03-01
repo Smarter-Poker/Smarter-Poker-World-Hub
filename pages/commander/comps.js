@@ -517,6 +517,46 @@ export default function CompSystem() {
             </div>
           )}
 
+          {/* ═══ Void PIN Modal ═══ */}
+          {voidPinModal && (
+            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
+              <div className="bg-[#242526] rounded-2xl w-full max-w-sm border border-[#3A3B3C] shadow-2xl">
+                <div className="p-5 text-center border-b border-[#3A3B3C]">
+                  <div className="w-14 h-14 rounded-full bg-[#EF4444]/10 flex items-center justify-center mx-auto mb-3">
+                    <X className="w-7 h-7 text-[#EF4444]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">{voidPinModal.actionLabel} Comp</h3>
+                  <p className="text-sm text-[#B0B3B8] mt-1">
+                    Reverse <span className="text-[#EF4444] font-bold">${Math.abs(voidPinModal.logEntry.amount || 0).toFixed(2)}</span>
+                    {' '}<span className="text-white">{(COMP_CATEGORIES.find(c => c.key === voidPinModal.logEntry.comp_category)?.label) || 'Comp'}</span>
+                    {' '}from <span className="text-white font-medium">{voidPinModal.logEntry.member_name || 'Member'}</span>
+                  </p>
+                </div>
+                <div className="p-5 space-y-4">
+                  <input
+                    type="password" inputMode="numeric" maxLength={4}
+                    value={voidPinCode}
+                    onChange={e => { setVoidPinCode(e.target.value.replace(/\D/g, '')); setVoidPinError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && executeVoidComp()}
+                    placeholder="Enter 4-Digit PIN"
+                    autoFocus
+                    className="w-full px-4 py-4 bg-[#18191A] border border-[#4A4B4C] rounded-xl text-white text-center text-2xl tracking-[0.5em] placeholder:text-[#6A6B6D] placeholder:tracking-normal placeholder:text-base focus:outline-none focus:border-[#EF4444]"
+                  />
+                  {voidPinError && <p className="text-sm text-[#EF4444] text-center">{voidPinError}</p>}
+                  <div className="flex gap-3">
+                    <button onClick={() => { setVoidPinModal(null); setVoidPinCode(''); setVoidPinError(''); }}
+                      className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-white font-medium active:bg-[#4A4B4C]">Cancel</button>
+                    <button onClick={executeVoidComp} disabled={voidLoading || voidPinCode.length !== 4}
+                      className="flex-1 py-3 rounded-xl bg-[#EF4444] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 active:bg-[#DC2626]">
+                      {voidLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                      {voidLoading ? 'Processing...' : voidPinModal.actionLabel}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ═══ Header ═══ */}
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
