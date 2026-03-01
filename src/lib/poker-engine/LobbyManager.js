@@ -161,7 +161,7 @@ class LobbyManager {
     
     // Create ActionTimer
     const timer = new ActionTimer({
-      turnTime: config.turnTime || 30,
+      turnTime: config.turnTime || config.actionTime || 30,
       timebank: config.timebank || 30,
       onExpire: (playerId) => table.autoFold(playerId),
       onTick: () => {},     // Wired by RealtimeSync
@@ -251,6 +251,32 @@ class LobbyManager {
         createdAt: new Date().toISOString(),
       },
     });
+    
+    // ── Game Length Timer: auto-close table after configured hours ──
+    const gameLengthHours = config.clubSettings?.game_length_hours || config.gameLengthHours;
+    if (gameLengthHours && gameLengthHours > 0) {
+      const gameLengthMs = gameLengthHours * 60 * 60 * 1000;
+      const warnMs = Math.max(gameLengthMs - (5 * 60 * 1000), 0); // 5min warning
+      
+      // 5-minute warning
+      if (warnMs > 0) {
+        setTimeout(() => {
+          table.emit('game_length_warning', { minutesRemaining: 5, closeAt: Date.now() + 5 * 60 * 1000 });
+        }, warnMs);
+      }
+      
+      // Auto-close: finish current hand then close
+      setTimeout(() => {
+        console.log(`[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`);
+        table.emit('game_length_expired', { hours: gameLengthHours });
+        // Wait for current hand to finish, then close
+        if (table.game.phase === 'idle') {
+          this.closeTable(config.tableId);
+        } else {
+          table.once('hand_complete', () => this.closeTable(config.tableId));
+        }
+      }, gameLengthMs);
+    }
     
     // Broadcast lobby update
     this._broadcastLobbyState();

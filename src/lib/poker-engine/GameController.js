@@ -384,6 +384,7 @@ class GameController {
           buy_in_authorization: row.settings?.buy_in_authorization || false,
           photo_rotation_verification: row.settings?.photo_rotation_verification || false,
           gps_min_distance_meters: row.settings?.gps_min_distance_meters || 100,
+          game_length_hours: row.settings?.game_length_hours || 0,
         },
       };
 

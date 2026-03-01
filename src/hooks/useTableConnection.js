@@ -282,6 +282,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'seven_deuce_bonus',
       'auto_topup_success', 'auto_topup_attempt',
       'auto_rebuy_success', 'auto_rebuy_attempt',
+      'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
+      'game_length_warning', 'game_length_expired',
     ];
 
     for (const evt of events) {

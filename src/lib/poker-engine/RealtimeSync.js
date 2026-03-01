@@ -170,6 +170,8 @@ class RealtimeSync {
       // Access control
       'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
       'player_invited',
+      // Game length
+      'game_length_warning', 'game_length_expired',
       // Seven-Deuce bonus
       'seven_deuce_bonus',
     ];
@@ -437,6 +439,11 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
     // Auto-rebuy / top-up
     'auto_rebuy_success', 'auto_rebuy_attempt',
     'auto_topup_success', 'auto_topup_attempt',
+    // Access control
+    'buyin_authorization_requested', 'buyin_authorized', 'buyin_rejected',
+    'player_invited',
+    // Game length
+    'game_length_warning', 'game_length_expired',
   ];
   
   for (const event of serverEvents) {
