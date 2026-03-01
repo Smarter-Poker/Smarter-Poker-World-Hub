@@ -124,6 +124,54 @@ export default function ClubLobby() {
         if (clubIdParam) loadClubData();
     }, [clubIdParam]);
 
+    // Realtime subscription for table updates (player counts, status changes)
+    useEffect(() => {
+        if (!club?.id) return;
+        
+        const channel = supabase
+            .channel(`lobby:${club.id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'tables',
+                filter: `club_id=eq.${club.id}`,
+            }, (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    setTables(prev => [...prev, payload.new]);
+                } else if (payload.eventType === 'UPDATE') {
+                    setTables(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
+                } else if (payload.eventType === 'DELETE') {
+                    setTables(prev => prev.filter(t => t.id !== payload.old.id));
+                }
+            })
+            .subscribe();
+
+        // Polling fallback every 15s for player counts (in case realtime misses)
+        const poll = setInterval(async () => {
+            try {
+                const { data } = await supabase
+                    .from('tables')
+                    .select('id, current_players, status')
+                    .eq('club_id', club.id)
+                    .neq('status', 'deleted');
+                if (data) {
+                    setTables(prev => prev.map(t => {
+                        const fresh = data.find(d => d.id === t.id);
+                        return fresh ? { ...t, current_players: fresh.current_players, status: fresh.status } : t;
+                    }).filter(t => {
+                        const fresh = data.find(d => d.id === t.id);
+                        return fresh && fresh.status !== 'deleted';
+                    }));
+                }
+            } catch (_) {}
+        }, 15000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(poll);
+        };
+    }, [club?.id]);
+
     async function loadClubData() {
         setIsLoading(true);
         try {
@@ -443,8 +491,10 @@ export default function ClubLobby() {
                                     const gameLabel = variant.startsWith('PLO') ? 'PLO' : variant === 'SHORT_DECK' ? 'SD' : 'NLH';
                                     const typeLabel = table.game_type === 'tournament' || table.table_type === 'tournament' ? 'XMTT' : '';
                                     const displayType = typeLabel ? `${typeLabel} ${gameLabel}` : gameLabel;
-                                    const buyIn = table.big_blind || parseFloat(table.stakes?.split('/')[1]) || 2;
-                                    const isGold = buyIn >= 50;
+                                    const sb = table.small_blind || parseFloat(table.stakes?.split('/')[0]) || 1;
+                                    const bb = table.big_blind || parseFloat(table.stakes?.split('/')[1]) || 2;
+                                    const stakesLabel = `${sb}/${bb}`;
+                                    const isGold = bb >= 50;
 
                                     // Outer gradient logic based on stakes
                                     const outerBg = isGold
@@ -469,8 +519,8 @@ export default function ClubLobby() {
                                                     <div style={styles.pillRightStats}>
                                                         <div style={styles.statsTopRow}>
                                                             <div style={styles.buyInStack}>
-                                                                <span style={styles.buyInLabel}>Buy-in</span>
-                                                                <span style={styles.buyInValue}>{buyIn}</span>
+                                                                <span style={styles.buyInLabel}>Stakes</span>
+                                                                <span style={styles.buyInValue}>{stakesLabel}</span>
                                                             </div>
                                                             <div style={styles.maxBadge}>{table.max_players || 9} Max</div>
                                                         </div>
