@@ -43,6 +43,14 @@ const MEMBERSHIP_DURATIONS = [
   { key: '180', label: '6 Months', days: 180, priceField: 'price_monthly', multiplier: 6 },
   { key: '365', label: '1 Year', days: 365, priceField: 'price_yearly', multiplier: 1 },
 ];
+const TIME_QUICKPICKS = [
+  { key: '30', label: '30 Min', minutes: 30 },
+  { key: '60', label: '1 Hour', minutes: 60 },
+  { key: '120', label: '2 Hours', minutes: 120 },
+  { key: '180', label: '3 Hours', minutes: 180 },
+  { key: '240', label: '4 Hours', minutes: 240 },
+  { key: '300', label: '5 Hours', minutes: 300 },
+];
 
 export default function CompSystem() {
   const router = useRouter();
@@ -84,6 +92,7 @@ export default function CompSystem() {
   const [voidPinCode, setVoidPinCode] = useState('');
   const [voidPinError, setVoidPinError] = useState('');
   const [voidLoading, setVoidLoading] = useState(false);
+  const [timeMinutes, setTimeMinutes] = useState('');
 
   // ─── Settings state ───
   const [autoCompRate, setAutoCompRate] = useState(1);
@@ -271,6 +280,9 @@ export default function CompSystem() {
       if (isMembership) {
         body.membership_days = parseInt(compAmount);
       }
+      if (selectedCategory === 'free_time' && timeMinutes) {
+        body.time_minutes = parseInt(timeMinutes);
+      }
 
       const res = await fetch('/api/commander/comps/balances', {
         method: 'POST',
@@ -393,6 +405,7 @@ export default function CompSystem() {
     setCompAmount('');
     setMembershipCost('');
     setCompNotes('');
+    setTimeMinutes('');
     setSearchQuery('');
     setSearchResults([]);
     setAwarded(false);
@@ -434,19 +447,15 @@ export default function CompSystem() {
         var staffSession = getStaffSession();
         var headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
         if (staffSession) headers['x-staff-session'] = staffSession;
-        // Record void transaction
+        // Record void transaction via PATCH (voidComp handler)
         return fetch('/api/commander/comps/balances', {
-          method: 'POST',
+          method: 'PATCH',
           headers: headers,
           body: JSON.stringify({
-            member_id: entry.member_id,
-            amount: -Math.abs(entry.amount || 0),
-            reason: voidPinModal.actionLabel.toUpperCase() + ' - ' + (entry.reason || 'Comp') + ' [VOID-REF:' + entry.id + ']',
-            type: 'void',
-            comp_category: entry.comp_category || 'cash_bonus',
+            comp_log_id: entry.id,
             authorized_by: (staff && staff.display_name) || 'Staff',
             authorized_pin: true,
-            notes: voidPinModal.actionLabel + ' by ' + ((staff && staff.display_name) || 'Staff')
+            void_reason: voidPinModal.actionLabel + ' by ' + ((staff && staff.display_name) || 'Staff')
           })
         })
           .then(function (r) { return r.json(); })
@@ -836,9 +845,9 @@ export default function CompSystem() {
                       <>
                         <div className="flex items-center gap-2">
                           <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">
-                            {selectedCategory === 'free_membership' ? 'Step 3: Duration' : 'Step 3: Amount'}
+                            {selectedCategory === 'free_membership' ? 'Step 3: Duration' : selectedCategory === 'free_time' ? 'Step 3: Time' : 'Step 3: Amount'}
                           </p>
-                          <button onClick={() => { setSelectedCategory(null); setCompAmount(''); setMembershipCost(''); }}
+                          <button onClick={() => { setSelectedCategory(null); setCompAmount(''); setMembershipCost(''); setTimeMinutes(''); }}
                             className="ml-auto text-xs px-2 py-1 rounded-lg flex items-center gap-1 active:bg-[#3A3B3C]"
                             style={{ color: COMP_CATEGORIES.find(c => c.key === selectedCategory)?.color }}>
                             {(() => { const Cat = COMP_CATEGORIES.find(c => c.key === selectedCategory); const Icon = Cat?.icon; return Icon ? <Icon className="w-3 h-3" /> : null; })()}
@@ -880,6 +889,32 @@ export default function CompSystem() {
                                 <p className="text-[10px] text-[#6A6B6D] mt-1 flex items-center justify-center gap-1">
                                   <Shield className="w-3 h-3 text-[#F59E0B]" /> Locked — Pulled From Membership Plan Pricing
                                 </p>
+                              </div>
+                            )}
+                          </>
+                        ) : selectedCategory === 'free_time' ? (
+                          /* ── Time Picker for Free Time ── */
+                          <>
+                            <div className="grid grid-cols-3 gap-2">
+                              {TIME_QUICKPICKS.map(tp => (
+                                <button key={tp.key}
+                                  onClick={() => {
+                                    setTimeMinutes(String(tp.minutes));
+                                    const dollarVal = (tp.minutes / 60) * autoCompRate;
+                                    setCompAmount(String(dollarVal.toFixed(2)));
+                                  }}
+                                  className={`py-3 rounded-xl text-sm font-semibold ${timeMinutes === String(tp.minutes) ? 'bg-[#3B82F6] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'}`}>
+                                  {tp.label}
+                                </button>
+                              ))}
+                            </div>
+                            {timeMinutes && (
+                              <div>
+                                <p className="text-xs text-[#B0B3B8] mb-1">Comp Value (Auto-Calculated)</p>
+                                <div className="w-full px-4 py-3 bg-[#2D2E2F] border border-[#4A4B4C] rounded-xl text-center">
+                                  <span className="text-2xl font-bold text-[#31A24C]">${compAmount || '0.00'}</span>
+                                  <span className="text-sm text-[#6A6B6D] ml-2">({Math.floor(parseInt(timeMinutes) / 60)}h{parseInt(timeMinutes) % 60 > 0 ? ` ${parseInt(timeMinutes) % 60}m` : ''} × ${autoCompRate}/hr)</span>
+                                </div>
                               </div>
                             )}
                           </>

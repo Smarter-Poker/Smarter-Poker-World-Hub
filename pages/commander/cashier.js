@@ -322,9 +322,9 @@ export default function Cashier() {
   }, [showPlayerSearch, venueId]);
 
   // === PIN Logic ===
-  const requestPinFor = (action) => {
+  const requestPinFor = async (action) => {
     if (isPinCached()) {
-      executeAction(action, verifiedStaff);
+      await executeAction(action, verifiedStaff);
       return;
     }
     setPendingAction(action);
@@ -424,6 +424,7 @@ export default function Cashier() {
         });
         playSuccessSound();
         showSuccessPopup({ title: 'Buy-In Recorded', amount: `$${parseFloat(buyInAmount).toLocaleString()}`, detail: selectedPlayer?.player_name || 'Walk-Up' });
+        setBuyInAmount(''); // Reset for next transaction
         fetchData();
         broadcastChange('members');
       } else {
@@ -681,7 +682,7 @@ export default function Cashier() {
       showSuccessPopup({ title: `${actionLabel} Processed`, amount: `$${details.amount}`, detail: details.player_name || 'Unknown' });
       fetchData();
       broadcastChange('members');
-    } catch { setMessage({ type: 'error', text: `${actionLabel} Failed` }); }
+    } catch (err) { console.error('Void error:', err); setMessage({ type: 'error', text: `${actionLabel} Failed — Please Try Again` }); }
     finally { setActionLoading(false); }
   };
 
@@ -719,7 +720,6 @@ export default function Cashier() {
     setSuccessOverlay({ title, amount, detail, balance });
     setTimeout(() => {
       setSuccessOverlay(null);
-      setSelectedPlayer(null); // Clear player after transaction — ready for next customer
     }, 3500);
   };
 

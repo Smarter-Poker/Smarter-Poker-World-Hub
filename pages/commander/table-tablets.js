@@ -1626,12 +1626,15 @@ export default function TableTabletsPage() {
                                     ← Back to Table
                                 </button>
                                 {/* Full clock-display page — ONLY uses lockedTournamentId (never derived live) */}
-                                <iframe
-                                    src={`/commander/tournaments/${lockedTournamentId}/clock-display`}
-                                    style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                                    allow="autoplay; fullscreen"
-                                    title="Tournament Clock"
-                                />
+                                {(() => {
+                                    const clockUrl = '/commander/tournaments/' + lockedTournamentId + '/clock-display'; return (
+                                        <iframe
+                                            src={clockUrl}
+                                            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                                            allow="autoplay; fullscreen"
+                                            title="Tournament Clock"
+                                        />);
+                                })()}
                             </div>
                         )}
                     {toast && (
@@ -1678,38 +1681,25 @@ export default function TableTabletsPage() {
                             {(() => {
                                 const menuTable = tables.find(t => (t.table_number || t.number) === showPlayerMenu.tableNumber);
                                 const isTournMenu = menuTable && isTournamentTable(menuTable);
-                                const entryId = showPlayerMenu.taken?.entry_id;
-                                const tournId = showPlayerMenu.taken?.tournament_id || menuTable?.tournament_id;
-                                const pName = showPlayerMenu.taken?.player_name || 'Player';
-                                const iconSize = 16;
-
-                                const actions = isTournMenu ? [
-                                    { label: 'Move Player', icon: <ArrowRightLeft size={iconSize} />, color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: pName, tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${pName}` }); } },
-                                    {
-                                        label: 'Bust Player', icon: <Skull size={iconSize} />, color: '#EF4444', action: async () => {
-                                            if (!confirm(`Bust ${pName}?`)) return;
-                                            if (entryId && tournId) {
-                                                await bustTournamentPlayer(tournId, entryId, pName);
-                                            } else {
-                                                setToast({ type: 'error', text: 'Missing entry data — try refreshing' });
-                                            }
-                                        }
-                                    },
-                                    { label: 'Update Chip Count', icon: <Coins size={iconSize} />, color: '#FFD700', action: () => { setChipCountInput(''); } },
-                                ] : [
-                                    { label: 'Move Player', icon: <ArrowRightLeft size={iconSize} />, color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: pName, tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${pName}` }); } },
-                                    { label: 'Remove Player', icon: <XCircle size={iconSize} />, color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
-                                    ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
-                                        ? [{ label: 'Resume Timer', icon: <Clock size={iconSize} />, color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: `${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
-                                        : [{ label: 'Pause Timer', icon: <Timer size={iconSize} />, color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: `${json.data.player_name} paused` }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
-                                    ),
-                                    { label: 'Missed Blinds', icon: <AlertTriangle size={iconSize} />, color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: `${json.data.player_name} removed — 3 missed blinds` }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: `Missed blind #${count} for ${json.data.player_name}` }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
-                                    { label: '30-Min Meal Break', icon: <Clock size={iconSize} />, color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: `30-min meal break for ${json.data.player_name}` }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
+                                const actions = [
+                                    { label: '🪑 Move Player', color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: showPlayerMenu.taken?.player_name || 'Player', tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${showPlayerMenu.taken?.player_name || 'player'}` }); } },
+                                    ...(isTournMenu ? [
+                                        { label: '💀 Bust Player', color: '#EF4444', action: async () => { if (!confirm(`Bust ${showPlayerMenu.taken?.player_name}?`)) return; await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); setShowPlayerMenu(null); } },
+                                        { label: '🎰 Update Chip Count', color: '#FFD700', action: () => { setChipCountInput(''); } },
+                                    ] : [
+                                        { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
+                                        ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
+                                            ? [{ label: '▶️ Resume Timer', color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: `▶️ ${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                            : [{ label: '⏸️ Pause Timer', color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: `⏸️ ${json.data.player_name} paused` }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                        ),
+                                        { label: '⚠️ Missed Blinds', color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: `🚫 ${json.data.player_name} removed — 3 missed blinds` }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: `⚠️ Missed blind #${count} for ${json.data.player_name}` }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
+                                        { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: `🍽️ 30-min meal break for ${json.data.player_name}` }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
+                                    ]),
                                 ];
                                 return actions.map((btn, i) => (
                                     <button key={i} onClick={() => { haptic(); btn.action(); }} disabled={playerActionLoading}
-                                        style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid #3A3B3C', cursor: 'pointer', background: '#3A3B3C', color: '#E4E6EB', fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
-                                    ><span style={{ color: btn.color, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{btn.icon}</span> {btn.label}</button>
+                                        style={{ padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
+                                    >{btn.label}</button>
                                 ));
                             })()}
                         </div>
@@ -1718,248 +1708,259 @@ export default function TableTabletsPage() {
                                 <input type="number" value={chipCountInput} onChange={e => setChipCountInput(e.target.value)} placeholder="Enter chip count..."
                                     style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 16, fontWeight: 700, outline: 'none' }} />
                                 <button onClick={async () => {
+                                    haptic();
                                     if (!chipCountInput) return;
-                                    const entryId = showPlayerMenu.taken?.entry_id;
-                                    const tournId = showPlayerMenu.taken?.tournament_id || tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber)?.tournament_id;
-                                    const pName = showPlayerMenu.taken?.player_name || 'Player';
-                                    if (entryId && tournId) {
-                                        await updateTournamentChipCount(tournId, entryId, parseInt(chipCountInput), pName);
-                                    } else {
-                                        setToast({ type: 'error', text: 'Missing entry data — try refreshing' });
-                                    }
+                                    try {
+                                        const sessionId = showPlayerMenu.taken?.session_id;
+                                        if (sessionId) {
+                                            const res = await fetch('/api/commander/dealer/session-action', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    table_number: showPlayerMenu.tableNumber,
+                                                    seat_number: showPlayerMenu.number,
+                                                    venue_id: venueId,
+                                                    action: 'update_chip_count',
+                                                    chip_count: parseInt(chipCountInput),
+                                                }),
+                                            });
+                                            const json = await res.json();
+                                            if (json.success) {
+                                                setToast({ type: 'success', text: `Chip count updated: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
+                                            } else {
+                                                setToast({ type: 'error', text: json.error || 'Failed to save chip count' });
+                                            }
+                                        } else {
+                                            setToast({ type: 'success', text: `Chip count: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
+                                        }
+                                    } catch { setToast({ type: 'error', text: 'Network error saving chip count' }); }
                                     setChipCountInput(null);
                                     setShowPlayerMenu(null);
+                                    fetchAll();
                                 }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>
                             </div>
                         )}
                         <button onClick={() => { haptic('light'); setShowPlayerMenu(null); setChipCountInput(null); }} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                </div>
-                </div>
-    )
-}
-
-{/* ── SEAT SCANNER MODAL ── */ }
-{
-    seatScanner && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10003, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>📸</div>
-                <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>Scan Player for Seat {seatScanner.seatNumber}</h3>
-                <p style={{ fontSize: 13, color: '#8A8D91', margin: '6px 0 0' }}>Hold QR code in front of camera</p>
-            </div>
-            <div style={{ width: '90%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 16, overflow: 'hidden', border: '3px solid #1877F2', position: 'relative' }}>
-                <video ref={seatScannerVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} playsInline muted />
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.qr.value.trim(); if (val) handleSeatScan(val, seatScanner.tableNumber, seatScanner.seatNumber); }}
-                style={{ display: 'flex', gap: 8, marginTop: 16, width: '90%', maxWidth: 400 }}>
-                <input name="qr" type="text" placeholder="Or enter QR code manually..."
-                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C', background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none' }} autoComplete="off" />
-                <button type="submit" style={{ padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Scan</button>
-            </form>
-            <button onClick={() => { haptic(); closeSeatScanner(); }} style={{ marginTop: 12, padding: '14px 48px', borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-        </div>
-    )
-}
-
-{/* ── DEALER SCAN-IN MODAL ── */ }
-{
-    scanningTable && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={() => { haptic('light'); closeDealerScan(); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)' }} />
-            <div style={{
-                position: 'relative', background: '#242526', borderRadius: 16,
-                width: '90%', maxWidth: 400, padding: 24,
-                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div>
-                        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>Dealer Scan-In</h3>
-                        <p style={{ margin: 0, fontSize: 12, color: '#B0B3B8' }}>Table {scanningTable}</p>
                     </div>
-                    <button onClick={() => { haptic('light'); closeDealerScan(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                        <X size={20} color="#B0B3B8" />
-                    </button>
                 </div>
+            )}
 
-                {scanResult ? (
-                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                        <CheckCircle size={48} color="#10B981" style={{ margin: '0 auto 12px' }} />
-                        <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>{scanResult.dealer_name}</p>
-                        <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, margin: 0 }}>
-                            Assigned to Table {scanResult.table_number}
-                        </p>
+            {/* ── SEAT SCANNER MODAL ── */}
+            {seatScanner && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10003, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>📸</div>
+                        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>Scan Player for Seat {seatScanner.seatNumber}</h3>
+                        <p style={{ fontSize: 13, color: '#8A8D91', margin: '6px 0 0' }}>Hold QR code in front of camera</p>
                     </div>
-                ) : (
-                    <>
-                        {scanError && (
-                            <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#EF4444' }}>
-                                {scanError}
+                    <div style={{ width: '90%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 16, overflow: 'hidden', border: '3px solid #1877F2', position: 'relative' }}>
+                        <video ref={seatScannerVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} playsInline muted />
+                    </div>
+                    <form onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.qr.value.trim(); if (val) handleSeatScan(val, seatScanner.tableNumber, seatScanner.seatNumber); }}
+                        style={{ display: 'flex', gap: 8, marginTop: 16, width: '90%', maxWidth: 400 }}>
+                        <input name="qr" type="text" placeholder="Or enter QR code manually..."
+                            style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C', background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none' }} autoComplete="off" />
+                        <button type="submit" style={{ padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Scan</button>
+                    </form>
+                    <button onClick={() => { haptic(); closeSeatScanner(); }} style={{ marginTop: 12, padding: '14px 48px', borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                </div>
+            )}
+
+            {/* ── DEALER SCAN-IN MODAL ── */}
+            {scanningTable && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div onClick={() => { haptic('light'); closeDealerScan(); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)' }} />
+                    <div style={{
+                        position: 'relative', background: '#242526', borderRadius: 16,
+                        width: '90%', maxWidth: 400, padding: 24,
+                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>Dealer Scan-In</h3>
+                                <p style={{ margin: 0, fontSize: 12, color: '#B0B3B8' }}>Table {scanningTable}</p>
                             </div>
-                        )}
+                            <button onClick={() => { haptic('light'); closeDealerScan(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                                <X size={20} color="#B0B3B8" />
+                            </button>
+                        </div>
 
-                        {scanCameraActive ? (
-                            <div style={{ textAlign: 'center' }}>
-                                <video
-                                    ref={(el) => { videoRef.current = el; if (el && streamRef.current) el.srcObject = streamRef.current; }}
-                                    autoPlay playsInline
-                                    style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 12 }}
-                                />
-                                <button onClick={() => { haptic(); stopDealerCamera(); }}
-                                    style={{ padding: '8px 20px', background: '#3A3B3C', color: '#E4E6EB', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
-                                    Cancel
-                                </button>
+                        {scanResult ? (
+                            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                                <CheckCircle size={48} color="#10B981" style={{ margin: '0 auto 12px' }} />
+                                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>{scanResult.dealer_name}</p>
+                                <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, margin: 0 }}>
+                                    Assigned to Table {scanResult.table_number}
+                                </p>
                             </div>
                         ) : (
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                                    <ScanLine size={32} color="#10B981" />
+                            <>
+                                {scanError && (
+                                    <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, marginBottom: 12, fontSize: 12, color: '#EF4444' }}>
+                                        {scanError}
+                                    </div>
+                                )}
+
+                                {scanCameraActive ? (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <video
+                                            ref={(el) => { videoRef.current = el; if (el && streamRef.current) el.srcObject = streamRef.current; }}
+                                            autoPlay playsInline
+                                            style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 12 }}
+                                        />
+                                        <button onClick={() => { haptic(); stopDealerCamera(); }}
+                                            style={{ padding: '8px 20px', background: '#3A3B3C', color: '#E4E6EB', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                            <ScanLine size={32} color="#10B981" />
+                                        </div>
+                                        <p style={{ fontSize: 13, color: '#B0B3B8', marginBottom: 16 }}>Scan dealer QR code to assign</p>
+                                        <button onClick={startDealerCamera}
+                                            style={{ padding: '10px 24px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                            <Camera size={16} /> Open Scanner
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #3A3B3C' }}>
+                                    <p style={{ fontSize: 11, color: '#8A8D91', marginBottom: 6, textAlign: 'center' }}>Or enter QR code manually</p>
+                                    <form onSubmit={handleManualDealerScan} style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="text" value={manualDealerQR} onChange={(e) => setManualDealerQR(e.target.value)}
+                                            placeholder="STAFF-1996-abc123"
+                                            style={{ flex: 1, padding: '8px 12px', background: '#3A3B3C', border: '1px solid #4E4F50', borderRadius: 8, color: '#E4E6EB', fontSize: 13, outline: 'none' }}
+                                        />
+                                        <button type="submit" disabled={!manualDealerQR.trim()}
+                                            style={{ padding: '8px 14px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+                                            Assign
+                                        </button>
+                                    </form>
                                 </div>
-                                <p style={{ fontSize: 13, color: '#B0B3B8', marginBottom: 16 }}>Scan dealer QR code to assign</p>
-                                <button onClick={startDealerCamera}
-                                    style={{ padding: '10px 24px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                    <Camera size={16} /> Open Scanner
-                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── PIN UNLOCK MODAL ── */}
+            {showPinModal && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div onClick={() => { haptic('light'); setShowPinModal(false); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)' }} />
+                    <div style={{
+                        position: 'relative', background: '#242526', borderRadius: 20,
+                        width: '90%', maxWidth: 360, padding: 32,
+                        border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                    }}>
+                        {/* Header */}
+                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                            <div style={{
+                                width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px',
+                                background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.3)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <ShieldCheck size={32} color="#EF4444" />
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff' }}>Unlock Tablet</h3>
+                            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#8A8D91' }}>
+                                Enter manager or owner PIN to unlock
+                            </p>
+                        </div>
+
+                        {/* PIN display */}
+                        <div style={{
+                            display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20,
+                        }}>
+                            {[0, 1, 2, 3].map(i => (
+                                <div key={i} style={{
+                                    width: 40, height: 48, borderRadius: 10,
+                                    background: pinValue.length > i ? '#1877F2' : '#3A3B3C',
+                                    border: `2px solid ${pinValue.length > i ? '#1877F2' : '#4E4F50'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s',
+                                }}>
+                                    {pinValue.length > i && (
+                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff' }} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Error */}
+                        {pinError && (
+                            <div style={{
+                                padding: '8px 12px', marginBottom: 16, borderRadius: 10,
+                                background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                                color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
+                            }}>
+                                {pinError}
                             </div>
                         )}
 
-                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #3A3B3C' }}>
-                            <p style={{ fontSize: 11, color: '#8A8D91', marginBottom: 6, textAlign: 'center' }}>Or enter QR code manually</p>
-                            <form onSubmit={handleManualDealerScan} style={{ display: 'flex', gap: 8 }}>
-                                <input
-                                    type="text" value={manualDealerQR} onChange={(e) => setManualDealerQR(e.target.value)}
-                                    placeholder="STAFF-1996-abc123"
-                                    style={{ flex: 1, padding: '8px 12px', background: '#3A3B3C', border: '1px solid #4E4F50', borderRadius: 8, color: '#E4E6EB', fontSize: 13, outline: 'none' }}
-                                />
-                                <button type="submit" disabled={!manualDealerQR.trim()}
-                                    style={{ padding: '8px 14px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
-                                    Assign
+                        {/* Numeric keypad */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        haptic('light');
+                                        if (key === null) return;
+                                        if (key === 'del') { setPinValue(v => v.slice(0, -1)); setPinError(''); }
+                                        else if (pinValue.length < 4) { setPinValue(v => v + key); setPinError(''); }
+                                    }}
+                                    style={{
+                                        padding: '16px 0', borderRadius: 12,
+                                        background: key === null ? 'transparent' : key === 'del' ? '#3A3B3C' : '#3A3B3C',
+                                        border: key === null ? 'none' : '1px solid #4E4F50',
+                                        color: '#E4E6EB', fontSize: key === 'del' ? 14 : 22, fontWeight: 700,
+                                        cursor: key === null ? 'default' : 'pointer',
+                                        visibility: key === null ? 'hidden' : 'visible',
+                                        transition: 'background 0.15s',
+                                    }}
+                                >
+                                    {key === 'del' ? '⌫' : key}
                                 </button>
-                            </form>
+                            ))}
                         </div>
-                    </>
-                )}
-            </div>
-        </div>
-    )
-}
 
-{/* ── PIN UNLOCK MODAL ── */ }
-{
-    showPinModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div onClick={() => { haptic('light'); setShowPinModal(false); }} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)' }} />
-            <div style={{
-                position: 'relative', background: '#242526', borderRadius: 20,
-                width: '90%', maxWidth: 360, padding: 32,
-                border: '2px solid #3A3B3C', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-            }}>
-                {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                    <div style={{
-                        width: 64, height: 64, borderRadius: '50%', margin: '0 auto 12px',
-                        background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.3)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <ShieldCheck size={32} color="#EF4444" />
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff' }}>Unlock Tablet</h3>
-                    <p style={{ margin: '6px 0 0', fontSize: 13, color: '#8A8D91' }}>
-                        Enter manager or owner PIN to unlock
-                    </p>
-                </div>
-
-                {/* PIN display */}
-                <div style={{
-                    display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20,
-                }}>
-                    {[0, 1, 2, 3].map(i => (
-                        <div key={i} style={{
-                            width: 40, height: 48, borderRadius: 10,
-                            background: pinValue.length > i ? '#1877F2' : '#3A3B3C',
-                            border: `2px solid ${pinValue.length > i ? '#1877F2' : '#4E4F50'}`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.15s',
-                        }}>
-                            {pinValue.length > i && (
-                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff' }} />
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Error */}
-                {pinError && (
-                    <div style={{
-                        padding: '8px 12px', marginBottom: 16, borderRadius: 10,
-                        background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                        color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center',
-                    }}>
-                        {pinError}
-                    </div>
-                )}
-
-                {/* Numeric keypad */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, idx) => (
+                        {/* Submit */}
                         <button
-                            key={idx}
-                            onClick={() => {
-                                haptic('light');
-                                if (key === null) return;
-                                if (key === 'del') { setPinValue(v => v.slice(0, -1)); setPinError(''); }
-                                else if (pinValue.length < 4) { setPinValue(v => v + key); setPinError(''); }
-                            }}
+                            onClick={() => { haptic('heavy'); handleUnlockAttempt(); }}
+                            disabled={pinLoading || pinValue.length !== 4}
                             style={{
-                                padding: '16px 0', borderRadius: 12,
-                                background: key === null ? 'transparent' : key === 'del' ? '#3A3B3C' : '#3A3B3C',
-                                border: key === null ? 'none' : '1px solid #4E4F50',
-                                color: '#E4E6EB', fontSize: key === 'del' ? 14 : 22, fontWeight: 700,
-                                cursor: key === null ? 'default' : 'pointer',
-                                visibility: key === null ? 'hidden' : 'visible',
-                                transition: 'background 0.15s',
+                                width: '100%', padding: '14px', borderRadius: 12,
+                                background: pinValue.length === 4 ? '#EF4444' : '#3A3B3C',
+                                color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
+                                cursor: pinValue.length === 4 ? 'pointer' : 'not-allowed',
+                                opacity: pinLoading ? 0.7 : 1,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                transition: 'all 0.2s',
                             }}
                         >
-                            {key === 'del' ? '⌫' : key}
+                            {pinLoading ? (
+                                <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</>
+                            ) : (
+                                <><Unlock size={18} /> Unlock Tablet</>
+                            )}
                         </button>
-                    ))}
+
+                        {/* Cancel */}
+                        <button
+                            onClick={() => { setShowPinModal(false); setPinValue(''); setPinError(''); }}
+                            style={{
+                                width: '100%', padding: '10px', marginTop: 8,
+                                background: 'transparent', border: 'none', borderRadius: 8,
+                                color: '#8A8D91', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
                 </div>
-
-                {/* Submit */}
-                <button
-                    onClick={() => { haptic('heavy'); handleUnlockAttempt(); }}
-                    disabled={pinLoading || pinValue.length !== 4}
-                    style={{
-                        width: '100%', padding: '14px', borderRadius: 12,
-                        background: pinValue.length === 4 ? '#EF4444' : '#3A3B3C',
-                        color: '#fff', border: 'none', fontSize: 16, fontWeight: 700,
-                        cursor: pinValue.length === 4 ? 'pointer' : 'not-allowed',
-                        opacity: pinLoading ? 0.7 : 1,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        transition: 'all 0.2s',
-                    }}
-                >
-                    {pinLoading ? (
-                        <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</>
-                    ) : (
-                        <><Unlock size={18} /> Unlock Tablet</>
-                    )}
-                </button>
-
-                {/* Cancel */}
-                <button
-                    onClick={() => { setShowPinModal(false); setPinValue(''); setPinError(''); }}
-                    style={{
-                        width: '100%', padding: '10px', marginTop: 8,
-                        background: 'transparent', border: 'none', borderRadius: 8,
-                        color: '#8A8D91', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    }}
-                >
-                    Cancel
-                </button>
-            </div>
-        </div>
-    )
-}
-        </CommanderLayout >
+            )}
+        </CommanderLayout>
     );
 }
