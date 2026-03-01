@@ -115,6 +115,19 @@ class TableManager {
     this._disconnectTimers = new Map();
     this._reservationTimers = new Map();
     
+    // No-rathole enforcement: tracks departed stacks to prevent hit-and-run
+    // Map<playerId, { stack: number, leftAt: number }>
+    this.noRathole = config.noRathole || config.clubSettings?.no_rathole || false;
+    this._departedStacks = new Map();
+    this._ratholeTimeoutMs = 30 * 60 * 1000; // 30 minutes
+    
+    // Seven-Deuce bonus game
+    this.sevenDeuce = config.sevenDeuce || config.clubSettings?.seven_deuce || false;
+    this.sevenDeuceBonus = config.sevenDeuceBonus || config.bigBlind * 10; // Default: 10BB bonus
+    
+    // Bomb pot tracking
+    this._lastBombPotHand = 0;
+    
     // Event listeners
     this._listeners = new Map();
     
@@ -214,6 +227,23 @@ class TableManager {
       return { success: false, error: `Maximum buy-in is ${this.maxBuyIn}` };
     }
     
+    // No-rathole enforcement: returning players must buy in at or above their previous stack
+    if (this.noRathole) {
+      const departed = this._departedStacks.get(String(playerId));
+      if (departed && (Date.now() - departed.leftAt) < this._ratholeTimeoutMs) {
+        const requiredMin = Math.min(departed.stack, this.maxBuyIn); // Can't exceed table max
+        if (buyIn < requiredMin) {
+          return {
+            success: false,
+            error: `No rathole: you left with ${departed.stack} chips. Minimum buy-in is ${requiredMin}`,
+            ratholeMin: requiredMin,
+          };
+        }
+      }
+      // Clear the record once they successfully sit down
+      this._departedStacks.delete(String(playerId));
+    }
+    
     // Sit down
     seat.status = SEAT_STATUS.OCCUPIED;
     seat.player = { id: playerId, displayName: playerInfo.displayName || playerId, avatarUrl: playerInfo.avatarUrl || null };
@@ -263,6 +293,15 @@ class TableManager {
     }
     
     const cashout = seat.stack;
+    
+    // No-rathole: record departing stack so returning player must buy in at this level
+    if (this.noRathole && cashout > this.minBuyIn) {
+      this._departedStacks.set(String(playerId), {
+        stack: cashout,
+        leftAt: Date.now(),
+      });
+    }
+    
     this._vacateSeat(seat);
     
     this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout });
@@ -529,8 +568,20 @@ class TableManager {
     this.status = TABLE_STATUS.RUNNING;
     this.handCount++;
     
+    // Bomb Pot detection
+    const bombPotEnabled = this.game.config.bombPot;
+    let isBombPot = false;
+    if (bombPotEnabled && activePlayers.length >= 3) {
+      // Trigger bomb pot every ~10 hands (10% chance per hand, min 5 hands apart)
+      const handsSinceLastBomb = this.handCount - (this._lastBombPotHand || 0);
+      if (handsSinceLastBomb >= 5 && Math.random() < 0.10) {
+        isBombPot = true;
+        this._lastBombPotHand = this.handCount;
+      }
+    }
+    
     // Start the hand on the game engine
-    this.game.startHand(activePlayers);
+    this.game.startHand(activePlayers, undefined, { bombPot: isBombPot });
     
     return { success: true };
   }
@@ -620,6 +671,53 @@ class TableManager {
     this._syncStacks();
     
     this.status = TABLE_STATUS.BETWEEN_HANDS;
+    
+    // ── Seven-Deuce Bonus Game ──
+    // If enabled, players who win a pot with 7-2 offsuit collect a bonus from every other player
+    if (this.sevenDeuce && data.result?.winners?.length > 0 && data.result.type !== 'fold') {
+      const { getRank, getSuit } = require('./Deck');
+      for (const winner of data.result.winners) {
+        const player = this.game.currentHand?.players?.find(p => String(p.id) === String(winner.playerId));
+        if (!player?.holeCards || player.holeCards.length < 2) continue;
+        
+        // Check for 7-2 offsuit (rank 5 = '7', rank 0 = '2')
+        const ranks = player.holeCards.map(c => getRank(c)).sort((a, b) => a - b);
+        const suits = player.holeCards.map(c => getSuit(c));
+        const is72 = ranks[0] === 0 && ranks[1] === 5 && suits[0] !== suits[1];
+        
+        if (is72) {
+          const bonus = this.sevenDeuceBonus;
+          let totalCollected = 0;
+          const payers = [];
+          
+          // Collect from all other seated players
+          for (const seat of this.seats) {
+            if (!seat.player || String(seat.player.id) === String(winner.playerId)) continue;
+            if (seat.status !== SEAT_STATUS.OCCUPIED && seat.status !== SEAT_STATUS.SITTING_OUT) continue;
+            const payment = Math.min(bonus, seat.stack);
+            if (payment > 0) {
+              seat.stack -= payment;
+              totalCollected += payment;
+              payers.push({ playerId: seat.player.id, amount: payment });
+            }
+          }
+          
+          // Award to winner
+          const winnerSeat = this._findPlayerSeat(winner.playerId);
+          if (winnerSeat && totalCollected > 0) {
+            winnerSeat.stack += totalCollected;
+            this.emit('seven_deuce_bonus', {
+              winnerId: winner.playerId,
+              winnerName: winnerSeat.player?.displayName,
+              bonus: totalCollected,
+              perPlayer: bonus,
+              payers,
+              holeCards: player.holeCards,
+            });
+          }
+        }
+      }
+    }
     
     this.emit('hand_complete', data);
     

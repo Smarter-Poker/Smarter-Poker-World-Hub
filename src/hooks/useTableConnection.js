@@ -238,6 +238,15 @@ export function useTableConnection({ supabase, tableId, userId }) {
         }
         requestState();
         break;
+      case 'seven_deuce_bonus':
+        // 7-2 bonus game — winner collected bonus from other players
+        setResult(prev => ({ ...prev, sevenDeuceBonus: data }));
+        requestState();
+        break;
+      case 'bbj_triggered':
+        // Bad Beat Jackpot hit — same as bbj_won
+        setResult(prev => ({ ...prev, bbj: data }));
+        break;
       default:
         requestState();
         break;
@@ -270,6 +279,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'bbj_triggered',
       'discard_required', 'card_discarded',
       'chips_added',
+      'seven_deuce_bonus',
     ];
 
     for (const evt of events) {

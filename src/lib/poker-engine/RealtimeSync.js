@@ -164,6 +164,8 @@ class RealtimeSync {
       'discard_required', 'card_discarded',
       // Chips
       'chips_added',
+      // Seven-Deuce bonus
+      'seven_deuce_bonus',
     ];
     
     for (const event of broadcastEvents) {

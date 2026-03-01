@@ -151,7 +151,7 @@ class GameStateMachine {
    * @param {number} [buttonSeat] - Override button position (otherwise auto-rotates)
    * @returns {Object} Hand state
    */
-  startHand(players, buttonSeat) {
+  startHand(players, buttonSeat, options = {}) {
     if (players.length < 2) {
       throw new Error('Need at least 2 players to start a hand');
     }
@@ -174,6 +174,8 @@ class GameStateMachine {
     // Determine blind positions
     const positions = this._assignPositions(playersWithChips);
     
+    const isBombPot = options.bombPot || false;
+    
     // Initialize hand state
     this.currentHand = {
       handNumber: this.handNumber,
@@ -192,6 +194,7 @@ class GameStateMachine {
       straddleActive: false,
       actions: [],
       result: null,
+      isBombPot,
     };
     
     // Reset components
@@ -204,16 +207,44 @@ class GameStateMachine {
       handNumber: this.handNumber,
       players: this.currentHand.players.map(p => ({ id: p.id, stack: p.stack, seatIndex: p.seatIndex, position: p.position })),
       buttonSeat: this.buttonSeat,
+      bombPot: isBombPot,
     });
     
-    // Post blinds
-    this._postBlinds();
-    
-    // Deal cards
-    this._dealHoleCards();
-    
-    // Start preflop betting
-    this._startBettingRound('preflop');
+    if (isBombPot) {
+      // ── BOMB POT: Everyone antes, skip preflop, deal flop ──
+      const bombPotAnte = this.config.bigBlind * 2; // 2x BB per player
+      for (const player of this.currentHand.players) {
+        const amount = Math.min(bombPotAnte, player.stack);
+        player.stack -= amount;
+        this.potCalculator.addBlind(player.id, amount);
+        if (player.stack <= 0) player.allIn = true;
+      }
+      this.emit('blinds_posted', {
+        bombPot: true,
+        ante: bombPotAnte,
+        players: this.currentHand.players.map(p => ({ id: p.id, amount: Math.min(bombPotAnte, p.stack + Math.min(bombPotAnte, p.stack)), stack: p.stack })),
+      });
+      
+      // Deal hole cards
+      this._dealHoleCards();
+      
+      // Deal flop immediately
+      this._dealCommunityCards('flop');
+      this.emit('street_start', { street: 'flop', communityCards: [...this.currentHand.communityCards] });
+      
+      // Start betting at flop (skip preflop entirely)
+      this._startBettingRound('flop');
+    } else {
+      // ── NORMAL HAND ──
+      // Post blinds
+      this._postBlinds();
+      
+      // Deal cards
+      this._dealHoleCards();
+      
+      // Start preflop betting
+      this._startBettingRound('preflop');
+    }
     
     return this.getState();
   }
