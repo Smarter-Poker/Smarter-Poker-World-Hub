@@ -17,19 +17,35 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(newUrl, 301);
     }
 
+    // ── Block admin/debug/emergency API routes without proper auth ──
+    // These are one-off migration scripts that should never be publicly accessible.
+    const isProtectedRoute = pathname.startsWith('/api/admin') ||
+                             pathname.startsWith('/api/debug') ||
+                             pathname.startsWith('/api/emergency');
+    
+    if (isProtectedRoute) {
+        const adminSecret = request.headers.get('x-admin-secret');
+        const envSecret = process.env.ADMIN_ROUTE_SECRET;
+        
+        // Must have ADMIN_ROUTE_SECRET env var set AND header must match
+        if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+            return NextResponse.json(
+                { error: 'Admin routes are disabled in production.' },
+                { status: 403 }
+            );
+        }
+    }
+
     return NextResponse.next();
 }
 
 export const config = {
-    // Apply to all routes
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - api (API routes)
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         */
+        // Non-API routes (www redirect)
         '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        // Protected API routes (admin guard)
+        '/api/admin/:path*',
+        '/api/debug/:path*',
+        '/api/emergency/:path*',
     ],
 };
