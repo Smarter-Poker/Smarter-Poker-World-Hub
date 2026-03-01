@@ -188,6 +188,10 @@ export function useTableConnection({ supabase, tableId, userId }) {
         if (data.playerId !== userId) setLegalActions(null);
         // Initial timer — remaining comes from first timer_update tick
         setTimerState({ playerId: data.playerId, remaining: data.turnTime || 30, isTimebank: false });
+        // If it's our turn, fetch legal actions via authenticated API (not broadcast)
+        if (String(data.playerId) === String(userId)) {
+          requestState();
+        }
         break;
       case 'action_processed':
         if (data.playerId === userId) setLegalActions(null);
@@ -422,8 +426,10 @@ export function useTableConnection({ supabase, tableId, userId }) {
       });
     }
 
-    // Private events targeted to this user
-    for (const evt of ['private_cards', 'your_turn', 'table_state', 'table_error']) {
+    // Private events — no longer sent via broadcast channel for security.
+    // Cards and legal actions are fetched via authenticated GET /engine/state.
+    // Keep table_state and table_error per-player subscriptions for reconnect support.
+    for (const evt of ['table_state', 'table_error']) {
       channel.on('broadcast', { event: `${evt}:${userId}` }, (payload) => {
         handleEvent(evt, payload.payload);
       });

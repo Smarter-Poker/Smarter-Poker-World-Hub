@@ -784,6 +784,8 @@ class TableManager {
           const cashout = seat.stack;
           const playerId = seat.player?.id;
           this._vacateSeat(seat);
+          // MUST emit player_left FIRST so LobbyManager triggers chip unlock
+          this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout, reason: 'auto_removed' });
           this.emit('player_auto_removed', { playerId, seatIndex: seat.seatIndex, cashout, reason: 'sitting_out_too_long' });
         }
       }

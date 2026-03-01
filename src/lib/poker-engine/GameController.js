@@ -676,9 +676,20 @@ class GameController {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
 
-    // Cancel the action timer — player acted in time
+    // IMPORTANT: Cancel the timer FIRST to prevent _expire() from firing
+    // between here and the engine's processAction. Then record timebank usage.
+    // recordAction needs _startTime which cancelTurn clears, so capture first.
+    const timerWasActive = entry.timer._currentPlayerId === String(playerId);
     entry.timer.recordAction(playerId);
     entry.timer.cancelTurn();
+
+    // If the timer already expired for this player (race: _expire fired
+    // during _ensureInit await), the engine will have already auto-folded.
+    // Don't double-process.
+    if (!timerWasActive) {
+      // Timer wasn't tracking this player — likely already expired/auto-folded
+      // Still try the action; engine will reject if it's not their turn
+    }
 
     // Process through the engine
     const result = entry.table.processAction(playerId, action);

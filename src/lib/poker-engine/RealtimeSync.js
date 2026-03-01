@@ -197,41 +197,27 @@ class RealtimeSync {
       });
     }
     
-    // Cards dealt is special — send private cards to each player
+    // Cards dealt — broadcast public info only. Private cards fetched via authenticated API.
     this.table.on('cards_dealt', (data) => {
-      // Broadcast public info (card count)
+      // Broadcast public info (card count only — no actual cards)
       this._broadcast(CHANNEL_EVENTS.CARDS_DEALT, {
         players: data.players.map(p => ({ id: p.id, cardCount: p.cardCount })),
       });
-      
-      // Send private cards to each player via targeted message
-      for (const player of data.players) {
-        const cards = this.table.getPlayerCards(player.id);
-        if (cards) {
-          this._sendToPlayer(player.id, 'private_cards', {
-            holeCards: cards,
-          });
-        }
-      }
+      // SECURITY: Private cards are NOT sent via broadcast channel.
+      // Supabase broadcast is pub/sub — ALL channel subscribers see ALL events.
+      // Clients fetch their own cards via authenticated GET /engine/state.
     });
     
-    // Action required — send to specific player with their legal actions
+    // Action required — broadcast public turn info, private data via API
     this.table.on('action_required', (data) => {
-      // Broadcast that it's someone's turn (public)
+      // Broadcast that it's someone's turn (public — no legal actions)
       this._broadcast(CHANNEL_EVENTS.ACTION_REQUIRED, {
         playerId: data.playerId,
         timeBank: data.timeBank,
         turnTime: this.timer?.turnTime || 30,
       });
-      
-      // Send legal actions to the specific player (private)
-      const actions = this.table.getActionsForPlayer(data.playerId);
-      if (actions) {
-        this._sendToPlayer(data.playerId, 'your_turn', {
-          legalActions: actions.actions,
-          presets: actions.presets,
-        });
-      }
+      // SECURITY: Legal actions are NOT sent via broadcast channel.
+      // Client fetches via authenticated GET /engine/state when it's their turn.
       
       // Start action timer
       const seat = this.table.seats.find(s => s.player?.id === data.playerId);
@@ -376,19 +362,10 @@ class RealtimeSync {
    * Broadcast full table state to all (each player gets their own view).
    */
   broadcastFullState() {
-    // Public state (no hole cards)
+    // Public state only (no hole cards) — clients fetch private data via authenticated API
     const publicState = this.table.getState();
     this._broadcast(CHANNEL_EVENTS.TABLE_STATE, publicState);
-    
-    // Private cards for each seated player
-    for (const seat of this.table.seats) {
-      if (seat.player) {
-        const cards = this.table.getPlayerCards(seat.player.id);
-        if (cards) {
-          this._sendToPlayer(seat.player.id, 'private_cards', { holeCards: cards });
-        }
-      }
-    }
+    // SECURITY: Private cards NOT sent here. Each client calls GET /engine/state.
   }
 
   // ============ CLEANUP ============
