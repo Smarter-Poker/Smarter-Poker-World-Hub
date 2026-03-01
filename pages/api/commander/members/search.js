@@ -81,25 +81,28 @@ export default async function handler(req, res) {
       const { data: staffMembers } = await staffQ.order('role', { ascending: true });
 
       if (staffMembers && staffMembers.length > 0) {
-        // Cross-reference staff with commander_members to get real member IDs + balances
-        const staffUserIds = staffMembers.filter(s => s.user_id).map(s => s.user_id);
-        let memberByUserId = {};
-        if (staffUserIds.length > 0) {
-          const { data: memberRecords } = await supabase
-            .from('commander_members')
-            .select('id, user_id, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
-            .eq('venue_id', venueFilter)
-            .in('user_id', staffUserIds);
-          if (memberRecords) {
-            for (const mr of memberRecords) {
-              if (mr.user_id) memberByUserId[mr.user_id] = mr;
-            }
+        // Cross-reference staff with commander_members by name to get real member IDs + balances
+        // NOTE: commander_members does NOT have a user_id column, so we match by name + venue
+        let memberByStaffId = {};
+        for (const s of staffMembers) {
+          const nameParts = (s.display_name || '').trim().split(/\s+/);
+          const sfFirst = nameParts[0] || '';
+          const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+          if (sfFirst) {
+            let mq = supabase
+              .from('commander_members')
+              .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
+              .eq('venue_id', venueFilter)
+              .ilike('first_name', sfFirst);
+            if (sfLast) mq = mq.ilike('last_name', sfLast);
+            const { data: memberMatch } = await mq.maybeSingle();
+            if (memberMatch) memberByStaffId[s.id] = memberMatch;
           }
         }
 
         for (const s of staffMembers) {
           const nameParts = (s.display_name || '').trim().split(/\s+/);
-          const memberRec = s.user_id ? memberByUserId[s.user_id] : null;
+          const memberRec = memberByStaffId[s.id] || null;
           results.push({
             id: memberRec?.id || s.id,  // Use commander_members.id if available
             user_id: s.user_id,
