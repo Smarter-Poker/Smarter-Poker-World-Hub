@@ -88,6 +88,9 @@ async function awardComp(req, res, staffAuth) {
     }
 
     const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'Amount must be a positive number' });
+    }
     const newBalance = (member.comp_balance || 0) + parsedAmount;
 
     // Update member's comp balance
@@ -114,7 +117,7 @@ async function awardComp(req, res, staffAuth) {
         amount: parsedAmount,
         type: type || 'award',
         reason: reason || 'Manual comp award',
-        authorized_by: authorized_by || staffRecord.display_name,
+        authorized_by: authorized_by || 'Staff',
         authorized_pin: authorized_pin || false,
         processed_by: staffRecord.id,
         balance_after: Math.round(newBalance * 100) / 100,
@@ -174,16 +177,32 @@ async function getBalances(req, res) {
       });
     }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+    // Auth: prefer x-staff-session, fallback to Bearer token
+    let userId = null;
+    const staffSessionHeader = req.headers['x-staff-session'];
+    if (staffSessionHeader) {
+      try {
+        const session = JSON.parse(staffSessionHeader);
+        if (session.user_id) userId = session.user_id;
+        else if (session.id) {
+          // PIN-based session — look up user_id from commander_staff
+          const { data: staffRow } = await supabase
+            .from('commander_staff')
+            .select('user_id')
+            .eq('id', session.id)
+            .single();
+          if (staffRow?.user_id) userId = staffRow.user_id;
+        }
+      } catch { /* invalid session */ }
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+    if (!userId) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: 'Authorization required' });
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) return res.status(401).json({ error: 'Session expired — please refresh the page' });
+      userId = user.id;
     }
 
     const { player_id, sort_by = 'current_balance', limit = 50, offset = 0 } = req.query;
@@ -196,7 +215,7 @@ async function getBalances(req, res) {
           *,
           poker_venues:venue_id (id, name, city, state)
         `)
-        .eq('player_id', user.id)
+        .eq('player_id', userId)
         .order('current_balance', { ascending: false });
 
       if (error) throw error;
@@ -209,7 +228,7 @@ async function getBalances(req, res) {
       const { data: sessions } = await supabase
         .from('commander_player_sessions')
         .select('total_time_minutes')
-        .eq('player_id', user.id);
+        .eq('player_id', userId);
 
       const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 
@@ -229,7 +248,7 @@ async function getBalances(req, res) {
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('is_active', true)
       .single();
 
@@ -286,7 +305,7 @@ async function getBalances(req, res) {
         poker_venues:venue_id (id, name, city, state)
       `)
       .eq('venue_id', venue_id)
-      .eq('player_id', user.id)
+      .eq('player_id', userId)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
