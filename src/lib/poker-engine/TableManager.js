@@ -150,6 +150,13 @@ class TableManager {
 
     // Discard (Pineapple)
     this.game.on('discard_required', (d) => this.emit('discard_required', d));
+
+    // Insurance events
+    this.game.on('insurance_offered', (d) => this.emit('insurance_offered', d));
+    this.game.on('insurance_purchased', (d) => this.emit('insurance_purchased', d));
+    this.game.on('insurance_declined', (d) => this.emit('insurance_declined', d));
+    this.game.on('insurance_expired', (d) => this.emit('insurance_expired', d));
+    this.game.on('insurance_payout', (d) => this.emit('insurance_payout', d));
   }
 
   // ============ EVENT SYSTEM ============

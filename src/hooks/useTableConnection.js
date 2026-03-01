@@ -264,9 +264,12 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'insurance_payout', 'insurance_expired',
       'run_it_multiple', 'run_it_twice', 'run_it_thrice',
       'run_it_offer', 'run_it_response', 'run_it_agreed', 'run_it_declined',
-      'straddle_posted',
+      'straddle_posted', 'straddle_declared',
       'all_in_equity',
       'emoji_thrown',
+      'bbj_triggered',
+      'discard_required', 'card_discarded',
+      'chips_added',
     ];
 
     for (const evt of events) {

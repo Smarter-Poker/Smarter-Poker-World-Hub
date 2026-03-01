@@ -141,11 +141,29 @@ class RealtimeSync {
    */
   _wireTableEvents() {
     const broadcastEvents = [
+      // Core game flow
       'hand_start', 'blinds_posted', 'street_start',
       'action_processed', 'showdown', 'payout', 'hand_complete',
+      // Player state
       'player_seated', 'player_left', 'player_sitting_out',
       'player_sitting_in', 'player_disconnected', 'player_reconnected',
       'player_auto_removed', 'seat_offered', 'table_paused', 'table_resumed',
+      // Run It Twice/Thrice
+      'run_it_offer', 'run_it_response', 'run_it_agreed',
+      'run_it_declined', 'run_it_multiple', 'run_it_twice', 'run_it_thrice',
+      // Insurance
+      'insurance_offered', 'insurance_purchased', 'insurance_declined',
+      'insurance_expired', 'insurance_payout',
+      // Straddle
+      'straddle_posted', 'straddle_declared',
+      // All-in equity display
+      'all_in_equity',
+      // Bad Beat Jackpot
+      'bbj_triggered',
+      // Discard (Pineapple)
+      'discard_required', 'card_discarded',
+      // Chips
+      'chips_added',
     ];
     
     for (const event of broadcastEvents) {
@@ -384,12 +402,30 @@ function createTableClient(supabase, tableId, playerId, callbacks = {}) {
   
   // Subscribe to all server events
   const serverEvents = [
+    // Core game flow
     'table_state', 'hand_start', 'blinds_posted', 'cards_dealt',
     'street_start', 'action_required', 'action_processed',
     'timer_update', 'showdown', 'payout', 'hand_complete',
+    // Player state
     'player_seated', 'player_left', 'player_sitting_out',
     'player_sitting_in', 'player_disconnected', 'player_reconnected',
     'chat_message', 'table_error', 'seat_offered',
+    // Run It Twice/Thrice
+    'run_it_offer', 'run_it_response', 'run_it_agreed',
+    'run_it_declined', 'run_it_multiple', 'run_it_twice', 'run_it_thrice',
+    // Insurance
+    'insurance_offered', 'insurance_purchased', 'insurance_declined',
+    'insurance_expired', 'insurance_payout',
+    // Straddle
+    'straddle_posted', 'straddle_declared',
+    // All-in equity
+    'all_in_equity',
+    // Bad Beat Jackpot
+    'bbj_triggered',
+    // Discard / Pineapple
+    'discard_required', 'card_discarded',
+    // Chips
+    'chips_added',
   ];
   
   for (const event of serverEvents) {
