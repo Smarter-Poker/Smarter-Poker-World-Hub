@@ -250,15 +250,43 @@ class PotCalculator {
     const pots = this.calculatePots();
     const payouts = new Map();
     const potDetails = [];
-    let totalRake = 0;
     
+    // ── RAKE: Calculate on total pot, deduct from main pot first ──
+    // Per standard poker rules, rake comes from the main pot before side pots.
+    const totalPotAmount = pots.reduce((sum, p) => sum + p.amount, 0);
+    let totalRake = 0;
+    if (rakePercent > 0) {
+      // Only rake if >1 player saw a flop (handled upstream), but at minimum
+      // require >1 eligible player across all pots
+      const hasMultiple = pots.some(p => p.eligible.size > 1);
+      if (hasMultiple) {
+        totalRake = Math.min(
+          Math.floor(totalPotAmount * rakePercent / 100),
+          rakeCap === Infinity ? Infinity : rakeCap
+        );
+      }
+    }
+    
+    // Deduct rake from pots: main pot first, then side pots if needed
+    let rakeRemaining = totalRake;
+    for (const pot of pots) {
+      if (rakeRemaining <= 0) {
+        pot._rakeDeducted = 0;
+        continue;
+      }
+      const deduction = Math.min(rakeRemaining, pot.amount);
+      pot.amount -= deduction;
+      pot._rakeDeducted = deduction;
+      rakeRemaining -= deduction;
+    }
+    
+    // Distribute each pot to winners
     for (const pot of pots) {
       // Find eligible players who are in the hand rankings
       const eligibleHands = playerHands.filter(ph => pot.eligible.has(ph.playerId));
       
       if (eligibleHands.length === 0) {
-        // No eligible winner (shouldn't happen, but safety)
-        // Return to the last remaining player
+        // No eligible winner — return to the last remaining player
         const remaining = [...pot.eligible][0];
         if (remaining) {
           payouts.set(remaining, (payouts.get(remaining) || 0) + pot.amount);
@@ -266,23 +294,10 @@ class PotCalculator {
         continue;
       }
       
-      // Calculate rake — cap is GLOBAL across all pots in the hand
-      let rake = 0;
-      if (rakePercent > 0 && pot.eligible.size > 1) {
-        const uncappedRake = Math.floor(pot.amount * rakePercent / 100);
-        const remainingCap = rakeCap === Infinity ? Infinity : Math.max(0, rakeCap - totalRake);
-        rake = Math.min(uncappedRake, remainingCap);
-        totalRake += rake;
-      }
-      
-      const distributable = pot.amount - rake;
-      
       if (hiLo && lowHands.length > 0) {
-        // Hi-Lo: split pot between best high and best low
-        this._distributeHiLo(distributable, eligibleHands, lowHands, pot, payouts, potDetails);
+        this._distributeHiLo(pot.amount, eligibleHands, lowHands, pot, payouts, potDetails);
       } else {
-        // Standard: all to high hand winner(s)
-        this._distributeHigh(distributable, eligibleHands, pot, payouts, potDetails);
+        this._distributeHigh(pot.amount, eligibleHands, pot, payouts, potDetails);
       }
     }
     
