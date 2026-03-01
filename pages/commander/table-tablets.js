@@ -629,7 +629,7 @@ export default function TableTabletsPage() {
                             {venueName || ''}{venueName ? ' · ' : ''}TABLE {tNum}
                         </div>
                         <div style={{ fontSize: isFullscreen ? 22 : 18, fontWeight: 800, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.5 }}>
-                            {getFullGameName(game?.game_type || table.game_type)}
+                            {isTournamentTable(table) && !game?.game_type && !table.game_type ? 'Tournament' : getFullGameName(game?.game_type || table.game_type)}
                         </div>
                         <div style={{ fontSize: isFullscreen ? 20 : 16, color: 'rgba(255,255,255,0.7)', marginTop: 2, fontWeight: 700 }}>
                             {formatStakes(game?.stakes || table.stakes)}
@@ -948,7 +948,7 @@ export default function TableTabletsPage() {
                                                         <div>
                                                             <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                 <Trophy size={16} />
-                                                                {formatStakes(game?.stakes || table.stakes)} {getFullGameName(game?.game_type || table.game_type)}
+                                                                {formatStakes(game?.stakes || table.stakes)} {game?.game_type || table.game_type ? getFullGameName(game?.game_type || table.game_type) : 'Tournament'}
                                                             </div>
                                                             <div style={{ fontSize: 13, opacity: 0.9 }}>
                                                                 Table {tNum}{table.table_name && table.table_name !== `Table ${tNum}` ? ` · ${table.table_name}` : ''} · {maxSeats}-max · Tournament
