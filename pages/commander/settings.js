@@ -69,11 +69,8 @@ export default function CommanderSettingsPage() {
     const storedStaffData = localStorage.getItem('commander_staff');
     if (!storedStaffData) return;
     try {
-      const parsed = JSON.parse(storedStaffData);
-      const token = parsed.token || parsed.access_token;
-      if (!token) return;
       fetch('/api/commander/settings', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 'x-staff-session': storedStaffData }
       })
         .then(r => r.json())
         .then(data => {
