@@ -323,13 +323,14 @@ export default function TablesDisplay() {
     if (type === 'dealer') {
       // Scan in a dealer
       try {
-        const res = await fetch('/api/commander/tables/dealer-scan', {
+        const res = await fetch('/api/commander/dealer/scan-in', {
           method: 'POST', headers,
           body: JSON.stringify({ venue_id: venueId, qr_code: qrData, table_number: lockedTableNum }),
         });
         const json = await res.json();
         if (json.success) {
-          setToast({ type: 'success', text: `✅ ${json.data.dealer_name} scanned in as dealer` });
+          const dealerName = json.data?.dealer?.name || json.data?.dealer_name || 'Dealer';
+          setToast({ type: 'success', text: `✅ ${dealerName} scanned in as dealer` });
           fetchData(); fetchDealers();
         } else {
           setToast({ type: 'error', text: json.error || 'Dealer not found' });

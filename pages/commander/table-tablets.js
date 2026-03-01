@@ -385,14 +385,17 @@ export default function TableTabletsPage() {
         setScanError('');
         setScanResult(null);
         try {
-            const res = await fetch('/api/commander/tables/dealer-scan', {
+            const res = await fetch('/api/commander/dealer/scan-in', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ venue_id: venueId, qr_code: qrCode, table_number: scanningTable }),
             });
             const data = await res.json();
             if (data.success) {
-                setScanResult(data.data);
+                setScanResult({
+                    dealer_name: data.data?.dealer?.name || data.data?.dealer_name || 'Dealer',
+                    table_number: data.data?.table_number || scanningTable,
+                });
                 fetchAll();
                 broadcastChange('dealers');
                 setTimeout(() => closeDealerScan(), 3000);
