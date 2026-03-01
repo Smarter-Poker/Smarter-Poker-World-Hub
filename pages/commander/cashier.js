@@ -559,19 +559,22 @@ export default function Cashier() {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession };
-      // Record void/refund transaction
-      await fetch('/api/commander/cashier', {
-        method: 'POST', headers,
-        body: JSON.stringify({
-          venue_id: venueId,
-          player_name: details.player_name || 'Unknown',
-          type: 'cash_out',
-          amount: details.amount || 0,
-          payment_method: details.payment_method || 'cash',
-          notes: `${actionLabel.toUpperCase()} — TX #${txId}: ${details.notes || type} [by ${staff?.display_name || 'Staff'}]`,
-          pin_verified_by: staff?.id || null
-        })
-      });
+      // Record void/refund transaction (skip for $0 transactions like free time)
+      const voidAmount = details.amount || 0;
+      if (voidAmount > 0) {
+        await fetch('/api/commander/cashier', {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            venue_id: venueId,
+            player_name: details.player_name || 'Unknown',
+            type: 'cash_out',
+            amount: voidAmount,
+            payment_method: details.payment_method || 'cash',
+            notes: `${actionLabel.toUpperCase()} — TX #${txId}: ${details.notes || type} [by ${staff?.display_name || 'Staff'}]`,
+            pin_verified_by: staff?.id || null
+          })
+        });
+      }
 
       // If time void, subtract the minutes back
       if (type === 'time' && selectedPlayer?.id && details.minutes) {

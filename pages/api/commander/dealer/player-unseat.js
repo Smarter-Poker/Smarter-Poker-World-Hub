@@ -48,6 +48,39 @@ export default async function handler(req, res) {
 
         const session = sessions?.[0];
         if (!session) {
+            // Fallback: no session record, but seat might still be occupied (legacy/seeded data)
+            if (table_number && seat_number) {
+                try {
+                    const { data: seatRows } = await supabase
+                        .from('commander_table_seats')
+                        .select('*')
+                        .eq('table_number', parseInt(table_number))
+                        .eq('seat_number', parseInt(seat_number))
+                        .eq('status', 'occupied')
+                        .limit(1);
+
+                    if (seatRows?.[0]) {
+                        const seatRow = seatRows[0];
+                        await supabase
+                            .from('commander_table_seats')
+                            .update({ status: 'empty', player_name: null, member_id: null, seated_at: null })
+                            .eq('id', seatRow.id);
+
+                        return res.status(200).json({
+                            success: true,
+                            data: {
+                                session_id: null,
+                                player_name: seatRow.player_name || 'Unknown',
+                                elapsed_minutes: 0,
+                                unused_minutes_returned: 0,
+                                comp_earned: 0,
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Fallback seat clear failed:', e.message);
+                }
+            }
             return res.status(404).json({ success: false, error: 'No active session found' });
         }
 

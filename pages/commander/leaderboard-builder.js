@@ -218,10 +218,10 @@ export default function LeaderboardBuilder() {
     // RENDER
     // ═══════════════════════════════════════════════════════════════
     const s = {
-        card: { background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px', marginBottom: '12px' },
-        btn: { padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px' },
-        input: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none' },
-        select: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none' },
+        card: { background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)', borderRadius: '12px', padding: '20px', marginBottom: '12px' },
+        btn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' },
+        input: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
+        select: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', color: 'white', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
         label: { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
     };
 
