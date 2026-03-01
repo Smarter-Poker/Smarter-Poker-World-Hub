@@ -46,6 +46,32 @@ export default async function handler(req, res) {
 
     // If agent, use agent-to-player transfer instead of treasury
     if (member.role === 'agent') {
+      // ═══════════════════════════════════════════════════════════
+      // PROMO DISTRIBUTION — uses promo_balance, NOT credit/chips
+      // Promo chips are pre-raked (funded from 30% of BBJ allocation).
+      // They do NOT count as agent credit, do NOT create settlement
+      // debts, and do NOT affect weekly square-up with the union.
+      // ═══════════════════════════════════════════════════════════
+      if (req.body.type === 'promo') {
+        const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_promo_agent_to_player', {
+          p_club_id: clubId,
+          p_agent_user_id: user.id,
+          p_player_user_id: toUserId,
+          p_amount: amount,
+          p_note: notes || 'Agent promo distribution',
+        });
+
+        if (rpcErr) {
+          return res.status(500).json({ error: 'Promo transfer failed', details: rpcErr.message });
+        }
+        if (!result?.success) {
+          return res.status(400).json({ error: result?.error || 'Promo transfer failed', details: result });
+        }
+
+        return res.status(200).json({ success: true, type: 'promo', ...result });
+      }
+
+      // Regular chip transfer — uses credit or prepaid balance
       const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_chips_agent_to_player', {
         p_agent_user_id: user.id,
         p_player_user_id: toUserId,

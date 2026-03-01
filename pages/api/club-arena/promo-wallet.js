@@ -6,6 +6,20 @@
  *   action: 'mint_promo'   — owner adds promo chips to club balance
  *   action: 'grant_to_agent' — transfer promo from club → agent
  * 
+ * ═══════════════════════════════════════════════════════════════
+ * PROMO CHIPS ARE NOT SETTLEMENT DEBTS
+ * ═══════════════════════════════════════════════════════════════
+ * Promo chips are funded from 30% of the BBJ allocation.
+ * They are ALREADY raked and accounted for. They do NOT:
+ *   - Count as agent credit (no credit_used bump)
+ *   - Create union settlement debts
+ *   - Affect weekly_rake_generated or commission calculations
+ *   - Touch chip_balance or chip_treasury
+ * 
+ * They flow through separate promo_balance columns on:
+ *   clubs.promo_balance → agents.promo_balance → club_members.promo_balance
+ * ═══════════════════════════════════════════════════════════════
+ * 
  * Auth: Bearer token (owner/admin only)
  */
 import { createClient } from '@supabase/supabase-js';

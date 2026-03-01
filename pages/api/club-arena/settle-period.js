@@ -182,6 +182,21 @@ export default async function handler(req, res) {
         .eq('club_id', clubId)
         .eq('status', 'active');
 
+      // ═══════════════════════════════════════════════════════════
+      // PROMO CHIPS ARE EXCLUDED FROM SETTLEMENT
+      // ═══════════════════════════════════════════════════════════
+      // Promo chips (clubs.promo_balance, agents.promo_balance,
+      // club_members.promo_balance) are NOT debts owed to the union.
+      // They are funded from 30% of the BBJ allocation and are
+      // already raked/accounted for. They flow through separate
+      // promo_balance columns and separate RPCs:
+      //   - transfer_promo_club_to_agent (club → agent promo)
+      //   - transfer_promo_agent_to_player (agent → player promo)
+      // These NEVER touch chip_balance, credit_used, player_balance,
+      // or weekly_rake_generated. Settlement only calculates
+      // commissions from weekly_rake_generated (actual table rake).
+      // ═══════════════════════════════════════════════════════════
+
       // Get union settings for rakeback split
       let unionRakeHold = 0.10; // default 10%
       if (club.union_id) {
