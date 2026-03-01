@@ -257,9 +257,9 @@ function PlayerSeat({
   const turnTime = timerState?.turnTime || 30;
   const isTimebank = timerState?.isTimebank;
   const timerPct = showTimer ? (timerState.remaining / (isTimebank ? 30 : turnTime)) * 100 : 0;
-  const timerColor = showTimer 
+  const timerColor = showTimer
     ? isTimebank ? '#FF9800'  // Orange for timebank
-    : timerState.remaining <= 10 ? T.timerWarning : T.timerNormal
+      : timerState.remaining <= 10 ? T.timerWarning : T.timerNormal
     : T.timerNormal;
 
   return (
@@ -312,43 +312,45 @@ function PlayerSeat({
       {/* Avatar + Timer ring */}
       <div style={{ position: 'relative' }}>
         {showTimer && (
-          <svg
-            width={avatarSize + 10}
-            height={avatarSize + 10}
-            style={{
-              position: 'absolute',
-              top: -5, left: -5,
-              transform: 'rotate(-90deg)',
-            }}
-          >
-            <circle
-              cx={(avatarSize + 10) / 2}
-              cy={(avatarSize + 10) / 2}
-              r={(avatarSize + 6) / 2}
-              fill="none"
-              stroke="rgba(255,255,255,0.1)"
-              strokeWidth={3}
-            />
-            <circle
-              cx={(avatarSize + 10) / 2}
-              cy={(avatarSize + 10) / 2}
-              r={(avatarSize + 6) / 2}
-              fill="none"
-              stroke={timerColor}
-              strokeWidth={3}
-              strokeDasharray={Math.PI * (avatarSize + 6)}
-              strokeDashoffset={Math.PI * (avatarSize + 6) * (1 - timerPct / 100)}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
-            />
-          </svg>
-          {isTimebank && (
-            <div style={{
-              position: 'absolute', top: -6, right: -6, background: '#FF9800',
-              color: '#000', fontSize: 8, fontWeight: 900, padding: '1px 4px',
-              borderRadius: 4, zIndex: 3, lineHeight: 1.2,
-            }}>TB</div>
-          )}
+          <>
+            <svg
+              width={avatarSize + 10}
+              height={avatarSize + 10}
+              style={{
+                position: 'absolute',
+                top: -5, left: -5,
+                transform: 'rotate(-90deg)',
+              }}
+            >
+              <circle
+                cx={(avatarSize + 10) / 2}
+                cy={(avatarSize + 10) / 2}
+                r={(avatarSize + 6) / 2}
+                fill="none"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth={3}
+              />
+              <circle
+                cx={(avatarSize + 10) / 2}
+                cy={(avatarSize + 10) / 2}
+                r={(avatarSize + 6) / 2}
+                fill="none"
+                stroke={timerColor}
+                strokeWidth={3}
+                strokeDasharray={Math.PI * (avatarSize + 6)}
+                strokeDashoffset={Math.PI * (avatarSize + 6) * (1 - timerPct / 100)}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+              />
+            </svg>
+            {isTimebank && (
+              <div style={{
+                position: 'absolute', top: -6, right: -6, background: '#FF9800',
+                color: '#000', fontSize: 8, fontWeight: 900, padding: '1px 4px',
+                borderRadius: 4, zIndex: 3, lineHeight: 1.2,
+              }}>TB</div>
+            )}
+          </>
         )}
 
         <div
@@ -1422,7 +1424,7 @@ function ChatOverlay({ messages, onSend }) {
   const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef(null);
 
-  const QUICK_EMOJIS = ['😀','😂','😎','🤔','👍','👎','🔥','❤️','💀','🎰','♠️','♦️','♣️','♥️','🏆','💰','🤑','😱','🤷','GG'];
+  const QUICK_EMOJIS = ['😀', '😂', '😎', '🤔', '👍', '👎', '🔥', '❤️', '💀', '🎰', '♠️', '♦️', '♣️', '♥️', '🏆', '💰', '🤑', '😱', '🤷', 'GG'];
 
   useEffect(() => {
     if (listRef.current) {
@@ -1589,7 +1591,7 @@ function TournamentHUD({ tournamentId, userId }) {
           setState(d);
           if (d.levelTimeRemaining > 0) setCountdown(d.levelTimeRemaining);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     poll();
     const iv = setInterval(poll, 5000);
@@ -2015,9 +2017,9 @@ function ResultOverlay({ result, send, userId }) {
   const isFoldWin = result.type === 'fold' || result.result?.type === 'fold';
   const rabbitCards = result.rabbitCards || result.result?.rabbitCards;
   const boardAtEnd = result.boardAtEnd || result.result?.boardAtEnd || [];
-  
+
   // Check if current user is the winner (for show cards option)
-  const isWinner = isFoldWin && result.winners?.some(w => 
+  const isWinner = isFoldWin && result.winners?.some(w =>
     String(w.playerId) === String(userId)
   );
 
@@ -2272,7 +2274,7 @@ export default function LivePokerTable({
     })
       .then(r => r.json())
       .then(r => { if (r.notes) setPlayerNotes(r.notes); })
-      .catch(() => {});
+      .catch(() => { });
   }, [userId, seats?.map(s => s.player?.id).join(',')]);
 
   // Fetch club chip balance when buy-in dialog opens
@@ -2517,8 +2519,8 @@ export default function LivePokerTable({
             )}
 
             {/* Community cards */}
-            <CommunityCards 
-              cards={tableState?.game?.communityCards || []} 
+            <CommunityCards
+              cards={tableState?.game?.communityCards || []}
               boards={tableState?.game?.boards}
             />
 
@@ -2568,26 +2570,26 @@ export default function LivePokerTable({
           // Button seat fallback
           const isButton = tableState?.game?.buttonSeat === i;
           return (
-          <PlayerSeat
-            key={i}
-            seat={seat}
-            position={positions[i] || positions[0]}
-            isHero={seat.player?.id === userId}
-            isCurrentActor={seat.isCurrentActor}
-            timerState={seat.isCurrentActor ? timerState : null}
-            onClick={() => setBuyInSeat(i)}
-            onNote={pid && String(pid) !== String(userId) ? () => setNoteTarget({ id: pid, displayName: seat.player?.displayName }) : undefined}
-            noteColor={noteColorVal}
-            noteType={noteData?.player_type}
-            isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
-            equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
-            gamePosition={gamePosition || (isButton ? 'btn' : null)}
-            numHoleCards={
-              ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2, pineapple: 3 })[
-              tableState?.config?.variant
-              ] || 2
-            }
-          />
+            <PlayerSeat
+              key={i}
+              seat={seat}
+              position={positions[i] || positions[0]}
+              isHero={seat.player?.id === userId}
+              isCurrentActor={seat.isCurrentActor}
+              timerState={seat.isCurrentActor ? timerState : null}
+              onClick={() => setBuyInSeat(i)}
+              onNote={pid && String(pid) !== String(userId) ? () => setNoteTarget({ id: pid, displayName: seat.player?.displayName }) : undefined}
+              noteColor={noteColorVal}
+              noteType={noteData?.player_type}
+              isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
+              equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
+              gamePosition={gamePosition || (isButton ? 'btn' : null)}
+              numHoleCards={
+                ({ holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2, pineapple: 3 })[
+                tableState?.config?.variant
+                ] || 2
+              }
+            />
           );
         })}
       </div>
@@ -2612,9 +2614,9 @@ export default function LivePokerTable({
               zIndex: 200, padding: '8px 20px', borderRadius: 10,
               background: tableAlert.type === 'warning' ? 'rgba(255,152,0,0.95)'
                 : tableAlert.type === 'expired' ? 'rgba(244,67,54,0.95)'
-                : tableAlert.type === 'paused' ? 'rgba(33,150,243,0.95)'
-                : tableAlert.type === 'removed' ? 'rgba(244,67,54,0.95)'
-                : 'rgba(76,175,80,0.95)',
+                  : tableAlert.type === 'paused' ? 'rgba(33,150,243,0.95)'
+                    : tableAlert.type === 'removed' ? 'rgba(244,67,54,0.95)'
+                      : 'rgba(76,175,80,0.95)',
               color: '#fff', fontSize: 13, fontWeight: 700,
               boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
               backdropFilter: 'blur(8px)',
@@ -3061,7 +3063,7 @@ export default function LivePokerTable({
                 <span style={{ color: '#e4e6eb', fontSize: 16, fontWeight: 700 }}>📋 Last Hand</span>
                 <button onClick={() => setShowLastHand(false)} style={{ background: 'none', border: 'none', color: '#b0b3b8', fontSize: 18, cursor: 'pointer' }}>✕</button>
               </div>
-              
+
               {/* Hand number */}
               {lastHandResult.handNumber && (
                 <div style={{ color: '#b0b3b8', fontSize: 11, marginBottom: 8 }}>Hand #{lastHandResult.handNumber}</div>
@@ -3144,7 +3146,7 @@ export default function LivePokerTable({
               fetch('/api/club-arena/player-notes', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'get_bulk', userId, targetUserIds: opIds }),
-              }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => {});
+              }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => { });
             }
           }
         }}

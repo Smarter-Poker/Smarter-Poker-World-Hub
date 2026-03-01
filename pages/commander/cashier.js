@@ -456,11 +456,12 @@ export default function Cashier() {
         })
       });
       const txJson = await txRes.json();
+      if (!txJson.success) console.warn('Time transaction record failed:', txJson.error);
 
       const hours = Math.floor(mins / 60);
       const remainMins = mins % 60;
       const timeLabel = hours > 0 ? `${hours}h ${remainMins > 0 ? remainMins + 'm' : ''}` : `${mins}m`;
-      setMessage({ type: 'success', text: `Added ${timeLabel} — $${price} — ${selectedPlayer.player_name}` });
+      setMessage({ type: txJson.success ? 'success' : 'warning', text: `Added ${timeLabel} — $${price} — ${selectedPlayer.player_name}${!txJson.success ? ' (⚠ receipt not saved)' : ''}` });
       setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
       setShowAddTime(false);
       playSuccessSound();
@@ -518,8 +519,9 @@ export default function Cashier() {
         })
       });
       const txJson = await txRes.json();
+      if (!txJson.success) console.warn('Membership transaction record failed:', txJson.error);
 
-      setMessage({ type: 'success', text: `${tierInfo?.label} Membership — $${price} — ${selectedPlayer.player_name}` });
+      setMessage({ type: txJson.success ? 'success' : 'warning', text: `${tierInfo?.label} Membership — $${price} — ${selectedPlayer.player_name}${!txJson.success ? ' (⚠ receipt not saved)' : ''}` });
       setSelectedPlayer(prev => ({ ...prev, membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() }));
       setShowMembership(false);
       playSuccessSound();
