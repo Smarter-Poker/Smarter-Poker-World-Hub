@@ -107,12 +107,14 @@ export default async function handler(req, res) {
       .gte('created_at', start)
       .lte('created_at', end);
 
-    // Comps issued (type = 'award'), voids (type = 'void')
-    const compAwards = (compTxns || []).filter(c => c.type === 'award' || (!c.type));
+    // Comps issued (type = 'award' OR 'auto_hourly'), voids (type = 'void')
+    const compAwards = (compTxns || []).filter(c => c.type === 'award' || c.type === 'auto_hourly' || (!c.type));
     const compVoids = (compTxns || []).filter(c => c.type === 'void');
     const compsIssued = compAwards.reduce((s, c) => s + Math.abs(c.amount || 0), 0);
     const compsVoided = compVoids.reduce((s, c) => s + Math.abs(c.amount || 0), 0);
     const compsNet = Math.max(0, compsIssued - compsVoided);
+    const compsAutoHourly = compAwards.filter(c => c.type === 'auto_hourly').reduce((s, c) => s + Math.abs(c.amount || 0), 0);
+    const compsManual = compAwards.filter(c => c.type !== 'auto_hourly').reduce((s, c) => s + Math.abs(c.amount || 0), 0);
 
     // Per-category breakdown
     const compsByCategory = {};
@@ -178,6 +180,8 @@ export default async function handler(req, res) {
           issued: compsIssued,
           voided: compsVoided,
           net: compsNet,
+          auto_hourly: compsAutoHourly,
+          manual: compsManual,
           count: compAwards.length,
           void_count: compVoids.length,
           by_category: compsByCategory,

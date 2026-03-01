@@ -139,7 +139,7 @@ export default function RevenueReport() {
               )}
 
               {/* Comp Breakdown */}
-              {data?.comps && Object.keys(data.comps.by_category || {}).length > 0 && (
+              {data?.comps && (data.comps.count > 0 || data.comps.void_count > 0) && (
                 <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
                   <h3 className="text-sm font-bold text-white mb-3">Comp Breakdown</h3>
                   <div className="grid grid-cols-3 gap-3 text-center mb-3">
@@ -147,17 +147,33 @@ export default function RevenueReport() {
                     <div><p className="text-lg font-bold text-[#EF4444]">{data.comps.void_count || 0}</p><p className="text-xs text-[#B0B3B8]">Voided</p></div>
                     <div><p className="text-lg font-bold text-[#F59E0B]">{fmt(data.comps.net)}</p><p className="text-xs text-[#B0B3B8]">Net Cost</p></div>
                   </div>
-                  <div className="space-y-1.5">
-                    {Object.entries(data.comps.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => {
-                      const catLabels = { free_food: 'Food & Beverage', free_time: 'Free Time', free_membership: 'Free Membership', free_chips: 'Free Chips', cash_bonus: 'Cash Bonus', promo_credit: 'Promo Credit', tournament_entry: 'Tournament Entry', other: 'Other' };
-                      return (
-                        <div key={cat} className="flex items-center justify-between px-3 py-2 bg-[#3A3B3C]/30 rounded-lg">
-                          <span className="text-sm text-[#E4E6EB]">{catLabels[cat] || cat}</span>
-                          <span className="text-sm font-bold text-[#EF4444]">{fmt(amt)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* Auto vs Manual */}
+                  {(data.comps.auto_hourly > 0 || data.comps.manual > 0) && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="px-3 py-2 bg-[#3A3B3C]/30 rounded-lg text-center">
+                        <p className="text-sm font-bold text-[#1877F2]">{fmt(data.comps.auto_hourly)}</p>
+                        <p className="text-[10px] text-[#B0B3B8]">Auto (Hourly)</p>
+                      </div>
+                      <div className="px-3 py-2 bg-[#3A3B3C]/30 rounded-lg text-center">
+                        <p className="text-sm font-bold text-[#A855F7]">{fmt(data.comps.manual)}</p>
+                        <p className="text-[10px] text-[#B0B3B8]">Manual (Staff)</p>
+                      </div>
+                    </div>
+                  )}
+                  {/* By Category */}
+                  {Object.keys(data.comps.by_category || {}).length > 0 && (
+                    <div className="space-y-1.5">
+                      {Object.entries(data.comps.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => {
+                        const catLabels = { free_food: 'Food & Beverage', free_time: 'Free Time', free_membership: 'Free Membership', free_chips: 'Free Chips', cash_bonus: 'Cash Bonus', promo_credit: 'Promo Credit', tournament_entry: 'Tournament Entry', other: 'Other' };
+                        return (
+                          <div key={cat} className="flex items-center justify-between px-3 py-2 bg-[#3A3B3C]/30 rounded-lg">
+                            <span className="text-sm text-[#E4E6EB]">{catLabels[cat] || cat}</span>
+                            <span className="text-sm font-bold text-[#EF4444]">{fmt(amt)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
