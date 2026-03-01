@@ -629,7 +629,7 @@ export default function CompSystem() {
                           <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">
                             {selectedCategory === 'free_membership' ? 'Step 3: Duration' : 'Step 3: Amount'}
                           </p>
-                          <button onClick={() => { setSelectedCategory(null); setCompAmount(''); }}
+                          <button onClick={() => { setSelectedCategory(null); setCompAmount(''); setMembershipCost(''); }}
                             className="ml-auto text-xs px-2 py-1 rounded-lg flex items-center gap-1 active:bg-[#3A3B3C]"
                             style={{ color: COMP_CATEGORIES.find(c => c.key === selectedCategory)?.color }}>
                             {(() => { const Cat = COMP_CATEGORIES.find(c => c.key === selectedCategory); const Icon = Cat?.icon; return Icon ? <Icon className="w-3 h-3" /> : null; })()}
