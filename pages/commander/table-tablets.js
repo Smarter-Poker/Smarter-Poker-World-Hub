@@ -1438,7 +1438,7 @@ export default function TableTabletsPage() {
                     )}
 
                     {/* Fullscreen table visual */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 16px', overflow: 'hidden', position: 'relative' }}>
                         <div style={{ width: '100%', maxWidth: 1000 }}>
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
@@ -1450,7 +1450,7 @@ export default function TableTabletsPage() {
                         {(() => {
                             const isA = callFloorSent; return (
                                 <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
-                                    style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
+                                    style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 60, width: 80, height: 60, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
                                     <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                                     {isA && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, fontWeight: 900, textShadow: '0 0 8px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>Cancel Floor</div>}
                                 </button>);
@@ -1460,17 +1460,18 @@ export default function TableTabletsPage() {
                         {(() => {
                             const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; return (
                                 <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
-                                    style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s', animation: d ? 'pulse 0.5s infinite alternate' : 'none' }}>
+                                    style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 60, width: 80, height: 60, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s', animation: d ? 'pulse 0.5s infinite alternate' : 'none' }}>
                                     <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
                                     {a && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: d ? '#EF4444' : '#4DA3FF', fontSize: 28, fontWeight: 900, textShadow: '0 0 12px rgba(0,0,0,0.9)', letterSpacing: 1 }}>{callClockSeconds}<span style={{ fontSize: 10, marginLeft: 2, opacity: 0.8 }}>s</span></div>}
                                 </button>);
                         })()}
 
                         {/* UPPER-LEFT: Tournament Clock / Tournament Table (NEVER on cash tables) */}
-                        {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
-                            <button onClick={() => { haptic(); if (showTournamentClock) { setShowTournamentClock(false); setLockedTournamentId(null); return; } const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
-                                style={{ position: 'absolute', top: 70, left: 16, zIndex: 10002, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
-                                <img src={showTournamentClock ? '/assets/tablet-buttons/tournament-table.png' : '/assets/tablet-buttons/tournament-clock.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                        {/* Tournament Clock button — only on tournament tables, only when clock overlay is NOT open */}
+                        {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && !showTournamentClock && (
+                            <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
+                                style={{ position: 'absolute', top: 8, left: 8, zIndex: 60, width: 80, height: 60, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                             </button>
                         )}
 
@@ -1490,13 +1491,22 @@ export default function TableTabletsPage() {
                         && isTournamentTable(fullscreenTable) && (
                             <div style={{
                                 position: 'absolute', inset: 0, zIndex: 10001,
-                                background: '#0D192E',
+                                background: '#0D192E', display: 'flex', flexDirection: 'column',
                             }}>
-
-
+                                {/* Tournament Table back button — fixed at top of clock overlay */}
+                                <button onClick={() => { haptic(); setShowTournamentClock(false); setLockedTournamentId(null); }}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '8px 16px', margin: '8px 8px 0', flexShrink: 0,
+                                        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                        borderRadius: 10, cursor: 'pointer', zIndex: 10002,
+                                    }}>
+                                    <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: 40, height: 30, objectFit: 'contain' }} />
+                                    <span style={{ color: '#FFD700', fontSize: 14, fontWeight: 800, letterSpacing: 0.5 }}>Back to Table</span>
+                                </button>
                                 <iframe
                                     src={'/commander/tournaments/' + lockedTournamentId + '/clock-display'}
-                                    style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                                    style={{ flex: 1, width: '100%', border: 'none', display: 'block' }}
                                     allow="autoplay; fullscreen"
                                     title="Tournament Clock"
                                 />

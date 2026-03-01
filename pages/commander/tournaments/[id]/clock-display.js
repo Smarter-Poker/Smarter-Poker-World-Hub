@@ -72,6 +72,9 @@ export default function ClockDisplay() {
   const [handTimerActive, setHandTimerActive] = useState(false);
   const [handTimerSeconds, setHandTimerSeconds] = useState(60);
   const [burnInOffset, setBurnInOffset] = useState({ x: 0, y: 0 });
+  // Editable ICM/Chop state
+  const [editableStacks, setEditableStacks] = useState([]);
+  const [chopMode, setChopMode] = useState('icm'); // 'icm' or 'chip_chop'
   const timerRef = useRef(null);
   const handTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
@@ -285,11 +288,12 @@ export default function ClockDisplay() {
     show_schedule_preview: false, show_seating: false,
   };
 
-  // Chip leaders — top 5 sorted by stack
+  // Chip leaders — top 10 sorted by stack
   const chipLeaders = (stats.player_stacks || [])
     .filter(p => p.chips > 0)
     .sort((a, b) => b.chips - a.chips)
-    .slice(0, 5);
+    .slice(0, 10);
+
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
   const clockState = clock.clock_state || {};
@@ -306,6 +310,9 @@ export default function ClockDisplay() {
   const avgStack = playersIn > 0 ? Math.round(totalChips / playersIn) : 0;
   const prizePool = stats.prize_pool || 0;
   const payouts = t.payout_structure || t.custom_payouts || stats.payouts || [];
+
+  // Dynamic payouts — only show remaining positions for remaining players
+  const remainingPayouts = payouts.filter((_, i) => i < playersIn);
 
   const nextBreakSec = clockState.next_break_seconds;
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
@@ -379,6 +386,13 @@ export default function ClockDisplay() {
                 }}>{label}</button>
               ))}
             </div>
+            {/* Chop / ICM toggles */}
+            <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
+              <button onClick={() => setActiveScreen(SCREENS.ICM)} style={{
+                ...S.controlBtn, padding: '8px 14px', fontSize: 12,
+                background: 'rgba(49,162,76,0.3)', borderColor: '#31A24C',
+              }}>Chop / ICM</button>
+            </div>
           </div>
         )}
 
@@ -412,7 +426,7 @@ export default function ClockDisplay() {
               <StatCell label="Total Pot" value={formatMoney(prizePool)} />
             </div>
 
-            {/* CENTER — Clock + Blinds */}
+            {/* CENTER — Clock + Blinds + Chip Leaders */}
             <div style={S.centerPanel}>
               {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
               {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
@@ -429,30 +443,46 @@ export default function ClockDisplay() {
                 <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
                   {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
                 </div>
-                {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>Ante: {(blinds.ante || 0).toLocaleString()}</div>}
+                {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
               </div>
 
               {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
                 <div style={S.nextRound}>
                   <strong>Next Round:</strong> {gameType}<br />
                   Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                  {(nextBlinds.ante || 0) > 0 && <><br />Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                  {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                </div>
+              )}
+
+              {/* Chip Leaders — top 10, scrollable, under blinds */}
+              {chipLeaders.length > 0 && (
+                <div style={S.chipLeadersCenter}>
+                  <div style={S.chipLeadersHeader}>Chip Leaders</div>
+                  <div style={S.chipLeadersScroll}>
+                    {chipLeaders.map((player, i) => (
+                      <div key={i} style={S.chipLeaderItem}>
+                        <span style={S.chipLeaderRank}>{i + 1}</span>
+                        <span style={S.chipLeaderName}>{player.name || 'Player'}</span>
+                        <span style={S.chipLeaderChips}>{formatChipCount(player.chips)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* RIGHT — Time + Payouts + Chip Leaders */}
+            {/* RIGHT — Time + Remaining Payouts (scrollable) */}
             <div style={S.rightPanel}>
               <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
               <StatCell label="Elapsed Time" value={elapsedDisplay} />
               <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
 
-              {/* Prize Payouts — scrollable */}
-              {payouts.length > 0 && (
+              {/* Dynamic Payouts — only remaining positions for remaining players */}
+              {remainingPayouts.length > 0 && (
                 <div style={S.rightSection}>
-                  <div style={S.rightSectionHeader}>Prizes</div>
+                  <div style={S.rightSectionHeader}>Remaining Payouts</div>
                   <div style={S.payoutScroll}>
-                    {payouts.map((p, i) => {
+                    {remainingPayouts.map((p, i) => {
                       const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
                       const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
                       const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
@@ -463,22 +493,6 @@ export default function ClockDisplay() {
                         </div>
                       );
                     })}
-                  </div>
-                </div>
-              )}
-
-              {/* Chip Leaders — top 5 */}
-              {chipLeaders.length > 0 && (
-                <div style={S.rightSection}>
-                  <div style={S.rightSectionHeader}>Chip Leaders</div>
-                  <div style={S.leadersScroll}>
-                    {chipLeaders.map((player, i) => (
-                      <div key={i} style={S.leaderRow}>
-                        <span style={S.leaderRank}>{i + 1}</span>
-                        <span style={S.leaderName}>{player.name || 'Player'}</span>
-                        <span style={S.leaderChips}>{formatChipCount(player.chips)}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}
@@ -534,32 +548,141 @@ export default function ClockDisplay() {
           </div>
         )}
 
-        {/* ===== ICM SCREEN ===== */}
+        {/* ===== ICM / CHOP CALCULATOR SCREEN ===== */}
         {activeScreen === SCREENS.ICM && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 3, opacity: 0.5, marginBottom: 16, textTransform: 'uppercase' }}>
-              ICM Chop Values — {playersIn} Players Remaining
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 20, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            {/* Header + Mode Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 12, flexShrink: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 3, opacity: 0.5, textTransform: 'uppercase' }}>
+                {chopMode === 'icm' ? 'ICM Chop Calculator' : 'Chip Chop Calculator'}
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={() => setChopMode('icm')} style={{
+                  padding: '6px 16px', borderRadius: 6, border: '2px solid',
+                  borderColor: chopMode === 'icm' ? '#31A24C' : 'rgba(255,255,255,0.2)',
+                  background: chopMode === 'icm' ? 'rgba(49,162,76,0.3)' : 'rgba(255,255,255,0.05)',
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}>ICM</button>
+                <button onClick={() => setChopMode('chip_chop')} style={{
+                  padding: '6px 16px', borderRadius: 6, border: '2px solid',
+                  borderColor: chopMode === 'chip_chop' ? '#1877F2' : 'rgba(255,255,255,0.2)',
+                  background: chopMode === 'chip_chop' ? 'rgba(24,119,242,0.3)' : 'rgba(255,255,255,0.05)',
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}>Chip Chop</button>
+              </div>
             </div>
-            {icmResults.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto auto', gap: '6px 20px', fontSize: 16, fontWeight: 600 }}>
-                <span style={{ fontWeight: 700, opacity: 0.5, fontSize: 12 }}>Player</span>
-                <span style={{ fontWeight: 700, opacity: 0.5, fontSize: 12 }}>Chips</span>
-                <span style={{ fontWeight: 700, opacity: 0.5, fontSize: 12 }}>ICM Value</span>
-                <span style={{ fontWeight: 700, opacity: 0.5, fontSize: 12 }}>Chip Chop</span>
-                <span style={{ fontWeight: 700, opacity: 0.5, fontSize: 12 }}>Equity %</span>
-                {playerStacks.map((player, i) => (
-                  <React.Fragment key={i}>
-                    <span>{player.name || `Player ${i + 1}`}</span>
-                    <span>{formatChipCount(player.chips)}</span>
-                    <span style={{ color: '#31A24C' }}>{formatMoney(icmResults[i]?.equity || 0)}</span>
-                    <span style={{ color: '#1877F2' }}>{formatMoney(chipChopResults[i]?.chop || 0)}</span>
-                    <span style={{ opacity: 0.7 }}>{icmResults[i]?.percentage || 0}%</span>
-                  </React.Fragment>
-                ))}
+
+            {/* Prize Pool + Load from API */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 12, flexShrink: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>
+                Prize Pool: <span style={{ color: '#31A24C' }}>{formatMoney(prizePool)}</span>
+              </div>
+              <button onClick={() => {
+                const stacks = (stats.player_stacks || []).filter(p => p.chips > 0).sort((a, b) => b.chips - a.chips);
+                setEditableStacks(stacks.map(p => ({ name: p.name || 'Player', chips: p.chips })));
+              }} style={{
+                padding: '6px 14px', borderRadius: 6, border: '2px solid rgba(24,119,242,0.5)',
+                background: 'rgba(24,119,242,0.15)', color: '#1877F2', fontSize: 12,
+                fontWeight: 700, cursor: 'pointer',
+              }}>Load from Tournament</button>
+              <button onClick={() => {
+                setEditableStacks([...editableStacks, { name: `Player ${editableStacks.length + 1}`, chips: 0 }]);
+              }} style={{
+                padding: '6px 14px', borderRadius: 6, border: '2px solid rgba(49,162,76,0.5)',
+                background: 'rgba(49,162,76,0.15)', color: '#31A24C', fontSize: 12,
+                fontWeight: 700, cursor: 'pointer',
+              }}>+ Add Player</button>
+              <div style={{ fontSize: 13, opacity: 0.5 }}>{editableStacks.length} Players</div>
+            </div>
+
+            {/* Editable player stacks table */}
+            {editableStacks.length > 0 ? (
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                {/* Column headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 140px 140px 140px 80px 36px', gap: '0 12px', padding: '4px 8px', position: 'sticky', top: 0, background: 'rgba(13,25,46,0.95)', zIndex: 2 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4 }}>#</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4 }}>PLAYER</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4 }}>CHIPS</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4, color: '#31A24C' }}>{chopMode === 'icm' ? 'ICM VALUE' : 'CHOP VALUE'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4, color: '#1877F2' }}>{chopMode === 'icm' ? 'CHIP CHOP' : 'VS ICM'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4 }}>EQUITY</span>
+                  <span></span>
+                </div>
+
+                {(() => {
+                  const stacks = editableStacks.map(p => p.chips).filter(c => c > 0);
+                  const validStacks = editableStacks.filter(p => p.chips > 0);
+                  const icm = stacks.length > 1 ? calculateICM(stacks, prizeAmounts) : [];
+                  const chipChop = stacks.length > 1 ? calculateChipChop(stacks, prizePool) : [];
+                  let icmIdx = 0;
+
+                  return editableStacks.map((player, i) => {
+                    const isValid = player.chips > 0;
+                    const icmRow = isValid ? icm[icmIdx] : null;
+                    const chopRow = isValid ? chipChop[icmIdx] : null;
+                    if (isValid) icmIdx++;
+
+                    return (
+                      <div key={i} style={{
+                        display: 'grid', gridTemplateColumns: '30px 1fr 140px 140px 140px 80px 36px',
+                        gap: '0 12px', padding: '6px 8px', alignItems: 'center',
+                        background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, opacity: 0.4 }}>{i + 1}</span>
+                        <input
+                          value={player.name}
+                          onChange={e => {
+                            const updated = [...editableStacks];
+                            updated[i] = { ...updated[i], name: e.target.value };
+                            setEditableStacks(updated);
+                          }}
+                          style={{
+                            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 14,
+                            fontWeight: 600, fontFamily: "'Inter', sans-serif", width: '100%',
+                          }}
+                        />
+                        <input
+                          type="number"
+                          value={player.chips || ''}
+                          onChange={e => {
+                            const updated = [...editableStacks];
+                            updated[i] = { ...updated[i], chips: parseInt(e.target.value) || 0 };
+                            setEditableStacks(updated);
+                          }}
+                          style={{
+                            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 14,
+                            fontWeight: 700, fontFamily: "'Inter', sans-serif", width: '100%',
+                            textAlign: 'right',
+                          }}
+                        />
+                        <span style={{ color: '#31A24C', fontWeight: 700, fontSize: 15, textAlign: 'right' }}>
+                          {isValid && icmRow ? formatMoney(chopMode === 'icm' ? icmRow.equity : chopRow?.chop || 0) : '-'}
+                        </span>
+                        <span style={{ color: '#1877F2', fontWeight: 700, fontSize: 15, textAlign: 'right' }}>
+                          {isValid && chopRow ? formatMoney(chopMode === 'icm' ? chopRow.chop : icmRow?.equity || 0) : '-'}
+                        </span>
+                        <span style={{ opacity: 0.6, fontSize: 13, textAlign: 'right' }}>
+                          {isValid && icmRow ? `${icmRow.percentage}%` : '-'}
+                        </span>
+                        <button onClick={() => {
+                          setEditableStacks(editableStacks.filter((_, j) => j !== i));
+                        }} style={{
+                          background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                          borderRadius: 4, color: '#EF4444', fontSize: 14, cursor: 'pointer',
+                          padding: '4px 8px', fontWeight: 700,
+                        }}>×</button>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             ) : (
-              <div style={{ opacity: 0.3, fontSize: 18, marginTop: 20 }}>
-                ICM data available when 2+ players remain with chip counts
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, opacity: 0.4 }}>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>No Players Entered</div>
+                <div style={{ fontSize: 14 }}>Click "Load from Tournament" or "+ Add Player" to begin</div>
               </div>
             )}
           </div>
@@ -615,7 +738,8 @@ const S = {
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1
+    justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1,
+    overflow: 'hidden',
   },
   statCell: {
     flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
@@ -678,6 +802,36 @@ const S = {
     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   leaderChips: {
+    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
+  },
+  // Chip leaders in center panel (under blinds)
+  chipLeadersCenter: {
+    width: '100%', maxWidth: 500, marginTop: 8,
+    background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.12)',
+    display: 'flex', flexDirection: 'column', maxHeight: 160, overflow: 'hidden',
+  },
+  chipLeadersHeader: {
+    fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+    textAlign: 'center', padding: '4px 8px', opacity: 0.6,
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(0,0,0,0.2)', flexShrink: 0,
+  },
+  chipLeadersScroll: {
+    flex: 1, overflowY: 'auto', padding: '2px 12px',
+    display: 'flex', flexDirection: 'column', gap: 1,
+  },
+  chipLeaderItem: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  chipLeaderRank: {
+    fontSize: 12, fontWeight: 800, opacity: 0.5, minWidth: 18, textAlign: 'center',
+  },
+  chipLeaderName: {
+    flex: 1, fontSize: 13, fontWeight: 600, overflow: 'hidden',
+    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  chipLeaderChips: {
     fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
   },
   breakBanner: {
