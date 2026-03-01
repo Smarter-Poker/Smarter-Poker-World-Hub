@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     const isPhone = /^\d+$/.test(q.replace(/[\s\-\(\)]/g, ''));
     let query = supabase
       .from('commander_members')
-      .select('id, first_name, last_name, name, phone, email, last_checkin, comp_balance')
+      .select('id, first_name, last_name, phone, email, last_checkin, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number')
       .eq('venue_id', venueFilter)
       .limit(limitNum);
 
@@ -78,14 +78,16 @@ export default async function handler(req, res) {
       const digits = q.replace(/\D/g, '');
       query = query.ilike('phone', `%${digits}%`);
     } else {
-      // Search name or first_name/last_name
-      query = query.or(`name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+      // Search first_name, last_name, member_number, phone, email (matching the proven working members API pattern)
+      query = query.or(
+        `first_name.ilike.%${q}%,last_name.ilike.%${q}%,member_number.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`
+      );
     }
 
     const { data: members, error } = await query.order('last_checkin', { ascending: false, nullsFirst: false });
 
     if (error) {
-      console.error('Member search error:', error);
+      console.error('Member search error:', error, 'query:', q, 'venue:', venueFilter);
       return res.status(200).json({ success: true, data: [] });
     }
 

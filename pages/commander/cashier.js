@@ -1130,20 +1130,20 @@ export default function Cashier() {
                   <button onClick={() => setShowAddTime(false)} className="text-[#B0B3B8] text-2xl leading-none">&times;</button>
                 </div>
                 {selectedPlayer ? (
-                  <div className="bg-[#3A3B3C]/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+                  <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl p-3 mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-[#B0B3B8]" />
+                      <Users className="w-4 h-4 text-[#1877F2]" />
                       <span className="text-sm text-white font-medium">{selectedPlayer.player_name}</span>
                     </div>
-                    <span className="text-xs text-[#F59E0B] font-medium">
+                    <span className="text-xs text-[#1877F2] font-medium">
                       Balance: {Math.floor((selectedPlayer.time_balance_minutes || 0) / 60)}h {(selectedPlayer.time_balance_minutes || 0) % 60}m
                     </span>
                   </div>
                 ) : (
                   <div className="mb-4">
-                    <p className="text-xs text-[#F59E0B] font-semibold mb-2">Select a player first:</p>
+                    <p className="text-xs text-[#EF4444] font-semibold mb-2">⚠ Select a player first</p>
                     <button onClick={() => { setShowAddTime(false); setShowPlayerSearch(true); }}
-                      className="w-full bg-[#1877F2]/15 border border-[#1877F2]/30 text-[#1877F2] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                      className="w-full bg-[#1877F2] text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
                       <Search className="w-4 h-4" /> Scan or Search for Player
                     </button>
                   </div>
@@ -1152,9 +1152,9 @@ export default function Cashier() {
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   {TIME_OPTIONS.map(opt => (
                     <button key={opt.minutes} onClick={() => { setSelectedTime(opt.minutes); setCustomMinutes(''); }}
-                      className={`py-3 px-2 rounded-xl text-left ${selectedTime === opt.minutes ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
+                      className={`py-3 px-2 rounded-xl text-left ${selectedTime === opt.minutes ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'}`}>
                       <span className="text-sm font-bold block">{opt.label}</span>
-                      <span className={`text-xs font-semibold ${selectedTime === opt.minutes ? 'text-black/70' : 'text-[#31A24C]'}`}>
+                      <span className={`text-xs font-semibold ${selectedTime === opt.minutes ? 'text-white/80' : 'text-[#31A24C]'}`}>
                         {opt.price > 0 ? `$${opt.price}` : 'Free'}
                       </span>
                     </button>
@@ -1163,9 +1163,9 @@ export default function Cashier() {
 
                 {/* Total Due */}
                 {selectedTime && (
-                  <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#F59E0B]">Total Due</span>
-                    <span className="text-2xl font-black text-[#F59E0B]">${getTimePrice()}</span>
+                  <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#1877F2]">Total Due</span>
+                    <span className="text-2xl font-black text-white">${getTimePrice()}</span>
                   </div>
                 )}
 
@@ -1173,18 +1173,23 @@ export default function Cashier() {
                 <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Payment Method</p>
                 <div className="flex gap-2 mb-4">
                   <button onClick={() => setTimePayMethod('cash')}
-                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${timePayMethod === 'cash' ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${timePayMethod === 'cash' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
                     <Banknote className="w-4 h-4" /> Cash
                   </button>
                   <button onClick={() => setTimePayMethod('card')}
-                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${timePayMethod === 'card' ? 'bg-[#F59E0B] text-black' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${timePayMethod === 'card' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
                     <CreditCard className="w-4 h-4" /> Card
                   </button>
                 </div>
 
-                <PinSubmitButton action="addtime" color="#F59E0B"
+                <PinSubmitButton action="addtime" color="#1877F2"
                   label={`Collect $${getTimePrice()} — ${selectedTime ? TIME_OPTIONS.find(o => o.minutes === selectedTime)?.label : 'Time'}`}
                   disabled={!selectedTime || !selectedPlayer?.id} />
+                {(!selectedPlayer?.id || !selectedTime) && (
+                  <p className="text-xs text-center text-[#B0B3B8] mt-2">
+                    {!selectedPlayer?.id ? '↑ Select a player above to continue' : '↑ Choose a time package above'}
+                  </p>
+                )}
 
                 {/* Recent Time Transactions */}
                 {transactions.filter(tx => tx.notes?.includes('Time Purchase')).length > 0 && (
@@ -1232,9 +1237,9 @@ export default function Cashier() {
                   </div>
                 ) : (
                   <div className="mb-4">
-                    <p className="text-xs text-[#8B5CF6] font-semibold mb-2">Select a player first:</p>
+                    <p className="text-xs text-[#1877F2] font-semibold mb-2">Select a player first:</p>
                     <button onClick={() => { setShowMembership(false); setShowPlayerSearch(true); }}
-                      className="w-full bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                      className="w-full bg-[#1877F2]/15 border border-[#1877F2]/30 text-[#1877F2] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
                       <Search className="w-4 h-4" /> Scan or Search for Player
                     </button>
                   </div>
@@ -1277,16 +1282,16 @@ export default function Cashier() {
                 <p className="text-xs font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Payment Method</p>
                 <div className="flex gap-2 mb-4">
                   <button onClick={() => setMemberPayMethod('cash')}
-                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${memberPayMethod === 'cash' ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${memberPayMethod === 'cash' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
                     <Banknote className="w-4 h-4" /> Cash
                   </button>
                   <button onClick={() => setMemberPayMethod('card')}
-                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${memberPayMethod === 'card' ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${memberPayMethod === 'card' ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
                     <CreditCard className="w-4 h-4" /> Card
                   </button>
                 </div>
 
-                <PinSubmitButton action="membership" color="#8B5CF6"
+                <PinSubmitButton action="membership" color="#1877F2"
                   label={`Collect $${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.price || 0 : 0} — ${selectedTier ? MEMBERSHIP_TIERS.find(t => t.tier === selectedTier)?.label : '...'}`}
                   disabled={!selectedTier || !selectedPlayer?.id} />
 
@@ -1310,6 +1315,30 @@ export default function Cashier() {
                     </div>
                   </div>
                 )}
+
+                {/* ═══ PRINT NEW CARD ─ Bottom of Update Membership ═══ */}
+                <div className="mt-6 pt-4 border-t border-[#3A3B3C]">
+                  <button
+                    onClick={() => {
+                      setPrintCardSearchQuery('');
+                      setPrintCardSearchResults([]);
+                      setPrintCardSelectedPlayer(null);
+                      setShowMembership(false);
+                      setShowPrintCard(true);
+                    }}
+                    className="w-full flex justify-center"
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    aria-label="Print New Card"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/commander/print-new-card.png"
+                      alt="Print New Card"
+                      style={{ width: '240px', height: 'auto', display: 'block', userSelect: 'none' }}
+                      draggable={false}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
           )

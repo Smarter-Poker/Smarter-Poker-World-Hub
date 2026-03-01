@@ -24,14 +24,14 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [
-  { key: 'free_time', label: 'Free Time', icon: Timer, color: '#3B82F6', desc: 'Comp table time' },
-  { key: 'free_membership', label: 'Free Membership', icon: CreditCard, color: '#8B5CF6', desc: 'Comp membership period' },
-  { key: 'free_chips', label: 'Free Chips', icon: Coins, color: '#F59E0B', desc: 'Bonus chips' },
-  { key: 'free_food', label: 'Food & Beverage', icon: UtensilsCrossed, color: '#EF4444', desc: 'Meals, drinks, snacks' },
-  { key: 'cash_bonus', label: 'Cash Bonus', icon: DollarSign, color: '#31A24C', desc: 'Straight cash comp' },
-  { key: 'tournament_entry', label: 'Tournament Entry', icon: Ticket, color: '#EC4899', desc: 'Free tournament seat' },
-  { key: 'merchandise', label: 'Merchandise', icon: ShoppingBag, color: '#06B6D4', desc: 'Club store items' },
-  { key: 'other', label: 'Other', icon: FileText, color: '#6B7280', desc: 'Custom comp' },
+  { key: 'free_time', label: 'Free Time', icon: Timer, color: '#3B82F6', desc: 'Comp Table Time' },
+  { key: 'free_membership', label: 'Free Membership', icon: CreditCard, color: '#8B5CF6', desc: 'Comp Membership Period' },
+  { key: 'free_chips', label: 'Free Chips', icon: Coins, color: '#F59E0B', desc: 'Bonus Chips' },
+  { key: 'free_food', label: 'Food & Beverage', icon: UtensilsCrossed, color: '#EF4444', desc: 'Meals, Drinks, Snacks' },
+  { key: 'cash_bonus', label: 'Cash Bonus', icon: DollarSign, color: '#31A24C', desc: 'Straight Cash Comp' },
+  { key: 'tournament_entry', label: 'Tournament Entry', icon: Ticket, color: '#EC4899', desc: 'Free Tournament Seat' },
+  { key: 'merchandise', label: 'Merchandise', icon: ShoppingBag, color: '#06B6D4', desc: 'Club Store Items' },
+  { key: 'other', label: 'Other', icon: FileText, color: '#6B7280', desc: 'Custom Comp' },
 ];
 
 const QUICK_AMOUNTS = [5, 10, 15, 20, 25, 50, 75, 100];
@@ -368,13 +368,13 @@ export default function CompSystem() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">Auto Rake-Back Rate</p>
-                      <p className="text-xs text-[#B0B3B8]">Players earn comps per hour of play</p>
+                      <p className="text-xs text-[#B0B3B8]">Players Earn Comps Per Hour Of Play</p>
                     </div>
                   </div>
                   <div className="text-3xl font-bold text-[#31A24C] text-center py-2">
                     ${autoCompRate.toFixed(2)}<span className="text-base text-[#B0B3B8] font-normal">/hour</span>
                   </div>
-                  <p className="text-xs text-[#6A6B6D] text-center">Configured in Settings → Time Billing</p>
+                  <p className="text-xs text-[#6A6B6D] text-center">Configured In Settings</p>
                 </div>
 
                 <div>
@@ -412,7 +412,7 @@ export default function CompSystem() {
                     <p className="text-[#B0B3B8] mt-2">
                       ${compAmount} {COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label} to {selectedMember?.first_name} {selectedMember?.last_name}
                     </p>
-                    <p className="text-xs text-[#31A24C] mt-1">✓ PIN Verified & Documented</p>
+                    <p className="text-xs text-[#31A24C] mt-1">PIN Verified And Documented</p>
                   </div>
 
                 ) : !selectedMember ? (
@@ -516,7 +516,7 @@ export default function CompSystem() {
                           <p className="text-xs text-[#B0B3B8] mb-1">Notes (optional)</p>
                           <input type="text" value={compNotes}
                             onChange={e => setCompNotes(e.target.value)}
-                            placeholder="e.g., Birthday bonus, 2 hours free table time..."
+                            placeholder="E.g., Birthday Bonus, 2 Hours Free Table Time..."
                             className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
                         </div>
 
@@ -526,7 +526,7 @@ export default function CompSystem() {
                           Issue ${compAmount || '0'} — Requires PIN
                         </button>
                         <p className="text-[10px] text-[#6A6B6D] text-center">
-                          All comps require staff PIN verification and are fully documented
+                          All Comps Require Staff PIN Verification And Are Fully Documented
                         </p>
                       </>
                     )}
@@ -573,7 +573,7 @@ export default function CompSystem() {
                             <p className="text-sm font-medium text-white truncate">{t.member_name || 'Member'}</p>
                             <p className="text-[10px] text-[#6A6B6D] truncate">
                               {t.reason || cat.label}
-                              {t.authorized_pin && <span className="text-[#31A24C] ml-1">✓ PIN</span>}
+                              {t.authorized_pin && <span className="text-[#31A24C] ml-1">[PIN]</span>}
                             </p>
                             {t.authorized_by && (
                               <p className="text-[10px] text-[#4A4B4C]">By: {t.authorized_by}</p>
@@ -605,13 +605,13 @@ export default function CompSystem() {
                     </div>
                     <div>
                       <p className="text-base font-bold text-white">Auto Rake-Back</p>
-                      <p className="text-xs text-[#B0B3B8]">Comps earned automatically per hour of play</p>
+                      <p className="text-xs text-[#B0B3B8]">Comps Earned Automatically Per Hour Of Play</p>
                     </div>
                   </div>
                   <div className="text-4xl font-bold text-[#31A24C] text-center py-3">
                     ${autoCompRate.toFixed(2)}<span className="text-lg text-[#B0B3B8] font-normal">/hour</span>
                   </div>
-                  <p className="text-xs text-[#6A6B6D] text-center mb-3">Applied to all seated players. Configure in Settings.</p>
+                  <p className="text-xs text-[#6A6B6D] text-center mb-3">Applied To All Seated Players. Configure In Settings.</p>
                   <button onClick={() => router.push('/commander/settings')}
                     className="w-full py-2.5 rounded-xl bg-[#3A3B3C] text-white text-sm font-medium active:bg-[#4A4B4C]">
                     Edit Rate In Settings
@@ -656,7 +656,7 @@ export default function CompSystem() {
                     })}
                   </div>
                   <p className="text-[10px] text-[#6A6B6D] text-center mt-2 flex items-center justify-center gap-1">
-                    <Shield className="w-3 h-3 text-[#F59E0B]" /> All manual comps require staff PIN verification
+                    <Shield className="w-3 h-3 text-[#F59E0B]" /> All Manual Comps Require Staff PIN Verification
                   </p>
                 </div>
               </div>
