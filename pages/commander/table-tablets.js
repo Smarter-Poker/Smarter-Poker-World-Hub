@@ -1439,45 +1439,36 @@ export default function TableTabletsPage() {
                         </div>
 
 
-                        {/* ── Compact Futuristic Metal Button Bar (bottom overlay) ── */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50, padding: '4px 24px 6px', pointerEvents: 'none' }}>
-                            <div style={{ pointerEvents: 'auto', display: 'grid', gridTemplateColumns: (fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id) ? '1fr 1fr 1fr' : '1fr 1fr', gap: 2, background: 'linear-gradient(180deg, #52565a 0%, #3a3d42 8%, #6b7076 12%, #8a9098 14%, #6b7076 16%, #3a3d42 20%, #2a2d32 50%, #3a3d42 80%, #6b7076 84%, #8a9098 86%, #6b7076 88%, #3a3d42 92%, #52565a 100%)', borderRadius: 10, padding: 3, border: '1px solid rgba(138,208,220,0.2)', boxShadow: '0 0 10px rgba(0,210,255,0.05), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}>
-                                {/* Cell 1: Call Floor */}
-                                {(() => {
-                                    const isA = callFloorSent; const bC = isA ? 'rgba(239,68,68,0.3)' : 'rgba(138,208,220,0.15)'; const cC = isA ? 'rgba(239,68,68,0.4)' : 'rgba(138,208,220,0.3)'; return (
-                                        <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
-                                            style={{ position: 'relative', overflow: 'hidden', background: isA ? 'linear-gradient(180deg,#1a0a0a 0%,#0d0505 40%,#1a0a0a 100%)' : 'linear-gradient(180deg,#0a0e14 0%,#050810 40%,#0a0e14 100%)', border: `1px solid ${bC}`, borderRadius: 8, padding: '10px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: isA ? '#EF4444' : '#F0F4F8', fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textShadow: isA ? '0 0 10px rgba(239,68,68,0.4)' : '0 0 10px rgba(138,208,220,0.25)', opacity: callFloorSending ? 0.6 : 1, transition: 'all 0.2s ease' }}>
-                                            <div style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '5px 0 0 0' }} />
-                                            <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 5px 0 0' }} />
-                                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '0 0 0 5px' }} />
-                                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 0 5px 0' }} />
-                                            {callFloorSending ? 'Calling...' : isA ? 'Cancel Floor' : 'Call Floor'}
-                                        </button>);
-                                })()}
-                                {/* Cell 2: Call Clock */}
-                                {(() => {
-                                    const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; const cC = 'rgba(138,208,220,0.3)'; return (
-                                        <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
-                                            style={{ position: 'relative', overflow: 'hidden', background: a ? (d ? 'linear-gradient(180deg,#1a0505 0%,#0d0202 40%,#1a0505 100%)' : 'linear-gradient(180deg,#0a0e1a 0%,#050818 40%,#0a0e1a 100%)') : 'linear-gradient(180deg,#0a0e14 0%,#050810 40%,#0a0e14 100%)', border: `1px solid ${a ? (d ? 'rgba(239,68,68,0.35)' : 'rgba(24,119,242,0.3)') : 'rgba(138,208,220,0.15)'}`, borderRadius: 8, padding: '10px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a ? (d ? '#EF4444' : '#4DA3FF') : '#F0F4F8', fontSize: a ? 20 : 12, fontWeight: 900, letterSpacing: 0.5, textShadow: a ? (d ? '0 0 14px rgba(239,68,68,0.5)' : '0 0 14px rgba(24,119,242,0.4)') : '0 0 10px rgba(138,208,220,0.25)', transition: 'all 0.2s ease', animation: d ? 'pulse 0.5s infinite alternate' : 'none' }}>
-                                            <div style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '5px 0 0 0' }} />
-                                            <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 5px 0 0' }} />
-                                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '0 0 0 5px' }} />
-                                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 0 5px 0' }} />
-                                            {a ? (<><span style={{ fontWeight: 900 }}>{callClockSeconds}</span><span style={{ fontSize: 8, fontWeight: 700, opacity: 0.7, letterSpacing: 1 }}>s</span></>) : 'Call Clock'}
-                                        </button>);
-                                })()}
-                                {/* Cell 3: Tournament Clock */}
-                                {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
-                                    <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
-                                        style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(180deg,#141005 0%,#0d0a02 40%,#141005 100%)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 8, padding: '10px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: '#FFD700', fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textShadow: '0 0 10px rgba(255,215,0,0.35)', transition: 'all 0.2s ease' }}>
-                                        <div style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 8, borderTop: '1.5px solid rgba(255,215,0,0.35)', borderLeft: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '5px 0 0 0' }} />
-                                        <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderTop: '1.5px solid rgba(255,215,0,0.35)', borderRight: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '0 5px 0 0' }} />
-                                        <div style={{ position: 'absolute', bottom: 0, left: 0, width: 8, height: 8, borderBottom: '1.5px solid rgba(255,215,0,0.35)', borderLeft: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '0 0 0 5px' }} />
-                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderBottom: '1.5px solid rgba(255,215,0,0.35)', borderRight: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '0 0 5px 0' }} />
-                                        <Trophy size={13} /> Tournament Clock
-                                    </button>)}
-                            </div>
-                        </div>
+                        {/* ── Corner Floating Buttons ── */}
+
+                        {/* BOTTOM-LEFT: Call Floor */}
+                        {(() => {
+                            const isA = callFloorSent; return (
+                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
+                                    style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
+                                    <img src={isA ? '/assets/tablet-buttons/call-floor.jpg' : '/assets/tablet-buttons/call-floor.jpg'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 8, pointerEvents: 'none' }} />
+                                    {isA && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, fontWeight: 900, textShadow: '0 0 8px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>Cancel Floor</div>}
+                                </button>);
+                        })()}
+
+                        {/* BOTTOM-RIGHT: Call Clock */}
+                        {(() => {
+                            const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; return (
+                                <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
+                                    style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s', animation: d ? 'pulse 0.5s infinite alternate' : 'none' }}>
+                                    <img src="/assets/tablet-buttons/call-clock.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 8, pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
+                                    {a && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: d ? '#EF4444' : '#4DA3FF', fontSize: 28, fontWeight: 900, textShadow: '0 0 12px rgba(0,0,0,0.9)', letterSpacing: 1 }}>{callClockSeconds}<span style={{ fontSize: 10, marginLeft: 2, opacity: 0.8 }}>s</span></div>}
+                                </button>);
+                        })()}
+
+                        {/* UPPER-LEFT: Tournament Clock / Tournament Table (NEVER on cash tables) */}
+                        {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
+                            <button onClick={() => { haptic(); if (showTournamentClock) { setShowTournamentClock(false); setLockedTournamentId(null); return; } const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
+                                style={{ position: 'absolute', top: 70, left: 16, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                <img src={showTournamentClock ? '/assets/tablet-buttons/tournament-table.jpg' : '/assets/tablet-buttons/tournament-clock.jpg'} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 8, pointerEvents: 'none' }} />
+                            </button>
+                        )}
+
                     </div>
 
                     {/* ── TOURNAMENT CLOCK OVERLAY — 1:1 mirror via iframe ──
@@ -1564,25 +1555,29 @@ export default function TableTabletsPage() {
                             {(() => {
                                 const menuTable = tables.find(t => (t.table_number || t.number) === showPlayerMenu.tableNumber);
                                 const isTournMenu = menuTable && isTournamentTable(menuTable);
-                                const actions = [
-                                    { label: '🪑 Move Player', color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: showPlayerMenu.taken?.player_name || 'Player', tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: `Tap an empty seat to move ${showPlayerMenu.taken?.player_name || 'player'}` }); } },
-                                    ...(isTournMenu ? [
-                                        { label: '💀 Bust Player', color: '#EF4444', action: async () => { if (!confirm(`Bust ${showPlayerMenu.taken?.player_name}?`)) return; await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); setShowPlayerMenu(null); } },
-                                        { label: '🎰 Update Chip Count', color: '#FFD700', action: () => { setChipCountInput(''); } },
-                                    ] : [
-                                        { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
-                                        ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
-                                            ? [{ label: '▶️ Resume Timer', color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: `▶️ ${json.data.player_name} resumed` }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
-                                            : [{ label: '⏸️ Pause Timer', color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: `⏸️ ${json.data.player_name} paused` }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
-                                        ),
-                                        { label: '⚠️ Missed Blinds', color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: `🚫 ${json.data.player_name} removed — 3 missed blinds` }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: `⚠️ Missed blind #${count} for ${json.data.player_name}` }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
-                                        { label: '🍽️ 30-Min Meal Break', color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: `🍽️ 30-min meal break for ${json.data.player_name}` }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
-                                    ]),
+                                const entryId = showPlayerMenu.taken?.entry_id;
+                                const tournId = showPlayerMenu.taken?.tournament_id || menuTable?.tournament_id;
+                                const pName = showPlayerMenu.taken?.player_name || 'Player';
+                                const iconSize = 16;
+                                const actions = isTournMenu ? [
+                                    { label: 'Move Player', icon: React.createElement(ArrowRightLeft, { size: iconSize }), color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: pName, tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: 'Tap an empty seat to move ' + pName }); } },
+                                    { label: 'Bust Player', icon: React.createElement(Skull, { size: iconSize }), color: '#EF4444', action: async () => { if (!confirm('Bust ' + pName + '?')) return; if (entryId && tournId) { await bustTournamentPlayer(tournId, entryId, pName); } else { setToast({ type: 'error', text: 'Missing entry data - try refreshing' }); } } },
+                                    { label: 'Update Chip Count', icon: React.createElement(Coins, { size: iconSize }), color: '#FFD700', action: () => { setChipCountInput(''); } },
+                                ] : [
+                                    { label: 'Move Player', icon: React.createElement(ArrowRightLeft, { size: iconSize }), color: '#1877F2', action: () => { setMovingPlayer({ seat: showPlayerMenu, player_name: pName, tableNumber: showPlayerMenu.tableNumber }); setShowPlayerMenu(null); setToast({ type: 'success', text: 'Tap an empty seat to move ' + pName }); } },
+                                    { label: 'Remove Player', icon: React.createElement(XCircle, { size: iconSize }), color: '#EF4444', action: () => removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number) },
+                                    ...(showPlayerMenu.taken?.session_status === 'paused' || showPlayerMenu.taken?.session_status === 'meal_break'
+                                        ? [{ label: 'Resume Timer', icon: React.createElement(Clock, { size: iconSize }), color: '#22c55e', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'resume'); if (json.success) { setToast({ type: 'success', text: json.data.player_name + ' resumed' }); } else { setToast({ type: 'error', text: json.error || 'Resume failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                        : [{ label: 'Pause Timer', icon: React.createElement(Timer, { size: iconSize }), color: '#F59E0B', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'pause'); if (json.success) { setToast({ type: 'success', text: json.data.player_name + ' paused' }); } else { setToast({ type: 'error', text: json.error || 'Pause failed' }); } setShowPlayerMenu(null); fetchAll(); } }]
+                                    ),
+                                    { label: 'Missed Blinds', icon: React.createElement(AlertTriangle, { size: iconSize }), color: '#F97316', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'missed_blinds'); if (json.success) { const count = json.data.missed_blinds_count; if (count >= 3) { setToast({ type: 'error', text: json.data.player_name + ' removed - 3 missed blinds' }); await removePlayer(showPlayerMenu.tableNumber, showPlayerMenu.number); } else { setToast({ type: 'success', text: 'Missed blind #' + count + ' for ' + json.data.player_name }); } fetchAll(); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); } },
+                                    { label: '30-Min Meal Break', icon: React.createElement(Clock, { size: iconSize }), color: '#8B5CF6', action: async () => { const json = await callSessionAction(showPlayerMenu.tableNumber, showPlayerMenu.number, 'meal_break'); if (json.success) { setToast({ type: 'success', text: '30-min meal break for ' + json.data.player_name }); } else { setToast({ type: 'error', text: json.error || 'Failed' }); } setShowPlayerMenu(null); fetchAll(); } },
                                 ];
                                 return actions.map((btn, i) => (
-                                    <button key={i} onClick={() => { haptic(); btn.action(); }} disabled={playerActionLoading}
-                                        style={{ padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `${btn.color}15`, color: btn.color, fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }}
-                                    >{btn.label}</button>
+                                    React.createElement('button', {
+                                        key: i, onClick: () => { haptic(); btn.action(); }, disabled: playerActionLoading,
+                                        style: { padding: '14px 16px', borderRadius: 12, border: '1px solid #3A3B3C', cursor: 'pointer', background: '#3A3B3C', color: '#E4E6EB', fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }
+                                    }, React.createElement('span', { style: { color: btn.color, display: 'flex', alignItems: 'center', flexShrink: 0 } }, btn.icon), ' ', btn.label)
                                 ));
                             })()}
                         </div>
@@ -1591,35 +1586,17 @@ export default function TableTabletsPage() {
                                 <input type="number" value={chipCountInput} onChange={e => setChipCountInput(e.target.value)} placeholder="Enter chip count..."
                                     style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 16, fontWeight: 700, outline: 'none' }} />
                                 <button onClick={async () => {
-                                    haptic();
                                     if (!chipCountInput) return;
-                                    try {
-                                        const sessionId = showPlayerMenu.taken?.session_id;
-                                        if (sessionId) {
-                                            const res = await fetch('/api/commander/dealer/session-action', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    table_number: showPlayerMenu.tableNumber,
-                                                    seat_number: showPlayerMenu.number,
-                                                    venue_id: venueId,
-                                                    action: 'update_chip_count',
-                                                    chip_count: parseInt(chipCountInput),
-                                                }),
-                                            });
-                                            const json = await res.json();
-                                            if (json.success) {
-                                                setToast({ type: 'success', text: `Chip count updated: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
-                                            } else {
-                                                setToast({ type: 'error', text: json.error || 'Failed to save chip count' });
-                                            }
-                                        } else {
-                                            setToast({ type: 'success', text: `Chip count: ${parseInt(chipCountInput).toLocaleString()} — ${showPlayerMenu.taken?.player_name}` });
-                                        }
-                                    } catch { setToast({ type: 'error', text: 'Network error saving chip count' }); }
+                                    const eId = showPlayerMenu.taken?.entry_id;
+                                    const tId = showPlayerMenu.taken?.tournament_id || tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber)?.tournament_id;
+                                    const pN = showPlayerMenu.taken?.player_name || 'Player';
+                                    if (eId && tId) {
+                                        await updateTournamentChipCount(tId, eId, parseInt(chipCountInput), pN);
+                                    } else {
+                                        setToast({ type: 'error', text: 'Missing entry data - try refreshing' });
+                                    }
                                     setChipCountInput(null);
                                     setShowPlayerMenu(null);
-                                    fetchAll();
                                 }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>
                             </div>
                         )}

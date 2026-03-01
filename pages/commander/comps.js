@@ -69,6 +69,7 @@ export default function CompSystem() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [compAmount, setCompAmount] = useState('');
   const [membershipCost, setMembershipCost] = useState('');
+  const [compLocation, setCompLocation] = useState('');
   const [compNotes, setCompNotes] = useState('');
   const [awarding, setAwarding] = useState(false);
   const [awarded, setAwarded] = useState(false);
@@ -270,10 +271,14 @@ export default function CompSystem() {
         amount: isMembership ? (parseFloat(membershipCost) || 0) : parseFloat(compAmount),
         reason: isMembership
           ? `Free Membership — ${durationLabel}${compNotes ? ' — ' + compNotes : ''}`
-          : `${catLabel}${compNotes ? ' — ' + compNotes : ''}`,
+          : selectedCategory === 'free_food' && compLocation
+            ? `${catLabel} @ ${compLocation}${compNotes ? ' — ' + compNotes : ''}`
+            : `${catLabel}${compNotes ? ' — ' + compNotes : ''}`,
         type: 'award',
         comp_category: selectedCategory,
-        notes: compNotes || '',
+        notes: selectedCategory === 'free_food' && compLocation
+          ? `📍 ${compLocation}${compNotes ? ' — ' + compNotes : ''}`
+          : (compNotes || ''),
         authorized_by: authorizerName,
         authorized_pin: true,
       };
@@ -328,6 +333,7 @@ export default function CompSystem() {
           setCompAmount('');
           setMembershipCost('');
           setCompNotes('');
+          setCompLocation('');
           setTimeMinutes('');
           setSearchQuery('');
           setSearchResults([]);
@@ -406,6 +412,7 @@ export default function CompSystem() {
     setCompAmount('');
     setMembershipCost('');
     setCompNotes('');
+    setCompLocation('');
     setTimeMinutes('');
     setSearchQuery('');
     setSearchResults([]);
@@ -937,6 +944,17 @@ export default function CompSystem() {
                           </>
                         )}
 
+                        {/* Location field — required for Food & Beverage */}
+                        {selectedCategory === 'free_food' && (
+                          <div>
+                            <p className="text-xs text-[#EF4444] mb-1 font-semibold">Location (Required)</p>
+                            <input type="text" value={compLocation}
+                              onChange={e => setCompLocation(e.target.value)}
+                              placeholder="E.g., The Bistro, Main Bar, VIP Lounge..."
+                              className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#EF4444] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
+                          </div>
+                        )}
+
                         <div>
                           <p className="text-xs text-[#B0B3B8] mb-1">Notes (optional)</p>
                           <input type="text" value={compNotes}
@@ -945,7 +963,7 @@ export default function CompSystem() {
                             className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
                         </div>
 
-                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory === 'free_membership' ? (!membershipCost || parseFloat(membershipCost) <= 0) : selectedCategory === 'free_time' ? !timeMinutes : parseFloat(compAmount) <= 0)}
+                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory === 'free_membership' ? (!membershipCost || parseFloat(membershipCost) <= 0) : selectedCategory === 'free_time' ? !timeMinutes : selectedCategory === 'free_food' ? (!compLocation || !compLocation.trim()) : parseFloat(compAmount) <= 0)}
                           className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
                           {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
                           {selectedCategory === 'free_membership'
