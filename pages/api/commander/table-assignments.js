@@ -197,9 +197,13 @@ async function handlePut(req, res, venueId, staffUserId) {
 
   if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
-  // Build update — persist mode column as source of truth
+  // Build update — persist BOTH mode and table_purpose as source of truth
+  // mode values: 'cash', 'tournament', 'inactive'
+  // table_purpose values: 'cash_game', 'tournament', null
+  const tablePurpose = mode === 'cash' ? 'cash_game' : mode === 'tournament' ? 'tournament' : null;
   const updates = {
     mode,
+    table_purpose: tablePurpose,
     game_type: mode === 'cash' ? game_type : null,
     stakes: mode === 'cash' ? stakes : null,
     tournament_id: mode === 'tournament' ? tournament_id : null,
@@ -290,11 +294,12 @@ async function handleClose(req, res, venueId, staffUserId) {
     .eq('venue_id', venueId)
     .eq('table_number', table.table_number);
 
-  // Set table to inactive
+  // Set table to inactive — sync BOTH mode and table_purpose
   const { data: updated } = await supabase
     .from('commander_tables')
     .update({
       mode: 'inactive',
+      table_purpose: null,
       game_type: null,
       stakes: null,
       tournament_id: null,

@@ -123,9 +123,14 @@ async function handlePatch(req, res, tableId) {
     if (stakes !== undefined) updates.stakes = stakes;
     if (table_purpose !== undefined) updates.table_purpose = table_purpose;
     if (mode !== undefined) updates.mode = mode;
-    // Auto-sync mode when table_purpose is set but mode is not explicitly provided
+    // Bidirectional sync: table_purpose ↔ mode
+    // If table_purpose is set but mode is not, derive mode from table_purpose
     if (table_purpose !== undefined && mode === undefined) {
       updates.mode = table_purpose === 'tournament' ? 'tournament' : 'cash';
+    }
+    // If mode is set but table_purpose is not, derive table_purpose from mode
+    if (mode !== undefined && table_purpose === undefined) {
+      updates.table_purpose = mode === 'tournament' ? 'tournament' : mode === 'cash' ? 'cash_game' : null;
     }
 
     if (status !== undefined) {
