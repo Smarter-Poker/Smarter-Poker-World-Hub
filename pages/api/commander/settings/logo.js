@@ -3,20 +3,36 @@
  * POST /api/commander/settings/logo - Upload club logo to Supabase Storage
  * DELETE /api/commander/settings/logo - Remove club logo
  * 
- * Stores the logo in Supabase Storage bucket 'club-logos'
- * and saves the public URL to commander_venue_settings.club_logo_url
+ * Uses base64 JSON body instead of multipart for simplicity.
+ * Client sends: { data: "base64string...", filename: "logo.png", contentType: "image/png" }
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardManager } from '../../../../src/lib/commander/auth';
-import formidable from 'formidable';
-import fs from 'fs';
-
-export const config = { api: { bodyParser: false } };
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Increase body size limit for base64 uploads (5MB file → ~7MB base64)
+export const config = {
+    api: { bodyParser: { sizeLimit: '8mb' } }
+};
+
+const BUCKET = 'club-logos';
+
+// Ensure bucket exists (idempotent)
+async function ensureBucket() {
+    try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const exists = buckets?.some(b => b.name === BUCKET);
+        if (!exists) {
+            await supabase.storage.createBucket(BUCKET, { public: true });
+        }
+    } catch (err) {
+        console.error('Bucket check error:', err);
+    }
+}
 
 export default async function handler(req, res) {
     const staff = await guardManager(req, res);
@@ -25,7 +41,6 @@ export default async function handler(req, res) {
     try {
         // ── DELETE: Remove logo ──────────────────────────────────────
         if (req.method === 'DELETE') {
-            // Get current logo URL to delete from storage
             const { data: settings } = await supabase
                 .from('commander_venue_settings')
                 .select('club_logo_url')
@@ -33,14 +48,12 @@ export default async function handler(req, res) {
                 .single();
 
             if (settings?.club_logo_url) {
-                // Extract file path from URL
-                const urlParts = settings.club_logo_url.split('/club-logos/');
+                const urlParts = settings.club_logo_url.split(`/${BUCKET}/`);
                 if (urlParts[1]) {
-                    await supabase.storage.from('club-logos').remove([urlParts[1]]);
+                    await supabase.storage.from(BUCKET).remove([urlParts[1]]);
                 }
             }
 
-            // Clear the URL in settings
             const { error } = await supabase
                 .from('commander_venue_settings')
                 .upsert({
@@ -54,32 +67,35 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, data: { club_logo_url: null } });
         }
 
-        // ── POST: Upload logo ────────────────────────────────────────
+        // ── POST: Upload logo (base64 JSON body) ─────────────────────
         if (req.method === 'POST') {
-            const form = formidable({
-                maxFileSize: 5 * 1024 * 1024, // 5MB max
-                filter: ({ mimetype }) => mimetype && mimetype.startsWith('image/'),
-            });
+            const { data: base64Data, filename, contentType } = req.body || {};
 
-            const [fields, files] = await form.parse(req);
-            const file = files.logo?.[0];
-
-            if (!file) {
-                return res.status(400).json({ success: false, error: 'No logo file provided' });
+            if (!base64Data || !contentType) {
+                return res.status(400).json({ success: false, error: 'Missing logo data. Send { data, filename, contentType }.' });
             }
 
-            // Validate file type
+            // Validate content type
             const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/gif'];
-            if (!allowedTypes.includes(file.mimetype)) {
+            if (!allowedTypes.includes(contentType)) {
                 return res.status(400).json({ success: false, error: 'Invalid file type. Use PNG, JPG, WebP, SVG, or GIF.' });
             }
 
-            // Read file buffer
-            const fileBuffer = fs.readFileSync(file.filepath);
-            const ext = file.originalFilename?.split('.').pop() || 'png';
-            const fileName = `${staff.venue_id}/logo-${Date.now()}.${ext}`;
+            // Decode base64 to buffer
+            const buffer = Buffer.from(base64Data, 'base64');
 
-            // Delete any existing logo first
+            // Max 5MB
+            if (buffer.length > 5 * 1024 * 1024) {
+                return res.status(400).json({ success: false, error: 'File too large. Maximum 5MB.' });
+            }
+
+            // Ensure bucket exists
+            await ensureBucket();
+
+            const ext = (filename || 'logo.png').split('.').pop() || 'png';
+            const storagePath = `${staff.venue_id}/logo-${Date.now()}.${ext}`;
+
+            // Delete old logo if exists
             const { data: existingSettings } = await supabase
                 .from('commander_venue_settings')
                 .select('club_logo_url')
@@ -87,17 +103,17 @@ export default async function handler(req, res) {
                 .single();
 
             if (existingSettings?.club_logo_url) {
-                const urlParts = existingSettings.club_logo_url.split('/club-logos/');
+                const urlParts = existingSettings.club_logo_url.split(`/${BUCKET}/`);
                 if (urlParts[1]) {
-                    await supabase.storage.from('club-logos').remove([urlParts[1]]);
+                    await supabase.storage.from(BUCKET).remove([urlParts[1]]);
                 }
             }
 
-            // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('club-logos')
-                .upload(fileName, fileBuffer, {
-                    contentType: file.mimetype,
+            // Upload
+            const { error: uploadError } = await supabase.storage
+                .from(BUCKET)
+                .upload(storagePath, buffer, {
+                    contentType,
                     cacheControl: '3600',
                     upsert: true
                 });
@@ -109,8 +125,8 @@ export default async function handler(req, res) {
 
             // Get public URL
             const { data: publicUrlData } = supabase.storage
-                .from('club-logos')
-                .getPublicUrl(fileName);
+                .from(BUCKET)
+                .getPublicUrl(storagePath);
 
             const logoUrl = publicUrlData.publicUrl;
 
@@ -128,7 +144,6 @@ export default async function handler(req, res) {
                 return res.status(500).json({ success: false, error: saveError.message });
             }
 
-            // Also update the staff session's cached branding
             return res.status(200).json({
                 success: true,
                 data: { club_logo_url: logoUrl }
@@ -138,6 +153,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (err) {
         console.error('Logo API error:', err);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
     }
 }

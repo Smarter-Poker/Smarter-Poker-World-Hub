@@ -294,17 +294,34 @@ export default function CommanderSettingsPage() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) {
+                              setError('File too large. Maximum 5MB.');
+                              return;
+                            }
                             setLogoUploading(true);
+                            setError(null);
                             try {
                               const token = (() => {
                                 try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').token; } catch { return null; }
                               })();
-                              const formData = new FormData();
-                              formData.append('logo', file);
+                              // Read file as base64
+                              const base64 = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result.split(',')[1]);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                              });
                               const res = await fetch('/api/commander/settings/logo', {
                                 method: 'POST',
-                                headers: { Authorization: `Bearer ${token}` },
-                                body: formData
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  Authorization: `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                  data: base64,
+                                  filename: file.name,
+                                  contentType: file.type
+                                })
                               });
                               const json = await res.json();
                               if (json.success) {
@@ -315,7 +332,7 @@ export default function CommanderSettingsPage() {
                               } else {
                                 setError(json.error || 'Upload failed');
                               }
-                            } catch { setError('Upload failed'); }
+                            } catch (err) { setError('Upload failed: ' + (err.message || 'Network error')); }
                             setLogoUploading(false);
                             e.target.value = '';
                           }}
