@@ -359,10 +359,22 @@ export default function Cashier() {
       setVerifiedStaff(staff);
       setPinCacheExpiry(Date.now() + 5 * 60 * 1000);
       setPinStep(false);
-      await executeAction(pendingAction, staff);
+      // Execute action — catch errors here so user always sees feedback
+      try {
+        await executeAction(pendingAction, staff);
+      } catch (actionErr) {
+        console.error('Action execution error:', actionErr);
+        setMessage({ type: 'error', text: 'Transaction Failed — Please Try Again' });
+      }
       setPendingAction(null);
-    } catch {
-      setPinError('Network Error');
+    } catch (err) {
+      console.error('PIN verification error:', err);
+      // If PIN keypad is still showing, show error there; otherwise show via message
+      if (pinStep) {
+        setPinError('Network Error — Check Connection');
+      } else {
+        setMessage({ type: 'error', text: 'Network Error — Check Connection' });
+      }
       setPinDigits('');
     }
     setPinVerifying(false);
@@ -416,7 +428,7 @@ export default function Cashier() {
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction Failed' });
       }
-    } catch { setMessage({ type: 'error', text: 'Network Error' }); }
+    } catch (err) { console.error('Buy-in error:', err); setMessage({ type: 'error', text: 'Buy-In Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
 
@@ -490,7 +502,7 @@ export default function Cashier() {
         staff_name: staff?.display_name || 'Staff',
         transaction_id: txJson?.data?.id || null,
       });
-    } catch { setMessage({ type: 'error', text: 'Network Error' }); }
+    } catch (err) { console.error('Add time error:', err); setMessage({ type: 'error', text: 'Add Time Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
 
@@ -550,7 +562,7 @@ export default function Cashier() {
         staff_name: staff?.display_name || 'Staff',
         transaction_id: txJson?.data?.id || null,
       });
-    } catch { setMessage({ type: 'error', text: 'Network Error' }); }
+    } catch (err) { console.error('Membership update error:', err); setMessage({ type: 'error', text: 'Membership Update Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
 
