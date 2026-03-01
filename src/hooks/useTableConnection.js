@@ -58,6 +58,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
   const [lastHandResult, setLastHandResult] = useState(null); // Persists after result clears
   const [error, setError] = useState(null);
   const [tableAlert, setTableAlert] = useState(null);
+  const [seatOffer, setSeatOffer] = useState(null); // { seatIndex, timeout, offeredAt }
   const [connected, setConnected] = useState(false);
   const sessionStatsRef = useRef({ initialBuyIn: 0, totalAdded: 0, handsPlayed: 0, sessionStart: null });
 
@@ -329,6 +330,21 @@ export function useTableConnection({ supabase, tableId, userId }) {
         }
         requestState();
         break;
+      case 'seat_offered':
+        if (String(data.playerId) === String(userId)) {
+          setSeatOffer({ seatIndex: data.seatIndex, timeout: data.timeout || 30000, offeredAt: Date.now() });
+          setTableAlert({ type: 'success', message: `🎉 A seat is available! Seat #${data.seatIndex + 1} reserved for you` });
+        }
+        requestState();
+        break;
+      case 'reservation_expired':
+        if (String(data.playerId) === String(userId)) {
+          setSeatOffer(null);
+          setTableAlert({ type: 'warning', message: 'Seat reservation expired' });
+          setTimeout(() => setTableAlert(null), 5000);
+        }
+        requestState();
+        break;
       default:
         requestState();
         break;
@@ -350,7 +366,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
       'timer_update', 'showdown', 'payout', 'hand_complete',
       'player_seated', 'player_left', 'player_sitting_out',
       'player_sitting_in', 'player_disconnected', 'player_reconnected',
-      'chat_message', 'table_error', 'seat_offered', 'bbj_won',
+      'chat_message', 'table_error', 'seat_offered', 'reservation_expired', 'bbj_won',
       'insurance_offered', 'insurance_purchased', 'insurance_declined',
       'insurance_payout', 'insurance_expired',
       'run_it_multiple', 'run_it_twice', 'run_it_thrice',
@@ -462,7 +478,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
 
   return {
     tableState, myCards, legalActions, timerState, chatMessages,
-    result, lastHandResult, error, connected, tableAlert,
+    result, lastHandResult, error, connected, tableAlert, seatOffer,
     sessionStats: sessionStatsRef.current,
     send, requestState,
     sendAction, sitDown, standUp, sitOut, sitIn, addChips, sendChat,

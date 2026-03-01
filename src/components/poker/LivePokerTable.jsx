@@ -1126,6 +1126,160 @@ function AdminBtn({ label, onClick, color = '#2374E1', loading = false }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// OBSERVER / WAITLIST BAR — Shows when player is NOT seated
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
+  const seats = tableState?.seats || [];
+  const waitlist = tableState?.waitlist || [];
+  const emptySeats = seats.filter(s => s.status === 'empty');
+  const isOnWaitlist = waitlist.some(w => String(w.playerId) === String(userId));
+  const myWaitPos = waitlist.findIndex(w => String(w.playerId) === String(userId));
+  const tableFull = emptySeats.length === 0 && !seatOffer;
+
+  // Countdown for seat offer
+  const [offerSecs, setOfferSecs] = useState(0);
+  useEffect(() => {
+    if (!seatOffer) { setOfferSecs(0); return; }
+    const total = Math.round((seatOffer.timeout || 30000) / 1000);
+    const elapsed = Math.round((Date.now() - seatOffer.offeredAt) / 1000);
+    setOfferSecs(Math.max(0, total - elapsed));
+    const iv = setInterval(() => setOfferSecs(s => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(iv);
+  }, [seatOffer]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 120,
+        background: 'linear-gradient(180deg, rgba(24,25,26,0.0) 0%, rgba(24,25,26,0.95) 30%)',
+        padding: '32px 16px 16px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 8,
+      }}
+    >
+      {/* Observer badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 20, padding: '4px 16px',
+      }}>
+        <span style={{ fontSize: 14 }}>👁️</span>
+        <span style={{ color: '#B0B3B8', fontSize: 12, fontWeight: 600 }}>Watching</span>
+        {tableState?.game?.phase && tableState.game.phase !== 'idle' && (
+          <span style={{ color: '#4ECDC4', fontSize: 11, fontWeight: 700 }}>LIVE</span>
+        )}
+      </div>
+
+      {/* Seat offer (urgent) */}
+      {seatOffer && offerSecs > 0 && (
+        <motion.div
+          initial={{ scale: 0.9 }}
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+          style={{
+            background: 'linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.1))',
+            border: '2px solid #4caf50', borderRadius: 12,
+            padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12,
+          }}
+        >
+          <div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>🎉 Seat Available!</div>
+            <div style={{ color: '#81C784', fontSize: 12 }}>Seat #{seatOffer.seatIndex + 1} reserved for you</div>
+          </div>
+          <div style={{
+            fontSize: 22, fontWeight: 900, color: offerSecs < 10 ? '#FF6B6B' : '#4caf50',
+            fontVariantNumeric: 'tabular-nums', minWidth: 36, textAlign: 'center',
+          }}>{offerSecs}s</div>
+          <button
+            onClick={() => onClickSeat(seatOffer.seatIndex)}
+            style={{
+              background: 'linear-gradient(135deg, #31A24C, #268a3e)',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 20px', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(49,162,76,0.5)',
+              animation: 'pulse 1s infinite',
+            }}
+          >Take Seat</button>
+        </motion.div>
+      )}
+
+      {/* Waitlist status OR sit prompt */}
+      {isOnWaitlist ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.4)',
+            borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: '#2374E1' }}>#{myWaitPos + 1}</span>
+            <div>
+              <div style={{ color: '#E4E6EB', fontSize: 13, fontWeight: 700 }}>On Waitlist</div>
+              <div style={{ color: '#B0B3B8', fontSize: 11 }}>
+                {waitlist.length === 1 ? "You're next!" : `${myWaitPos} ahead of you`}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => send('leave_waitlist', {})}
+            style={{
+              background: 'rgba(244,67,54,0.15)', color: '#ef5350',
+              border: '1px solid rgba(244,67,54,0.3)', borderRadius: 8,
+              padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >Leave</button>
+        </div>
+      ) : tableFull ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ color: '#B0B3B8', fontSize: 13 }}>
+            Table full ({seats.filter(s => s.player).length}/{seats.length})
+          </div>
+          <button
+            onClick={() => send('join_waitlist', {})}
+            style={{
+              background: 'linear-gradient(135deg, #2374E1, #1a5cbf)',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 24px', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(35,116,225,0.4)',
+            }}
+          >
+            Join Waitlist {waitlist.length > 0 ? `(${waitlist.length} waiting)` : ''}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ color: '#81C784', fontSize: 13 }}>
+            {emptySeats.length} seat{emptySeats.length !== 1 ? 's' : ''} available
+          </div>
+          <button
+            onClick={() => {
+              // Click first empty seat
+              const firstEmpty = seats.findIndex(s => s.status === 'empty');
+              if (firstEmpty >= 0) onClickSeat(firstEmpty);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #31A24C, #268a3e)',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 24px', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 3px 12px rgba(49,162,76,0.4)',
+            }}
+          >
+            Sit Down
+          </button>
+        </div>
+      )}
+
+      {/* Waitlist count (when not on it) */}
+      {!isOnWaitlist && waitlist.length > 0 && (
+        <div style={{ color: '#B0B3B8', fontSize: 11 }}>
+          {waitlist.length} player{waitlist.length !== 1 ? 's' : ''} on waitlist
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // BUY-IN DIALOG
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1965,7 +2119,7 @@ export default function LivePokerTable({
   const {
     tableState, myCards, legalActions, timerState,
     chatMessages, result, lastHandResult, error, connected, send,
-    sessionStats, tableAlert,
+    sessionStats, tableAlert, seatOffer,
   } = useTableConnection({ supabase, tableId, userId });
 
   // Theme system
@@ -2051,6 +2205,14 @@ export default function LivePokerTable({
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
   const [clubChipBalance, setClubChipBalance] = useState(null);
+
+  // Auto-open buy-in when waitlist seat is offered
+  useEffect(() => {
+    if (seatOffer && !isSitting && buyInSeat === null) {
+      setBuyInSeat(seatOffer.seatIndex);
+    }
+  }, [seatOffer, isSitting, buyInSeat]);
+
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
   const [playerNotes, setPlayerNotes] = useState({}); // { targetUserId: { color_label, player_type, ... } }
 
@@ -2508,6 +2670,17 @@ export default function LivePokerTable({
       {/* Chat — hidden when ban_chat enabled */}
       {!tableState?.config?.banChat && (
         <ChatOverlay messages={chatMessages} onSend={handleChat} />
+      )}
+
+      {/* Observer / Waitlist bar — shown when NOT seated */}
+      {!isSitting && buyInSeat === null && tableState && (
+        <ObserverBar
+          tableState={tableState}
+          userId={userId}
+          send={send}
+          onClickSeat={(idx) => setBuyInSeat(idx)}
+          seatOffer={seatOffer}
+        />
       )}
 
       {/* Buy-in dialog */}
