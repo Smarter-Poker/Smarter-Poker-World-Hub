@@ -107,25 +107,23 @@ export default function PlayerStats() {
                     }
 
                     // Fetch hand history for this user in this club
+                    // Engine saves to hand_histories with hand_data JSONB containing full action log
                     let handQuery = supabase
-                        .from('hand_history')
-                        .select('*');
+                        .from('hand_histories')
+                        .select('*')
+                        .contains('player_ids', [authUser.id]);
 
                     // hand_history may not have user_id/club_id columns — wrap in try/catch
                     let hands = [];
                     try {
                         if (dateFilter) {
-                            handQuery = handQuery.gte('created_at', dateFilter);
+                            handQuery = handQuery.gte('completed_at', dateFilter);
                         }
-                        const { data: handData } = await handQuery.order('created_at', { ascending: false }).limit(100);
-                        // Filter client-side only for columns that exist in the schema
+                        if (clubData?.id || clubData?.club_id) {
+                            handQuery = handQuery.eq('club_id', clubData.id || clubData.club_id);
+                        }
+                        const { data: handData } = await handQuery.order('completed_at', { ascending: false }).limit(200);
                         hands = handData || [];
-                        if (hands.length > 0 && hands[0].user_id !== undefined) {
-                            hands = hands.filter(h => h.user_id === authUser.id);
-                        }
-                        if (hands.length > 0 && hands[0].club_id !== undefined) {
-                            hands = hands.filter(h => h.club_id === clubData.id || h.club_id === clubData.club_id);
-                        }
                     } catch (handErr) {
                         console.warn('[PlayerStats] hand_history query failed (schema may be minimal):', handErr);
                     }
@@ -133,12 +131,41 @@ export default function PlayerStats() {
                     // Calculate stats from hands
                     if (hands && hands.length > 0) {
                         const handsPlayed = hands.length;
-                        const handsWon = hands.filter(h => h.result === 'win' || h.profit > 0).length;
-                        const totalWinnings = hands.reduce((sum, h) => sum + (h.profit || 0), 0);
-                        const biggestPot = Math.max(...hands.map(h => Math.abs(h.pot_size || h.profit || 0)));
+                        const handsWon = hands.filter(h => h.winner_ids?.includes(authUser.id)).length;
+                        const userId = authUser.id;
 
-                        // Find best hand (if stored)
-                        const bestHandEntry = hands.find(h => h.winning_hand);
+                        // Compute VPIP/PFR from hand_data JSONB action logs
+                        let vpipCount = 0;
+                        let pfrCount = 0;
+                        let totalWinnings = 0;
+                        let biggestPot = 0;
+                        let bestHandEntry = null;
+
+                        for (const h of hands) {
+                            const hd = h.hand_data || {};
+                            const player = hd.players?.find(p => String(p.id) === String(userId));
+                            if (player) {
+                                totalWinnings += player.netResult || 0;
+                            }
+                            biggestPot = Math.max(biggestPot, Number(h.pot_total) || 0);
+
+                            // Check winning hand
+                            if (hd.result?.winningHand && h.winner_ids?.includes(userId)) {
+                                bestHandEntry = hd.result.winningHand;
+                            }
+
+                            // VPIP: voluntarily put money in pot preflop (call/raise/bet/all-in, NOT just posting blinds)
+                            const preflopActions = hd.streets?.preflop?.actions || [];
+                            const playerPreflopActions = preflopActions.filter(a => String(a.playerId) === String(userId));
+                            const voluntaryPreflop = playerPreflopActions.some(a =>
+                                a.type === 'call' || a.type === 'raise' || a.type === 'bet' || a.type === 'all_in'
+                            );
+                            if (voluntaryPreflop) vpipCount++;
+
+                            // PFR: raised or bet preflop
+                            const raisedPreflop = playerPreflopActions.some(a => a.type === 'raise' || a.type === 'bet');
+                            if (raisedPreflop) pfrCount++;
+                        }
 
                         setStats({
                             handsPlayed,
@@ -146,23 +173,27 @@ export default function PlayerStats() {
                             winRate: handsPlayed > 0 ? Math.round((handsWon / handsPlayed) * 100) : 0,
                             totalWinnings,
                             biggestPot,
-                            bestHand: bestHandEntry?.winning_hand || null,
+                            bestHand: bestHandEntry || null,
                             sessionsPlayed: memberData?.sessions_played || 0,
-                            hoursPlayed: 0, // Not tracked on club_members yet
-                            vpip: 0, // Computed from hand analysis — not yet available
-                            pfr: 0, // Computed from hand analysis — not yet available
+                            hoursPlayed: 0,
+                            vpip: handsPlayed > 0 ? parseFloat((vpipCount / handsPlayed * 100).toFixed(1)) : 0,
+                            pfr: handsPlayed > 0 ? parseFloat((pfrCount / handsPlayed * 100).toFixed(1)) : 0,
                             avgPot: handsPlayed > 0 ? Math.round(totalWinnings / handsPlayed) : 0,
                         });
 
                         // Recent activity (last 10 hands)
-                        setRecentActivity(hands.slice(0, 10).map(h => ({
-                            id: h.id,
-                            type: h.result === 'win' || h.profit > 0 ? 'win' : 'loss',
-                            amount: Math.abs(h.profit || 0),
-                            hand: h.winning_hand || h.hand_type || 'Hand',
-                            date: h.created_at,
-                            tableName: h.table_name || 'Table',
-                        })));
+                        setRecentActivity(hands.slice(0, 10).map(h => {
+                            const player = h.hand_data?.players?.find(p => String(p.id) === String(userId));
+                            const profit = player?.netResult || 0;
+                            return {
+                                id: h.id,
+                                type: profit > 0 ? 'win' : 'loss',
+                                amount: Math.abs(profit),
+                                hand: h.hand_data?.result?.winningHand || h.variant || 'Hand',
+                                date: h.completed_at || h.created_at,
+                                tableName: h.hand_data?.tableName || 'Table',
+                            };
+                        }));
                     } else {
                         // Try to get stats from chip_transactions as fallback
                         let txQuery = supabase

@@ -384,7 +384,48 @@ export default async function handler(req, res) {
           .update({ status: 'running', started_at: new Date().toISOString() })
           .eq('id', tournamentId);
 
-        // TODO: Initialize engine tournament via TournamentController
+        // Initialize engine tournament via GameController
+        try {
+          const { getController } = require('../../../../src/lib/poker-engine/GameController');
+          const controller = await getController();
+
+          // Get registered players
+          const { data: registrations } = await supabaseAdmin
+            .from('tournament_registrations')
+            .select('user_id, display_name')
+            .eq('tournament_id', tournamentId)
+            .eq('status', 'registered');
+
+          // Create tournament in engine
+          const createResult = await controller.createTournament({
+            tournamentId,
+            tournamentType: tourn.type || 'mtt',
+            name: tourn.name,
+            variant: tourn.variant || 'holdem',
+            startingChips: tourn.starting_chips || 10000,
+            buyinAmount: tourn.buy_in || 100,
+            maxEntries: tourn.max_players || 100,
+            lateRegLevels: tourn.settings?.lateRegLevels || 6,
+            allowsRebuys: tourn.settings?.rebuyEnabled || false,
+            allowsAddon: tourn.settings?.addonEnabled || false,
+            clubId: tourn.club_id,
+            clubIds: tourn.settings?.clubIds || [tourn.club_id],
+          });
+
+          if (!createResult.success) {
+            console.error('[Tournament] Engine create failed:', createResult.error);
+          } else {
+            // Register all players in engine
+            for (const reg of (registrations || [])) {
+              await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player');
+            }
+            // Start it
+            await controller.startTournament(tournamentId);
+          }
+        } catch (engineErr) {
+          console.error('[Tournament] Engine init error:', engineErr.message);
+          // DB is already marked running — engine will catch up on next connect
+        }
 
         return res.json({ success: true });
       }
