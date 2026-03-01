@@ -144,9 +144,54 @@ function cardIntToPath(card) {
   return `/cards/${SUITS[suit]}_${RANKS[rank]}.png`;
 }
 
-function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, cardBackPath }) {
+function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, cardBackPath, showdown = false }) {
   const height = Math.round(width * 1.4);
   const backPath = cardBackPath || getStoredCardBack();
+
+  // ═══ SHOWDOWN 3D FLIP — card back visible first, then flips to reveal face ═══
+  if (showdown && !faceDown && card != null) {
+    const faceSrc = cardIntToPath(card);
+    return (
+      <motion.div
+        style={{ width, height, perspective: 600, flexShrink: 0, ...style }}
+        initial={{ opacity: 0, scale: 0.7, y: -10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.25, delay }}
+      >
+        <motion.div
+          initial={{ rotateY: 180 }}
+          animate={{ rotateY: 0 }}
+          transition={{ duration: 0.5, delay: delay + 0.2, ease: [0.34, 1.56, 0.64, 1] }}
+          style={{
+            width: '100%', height: '100%', position: 'relative',
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          {/* Front face (the actual card) */}
+          <div style={{
+            position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+            borderRadius: 4, overflow: 'hidden',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.7)',
+            border: '1px solid rgba(255,255,255,0.15)',
+          }}>
+            {faceSrc && <img src={faceSrc} alt={`Card ${card}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />}
+          </div>
+          {/* Back face (card back, visible at start of flip) */}
+          <div style={{
+            position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+            borderRadius: 4, overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            <img src={backPath} alt="Card back" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // ═══ Standard card display (hero cards, community cards, face-down) ═══
   const src = faceDown ? backPath : cardIntToPath(card);
 
   return (
@@ -384,7 +429,7 @@ function PlayerSeat({
           } : {}),
         }}>
           {holeCards.map((card, i) => (
-            <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} />
+            <CardImg key={i} card={card} width={cardWidth} delay={i * 0.15} showdown={!isHero} />
           ))}
         </div>
       )}

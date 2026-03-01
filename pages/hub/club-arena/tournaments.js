@@ -222,16 +222,63 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
     startingChips: 10000, maxPlayers: 100, lateRegLevels: 6,
     rebuyEnabled: false, rebuyLevels: 4, addonEnabled: false,
     guaranteedPrize: 0, scheduledStart: '', sngSize: 6,
+    xmttClubIds: [], // for XMTT: participating club UUIDs
   });
   const [saving, setSaving] = useState(false);
+  const [sisterClubs, setSisterClubs] = useState([]);
+
+  // Load sister clubs (same union) when XMTT selected
+  useEffect(() => {
+    if (form.type !== 'xmtt' || !clubId) return;
+    (async () => {
+      // Find this club's union
+      const { data: uc } = await supabase
+        .from('union_clubs')
+        .select('union_id')
+        .eq('club_id', clubId)
+        .limit(1);
+      if (!uc?.length) { setSisterClubs([]); return; }
+
+      // Get all clubs in same union
+      const { data: allUc } = await supabase
+        .from('union_clubs')
+        .select('club_id, clubs(id, name, logo_url)')
+        .eq('union_id', uc[0].union_id);
+
+      const sisters = (allUc || [])
+        .filter(u => u.club_id !== clubId && u.clubs)
+        .map(u => ({ id: u.clubs.id, name: u.clubs.name, logo: u.clubs.logo_url }));
+      setSisterClubs(sisters);
+      // Auto-select all sister clubs
+      setForm(p => ({ ...p, xmttClubIds: sisters.map(s => s.id) }));
+    })();
+  }, [form.type, clubId]);
 
   const handleSave = async () => {
     if (!form.name.trim()) return alert('Tournament name required');
     setSaving(true);
-    const res = await api('create', { clubId, ...form });
+    const payload = { clubId, ...form };
+    // For XMTT, include this club + selected clubs
+    if (form.type === 'xmtt') {
+      payload.settings = {
+        ...(payload.settings || {}),
+        clubIds: [clubId, ...form.xmttClubIds],
+        isXmtt: true,
+      };
+    }
+    const res = await api('create', payload);
     setSaving(false);
     if (res.success) onCreated();
     else alert(res.error || 'Failed to create');
+  };
+
+  const toggleXmttClub = (id) => {
+    setForm(p => ({
+      ...p,
+      xmttClubIds: p.xmttClubIds.includes(id)
+        ? p.xmttClubIds.filter(c => c !== id)
+        : [...p.xmttClubIds, id],
+    }));
   };
 
   const F = (label, key, type = 'text', opts = {}) => (
@@ -265,6 +312,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
           { value: 'mtt', label: 'MTT (Multi-Table)' },
           { value: 'sng', label: 'Sit & Go' },
           { value: 'spin', label: 'Spin & Go' },
+          { value: 'xmtt', label: 'XMTT (Cross-Club)' },
         ]})}
         {F('Variant', 'variant', 'select', { options: [
           { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
@@ -273,11 +321,51 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
         ]})}
         {F('Buy-in', 'buyIn', 'number')}
         {F('Starting Chips', 'startingChips', 'number')}
-        {form.type === 'mtt' && F('Max Players', 'maxPlayers', 'number')}
+        {(form.type === 'mtt' || form.type === 'xmtt') && F('Max Players', 'maxPlayers', 'number')}
         {form.type === 'sng' && F('Table Size', 'sngSize', 'number')}
-        {form.type === 'mtt' && F('Late Registration (levels)', 'lateRegLevels', 'number')}
+        {(form.type === 'mtt' || form.type === 'xmtt') && F('Late Registration (levels)', 'lateRegLevels', 'number')}
         {F('Guaranteed Prize Pool', 'guaranteedPrize', 'number')}
-        {form.type === 'mtt' && F('Scheduled Start', 'scheduledStart', 'datetime-local')}
+        {(form.type === 'mtt' || form.type === 'xmtt') && F('Scheduled Start', 'scheduledStart', 'datetime-local')}
+
+        {/* XMTT: Sister club selection */}
+        {form.type === 'xmtt' && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', fontSize: 12, color: FB.dim, marginBottom: 6 }}>
+              Participating Clubs ({form.xmttClubIds.length + 1} clubs)
+            </label>
+            <div style={{
+              background: FB.bg, borderRadius: 8, padding: 8,
+              border: `1px solid ${FB.border}`, maxHeight: 160, overflow: 'auto',
+            }}>
+              {/* This club (always included) */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
+                borderRadius: 6, background: FB.primary + '20',
+              }}>
+                <span style={{ fontSize: 16 }}>✅</span>
+                <span style={{ fontSize: 13, color: FB.text, fontWeight: 600 }}>This Club (host)</span>
+              </div>
+              {sisterClubs.length === 0 && (
+                <div style={{ fontSize: 12, color: FB.dim, padding: '8px 8px 4px', textAlign: 'center' }}>
+                  No sister clubs found. Your club must be part of a union for XMTT.
+                </div>
+              )}
+              {sisterClubs.map(sc => (
+                <div key={sc.id} onClick={() => toggleXmttClub(sc.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
+                  borderRadius: 6, cursor: 'pointer', marginTop: 4,
+                  background: form.xmttClubIds.includes(sc.id) ? FB.green + '20' : 'transparent',
+                }}>
+                  <span style={{ fontSize: 16 }}>
+                    {form.xmttClubIds.includes(sc.id) ? '✅' : '⬜'}
+                  </span>
+                  {sc.logo && <img src={sc.logo} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} />}
+                  <span style={{ fontSize: 13, color: FB.text }}>{sc.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 16, marginTop: 8, marginBottom: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: FB.dim }}>
