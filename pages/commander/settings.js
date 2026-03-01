@@ -108,14 +108,9 @@ export default function CommanderSettingsPage() {
     setSuccess(null);
 
     try {
-      const token = (() => {
-        try {
-          const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-          return stored.token || stored.access_token;
-        } catch { return null; }
-      })();
+      const staffSession = localStorage.getItem('commander_staff') || '';
 
-      if (!token) {
+      if (!staffSession) {
         setError('Authentication required. Please log in again.');
         setSaving(false);
         return;
@@ -125,7 +120,7 @@ export default function CommanderSettingsPage() {
       // Note: hard_stop settings managed from Room Presets page
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
         body: JSON.stringify({
           auto_refresh_interval: settings.auto_refresh_interval,
           show_player_names_on_display: settings.show_player_names_on_display,

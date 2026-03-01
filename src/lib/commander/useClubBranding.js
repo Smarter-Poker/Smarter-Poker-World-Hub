@@ -50,12 +50,11 @@ export default function useClubBranding() {
                 }
             }
 
-            const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-            const token = staff.token || staff.access_token;
-            if (!token) { setIsLoading(false); return; }
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            if (!staffSession) { setIsLoading(false); return; }
 
             const res = await fetch('/api/commander/settings', {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { 'x-staff-session': staffSession }
             });
             const json = await res.json();
 
