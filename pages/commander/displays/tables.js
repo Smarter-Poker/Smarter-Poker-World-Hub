@@ -520,7 +520,8 @@ export default function TablesDisplay() {
       <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
         <div style={{
           position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
-          background: '#0A0A0A', color: '#E4E6EB', fontFamily: 'Inter, sans-serif', overflow: 'hidden', zIndex: 50,
+          background: 'radial-gradient(ellipse at 50% 45%, #0f1a12 0%, #0c1210 25%, #080d0b 50%, #050808 75%, #020303 100%)',
+          color: '#E4E6EB', fontFamily: 'Inter, sans-serif', overflow: 'hidden', zIndex: 50,
         }}>
 
           {/* ── Minimal Top Bar (no green header) ── */}
@@ -624,27 +625,32 @@ export default function TablesDisplay() {
                       )}
                     </div>
 
-                    {/* ── Dealer Badge (clickable → scanner) ── */}
+                    {/* ── Dealer Badge (same card style as players, clickable → scanner) ── */}
                     <div
                       onClick={() => openScanner('dealer')}
                       style={{
                         position: 'absolute', top: dealerPos.top, left: dealerPos.left,
-                        transform: 'translate(-50%, -50%)', textAlign: 'center', width: 100, zIndex: 3, cursor: 'pointer',
+                        transform: 'translate(-50%, -50%)', zIndex: 3, cursor: 'pointer',
+                        display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10,
+                        background: 'rgba(24,119,242,0.15)', borderRadius: 14, padding: '6px 12px 6px 6px',
+                        border: '2px solid rgba(24,119,242,0.6)', backdropFilter: 'blur(8px)', minWidth: 90,
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxShadow: '0 2px 16px rgba(0,0,0,0.4), 0 0 12px rgba(24,119,242,0.15)',
                       }}
                     >
                       <div style={{
-                        width: 76, height: 76, borderRadius: '50%', margin: '0 auto 6px',
-                        background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                        border: '3px solid #E4E6EB',
+                        width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 16px rgba(0,0,0,0.6), 0 0 20px rgba(24,119,242,0.3)',
-                        fontSize: 34, fontWeight: 900, color: '#fff',
-                        transition: 'box-shadow 0.2s',
+                        background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                        border: '2px solid rgba(24,119,242,0.6)', overflow: 'hidden',
+                        fontSize: 26, fontWeight: 800, color: '#fff',
                       }}>D</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {dealerName}
+                      <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: '#E4E6EB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                          {dealerName}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(24,119,242,0.6)' }}>Tap to scan</div>
                       </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Tap to scan</div>
                     </div>
 
                     {/* ── Seat Badges (interactive) ── */}
