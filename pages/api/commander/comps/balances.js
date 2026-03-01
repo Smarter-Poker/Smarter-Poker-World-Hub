@@ -27,12 +27,52 @@ export default async function handler(req, res) {
 
 async function awardComp(req, res) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+    // Auth: Use x-staff-session (already validated by guardWriteStaff) or Bearer token
+    let staffVenueId = null;
+    let staffRecord = null;
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // Primary auth: x-staff-session header (PIN-based login, always fresh)
+    const staffSessionHeader = req.headers['x-staff-session'];
+    if (staffSessionHeader) {
+      try {
+        const session = JSON.parse(staffSessionHeader);
+        staffVenueId = session.venue_id;
+        // Look up the staff record from the session
+        const { data: sessionStaff } = await supabase
+          .from('commander_staff')
+          .select('id, role, display_name, venue_id')
+          .eq('venue_id', session.venue_id)
+          .eq('id', session.id)
+          .eq('is_active', true)
+          .single();
+        if (sessionStaff) staffRecord = sessionStaff;
+      } catch { /* invalid session format */ }
+    }
+
+    // Fallback auth: Bearer token (Supabase JWT)
+    if (!staffRecord) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) return res.status(401).json({ success: false, error: 'Session expired — please log in again' });
+
+      // Find staff record by user_id
+      const { data: tokenStaff } = await supabase
+        .from('commander_staff')
+        .select('id, role, display_name, venue_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+      if (tokenStaff) {
+        staffRecord = tokenStaff;
+        staffVenueId = tokenStaff.venue_id;
+      }
+    }
+
+    if (!staffRecord) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes } = req.body;
     if (!member_id || !amount) return res.status(400).json({ success: false, error: 'member_id and amount required' });
@@ -46,16 +86,10 @@ async function awardComp(req, res) {
 
     if (memberErr || !member) return res.status(404).json({ success: false, error: 'Member not found' });
 
-    // Verify staff at this venue
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('id, role, display_name')
-      .eq('venue_id', member.venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+    // Verify staff is at the same venue as the member
+    if (String(staffRecord.venue_id) !== String(member.venue_id)) {
+      return res.status(403).json({ success: false, error: 'Staff not authorized for this venue' });
+    }
 
     const parsedAmount = parseFloat(amount);
     const newBalance = (member.comp_balance || 0) + parsedAmount;
@@ -84,9 +118,9 @@ async function awardComp(req, res) {
         amount: parsedAmount,
         type: type || 'award',
         reason: reason || 'Manual comp award',
-        authorized_by: authorized_by || staff.display_name,
+        authorized_by: authorized_by || staffRecord.display_name,
         authorized_pin: authorized_pin || false,
-        processed_by: staff.id,
+        processed_by: staffRecord.id,
         balance_after: Math.round(newBalance * 100) / 100,
         comp_category: comp_category || 'cash_bonus',
         notes: notes || null
@@ -99,7 +133,7 @@ async function awardComp(req, res) {
         member_id,
         amount: parsedAmount,
         new_balance: Math.round(newBalance * 100) / 100,
-        authorized_by: authorized_by || staff.display_name
+        authorized_by: authorized_by || staffRecord.display_name
       }
     });
   } catch (error) {
