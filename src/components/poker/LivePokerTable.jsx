@@ -43,6 +43,7 @@ import {
   getActiveTheme, setStoredThemeId, setStoredCardBack,
 } from './TableThemes';
 import ThemePicker from './ThemePicker';
+import PlayerNoteModal, { COLOR_LABELS } from './PlayerNoteModal';
 
 // Dynamic theme — updated when user changes theme, read by all sub-components
 let T = getActiveTheme();
@@ -227,7 +228,8 @@ function CardImg({ card, width = 48, faceDown = false, style = {}, delay = 0, ca
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PlayerSeat({
-  seat, position, isHero, isCurrentActor, timerState, onClick, numHoleCards = 2, isWinner = false, equity = null,
+  seat, position, isHero, isCurrentActor, timerState, onClick, onNote, noteColor, noteType,
+  numHoleCards = 2, isWinner = false, equity = null,
 }) {
   const { status, player, stack, holeCards, isFolded, invested } = seat;
   const isEmpty = status === 'empty' || status === 'reserved';
@@ -262,12 +264,18 @@ function PlayerSeat({
         flexDirection: 'column',
         alignItems: 'center',
         gap: 3,
-        cursor: isEmpty ? 'pointer' : 'default',
+        cursor: isEmpty ? 'pointer' : onNote ? 'pointer' : 'default',
         zIndex: isCurrentActor ? 20 : 10,
         opacity: isFolded ? 0.4 : 1,
         transition: 'opacity 0.3s',
       }}
       onClick={() => isEmpty && onClick?.()}
+      onContextMenu={(e) => {
+        if (!isEmpty && onNote) { e.preventDefault(); onNote(); }
+      }}
+      onDoubleClick={() => {
+        if (!isEmpty && onNote) onNote();
+      }}
     >
       {/* Invested chips */}
       {invested > 0 && !isFolded && (
@@ -371,6 +379,15 @@ function PlayerSeat({
             </span>
           )}
         </div>
+
+        {/* Note color dot indicator */}
+        {noteColor && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: 10, height: 10,
+            borderRadius: '50%', background: noteColor, border: '1px solid rgba(0,0,0,0.3)',
+            zIndex: 5,
+          }} />
+        )}
       </div>
 
       {/* All-in equity percentage badge */}
@@ -1620,6 +1637,26 @@ export default function LivePokerTable({
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
   const [clubChipBalance, setClubChipBalance] = useState(null);
+  const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
+  const [playerNotes, setPlayerNotes] = useState({}); // { targetUserId: { color_label, player_type, ... } }
+
+  // Load player notes for all seated opponents
+  useEffect(() => {
+    if (!userId || !seats?.length) return;
+    const opponentIds = seats
+      .filter(s => s.player?.id && String(s.player.id) !== String(userId))
+      .map(s => s.player.id);
+    if (opponentIds.length === 0) return;
+
+    fetch('/api/club-arena/player-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_bulk', userId, targetUserIds: opponentIds }),
+    })
+      .then(r => r.json())
+      .then(r => { if (r.notes) setPlayerNotes(r.notes); })
+      .catch(() => {});
+  }, [userId, seats?.map(s => s.player?.id).join(',')]);
 
   // Fetch club chip balance when buy-in dialog opens
   useEffect(() => {
@@ -1822,7 +1859,13 @@ export default function LivePokerTable({
         </div>
 
         {/* Seats */}
-        {seats.map((seat, i) => (
+        {seats.map((seat, i) => {
+          const pid = seat.player?.id;
+          const noteData = pid && String(pid) !== String(userId) ? playerNotes[pid] : null;
+          const noteColorVal = noteData?.color_label && noteData.color_label !== 'none'
+            ? COLOR_LABELS.find(c => c.value === noteData.color_label)?.color
+            : null;
+          return (
           <PlayerSeat
             key={i}
             seat={seat}
@@ -1831,6 +1874,9 @@ export default function LivePokerTable({
             isCurrentActor={seat.isCurrentActor}
             timerState={seat.isCurrentActor ? timerState : null}
             onClick={() => setBuyInSeat(i)}
+            onNote={pid && String(pid) !== String(userId) ? () => setNoteTarget({ id: pid, displayName: seat.player?.displayName }) : undefined}
+            noteColor={noteColorVal}
+            noteType={noteData?.player_type}
             isWinner={result?.winners?.some(w => String(w.playerId) === String(seat.player?.id))}
             equity={result?.allInEquity?.players?.find(p => String(p.id) === String(seat.player?.id))?.equity ?? null}
             numHoleCards={
@@ -1839,7 +1885,8 @@ export default function LivePokerTable({
               ] || 2
             }
           />
-        ))}
+          );
+        })}
       </div>
 
       {/* Table info bar */}
@@ -2222,6 +2269,26 @@ export default function LivePokerTable({
           Reconnecting...
         </div>
       )}
+
+      {/* ═══════════ PLAYER NOTES MODAL ═══════════ */}
+      <PlayerNoteModal
+        isOpen={!!noteTarget}
+        onClose={() => {
+          setNoteTarget(null);
+          // Refresh notes after close
+          if (userId && seats?.length) {
+            const opIds = seats.filter(s => s.player?.id && String(s.player.id) !== String(userId)).map(s => s.player.id);
+            if (opIds.length) {
+              fetch('/api/club-arena/player-notes', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_bulk', userId, targetUserIds: opIds }),
+              }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => {});
+            }
+          }
+        }}
+        userId={userId}
+        targetPlayer={noteTarget}
+      />
     </div>
   );
 }
