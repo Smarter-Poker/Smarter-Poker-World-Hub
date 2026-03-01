@@ -71,7 +71,6 @@ export default async function handler(req, res) {
 
     for (const table of tables) {
       // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/delete-club')) return;
 
   try {
         await supabaseAdmin.from(table).delete().eq('club_id', clubId);

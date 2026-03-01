@@ -150,8 +150,20 @@ export default async function handler(req, res) {
           }
         }
 
+        // Fetch display name from profiles if client sends default
+        let resolvedName = displayName;
+        let resolvedAvatar = avatarUrl;
+        if (!resolvedName || resolvedName === 'Player') {
+          const { data: prof } = await supabaseAdmin
+            .from('profiles').select('display_name, avatar_url').eq('id', playerId).maybeSingle();
+          if (prof) {
+            resolvedName = prof.display_name || 'Player';
+            resolvedAvatar = resolvedAvatar || prof.avatar_url || null;
+          }
+        }
+
         result = await controller.sitDown(tableId, playerId, parseInt(seatIndex), buyInAmount, {
-          displayName, avatarUrl,
+          displayName: resolvedName, avatarUrl: resolvedAvatar,
           role: memberRole,
           tier: memberTier,
         });

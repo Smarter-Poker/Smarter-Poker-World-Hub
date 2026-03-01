@@ -209,7 +209,6 @@ export default async function handler(req, res) {
 async function notifyPlayer(cashout, playerName, agentName, messageText, pushText) {
   // In-app message
   // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/approve-cashout')) return;
 
   try {
     const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
@@ -229,7 +228,6 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
 
   // Push notification
   // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/approve-cashout')) return;
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL

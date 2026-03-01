@@ -45,34 +45,23 @@ const T = {
 // ═══════════════════════════════════════════════════════
 // Single Table Connection Wrapper
 // ═══════════════════════════════════════════════════════
-function TableSlot({ supabase, tableId, userId, isVisible, onActionNeeded, onActionCleared, onLeave, soundManager }) {
-  const {
-    tableState, myCards, legalActions, timerState, chatMessages,
-    result, error, connected, send, requestState,
-  } = useTableConnection({ supabase, tableId, userId });
-
-  // Notify parent when action is needed
-  useEffect(() => {
-    if (legalActions && legalActions.length > 0) {
-      onActionNeeded(tableId);
-      soundManager?.play('yourTurn');
-    } else {
-      onActionCleared(tableId);
-    }
-  }, [legalActions, tableId, onActionNeeded, onActionCleared, soundManager]);
-
-  // Play sounds based on events
-  useEffect(() => {
-    if (!result) return;
-    if (result.type === 'showdown' || result.type === 'fold') {
-      const isWinner = result.winners?.some(w => w.playerId === userId);
-      soundManager?.play(isWinner ? 'win' : 'lose');
-    }
-  }, [result, userId, soundManager]);
-
+function TableSlot({ supabase, tableId, userId, displayName, avatarUrl, isVisible, onActionNeeded, onActionCleared, onLeave, soundManager }) {
   if (!isVisible) {
-    // Even when hidden, keep connection alive
-    return null;
+    // Even when hidden, keep connection alive — LivePokerTable manages its own hook
+    return (
+      <div style={{ display: 'none' }}>
+        <LivePokerTable
+          supabase={supabase}
+          tableId={tableId}
+          userId={userId}
+          displayName={displayName}
+          avatarUrl={avatarUrl}
+          onActionRequired={onActionNeeded}
+          onActionCleared={onActionCleared}
+          onLeave={() => onLeave(tableId)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -80,6 +69,10 @@ function TableSlot({ supabase, tableId, userId, isVisible, onActionNeeded, onAct
       supabase={supabase}
       tableId={tableId}
       userId={userId}
+      displayName={displayName}
+      avatarUrl={avatarUrl}
+      onActionRequired={onActionNeeded}
+      onActionCleared={onActionCleared}
       onLeave={() => onLeave(tableId)}
     />
   );
@@ -273,6 +266,18 @@ function BBJOverlay({ bbjData, onDismiss }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════
 export default function MultiTableView({ supabase, userId, initialTable, onExit }) {
+  // Fetch user profile once for display name and avatar
+  const [profile, setProfile] = useState({ displayName: 'Player', avatarUrl: null });
+  useEffect(() => {
+    if (!supabase || !userId) return;
+    supabase.from('profiles').select('display_name, avatar_url').eq('id', userId).maybeSingle()
+      .then(({ data }) => {
+        if (data) setProfile({
+          displayName: data.display_name || 'Player',
+          avatarUrl: data.avatar_url || null,
+        });
+      });
+  }, [supabase, userId]);
   const {
     tables, activeIndex, activeTable, viewMode,
     actionNeeded, bbjWin, setBbjWin, canOpenMore,
@@ -384,6 +389,8 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
               supabase={supabase}
               tableId={table.tableId}
               userId={userId}
+              displayName={profile.displayName}
+              avatarUrl={profile.avatarUrl}
               isVisible={viewMode === 'tile' || idx === activeIndex}
               onActionNeeded={markActionNeeded}
               onActionCleared={clearActionNeeded}

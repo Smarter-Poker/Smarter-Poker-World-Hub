@@ -158,7 +158,6 @@ export default async function handler(req, res) {
     // 7. Send in-app message to agent via messenger
     // ═════════════════════════════════════════════════════════════
     // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
 
   try {
       const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
@@ -180,7 +179,6 @@ export default async function handler(req, res) {
     // 8. Send push notification to agent
     // ═════════════════════════════════════════════════════════════
     // Rate limit
-  if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
 
   try {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL

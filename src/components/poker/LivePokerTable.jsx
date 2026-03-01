@@ -1814,6 +1814,9 @@ export default function LivePokerTable({
   userId,
   displayName = 'Player',
   avatarUrl = null,
+  onActionRequired = null,
+  onActionCleared = null,
+  onLeave = null,
 }) {
   // Connection via hook
   const {
@@ -1821,6 +1824,15 @@ export default function LivePokerTable({
     chatMessages, result, lastHandResult, error, connected, send,
     sessionStats, tableAlert,
   } = useTableConnection({ supabase, tableId, userId });
+
+  // Notify parent (MultiTableView) when action state changes
+  useEffect(() => {
+    if (legalActions && legalActions.length > 0) {
+      onActionRequired?.(tableId);
+    } else {
+      onActionCleared?.(tableId);
+    }
+  }, [legalActions, tableId, onActionRequired, onActionCleared]);
 
   // Theme system
   const [themeId, setThemeId] = useState(() => getStoredThemeId());
