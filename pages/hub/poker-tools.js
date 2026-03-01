@@ -351,20 +351,20 @@ export default function PokerToolsPage() {
                                                     </div>
                                                 )}
 
-                                                {/* SMARTER.POKER — Large branding UNDER the board */}
+                                                {/* SMARTER.POKER — LARGE and BRIGHT branding UNDER the board */}
                                                 <div style={{
-                                                    position: 'absolute', top: '58%', left: '50%', transform: 'translate(-50%, -50%)',
+                                                    position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)',
                                                     textAlign: 'center', pointerEvents: 'none', zIndex: 5,
                                                 }}>
                                                     <div style={{
-                                                        fontSize: 20, fontWeight: 900, color: 'rgba(255,215,0,0.15)',
-                                                        letterSpacing: 6, textTransform: 'uppercase',
+                                                        fontSize: 28, fontWeight: 900, color: 'rgba(255,215,0,0.4)',
+                                                        letterSpacing: 8, textTransform: 'uppercase',
                                                     }}>
                                                         Smarter.Poker
                                                     </div>
                                                     <div style={{
-                                                        fontSize: 10, fontWeight: 700, color: 'rgba(255,215,0,0.08)',
-                                                        letterSpacing: 4, marginTop: 2,
+                                                        fontSize: 14, fontWeight: 700, color: 'rgba(255,215,0,0.25)',
+                                                        letterSpacing: 5, marginTop: 4,
                                                     }}>
                                                         Odds Calculator
                                                     </div>
@@ -397,29 +397,27 @@ export default function PokerToolsPage() {
                             }}
                                 onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
 
-                                {/* Cards — LARGE, real custom deck images */}
+                                {/* Cards — SAME SIZE as board (65x91) */}
                                 <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
                                     {Array.from({ length: config.holeCards }).map((_, ci) => {
                                         const card = hand[ci];
-                                        const cw = isHero ? 52 : 44;
-                                        const ch = isHero ? 73 : 62;
                                         return card ? (
                                             <div key={ci} onClick={e => { e.stopPropagation(); removeCard('hand', pi, ci); }}
                                                 style={{ cursor: 'pointer' }}>
                                                 <img src={getCardImage(card.rank, card.suit)} alt=""
                                                     style={{
-                                                        width: cw, height: ch, borderRadius: 4,
+                                                        width: 65, height: 91, borderRadius: 5,
                                                         border: '2px solid rgba(255,255,255,0.3)',
-                                                        boxShadow: '0 3px 12px rgba(0,0,0,0.6)',
+                                                        boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
                                                         background: '#fff',
                                                     }} />
                                             </div>
                                         ) : (
                                             <div key={ci} style={{
-                                                width: cw, height: ch, borderRadius: 4,
+                                                width: 65, height: 91, borderRadius: 5,
                                                 overflow: 'hidden',
                                                 border: `2px solid ${isSelected ? color : 'rgba(255,255,255,0.12)'}`,
-                                                boxShadow: isSelected ? `0 0 10px ${color}44` : 'none',
+                                                boxShadow: isSelected ? `0 0 12px ${color}44` : 'none',
                                             }}>
                                                 <img src={`/images/card-backs/${cardBack}.jpg`} alt=""
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -589,29 +587,30 @@ export default function PokerToolsPage() {
                                         : 'Select dead card'
                             ) : 'Tap a seat above, then pick cards'}
                         </p>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 3 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 4 }}>
                             {SUITS.map(suit =>
                                 RANKS.map(rank => {
                                     const card = makeCard(rank, suit);
                                     const isUsed = card && usedCardIds.has(card.id);
                                     const isDisabled = !selectedSlot || isUsed;
+                                    const imgSrc = getCardImage(rank, suit);
                                     return (
                                         <button key={`${rank}-${suit}`}
                                             onClick={() => !isDisabled && selectCard(rank, suit)}
                                             disabled={isDisabled}
                                             style={{
-                                                width: '100%', aspectRatio: '0.7', borderRadius: 5, border: 'none',
-                                                background: isUsed ? '#1a1a1a' : '#0a0a12',
-                                                color: isUsed ? '#222' : SUIT_COLORS[suit],
-                                                fontSize: 14, fontWeight: 900, cursor: isDisabled ? 'default' : 'pointer',
-                                                opacity: isUsed ? 0.2 : 1,
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                                padding: 0, transition: 'all 0.12s', lineHeight: 1.1, minHeight: 42,
+                                                width: '100%', aspectRatio: '0.7', borderRadius: 5,
+                                                border: 'none', padding: 0, overflow: 'hidden',
+                                                cursor: isDisabled ? 'default' : 'pointer',
+                                                opacity: isUsed ? 0.15 : 1,
+                                                transition: 'all 0.12s',
+                                                boxShadow: isUsed ? 'none' : '0 2px 6px rgba(0,0,0,0.3)',
+                                                background: '#fff',
                                             }}
-                                            onMouseEnter={e => { if (!isDisabled) { e.currentTarget.style.background = '#1877F2'; e.currentTarget.style.color = '#fff'; } }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = isUsed ? '#1a1a1a' : '#0a0a12'; e.currentTarget.style.color = isUsed ? '#222' : SUIT_COLORS[suit]; }}>
-                                            <span style={{ fontSize: 15, fontWeight: 900 }}>{rank}</span>
-                                            <span style={{ fontSize: 13 }}>{SUIT_SYMBOLS[suit]}</span>
+                                            onMouseEnter={e => { if (!isDisabled) { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.5)'; } }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = isUsed ? 'none' : '0 2px 6px rgba(0,0,0,0.3)'; }}>
+                                            <img src={imgSrc} alt={`${rank} of ${suit}`}
+                                                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                                         </button>
                                     );
                                 })
@@ -620,15 +619,7 @@ export default function PokerToolsPage() {
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div style={{
-                    borderTop: '1px solid #222', padding: '8px 16px',
-                    background: '#0a0a0a', textAlign: 'center',
-                }}>
-                    <span style={{ fontSize: 9, color: '#444' }}>
-                        Monte Carlo • 10,000 Iterations • {config.holeCards} Hole Cards • {config.hasBoard ? '5 Community' : 'No Board'}
-                    </span>
-                </div>
+
             </div>
         </>
     );
