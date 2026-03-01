@@ -595,7 +595,7 @@ export default function Cashier() {
       const voidAmount = details.amount || 0;
 
       // 1. ALWAYS record the void/refund transaction (even for $0 — creates audit trail)
-      await fetch('/api/commander/cashier', {
+      const voidRes = await fetch('/api/commander/cashier', {
         method: 'POST', headers,
         body: JSON.stringify({
           venue_id: venueId,
@@ -607,9 +607,11 @@ export default function Cashier() {
           pin_verified_by: staff?.id || null
         })
       });
+      const voidJson = await voidRes.json();
+      if (!voidJson.success) console.warn('Void transaction record failed:', voidJson.error);
 
       // 2. Mark the ORIGINAL transaction as voided (audit trail)
-      await fetch('/api/commander/cashier', {
+      const patchRes = await fetch('/api/commander/cashier', {
         method: 'PATCH', headers,
         body: JSON.stringify({
           transaction_id: txId,
@@ -617,6 +619,17 @@ export default function Cashier() {
           void_reason: `${actionLabel} by ${staff?.display_name || 'Staff'} — ${type}`
         })
       });
+      const patchJson = await patchRes.json();
+      if (!patchJson.success) {
+        // Handle already-voided gracefully
+        if (patchJson.error === 'Transaction already voided') {
+          setMessage({ type: 'error', text: 'Transaction Already Voided — Cannot Void Again' });
+          setActionLoading(false);
+          fetchData();
+          return;
+        }
+        console.warn('Original transaction void failed:', patchJson.error);
+      }
 
       // 3. Resolve the member to update — use selectedPlayer if name matches, otherwise lookup by name
       let memberId = null;

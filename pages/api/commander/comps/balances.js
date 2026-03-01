@@ -48,7 +48,7 @@ async function awardComp(req, res, staffAuth) {
     // Attempt 1: Direct lookup in commander_members by ID
     const { data: directMember } = await supabase
       .from('commander_members')
-      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
+      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
       .eq('id', member_id)
       .maybeSingle();
 
@@ -70,7 +70,7 @@ async function awardComp(req, res, staffAuth) {
         if (sfFirst) {
           let matchQuery = supabase
             .from('commander_members')
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
             .eq('venue_id', staffRecord.venue_id)
             .ilike('first_name', sfFirst);
           if (sfLast) matchQuery = matchQuery.ilike('last_name', sfLast);
@@ -114,7 +114,7 @@ async function awardComp(req, res, staffAuth) {
               membership_tier: 'standard',
               membership_status: 'active',
             })
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier')
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
             .single();
 
           if (createErr) {
@@ -235,6 +235,11 @@ async function awardComp(req, res, staffAuth) {
           authorized_by: authorized_by || 'Staff'
         }
       });
+    }
+
+    // ═══ FREE TIME COMP: Validate time_minutes is required ═══
+    if (comp_category === 'free_time' && !req.body.time_minutes) {
+      return res.status(400).json({ success: false, error: 'time_minutes required for free_time comps' });
     }
 
     // ═══ DOLLAR COMP: Update comp_balance ═══
@@ -489,7 +494,7 @@ async function voidComp(req, res, staffAuth) {
       .eq('venue_id', logEntry.venue_id)
       .eq('member_id', logEntry.member_id)
       .eq('type', 'void')
-      .ilike('notes', `%VOID-REF:${comp_log_id}%`)
+      .like('notes', `VOID-REF:${comp_log_id} |%`)
       .maybeSingle();
 
     if (existingVoid) return res.status(400).json({ success: false, error: 'This comp has already been voided' });
@@ -517,6 +522,10 @@ async function voidComp(req, res, staffAuth) {
       // Revert membership: if comp extended it, we can't perfectly undo but we set to expired
       updateFields.membership_status = 'expired';
       updateFields.membership_expires = new Date().toISOString();
+      // Also reverse the comp_lifetime_earned for the dollar cost
+      if (originalAmount > 0) {
+        updateFields.comp_lifetime_redeemed = (member.comp_lifetime_redeemed || 0) + originalAmount;
+      }
     } else if (compCategory === 'free_time') {
       // Reverse time_balance_minutes — parse from notes (e.g., "120 minutes")
       const minuteMatch = (logEntry.notes || '').match(/^(\d+)\s*minutes/);

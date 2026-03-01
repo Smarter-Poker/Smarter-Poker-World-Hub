@@ -138,7 +138,9 @@ export default async function handler(req, res) {
         eliminated_by: eliminated_by_id || null,
         finish_position: finishPosition,
         payout_amount: payoutAmount,
-        payout_position: payoutPosition
+        payout_position: payoutPosition,
+        table_number: null,
+        seat_number: null,
       })
       .eq('id', entry_id)
       .select(`

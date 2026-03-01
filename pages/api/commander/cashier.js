@@ -107,17 +107,18 @@ async function handlePost(req, res, staff) {
 
     if (error) throw error;
 
-    // Get updated player totals for this session
+    // Get updated player totals for this session — EXCLUDE voided transactions
     let playerTotals = null;
     if (session_id) {
       const { data: txns } = await supabase
         .from('commander_cash_transactions')
-        .select('type, amount')
+        .select('type, amount, voided_at')
         .eq('session_id', session_id);
 
       if (txns) {
-        const ins = txns.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
-        const outs = txns.filter(t => ['cash_out', 'void'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
+        const active = txns.filter(t => !t.voided_at);
+        const ins = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
+        const outs = active.filter(t => ['cash_out', 'void'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
         playerTotals = { total_bought: ins, total_cashed: outs, net: outs - ins };
       }
     }
@@ -135,6 +136,28 @@ async function handlePatch(req, res, staff) {
     const { transaction_id, voided_by, void_reason } = req.body;
     if (!transaction_id) {
       return res.status(400).json({ success: false, error: 'transaction_id required' });
+    }
+
+    // SAFEGUARD: Fetch the transaction first to verify it exists and isn't already voided
+    const { data: existing, error: fetchErr } = await supabase
+      .from('commander_cash_transactions')
+      .select('id, voided_at, venue_id')
+      .eq('id', transaction_id)
+      .single();
+
+    if (fetchErr || !existing) {
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
+    }
+
+    // SAFEGUARD: Prevent double-void — already voided transactions cannot be voided again
+    if (existing.voided_at) {
+      return res.status(400).json({ success: false, error: 'Transaction already voided', data: existing });
+    }
+
+    // SAFEGUARD: Scope to venue — staff can only void transactions in their venue
+    const staffVenueId = staff.venue_id || req.body.venue_id;
+    if (staffVenueId && existing.venue_id && String(existing.venue_id) !== String(staffVenueId)) {
+      return res.status(403).json({ success: false, error: 'Cannot void transactions from another venue' });
     }
 
     const { data, error } = await supabase

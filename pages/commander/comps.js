@@ -79,6 +79,12 @@ export default function CompSystem() {
   const [compLog, setCompLog] = useState([]);
   const [logFilter, setLogFilter] = useState('all');
 
+  // ─── Void comp state ───
+  const [voidPinModal, setVoidPinModal] = useState(null);
+  const [voidPinCode, setVoidPinCode] = useState('');
+  const [voidPinError, setVoidPinError] = useState('');
+  const [voidLoading, setVoidLoading] = useState(false);
+
   // ─── Settings state ───
   const [autoCompRate, setAutoCompRate] = useState(1);
   const [membershipPlans, setMembershipPlans] = useState([]);
@@ -153,10 +159,12 @@ export default function CompSystem() {
         const weekStart = new Date(todayStart);
         weekStart.setDate(weekStart.getDate() - 7);
 
-        let today = 0, week = 0, allTime = 0, count = txns.length;
+        let today = 0, week = 0, allTime = 0, count = 0;
         txns.forEach(t => {
+          if (t.type === 'void') return; // Don't count voids in totals
           const amt = Math.abs(t.amount || 0);
           allTime += amt;
+          count++;
           const d = new Date(t.created_at);
           if (d >= todayStart) today += amt;
           if (d >= weekStart) week += amt;
@@ -389,6 +397,83 @@ export default function CompSystem() {
     setSearchResults([]);
     setAwarded(false);
     setAwardError('');
+  };
+
+  // ─── Void/Revoke comp ───
+  var voidCompEntry = function (logEntry) {
+    var minutesAgo = (Date.now() - new Date(logEntry.created_at).getTime()) / 60000;
+    var actionLabel = minutesAgo <= 15 ? 'Void' : 'Revoke';
+    setVoidPinModal({ logEntry: logEntry, actionLabel: actionLabel });
+    setVoidPinCode('');
+    setVoidPinError('');
+  };
+
+  var executeVoidComp = function () {
+    if (!voidPinCode || voidPinCode.length !== 4) {
+      setVoidPinError('Enter your 4-digit staff PIN');
+      return;
+    }
+    setVoidLoading(true);
+    setVoidPinError('');
+    var venueId = getVenueId();
+    fetch('/api/commander/staff/verify-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ venue_id: venueId, pin_code: voidPinCode })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (pinData) {
+        if (!pinData.success || !pinData.data || !pinData.data.valid) {
+          setVoidPinError(pinData.error && pinData.error.message ? pinData.error.message : 'Invalid PIN');
+          setVoidLoading(false);
+          return;
+        }
+        var staff = pinData.data.staff;
+        var entry = voidPinModal.logEntry;
+        var token = getToken();
+        var staffSession = getStaffSession();
+        var headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
+        if (staffSession) headers['x-staff-session'] = staffSession;
+        // Record void transaction
+        return fetch('/api/commander/comps/balances', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            member_id: entry.member_id,
+            amount: -Math.abs(entry.amount || 0),
+            reason: voidPinModal.actionLabel.toUpperCase() + ' - ' + (entry.reason || 'Comp') + ' [VOID-REF:' + entry.id + ']',
+            type: 'void',
+            comp_category: entry.comp_category || 'cash_bonus',
+            authorized_by: (staff && staff.display_name) || 'Staff',
+            authorized_pin: true,
+            notes: voidPinModal.actionLabel + ' by ' + ((staff && staff.display_name) || 'Staff')
+          })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (json) {
+            if (json.success) {
+              playSuccessSound();
+              showSuccessPopup({
+                title: voidPinModal.actionLabel + ' Processed',
+                amount: '$' + Math.abs(entry.amount || 0).toFixed(2),
+                detail: (entry.member_name || 'Member') + ' - Comp Reversed',
+                balance: 'New Balance: $' + (json.data && json.data.new_balance !== undefined ? json.data.new_balance.toFixed(2) : '0.00')
+              });
+              broadcastChange('members');
+              fetchData();
+            } else {
+              setVoidPinError(json.error || 'Void failed');
+            }
+            setVoidPinModal(null);
+            setVoidPinCode('');
+            setVoidLoading(false);
+          });
+      })
+      .catch(function (err) {
+        console.error(err);
+        setVoidPinError('Network error');
+        setVoidLoading(false);
+      });
   };
 
   // Ka-ching cash register sound — loud and unmistakable
@@ -872,7 +957,7 @@ export default function CompSystem() {
                       const cat = COMP_CATEGORIES.find(c => c.key === (t.comp_category || 'cash_bonus')) || COMP_CATEGORIES[4];
                       const CatIcon = cat.icon;
                       const isVoidEntry = t.type === 'void';
-                      const isVoided = isVoidEntry || compLog.some(v => v.type === 'void' && (v.notes || '').includes(`VOID-REF:${t.id}`));
+                      const isVoided = isVoidEntry || compLog.some(v => v.type === 'void' && (v.notes || '').startsWith(`VOID-REF:${t.id} `));
                       const txTime = t.created_at ? new Date(t.created_at) : new Date();
                       const minutesAgo = (Date.now() - txTime.getTime()) / 60000;
                       const voidLabel = minutesAgo <= 15 ? 'Void' : 'Revoke';

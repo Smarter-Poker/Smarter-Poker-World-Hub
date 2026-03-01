@@ -19,8 +19,37 @@ export default async function handler(req, res) {
 
     const { table_number, seat_number, action, target_seat, venue_id } = req.body;
 
-    if (!table_number || !seat_number || !action) {
-        return res.status(400).json({ success: false, error: 'table_number, seat_number, and action required' });
+    if (!table_number && action !== 'tournament_chip_update') {
+        return res.status(400).json({ success: false, error: 'table_number required' });
+    }
+    if (!action) {
+        return res.status(400).json({ success: false, error: 'action required' });
+    }
+
+    // ── Tournament chip update — bypasses session lookup ──
+    if (action === 'tournament_chip_update') {
+        const { tournament_id, entry_id, chip_count } = req.body;
+        if (!tournament_id || !entry_id || (chip_count === undefined && chip_count !== 0)) {
+            return res.status(400).json({ success: false, error: 'tournament_id, entry_id, and chip_count required' });
+        }
+        try {
+            const { data: entry, error: eErr } = await supabase
+                .from('commander_tournament_entries')
+                .update({ current_chips: parseInt(chip_count) })
+                .eq('id', entry_id)
+                .eq('tournament_id', tournament_id)
+                .select('id, player_name, current_chips')
+                .single();
+            if (eErr) throw eErr;
+            return res.status(200).json({ success: true, data: { action: 'tournament_chip_update', player_name: entry.player_name, entry_id: entry.id, chip_count: entry.current_chips } });
+        } catch (err) {
+            console.error('Tournament chip update error:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+    }
+
+    if (!seat_number) {
+        return res.status(400).json({ success: false, error: 'seat_number required' });
     }
 
     try {
@@ -212,7 +241,7 @@ export default async function handler(req, res) {
 
             /* ─── UPDATE CHIP COUNT (Tournament) ─── */
             case 'update_chip_count': {
-                const chipCount = extra?.chip_count || req.body?.chip_count;
+                const chipCount = req.body?.chip_count;
                 if (!chipCount && chipCount !== 0) {
                     return res.status(400).json({ success: false, error: 'chip_count required' });
                 }
