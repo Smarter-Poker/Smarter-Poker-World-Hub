@@ -131,7 +131,7 @@ class TableManager {
     // Nit game / VPIP enforcement
     this.nitGame = config.nitGame || config.clubSettings?.nit_game || false;
     this.maintainPercent = config.maintainPercent || config.clubSettings?.maintain_percent || 0;
-    this.maintainHands = config.maintainHands || config.clubSettings?.maintain_hands || 10;
+    this.maintainHands = Math.max(config.maintainHands || config.clubSettings?.maintain_hands || 12, 12);
     // Per-player tracking: Map<playerId, { handsDealt, vpipHands, warned }>
     this._vpipTracker = new Map();
     

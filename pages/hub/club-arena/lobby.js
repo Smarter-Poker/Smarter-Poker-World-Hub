@@ -478,13 +478,32 @@ export default function ClubLobby() {
                                                         <div style={styles.statsBottomRow}>
                                                             <div style={styles.statItem}>
                                                                 <span style={styles.statIcon}>⏱</span>
-                                                                {table.time_limit || '10min'}
+                                                                {table.action_time_seconds || 30}s
                                                             </div>
                                                             <div style={styles.statItem}>
                                                                 <span style={styles.statIcon}>👤</span>
                                                                 {table.current_players || 0}
                                                             </div>
                                                         </div>
+
+                                                        {/* Game mode badges */}
+                                                        {table.settings && (
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                                                {table.settings.bomb_pot_enabled && <span style={styles.modeBadge} title="Bomb Pot">💣</span>}
+                                                                {table.settings.seven_deuce && <span style={styles.modeBadge} title="7-2 Game">7️⃣</span>}
+                                                                {table.settings.double_board && <span style={styles.modeBadge} title="Double Board">2️⃣</span>}
+                                                                {table.settings.triple_board && <span style={styles.modeBadge} title="Triple Board">3️⃣</span>}
+                                                                {table.settings.straddle_enabled && <span style={styles.modeBadge} title="Straddle">🔺</span>}
+                                                                {table.settings.run_it_twice && <span style={styles.modeBadge} title="Run It Twice">♻️</span>}
+                                                                {table.settings.insurance && <span style={styles.modeBadge} title="Insurance">🛡️</span>}
+                                                                {table.settings.private_game && <span style={styles.modeBadge} title="Private">🔒</span>}
+                                                                {table.settings.anonymous_table && <span style={styles.modeBadge} title="Anonymous">🎭</span>}
+                                                                {table.settings.nit_game && <span style={styles.modeBadge} title={`VPIP ${table.settings.maintain_percent}%+`}>📊</span>}
+                                                                {table.settings.cap && <span style={styles.modeBadge} title={`Cap ${table.settings.cap_amount}`}>🧢</span>}
+                                                                {table.settings.no_rathole && <span style={styles.modeBadge} title="No Rathole">🚫</span>}
+                                                                {table.settings.pineapple && <span style={styles.modeBadge} title="Pineapple">🍍</span>}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -840,6 +859,10 @@ const styles = {
     },
     statIcon: {
         fontSize: '10px',
+    },
+    modeBadge: {
+        fontSize: '10px',
+        cursor: 'default',
     },
     /* Bottom Ribbon */
     ribbonWrapper: {
