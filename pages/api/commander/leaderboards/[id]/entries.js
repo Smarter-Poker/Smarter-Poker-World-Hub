@@ -21,12 +21,59 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Leaderboard ID required' });
   }
 
+  if (req.method === 'GET') {
+    return listEntries(req, res, leaderboardId);
+  }
+
   if (req.method === 'POST') {
     return addOrUpdateEntry(req, res, leaderboardId);
   }
 
-  res.setHeader('Allow', ['POST']);
+  res.setHeader('Allow', ['GET', 'POST']);
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function listEntries(req, res, leaderboardId) {
+  try {
+    const { data: entries, error } = await supabase
+      .from('commander_leaderboard_entries')
+      .select(`
+        *,
+        profiles:player_id (id, display_name, avatar_url)
+      `)
+      .eq('leaderboard_id', leaderboardId)
+      .order('rank', { ascending: true, nullsFirst: false });
+
+    if (error) throw error;
+
+    // Enrich with member data for player_name
+    const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
+    let memberMap = {};
+    if (playerIds.length > 0) {
+      const { data: members } = await supabase
+        .from('commander_members')
+        .select('id, first_name, last_name, photo_url, membership_tier')
+        .in('id', playerIds);
+      (members || []).forEach(m => { memberMap[m.id] = m; });
+    }
+
+    const enriched = (entries || []).map(e => {
+      const member = memberMap[e.player_id];
+      const profileName = e.profiles?.display_name;
+      const memberName = member ? `${member.first_name || ''} ${member.last_name || ''}`.trim() : null;
+      return {
+        ...e,
+        player_name: memberName || profileName || 'Player',
+        photo_url: member?.photo_url || e.profiles?.avatar_url,
+        membership_tier: member?.membership_tier,
+      };
+    });
+
+    return res.status(200).json({ entries: enriched });
+  } catch (error) {
+    console.error('List entries error:', error);
+    return res.status(500).json({ error: error.message });
+  }
 }
 
 async function addOrUpdateEntry(req, res, leaderboardId) {

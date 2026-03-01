@@ -61,15 +61,18 @@ export default function LeaderboardBuilder() {
     });
 
     const getToken = () => {
-        try { return JSON.parse(localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token') || '{}')?.access_token || ''; } catch { return ''; }
+        try { return localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || ''; } catch { return ''; }
     };
 
     const flash = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 4000); };
+    const getStaffSession = () => { try { return localStorage.getItem('commander_staff') || ''; } catch { return ''; } };
 
     // ── Fetch boards ──
     const fetchBoards = useCallback(async () => {
         try {
-            const res = await fetch('/api/commander/leaderboards');
+            const res = await fetch('/api/commander/leaderboards?status=all', {
+                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+            });
             const json = await res.json();
             setBoards(json?.leaderboards || json?.data || []);
         } catch (err) { console.error(err); }
@@ -80,7 +83,9 @@ export default function LeaderboardBuilder() {
     const fetchMembers = useCallback(async () => {
         if (!venueId) return;
         try {
-            const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`);
+            const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
+                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+            });
             const json = await res.json();
             setMembers(json?.data?.members || json?.members || []);
         } catch { }
@@ -89,7 +94,9 @@ export default function LeaderboardBuilder() {
     // ── Fetch entries for a board ──
     const fetchEntries = async (boardId) => {
         try {
-            const res = await fetch(`/api/commander/leaderboards/${boardId}/entries`);
+            const res = await fetch(`/api/commander/leaderboards/${boardId}/entries`, {
+                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+            });
             const json = await res.json();
             setEntries(prev => ({ ...prev, [boardId]: json?.entries || json?.data || [] }));
         } catch { }
@@ -107,7 +114,7 @@ export default function LeaderboardBuilder() {
 
             const res = await fetch('/api/commander/leaderboards', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify({
                     venue_id: venueId,
                     name: newBoard.name,
@@ -140,7 +147,7 @@ export default function LeaderboardBuilder() {
             const token = getToken();
             const res = await fetch(`/api/commander/leaderboards/${boardId}/entries`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify({
                     player_id: addEntry.player_id,
                     score: Number(addEntry.score) || 0,
@@ -167,7 +174,7 @@ export default function LeaderboardBuilder() {
             const token = getToken();
             await fetch(`/api/commander/leaderboards/${board.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify({ status: newStatus }),
             });
             flash('success', `Board ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
@@ -181,7 +188,7 @@ export default function LeaderboardBuilder() {
             const token = getToken();
             const res = await fetch(`/api/commander/leaderboards/${boardId}/entries`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() },
                 body: JSON.stringify({ action: 'calculate' }),
             });
             const json = await res.json();
