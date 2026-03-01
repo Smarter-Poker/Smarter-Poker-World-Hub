@@ -50,9 +50,6 @@ export default function CompSystem() {
 
   useEffect(() => { fetchData(); }, [tab]);
 
-  // Commander Data Bus — sync members/comps across tabs
-  useCommanderSync(getVenueId(), fetchData, { entities: ['members'] });
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -86,6 +83,9 @@ export default function CompSystem() {
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
+
+  // Commander Data Bus — sync members/comps across tabs
+  useCommanderSync(getVenueId(), fetchData, { entities: ['members'] });
 
   const searchMembers = async () => {
     if (!searchQuery || searchQuery.length < 2) return;
