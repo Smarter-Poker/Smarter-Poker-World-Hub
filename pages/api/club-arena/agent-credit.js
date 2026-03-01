@@ -122,17 +122,7 @@ export default async function handler(req, res) {
         p_club_id: clubId,
         p_amount: amount,
       });
-      if (treasuryErr) {
-        // Fallback: if RPC doesn't exist, use manual (legacy)
-        if (treasuryErr.message?.includes('function') || treasuryErr.message?.includes('does not exist')) {
-          await supabaseAdmin
-            .from('clubs')
-            .update({ chip_treasury: treasury - amount })
-            .eq('id', clubId);
-        } else {
-          throw treasuryErr;
-        }
-      }
+      if (treasuryErr) throw treasuryErr;
 
       // Add to agent's chip_balance atomically
       const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {

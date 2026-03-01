@@ -114,41 +114,11 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Amount must be between 1 and 10,000,000' });
         }
 
-        const { data: club, error: updateErr } = await supabaseAdmin
-          .from('clubs')
-          .update({
-            promo_balance: supabaseAdmin.rpc ? undefined : 0, // fallback
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', clubId)
-          .select('promo_balance');
-
-        // Use raw SQL to atomically increment
+        // Atomically increment promo balance via RPC
         const { data: result, error: rpcErr } = await supabaseAdmin.rpc('mint_club_promo', {
           p_club_id: clubId,
           p_amount: amount,
         });
-
-        // If RPC doesn't exist, do manual update
-        if (rpcErr?.message?.includes('does not exist')) {
-          const { data: currentClub } = await supabaseAdmin
-            .from('clubs')
-            .select('promo_balance')
-            .eq('id', clubId)
-            .single();
-
-          const newBalance = (Number(currentClub?.promo_balance) || 0) + amount;
-          await supabaseAdmin
-            .from('clubs')
-            .update({ promo_balance: newBalance, updated_at: new Date().toISOString() })
-            .eq('id', clubId);
-
-          return res.status(200).json({
-            success: true,
-            amount,
-            newBalance,
-          });
-        }
 
         if (rpcErr) {
           return res.status(500).json({ error: 'Mint failed', details: rpcErr.message });
