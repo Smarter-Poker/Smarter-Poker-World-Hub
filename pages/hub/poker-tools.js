@@ -23,15 +23,15 @@ const SUIT_COLORS = { spades: '#E4E6EB', hearts: '#EF4444', diamonds: '#3B82F6',
 
 const PLAYER_COLORS = ['#F59E0B', '#EF4444', '#31A24C', '#A855F7', '#3B82F6', '#EC4899', '#14B8A6'];
 
-/* 7 seat positions around the table (Hero + 6 Villains) */
+/* 7 seat positions around the table (Hero + 6 Villains) — inset for multi-card games */
 const SEAT_POSITIONS = [
     { x: 50, y: 88, label: 'Hero', isHero: true },
-    { x: 15, y: 70, label: 'Villain 1' },
-    { x: 8, y: 38, label: 'Villain 2' },
+    { x: 20, y: 70, label: 'Villain 1' },
+    { x: 14, y: 38, label: 'Villain 2' },
     { x: 30, y: 8, label: 'Villain 3' },
     { x: 70, y: 8, label: 'Villain 4' },
-    { x: 92, y: 38, label: 'Villain 5' },
-    { x: 85, y: 70, label: 'Villain 6' },
+    { x: 86, y: 38, label: 'Villain 5' },
+    { x: 80, y: 70, label: 'Villain 6' },
 ];
 
 /* Custom deck face images: /cards/{suit}_{rank}.png */
