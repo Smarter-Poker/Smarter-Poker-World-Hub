@@ -183,14 +183,14 @@
 | 5.1.16 | Stand up button | ✅ | LivePokerTable.jsx | In TableInfoBar |
 | 5.1.17 | Add chips button | ✅ | LivePokerTable.jsx | In TableInfoBar |
 | 5.1.18 | Result overlay (winner display) | ✅ | LivePokerTable.jsx | ResultOverlay component |
-| 5.1.19 | Winning hand highlighting | ⚠️ | LivePokerTable.jsx | Shows result but no card highlight glow |
+| 5.1.19 | Winning hand highlighting | ✅ | LivePokerTable.jsx | Gold glow filter + winGlow animation on winner cards |
 | 5.1.20 | Showdown card reveal animation | ⚠️ | LivePokerTable.jsx | Cards show but flip animation basic |
-| 5.1.21 | Chip movement animations (pot collection) | ❌ | — | No animated chip stacks moving to pot/winner |
+| 5.1.21 | Chip movement animations (pot collection) | ✅ | LivePokerTable.jsx | ChipFlyAnimation — colored chips fly from pot to winner seats on payout |
 | 5.1.22 | Sound effects (deal, check, call, fold, win) | ✅ | PokerSoundManager.js | Web Audio API, 317 lines, all game events |
-| 5.1.23 | Emote/sticker system | ❌ | — | No emotes like PokerBros |
-| 5.1.24 | Table themes / customization | ❌ | — | Single theme only |
-| 5.1.25 | Rabbit hunting (show undealt cards) | ❌ | — | Not implemented |
-| 5.1.26 | Hand strength indicator | ❌ | — | No "you have top pair" type helper |
+| 5.1.23 | Emote/sticker system | ✅ | ThrowableEmojis.jsx | 22 SVG throwables, 8 impact types, PokerBros-style animations |
+| 5.1.24 | Table themes / customization | ✅ | TableThemes.js + ThemePicker.jsx | 8 themes + 7 card backs, localStorage persistence |
+| 5.1.25 | Rabbit hunting (show undealt cards) | ✅ | Deck.js + GameStateMachine.js + LivePokerTable.jsx | peekRabbitCards engine + 🐇 button in ResultOverlay |
+| 5.1.26 | Hand strength indicator | ✅ | handStrength.js + LivePokerTable.jsx | 360-line evaluator + color-coded label overlay |
 
 ### 5.2 Multi-Table Play (CRITICAL MISSING FEATURE)
 | # | Feature | Status | File | Notes |
@@ -209,10 +209,10 @@
 | 5.3.2 | Table cards (stakes, players, variant) | ✅ | lobby.js | Card display per table |
 | 5.3.3 | Filter by game type (cash/MTT) | ✅ | lobby.js | Tab filters |
 | 5.3.4 | Quick Seat (auto-join best table) | ✅ | lobby.js | Quick Seat button |
-| 5.3.5 | Create table (admin) | ⚠️ | lobby.js | State exists, but UI form fields for rake/BBJ not added to modal |
-| 5.3.6 | Tournament registration from lobby | ⚠️ | lobby.js | Shows tournament tables, but no register/details flow |
+| 5.3.5 | Create table (admin) | ✅ | CreateGameModal.jsx | Full config: rake %, fee cap, BBJ %, straddle, insurance, buy-in auth |
+| 5.3.6 | Tournament registration from lobby | ✅ | tournaments.js | Full tournament page — list, detail modal, register, unregister, start, blind structure |
 | 5.3.7 | Player count / waitlist count display | ✅ | lobby.js | Shows current_players / max_players |
-| 5.3.8 | Table search / sort | ❌ | — | No search bar or sort options |
+| 5.3.8 | Table search / sort | ✅ | lobby.js | Search input + sort dropdown (players/stakes/name) |
 
 ---
 
@@ -256,7 +256,7 @@
 | 6.3.9 | BBJ detection during showdown | ✅ | GameStateMachine.js | _checkBBJ() with NLH/PLO4/PLO5/PLO6 qualifying hands |
 | 6.3.10 | BBJ trigger + payout flow | ✅ | LobbyManager.js | bbj_triggered event → award_bbj RPC → broadcast |
 | 6.3.11 | BBJ history / audit log | ✅ | union_bbj_ledger table | Full contribution + payout tracking |
-| 6.3.12 | BBJ display in UI (current jackpot amount) | ❌ | — | No BBJ ticker on game table or lobby |
+| 6.3.12 | BBJ display in UI (current jackpot amount) | ✅ | BBJDisplay.js | Lobby banner + table ticker + 3-tab modal (Winners/Basic/Qualifying) + realtime |
 
 ### 6.4 Promo Wallets
 | # | Feature | Status | File | Notes |
@@ -270,7 +270,7 @@
 | 6.4.7 | Club→Agent promo transfer | ✅ | transfer_promo_club_to_agent RPC | Atomic |
 | 6.4.8 | Agent→Player promo transfer | ✅ | transfer_promo_agent_to_player RPC | Bonuses |
 | 6.4.9 | Player promo→chips redemption | ✅ | redeem_promo_to_chips RPC | Convert to playable |
-| 6.4.10 | Promo wallet UI (admin dashboard) | ❌ | — | No UI to manage promo distributions |
+| 6.4.10 | Promo wallet UI (admin dashboard) | ✅ | admin.js + promo-wallet.js | PromoWalletModal — mint, grant to agents, balance list |
 
 ---
 
@@ -293,7 +293,7 @@
 | 7.2.1 | Create club | ✅ | create-club.js | API + UI |
 | 7.2.2 | Club admin dashboard | ✅ | admin.js | Stats, members, tables, settings |
 | 7.2.3 | Member management (approve/ban/role) | ✅ | admin.js | Full member CRUD |
-| 7.2.4 | Table management (create/close) | ⚠️ | admin.js + lobby.js | Create works, but missing rake/BBJ fields in UI |
+| 7.2.4 | Table management (create/close) | ✅ | admin.js + CreateGameModal.jsx | Full create with all fields, close via engine disconnect |
 | 7.2.5 | Club settings (name, logo, join code) | ✅ | save-settings.js | Editable |
 | 7.2.6 | Financial overview | ✅ | cashier.js + get_club_financial_summary RPC | Treasury, circulation, net position |
 | 7.2.7 | Club join flow (invite code) | ✅ | join-club.js | Code-based join |
@@ -311,7 +311,7 @@
 | 7.3.7 | Prepaid agent (loads chips upfront) | ✅ | agents table | is_prepaid flag |
 | 7.3.8 | Agent→Player chip distribution | ✅ | distribute-chips.js | RPC call |
 | 7.3.9 | Agent settlement | ✅ | settle-period.js | Weekly/period settlement |
-| 7.3.10 | Agent promo distribution UI | ❌ | — | No UI for agent to distribute promo to players |
+| 7.3.10 | Agent promo distribution UI | ✅ | agent-dashboard.js | PromoWalletTab — balance display, player select, send promo |
 
 ### 7.4 Player Level
 | # | Feature | Status | File | Notes |
@@ -324,7 +324,7 @@
 | 7.4.6 | Leaderboard | ✅ | leaderboard.js | Rankings |
 | 7.4.7 | Cashout request | ✅ | request-cashout.js | Submit request |
 | 7.4.8 | Player messages / chat | ✅ | messages.js | In-club messaging |
-| 7.4.9 | Player profile / avatar | ⚠️ | — | Auth profile exists, no dedicated club avatar upload page |
+| 7.4.9 | Player profile / avatar | ✅ | profile-edit.js (1442 lines) | Full editable profile with avatar upload, HendonMob integration |
 | 7.4.10 | Rakeback tracking | ✅ | rakeback.js | Period-based rakeback |
 
 ---
@@ -364,9 +364,9 @@
 | 9.1.9 | rakeback_periods | ✅ | Period tracking |
 | 9.1.10 | bbj_stakes_tiers | ✅ | 6 tier configs |
 | 9.1.11 | bbj_qualifying_hands | ✅ | Per-variant qualifying hands |
-| 9.1.12 | hand_histories | ⚠️ | HandHistory.js saves, but table may need migration verification |
-| 9.1.13 | chip_transactions (audit trail) | ⚠️ | Exists in engine migration, needs verification |
-| 9.1.14 | club_tournaments | ❌ | No dedicated tournament table for Club Arena online tournaments |
+| 9.1.12 | hand_histories | ✅ | 20260228_hand_histories.sql | Full table with indexes, RLS, player_ids GIN index |
+| 9.1.13 | chip_transactions (audit trail) | ✅ | 20260228_club_arena_engine.sql | Used across all RPCs for distribute, credit, cashout, promo |
+| 9.1.14 | club_tournaments | ✅ | 20260228_club_arena_tournaments.sql | Full schema + tournament_registrations + API + UI page |
 
 ### 9.2 RPCs (Remote Procedure Calls)
 | # | RPC | Status | Notes |
@@ -560,7 +560,7 @@
 ✅ **Tournament creation UI** — Built: CreateTournamentModal in tournaments.js
 ✅ **Tournament registration flow** — Built: TournamentDetailModal in tournaments.js
 ✅ **Sound effects** — Built: PokerSoundManager.js (317 lines)
-❌ **Chip animations** — No visual chip movement
+✅ **Chip animations** — ChipFlyAnimation: colored chips fly from pot to winner seats
 
 ---
 
