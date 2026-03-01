@@ -52,10 +52,11 @@ async function handleGet(req, res, staff) {
     if (error) throw error;
 
     const transactions = data || [];
-    // Exclude voided transactions from summary calculations for accuracy
-    const active = transactions.filter(t => !t.voided_at);
+    // Exclude voided transactions AND void audit records from summary calculations
+    // void-type records are audit trail only — the original transaction is already excluded via voided_at
+    const active = transactions.filter(t => !t.voided_at && t.type !== 'void');
     const buyIns = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type));
-    const cashOuts = active.filter(t => ['cash_out', 'void'].includes(t.type));
+    const cashOuts = active.filter(t => ['cash_out'].includes(t.type));
 
     const summary = {
       total_buy_ins: buyIns.reduce((s, t) => s + parseFloat(t.amount), 0),
@@ -116,9 +117,9 @@ async function handlePost(req, res, staff) {
         .eq('session_id', session_id);
 
       if (txns) {
-        const active = txns.filter(t => !t.voided_at);
+        const active = txns.filter(t => !t.voided_at && t.type !== 'void');
         const ins = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
-        const outs = active.filter(t => ['cash_out', 'void'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
+        const outs = active.filter(t => ['cash_out'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
         playerTotals = { total_bought: ins, total_cashed: outs, net: outs - ins };
       }
     }

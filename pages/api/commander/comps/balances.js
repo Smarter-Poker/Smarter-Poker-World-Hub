@@ -173,13 +173,14 @@ async function awardComp(req, res, staffAuth) {
 
       if (updateErr) throw updateErr;
 
-      await supabase.from('commander_member_comp_log').insert({
+      const { error: logErr1 } = await supabase.from('commander_member_comp_log').insert({
         venue_id: member.venue_id, member_id: member.id, amount: compCost,
         type: type || 'award', reason: reason || `Free Membership — ${days} days`,
         authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
         processed_by: staffRecord.id, balance_after: member.comp_balance || 0,
         comp_category: 'free_membership', notes: notes || null
       });
+      if (logErr1) console.error('Comp log insert failed:', logErr1);
 
       return res.json({
         success: true,
@@ -218,13 +219,14 @@ async function awardComp(req, res, staffAuth) {
       const mins = timeMinutes % 60;
       const timeLabel = hrs > 0 ? `${hrs}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`;
 
-      await supabase.from('commander_member_comp_log').insert({
+      const { error: logErr2 } = await supabase.from('commander_member_comp_log').insert({
         venue_id: member.venue_id, member_id: member.id, amount: dollarValue,
         type: type || 'award', reason: reason || `Free Time — ${timeLabel}`,
         authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
         processed_by: staffRecord.id, balance_after: updateFields.comp_balance || member.comp_balance || 0,
         comp_category: 'free_time', notes: `${timeMinutes} minutes${notes ? ' — ' + notes : ''}`
       });
+      if (logErr2) console.error('Comp log insert failed:', logErr2);
 
       return res.json({
         success: true,
@@ -263,13 +265,14 @@ async function awardComp(req, res, staffAuth) {
 
     if (updateErr) throw updateErr;
 
-    await supabase.from('commander_member_comp_log').insert({
+    const { error: logErr3 } = await supabase.from('commander_member_comp_log').insert({
       venue_id: member.venue_id, member_id: member.id, amount: parsedAmount,
       type: type || 'award', reason: reason || 'Manual comp award',
       authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
       processed_by: staffRecord.id, balance_after: Math.round(newBalance * 100) / 100,
       comp_category: comp_category || 'cash_bonus', notes: notes || null
     });
+    if (logErr3) console.error('Comp log insert failed:', logErr3);
 
     return res.json({
       success: true,
@@ -557,7 +560,7 @@ async function voidComp(req, res, staffAuth) {
     }
 
     // 7. Log the void with full audit trail
-    await supabase.from('commander_member_comp_log').insert({
+    const { error: voidLogErr } = await supabase.from('commander_member_comp_log').insert({
       venue_id: logEntry.venue_id,
       member_id: logEntry.member_id,
       amount: -originalAmount, // Negative to indicate reversal
@@ -570,6 +573,7 @@ async function voidComp(req, res, staffAuth) {
       comp_category: compCategory,
       notes: `VOID-REF:${comp_log_id} | ${void_reason || 'Voided by staff'}`,
     });
+    if (voidLogErr) console.error('Void comp log insert failed:', voidLogErr);
 
     return res.json({
       success: true,
