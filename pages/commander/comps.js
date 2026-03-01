@@ -311,7 +311,7 @@ export default function CompSystem() {
         playSuccessSound();
         showSuccessPopup({
           title: 'Comp Issued',
-          amount: isMembership ? receiptData.durationLabel : `$${receiptData.amount.toFixed(2)}`,
+          amount: isMembership ? receiptData.durationLabel : selectedCategory === 'free_time' ? `${(() => { const m = parseInt(timeMinutes || 0); const h = Math.floor(m / 60); const mins = m % 60; return h > 0 ? `${h}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`; })()} ($${receiptData.amount.toFixed(2)})` : `$${receiptData.amount.toFixed(2)}`,
           detail: `${catLabel} > ${receiptData.memberName}`,
           balance: isMembership && json.data?.membership_expires
             ? `Active Through ${new Date(json.data.membership_expires).toLocaleDateString()}`
@@ -328,6 +328,7 @@ export default function CompSystem() {
           setCompAmount('');
           setMembershipCost('');
           setCompNotes('');
+          setTimeMinutes('');
           setSearchQuery('');
           setSearchResults([]);
           setLastAwardData(null);

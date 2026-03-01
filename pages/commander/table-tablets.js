@@ -1438,159 +1438,45 @@ export default function TableTabletsPage() {
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
 
-                        {/* ── Call Clock Countdown (bottom-right) ── */}
-                        {callClockSeconds !== null && (
-                            <div
-                                onClick={() => { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); }}
-                                style={{
-                                    position: 'absolute', bottom: 20, right: 20, zIndex: 100,
-                                    width: 100, height: 100, borderRadius: '50%',
-                                    background: callClockSeconds <= 10 ? 'rgba(239,68,68,0.9)' : 'rgba(24,119,242,0.9)',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                    cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
-                                    border: `3px solid ${callClockSeconds <= 10 ? '#EF4444' : '#1877F2'}`,
-                                    animation: callClockSeconds <= 10 ? 'pulse 0.5s infinite alternate' : 'none',
-                                    transition: 'background 0.3s, border-color 0.3s',
-                                }}>
-                                <div style={{ fontSize: 36, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{callClockSeconds}</div>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>CALL CLOCK</div>
+
+                        {/* ── Compact Futuristic Metal Button Bar (bottom overlay) ── */}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50, padding: '4px 24px 6px', pointerEvents: 'none' }}>
+                            <div style={{ pointerEvents: 'auto', display: 'grid', gridTemplateColumns: (fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id) ? '1fr 1fr 1fr' : '1fr 1fr', gap: 2, background: 'linear-gradient(180deg, #52565a 0%, #3a3d42 8%, #6b7076 12%, #8a9098 14%, #6b7076 16%, #3a3d42 20%, #2a2d32 50%, #3a3d42 80%, #6b7076 84%, #8a9098 86%, #6b7076 88%, #3a3d42 92%, #52565a 100%)', borderRadius: 10, padding: 3, border: '1px solid rgba(138,208,220,0.2)', boxShadow: '0 0 10px rgba(0,210,255,0.05), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}>
+                                {/* Cell 1: Call Floor */}
+                                {(() => {
+                                    const isA = callFloorSent; const bC = isA ? 'rgba(239,68,68,0.3)' : 'rgba(138,208,220,0.15)'; const cC = isA ? 'rgba(239,68,68,0.4)' : 'rgba(138,208,220,0.3)'; return (
+                                        <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
+                                            style={{ position: 'relative', overflow: 'hidden', background: isA ? 'linear-gradient(180deg,#1a0a0a 0%,#0d0505 40%,#1a0a0a 100%)' : 'linear-gradient(180deg,#0a0e14 0%,#050810 40%,#0a0e14 100%)', border: `1px solid ${bC}`, borderRadius: 8, padding: '10px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: isA ? '#EF4444' : '#F0F4F8', fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textShadow: isA ? '0 0 10px rgba(239,68,68,0.4)' : '0 0 10px rgba(138,208,220,0.25)', opacity: callFloorSending ? 0.6 : 1, transition: 'all 0.2s ease' }}>
+                                            <div style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '5px 0 0 0' }} />
+                                            <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 5px 0 0' }} />
+                                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '0 0 0 5px' }} />
+                                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 0 5px 0' }} />
+                                            {callFloorSending ? 'Calling...' : isA ? 'Cancel Floor' : 'Call Floor'}
+                                        </button>);
+                                })()}
+                                {/* Cell 2: Call Clock */}
+                                {(() => {
+                                    const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; const cC = 'rgba(138,208,220,0.3)'; return (
+                                        <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
+                                            style={{ position: 'relative', overflow: 'hidden', background: a ? (d ? 'linear-gradient(180deg,#1a0505 0%,#0d0202 40%,#1a0505 100%)' : 'linear-gradient(180deg,#0a0e1a 0%,#050818 40%,#0a0e1a 100%)') : 'linear-gradient(180deg,#0a0e14 0%,#050810 40%,#0a0e14 100%)', border: `1px solid ${a ? (d ? 'rgba(239,68,68,0.35)' : 'rgba(24,119,242,0.3)') : 'rgba(138,208,220,0.15)'}`, borderRadius: 8, padding: '10px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a ? (d ? '#EF4444' : '#4DA3FF') : '#F0F4F8', fontSize: a ? 20 : 12, fontWeight: 900, letterSpacing: 0.5, textShadow: a ? (d ? '0 0 14px rgba(239,68,68,0.5)' : '0 0 14px rgba(24,119,242,0.4)') : '0 0 10px rgba(138,208,220,0.25)', transition: 'all 0.2s ease', animation: d ? 'pulse 0.5s infinite alternate' : 'none' }}>
+                                            <div style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '5px 0 0 0' }} />
+                                            <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderTop: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 5px 0 0' }} />
+                                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderLeft: `1.5px solid ${cC}`, borderRadius: '0 0 0 5px' }} />
+                                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderBottom: `1.5px solid ${cC}`, borderRight: `1.5px solid ${cC}`, borderRadius: '0 0 5px 0' }} />
+                                            {a ? (<><span style={{ fontWeight: 900 }}>{callClockSeconds}</span><span style={{ fontSize: 8, fontWeight: 700, opacity: 0.7, letterSpacing: 1 }}>s</span></>) : 'Call Clock'}
+                                        </button>);
+                                })()}
+                                {/* Cell 3: Tournament Clock */}
+                                {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
+                                    <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
+                                        style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(180deg,#141005 0%,#0d0a02 40%,#141005 100%)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 8, padding: '10px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: '#FFD700', fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textShadow: '0 0 10px rgba(255,215,0,0.35)', transition: 'all 0.2s ease' }}>
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: 8, height: 8, borderTop: '1.5px solid rgba(255,215,0,0.35)', borderLeft: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '5px 0 0 0' }} />
+                                        <div style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderTop: '1.5px solid rgba(255,215,0,0.35)', borderRight: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '0 5px 0 0' }} />
+                                        <div style={{ position: 'absolute', bottom: 0, left: 0, width: 8, height: 8, borderBottom: '1.5px solid rgba(255,215,0,0.35)', borderLeft: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '0 0 0 5px' }} />
+                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, borderBottom: '1.5px solid rgba(255,215,0,0.35)', borderRight: '1.5px solid rgba(255,215,0,0.35)', borderRadius: '0 0 5px 0' }} />
+                                        <Trophy size={13} /> Tournament Clock
+                                    </button>)}
                             </div>
-                        )}
-
-                        {/* ── Floating Action Buttons (bottom corners) ── */}
-                        <div style={{ position: 'absolute', bottom: 16, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', zIndex: 50, pointerEvents: 'none' }}>
-                            {/* Call Floor — bottom-left */}
-                            {!callFloorSent ? (
-                                <button
-                                    disabled={callFloorSending}
-                                    onClick={async () => {
-                                        haptic('heavy');
-                                        setCallFloorSending(true);
-                                        try {
-                                            const tNum = fullscreenTable.table_number;
-                                            const res = await fetch('/api/commander/floor-call', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ venue_id: venueId, table_number: tNum, table_name: fullscreenTable.table_name || `Table ${tNum}` }),
-                                            });
-                                            const json = await res.json();
-                                            if (json.success) {
-                                                setCallFloorSent(true);
-                                                setCallFloorId(json.data?.id || null);
-                                                setToast({ type: 'success', text: `Floor called — Table ${tNum}` });
-                                                broadcastChange('floor_calls');
-                                            } else {
-                                                setToast({ type: 'error', text: json.error || 'Floor call failed' });
-                                            }
-                                        } catch { setToast({ type: 'error', text: 'Network error' }); }
-                                        setCallFloorSending(false);
-                                    }}
-                                    style={{
-                                        pointerEvents: 'auto',
-                                        background: 'rgba(24,119,242,0.9)', border: 'none',
-                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        fontSize: 15, fontWeight: 800, color: '#fff',
-                                        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-                                        opacity: callFloorSending ? 0.6 : 1,
-                                    }}
-                                >
-                                    {callFloorSending ? 'Calling...' : 'Call Floor'}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={async () => {
-                                        haptic();
-                                        // Cancel the active floor call
-                                        if (callFloorId) {
-                                            try {
-                                                const res = await fetch('/api/commander/floor-call', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ action: 'cancel', call_id: callFloorId }),
-                                                });
-                                                const json = await res.json();
-                                                if (json.success) {
-                                                    setToast({ type: 'success', text: 'Floor call cancelled' });
-                                                }
-                                            } catch { /* ignore */ }
-                                        }
-                                        setCallFloorSent(false);
-                                        setCallFloorId(null);
-                                    }}
-                                    style={{
-                                        pointerEvents: 'auto',
-                                        background: 'rgba(239,68,68,0.9)', border: 'none',
-                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        fontSize: 15, fontWeight: 800, color: '#fff',
-                                        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-                                    }}
-                                >
-                                    Cancel Floor
-                                </button>
-                            )}
-
-                            {/* Call Clock — bottom-right */}
-                            {callClockSeconds === null && (
-                                <button
-                                    onClick={() => {
-                                        haptic();
-                                        setCallClockSeconds(60);
-                                        if (callClockRef.current) clearInterval(callClockRef.current);
-                                        callClockRef.current = setInterval(() => {
-                                            setCallClockSeconds(prev => {
-                                                if (prev <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; }
-                                                return prev - 1;
-                                            });
-                                        }, 1000);
-                                    }}
-                                    style={{
-                                        pointerEvents: 'auto',
-                                        background: 'rgba(24,119,242,0.9)', border: 'none',
-                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        fontSize: 15, fontWeight: 800, color: '#fff',
-                                        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-                                    }}
-                                >
-                                    Call Clock (60s)
-                                </button>
-                            )}
-
-                            {/* Tournament Clock — SAFEGUARD: only shown for tournament tables with valid tournament_id */}
-                            {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && (
-                                <button
-                                    onClick={() => {
-                                        haptic();
-                                        // SAFEGUARD: Validate tournament_id is a real UUID before locking
-                                        const tid = fullscreenTable.tournament_id;
-                                        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                                        if (!tid || !UUID_RE.test(tid)) {
-                                            console.error('[SAFEGUARD] Invalid tournament_id, refusing to open clock:', tid);
-                                            return;
-                                        }
-                                        // SAFEGUARD: Double-check the table is still a tournament table
-                                        if (!isTournamentTable(fullscreenTable)) {
-                                            console.error('[SAFEGUARD] Table is no longer a tournament table, refusing to open clock');
-                                            return;
-                                        }
-                                        // Lock the tournament ID and open overlay
-                                        setLockedTournamentId(tid);
-                                        setShowTournamentClock(true);
-                                    }}
-                                    style={{
-                                        pointerEvents: 'auto',
-                                        background: 'linear-gradient(135deg, #FFD700, #B8860B)', border: 'none',
-                                        borderRadius: 14, padding: '14px 24px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        fontSize: 15, fontWeight: 800, color: '#000',
-                                        boxShadow: '0 4px 16px rgba(255,215,0,0.4)',
-                                    }}
-                                >
-                                    <Trophy size={16} /> Tournament Clock
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -1626,15 +1512,12 @@ export default function TableTabletsPage() {
                                     ← Back to Table
                                 </button>
                                 {/* Full clock-display page — ONLY uses lockedTournamentId (never derived live) */}
-                                {(() => {
-                                    const clockUrl = '/commander/tournaments/' + lockedTournamentId + '/clock-display'; return (
-                                        <iframe
-                                            src={clockUrl}
-                                            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                                            allow="autoplay; fullscreen"
-                                            title="Tournament Clock"
-                                        />);
-                                })()}
+                                <iframe
+                                    src={'/commander/tournaments/' + lockedTournamentId + '/clock-display'}
+                                    style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                                    allow="autoplay; fullscreen"
+                                    title="Tournament Clock"
+                                />
                             </div>
                         )}
                     {toast && (
