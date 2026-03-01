@@ -85,6 +85,7 @@ export default function TablesDisplay() {
   const [showPlayerMenu, setShowPlayerMenu] = useState(null); // seat object
   const [playerActionLoading, setPlayerActionLoading] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', text }
+  const [movingPlayer, setMovingPlayer] = useState(null); // { seat, player_name } — active move mode
 
   // Extract venueId/venueName from staff session (client-only)
   const [venueId, setVenueId] = useState(null);
@@ -358,7 +359,24 @@ export default function TablesDisplay() {
     }
   };
 
-  /* ─── Player Actions ───────────────────────────────── */
+  /* ─── Player Actions (all wired to /api/commander/dealer/session-action) ── */
+
+  const callSessionAction = async (seat, action, extra = {}) => {
+    setPlayerActionLoading(true);
+    try {
+      const res = await fetch('/api/commander/dealer/session-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number, venue_id: venueId, action, ...extra }),
+      });
+      const json = await res.json();
+      setPlayerActionLoading(false);
+      return json;
+    } catch {
+      setPlayerActionLoading(false);
+      return { success: false, error: 'Network error' };
+    }
+  };
 
   const removePlayer = async (seat) => {
     setPlayerActionLoading(true);
@@ -380,22 +398,54 @@ export default function TablesDisplay() {
     setPlayerActionLoading(false);
   };
 
-  const addMealBreak = async (seat) => {
-    setPlayerActionLoading(true);
-    // Meal break = mark a 30-minute pause on the player
-    setToast({ type: 'success', text: `🍽️ 30-min meal break started for ${seat.player?.player_name}` });
+  const startMovePlayer = (seat) => {
+    setMovingPlayer({ seat, player_name: seat.player?.player_name || 'Player' });
     setShowPlayerMenu(null);
-    setPlayerActionLoading(false);
+    setToast({ type: 'success', text: `Tap an empty seat to move ${seat.player?.player_name || 'player'}` });
+  };
+
+  const completeMove = async (targetSeatNumber) => {
+    if (!movingPlayer) return;
+    const json = await callSessionAction(movingPlayer.seat, 'move', { target_seat: targetSeatNumber });
+    if (json.success) {
+      setToast({ type: 'success', text: `✅ ${json.data.player_name} moved S${json.data.from_seat} → S${json.data.to_seat}` });
+      fetchData();
+    } else {
+      setToast({ type: 'error', text: json.error || 'Move failed' });
+    }
+    setMovingPlayer(null);
+  };
+
+  const addMealBreak = async (seat) => {
+    const json = await callSessionAction(seat, 'meal_break');
+    if (json.success) {
+      setToast({ type: 'success', text: `🍽️ 30-min meal break started for ${json.data.player_name}` });
+    } else {
+      setToast({ type: 'error', text: json.error || 'Failed to set meal break' });
+    }
+    setShowPlayerMenu(null);
+    fetchData();
   };
 
   const markMissedBlinds = async (seat) => {
-    setToast({ type: 'success', text: `⚠️ Missed blinds logged for ${seat.player?.player_name}` });
+    const json = await callSessionAction(seat, 'missed_blinds');
+    if (json.success) {
+      setToast({ type: 'success', text: `⚠️ Missed blind #${json.data.missed_blinds_count} for ${json.data.player_name}` });
+    } else {
+      setToast({ type: 'error', text: json.error || 'Failed to log missed blind' });
+    }
     setShowPlayerMenu(null);
   };
 
   const pausePlayer = async (seat) => {
-    setToast({ type: 'success', text: `⏸️ Timer paused for ${seat.player?.player_name}` });
+    const json = await callSessionAction(seat, 'pause');
+    if (json.success) {
+      setToast({ type: 'success', text: `⏸️ Timer paused for ${json.data.player_name}` });
+    } else {
+      setToast({ type: 'error', text: json.error || 'Failed to pause' });
+    }
     setShowPlayerMenu(null);
+    fetchData();
   };
 
   /* ─── Computed ────────────────────────────────────── */
@@ -514,6 +564,24 @@ export default function TablesDisplay() {
             </div>
           )}
 
+          {/* ── Move Mode Banner ── */}
+          {movingPlayer && (
+            <div style={{
+              position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 80,
+              padding: '10px 20px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
+              background: 'rgba(24,119,242,0.95)', color: '#fff', fontSize: 14, fontWeight: 700,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            }}>
+              🪑 Moving {movingPlayer.player_name} — tap an empty seat
+              <button onClick={() => { setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
+                style={{
+                  padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)',
+                  background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}
+              >Cancel</button>
+            </div>
+          )}
+
           {/* ── Table Visual ── */}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 24px', overflow: 'hidden' }}>
             {!table ? (
@@ -605,6 +673,8 @@ export default function TablesDisplay() {
                       return (
                         <div key={seat.number}
                           onClick={() => {
+                            if (movingPlayer && !isOccupied) { completeMove(seat.number); return; }
+                            if (movingPlayer && isOccupied) { setToast({ type: 'error', text: 'Seat occupied — pick an empty seat' }); return; }
                             if (isOccupied) setShowPlayerMenu(seat);
                             else openScanner('seat', seat.number);
                           }}
@@ -631,11 +701,11 @@ export default function TablesDisplay() {
                             )}
                           </div>
                           <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
-                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
-                              {isOccupied ? fullName : 'Open'}
+                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2, color: isOccupied ? '#E4E6EB' : (movingPlayer ? '#22c55e' : '#6B7280'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                              {isOccupied ? fullName : (movingPlayer ? 'Move here' : 'Open')}
                             </div>
                             {!isOccupied && (
-                              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Tap to seat</div>
+                              <div style={{ fontSize: 10, color: movingPlayer ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.25)' }}>{movingPlayer ? 'Tap to confirm' : 'Tap to seat'}</div>
                             )}
                             {timerText && (
                               <div style={{ fontSize: 14, fontWeight: 700, color: timerColor, fontFamily: 'monospace', lineHeight: 1.3 }}>
@@ -695,7 +765,7 @@ export default function TablesDisplay() {
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { label: '🪑 Move Player', color: '#1877F2', action: () => { setToast({ type: 'success', text: 'Select new seat to move player' }); setShowPlayerMenu(null); } },
+                    { label: '🪑 Move Player', color: '#1877F2', action: () => startMovePlayer(showPlayerMenu) },
                     { label: '❌ Remove Player', color: '#EF4444', action: () => removePlayer(showPlayerMenu) },
                     { label: '⏸️ Pause Timer', color: '#F59E0B', action: () => pausePlayer(showPlayerMenu) },
                     { label: '⚠️ Missed Blinds', color: '#F97316', action: () => markMissedBlinds(showPlayerMenu) },
@@ -837,146 +907,146 @@ export default function TablesDisplay() {
 
 
 
-return (
-  <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
-    <div onClick={goFullscreen}
-      className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden flex flex-col">
+  return (
+    <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
+      <div onClick={goFullscreen}
+        className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden flex flex-col">
 
-      {/* Header */}
-      <div className="bg-[#1877F2] px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-3xl font-bold tracking-wide">TABLE STATUS</h1>
-          <div className="flex gap-4">
-            <span className="text-lg opacity-90">
-              <strong>{allTables.length}</strong> Tables
-            </span>
-            <span className="text-lg opacity-90">
-              <strong>{totalSeated}</strong> Playing
-            </span>
-            <span className="text-lg opacity-90">
-              <strong className={totalOpen > 0 ? 'text-[#31A24C]' : ''}>{totalOpen}</strong> Open
-            </span>
+        {/* Header */}
+        <div className="bg-[#1877F2] px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <h1 className="text-3xl font-bold tracking-wide">TABLE STATUS</h1>
+            <div className="flex gap-4">
+              <span className="text-lg opacity-90">
+                <strong>{allTables.length}</strong> Tables
+              </span>
+              <span className="text-lg opacity-90">
+                <strong>{totalSeated}</strong> Playing
+              </span>
+              <span className="text-lg opacity-90">
+                <strong className={totalOpen > 0 ? 'text-[#31A24C]' : ''}>{totalOpen}</strong> Open
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-white/60">Tap a table to lock display</p>
+            <p className="text-3xl font-mono font-bold tabular-nums">
+              {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-sm text-white/60">Tap a table to lock display</p>
-          <p className="text-3xl font-mono font-bold tabular-nums">
-            {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </p>
-        </div>
-      </div>
 
-      {/* Table Grid */}
-      <div className="flex-1 p-6 overflow-hidden">
-        {allTables.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-4xl font-bold text-white/15">No Active Tables</p>
-          </div>
-        ) : (
-          <div className={`grid gap-4 h-full ${allTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
-            allTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
-              allTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
-                allTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
-                  'grid-cols-5 grid-rows-4'
-            }`}>
-            {allTables.map(table => {
-              const tNum = table.table_number || table.number;
-              const maxSeats = table.max_seats || 9;
-              const seats = table.seats || [];
-              const games = Array.isArray(table.commander_games) ? table.commander_games : [];
-              const game = games.find(g => g.status !== 'closed') || games[0];
-              const seated = game?.current_players || seats.filter(s => s.status === 'occupied').length || 0;
-              const open = Math.max(0, maxSeats - seated);
-              const isFull = open === 0 && seated > 0;
-              const isEmpty = seated === 0;
-              const isActive = table.status === 'in_use';
-              const seatPositions = computeSeatPositions(maxSeats).seatPositions;
-              const dealer = dealerMap[tNum];
+        {/* Table Grid */}
+        <div className="flex-1 p-6 overflow-hidden">
+          {allTables.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-4xl font-bold text-white/15">No Active Tables</p>
+            </div>
+          ) : (
+            <div className={`grid gap-4 h-full ${allTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
+              allTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
+                allTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
+                  allTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
+                    'grid-cols-5 grid-rows-4'
+              }`}>
+              {allTables.map(table => {
+                const tNum = table.table_number || table.number;
+                const maxSeats = table.max_seats || 9;
+                const seats = table.seats || [];
+                const games = Array.isArray(table.commander_games) ? table.commander_games : [];
+                const game = games.find(g => g.status !== 'closed') || games[0];
+                const seated = game?.current_players || seats.filter(s => s.status === 'occupied').length || 0;
+                const open = Math.max(0, maxSeats - seated);
+                const isFull = open === 0 && seated > 0;
+                const isEmpty = seated === 0;
+                const isActive = table.status === 'in_use';
+                const seatPositions = computeSeatPositions(maxSeats).seatPositions;
+                const dealer = dealerMap[tNum];
 
-              return (
-                <div key={table.id || tNum}
-                  onClick={(e) => { e.stopPropagation(); lockToTable(tNum); }}
-                  className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:brightness-110 ${!isActive ? 'bg-white/[0.03] border-white/10' :
-                    isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                      'bg-[#31A24C]/10 border-[#31A24C]/30'
-                    }`}>
+                return (
+                  <div key={table.id || tNum}
+                    onClick={(e) => { e.stopPropagation(); lockToTable(tNum); }}
+                    className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:brightness-110 ${!isActive ? 'bg-white/[0.03] border-white/10' :
+                      isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                        'bg-[#31A24C]/10 border-[#31A24C]/30'
+                      }`}>
 
-                  {/* Mini seat ring */}
-                  <div className="relative w-20 h-16 mb-1">
-                    <div className={`absolute inset-[15%] rounded-[50%] border ${!isActive ? 'border-white/10' : isFull ? 'border-[#1877F2]/20' : 'border-[#31A24C]/20'}`} />
-                    {seatPositions.map((pos, i) => {
-                      const seatData = seats.find(s => s.seat_number === i + 1);
-                      const isOccupied = seatData?.status === 'occupied' || (isActive && i < seated);
-                      return (
-                        <div key={i}
-                          className={`absolute w-2.5 h-2.5 rounded-full ${isOccupied ? 'bg-[#1877F2]' : 'bg-white/15'}`}
-                          style={{ left: `${parseFloat(pos.left)}%`, top: `${parseFloat(pos.top)}%`, transform: 'translate(-50%, -50%)' }} />
-                      );
-                    })}
-                  </div>
+                    {/* Mini seat ring */}
+                    <div className="relative w-20 h-16 mb-1">
+                      <div className={`absolute inset-[15%] rounded-[50%] border ${!isActive ? 'border-white/10' : isFull ? 'border-[#1877F2]/20' : 'border-[#31A24C]/20'}`} />
+                      {seatPositions.map((pos, i) => {
+                        const seatData = seats.find(s => s.seat_number === i + 1);
+                        const isOccupied = seatData?.status === 'occupied' || (isActive && i < seated);
+                        return (
+                          <div key={i}
+                            className={`absolute w-2.5 h-2.5 rounded-full ${isOccupied ? 'bg-[#1877F2]' : 'bg-white/15'}`}
+                            style={{ left: `${parseFloat(pos.left)}%`, top: `${parseFloat(pos.top)}%`, transform: 'translate(-50%, -50%)' }} />
+                        );
+                      })}
+                    </div>
 
-                  {/* Table number */}
-                  <p className="text-2xl font-bold text-white">T{tNum}</p>
+                    {/* Table number */}
+                    <p className="text-2xl font-bold text-white">T{tNum}</p>
 
-                  {/* Game info */}
-                  <p className="text-xs text-white/50 truncate max-w-full">
-                    {(game?.game_type || table.game_type || 'NLH').toUpperCase()} {game?.stakes || table.stakes || ''}
-                  </p>
-
-                  {/* Dealer */}
-                  {dealer && (
-                    <p className="text-[10px] text-[#1877F2] font-semibold truncate max-w-full mt-0.5">
-                      🎲 {dealer}
+                    {/* Game info */}
+                    <p className="text-xs text-white/50 truncate max-w-full">
+                      {(game?.game_type || table.game_type || 'NLH').toUpperCase()} {game?.stakes || table.stakes || ''}
                     </p>
-                  )}
 
-                  {/* Seat count */}
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm font-medium text-white/70">{seated}/{maxSeats}</span>
-                    {isActive && open > 0 && (
-                      <span className="text-xs font-bold text-[#31A24C] bg-[#31A24C]/20 px-2 py-0.5 rounded-full">
-                        {open} OPEN
-                      </span>
+                    {/* Dealer */}
+                    {dealer && (
+                      <p className="text-[10px] text-[#1877F2] font-semibold truncate max-w-full mt-0.5">
+                        🎲 {dealer}
+                      </p>
                     )}
-                    {isActive && isFull && (
-                      <span className="text-xs font-bold text-[#1877F2] bg-[#1877F2]/20 px-2 py-0.5 rounded-full">
-                        FULL
-                      </span>
-                    )}
-                    {!isActive && (
-                      <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
-                        {table.status === 'reserved' ? 'RSVD' : table.status === 'maintenance' ? 'MAINT' : 'IDLE'}
-                      </span>
-                    )}
+
+                    {/* Seat count */}
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-sm font-medium text-white/70">{seated}/{maxSeats}</span>
+                      {isActive && open > 0 && (
+                        <span className="text-xs font-bold text-[#31A24C] bg-[#31A24C]/20 px-2 py-0.5 rounded-full">
+                          {open} OPEN
+                        </span>
+                      )}
+                      {isActive && isFull && (
+                        <span className="text-xs font-bold text-[#1877F2] bg-[#1877F2]/20 px-2 py-0.5 rounded-full">
+                          FULL
+                        </span>
+                      )}
+                      {!isActive && (
+                        <span className="text-xs font-bold text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+                          {table.status === 'reserved' ? 'RSVD' : table.status === 'maintenance' ? 'MAINT' : 'IDLE'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Lock hint on hover */}
+                    <div className="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40">
+                      <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">🔒 Tap to Lock</span>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                  {/* Lock hint on hover */}
-                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40">
-                    <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">🔒 Tap to Lock</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* Dealer Push/Break + Promo Ticker */}
+        <DealerTicker
+          accentColor="#1877F2"
+          bgColor="#000"
+          fontSize={18}
+          borderColor="rgba(255,255,255,0.1)"
+          speed={50}
+          showBorder={true}
+        />
+
+        {/* Footer */}
+        <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">
+          <p className="text-sm text-white/20">See The Front Desk Or Join The Waitlist For An Open Seat</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
+        </div>
       </div>
-
-      {/* Dealer Push/Break + Promo Ticker */}
-      <DealerTicker
-        accentColor="#1877F2"
-        bgColor="#000"
-        fontSize={18}
-        borderColor="rgba(255,255,255,0.1)"
-        speed={50}
-        showBorder={true}
-      />
-
-      {/* Footer */}
-      <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">
-        <p className="text-sm text-white/20">See The Front Desk Or Join The Waitlist For An Open Seat</p>
-        <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
-      </div>
-    </div>
-  </CommanderLayout>
-);
+    </CommanderLayout>
+  );
 }
