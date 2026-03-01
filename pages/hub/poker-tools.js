@@ -387,31 +387,61 @@ export default function PokerToolsPage() {
                             }}
                                 onClick={() => setSelectedSlot({ type: 'hand', playerIdx: pi })}>
 
-                                {/* Cards — ALL BLUE frames, full 65x91 size */}
-                                <div style={{ display: 'flex', gap: config.holeCards >= 5 ? 1 : 3, marginBottom: 4 }}>
-                                    {Array.from({ length: config.holeCards }).map((_, ci) => {
-                                        const card = hand[ci];
-                                        return card ? (
-                                            <div key={ci} onClick={e => { e.stopPropagation(); removeCard('hand', pi, ci); }}
-                                                style={{ cursor: 'pointer' }}>
-                                                <img src={getCardImage(card.rank, card.suit)} alt=""
-                                                    style={{
-                                                        width: 65, height: 91, borderRadius: 4,
-                                                        border: '2px solid #1877F2',
-                                                        boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
-                                                        background: '#fff',
-                                                    }} />
-                                            </div>
-                                        ) : (
-                                            <div key={ci} style={{
-                                                width: 65, height: 91, borderRadius: 4,
-                                                border: `2px solid ${isSelected ? '#1877F2' : 'rgba(255,255,255,0.15)'}`,
-                                                boxShadow: isSelected ? '0 0 12px rgba(24,119,242,0.3)' : 'none',
-                                                background: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d15 100%)',
-                                            }} />
-                                        );
-                                    })}
-                                </div>
+                                {/* Cards — blue frames, sized to fit on table */}
+                                {(() => {
+                                    /* Size cards to fit on table: 2-card=65, 4-card=55, 5-card=48, 6-card=42, 7-card=38 */
+                                    const cw = config.holeCards <= 2 ? 65 : config.holeCards <= 4 ? 55 : config.holeCards <= 5 ? 48 : config.holeCards <= 6 ? 42 : 38;
+                                    const ch = Math.round(cw * 1.4);
+                                    const gap = config.holeCards >= 5 ? 1 : 2;
+                                    return (
+                                        <div style={{ display: 'flex', gap, marginBottom: 4 }}>
+                                            {Array.from({ length: config.holeCards }).map((_, ci) => {
+                                                const card = hand[ci];
+                                                return card ? (
+                                                    <div key={ci} onClick={e => { e.stopPropagation(); removeCard('hand', pi, ci); }}
+                                                        style={{ cursor: 'pointer' }}>
+                                                        <img src={getCardImage(card.rank, card.suit)} alt=""
+                                                            style={{
+                                                                width: cw, height: ch, borderRadius: 4,
+                                                                border: '2px solid #1877F2',
+                                                                boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
+                                                                background: '#fff',
+                                                            }} />
+                                                    </div>
+                                                ) : (
+                                                    <div key={ci} style={{
+                                                        width: cw, height: ch, borderRadius: 4,
+                                                        border: `2px solid ${isSelected ? '#1877F2' : 'rgba(255,255,255,0.15)'}`,
+                                                        boxShadow: isSelected ? '0 0 12px rgba(24,119,242,0.3)' : 'none',
+                                                        background: 'linear-gradient(135deg, #1a1a3e 0%, #0a0a20 100%)',
+                                                        position: 'relative', overflow: 'hidden',
+                                                    }}>
+                                                        {/* Card back decorative design */}
+                                                        <div style={{
+                                                            position: 'absolute', inset: 3, borderRadius: 2,
+                                                            border: '1px solid rgba(255,215,0,0.25)',
+                                                        }}>
+                                                            <div style={{
+                                                                position: 'absolute', top: '50%', left: '50%',
+                                                                transform: 'translate(-50%, -50%) rotate(45deg)',
+                                                                width: Math.round(cw * 0.35), height: Math.round(cw * 0.35),
+                                                                border: '1px solid rgba(255,215,0,0.2)',
+                                                                background: 'rgba(255,215,0,0.05)',
+                                                            }} />
+                                                            <div style={{
+                                                                position: 'absolute', top: '50%', left: '50%',
+                                                                transform: 'translate(-50%, -50%)',
+                                                                fontSize: Math.max(8, Math.round(cw * 0.18)),
+                                                                fontWeight: 900, color: 'rgba(255,215,0,0.2)',
+                                                                letterSpacing: 1,
+                                                            }}>S</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Gold Badge */}
                                 <div style={{
