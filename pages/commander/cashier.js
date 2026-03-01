@@ -82,7 +82,7 @@ export default function Cashier() {
 
   // Add Time form
   const [selectedTime, setSelectedTime] = useState(null);
-  const [customMinutes, setCustomMinutes] = useState('');
+
   const [timePayMethod, setTimePayMethod] = useState('cash');
   const [recentTimeTransactions, setRecentTimeTransactions] = useState([]);
 
@@ -409,13 +409,12 @@ export default function Cashier() {
       const opt = TIME_OPTIONS.find(o => o.minutes === selectedTime);
       return opt?.price || 0;
     }
-    if (customMinutes) return Math.ceil(parseInt(customMinutes) * (timeBillingRate / 60));
     return 0;
   };
 
   // Add Time to Player
   const doAddTime = async (staff) => {
-    const mins = selectedTime || parseInt(customMinutes) || 0;
+    const mins = selectedTime || 0;
     if (mins <= 0) { setMessage({ type: 'error', text: 'Select A Time Amount' }); return; }
     if (!selectedPlayer?.id) { setMessage({ type: 'error', text: 'Select A Player First' }); return; }
     const price = getTimePrice();
