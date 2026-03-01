@@ -752,7 +752,7 @@ export default function CompSystem() {
                             )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            {(t.comp_category === 'free_membership' && (t.amount === 0 || t.amount)) ? (
+                            {t.comp_category === 'free_membership' ? (
                               <>
                                 <p className="text-sm font-bold text-[#8B5CF6]">
                                   {(t.reason || '').replace('Free Membership — ', '').split(' — ')[0] || 'Membership'}

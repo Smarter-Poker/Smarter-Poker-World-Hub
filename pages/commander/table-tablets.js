@@ -635,7 +635,7 @@ export default function TableTabletsPage() {
                             {formatStakes(game?.stakes || table.stakes)}
                         </div>
                         {table.table_purpose && (
-                            <div style={{ fontSize: isFullscreen ? 11 : 9, fontWeight: 800, marginTop: 6, padding: '2px 10px', borderRadius: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(table) ? 'rgba(245,158,11,0.3)' : table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)', color: isTournamentTable(table) ? '#F59E0B' : table.table_purpose === 'must_move' ? '#F59E0B' : '#22c55e', border: `1px solid ${isTournamentTable(table) ? 'rgba(245,158,11,0.5)' : table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.5)' : 'rgba(34,197,94,0.5)'}` }}>
+                            <div style={{ fontSize: isFullscreen ? 11 : 9, fontWeight: 800, marginTop: 6, padding: '2px 10px', borderRadius: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(table) ? 'rgba(255,215,0,0.25)' : table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.3)' : 'rgba(24,119,242,0.25)', color: isTournamentTable(table) ? '#FFD700' : table.table_purpose === 'must_move' ? '#F59E0B' : '#1877F2', border: `1px solid ${isTournamentTable(table) ? 'rgba(255,215,0,0.5)' : table.table_purpose === 'must_move' ? 'rgba(245,158,11,0.5)' : 'rgba(24,119,242,0.4)'}` }}>
                                 {isTournamentTable(table) ? 'Tournament' : table.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
                             </div>
                         )}
@@ -920,7 +920,7 @@ export default function TableTabletsPage() {
                             {/* ACTIVE TOURNAMENT TABLES — amber section */}
                             {activeTournamentTables.length > 0 && (
                                 <>
-                                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#FFD700', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <Trophy size={14} /> Tournament Tables ({activeTournamentTables.length})
                                     </h2>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -934,14 +934,14 @@ export default function TableTabletsPage() {
                                                 <div key={table.id || tNum}
                                                     onClick={() => setFullscreenTable(table)}
                                                     style={{
-                                                        background: '#1a1a2e', border: '2px solid rgba(245,158,11,0.4)', borderRadius: 16,
+                                                        background: '#1a1a2e', border: '2px solid rgba(255,215,0,0.5)', borderRadius: 16,
                                                         cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
                                                     }}>
 
                                                     {/* Table header — tournament amber gradient */}
                                                     <div style={{
                                                         padding: '12px 16px',
-                                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                                        background: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)',
                                                         color: '#fff',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                                     }}>
@@ -993,18 +993,14 @@ export default function TableTabletsPage() {
                                                 <div key={table.id || tNum}
                                                     onClick={() => setFullscreenTable(table)}
                                                     style={{
-                                                        background: '#1a1a2e', border: '2px solid rgba(49,162,76,0.3)', borderRadius: 16,
+                                                        background: '#1a1a2e', border: '2px solid rgba(24,119,242,0.3)', borderRadius: 16,
                                                         cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
                                                     }}>
 
                                                     {/* Table header — game info bar */}
                                                     <div style={{
                                                         padding: '12px 16px',
-                                                        background: isTournamentTable(table)
-                                                            ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
-                                                            : game?.status === 'running'
-                                                                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                                                                : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                                        background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
                                                         color: '#fff',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                                     }}>
@@ -1128,7 +1124,7 @@ export default function TableTabletsPage() {
                                     })()}
                                 </div>
                                 {fullscreenTable.table_purpose && (
-                                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(245,158,11,0.4)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#FCD34D' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(255,215,0,0.4)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#FFD700' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
                                         {isTournamentTable(fullscreenTable) ? 'Tournament' : fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
                                     </span>
                                 )}
