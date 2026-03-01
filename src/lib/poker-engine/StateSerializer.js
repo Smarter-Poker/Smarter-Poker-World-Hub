@@ -123,6 +123,8 @@ class StateSerializer {
         bigBlindIndex: hand.bigBlindIndex,
         lastAggressor: hand.lastAggressor || null,
         actionHistory: hand.actionHistory || [],
+        // PotCalculator internal state (critical for cold-start recovery)
+        potCalculator: game.potCalculator?.getState?.() || null,
       } : null,
 
       // Waitlist
@@ -188,6 +190,26 @@ class StateSerializer {
         };
 
         game.phase = state.gamePhase;
+
+        // Restore PotCalculator internal state (investments, folded, allIn)
+        if (h.potCalculator && game.potCalculator) {
+          const pc = game.potCalculator;
+          if (h.potCalculator.investments) {
+            for (const [pid, amt] of Object.entries(h.potCalculator.investments)) {
+              pc._investments.set(pid, amt);
+            }
+          }
+          if (h.potCalculator.folded) {
+            for (const [pid, val] of Object.entries(h.potCalculator.folded)) {
+              pc._folded.set(pid, val);
+            }
+          }
+          if (h.potCalculator.allIn) {
+            for (const [pid, val] of Object.entries(h.potCalculator.allIn)) {
+              pc._allIn.set(pid, val);
+            }
+          }
+        }
 
         // Sync stacks back to seats
         for (const p of h.players) {

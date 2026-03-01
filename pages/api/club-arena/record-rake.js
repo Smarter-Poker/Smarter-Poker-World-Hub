@@ -22,11 +22,14 @@ export default async function handler(req, res) {
   const engineKey = req.headers['x-engine-key'];
   const token = req.headers.authorization?.replace('Bearer ', '');
 
-  if (!engineKey && !token) {
+  // Engine-to-engine calls use a shared secret
+  const validEngineKey = engineKey && process.env.ENGINE_INTERNAL_SECRET && engineKey === process.env.ENGINE_INTERNAL_SECRET;
+
+  if (!validEngineKey && !token) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  if (token && !engineKey) {
+  if (token && !validEngineKey) {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
