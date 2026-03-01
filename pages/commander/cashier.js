@@ -691,7 +691,10 @@ export default function Cashier() {
   // Show full-screen success overlay
   const showSuccessPopup = ({ title, amount, detail, balance }) => {
     setSuccessOverlay({ title, amount, detail, balance });
-    setTimeout(() => setSuccessOverlay(null), 3500);
+    setTimeout(() => {
+      setSuccessOverlay(null);
+      setSelectedPlayer(null); // Clear player after transaction — ready for next customer
+    }, 3500);
   };
 
   // Load player transaction history
@@ -1487,7 +1490,7 @@ export default function Cashier() {
                     <div className="bg-[#31A24C]/10 border border-[#31A24C]/20 rounded-lg px-3 py-2 text-center">
                       <p className="text-[10px] text-[#31A24C] font-semibold uppercase">Total Spent</p>
                       <p className="text-lg font-black text-[#31A24C]">
-                        ${playerHistory.filter(tx => !(tx.notes || '').includes('VOID') && !(tx.notes || '').includes('REFUND')).reduce((s, tx) => s + parseFloat(tx.amount), 0).toLocaleString()}
+                        ${playerHistory.filter(tx => !tx.voided_at && tx.type !== 'void').reduce((s, tx) => s + parseFloat(tx.amount), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="bg-[#1877F2]/10 border border-[#1877F2]/20 rounded-lg px-3 py-2 text-center">
@@ -1497,7 +1500,7 @@ export default function Cashier() {
                   </div>
                   <div className="space-y-1">
                     {playerHistory.map(tx => {
-                      const isVoidTx = (tx.notes || '').includes('VOID') || (tx.notes || '').includes('REFUND');
+                      const isVoidTx = !!tx.voided_at || tx.type === 'void';
                       return (
                         <div key={tx.id} className="bg-[#18191A] rounded-lg p-3 flex items-center justify-between">
                           <div>
