@@ -214,6 +214,7 @@ class RealtimeSync {
       this._broadcast(CHANNEL_EVENTS.ACTION_REQUIRED, {
         playerId: data.playerId,
         timeBank: data.timeBank,
+        turnTime: this.timer?.turnTime || 30,
       });
       
       // Send legal actions to the specific player (private)
@@ -244,6 +245,7 @@ class RealtimeSync {
         playerId,
         remaining,
         isTimebank,
+        turnTime: this.timer.turnTime,
       });
     };
     

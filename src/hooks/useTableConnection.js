@@ -149,14 +149,15 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'action_required':
         if (data.playerId !== userId) setLegalActions(null);
-        setTimerState({ playerId: data.playerId, remaining: data.timeBank });
+        // Initial timer — remaining comes from first timer_update tick
+        setTimerState({ playerId: data.playerId, remaining: data.turnTime || 30, isTimebank: false });
         break;
       case 'action_processed':
         if (data.playerId === userId) setLegalActions(null);
         requestState();
         break;
       case 'timer_update':
-        setTimerState(data);
+        setTimerState(prev => ({ ...prev, ...data }));
         break;
       case 'showdown':
         setResult(data); setLegalActions(null); requestState();

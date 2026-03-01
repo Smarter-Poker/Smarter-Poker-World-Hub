@@ -243,8 +243,13 @@ function PlayerSeat({
 
   // Timer ring
   const showTimer = isCurrentActor && timerState;
-  const timerPct = showTimer ? (timerState.remaining / 30) * 100 : 0;
-  const timerColor = showTimer && timerState.remaining <= 10 ? T.timerWarning : T.timerNormal;
+  const turnTime = timerState?.turnTime || 30;
+  const isTimebank = timerState?.isTimebank;
+  const timerPct = showTimer ? (timerState.remaining / (isTimebank ? 30 : turnTime)) * 100 : 0;
+  const timerColor = showTimer 
+    ? isTimebank ? '#FF9800'  // Orange for timebank
+    : timerState.remaining <= 10 ? T.timerWarning : T.timerNormal
+    : T.timerNormal;
 
   return (
     <div
@@ -320,6 +325,13 @@ function PlayerSeat({
               style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
             />
           </svg>
+          {isTimebank && (
+            <div style={{
+              position: 'absolute', top: -6, right: -6, background: '#FF9800',
+              color: '#000', fontSize: 8, fontWeight: 900, padding: '1px 4px',
+              borderRadius: 4, zIndex: 3, lineHeight: 1.2,
+            }}>TB</div>
+          )}
         )}
 
         <div
@@ -1899,7 +1911,10 @@ export default function LivePokerTable({
       </AnimatePresence>
 
       {/* Chat */}
-      <ChatOverlay messages={chatMessages} onSend={handleChat} />
+      {/* Chat — hidden when ban_chat enabled */}
+      {!tableState?.config?.banChat && (
+        <ChatOverlay messages={chatMessages} onSend={handleChat} />
+      )}
 
       {/* Buy-in dialog */}
       <AnimatePresence>

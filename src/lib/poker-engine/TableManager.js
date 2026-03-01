@@ -124,6 +124,7 @@ class TableManager {
     // Seven-Deuce bonus game
     this.sevenDeuce = config.sevenDeuce || config.clubSettings?.seven_deuce || false;
     this.sevenDeuceBonus = config.sevenDeuceBonus || config.bigBlind * 10; // Default: 10BB bonus
+    this.banChat = config.banChat || config.clubSettings?.ban_chat || false;
     
     // Bomb pot tracking
     this._lastBombPotHand = 0;
@@ -1167,6 +1168,7 @@ class TableManager {
         sevenDeuce: this.sevenDeuce,
         noRathole: this.noRathole,
         pineapple: this.game.config.variant === 'pineapple',
+        banChat: this.banChat,
       },
     };
   }
