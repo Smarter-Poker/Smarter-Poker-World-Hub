@@ -31,10 +31,16 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   try {
-    const { action, clubId, userId, ...params } = req.body;
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    const { action, clubId, ...params } = req.body;
+    const userId = user.id; // From JWT, not body
 
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
-    if (!userId) return res.status(400).json({ error: 'userId required' });
 
     // Verify caller is club owner/admin/manager
     const { data: membership } = await supabase
