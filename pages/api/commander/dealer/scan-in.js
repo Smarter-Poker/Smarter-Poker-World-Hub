@@ -94,6 +94,69 @@ export default async function handler(req, res) {
         const tableNum = parseInt(table_number);
         const venueId = venue_id || member.venue_id;
 
+        // Resolve the dealer record in commander_dealers (FK target)
+        // Try to find by name match or staff linkage
+        let dealerId = null;
+        const { data: existingDealer } = await supabase
+            .from('commander_dealers')
+            .select('id')
+            .eq('venue_id', venueId)
+            .ilike('name', `%${member.first_name}%${member.last_name}%`)
+            .limit(1);
+
+        if (existingDealer?.[0]) {
+            dealerId = existingDealer[0].id;
+        } else {
+            // Also try matching by first + last name parts
+            const { data: nameMatch } = await supabase
+                .from('commander_dealers')
+                .select('id, name')
+                .eq('venue_id', venueId);
+
+            const matched = (nameMatch || []).find(d => {
+                const dName = (d.name || '').toLowerCase();
+                return dName.includes(member.first_name.toLowerCase()) &&
+                    dName.includes(member.last_name.toLowerCase());
+            });
+
+            if (matched) {
+                dealerId = matched.id;
+            } else {
+                // Create a new commander_dealers record
+                const { data: newDealer, error: createErr } = await supabase
+                    .from('commander_dealers')
+                    .insert({
+                        venue_id: venueId,
+                        name: dealerName,
+                        employee_id: member.member_number || `DLR-${Date.now()}`,
+                        is_active: true,
+                    })
+                    .select('id')
+                    .single();
+
+                if (createErr) {
+                    console.error('Failed to create dealer record:', createErr.message);
+                    // Try without employee_id
+                    const { data: nd2 } = await supabase
+                        .from('commander_dealers')
+                        .insert({
+                            venue_id: venueId,
+                            name: dealerName,
+                            is_active: true,
+                        })
+                        .select('id')
+                        .single();
+                    dealerId = nd2?.id;
+                } else {
+                    dealerId = newDealer.id;
+                }
+            }
+        }
+
+        if (!dealerId) {
+            return res.status(500).json({ success: false, error: 'Could not resolve dealer record' });
+        }
+
         // End any current dealer rotation for this table
         await supabase
             .from('commander_dealer_rotations')
@@ -106,7 +169,7 @@ export default async function handler(req, res) {
         await supabase
             .from('commander_dealer_rotations')
             .update({ ended_at: new Date().toISOString() })
-            .eq('dealer_id', member.id)
+            .eq('dealer_id', dealerId)
             .is('ended_at', null);
 
         // Create new rotation assignment
@@ -114,7 +177,7 @@ export default async function handler(req, res) {
             .from('commander_dealer_rotations')
             .insert({
                 venue_id: venueId,
-                dealer_id: member.id,
+                dealer_id: dealerId,
                 dealer_name: dealerName,
                 table_number: tableNum,
                 rotation_date: new Date().toISOString().split('T')[0],
