@@ -35,6 +35,14 @@ const COMP_CATEGORIES = [
 ];
 
 const QUICK_AMOUNTS = [5, 10, 15, 20, 25, 50, 75, 100];
+const MEMBERSHIP_DURATIONS = [
+  { key: '1', label: '1 Day', days: 1 },
+  { key: '7', label: '1 Week', days: 7 },
+  { key: '30', label: '1 Month', days: 30 },
+  { key: '90', label: '3 Months', days: 90 },
+  { key: '180', label: '6 Months', days: 180 },
+  { key: '365', label: '1 Year', days: 365 },
+];
 
 export default function CompSystem() {
   const router = useRouter();
@@ -219,31 +227,45 @@ export default function CompSystem() {
       if (staffSession) headers['x-staff-session'] = staffSession;
 
       const catLabel = COMP_CATEGORIES.find(c => c.key === selectedCategory)?.label || selectedCategory;
+      const isMembership = selectedCategory === 'free_membership';
+      const durationLabel = isMembership
+        ? (MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || `${compAmount} Days`)
+        : null;
+
+      const body = {
+        member_id: selectedMember.id,
+        amount: isMembership ? 0 : parseFloat(compAmount),
+        reason: isMembership
+          ? `Free Membership — ${durationLabel}${compNotes ? ' — ' + compNotes : ''}`
+          : `${catLabel}${compNotes ? ' — ' + compNotes : ''}`,
+        type: 'award',
+        comp_category: selectedCategory,
+        notes: compNotes || '',
+        authorized_by: authorizerName,
+        authorized_pin: true,
+      };
+      if (isMembership) {
+        body.membership_days = parseInt(compAmount);
+      }
 
       const res = await fetch('/api/commander/comps/balances', {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          member_id: selectedMember.id,
-          amount: parseFloat(compAmount),
-          reason: `${catLabel}${compNotes ? ' — ' + compNotes : ''}`,
-          type: 'award',
-          comp_category: selectedCategory,
-          notes: compNotes || '',
-          authorized_by: authorizerName,
-          authorized_pin: true  // Boolean flag: PIN was verified (verifier name in authorized_by)
-        })
+        body: JSON.stringify(body)
       });
       const json = await res.json();
       if (json.success) {
         broadcastChange('members');
         const receiptData = {
           memberName: `${selectedMember.first_name} ${selectedMember.last_name}`,
-          amount: parseFloat(compAmount),
+          amount: isMembership ? 0 : parseFloat(compAmount),
           category: catLabel,
+          durationLabel: durationLabel,
+          isMembership: isMembership,
           notes: compNotes,
           authorizedBy: authorizerName,
           newBalance: json.data?.new_balance,
+          newExpires: json.data?.membership_expires,
           timestamp: new Date().toLocaleString()
         };
         setLastAwardData(receiptData);
@@ -584,8 +606,10 @@ export default function CompSystem() {
                     ) : (
                       <>
                         <div className="flex items-center gap-2">
-                          <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">Step 3: Amount</p>
-                          <button onClick={() => setSelectedCategory(null)}
+                          <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">
+                            {selectedCategory === 'free_membership' ? 'Step 3: Duration' : 'Step 3: Amount'}
+                          </p>
+                          <button onClick={() => { setSelectedCategory(null); setCompAmount(''); }}
                             className="ml-auto text-xs px-2 py-1 rounded-lg flex items-center gap-1 active:bg-[#3A3B3C]"
                             style={{ color: COMP_CATEGORIES.find(c => c.key === selectedCategory)?.color }}>
                             {(() => { const Cat = COMP_CATEGORIES.find(c => c.key === selectedCategory); const Icon = Cat?.icon; return Icon ? <Icon className="w-3 h-3" /> : null; })()}
@@ -594,18 +618,34 @@ export default function CompSystem() {
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2">
-                          {QUICK_AMOUNTS.map(amt => (
-                            <button key={amt}
-                              onClick={() => setCompAmount(String(amt))}
-                              className={`py-2.5 rounded-xl text-sm font-semibold ${compAmount === String(amt) ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
-                                }`}>${amt}</button>
-                          ))}
-                        </div>
-                        <input type="number" value={compAmount}
-                          onChange={e => setCompAmount(e.target.value)}
-                          placeholder="Custom Amount"
-                          className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] text-center text-lg" />
+                        {selectedCategory === 'free_membership' ? (
+                          /* ── Membership Duration Picker ── */
+                          <div className="grid grid-cols-3 gap-2">
+                            {MEMBERSHIP_DURATIONS.map(dur => (
+                              <button key={dur.key}
+                                onClick={() => setCompAmount(dur.key)}
+                                className={`py-3 rounded-xl text-sm font-semibold ${compAmount === dur.key ? 'bg-[#8B5CF6] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'}`}>
+                                {dur.label}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          /* ── Dollar Amount Picker ── */
+                          <>
+                            <div className="grid grid-cols-4 gap-2">
+                              {QUICK_AMOUNTS.map(amt => (
+                                <button key={amt}
+                                  onClick={() => setCompAmount(String(amt))}
+                                  className={`py-2.5 rounded-xl text-sm font-semibold ${compAmount === String(amt) ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
+                                    }`}>${amt}</button>
+                              ))}
+                            </div>
+                            <input type="number" value={compAmount}
+                              onChange={e => setCompAmount(e.target.value)}
+                              placeholder="Custom Amount"
+                              className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] text-center text-lg" />
+                          </>
+                        )}
 
                         <div>
                           <p className="text-xs text-[#B0B3B8] mb-1">Notes (optional)</p>
@@ -615,10 +655,12 @@ export default function CompSystem() {
                             className="w-full px-4 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] text-sm focus:outline-none focus:border-[#1877F2]" />
                         </div>
 
-                        <button onClick={requestComp} disabled={awarding || !compAmount || parseFloat(compAmount) <= 0}
+                        <button onClick={requestComp} disabled={awarding || !compAmount || (selectedCategory !== 'free_membership' && parseFloat(compAmount) <= 0)}
                           className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
                           {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
-                          Issue ${compAmount || '0'} — Requires PIN
+                          {selectedCategory === 'free_membership'
+                            ? `Issue ${MEMBERSHIP_DURATIONS.find(d => d.key === compAmount)?.label || 'Membership'} — Requires PIN`
+                            : `Issue $${compAmount || '0'} — Requires PIN`}
                         </button>
                         <p className="text-[10px] text-[#6A6B6D] text-center">
                           All Comps Require Staff PIN Verification And Are Fully Documented

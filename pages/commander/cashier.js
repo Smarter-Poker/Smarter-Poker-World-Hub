@@ -588,7 +588,7 @@ export default function Cashier() {
         method: 'PATCH', headers,
         body: JSON.stringify({
           transaction_id: txId,
-          voided_by: staff?.display_name || staff?.id || 'Staff',
+          voided_by: staff?.id || null,
           void_reason: `${actionLabel} by ${staff?.display_name || 'Staff'} — ${type}`
         })
       });
