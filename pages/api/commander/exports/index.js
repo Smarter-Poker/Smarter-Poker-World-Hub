@@ -236,8 +236,8 @@ async function processExport(exportId) {
 
       case 'comps':
         query = supabase
-          .from('commander_comp_transactions')
-          .select('*, profiles:player_id(display_name)')
+          .from('commander_member_comp_log')
+          .select('*, commander_members:member_id(first_name, last_name)')
           .eq('venue_id', job.venue_id);
         if (job.date_from) query = query.gte('created_at', job.date_from);
         if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');

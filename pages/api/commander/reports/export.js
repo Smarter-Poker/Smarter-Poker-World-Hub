@@ -69,10 +69,10 @@ export default async function handler(req, res) {
       .gte('check_in_time', startOfDay)
       .lte('check_in_time', endOfDay);
 
-    // Fetch comp transactions
+    // Fetch comp transactions (from the actual comp log table)
     const { data: comps } = await supabase
-      .from('commander_comp_transactions')
-      .select('id, amount, transaction_type')
+      .from('commander_member_comp_log')
+      .select('id, amount, type')
       .eq('venue_id', venue_id)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay);
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       return sum;
     }, 0) || 0;
     const totalComps = comps?.reduce((sum, c) => {
-      return sum + (c.transaction_type === 'earn' || c.transaction_type === 'bonus' ? parseFloat(c.amount) : 0);
+      return sum + (c.type === 'award' || c.type === 'auto_hourly' || !c.type ? Math.abs(parseFloat(c.amount) || 0) : 0);
     }, 0) || 0;
 
     if (format === 'csv') {
