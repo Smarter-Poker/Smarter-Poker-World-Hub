@@ -40,7 +40,7 @@ async function awardComp(req, res, staffAuth) {
     // Attempt 1: Direct lookup in commander_members by ID
     const { data: directMember } = await supabase
       .from('commander_members')
-      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
       .eq('id', member_id)
       .maybeSingle();
 
@@ -59,7 +59,7 @@ async function awardComp(req, res, staffAuth) {
         if (staffMember.user_id) {
           const { data: existingMember } = await supabase
             .from('commander_members')
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
             .eq('user_id', staffMember.user_id)
             .maybeSingle();
           if (existingMember) {
@@ -101,7 +101,7 @@ async function awardComp(req, res, staffAuth) {
               comp_lifetime_redeemed: 0,
               membership_tier: staffMember.role,
             })
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires')
             .single();
 
           if (createErr) {
@@ -114,6 +114,19 @@ async function awardComp(req, res, staffAuth) {
     }
 
     if (!member) return res.status(404).json({ success: false, error: 'Member not found' });
+
+    // Check membership status — provide specific messaging
+    const mStatus = (member.membership_status || 'active').toLowerCase();
+    if (mStatus === 'expired') {
+      const expDate = member.membership_expires ? new Date(member.membership_expires).toLocaleDateString() : 'unknown';
+      return res.status(403).json({ success: false, error: `Membership Expired (${expDate}) — Please Renew Before Issuing Comps` });
+    }
+    if (mStatus === 'suspended') {
+      return res.status(403).json({ success: false, error: 'Membership Is Suspended — Cannot Issue Comps To This Member' });
+    }
+    if (mStatus === 'banned') {
+      return res.status(403).json({ success: false, error: 'Member Is Banned — Cannot Issue Comps' });
+    }
 
     // Verify staff is at the same venue as the member
     if (String(staffRecord.venue_id) !== String(member.venue_id)) {
