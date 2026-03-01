@@ -139,7 +139,7 @@ export default function LeaderboardDisplay() {
                 const maxPts = Math.max(...standings.map(s => s.points || 0), 1);
                 built.push({
                   id: `league-${lg.id}`, icon: '🏅', title: lg.name,
-                  subtitle: `${standings.length} players • ${lg.scoring_system || 'Points'} system${lg.prize_pool ? ` • $${Number(lg.prize_pool).toLocaleString()} prize pool` : ''}`,
+                  subtitle: `${standings.length} players • ${typeof lg.scoring_system === 'string' && !lg.scoring_system.startsWith('{') ? lg.scoring_system : 'Custom points'} system${lg.prize_pool ? ` • $${Number(lg.prize_pool).toLocaleString()} prize pool` : ''}`,
                   scoreHeader: 'POINTS', source: 'league',
                   entries: standings.slice(0, 15).map((s, i) => ({
                     rank: i + 1, name: s.player_name || 'Player', avatar: s.avatar_url,
