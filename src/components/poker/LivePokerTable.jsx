@@ -1370,6 +1370,151 @@ function ChatOverlay({ messages, onSend }) {
 // TABLE INFO BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TOURNAMENT HUD — Blind clock, level, players, prize pool
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TournamentHUD({ tournamentId, userId }) {
+  const [state, setState] = useState(null);
+  const [countdown, setCountdown] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+
+  // Poll tournament state every 5s
+  useEffect(() => {
+    if (!tournamentId) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/poker/engine/tournament', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'state', tournamentId }),
+        });
+        const d = await res.json();
+        if (d.success && active) {
+          setState(d);
+          if (d.levelTimeRemaining > 0) setCountdown(d.levelTimeRemaining);
+        }
+      } catch (_) {}
+    };
+    poll();
+    const iv = setInterval(poll, 5000);
+    return () => { active = false; clearInterval(iv); };
+  }, [tournamentId]);
+
+  // Local countdown timer
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const iv = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(iv);
+  }, [countdown > 0]);
+
+  if (!state) return null;
+
+  const min = Math.floor(countdown / 60);
+  const sec = countdown % 60;
+  const isLow = countdown > 0 && countdown < 60;
+  const blinds = state.blinds || {};
+
+  return (
+    <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 200 }}>
+      {/* Compact bar */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'rgba(24,25,26,0.95)', border: '1px solid rgba(255,215,0,0.3)',
+          borderRadius: 10, padding: '6px 14px', cursor: 'pointer',
+          backdropFilter: 'blur(10px)', boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 10, minWidth: 200,
+        }}
+      >
+        <div style={{ fontSize: 10, fontWeight: 800, color: '#FFD700', textTransform: 'uppercase' }}>🏆 LVL {state.currentLevel}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{blinds.smallBlind || '?'}/{blinds.bigBlind || '?'}</div>
+        {blinds.ante > 0 && <div style={{ fontSize: 11, color: '#B0B3B8' }}>A:{blinds.ante}</div>}
+        <div style={{
+          fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+          color: isLow ? '#FF6B6B' : countdown > 0 ? '#4ECDC4' : '#666',
+          marginLeft: 'auto',
+        }}>
+          {countdown > 0 ? `${min}:${sec.toString().padStart(2, '0')}` : '--:--'}
+        </div>
+      </div>
+
+      {/* Expanded panel */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            style={{
+              background: 'rgba(24,25,26,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 10, padding: '12px 14px', overflow: 'hidden',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
+              <div><span style={{ color: '#B0B3B8' }}>Players:</span> <strong style={{ color: '#fff' }}>{state.playersRemaining}/{state.totalEntries}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Avg Stack:</span> <strong style={{ color: '#fff' }}>{(state.averageStack || 0).toLocaleString()}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Prize Pool:</span> <strong style={{ color: '#FFD700' }}>{(state.prizePool || 0).toLocaleString()}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Tables:</span> <strong style={{ color: '#fff' }}>{state.tablesActive || 0}</strong></div>
+              {state.nextBlinds && (
+                <div style={{ gridColumn: '1/3' }}>
+                  <span style={{ color: '#B0B3B8' }}>Next:</span>{' '}
+                  <strong style={{ color: '#81C784' }}>
+                    {state.nextBlinds.smallBlind}/{state.nextBlinds.bigBlind}
+                    {state.nextBlinds.ante > 0 ? ` (A:${state.nextBlinds.ante})` : ''}
+                  </strong>
+                </div>
+              )}
+              {state.lateRegOpen && (
+                <div style={{ gridColumn: '1/3', color: '#4ECDC4', fontWeight: 700 }}>
+                  📝 Late Registration Open
+                </div>
+              )}
+            </div>
+
+            {/* Rebuy/Addon buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              {state.rebuyEndLevel && state.currentLevel <= state.rebuyEndLevel && (
+                <button onClick={async () => {
+                  const res = await fetch('/api/poker/engine/tournament', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'rebuy', tournamentId }),
+                  });
+                  const d = await res.json();
+                  if (!d.success) alert(d.error || 'Rebuy failed');
+                }} style={{
+                  flex: 1, padding: '6px 10px', background: 'rgba(35,116,225,0.2)', color: '#4FC3F7',
+                  border: '1px solid rgba(35,116,225,0.4)', borderRadius: 6, fontSize: 11,
+                  fontWeight: 700, cursor: 'pointer',
+                }}>🔄 Rebuy</button>
+              )}
+              {state.addonAtBreak && state.status === 'break' && (
+                <button onClick={async () => {
+                  const res = await fetch('/api/poker/engine/tournament', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addon', tournamentId }),
+                  });
+                  const d = await res.json();
+                  if (!d.success) alert(d.error || 'Add-on failed');
+                }} style={{
+                  flex: 1, padding: '6px 10px', background: 'rgba(76,175,80,0.2)', color: '#81C784',
+                  border: '1px solid rgba(76,175,80,0.4)', borderRadius: 6, fontSize: 11,
+                  fontWeight: 700, cursor: 'pointer',
+                }}>➕ Add-on</button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TABLE INFO BAR
+// ═══════════════════════════════════════════════════════════════════════════
+
 function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, isSitting, isSittingOut, straddleEnabled, straddleOn, onToggleStraddle, autoTopUpOn, onToggleAutoTopUp, lastHandResult, onShowLastHand, sessionStats, myStack }) {
   if (!tableState) return null;
 
@@ -1814,6 +1959,7 @@ export default function LivePokerTable({
   userId,
   displayName = 'Player',
   avatarUrl = null,
+  tournamentId = null,
 }) {
   // Connection via hook
   const {
@@ -2242,6 +2388,14 @@ export default function LivePokerTable({
           );
         })}
       </div>
+
+      {/* Tournament HUD — blind clock, level, players */}
+      {(tournamentId || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tournament'))) && (
+        <TournamentHUD
+          tournamentId={tournamentId || new URLSearchParams(window.location.search).get('tournament')}
+          userId={userId}
+        />
+      )}
 
       {/* Table alert banner (game length warning, paused, auto-removed, etc.) */}
       <AnimatePresence>

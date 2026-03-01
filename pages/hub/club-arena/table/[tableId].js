@@ -23,7 +23,7 @@ const FB = {
 
 export default function ClubArenaTable() {
   const router = useRouter();
-  const { tableId } = router.query;
+  const { tableId, tournament: tournamentId } = router.query;
   const [user, setUser] = useState(null);
   const [initialTable, setInitialTable] = useState(null);
   const [error, setError] = useState(null);

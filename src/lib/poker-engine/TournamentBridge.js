@@ -397,6 +397,7 @@ class TournamentBridge {
    */
   getState() {
     const t = this.tournament;
+    const activePlayers = t._getActivePlayers?.() || [];
     return {
       tournamentId: t.tournamentId,
       name: t.name,
@@ -406,12 +407,20 @@ class TournamentBridge {
       currentLevel: t.currentLevel,
       blinds: t.currentLevel > 0 ? t.getCurrentBlinds() : null,
       nextBlinds: t.getNextBlinds?.() || null,
-      playersRemaining: t._getActivePlayers?.().length || 0,
+      levelTimeRemaining: t.getLevelTimeRemaining?.() || 0,
+      playersRemaining: activePlayers.length,
       totalEntries: t.entries?.size || 0,
+      averageStack: activePlayers.length > 0 ? Math.round((t.totalChipsInPlay || 0) / activePlayers.length) : 0,
       tablesActive: t.tables.size,
       prizePool: t.prizePool || 0,
       handsPlayed: t.handsPlayed || 0,
       spinMultiplier: t.spinMultiplier || null,
+      rebuyEndLevel: t.rebuyEndLevel || null,
+      addonAtBreak: t.addonAtBreak || null,
+      lateRegOpen: t.currentLevel <= (t.lateRegLevels || 0) && t.lateRegLevels > 0 &&
+        ['running', 'late_reg'].includes(t.status),
+      totalRebuys: t.totalRebuys || 0,
+      totalAddons: t.totalAddons || 0,
       tables: [...t.tables.entries()].map(([id, info]) => ({
         tableId: id,
         players: info.table.seats
