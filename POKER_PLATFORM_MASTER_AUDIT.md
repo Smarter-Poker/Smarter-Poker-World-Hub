@@ -184,7 +184,7 @@
 | 5.1.17 | Add chips button | ✅ | LivePokerTable.jsx | In TableInfoBar |
 | 5.1.18 | Result overlay (winner display) | ✅ | LivePokerTable.jsx | ResultOverlay component |
 | 5.1.19 | Winning hand highlighting | ✅ | LivePokerTable.jsx | Gold glow filter + winGlow animation on winner cards |
-| 5.1.20 | Showdown card reveal animation | ⚠️ | LivePokerTable.jsx | Cards show but flip animation basic |
+| 5.1.20 | Showdown card reveal animation | ✅ | LivePokerTable.jsx | 3D flip: back→face with preserve-3d, perspective, spring easing |
 | 5.1.21 | Chip movement animations (pot collection) | ✅ | LivePokerTable.jsx | ChipFlyAnimation — colored chips fly from pot to winner seats on payout |
 | 5.1.22 | Sound effects (deal, check, call, fold, win) | ✅ | PokerSoundManager.js | Web Audio API, 317 lines, all game events |
 | 5.1.23 | Emote/sticker system | ✅ | ThrowableEmojis.jsx | 22 SVG throwables, 8 impact types, PokerBros-style animations |
@@ -285,7 +285,7 @@
 | 7.1.4 | BBJ split configuration (40/30/30) | ✅ | union-dashboard.js | Editable in settings |
 | 7.1.5 | Member club management | ✅ | union-dashboard.js | List + approve/remove clubs |
 | 7.1.6 | Union rake routing info | ✅ | union-dashboard.js | "100% flows to union" display |
-| 7.1.7 | Cross-club tournament creation (XMTT) | ⚠️ | TournamentController.js | Engine supports, no UI to create |
+| 7.1.7 | Cross-club tournament creation (XMTT) | ✅ | tournaments.js + TournamentController.js | UI: sister club selector, engine: clubIds config |
 
 ### 7.2 Club Level
 | # | Feature | Status | File | Notes |
