@@ -307,18 +307,18 @@ export default async function handler(req, res) {
 
         if (!countUpd?.length) {
           // Race detected — count was changed by concurrent request.
-          // Registration itself succeeded (DB row inserted), so just re-read fresh count.
-          const { data: freshCount } = await supabaseAdmin
+          // Registration itself succeeded (DB row inserted), so just re-read fresh values.
+          const { data: freshData } = await supabaseAdmin
             .from('club_tournaments')
-            .select('registered_count')
+            .select('registered_count, prize_pool')
             .eq('id', tournamentId)
             .single();
-          // Retry the increment with fresh value
+          // Retry the increment with fresh values
           await supabaseAdmin
             .from('club_tournaments')
             .update({
-              registered_count: (freshCount?.registered_count || 0) + 1,
-              prize_pool: (tourn.prize_pool || 0) + tourn.buy_in,
+              registered_count: (freshData?.registered_count || 0) + 1,
+              prize_pool: (freshData?.prize_pool || 0) + tourn.buy_in,
             })
             .eq('id', tournamentId);
         }
@@ -552,10 +552,11 @@ export default async function handler(req, res) {
           .eq('status', 'registered');
 
         for (const reg of (registrations || [])) {
-          // Atomic refund via RPC
-          await supabaseAdmin.rpc('fn_credit_chips', {
-            p_club_id: tourn.club_id,
+          // Refund by releasing the chip lock (registration used lock_chips_for_table)
+          await supabaseAdmin.rpc('unlock_chips_from_table', {
             p_user_id: reg.user_id,
+            p_club_id: tourn.club_id,
+            p_table_id: tournamentId,
             p_amount: reg.buy_in_amount,
           });
 
