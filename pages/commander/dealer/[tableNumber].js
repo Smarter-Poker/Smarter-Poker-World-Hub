@@ -20,7 +20,7 @@ import {
   AlertTriangle, Coffee, Hash, Loader2, RefreshCw,
   UserX, UserPlus, Clock, Bell, RotateCcw, ScanLine,
   Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign,
-  ChevronUp, AlertCircle, User, Power
+  ChevronUp, AlertCircle, User, Power, Lock, Unlock
 } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
@@ -77,6 +77,11 @@ export default function DealerTablet() {
   const [chipEntryPlayer, setChipEntryPlayer] = useState(null); // chip entry modal
   const [chipEntryValue, setChipEntryValue] = useState('');
   const [savingChips, setSavingChips] = useState(false);
+  const [currentDealer, setCurrentDealer] = useState(null); // { name, started_at, rotation_id }
+  const [dealerPushMenu, setDealerPushMenu] = useState(false);
+  const [screenLocked, setScreenLocked] = useState(false);
+  const [dealerScanMode, setDealerScanMode] = useState(false); // true when scanning for dealer (not player)
+  const dealerLongPressRef = useRef(null);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -99,6 +104,17 @@ export default function DealerTablet() {
       setTable(tbl);
       // Seed hand count from persisted DB value
       setHandCount(tbl.hands_dealt || 0);
+
+      // Fetch current dealer for this table
+      try {
+        const dealerRes = await fetch(`/api/commander/dealer/current?table=${tableNumber}`, { headers });
+        const dealerJson = await dealerRes.json();
+        if (dealerJson.success && dealerJson.data?.dealer) {
+          setCurrentDealer(dealerJson.data.dealer);
+        } else {
+          setCurrentDealer(null);
+        }
+      } catch { setCurrentDealer(null); }
 
       // Route based on table mode set by floor manager in Table Assignments
       if (tbl.mode === 'tournament' && tbl.tournament_id) {
@@ -198,14 +214,14 @@ export default function DealerTablet() {
     setTargetSeat(seatNum); setScannerOpen(true); setScanError(''); setScannedMember(null); setManualCode('');
   };
   const closeScanner = () => {
-    stopCamera(); setScannerOpen(false); setTargetSeat(null); setScannedMember(null); setScanError(''); setManualCode('');
+    stopCamera(); setScannerOpen(false); setTargetSeat(null); setScannedMember(null); setScanError(''); setManualCode(''); setDealerScanMode(false);
   };
 
   const startCamera = async () => {
     setScanError(''); setScannedMember(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
       });
       streamRef.current = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
@@ -230,13 +246,44 @@ export default function DealerTablet() {
           if (barcodes.length > 0) {
             const code = barcodes[0].rawValue;
             if (code.startsWith('CMD-') || code.includes('/check-in/')) {
-              stopCamera(); lookupMember(code); return;
+              stopCamera();
+              if (dealerScanMode) {
+                dealerScanIn(code);
+              } else {
+                lookupMember(code);
+              }
+              return;
             }
           }
           animFrameRef.current = requestAnimationFrame(detectQR);
         }).catch(() => { animFrameRef.current = requestAnimationFrame(detectQR); });
       } else { animFrameRef.current = requestAnimationFrame(detectQR); }
     } catch { animFrameRef.current = requestAnimationFrame(detectQR); }
+  };
+
+  // Dealer scan-in handler
+  const dealerScanIn = async (qrCode) => {
+    setScanLoading(true); setScanError('');
+    try {
+      const staffSession = getStaffSession();
+      let vid = '';
+      try { vid = JSON.parse(staffSession).venue_id || ''; } catch { }
+      const res = await fetch('/api/commander/dealer/scan-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_code: qrCode, table_number: parseInt(tableNumber), venue_id: vid })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCurrentDealer(json.data.dealer);
+        setScannerOpen(false);
+        setDealerScanMode(false);
+        broadcastChange('dealers');
+      } else {
+        setScanError(json.error || 'Dealer scan failed');
+      }
+    } catch (err) { setScanError('Network error — try again'); }
+    finally { setScanLoading(false); }
   };
 
   const lookupMember = async (qrCode) => {
@@ -462,6 +509,26 @@ export default function DealerTablet() {
           </div>
         </div>
 
+        {/* Lock Button — upper-right below header */}
+        <div className="flex justify-end px-4 py-1">
+          <button onClick={() => setScreenLocked(!screenLocked)}
+            className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-medium ${screenLocked ? 'bg-[#EF4444]/15 text-[#EF4444]' : 'bg-[#3A3B3C]/50 text-[#B0B3B8]'}`}>
+            {screenLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            {screenLocked ? 'Locked' : 'Lock'}
+          </button>
+        </div>
+
+        {/* Screen Lock Overlay */}
+        {screenLocked && (
+          <div className="fixed inset-0 z-40 bg-black/80 flex items-center justify-center" onClick={() => setScreenLocked(false)}>
+            <div className="text-center">
+              <Lock className="w-16 h-16 text-[#B0B3B8] mx-auto mb-4" />
+              <p className="text-xl font-bold text-white mb-2">Screen Locked</p>
+              <p className="text-sm text-[#B0B3B8]">Tap anywhere to unlock</p>
+            </div>
+          </div>
+        )}
+
         {/* Low Time Alert Banner */}
         {lowTimePlayers.length > 0 && (
           <div className="bg-[#F59E0B]/10 border-b border-[#F59E0B]/30 px-4 py-2 flex items-center gap-2">
@@ -476,10 +543,84 @@ export default function DealerTablet() {
         <div className="flex-1 relative p-4 overflow-hidden">
           <div className="relative w-full max-w-lg mx-auto" style={{ aspectRatio: '4/3' }}>
             <div className="absolute inset-[12%] rounded-[50%] bg-[#31A24C]/8 border-2 border-[#31A24C]/20" />
+            {/* Dealer Position — center of table */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-              <p className="text-xs text-[#B0B3B8] uppercase tracking-wider">T{tableNumber}</p>
-              {breakTimer && <p className="text-lg font-mono font-bold text-[#F59E0B]">Break {Math.floor(breakSeconds / 60)}:{(breakSeconds % 60).toString().padStart(2, '0')}</p>}
+              <p className="text-[9px] text-[#B0B3B8] uppercase tracking-wider mb-1">T{tableNumber}</p>
+              {breakTimer && <p className="text-sm font-mono font-bold text-[#F59E0B] mb-1">Break {Math.floor(breakSeconds / 60)}:{(breakSeconds % 60).toString().padStart(2, '0')}</p>}
+              {/* Dealer Button — shows "Scan Dealer" if none, dealer name if scanned */}
+              <button
+                onTouchStart={() => {
+                  dealerLongPressRef.current = setTimeout(() => {
+                    dealerLongPressRef.current = 'fired';
+                    setDealerPushMenu(true);
+                  }, 600);
+                }}
+                onTouchEnd={() => {
+                  if (dealerLongPressRef.current !== 'fired') {
+                    clearTimeout(dealerLongPressRef.current);
+                    if (!currentDealer) {
+                      setDealerScanMode(true);
+                      setScannerOpen(true);
+                      setTargetSeat(null);
+                      setScanError('');
+                      setScannedMember(null);
+                      setManualCode('');
+                    }
+                  }
+                  dealerLongPressRef.current = null;
+                }}
+                onMouseDown={() => {
+                  dealerLongPressRef.current = setTimeout(() => {
+                    dealerLongPressRef.current = 'fired';
+                    setDealerPushMenu(true);
+                  }, 600);
+                }}
+                onMouseUp={() => {
+                  if (dealerLongPressRef.current !== 'fired') {
+                    clearTimeout(dealerLongPressRef.current);
+                    if (!currentDealer) {
+                      setDealerScanMode(true);
+                      setScannerOpen(true);
+                      setTargetSeat(null);
+                      setScanError('');
+                      setScannedMember(null);
+                      setManualCode('');
+                    }
+                  }
+                  dealerLongPressRef.current = null;
+                }}
+                onContextMenu={e => e.preventDefault()}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 select-none ${currentDealer
+                  ? 'bg-[#31A24C]/20 border border-[#31A24C]/40 text-[#31A24C]'
+                  : 'bg-[#1877F2]/20 border border-[#1877F2]/40 text-[#1877F2] animate-pulse'
+                  }`}>
+                <User className="w-3.5 h-3.5" />
+                {currentDealer ? currentDealer.name?.split(' ')[0] : 'Scan Dealer'}
+              </button>
             </div>
+
+            {/* Dealer Push Menu (long-press popup) */}
+            {dealerPushMenu && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[120%] z-30 bg-[#242526] border border-[#3A3B3C] rounded-xl shadow-2xl p-3 w-48">
+                <p className="text-xs text-[#B0B3B8] mb-2 text-center">Dealer Actions</p>
+                <button onClick={() => {
+                  setDealerPushMenu(false);
+                  setDealerScanMode(true);
+                  setScannerOpen(true);
+                  setTargetSeat(null);
+                  setScanError('');
+                  setScannedMember(null);
+                  setManualCode('');
+                }}
+                  className="w-full py-2.5 rounded-lg bg-[#1877F2] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8] mb-1.5">
+                  <Camera className="w-4 h-4" /> Dealer Push
+                </button>
+                <button onClick={() => setDealerPushMenu(false)}
+                  className="w-full py-2 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium active:bg-[#4A4B4C]">
+                  Cancel
+                </button>
+              </div>
+            )}
             {seatPositions.map(pos => {
               const player = displayPlayers.find(p => p.seat_number === pos.seat);
               const isEmpty = !player;
@@ -699,7 +840,7 @@ export default function DealerTablet() {
           <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center" onClick={closeScanner}>
             <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="sticky top-0 bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between z-10">
-                <div><h3 className="text-lg font-bold text-white">Scan Player — Seat {targetSeat}</h3><p className="text-xs text-[#B0B3B8]">Scan Member QR Code</p></div>
+                <div><h3 className="text-lg font-bold text-white">{dealerScanMode ? 'Scan Dealer — Push In' : `Scan Player — Seat ${targetSeat}`}</h3><p className="text-xs text-[#B0B3B8]">{dealerScanMode ? 'Scan Employee QR Code' : 'Scan Member QR Code'}</p></div>
                 <button onClick={closeScanner} className="p-2 rounded-lg active:bg-[#3A3B3C]"><X className="w-5 h-5 text-[#B0B3B8]" /></button>
               </div>
               <div className="p-4 space-y-4">
