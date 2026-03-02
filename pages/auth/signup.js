@@ -239,8 +239,8 @@ export default function SignUpPage() {
     };
 
     const verifyPhoneOtp = async () => {
-        if (phoneOtp.length !== 6) {
-            setPhoneError('Please enter the 6-digit code');
+        if (phoneOtp.length !== 4) {
+            setPhoneError('Please Enter The 4-Digit Code');
             return;
         }
 
@@ -1336,7 +1336,7 @@ export default function SignUpPage() {
                                 color: '#B0B3B8',
                                 margin: '0 0 24px 0',
                             }}>
-                                Enter the 6-digit code sent to<br />
+                                Enter The 4-Digit Code Sent To<br />
                                 <span style={{ color: '#1877F2', fontWeight: '600' }}>
                                     +1 {formatPhone(formData.phone)}
                                 </span>
@@ -1348,8 +1348,8 @@ export default function SignUpPage() {
                                 inputMode="numeric"
                                 autoComplete="one-time-code"
                                 value={phoneOtp}
-                                onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                placeholder="• • • • • •"
+                                onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                placeholder="• • • •"
                                 autoFocus
                                 style={{
                                     width: '100%',
@@ -1359,14 +1359,14 @@ export default function SignUpPage() {
                                     letterSpacing: '8px',
                                     textAlign: 'center',
                                     background: '#3A3B3C',
-                                    border: phoneOtp.length === 6 ? '2px solid #31A24C' : '1px solid #3E4042',
+                                    border: phoneOtp.length === 4 ? '2px solid #31A24C' : '1px solid #3E4042',
                                     borderRadius: '6px',
                                     color: '#E4E6EB',
                                     outline: 'none',
                                     fontFamily: 'monospace',
                                     boxSizing: 'border-box',
                                 }}
-                                maxLength={6}
+                                maxLength={4}
                             />
 
                             {/* Error message */}
@@ -1385,18 +1385,18 @@ export default function SignUpPage() {
                             <button
                                 type="button"
                                 onClick={verifyPhoneOtp}
-                                disabled={phoneVerifying || phoneOtp.length !== 6}
+                                disabled={phoneVerifying || phoneOtp.length !== 4}
                                 style={{
                                     width: '100%',
                                     marginTop: '20px',
                                     padding: '14px',
-                                    background: phoneOtp.length === 6 ? '#1877F2' : 'rgba(100, 100, 100, 0.5)',
+                                    background: phoneOtp.length === 4 ? '#1877F2' : 'rgba(100, 100, 100, 0.5)',
                                     border: 'none',
                                     borderRadius: '6px',
                                     color: '#FFFFFF',
                                     fontWeight: '600',
                                     fontSize: '15px',
-                                    cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
+                                    cursor: phoneOtp.length === 4 ? 'pointer' : 'not-allowed',
                                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                 }}
                             >
