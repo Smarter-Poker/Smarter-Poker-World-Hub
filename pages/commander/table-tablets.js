@@ -1171,10 +1171,10 @@ export default function TableTabletsPage() {
                             {/* ACTIVE TOURNAMENT TABLES — amber section */}
                             {activeTournamentTables.length > 0 && (
                                 <>
-                                    <h2 style={{ fontSize: 14, fontWeight: 700, color: '#FFD700', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <Trophy size={14} /> Tournament Tables ({activeTournamentTables.length})
+                                    <h2 style={{ fontSize: 15, fontWeight: 700, color: '#FFD700', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Trophy size={20} /> Tournament Tables ({activeTournamentTables.length})
                                     </h2>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 12, marginBottom: 24 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 8, marginBottom: 16 }}>
                                         {activeTournamentTables.map(table => {
                                             const tNum = table.table_number || table.number;
                                             const maxSeats = table.max_seats || 9;
@@ -1191,23 +1191,23 @@ export default function TableTabletsPage() {
 
                                                     {/* Table header — tournament amber gradient */}
                                                     <div style={{
-                                                        padding: '12px 16px',
+                                                        padding: '6px 12px',
                                                         background: 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)',
                                                         color: '#fff',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                                     }}>
                                                         <div>
-                                                            <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                                <Trophy size={16} />
+                                                            <div style={{ fontSize: 18, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <Trophy size={22} />
                                                                 {table.tournament?.name || 'Tournament'}
                                                             </div>
-                                                            <div style={{ fontSize: 13, opacity: 0.9 }}>
-                                                                Table {tNum} · {table.tournament?.buyin_amount > 0 ? `$${table.tournament.buyin_amount}${table.tournament.buyin_fee ? `+$${table.tournament.buyin_fee}` : ''} Buy-In` : 'Freeroll'} · {maxSeats}-max
+                                                            <div style={{ fontSize: 14, opacity: 0.9 }}>
+                                                                Table {tNum} · {table.tournament?.buyin_amount > 0 ? `$${table.tournament.buyin_amount}${table.tournament.buyin_fee ? `+$${table.tournament.buyin_fee}` : ''}  Buy-In` : 'Freeroll'} · {maxSeats}-max
                                                             </div>
                                                         </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700 }}>
-                                                                <Users size={14} /> {seatedCount}/{maxSeats}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 700 }}>
+                                                                <Users size={20} /> {seatedCount}/{maxSeats}
                                                             </div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', animation: 'pulse 2s infinite' }} />
@@ -1217,7 +1217,7 @@ export default function TableTabletsPage() {
                                                     </div>
 
                                                     {/* Table visual */}
-                                                    <div style={{ padding: '12px 16px 16px' }}>
+                                                    <div style={{ padding: '4px 8px 6px' }}>
                                                         {renderTableVisual(table)}
                                                     </div>
                                                 </div>
