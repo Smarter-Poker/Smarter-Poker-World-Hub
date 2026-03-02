@@ -372,15 +372,19 @@ export default function TableTabletsPage() {
                     const cashTbls = activeTbls.filter(t => !isTournamentTable(t));
                     const tournTbls = activeTbls.filter(t => isTournamentTable(t));
 
-                    // Fetch cash game sessions
-                    await Promise.all(cashTbls.map(async (t) => {
-                        const tNum = t.table_number || t.number;
+                    // OPTIMIZED: Single batch call instead of N+1 per-table calls
+                    const cashTableNums = cashTbls.map(t => t.table_number || t.number);
+                    if (cashTableNums.length > 0) {
                         try {
-                            const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
-                            const sJson = await sRes.json();
-                            if (sJson.success) sessionsByTable[tNum] = sJson.data || [];
-                        } catch { /* non-fatal */ }
-                    }));
+                            const batchRes = await fetch(`/api/commander/dealer/sessions-batch?tables=${cashTableNums.join(',')}&venue_id=${venueId}`, { headers });
+                            const batchJson = await batchRes.json();
+                            if (batchJson.success && batchJson.data) {
+                                Object.entries(batchJson.data).forEach(([tNum, sessions]) => {
+                                    if (sessions.length > 0) sessionsByTable[parseInt(tNum)] = sessions;
+                                });
+                            }
+                        } catch { /* non-fatal — fallback to no session data */ }
+                    }
 
                     // Fetch tournament entries — one floor-view call per unique tournament_id
                     const uniqueTournaments = [...new Set(tournTbls.map(t => t.tournament_id).filter(Boolean))];

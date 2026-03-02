@@ -84,15 +84,25 @@ export default function ClockDisplay() {
   const prevLevelRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Wake lock
+  // Wake lock — keep screen on for TV/projector display
   useEffect(() => {
     const req = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (e) { }
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {
+        // NotAllowedError is expected when page is not visible or permissions denied
+        // Don't let it propagate to Sentry
+        if (e?.name !== 'NotAllowedError') {
+          console.warn('[ClockDisplay] Wake lock request failed:', e?.message);
+        }
+      }
     };
     req();
     const h = () => { if (document.visibilityState === 'visible') req(); };
     document.addEventListener('visibilitychange', h);
-    return () => { wakeLockRef.current?.release(); document.removeEventListener('visibilitychange', h); };
+    return () => { wakeLockRef.current?.release().catch(() => { }); document.removeEventListener('visibilitychange', h); };
   }, []);
 
   // Wall clock
