@@ -35,8 +35,8 @@ export default async function handler(req, res) {
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-    const { userId, postId, interactionType } = req.body;
-    const userId = authUser.id; // Override: use JWT identity
+    const { postId, interactionType } = req.body;
+    const userId = authUser.id; // Use JWT identity
 
     if (!userId || !postId) {
         return res.status(400).json({ error: 'userId and postId required' });

@@ -84,7 +84,7 @@ export default async function handler(req, res) {
                 newCount = (current?.hands_dealt || 0) + 1;
                 const { error: fallbackErr } = await supabase
                     .from('commander_tables')
-                    .update({ hands_dealt: newCount, updated_at: new Date().toISOString() })
+                    .update({ hands_dealt: newCount })
                     .eq('id', table.id);
                 if (fallbackErr) throw fallbackErr;
             } else {
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
             newCount = 0;
             const { error: upErr } = await supabase
                 .from('commander_tables')
-                .update({ hands_dealt: 0, updated_at: new Date().toISOString() })
+                .update({ hands_dealt: 0 })
                 .eq('id', table.id);
 
             if (upErr) throw upErr;

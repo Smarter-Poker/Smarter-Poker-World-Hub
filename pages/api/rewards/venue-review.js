@@ -50,8 +50,8 @@ export default async function handler(req, res) {
     if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
 
-    const { userId, venueId, latitude, longitude } = req.body;
-    const userId = authUser.id; // Override: use JWT identity
+    const { venueId, latitude, longitude } = req.body;
+    const userId = authUser.id; // Use JWT identity
     if (!userId || !venueId) {
         return res.status(400).json({ error: 'userId and venueId required' });
     }
