@@ -274,11 +274,12 @@ export default function SocialPageDetail() {
     const fetchFollowers = useCallback(async () => {
         if (!page?.id) return;
         try {
-            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`);
+            const reqParam = user?.id ? `&requester_id=${user.id}` : '';
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
         } catch { }
-    }, [page]);
+    }, [page, user]);
 
     useEffect(() => { fetchPage(); }, [fetchPage]);
     useEffect(() => { if (page) fetchPosts(); }, [fetchPosts, page]);

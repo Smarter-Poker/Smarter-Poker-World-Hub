@@ -82,7 +82,8 @@ export default function ManageSocialPage() {
 
     const fetchMembers = async () => {
         try {
-            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`);
+            const reqParam = user?.id ? `&requester_id=${user.id}` : '';
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
             const json = await res.json();
             if (json.success) setMembers(json.data || []);
         } catch { }
