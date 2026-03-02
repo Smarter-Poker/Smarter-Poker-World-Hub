@@ -425,90 +425,108 @@ export default function ClockDisplay() {
 
         {/* ===== MAIN CONTENT — SCREEN SWITCHER ===== */}
         {activeScreen === SCREENS.CLOCK && (
-          <div style={S.main}>
-            {/* LEFT — Stats */}
-            <div style={S.leftPanel}>
-              <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
-              <StatCell label="Entries" value={totalEntries} />
-              <StatCell label="Players In" value={playersIn} />
-              <StatCell label="Rebuys" value={totalRebuys} />
-              <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
-              <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
-              <StatCell label="Total Pot" value={formatMoney(prizePool)} />
-            </div>
-
-            {/* CENTER — Clock + Blinds + Chip Leaders */}
-            <div style={S.centerPanel}>
-              {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
-              {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
-
-              <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>
-                {formatClock(displaySeconds)}
+          <>
+            <div style={S.main}>
+              {/* LEFT — Stats */}
+              <div style={S.leftPanel}>
+                <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
+                <StatCell label="Entries" value={totalEntries} />
+                <StatCell label="Players In" value={playersIn} />
+                <StatCell label="Rebuys" value={totalRebuys} />
+                <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
+                <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
+                <StatCell label="Total Pot" value={formatMoney(prizePool)} />
               </div>
 
-              {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
+              {/* CENTER — Clock + Blinds + Chip Leaders */}
+              <div style={S.centerPanel}>
+                {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
+                {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
 
-              <div style={S.blindsBlock}>
-                <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
-                <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
-                <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
-                  {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>
+                  {formatClock(displaySeconds)}
                 </div>
-                {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
+
+                {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
+
+                <div style={S.blindsBlock}>
+                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
+                  <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
+                  <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
+                    {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                  </div>
+                  {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
+                </div>
+
+                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                  <div style={S.nextRound}>
+                    <strong>Next Round:</strong> {gameType}<br />
+                    Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                    {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                  </div>
+                )}
+
+
               </div>
 
-              {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
-                <div style={S.nextRound}>
-                  <strong>Next Round:</strong> {gameType}<br />
-                  Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                  {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
-                </div>
-              )}
+              {/* RIGHT — Time + Remaining Payouts (scrollable) */}
+              <div style={S.rightPanel}>
+                <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
+                <StatCell label="Elapsed Time" value={elapsedDisplay} />
+                <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
 
-              {/* Chip Leaders — top 10, scrollable, under blinds */}
+                {/* Dynamic Payouts — only remaining positions for remaining players */}
+                {remainingPayouts.length > 0 && (
+                  <div style={S.rightSection}>
+                    <div style={S.rightSectionHeader}>Remaining Payouts</div>
+                    <div style={S.payoutScroll}>
+                      {remainingPayouts.map((p, i) => {
+                        const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
+                        const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+                        const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
+                        return (
+                          <div key={i} style={S.payoutRow}>
+                            <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
+                            <span style={{ color, fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CHIP LEADERS — bottom of page, full-width, top 20, 5 visible with scroll */}
               {chipLeaders.length > 0 && (
-                <div style={S.chipLeadersCenter}>
-                  <div style={S.chipLeadersHeader}>Chip Leaders</div>
-                  <div style={S.chipLeadersScroll}>
+                <div style={{
+                  width: '100%', background: 'rgba(0,0,0,0.3)',
+                  borderTop: '2px solid rgba(255,255,255,0.12)',
+                  display: 'flex', flexDirection: 'column', flexShrink: 0,
+                }}>
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+                    textAlign: 'center', padding: '6px 8px', opacity: 0.5,
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  }}>Chip Leaders</div>
+                  <div style={{
+                    overflowY: 'auto', maxHeight: 240, padding: '4px 16px',
+                    display: 'flex', flexDirection: 'column', gap: 2,
+                  }}>
                     {chipLeaders.map((player, i) => (
-                      <div key={i} style={S.chipLeaderItem}>
-                        <span style={S.chipLeaderRank}>{i + 1}</span>
-                        <span style={S.chipLeaderName}>{player.name || 'Player'}</span>
-                        <span style={S.chipLeaderChips}>{formatChipCount(player.chips)}</span>
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, opacity: 0.5, minWidth: 28, textAlign: 'center' }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontSize: 18, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name || 'Player'}</span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#31A24C', whiteSpace: 'nowrap' }}>{formatChipCount(player.chips)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-
-            {/* RIGHT — Time + Remaining Payouts (scrollable) */}
-            <div style={S.rightPanel}>
-              <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
-              <StatCell label="Elapsed Time" value={elapsedDisplay} />
-              <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
-
-              {/* Dynamic Payouts — only remaining positions for remaining players */}
-              {remainingPayouts.length > 0 && (
-                <div style={S.rightSection}>
-                  <div style={S.rightSectionHeader}>Remaining Payouts</div>
-                  <div style={S.payoutScroll}>
-                    {remainingPayouts.map((p, i) => {
-                      const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-                      const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                      const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
-                      return (
-                        <div key={i} style={S.payoutRow}>
-                          <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
-                          <span style={{ color, fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          </>
         )}
 
         {/* ===== PAYOUTS SCREEN ===== */}

@@ -9,7 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
     ChevronRight, Settings, Clock, Loader2, Eye, Copy,
-    DollarSign, Layers, Users, Coffee
+    DollarSign, Layers, Users, Coffee, Timer
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -36,6 +36,8 @@ export default function TournamentSettingsPage() {
     const [createSuccess, setCreateSuccess] = useState(null);
     const [clockPresets, setClockPresets] = useState([]);
     const [selectedPreset, setSelectedPreset] = useState('');
+    const [shotClockEnabled, setShotClockEnabled] = useState(false);
+    const [shotClockSeconds, setShotClockSeconds] = useState(30);
 
     useEffect(() => {
         const storedStaff = localStorage.getItem('commander_staff');
@@ -103,7 +105,10 @@ export default function TournamentSettingsPage() {
                     bounty_amount: template.bounty_amount || null,
                     status: 'scheduled',
                     broadcast_to_smarter: true,
-                    settings: selectedPreset ? { clock_preset_id: selectedPreset } : {},
+                    settings: {
+                        ...(selectedPreset ? { clock_preset_id: selectedPreset } : {}),
+                        ...(shotClockEnabled ? { shot_clock_enabled: true, shot_clock_seconds: shotClockSeconds } : {}),
+                    },
                 }),
             });
 
@@ -207,6 +212,48 @@ export default function TournamentSettingsPage() {
                             </div>
                         </div>
                     )}
+
+                    {/* Shot Clock Setting */}
+                    <div className="cmd-panel p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#EF4444]/10 rounded-lg flex items-center justify-center">
+                                    <Timer className="w-5 h-5 text-[#EF4444]" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-white">Shot Clock</h3>
+                                    <p className="text-xs text-[#64748B]">Per-hand decision timer visible on dealer tablets</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShotClockEnabled(!shotClockEnabled)}
+                                className={`relative w-12 h-6 rounded-full transition-colors ${shotClockEnabled ? 'bg-[#EF4444]' : 'bg-[#3A3B3C]'
+                                    }`}>
+                                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${shotClockEnabled ? 'translate-x-[26px]' : 'translate-x-0.5'
+                                    }`} />
+                            </button>
+                        </div>
+                        {shotClockEnabled && (
+                            <div className="mt-3 pt-3 border-t border-[#1E3A5F]">
+                                <p className="text-xs text-[#64748B] mb-2">Decision Time</p>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[20, 30, 45, 60].map(s => (
+                                        <button key={s}
+                                            onClick={() => setShotClockSeconds(s)}
+                                            className={`py-2.5 rounded-lg text-sm font-semibold transition-colors ${shotClockSeconds === s
+                                                    ? 'bg-[#EF4444] text-white'
+                                                    : 'bg-[#0D192E] text-[#94A3B8] hover:bg-[#132240]'
+                                                }`}>
+                                            {s}s
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-[#64748B] mt-2 flex items-center gap-1">
+                                    <Timer className="w-3 h-3" /> Dealer taps to start/reset. Voice announces "5 seconds" at 5s remaining.
+                                </p>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Template Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

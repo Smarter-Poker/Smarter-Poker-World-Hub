@@ -168,6 +168,11 @@ export default function TableTabletsPage() {
     // Call Clock (60-second countdown)
     const [callClockSeconds, setCallClockSeconds] = useState(null);
     const callClockRef = useRef(null);
+    // Shot Clock (tournament per-hand decision timer)
+    const [shotClockSeconds, setShotClockSeconds] = useState(null);
+    const [shotClockCollapsed, setShotClockCollapsed] = useState(false);
+    const shotClockRef = useRef(null);
+    const shotClockVoiceFired = useRef(false);
     // Call Floor state
     const [callFloorSending, setCallFloorSending] = useState(false);
     const [callFloorSent, setCallFloorSent] = useState(false);
@@ -226,6 +231,10 @@ export default function TableTabletsPage() {
         setCallFloorId(null);
         if (callClockRef.current) { clearInterval(callClockRef.current); callClockRef.current = null; }
         setCallClockSeconds(null);
+        if (shotClockRef.current) { clearInterval(shotClockRef.current); shotClockRef.current = null; }
+        setShotClockSeconds(null);
+        setShotClockCollapsed(false);
+        shotClockVoiceFired.current = false;
         setShowPlayerMenu(null);
         setMovingPlayer(null);
         setChipCountInput(null);
@@ -778,7 +787,7 @@ export default function TableTabletsPage() {
             if (session) return { number: seatNum, taken: session };
             // Priority 2: table_seats data (from tables API — has player_name)
             const tableSeat = (table.seats || []).find(s => s.seat_number === seatNum && s.status === 'occupied');
-            if (tableSeat) return { number: seatNum, taken: { player_name: tableSeat.player_name, seat_number: seatNum } };
+            if (tableSeat) return { number: seatNum, taken: { ...tableSeat } };
             return { number: seatNum, taken: null };
         });
 
@@ -1474,6 +1483,55 @@ export default function TableTabletsPage() {
                             </button>
                         )}
 
+                        {/* TOP-CENTER: Shot Clock button — only on tournament tables with shot_clock_enabled */}
+                        {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable._tournamentData?.settings?.shot_clock_enabled && (() => {
+                            const scDuration = fullscreenTable._tournamentData.settings.shot_clock_seconds || 30;
+                            const scActive = shotClockSeconds !== null;
+                            return (
+                                <button onClick={() => {
+                                    haptic();
+                                    // Start or reset the shot clock
+                                    setShotClockSeconds(scDuration);
+                                    setShotClockCollapsed(false);
+                                    shotClockVoiceFired.current = false;
+                                    if (shotClockRef.current) clearInterval(shotClockRef.current);
+                                    shotClockRef.current = setInterval(() => {
+                                        setShotClockSeconds(p => {
+                                            if (p <= 1) {
+                                                // Auto-reset at 0: brief flash then restart
+                                                shotClockVoiceFired.current = false;
+                                                return 0; // Will be caught by the effect below
+                                            }
+                                            // Voice announcement at 5 seconds
+                                            if (p === 6 && !shotClockVoiceFired.current) {
+                                                shotClockVoiceFired.current = true;
+                                                try {
+                                                    const u = new SpeechSynthesisUtterance('5 seconds');
+                                                    u.rate = 1.1; u.pitch = 1.0; u.volume = 1.0;
+                                                    speechSynthesis.speak(u);
+                                                } catch (e) { /* voice not supported */ }
+                                            }
+                                            return p - 1;
+                                        });
+                                    }, 1000);
+                                }}
+                                    style={{
+                                        position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+                                        zIndex: 60, width: 72, height: 48, border: 'none', cursor: 'pointer', padding: 0,
+                                        background: scActive ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.15)',
+                                        borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                        transition: 'background 0.2s',
+                                    }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={scActive ? '#EF4444' : '#3B82F6'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2" /><path d="M5 3l2 2" /><path d="M19 3l-2 2" /><path d="M12 5V3" />
+                                    </svg>
+                                    <span style={{ fontSize: 14, fontWeight: 800, color: scActive ? '#EF4444' : '#3B82F6' }}>
+                                        {scActive ? shotClockSeconds : scDuration}
+                                    </span>
+                                </button>
+                            );
+                        })()}
+
                     </div>
 
                     {/* ── TOURNAMENT CLOCK OVERLAY — 1:1 mirror via iframe ──
@@ -1555,6 +1613,120 @@ export default function TableTabletsPage() {
                                 {/* Cancel hint */}
                                 <div style={{ marginTop: 32, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.35)', letterSpacing: 1 }}>
                                     TAP ANYWHERE TO CANCEL
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {/* ── SHOT CLOCK OVERLAY — collapsible fullscreen decision timer ── */}
+                    {shotClockSeconds !== null && (() => {
+                        const secs = shotClockSeconds;
+                        const scDuration = fullscreenTable?._tournamentData?.settings?.shot_clock_seconds || 30;
+                        const isUrgent = secs <= 5;
+                        const isExpired = secs <= 0;
+                        const pct = Math.max(0, secs / scDuration);
+                        const radius = 110;
+                        const circumference = 2 * Math.PI * radius;
+                        const dashOffset = circumference * (1 - pct);
+
+                        // Auto-reset after hitting 0
+                        if (isExpired) {
+                            setTimeout(() => {
+                                shotClockVoiceFired.current = false;
+                                setShotClockSeconds(scDuration);
+                            }, 1500);
+                        }
+
+                        if (shotClockCollapsed) {
+                            // Collapsed: small floating badge
+                            return (
+                                <div onClick={() => { haptic('light'); setShotClockCollapsed(false); }}
+                                    style={{
+                                        position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+                                        zIndex: 9999, width: 80, height: 50,
+                                        background: isUrgent ? 'rgba(239,68,68,0.95)' : 'rgba(10,20,40,0.92)',
+                                        borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', border: `2px solid ${isUrgent ? '#EF4444' : '#3B82F6'}`,
+                                        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                                        animation: isUrgent ? 'pulse 0.5s infinite alternate' : 'none',
+                                    }}>
+                                    <span style={{ fontSize: 26, fontWeight: 900, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{secs}</span>
+                                    <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginLeft: 2 }}>s</span>
+                                </div>
+                            );
+                        }
+
+                        // Expanded: fullscreen overlay
+                        return (
+                            <div style={{
+                                position: 'absolute', inset: 0, zIndex: 9999,
+                                background: isExpired ? 'rgba(239,68,68,0.92)' : isUrgent ? 'rgba(30,10,10,0.95)' : 'rgba(10,20,40,0.95)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                transition: 'background 0.5s',
+                                animation: isUrgent && !isExpired ? 'pulse 0.5s infinite alternate' : 'none',
+                            }}>
+                                {/* Title */}
+                                <div style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 20, opacity: 0.9 }}>
+                                    {isExpired ? 'TIME\'S UP' : 'SHOT CLOCK'}
+                                </div>
+                                {/* Circular timer */}
+                                <div style={{ position: 'relative', width: 260, height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <svg width="260" height="260" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                                        <circle cx="130" cy="130" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                                        <circle cx="130" cy="130" r={radius} fill="none"
+                                            stroke={isExpired ? '#FFFFFF' : isUrgent ? '#EF4444' : '#3B82F6'}
+                                            strokeWidth="8" strokeLinecap="round"
+                                            strokeDasharray={circumference} strokeDashoffset={dashOffset}
+                                            style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.5s' }} />
+                                    </svg>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <span style={{
+                                            fontSize: isExpired ? 64 : 88, fontWeight: 900, fontVariantNumeric: 'tabular-nums',
+                                            color: isExpired ? '#FFFFFF' : isUrgent ? '#EF4444' : '#FFFFFF',
+                                            textShadow: isUrgent ? '0 0 40px rgba(239,68,68,0.6)' : '0 0 20px rgba(59,130,246,0.3)',
+                                            lineHeight: 1, transition: 'color 0.5s',
+                                        }}>{secs}</span>
+                                        <span style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginTop: 4, letterSpacing: 2 }}>SECONDS</span>
+                                    </div>
+                                </div>
+                                {/* Bottom actions */}
+                                <div style={{ marginTop: 28, display: 'flex', gap: 16, alignItems: 'center' }}>
+                                    {/* Collapse button */}
+                                    <button onClick={(e) => { e.stopPropagation(); haptic('light'); setShotClockCollapsed(true); }}
+                                        style={{
+                                            padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)',
+                                            background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontWeight: 600,
+                                            cursor: 'pointer', letterSpacing: 1,
+                                        }}>
+                                        MINIMIZE
+                                    </button>
+                                    {/* Reset button */}
+                                    <button onClick={(e) => {
+                                        e.stopPropagation(); haptic();
+                                        shotClockVoiceFired.current = false;
+                                        setShotClockSeconds(scDuration);
+                                    }}
+                                        style={{
+                                            padding: '10px 20px', borderRadius: 10, border: 'none',
+                                            background: '#3B82F6', color: '#fff', fontSize: 13, fontWeight: 700,
+                                            cursor: 'pointer', letterSpacing: 1,
+                                        }}>
+                                        RESET
+                                    </button>
+                                    {/* Stop button */}
+                                    <button onClick={(e) => {
+                                        e.stopPropagation(); haptic('light');
+                                        clearInterval(shotClockRef.current); shotClockRef.current = null;
+                                        setShotClockSeconds(null); setShotClockCollapsed(false);
+                                        shotClockVoiceFired.current = false;
+                                    }}
+                                        style={{
+                                            padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
+                                            background: 'rgba(239,68,68,0.15)', color: '#EF4444', fontSize: 13, fontWeight: 600,
+                                            cursor: 'pointer', letterSpacing: 1,
+                                        }}>
+                                        STOP
+                                    </button>
                                 </div>
                             </div>
                         );
