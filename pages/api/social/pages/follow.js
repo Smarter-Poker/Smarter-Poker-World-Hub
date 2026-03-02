@@ -131,17 +131,16 @@ export default async function handler(req, res) {
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) return res.status(500).json({ error: error.message });
 
-            // Determine if requester is page owner (only owners see individual follower identities)
-            let isOwner = false;
-            if (requester_id) {
-                const { data: pageOwner } = await supabase
-                    .from('social_pages').select('owner_id').eq('id', page_id).single();
-                isOwner = pageOwner && pageOwner.owner_id === requester_id;
-            }
+            // Determine if requester is page owner
+            const { data: pageInfo } = await supabase
+                .from('social_pages').select('owner_id, is_public').eq('id', page_id).single();
+            const isOwner = requester_id && pageInfo && pageInfo.owner_id === requester_id;
+            const isPublicPage = pageInfo?.is_public !== false; // default to public
 
-            if (isOwner) {
-                // Owner sees full profile details
-                const userIds = (data || []).map(f => f.user_id);
+            // For public pages OR owner: return enriched member profiles
+            if (isOwner || isPublicPage) {
+                const approvedFollowers = (data || []).filter(f => f.status === 'approved');
+                const userIds = approvedFollowers.map(f => f.user_id);
                 let profiles = {};
                 if (userIds.length > 0) {
                     const { data: profileData } = await supabase
@@ -150,12 +149,11 @@ export default async function handler(req, res) {
                         .in('id', userIds);
                     (profileData || []).forEach(p => { profiles[p.id] = p; });
                 }
-                const enriched = (data || []).map(f => ({
+                const enriched = approvedFollowers.map(f => ({
                     ...f,
                     profile: profiles[f.user_id] || null
                 }));
-                // Also check if the owner themselves is following (self-follow)
-                const myFollow = (data || []).find(f => f.user_id === requester_id);
+                const myFollow = requester_id ? (data || []).find(f => f.user_id === requester_id) : null;
                 return res.status(200).json({
                     success: true,
                     data: enriched,
@@ -164,7 +162,7 @@ export default async function handler(req, res) {
                     my_status: myFollow ? myFollow.status : null
                 });
             } else {
-                // Non-owners only see the count + their own follow status
+                // Private pages: non-owners only see the count + their own follow status
                 const myFollow = requester_id ? (data || []).find(f => f.user_id === requester_id) : null;
                 return res.status(200).json({
                     success: true,

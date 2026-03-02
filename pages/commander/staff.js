@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, Lock, AlertTriangle, CreditCard, QrCode } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, Lock, AlertTriangle, CreditCard, QrCode, Link2, Copy, CheckCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
@@ -45,6 +45,8 @@ export default function CommanderStaffPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [revealedPinId, setRevealedPinId] = useState(null);
+  const [linkCodeData, setLinkCodeData] = useState(null); // { staffId, token, url }
+  const [linkCodeLoading, setLinkCodeLoading] = useState(null);
 
   // Check staff session
   useEffect(() => {
@@ -257,6 +259,29 @@ export default function CommanderStaffPage() {
   // Check permissions
   const canManageStaff = currentStaff?.permissions?.manage_staff !== false;
 
+  // Generate link code for staff member
+  async function handleGenerateLinkCode(staffId) {
+    setLinkCodeLoading(staffId);
+    try {
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch('/api/commander/staff/generate-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        body: JSON.stringify({ venue_id: venueId, staff_id: staffId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLinkCodeData({ staffId, token: data.data.token, url: data.data.claim_url });
+      } else {
+        alert(data.error || 'Failed to generate code');
+      }
+    } catch (e) {
+      alert('Network error');
+    }
+    setLinkCodeLoading(null);
+  }
+
   if (!currentStaff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
@@ -358,11 +383,43 @@ export default function CommanderStaffPage() {
                             );
                           })()}
                         </div>
+                        {staff.linked_user_id ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
+                            <CheckCircle className="w-3 h-3" /> Linked
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-[#65676B] rounded-full bg-[#3A3B3C]/50">
+                            Not linked
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {canManageStaff && staff.id !== currentStaff.id && (
                       <div className="flex gap-2">
+                        {!staff.linked_user_id && (
+                          linkCodeData?.staffId === staff.id ? (
+                            <div className="flex items-center gap-2 px-2 py-1 bg-[#1877F2]/10 rounded-lg border border-[#1877F2]/30">
+                              <span className="text-xs font-mono font-bold text-[#1877F2] tracking-wider">{linkCodeData.token}</span>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(linkCodeData.url); }}
+                                className="p-1 text-[#1877F2] hover:bg-[#1877F2]/20 rounded transition-colors"
+                                title="Copy claim URL"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleGenerateLinkCode(staff.id)}
+                              disabled={linkCodeLoading === staff.id}
+                              className="p-2 text-[#1877F2] hover:bg-[#1877F2]/10 rounded-lg transition-colors"
+                              title="Generate link code for employee"
+                            >
+                              <Link2 className="w-4 h-4" />
+                            </button>
+                          )
+                        )}
                         <button
                           onClick={() => setEditingStaff(staff)}
                           className="p-2 text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
