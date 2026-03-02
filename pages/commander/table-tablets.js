@@ -542,7 +542,7 @@ export default function TableTabletsPage() {
         setScanError('');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
             });
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
@@ -764,7 +764,7 @@ export default function TableTabletsPage() {
         setTimeout(async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 seatScannerStreamRef.current = stream;
                 if (seatScannerVideoRef.current) {
@@ -1832,15 +1832,19 @@ export default function TableTabletsPage() {
                         </div>
                         {chipCountInput !== null && tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber && isTournamentTable(t)) && (
                             <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                <input type="number" value={chipCountInput} onChange={e => setChipCountInput(e.target.value)} placeholder="Enter chip count..."
-                                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 16, fontWeight: 700, outline: 'none' }} />
+                                <input type="text" inputMode="numeric" pattern="[0-9,]*" value={chipCountInput}
+                                    onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ''); setChipCountInput(raw ? parseInt(raw).toLocaleString() : ''); }}
+                                    placeholder="Enter chip count..."
+                                    autoComplete="off"
+                                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 18, fontWeight: 700, outline: 'none', letterSpacing: 1, WebkitAppearance: 'none', MozAppearance: 'textfield' }} />
                                 <button onClick={async () => {
-                                    if (!chipCountInput) return;
+                                    const rawVal = parseInt((chipCountInput || '').replace(/[^0-9]/g, ''));
+                                    if (!rawVal || isNaN(rawVal)) return;
                                     const eId = showPlayerMenu.taken?.entry_id;
                                     const tId = showPlayerMenu.taken?.tournament_id || tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber)?.tournament_id;
                                     const pN = showPlayerMenu.taken?.player_name || 'Player';
                                     if (eId && tId) {
-                                        await updateTournamentChipCount(tId, eId, parseInt(chipCountInput), pN);
+                                        await updateTournamentChipCount(tId, eId, rawVal, pN);
                                     } else {
                                         setToast({ type: 'error', text: 'Missing entry data - try refreshing' });
                                     }
