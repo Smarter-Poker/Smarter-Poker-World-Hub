@@ -212,6 +212,18 @@ export default function TableTabletsPage() {
         }
     }, [lockedTable, tables]);
 
+    // ── CRITICAL: Keep fullscreenTable in sync with tables after any data refresh ──
+    // Without this, tournament actions (bust/move/chip update) would call fetchAll()
+    // which updates `tables`, but fullscreenTable would remain stale.
+    useEffect(() => {
+        if (!fullscreenTable || !tables.length) return;
+        const tNum = fullscreenTable.table_number || fullscreenTable.number;
+        const freshTable = tables.find(t => (t.table_number || t.number) === tNum);
+        if (freshTable && freshTable !== fullscreenTable) {
+            setFullscreenTable(freshTable);
+        }
+    }, [tables]);
+
     // SAFEGUARD: When fullscreen table changes, ALWAYS close the tournament clock overlay
     // and clear the locked tournament ID. Also auto-close if the table's tournament_id
     // no longer matches what was locked (e.g., table was reassigned to a different tournament).
