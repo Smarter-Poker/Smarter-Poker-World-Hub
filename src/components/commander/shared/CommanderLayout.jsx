@@ -64,7 +64,8 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   const [currentTier, setCurrentTier] = useState('home_game');
 
   // ── PIN SECURITY GATE STATE ──
-  const [routeBlocked, setRouteBlocked] = useState(false);
+  const [routeBlocked, setRouteBlocked] = useState(true); // Default BLOCKED until verified
+  const [staffLoaded, setStaffLoaded] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
@@ -79,6 +80,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
     } catch { }
+    setStaffLoaded(true);
 
     // Track Commander navigation history in sessionStorage
     try {
@@ -98,14 +100,21 @@ export default function CommanderLayout({ children, title, backHref = '/commande
 
   // ── ROUTE GUARD: Check if staff role can access this page ──
   useEffect(() => {
-    if (!staff) return;
+    if (!staffLoaded) return; // Wait until localStorage read completes
     const path = router.asPath.split('?')[0]; // Strip query params
     // Skip guard for dashboard, login, index
     if (path === '/commander/dashboard' || path === '/commander/login' || path === '/commander') {
       setRouteBlocked(false);
       return;
     }
-    const role = staff.role || 'dealer'; // default to most restricted
+    // If no staff session exists, block and require PIN
+    if (!staff || !staff.role) {
+      setRouteBlocked(true);
+      setPinInput('');
+      setPinError('');
+      return;
+    }
+    const role = staff.role;
     const hasAccess = canRoleAccessRoute(role, path);
     // Check if this route was previously unlocked via PIN in this session
     const unlocked = sessionStorage.getItem(`pin_unlock_${path}`);
@@ -118,7 +127,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       setPinInput('');
       setPinError('');
     }
-  }, [staff, router.asPath]);
+  }, [staff, staffLoaded, router.asPath]);
 
   // Club Page creation reminder popup
   useEffect(() => {
