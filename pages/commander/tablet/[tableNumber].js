@@ -269,55 +269,9 @@ export default function TabletDisplay() {
             </Head>
 
             <div style={fullScreenStyle}>
-                {/* ── Top Bar ─────────────────────────────── */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 24px', flexShrink: 0, zIndex: 10,
-                    background: isActive
-                        ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                        : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                    boxShadow: '0 2px 16px rgba(0,0,0,0.4)',
-                }}>
-                    <div>
-                        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: 0.5 }}>
-                            Table {tableNum}
-                            {table?.table_name && table.table_name !== `Table ${tableNum}` && (
-                                <span style={{ fontWeight: 500, opacity: 0.85, marginLeft: 8 }}>· {table.table_name}</span>
-                            )}
-                        </div>
-                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 2 }}>
-                            {gameType} {stakes && `· ${stakes}`} · {maxSeats}-Max
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        {/* Player count */}
-                        <div style={{
-                            padding: '8px 16px', borderRadius: 24,
-                            background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-                            fontSize: 15, fontWeight: 700, color: '#fff',
-                            display: 'flex', alignItems: 'center', gap: 6,
-                        }}>
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                            {occupiedCount} / {maxSeats}
-                        </div>
-                        {/* Venue */}
-                        {venueName && (
-                            <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
-                                {venueName}
-                            </div>
-                        )}
-                        {/* Connection indicator */}
-                        <div style={{
-                            width: 10, height: 10, borderRadius: '50%',
-                            background: error ? '#EF4444' : '#31A24C',
-                            boxShadow: `0 0 8px ${error ? 'rgba(239,68,68,0.6)' : 'rgba(49,162,76,0.6)'}`,
-                        }} title={error || 'Connected'} />
-                    </div>
-                </div>
+                {/* NO header — fullscreen table view matching table-tablets.js */}
 
-                {/* ── Table Visual ────────────────────────── */}
+                {/* ── Table Visual (full height) ─────────── */}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 24px', overflow: 'hidden' }}>
                     <div style={{ width: '100%', maxWidth: 1100, position: 'relative' }}>
                         <div style={{ position: 'relative', width: '100%', paddingBottom: '52%', overflow: 'hidden' }}>
@@ -469,52 +423,7 @@ export default function TabletDisplay() {
                     </div>
                 </div>
 
-                {/* ── Timer Summary Bar (if timed game) ──── */}
-                {players.some(p => p.time_remaining != null) && (
-                    <div style={{
-                        padding: '10px 24px', flexShrink: 0,
-                        display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
-                        background: 'rgba(26,26,26,0.95)', borderTop: '1px solid #2A2B2D',
-                    }}>
-                        {players.filter(p => p.time_remaining != null).map((p, i) => {
-                            const adjTime = adjustTime(p.time_remaining);
-                            const tColor = getTimerColor(adjTime);
-                            return (
-                                <span key={i} style={{
-                                    fontSize: 13, fontWeight: 700, padding: '5px 12px', borderRadius: 8,
-                                    background: `${tColor}15`, color: tColor, border: `1px solid ${tColor}30`,
-                                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                                }}>
-                                    S{p.seat_number}: {adjTime <= 0 ? 'EXPIRED' : formatTime(adjTime)}
-                                    {p.player_name && <span style={{ fontSize: 11, opacity: 0.7 }}>({p.player_name.split(' ')[0]})</span>}
-                                </span>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {/* ── Promotion Ticker ────────────────────── */}
-                {tickerItems.length > 0 && (
-                    <div style={{
-                        padding: '10px 0', flexShrink: 0,
-                        background: 'linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%)',
-                        borderTop: '1px solid #2A2B2D', overflow: 'hidden',
-                        position: 'relative',
-                    }}>
-                        <div style={{
-                            display: 'flex', gap: 60, whiteSpace: 'nowrap',
-                            transform: `translateX(-${tickerOffset % (tickerItems.join('     ').length * 12 + 500)}px)`,
-                            transition: 'none',
-                        }}>
-                            {/* Repeat ticker items for seamless looping */}
-                            {[...tickerItems, ...tickerItems, ...tickerItems].map((item, i) => (
-                                <span key={i} style={{ fontSize: 15, fontWeight: 600, color: '#B0B3B8', letterSpacing: 0.5 }}>
-                                    {item}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                {/* Timer bar and promotion ticker removed — clean fullscreen view */}
 
                 {/* ── Error overlay ───────────────────────── */}
                 {error && (

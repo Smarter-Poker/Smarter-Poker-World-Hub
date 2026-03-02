@@ -570,7 +570,7 @@ export default function TableTabletsPage() {
         setScanError('');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
             });
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
@@ -792,7 +792,7 @@ export default function TableTabletsPage() {
         setTimeout(async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 seatScannerStreamRef.current = stream;
                 if (seatScannerVideoRef.current) {
@@ -1434,17 +1434,19 @@ export default function TableTabletsPage() {
                     {/* NO HEADER in fullscreen — table takes up full screen */}
                     {!lockedTable && (
                         <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 70, display: 'flex', alignItems: 'center', gap: 10 }}>
-                            {/* Lock button — large silver icon, no frame */}
-                            <button
-                                onClick={() => { haptic(); lockToTable(fullscreenTable.table_number); }}
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.7))',
-                                }}
-                            >
-                                <Lock size={42} color="#C0C0C0" strokeWidth={2.2} />
-                            </button>
+                            {/* Lock button — only on tournament tables, shows Unlock icon since page is unlocked */}
+                            {isTournamentTable(fullscreenTable) && (
+                                <button
+                                    onClick={() => { haptic(); lockToTable(fullscreenTable.table_number); }}
+                                    style={{
+                                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.7))',
+                                    }}
+                                >
+                                    <Unlock size={42} color="#C0C0C0" strokeWidth={2.2} />
+                                </button>
+                            )}
                             {/* Close X button */}
                             <button
                                 onClick={() => { haptic('light'); setFullscreenTable(null); }}
@@ -1459,6 +1461,7 @@ export default function TableTabletsPage() {
                         </div>
                     )}
                     {/* Locked: show small unlock button in top-right corner */}
+                    {/* Locked state: show Lock icon (page IS locked) with Unlock button */}
                     {lockedTable && (
                         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
                             <button
@@ -1471,13 +1474,13 @@ export default function TableTabletsPage() {
                                 }}
                                 title="Unlock — requires manager PIN"
                             >
-                                <Unlock size={12} /> Unlock
+                                <Lock size={12} /> Unlock
                             </button>
                         </div>
                     )}
 
                     {/* Fullscreen table visual — leaves room for bottom icons */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '8px 0 0 0', overflow: 'visible', position: 'relative', background: '#1a1f22', maxHeight: 'calc(100vh - 20vh)' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '8px 0 0 0', overflow: 'hidden', position: 'relative', background: '#1a1f22' }}>
                         <div style={{ width: '100%', maxWidth: 1100 }}>
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
@@ -1963,20 +1966,7 @@ export default function TableTabletsPage() {
                                     </div>
                                 )}
 
-                                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #3A3B3C' }}>
-                                    <p style={{ fontSize: 11, color: '#8A8D91', marginBottom: 6, textAlign: 'center' }}>Or enter QR code manually</p>
-                                    <form onSubmit={handleManualDealerScan} style={{ display: 'flex', gap: 8 }}>
-                                        <input
-                                            type="text" value={manualDealerQR} onChange={(e) => setManualDealerQR(e.target.value)}
-                                            placeholder="STAFF-1996-abc123"
-                                            style={{ flex: 1, padding: '8px 12px', background: '#3A3B3C', border: '1px solid #4E4F50', borderRadius: 8, color: '#E4E6EB', fontSize: 13, outline: 'none' }}
-                                        />
-                                        <button type="submit" disabled={!manualDealerQR.trim()}
-                                            style={{ padding: '8px 14px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
-                                            Assign
-                                        </button>
-                                    </form>
-                                </div>
+                                {/* Manual entry removed — scan only */}
                             </>
                         )}
                     </div>
