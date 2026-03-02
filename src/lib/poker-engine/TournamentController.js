@@ -424,7 +424,7 @@ class TournamentController extends EventEmitter {
    * @param {string} [options.clubId] — which club this player belongs to (for xMTT)
    * @returns {{ success: boolean, entry?: Object, error?: string }}
    */
-  registerPlayer(playerId, playerName, options = {}) {
+  async registerPlayer(playerId, playerName, options = {}) {
     // Status check
     const canRegister = this.status === TOURNAMENT_STATUS.REGISTERING ||
       this.status === TOURNAMENT_STATUS.LATE_REG ||
@@ -454,7 +454,7 @@ class TournamentController extends EventEmitter {
     // Ledger: deduct buy-in from club balance
     // Skip if chips were already locked at the API level (e.g. club-arena/tournaments register action)
     if (this.ledger && playerClubId && !options.chipsAlreadyLocked) {
-      const deduction = this.ledger.deductBuyin(
+      const deduction = await this.ledger.deductBuyin(
         playerClubId, playerId, this.buyinAmount, this.buyinFee,
         { tournamentId: this.tournamentId, type: 'tournament_buyin' }
       );
