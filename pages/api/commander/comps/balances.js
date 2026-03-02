@@ -74,6 +74,7 @@ async function awardComp(req, res, staffAuth) {
         const sfFirst = nameParts[0] || '';
         const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
         if (sfFirst) {
+          // Attempt 1: Exact first+last match
           let matchQuery = supabase
             .from('commander_members')
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
@@ -83,51 +84,35 @@ async function awardComp(req, res, staffAuth) {
           const { data: existingMember } = await matchQuery.maybeSingle();
           if (existingMember) {
             member = existingMember;
+          } else {
+            // Attempt 2: Broader fuzzy search to catch name format differences
+            const { data: broaderMatch } = await supabase
+              .from('commander_members')
+              .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
+              .eq('venue_id', staffRecord.venue_id)
+              .or(`first_name.ilike.%${sfFirst}%,last_name.ilike.%${sfLast || sfFirst}%`)
+              .limit(5);
+
+            const realMatch = broaderMatch?.find(m => {
+              const fMatch = (m.first_name || '').toLowerCase().includes(sfFirst.toLowerCase()) || sfFirst.toLowerCase().includes((m.first_name || '').toLowerCase());
+              const lMatch = sfLast ? ((m.last_name || '').toLowerCase().includes(sfLast.toLowerCase()) || sfLast.toLowerCase().includes((m.last_name || '').toLowerCase())) : true;
+              return fMatch && lMatch;
+            });
+
+            if (realMatch) {
+              member = realMatch;
+              console.log(`[Comps] Broader match found for staff ${staffMember.display_name} → member ${realMatch.id}`);
+            }
           }
         }
 
-        // If no existing member record, auto-create one
+        // If STILL no member found, return an error instead of auto-creating
+        // This prevents ghost duplicate records
         if (!member) {
-          const nameParts = (staffMember.display_name || '').trim().split(/\s+/);
-          const firstName = nameParts[0] || staffMember.role || 'Staff';
-          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
-          // CRITICAL: Use venue_id from the staff session header (integer format)
-          // NOT from commander_staff.venue_id (UUID format) — type mismatch with commander_members
-          let memberVenueId = staffRecord.venue_id; // from guardWriteStaff
-          // Parse staff session header for the raw venue_id (guaranteed correct type)
-          try {
-            const sessionHeader = req.headers['x-staff-session'];
-            if (sessionHeader) {
-              const sess = JSON.parse(sessionHeader);
-              if (sess.venue_id) memberVenueId = sess.venue_id;
-            }
-          } catch { /* use staffRecord.venue_id */ }
-
-          // Generate member_number (required NOT NULL field)
-          const memberNumber = `STAFF-${Date.now().toString(36).toUpperCase()}`;
-
-          const { data: newMember, error: createErr } = await supabase
-            .from('commander_members')
-            .insert({
-              venue_id: memberVenueId,
-              member_number: memberNumber,
-              first_name: firstName,
-              last_name: lastName,
-              comp_balance: 0,
-              comp_lifetime_earned: 0,
-              comp_lifetime_redeemed: 0,
-              membership_tier: 'standard',
-              membership_status: 'active',
-            })
-            .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
-            .single();
-
-          if (createErr) {
-            console.error('Auto-create member error:', createErr);
-            return res.status(500).json({ success: false, error: `Could not create member record: ${createErr.message}` });
-          }
-          member = newMember;
+          return res.status(404).json({
+            success: false,
+            error: `No member record found for staff "${staffMember.display_name}". Please register them as a member first via the cashier or member registration.`
+          });
         }
       }
     }

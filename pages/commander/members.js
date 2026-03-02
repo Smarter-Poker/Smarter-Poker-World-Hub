@@ -70,6 +70,14 @@ export default function MembersPage() {
             if (data.success) {
                 setMembers(data.data.members);
                 setTotal(data.data.total);
+                // ═══ CRITICAL: Refresh selectedMember with fresh data from API ═══
+                // When bus events fire from other pages (cashier adding time, comps issuing),
+                // the selectedMember state must be updated with the latest values
+                setSelectedMember(prev => {
+                    if (!prev) return null;
+                    const fresh = (data.data.members || []).find(m => m.id === prev.id);
+                    return fresh || prev;
+                });
             }
         } catch (err) {
             console.error('Fetch members error:', err);
