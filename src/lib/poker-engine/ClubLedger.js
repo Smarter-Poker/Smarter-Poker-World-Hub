@@ -162,11 +162,12 @@ class ClubLedger {
     try {
       await this.supabase.from('chip_transactions').insert({
         club_id: clubId,
-        user_id: userId,
-        amount,
-        type,
+        from_user_id: amount < 0 ? userId : null,
+        to_user_id: amount > 0 ? userId : null,
+        amount: Math.abs(amount),
+        transaction_type: type,
         metadata: meta,
-        created_at: new Date().toISOString(),
+        notes: meta.type || meta.reason || type,
       });
     } catch (err) {
       console.error('[ClubLedger] Transaction record failed:', err.message);
@@ -285,7 +286,7 @@ class ClubLedger {
         this.supabase.from('chip_transactions').insert({
           club_id: clubId,
           transaction_type: 'guarantee_overlay',
-          amount: -amount,
+          amount,
           notes: `Tournament guarantee overlay (pending): ${metadata.tournamentId}`,
           metadata: { ...metadata, status: 'pending', error: error.message },
         }).then(() => {});
@@ -294,7 +295,7 @@ class ClubLedger {
         this.supabase.from('chip_transactions').insert({
           club_id: clubId,
           transaction_type: 'guarantee_overlay',
-          amount: -amount,
+          amount,
           notes: `Tournament guarantee overlay: ${metadata.tournamentId}`,
           metadata,
         }).then(() => {});
