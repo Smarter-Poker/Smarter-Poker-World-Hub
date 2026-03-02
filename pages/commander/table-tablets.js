@@ -8,7 +8,7 @@
  * - Fullscreen popup when a table is clicked
  * Tapping a table opens a fullscreen overlay with real-time seat data.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
@@ -1460,9 +1460,8 @@ export default function TableTabletsPage() {
                         {(() => {
                             const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; return (
                                 <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
-                                    style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 60, width: 80, height: 60, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s', animation: d ? 'pulse 0.5s infinite alternate' : 'none' }}>
+                                    style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 60, width: 80, height: 60, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
                                     <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
-                                    {a && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: d ? '#EF4444' : '#4DA3FF', fontSize: 28, fontWeight: 900, textShadow: '0 0 12px rgba(0,0,0,0.9)', letterSpacing: 1 }}>{callClockSeconds}<span style={{ fontSize: 10, marginLeft: 2, opacity: 0.8 }}>s</span></div>}
                                 </button>);
                         })()}
 
@@ -1493,16 +1492,14 @@ export default function TableTabletsPage() {
                                 position: 'absolute', inset: 0, zIndex: 10001,
                                 background: '#0D192E', display: 'flex', flexDirection: 'column',
                             }}>
-                                {/* Tournament Table back button — fixed at top of clock overlay */}
+                                {/* Tournament Table back button — icon only, top-left of overlay */}
                                 <button onClick={() => { haptic(); setShowTournamentClock(false); setLockedTournamentId(null); }}
                                     style={{
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        padding: '8px 16px', margin: '8px 8px 0', flexShrink: 0,
-                                        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                                        borderRadius: 10, cursor: 'pointer', zIndex: 10002,
+                                        position: 'absolute', top: 8, left: 8, zIndex: 10002,
+                                        width: 80, height: 60, border: 'none', background: 'transparent',
+                                        cursor: 'pointer', padding: 0,
                                     }}>
-                                    <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: 40, height: 30, objectFit: 'contain' }} />
-                                    <span style={{ color: '#FFD700', fontSize: 14, fontWeight: 800, letterSpacing: 0.5 }}>Back to Table</span>
+                                    <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                                 </button>
                                 <iframe
                                     src={'/commander/tournaments/' + lockedTournamentId + '/clock-display'}
@@ -1512,6 +1509,57 @@ export default function TableTabletsPage() {
                                 />
                             </div>
                         )}
+
+                    {/* ── CALL CLOCK FULLSCREEN OVERLAY ── */}
+                    {callClockSeconds !== null && (() => {
+                        const secs = callClockSeconds;
+                        const isUrgent = secs <= 10;
+                        const isExpired = secs <= 0;
+                        const pct = Math.max(0, secs / 60);
+                        const radius = 120;
+                        const circumference = 2 * Math.PI * radius;
+                        const dashOffset = circumference * (1 - pct);
+                        return (
+                            <div onClick={() => { haptic('light'); clearInterval(callClockRef.current); callClockRef.current = null; setCallClockSeconds(null); }}
+                                style={{
+                                    position: 'absolute', inset: 0, zIndex: 10000,
+                                    background: isExpired ? 'rgba(239,68,68,0.92)' : isUrgent ? 'rgba(30,10,10,0.95)' : 'rgba(10,20,40,0.95)',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', transition: 'background 0.5s',
+                                    animation: isUrgent && !isExpired ? 'pulse 0.5s infinite alternate' : 'none',
+                                }}>
+                                {/* Title */}
+                                <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 24, opacity: 0.9 }}>
+                                    {isExpired ? 'TIME\'S UP' : 'CALL CLOCK'}
+                                </div>
+                                {/* Circular timer */}
+                                <div style={{ position: 'relative', width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <svg width="280" height="280" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                                        <circle cx="140" cy="140" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" />
+                                        <circle cx="140" cy="140" r={radius} fill="none"
+                                            stroke={isExpired ? '#FFFFFF' : isUrgent ? '#EF4444' : '#3B82F6'}
+                                            strokeWidth="10" strokeLinecap="round"
+                                            strokeDasharray={circumference} strokeDashoffset={dashOffset}
+                                            style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.5s' }} />
+                                    </svg>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <span style={{
+                                            fontSize: isExpired ? 72 : 96, fontWeight: 900, fontVariantNumeric: 'tabular-nums',
+                                            color: isExpired ? '#FFFFFF' : isUrgent ? '#EF4444' : '#FFFFFF',
+                                            textShadow: isUrgent ? '0 0 40px rgba(239,68,68,0.6)' : '0 0 20px rgba(59,130,246,0.3)',
+                                            lineHeight: 1, transition: 'color 0.5s',
+                                        }}>{secs}</span>
+                                        <span style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginTop: 4, letterSpacing: 2 }}>SECONDS</span>
+                                    </div>
+                                </div>
+                                {/* Cancel hint */}
+                                <div style={{ marginTop: 32, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.35)', letterSpacing: 1 }}>
+                                    TAP ANYWHERE TO CANCEL
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {toast && (
                         <div style={{
                             position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10001,
