@@ -58,19 +58,27 @@ export default async function handler(req, res) {
 
         let unreadMessages = 0;
         if (conversations && conversations.length > 0) {
-            // Count messages in each conversation that are newer than last_read_at and not sent by user
-            for (const conv of conversations) {
-                const lastRead = conv.last_read_at || '1970-01-01';
-                const { count } = await supabase
-                    .from('social_messages')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('conversation_id', conv.conversation_id)
-                    .neq('sender_id', userId)
-                    .eq('is_deleted', false)
-                    .gt('created_at', lastRead);
+            // OPTIMIZED: Single batch query instead of N+1 per-conversation queries
+            const conversationIds = conversations.map(c => c.conversation_id);
+            const earliestRead = conversations.reduce((earliest, c) => {
+                const ts = c.last_read_at || '1970-01-01';
+                return ts < earliest ? ts : earliest;
+            }, conversations[0].last_read_at || '1970-01-01');
 
-                unreadMessages += count || 0;
-            }
+            const { data: allMessages } = await supabase
+                .from('social_messages')
+                .select('conversation_id, created_at')
+                .in('conversation_id', conversationIds)
+                .neq('sender_id', userId)
+                .eq('is_deleted', false)
+                .gt('created_at', earliestRead);
+
+            // Count locally per-conversation last_read_at
+            const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
+            (allMessages || []).forEach(msg => {
+                const lastRead = readMap.get(msg.conversation_id);
+                if (lastRead && msg.created_at > lastRead) unreadMessages++;
+            });
         }
 
         return res.json({
