@@ -87,7 +87,8 @@ const sentryOptions = {
   autoInstrumentMiddleware: false,
 };
 
-// Only wrap with Sentry if DSN is configured
-module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
+// Only wrap with Sentry if DSN is configured AND auth token is present
+// TEMP FIX: Bypass Sentry wrapping to diagnose Vercel deployment Internal Error
+module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN
   ? withSentryConfig(nextConfig, sentryWebpackPluginOptions, sentryOptions)
   : nextConfig;
