@@ -219,22 +219,60 @@ export default async function handler(req, res) {
 
         } else if (type === 'merchandise') {
             // Merchandise order - one-time payment
+            // SECURITY: Validate merchandise prices against server-side catalog.
+            // Until a full merchandise_items table exists, enforce sanity checks.
+            const MAX_SINGLE_ITEM_USD = 500;
+            const MAX_ORDER_TOTAL_USD = 2000;
+            const MIN_ITEM_PRICE_USD = 0.50;
+
+            for (const item of items) {
+                if (!item.name || typeof item.name !== 'string' || item.name.length > 200) {
+                    return res.status(400).json({
+                        success: false,
+                        error: { code: 'INVALID_ITEM', message: 'Invalid item name' }
+                    });
+                }
+                const itemPrice = parseFloat(item.price);
+                if (!Number.isFinite(itemPrice) || itemPrice < MIN_ITEM_PRICE_USD || itemPrice > MAX_SINGLE_ITEM_USD) {
+                    return res.status(400).json({
+                        success: false,
+                        error: { code: 'INVALID_PRICE', message: `Item price must be between $${MIN_ITEM_PRICE_USD} and $${MAX_SINGLE_ITEM_USD}` }
+                    });
+                }
+                const qty = parseInt(item.quantity) || 1;
+                if (qty < 1 || qty > 10) {
+                    return res.status(400).json({
+                        success: false,
+                        error: { code: 'INVALID_QUANTITY', message: 'Quantity must be 1-10' }
+                    });
+                }
+            }
+
+            // TODO: When merchandise_items table is created, look up each item by ID
+            // and use server-side prices instead of client-submitted prices.
+            // For now, enforce aggregate sanity limits.
+            const totalUsd = items.reduce((sum, item) => sum + (parseFloat(item.price) * (parseInt(item.quantity) || 1)), 0);
+            if (totalUsd > MAX_ORDER_TOTAL_USD) {
+                return res.status(400).json({
+                    success: false,
+                    error: { code: 'ORDER_TOO_LARGE', message: `Maximum order total is $${MAX_ORDER_TOTAL_USD}` }
+                });
+            }
+
             sessionConfig.line_items = items.map(item => ({
                 price_data: {
                     currency: 'usd',
                     product_data: {
-                        name: item.name,
-                        description: item.description,
-                        images: item.image ? [item.image] : []
+                        name: String(item.name).slice(0, 200),
+                        description: item.description ? String(item.description).slice(0, 500) : undefined,
+                        images: item.image ? [String(item.image).slice(0, 500)] : []
                     },
-                    unit_amount: Math.round(item.price * 100)
+                    unit_amount: Math.round(parseFloat(item.price) * 100)
                 },
-                quantity: item.quantity || 1
+                quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10)
             }));
 
-            // Create pending order record
-            const totalUsd = items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-
+            // Create pending order record (totalUsd already calculated and validated above)
             const { data: order } = await supabase
                 .from('merchandise_orders')
                 .insert({

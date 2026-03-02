@@ -1123,7 +1123,10 @@ class GameController {
     const clubId = t.clubId;
 
     // ── Refund all active/registered entries ──
-    // Players who haven't been eliminated or cancelled get full buy-in back
+    // Players who haven't been eliminated or cancelled get full buy-in back.
+    // IMPORTANT: Registration uses lock_chips_for_table, so refund MUST use
+    // unlock_chips_from_table to clear the chip_lock record properly.
+    // Using fn_credit_chips would leave orphaned lock records and double-count chips.
     let refunded = 0;
     let refundErrors = 0;
     if (this.supabase && clubId) {
@@ -1131,24 +1134,46 @@ class GameController {
         if (e.status === 'cancelled') continue;
         const refundAmount = e.totalInvested || (t.buyinAmount + t.buyinFee);
         if (refundAmount <= 0) continue;
+        const entryClubId = e.clubId || clubId;
+        // Use a synthetic tableId for tournament chip locks (matches registration path)
+        const lockTableId = e.tableId || `tournament_${tournamentId}`;
         try {
-          const { error: creditErr } = await this.supabase.rpc('fn_credit_chips', {
-            p_club_id: e.clubId || clubId,
+          const { error: unlockErr } = await this.supabase.rpc('unlock_chips_from_table', {
+            p_club_id: entryClubId,
             p_user_id: playerId,
+            p_table_id: lockTableId,
             p_amount: refundAmount,
           });
-          if (!creditErr) {
+          if (!unlockErr) {
             await this.supabase.from('chip_transactions').insert({
-              club_id: e.clubId || clubId,
+              club_id: entryClubId,
               to_user_id: playerId,
               amount: refundAmount,
-              transaction_type: 'tournament_payout',
+              transaction_type: 'tournament_refund',
               notes: `Tournament cancelled — full refund (${t.name || tournamentId})`,
             });
             refunded++;
           } else {
-            console.error(`[cancelTournament] Refund failed for ${playerId}:`, creditErr.message);
-            refundErrors++;
+            // Fallback: if unlock fails (e.g., no lock record found), try direct credit
+            console.warn(`[cancelTournament] Unlock failed for ${playerId}, falling back to credit:`, unlockErr.message);
+            const { error: creditErr } = await this.supabase.rpc('fn_credit_chips', {
+              p_club_id: entryClubId,
+              p_user_id: playerId,
+              p_amount: refundAmount,
+            });
+            if (!creditErr) {
+              await this.supabase.from('chip_transactions').insert({
+                club_id: entryClubId,
+                to_user_id: playerId,
+                amount: refundAmount,
+                transaction_type: 'tournament_refund',
+                notes: `Tournament cancelled — full refund via fallback credit (${t.name || tournamentId})`,
+              });
+              refunded++;
+            } else {
+              console.error(`[cancelTournament] Refund failed for ${playerId}:`, creditErr.message);
+              refundErrors++;
+            }
           }
         } catch (err) {
           console.error(`[cancelTournament] Refund error for ${playerId}:`, err.message);
