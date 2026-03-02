@@ -2,14 +2,50 @@
  * NOTIFICATION PROMPT — Push subscription CTA
  * Shows a non-intrusive prompt to enable push notifications
  * - Only appears ONCE per user (60s after first login)
- * - Remembers the choice permanently via localStorage
+ * - Remembers the choice permanently via localStorage + server-side IP tracking
  * - Works across ALL pages: /hub/*, /commander/*, and all other routes
- * - Never reappears after Yes or No is clicked
+ * - Never reappears after Yes or No is clicked, even if cache is cleared
+ * - Server-side tracking by IP ensures persistence across cache clears
  */
 import { useState, useEffect } from 'react';
 import { useOneSignal } from '../../contexts/OneSignalContext';
 
 const PROMPT_KEY = 'push_prompt_responded'; // universal key — shared across all pages/routes
+
+/**
+ * Check server-side if this IP already dismissed the notification prompt.
+ * Returns true if server confirms this IP already responded.
+ * Falls back to false on any error (so prompt shows — better than being stuck).
+ */
+async function checkServerDismissed() {
+    try {
+        const res = await fetch('/api/notifications/prompt-status', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data.dismissed === true;
+    } catch {
+        return false; // Network error → assume not dismissed
+    }
+}
+
+/**
+ * Record on server that this IP responded to the notification prompt.
+ * Fire-and-forget — never blocks the UI.
+ */
+function recordOnServer(action, userId) {
+    try {
+        fetch('/api/notifications/prompt-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, user_id: userId }),
+        }).catch(() => { }); // Silently ignore errors
+    } catch {
+        // Silently ignore
+    }
+}
 
 export default function NotificationPrompt({ userId, onDismiss }) {
     const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = useOneSignal();
@@ -20,7 +56,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
     useEffect(() => {
         if (typeof window === 'undefined' || !userId) return;
 
-        // Check localStorage first — this is the primary persistence mechanism
+        // Check localStorage first — this is the fast/primary client-side mechanism
         const alreadyResponded = localStorage.getItem(PROMPT_KEY);
 
         // If already responded, already subscribed, or permission denied → NEVER show
@@ -30,26 +66,44 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         if (isSubscribed) {
             // User is already subscribed — mark as responded so we never ask again
             localStorage.setItem(PROMPT_KEY, `subscribed_${Date.now()}`);
+            recordOnServer('subscribed', userId); // Also record server-side
             return;
         }
         if (permission === 'denied') {
             // Browser denied — mark as responded so we never ask again
             localStorage.setItem(PROMPT_KEY, `denied_${Date.now()}`);
+            recordOnServer('denied', userId); // Also record server-side
             return;
         }
 
-        // Only show if OneSignal is initialized and user hasn't responded
-        if (isInitialized && !isSubscribed && permission !== 'denied') {
-            // 60 second delay after page load (first login experience)
-            const timer = setTimeout(() => {
-                // Double-check localStorage right before showing (race condition guard)
-                const check = localStorage.getItem(PROMPT_KEY);
-                if (!check) {
-                    setVisible(true);
-                }
-            }, 60000);
-            return () => clearTimeout(timer);
-        }
+        // ─── Server-side IP check (catches cache clears, different browsers same IP) ───
+        checkServerDismissed().then(serverDismissed => {
+            if (serverDismissed) {
+                // Server says this IP already responded — set localStorage to stay in sync
+                localStorage.setItem(PROMPT_KEY, `server_confirmed_${Date.now()}`);
+                return; // Don't show prompt
+            }
+
+            // Only show if OneSignal is initialized and user hasn't responded anywhere
+            if (isInitialized && !isSubscribed && permission !== 'denied') {
+                // 60 second delay after page load (first login experience)
+                const timer = setTimeout(() => {
+                    // Double-check localStorage right before showing (race condition guard)
+                    const check = localStorage.getItem(PROMPT_KEY);
+                    if (!check) {
+                        setVisible(true);
+                    }
+                }, 60000);
+                // Store timer ref for cleanup
+                window.__notifPromptTimer = timer;
+            }
+        });
+
+        return () => {
+            if (window.__notifPromptTimer) {
+                clearTimeout(window.__notifPromptTimer);
+            }
+        };
     }, [isInitialized, isSubscribed, permission, userId]);
 
     // Link user ID when initialized AND we have a playerId - ALWAYS try to link if subscribed
@@ -60,7 +114,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         }
     }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);
 
-    // ─── Persistence: mark as responded in localStorage ───
+    // ─── Persistence: mark as responded in BOTH localStorage AND server ───
     const markResponded = (action) => {
         const value = `${action}_${Date.now()}`;
         try {
@@ -74,6 +128,8 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         } catch (err) {
             console.error('[NotificationPrompt] localStorage error:', err);
         }
+        // Always record server-side as backup (fire-and-forget)
+        recordOnServer(action, userId);
     };
 
     const handleEnable = async () => {
