@@ -7,7 +7,7 @@
  * - Never reappears after Yes or No is clicked, even if cache is cleared
  * - Server-side tracking by IP ensures persistence across cache clears
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useOneSignal } from '../../contexts/OneSignalContext';
 
 const PROMPT_KEY = 'push_prompt_responded'; // universal key — shared across all pages/routes
@@ -51,13 +51,32 @@ export default function NotificationPrompt({ userId, onDismiss }) {
     const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = useOneSignal();
     const [visible, setVisible] = useState(false);
     const [loading, setLoading] = useState(false);
+    const mountedRef = useRef(true);    // Track if component is still mounted
+    const timerRef = useRef(null);       // Timer ref (not global window)
+
+    // ─── Cleanup on unmount ───
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+        };
+    }, []);
 
     // ─── Guard: Check IMMEDIATELY on mount if user already responded ───
     useEffect(() => {
         if (typeof window === 'undefined' || !userId) return;
 
         // Check localStorage first — this is the fast/primary client-side mechanism
-        const alreadyResponded = localStorage.getItem(PROMPT_KEY);
+        let alreadyResponded = false;
+        try {
+            alreadyResponded = !!localStorage.getItem(PROMPT_KEY);
+        } catch {
+            // localStorage may be disabled (incognito on some browsers)
+        }
 
         // If already responded, already subscribed, or permission denied → NEVER show
         if (alreadyResponded) {
@@ -65,43 +84,55 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         }
         if (isSubscribed) {
             // User is already subscribed — mark as responded so we never ask again
-            localStorage.setItem(PROMPT_KEY, `subscribed_${Date.now()}`);
-            recordOnServer('subscribed', userId); // Also record server-side
+            safeSetStorage(`subscribed_${Date.now()}`);
+            recordOnServer('subscribed', userId);
             return;
         }
         if (permission === 'denied') {
             // Browser denied — mark as responded so we never ask again
-            localStorage.setItem(PROMPT_KEY, `denied_${Date.now()}`);
-            recordOnServer('denied', userId); // Also record server-side
+            safeSetStorage(`denied_${Date.now()}`);
+            recordOnServer('denied', userId);
             return;
         }
 
         // ─── Server-side IP check (catches cache clears, different browsers same IP) ───
+        // Capture current values to avoid stale closure issues
+        const capturedIsInit = isInitialized;
+        const capturedIsSub = isSubscribed;
+        const capturedPerm = permission;
+
         checkServerDismissed().then(serverDismissed => {
+            // Guard: component may have unmounted during the async call
+            if (!mountedRef.current) return;
+
             if (serverDismissed) {
                 // Server says this IP already responded — set localStorage to stay in sync
-                localStorage.setItem(PROMPT_KEY, `server_confirmed_${Date.now()}`);
+                safeSetStorage(`server_confirmed_${Date.now()}`);
                 return; // Don't show prompt
             }
 
             // Only show if OneSignal is initialized and user hasn't responded anywhere
-            if (isInitialized && !isSubscribed && permission !== 'denied') {
+            if (capturedIsInit && !capturedIsSub && capturedPerm !== 'denied') {
                 // 60 second delay after page load (first login experience)
-                const timer = setTimeout(() => {
-                    // Double-check localStorage right before showing (race condition guard)
-                    const check = localStorage.getItem(PROMPT_KEY);
-                    if (!check) {
-                        setVisible(true);
+                timerRef.current = setTimeout(() => {
+                    // Guard: check mounted + localStorage before showing
+                    if (!mountedRef.current) return;
+                    try {
+                        const check = localStorage.getItem(PROMPT_KEY);
+                        if (!check) {
+                            setVisible(true);
+                        }
+                    } catch {
+                        // localStorage disabled — don't show (can't persist choice)
                     }
                 }, 60000);
-                // Store timer ref for cleanup
-                window.__notifPromptTimer = timer;
             }
         });
 
         return () => {
-            if (window.__notifPromptTimer) {
-                clearTimeout(window.__notifPromptTimer);
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
             }
         };
     }, [isInitialized, isSubscribed, permission, userId]);
@@ -114,9 +145,8 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         }
     }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);
 
-    // ─── Persistence: mark as responded in BOTH localStorage AND server ───
-    const markResponded = (action) => {
-        const value = `${action}_${Date.now()}`;
+    // ─── Safe localStorage write (handles disabled/full/quota errors) ───
+    const safeSetStorage = useCallback((value) => {
         try {
             localStorage.setItem(PROMPT_KEY, value);
             // Verify the write succeeded
@@ -128,11 +158,17 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         } catch (err) {
             console.error('[NotificationPrompt] localStorage error:', err);
         }
+    }, []);
+
+    // ─── Persistence: mark as responded in BOTH localStorage AND server ───
+    const markResponded = useCallback((action) => {
+        const value = `${action}_${Date.now()}`;
+        safeSetStorage(value);
         // Always record server-side as backup (fire-and-forget)
         recordOnServer(action, userId);
-    };
+    }, [userId, safeSetStorage]);
 
-    const handleEnable = async () => {
+    const handleEnable = useCallback(async () => {
         setLoading(true);
         markResponded('yes'); // Mark FIRST, before async operations
         setVisible(false);   // Hide immediately
@@ -144,14 +180,14 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         } catch (error) {
             console.error('Failed to enable notifications:', error);
         }
-        setLoading(false);
-    };
+        if (mountedRef.current) setLoading(false);
+    }, [markResponded, subscribe, userId, setExternalUserId]);
 
-    const handleDismiss = () => {
+    const handleDismiss = useCallback(() => {
         markResponded('no');
         setVisible(false);
         onDismiss?.();
-    };
+    }, [markResponded, onDismiss]);
 
     if (!visible) return null;
 

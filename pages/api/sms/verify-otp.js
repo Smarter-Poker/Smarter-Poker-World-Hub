@@ -128,10 +128,58 @@ export default async function handler(req, res) {
 
         console.log('[verify-otp] Phone verified:', cleanPhone);
 
+        // ── Persist verification to profile + grant VIP ──────────────────
+        const { userId } = req.body;
+        let vipGranted = false;
+
+        if (userId) {
+            try {
+                const now = new Date();
+                const vipExpires = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
+
+                // Update profile: phone, phone_verified, and 90-day VIP
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        phone: cleanPhone,
+                        phone_verified: true,
+                        is_vip: true,
+                        vip_expires_at: vipExpires.toISOString(),
+                    })
+                    .eq('id', userId);
+
+                if (updateError) {
+                    console.error('[verify-otp] Profile update error:', updateError);
+                } else {
+                    vipGranted = true;
+                    console.log(`[verify-otp] 🎉 90-day VIP granted to ${userId} for verifying ${cleanPhone}`);
+
+                    // Log the VIP grant as a diamond transaction
+                    await supabase
+                        .from('diamond_transactions')
+                        .insert({
+                            user_id: userId,
+                            amount: 0,
+                            transaction_type: 'bonus',
+                            description: 'VIP Card Activated — 90-day FREE VIP for Phone Verification! 📱',
+                            metadata: {
+                                source: 'phone_verification_vip',
+                                phone: cleanPhone,
+                                vip_expires_at: vipExpires.toISOString(),
+                            },
+                            balance_after: 0, // We don't adjust diamonds here
+                        });
+                }
+            } catch (profileErr) {
+                console.error('[verify-otp] Profile/VIP update error (non-blocking):', profileErr);
+            }
+        }
+
         return res.status(200).json({
             success: true,
             message: 'Phone number verified successfully',
-            verified: true
+            verified: true,
+            vipGranted,
         });
 
     } catch (error) {

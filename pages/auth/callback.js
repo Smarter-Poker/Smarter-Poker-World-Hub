@@ -251,10 +251,12 @@ export default function AuthCallback() {
                 const isCommanderOrigin = localStorage.getItem('commander_login_origin') === 'true';
                 if (isCommanderOrigin) {
                     localStorage.removeItem('commander_login_origin');
+                    sessionStorage.setItem('needs_phone_verify', user.id);
                     setTimeout(() => router.replace('/commander/dashboard'), 1500);
                 } else {
-                    // Redirect to hub with intro
+                    // Redirect to hub with intro + phone verification prompt
                     sessionStorage.setItem('just_authenticated', 'true');
+                    sessionStorage.setItem('needs_phone_verify', user.id);
                     setTimeout(() => router.replace('/hub'), 1500);
                 }
 

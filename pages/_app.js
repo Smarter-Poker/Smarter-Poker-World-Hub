@@ -93,6 +93,12 @@ const DiamondToast = dynamic(
   { ssr: false }
 );
 
+// Dynamic import for Phone Verification VIP Modal
+const PhoneVerifyVIPModal = dynamic(
+  () => import('../src/components/modals/PhoneVerifyVIPModal'),
+  { ssr: false }
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION GUARD — Prevents loading freeze when pressing back button
 // Uses SYNCHRONOUS DOM manipulation for instant hiding (no React state delay)
@@ -264,6 +270,48 @@ function NavigationGuard({ children }) {
  * 
  * If any requirement fails → fail-closed → SystemOffline screen
  */
+// ═══════════════════════════════════════════════════════════════════════════
+// PHONE VERIFY VIP GATE — Shows phone verification popup for new signups
+// Checks sessionStorage for `needs_phone_verify` flag set by auth callback
+// ═══════════════════════════════════════════════════════════════════════════
+function PhoneVerifyGate() {
+  const [showPhoneVerify, setShowPhoneVerify] = useState(false);
+  const [verifyUserId, setVerifyUserId] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check on route change or mount — slight delay to let page settle
+    const timer = setTimeout(() => {
+      const userId = sessionStorage.getItem('needs_phone_verify');
+      if (userId && userId.length > 10) {
+        // Only show on hub or commander pages, not auth pages
+        const path = router.asPath;
+        if (path.startsWith('/hub') || path.startsWith('/commander/dashboard')) {
+          setVerifyUserId(userId);
+          setShowPhoneVerify(true);
+        }
+      }
+    }, 2000); // 2s delay so the user sees the page first
+    return () => clearTimeout(timer);
+  }, [router.asPath]);
+
+  if (!showPhoneVerify || !verifyUserId) return null;
+
+  return (
+    <PhoneVerifyVIPModal
+      userId={verifyUserId}
+      onClose={() => {
+        setShowPhoneVerify(false);
+        sessionStorage.removeItem('needs_phone_verify');
+      }}
+      onVerified={() => {
+        setShowPhoneVerify(false);
+        sessionStorage.removeItem('needs_phone_verify');
+      }}
+    />
+  );
+}
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
@@ -308,6 +356,7 @@ export default function App({ Component, pageProps }) {
                           <DiamondToast />
                           <ToastContainer />
                           <GlobalNotificationPrompt />
+                          <PhoneVerifyGate />
                           <ProactiveHelp
                             onAccept={() => {
                               // Open Jarvis when user accepts help
