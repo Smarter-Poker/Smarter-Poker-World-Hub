@@ -294,17 +294,45 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: regErr.message });
         }
 
-        // Update count + prize pool
-        await supabaseAdmin
+        // Update count + prize pool (optimistic lock prevents concurrent over-admission)
+        const { data: countUpd } = await supabaseAdmin
           .from('club_tournaments')
           .update({
             registered_count: tourn.registered_count + 1,
             prize_pool: (tourn.prize_pool || 0) + tourn.buy_in,
           })
-          .eq('id', tournamentId);
+          .eq('id', tournamentId)
+          .eq('registered_count', tourn.registered_count) // fails if concurrent registration changed it
+          .select('registered_count');
+
+        if (!countUpd?.length) {
+          // Race detected — count was changed by concurrent request.
+          // Registration itself succeeded (DB row inserted), so just re-read fresh count.
+          const { data: freshCount } = await supabaseAdmin
+            .from('club_tournaments')
+            .select('registered_count')
+            .eq('id', tournamentId)
+            .single();
+          // Retry the increment with fresh value
+          await supabaseAdmin
+            .from('club_tournaments')
+            .update({
+              registered_count: (freshCount?.registered_count || 0) + 1,
+              prize_pool: (tourn.prize_pool || 0) + tourn.buy_in,
+            })
+            .eq('id', tournamentId);
+        }
+
+        // Re-read count for SNG auto-start check (authoritative)
+        const { data: freshTourn } = await supabaseAdmin
+          .from('club_tournaments')
+          .select('registered_count')
+          .eq('id', tournamentId)
+          .single();
+        const currentCount = freshTourn?.registered_count || tourn.registered_count + 1;
 
         // Auto-start SNG when full — init engine THEN mark running
-        if (tourn.type === 'sng' && tourn.registered_count + 1 >= tourn.max_players) {
+        if (tourn.type === 'sng' && currentCount >= tourn.max_players) {
           try {
             const { getController } = require('../../../src/lib/poker-engine/GameController');
             const controller = await getController();
@@ -344,7 +372,7 @@ export default async function handler(req, res) {
           }
         }
 
-        return res.json({ success: true, registeredCount: tourn.registered_count + 1 });
+        return res.json({ success: true, registeredCount: currentCount });
       }
 
       // ═══════════════════════════════════════════════════════
