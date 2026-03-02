@@ -535,7 +535,7 @@ export default async function handler(req, res) {
 
       const { data: targetMember } = await supabaseAdmin
         .from('club_members')
-        .select('user_id, role')
+        .select('user_id, role, chip_balance')
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
         .single();
@@ -548,6 +548,35 @@ export default async function handler(req, res) {
       // Only owner can remove admins
       if (targetMember.role === 'admin' && club.owner_id !== user.id) {
         return res.status(403).json({ error: 'Only the club owner can remove admins' });
+      }
+
+      // Prevent removing members with chip balance — return chips to treasury first
+      const balance = targetMember.chip_balance || 0;
+      if (balance > 0) {
+        if (!params.forceReturn) {
+          return res.status(400).json({
+            error: `Member has ${balance.toLocaleString()} chips remaining. Set forceReturn:true to return chips to treasury and remove.`,
+            chip_balance: balance,
+          });
+        }
+        // Return chips to club treasury atomically
+        await supabaseAdmin.rpc('fn_debit_chips', {
+          p_club_id: clubId,
+          p_user_id: targetUserId,
+          p_amount: balance,
+        });
+        await supabaseAdmin.rpc('fn_credit_treasury', {
+          p_club_id: clubId,
+          p_amount: balance,
+        });
+        await supabaseAdmin.from('chip_transactions').insert({
+          club_id: clubId,
+          from_user_id: targetUserId,
+          to_user_id: null,
+          amount: balance,
+          transaction_type: 'withdrawal',
+          notes: `Member removed — ${balance.toLocaleString()} chips returned to club treasury`,
+        });
       }
 
       // If removing an agent, clear downline + deactivate agent record
@@ -791,6 +820,21 @@ export default async function handler(req, res) {
         .single();
 
       if (!targetAgent) return res.status(404).json({ error: 'Agent not found' });
+
+      // If caller is agent (not owner/union admin), they can only update their own sub-agents
+      if (club.owner_id !== user.id) {
+        const { data: callerAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('club_id', clubId)
+          .eq('status', 'active')
+          .single();
+
+        if (callerAgent && targetAgent.parent_agent_id !== callerAgent.id) {
+          return res.status(403).json({ error: 'You can only update commission for your own sub-agents' });
+        }
+      }
 
       // If sub-agent, new rate must be less than parent
       if (targetAgent.parent_agent_id) {
