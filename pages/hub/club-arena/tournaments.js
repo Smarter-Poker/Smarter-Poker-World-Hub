@@ -20,12 +20,15 @@ const STATUS_COLORS = {
   paused: '#eab308', final_table: '#9333ea', complete: '#6b7280', cancelled: '#dc2626',
 };
 
-function api(action, params) {
+// BUG #148 FIX: supabase.auth.session?.() is v1 API — returns undefined in v2.
+// Migrated to async getSession() so tournament API calls include a valid token.
+async function api(action, params) {
+  const { data: { session } } = await supabase.auth.getSession();
   return fetch('/api/club-arena/tournaments', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabase.auth.session?.()?.access_token || ''}`,
+      ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
     },
     body: JSON.stringify({ action, ...params }),
   }).then(r => r.json());
@@ -425,8 +428,12 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
     if (['running', 'late_reg'].includes(t.status)) {
       const poll = async () => {
         try {
+          const { data: { session: pollSession } } = await supabase.auth.getSession();
           const res = await fetch('/api/poker/engine/tournament', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: {
+              'Content-Type': 'application/json',
+              ...(pollSession?.access_token ? { Authorization: `Bearer ${pollSession.access_token}` } : {}),
+            },
             body: JSON.stringify({ action: 'state', tournamentId: t.id }),
           });
           const d = await res.json();
@@ -442,8 +449,12 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
   // Find user's assigned table
   const goToTable = async () => {
     try {
+      const { data: { session: goSession } } = await supabase.auth.getSession();
       const res = await fetch('/api/poker/engine/tournament', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: {
+          'Content-Type': 'application/json',
+          ...(goSession?.access_token ? { Authorization: `Bearer ${goSession.access_token}` } : {}),
+        },
         body: JSON.stringify({ action: 'state', tournamentId: t.id }),
       });
       const d = await res.json();

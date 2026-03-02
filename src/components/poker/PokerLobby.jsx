@@ -452,9 +452,14 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
   const handleCreateTable = useCallback(async (config) => {
     setShowCreate(false);
     try {
+      // BUG #149 FIX: Server requires Bearer auth via authenticatePlayer()
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/poker/create-live-table', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ ...config, userId }),
       });
       const data = await res.json();

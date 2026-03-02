@@ -33,16 +33,26 @@ const COLOR_LABELS = [
   { value: 'purple', color: '#9c27b0', label: 'Purple' },
 ];
 
-async function apiPost(url, body) {
+async function apiPost(url, body, supabase) {
+  let headers = { 'Content-Type': 'application/json' };
+  // BUG #147 FIX: Include auth token — server requires Bearer auth
+  if (supabase) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    } catch (_) {}
+  }
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   });
   return res.json();
 }
 
-export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer }) {
+export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer, supabase }) {
   const [note, setNote] = useState({
     player_type: 'unknown',
     color_label: 'none',
@@ -62,9 +72,8 @@ export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer 
     setSaved(false);
     apiPost('/api/club-arena/player-notes', {
       action: 'get',
-      userId,
       targetUserId: targetPlayer.id,
-    }).then(r => {
+    }, supabase).then(r => {
       if (r.note) {
         setNote({
           player_type: r.note.player_type || 'unknown',
@@ -90,10 +99,9 @@ export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer 
     try {
       await apiPost('/api/club-arena/player-notes', {
         action: 'upsert',
-        userId,
         targetUserId: targetPlayer.id,
         note,
-      });
+      }, supabase);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
@@ -106,10 +114,10 @@ export default function PlayerNoteModal({ isOpen, onClose, userId, targetPlayer 
   const handleDelete = useCallback(async () => {
     if (!userId || !targetPlayer?.id) return;
     await apiPost('/api/club-arena/player-notes', {
-      action: 'delete', userId, targetUserId: targetPlayer.id,
-    });
+      action: 'delete', targetUserId: targetPlayer.id,
+    }, supabase);
     onClose();
-  }, [userId, targetPlayer?.id, onClose]);
+  }, [userId, targetPlayer?.id, onClose, supabase]);
 
   if (!isOpen || !targetPlayer) return null;
 

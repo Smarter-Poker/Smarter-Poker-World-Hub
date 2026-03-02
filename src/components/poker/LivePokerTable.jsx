@@ -2279,15 +2279,21 @@ export default function LivePokerTable({
       .map(s => s.player.id);
     if (opponentIds.length === 0) return;
 
-    fetch('/api/club-arena/player-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'get_bulk', userId, targetUserIds: opponentIds }),
-    })
-      .then(r => r.json())
-      .then(r => { if (r.notes) setPlayerNotes(r.notes); })
-      .catch(() => { });
-  }, [userId, seats?.map(s => s.player?.id).join(',')]);
+    // BUG #147 FIX: Include auth token — server requires Bearer auth
+    supabase.auth.getSession().then(({ data: { session: noteSession } }) => {
+      fetch('/api/club-arena/player-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(noteSession?.access_token ? { Authorization: `Bearer ${noteSession.access_token}` } : {}),
+        },
+        body: JSON.stringify({ action: 'get_bulk', targetUserIds: opponentIds }),
+      })
+        .then(r => r.json())
+        .then(r => { if (r.notes) setPlayerNotes(r.notes); })
+        .catch(() => { });
+    }).catch(() => { });
+  }, [userId, supabase, seats?.map(s => s.player?.id).join(',')]);
 
   // Fetch club chip balance when buy-in dialog opens
   useEffect(() => {
@@ -3242,15 +3248,21 @@ export default function LivePokerTable({
           if (userId && seats?.length) {
             const opIds = seats.filter(s => s.player?.id && String(s.player.id) !== String(userId)).map(s => s.player.id);
             if (opIds.length) {
-              fetch('/api/club-arena/player-notes', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_bulk', userId, targetUserIds: opIds }),
-              }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => { });
+              supabase.auth.getSession().then(({ data: { session: noteSession } }) => {
+                fetch('/api/club-arena/player-notes', {
+                  method: 'POST', headers: {
+                    'Content-Type': 'application/json',
+                    ...(noteSession?.access_token ? { Authorization: `Bearer ${noteSession.access_token}` } : {}),
+                  },
+                  body: JSON.stringify({ action: 'get_bulk', targetUserIds: opIds }),
+                }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => { });
+              }).catch(() => { });
             }
           }
         }}
         userId={userId}
         targetPlayer={noteTarget}
+        supabase={supabase}
       />
     </div>
   );
