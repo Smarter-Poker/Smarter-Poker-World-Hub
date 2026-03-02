@@ -1497,10 +1497,15 @@ export default function TableTabletsPage() {
                                     if (shotClockRef.current) clearInterval(shotClockRef.current);
                                     shotClockRef.current = setInterval(() => {
                                         setShotClockSeconds(p => {
+                                            if (p <= 0) return p; // Already expired, waiting for reset timeout
                                             if (p <= 1) {
-                                                // Auto-reset at 0: brief flash then restart
-                                                shotClockVoiceFired.current = false;
-                                                return 0; // Will be caught by the effect below
+                                                // Hit zero — schedule auto-reset after brief flash
+                                                const dur = scDuration;
+                                                setTimeout(() => {
+                                                    shotClockVoiceFired.current = false;
+                                                    setShotClockSeconds(dur);
+                                                }, 1500);
+                                                return 0;
                                             }
                                             // Voice announcement at 5 seconds
                                             if (p === 6 && !shotClockVoiceFired.current) {
@@ -1628,14 +1633,6 @@ export default function TableTabletsPage() {
                         const radius = 110;
                         const circumference = 2 * Math.PI * radius;
                         const dashOffset = circumference * (1 - pct);
-
-                        // Auto-reset after hitting 0
-                        if (isExpired) {
-                            setTimeout(() => {
-                                shotClockVoiceFired.current = false;
-                                setShotClockSeconds(scDuration);
-                            }, 1500);
-                        }
 
                         if (shotClockCollapsed) {
                             // Collapsed: small floating badge
