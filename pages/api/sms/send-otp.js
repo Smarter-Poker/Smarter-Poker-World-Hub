@@ -95,8 +95,8 @@ export default async function handler(req, res) {
             .delete()
             .eq('phone', cleanPhone);
 
-        // ── Generate & store new 6-digit OTP ─────────────────────────────
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // ── Generate & store new 4-digit OTP ─────────────────────────────
+        const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
 
         const { error: insertError } = await supabase
             .from('sms_otp_codes')
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
         const client = twilio(accountSid, authToken);
 
         const message = await client.messages.create({
-            body: `Your Smarter.Poker verification code is: ${otpCode}. This code expires in 10 minutes.`,
+            body: `Your Smarter.Poker code is: ${otpCode}. Expires in 10 min.`,
             from: twilioPhone,
             to: cleanPhone
         });

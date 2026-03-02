@@ -14,7 +14,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
     const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'success'
     const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [otp, setOtp] = useState(['', '', '', '']);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [countdown, setCountdown] = useState(0);
@@ -64,7 +64,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
             setStep('otp');
             setCountdown(60);
             // Reset OTP fields for fresh entry
-            setOtp(['', '', '', '', '', '']);
+            setOtp(['', '', '', '']);
             verifyingRef.current = false;
             setTimeout(() => otpRefs.current[0]?.focus(), 100);
         } catch (err) {
@@ -81,7 +81,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         newOtp[index] = value.slice(-1);
         setOtp(newOtp);
         setError('');
-        if (value && index < 5) {
+        if (value && index < 3) {
             otpRefs.current[index + 1]?.focus();
         }
     };
@@ -94,10 +94,10 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
 
     const handleOtpPaste = (e) => {
         e.preventDefault();
-        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-        if (pasted.length === 6) {
+        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+        if (pasted.length === 4) {
             setOtp(pasted.split(''));
-            otpRefs.current[5]?.focus();
+            otpRefs.current[3]?.focus();
         }
     };
 
@@ -107,8 +107,8 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         if (verifyingRef.current) return;
 
         const code = otp.join('');
-        if (code.length !== 6) {
-            setError('Please Enter The Full 6-Digit Code');
+        if (code.length !== 4) {
+            setError('Please Enter The Full 4-Digit Code');
             return;
         }
 
@@ -385,7 +385,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <button
-                                onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); verifyingRef.current = false; }}
+                                onClick={() => { setStep('phone'); setOtp(['', '', '', '']); setError(''); verifyingRef.current = false; }}
                                 style={{
                                     background: 'none', border: 'none',
                                     color: '#00D4FF', fontSize: '13px', cursor: 'pointer',
