@@ -320,6 +320,46 @@ export default async function handler(req, res) {
       const agentUpdates = {};
 
       if (commissionRate !== undefined) {
+        // ── BUG #146 FIX: Validate commission rate (same rules as update_commission) ──
+        // Without this, the generic 'update' action bypasses range checks,
+        // sub-agent hierarchy rules, and rakeback ceiling enforcement.
+        if (typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
+          return res.status(400).json({ error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
+        }
+
+        // If this agent has a parent, new rate must be less than parent's
+        const { data: tgtAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id, parent_agent_id, rakeback_percentage')
+          .eq('user_id', targetUserId)
+          .eq('club_id', clubId)
+          .single();
+
+        if (tgtAgent?.parent_agent_id) {
+          const { data: parentAg } = await supabaseAdmin.from('agents').select('commission_rate').eq('id', tgtAgent.parent_agent_id).single();
+          if (parentAg && commissionRate >= parentAg.commission_rate) {
+            return res.status(400).json({ error: 'Sub-agent rate must be less than parent rate', parent_rate: parentAg.commission_rate });
+          }
+        }
+
+        // Check sub-agents below won't be violated
+        if (tgtAgent) {
+          const { data: subAgents } = await supabaseAdmin.from('agents').select('user_id, commission_rate').eq('club_id', clubId).eq('parent_agent_id', tgtAgent.id);
+          for (const sub of (subAgents || [])) {
+            if (sub.commission_rate >= commissionRate) {
+              return res.status(400).json({ error: `Cannot lower below sub-agent ${sub.user_id} at ${(sub.commission_rate * 100).toFixed(1)}%` });
+            }
+          }
+
+          // Check rakeback ceiling
+          if ((tgtAgent.rakeback_percentage || 0) > 0) {
+            const maxRb = commissionRate - 0.10;
+            if (tgtAgent.rakeback_percentage > maxRb) {
+              return res.status(400).json({ error: `Current rakeback (${(tgtAgent.rakeback_percentage * 100).toFixed(1)}%) exceeds new max (${(maxRb * 100).toFixed(1)}%). Lower rakeback first.` });
+            }
+          }
+        }
+
         agentUpdates.commission_rate = commissionRate;
       }
       if (tier !== undefined) updates.tier = tier;
