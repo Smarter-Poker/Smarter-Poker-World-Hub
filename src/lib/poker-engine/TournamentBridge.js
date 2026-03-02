@@ -22,6 +22,7 @@
 const { RealtimeSync } = require('./RealtimeSync');
 const { HandHistoryRecorder } = require('./HandHistory');
 const { ActionTimer } = require('./ActionTimer');
+const ChipBridge = require('./ChipBridge');
 
 class TournamentBridge {
   /**
@@ -70,6 +71,46 @@ class TournamentBridge {
     t.on('tournament_complete', async (data) => {
       await this._persistState('complete', data);
       this._broadcastTournament('tournament_complete', data);
+
+      // ── CRITICAL: Credit tournament payouts to player chip balances ──
+      // Primary path: TournamentController.ledger.creditWinnings() runs BEFORE this event
+      // Fallback path: Direct RPC credit here ONLY if ledger was not wired
+      const ledgerHandled = !!t.ledger;
+      if (!ledgerHandled && this.supabase && data.payouts?.length > 0) {
+        const clubId = t.clubId;
+        for (const payout of data.payouts) {
+          if (payout.amount > 0 && payout.playerId) {
+            const targetClubId = payout.clubId || clubId;
+            if (!targetClubId) continue;
+            try {
+              // Credit chips via atomic RPC
+              const { error: creditErr } = await this.supabase.rpc('fn_credit_chips', {
+                p_club_id: targetClubId,
+                p_user_id: payout.playerId,
+                p_amount: payout.amount,
+              });
+
+              if (!creditErr) {
+                // Record transaction
+                await this.supabase.from('chip_transactions').insert({
+                  club_id: targetClubId,
+                  to_user_id: payout.playerId,
+                  amount: payout.amount,
+                  transaction_type: 'tournament_payout',
+                  notes: `Tournament payout: ${payout.place}${payout.place === 1 ? 'st' : payout.place === 2 ? 'nd' : payout.place === 3 ? 'rd' : 'th'} place — ${t.name || t.tournamentId}`,
+                });
+
+                console.log(`[TournamentBridge] Credited ${payout.amount} chips to ${payout.playerId} (${payout.place} place)`);
+              } else {
+                console.error(`[TournamentBridge] Payout credit failed for ${payout.playerId}:`, creditErr.message);
+              }
+            } catch (err) {
+              console.error(`[TournamentBridge] Payout error for ${payout.playerId}:`, err.message);
+            }
+          }
+        }
+      }
+
       // Cleanup all tables after a delay
       setTimeout(() => this._cleanupAll(), 30000);
     });

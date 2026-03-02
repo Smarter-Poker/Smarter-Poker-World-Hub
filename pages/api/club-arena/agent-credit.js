@@ -130,7 +130,14 @@ export default async function handler(req, res) {
         p_user_id: agentUserId,
         p_amount: amount,
       });
-      if (creditErr) throw creditErr;
+      if (creditErr) {
+        // ROLLBACK: re-credit treasury since agent didn't receive chips
+        await supabaseAdmin.rpc('fn_credit_treasury', {
+          p_club_id: clubId,
+          p_amount: amount,
+        }).catch(rbErr => console.error('[agent-credit] Treasury rollback failed:', rbErr.message));
+        throw creditErr;
+      }
 
       // Update agents table with optimistic lock
       const oldBal = agentRecord.business_balance || 0;

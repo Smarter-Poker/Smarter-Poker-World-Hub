@@ -35,6 +35,7 @@ const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS } = require('./
 const { TournamentBridge } = require('./TournamentBridge');
 const { AntiCheat } = require('./AntiCheat');
 const { AntiCheatMonitor } = require('./AntiCheatMonitor');
+const { ClubLedger } = require('./ClubLedger');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -121,6 +122,7 @@ class GameController {
   constructor() {
     this.supabase = null;
     this.lobby = null;
+    this.ledger = null;
     this.antiCheat = null;
     this.antiCheatMonitor = null;
     this.initialized = false;
@@ -159,6 +161,9 @@ class GameController {
 
     // Create LobbyManager
     this.lobby = new LobbyManager({ supabase: this.supabase });
+
+    // Create ClubLedger for tournament chip operations (payouts, rebuys, addons, bounties)
+    this.ledger = new ClubLedger({ supabase: this.supabase });
 
     // Initialize lobby channel (broadcasts table list to /hub/poker/lobby)
     await this.lobby.initialize();
@@ -901,6 +906,8 @@ class GameController {
       breakSchedule,
       // Bounty config
       bountyType, bountyAmount, mysteryThreshold, mysteryTiers,
+      // Club chip ledger — handles payouts, rebuys, addons, bounty credits
+      ledger: this.ledger,
     });
 
     const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
@@ -910,11 +917,11 @@ class GameController {
     return { success: true, tournamentId };
   }
 
-  async registerForTournament(tournamentId, playerId, playerName) {
+  async registerForTournament(tournamentId, playerId, playerName, options = {}) {
     await this._ensureInit();
     const entry = this._tournaments.get(tournamentId);
     if (!entry) return { success: false, error: 'Tournament not found' };
-    return entry.controller.registerPlayer(playerId, playerName);
+    return entry.controller.registerPlayer(playerId, playerName, options);
   }
 
   async unregisterFromTournament(tournamentId, playerId) {
@@ -963,9 +970,53 @@ class GameController {
     await this._ensureInit();
     const entry = this._tournaments.get(tournamentId);
     if (!entry) return { success: false, error: 'Tournament not found' };
+
+    const t = entry.controller;
+    const clubId = t.clubId;
+
+    // ── Refund all active/registered entries ──
+    // Players who haven't been eliminated or cancelled get full buy-in back
+    let refunded = 0;
+    let refundErrors = 0;
+    if (this.supabase && clubId) {
+      for (const [playerId, e] of t.entries) {
+        if (e.status === 'cancelled') continue;
+        const refundAmount = e.totalInvested || (t.buyinAmount + t.buyinFee);
+        if (refundAmount <= 0) continue;
+        try {
+          const { error: creditErr } = await this.supabase.rpc('fn_credit_chips', {
+            p_club_id: e.clubId || clubId,
+            p_user_id: playerId,
+            p_amount: refundAmount,
+          });
+          if (!creditErr) {
+            await this.supabase.from('chip_transactions').insert({
+              club_id: e.clubId || clubId,
+              to_user_id: playerId,
+              amount: refundAmount,
+              transaction_type: 'tournament_payout',
+              notes: `Tournament cancelled — full refund (${t.name || tournamentId})`,
+            });
+            refunded++;
+          } else {
+            console.error(`[cancelTournament] Refund failed for ${playerId}:`, creditErr.message);
+            refundErrors++;
+          }
+        } catch (err) {
+          console.error(`[cancelTournament] Refund error for ${playerId}:`, err.message);
+          refundErrors++;
+        }
+      }
+    }
+
+    // Persist cancelled status
+    t.status = 'cancelled';
+    t.emit('tournament_cancelled', { tournamentId, refunded, refundErrors });
+
     entry.bridge.destroy();
     this._tournaments.delete(tournamentId);
-    return { success: true };
+    console.log(`[GameController] Tournament ${tournamentId} cancelled — ${refunded} refunds issued`);
+    return { success: true, refunded, refundErrors };
   }
 
   // ═══════════════════════════════════════════════════════════════════

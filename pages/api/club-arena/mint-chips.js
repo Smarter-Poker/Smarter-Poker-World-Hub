@@ -6,6 +6,7 @@
  * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
@@ -29,6 +30,10 @@ export default async function handler(req, res) {
 
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/mint-chips')) return;
+
+  // Settlement lock check
+  const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+  if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
   try {
     // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging

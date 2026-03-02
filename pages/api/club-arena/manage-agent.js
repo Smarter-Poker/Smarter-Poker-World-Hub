@@ -13,6 +13,7 @@
  * Auth: Bearer token (club owner or union admin)
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,6 +31,13 @@ export default async function handler(req, res) {
 
   const { clubId, action, targetUserId, ...params } = req.body;
   if (!clubId || !action) return res.status(400).json({ error: 'clubId and action required' });
+
+  // Settlement lock — block chip-moving actions during settlement window
+  const chipMovingActions = ['remove', 'promote', 'demote'];
+  if (chipMovingActions.includes(action)) {
+    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+  }
 
   try {
     // Verify authorization

@@ -4,6 +4,7 @@
  * Auth: Bearer token (any club member)
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,6 +22,10 @@ export default async function handler(req, res) {
 
     const { clubId, itemId } = req.body;
     if (!clubId || !itemId) return res.status(400).json({ error: 'clubId and itemId required' });
+
+    // Settlement lock check
+    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
     try {
         // Get member

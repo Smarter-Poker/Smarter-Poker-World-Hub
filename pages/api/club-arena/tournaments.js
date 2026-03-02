@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,6 +22,13 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ error: 'Not authenticated' });
 
     const { action, ...params } = req.body;
+
+    // Settlement lock — block chip-moving actions during settlement window
+    const chipActions = ['register', 'unregister', 'cancel'];
+    if (chipActions.includes(action) && params.clubId) {
+      const lockCheck = await checkSettlementLock(supabaseAdmin, params.clubId);
+      if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+    }
 
     switch (action) {
       // ═══════════════════════════════════════════════════════
@@ -320,7 +328,7 @@ export default async function handler(req, res) {
 
             if (sngCreate.success) {
               for (const reg of (sngRegs || [])) {
-                await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player');
+                await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player', { chipsAlreadyLocked: true });
               }
               await controller.startTournament(tournamentId);
               await supabaseAdmin
@@ -451,9 +459,9 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Engine failed to create tournament: ' + (createResult.error || 'unknown') });
           }
 
-          // Register all players in engine
+          // Register all players in engine (chips already locked at registration time)
           for (const reg of (registrations || [])) {
-            await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player');
+            await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player', { chipsAlreadyLocked: true });
           }
 
           // Start the engine tournament

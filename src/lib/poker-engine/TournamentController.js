@@ -452,7 +452,8 @@ class TournamentController extends EventEmitter {
     const playerClubId = options.clubId || this.clubId;
 
     // Ledger: deduct buy-in from club balance
-    if (this.ledger && playerClubId) {
+    // Skip if chips were already locked at the API level (e.g. club-arena/tournaments register action)
+    if (this.ledger && playerClubId && !options.chipsAlreadyLocked) {
       const deduction = this.ledger.deductBuyin(
         playerClubId, playerId, this.buyinAmount, this.buyinFee,
         { tournamentId: this.tournamentId, type: 'tournament_buyin' }

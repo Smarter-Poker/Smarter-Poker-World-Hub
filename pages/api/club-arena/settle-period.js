@@ -165,9 +165,7 @@ export default async function handler(req, res) {
     // CLOSE: Close period and calculate commissions
     // ═══════════════════════════════════════════════════════════════
     if (action === 'close') {
-      const targetPeriodId = periodId;
-
-      // Find the open period
+      // Find the open period — always use the DB's open period, not a client-provided ID
       const { data: period } = await supabaseAdmin
         .from('settlement_periods')
         .select('*')
@@ -177,7 +175,7 @@ export default async function handler(req, res) {
 
       if (!period) return res.status(404).json({ error: 'No open period to close' });
 
-      const pid = targetPeriodId || period.id;
+      const pid = period.id;
 
       // Get all agents for this club
       const { data: agents } = await supabaseAdmin
@@ -328,12 +326,20 @@ export default async function handler(req, res) {
 
       if (payErr) throw payErr;
 
-      // Also update commission_history
+      // Get the period's start_at to scope the history update correctly
+      const { data: periodData } = await supabaseAdmin
+        .from('settlement_periods')
+        .select('start_at')
+        .eq('id', cr.period_id)
+        .single();
+
+      // Also update commission_history for this specific period only
       await supabaseAdmin
         .from('commission_history')
         .update({ status: 'paid', paid_at: now })
         .eq('agent_id', cr.agent_id)
         .eq('club_id', clubId)
+        .eq('period_start', periodData?.start_at)
         .eq('status', 'pending');
 
       return res.status(200).json({ success: true, message: 'Commission marked as paid' });
@@ -364,46 +370,27 @@ export default async function handler(req, res) {
         .eq('period_id', periodId)
         .eq('status', 'pending');
 
-      // Update commission_history
+      // Get the period's start_at to scope history updates correctly
+      const { data: payPeriod } = await supabaseAdmin
+        .from('settlement_periods')
+        .select('start_at')
+        .eq('id', periodId)
+        .single();
+
+      // Update commission_history — scoped to THIS period only
       for (const cr of pending) {
         await supabaseAdmin
           .from('commission_history')
           .update({ status: 'paid', paid_at: now })
           .eq('agent_id', cr.agent_id)
           .eq('club_id', clubId)
+          .eq('period_start', payPeriod?.start_at)
           .eq('status', 'pending');
 
-        // Update agent's lifetime_earnings with optimistic lock to prevent TOCTOU
-        const { data: agent } = await supabaseAdmin
-          .from('agents')
-          .select('id, lifetime_earnings')
-          .eq('id', cr.agent_id)
-          .single();
-
-        if (agent) {
-          const oldVal = agent.lifetime_earnings || 0;
-          const { data: updated, error: updErr } = await supabaseAdmin
-            .from('agents')
-            .update({ lifetime_earnings: oldVal + cr.commission_amount })
-            .eq('id', agent.id)
-            .eq('lifetime_earnings', oldVal) // optimistic lock — fails if changed
-            .select('id');
-
-          // Retry once on conflict
-          if (!updated?.length && !updErr) {
-            const { data: fresh } = await supabaseAdmin
-              .from('agents')
-              .select('id, lifetime_earnings')
-              .eq('id', cr.agent_id)
-              .single();
-            if (fresh) {
-              await supabaseAdmin
-                .from('agents')
-                .update({ lifetime_earnings: (fresh.lifetime_earnings || 0) + cr.commission_amount })
-                .eq('id', fresh.id);
-            }
-          }
-        }
+        // NOTE: lifetime_earnings is already credited per-hand in real-time by the
+        // calculate_cascading_commission RPC. We do NOT re-credit here to avoid
+        // double-counting. Settlement marks commissions as "paid" (accounting),
+        // not "earned" (already happened at the table).
       }
 
       const totalPaid = pending.reduce((sum, c) => sum + c.commission_amount, 0);
