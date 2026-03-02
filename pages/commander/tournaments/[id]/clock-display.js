@@ -149,8 +149,8 @@ export default function ClockDisplay() {
             const blindStructure = json.data.tournament?.blind_structure || [];
             const currentLvl = json.data.clock?.current_level || 0;
             const levelData = blindStructure[currentLvl];
-            if (levelData?.duration_minutes) {
-              setSeconds(levelData.duration_minutes * 60);
+            if (levelData?.duration) {
+              setSeconds(levelData.duration * 60);
             }
           }
           isRunningRef.current = cs?.status === 'running';
@@ -323,7 +323,7 @@ export default function ClockDisplay() {
     let secsUntilBreak = displaySeconds || 0;
     for (let i = currentLevelIdx + 1; i < blindStructure.length; i++) {
       if (blindStructure[i].is_break) break;
-      secsUntilBreak += (blindStructure[i].duration_minutes || 0) * 60;
+      secsUntilBreak += (blindStructure[i].duration || 0) * 60;
     }
     if (secsUntilBreak > 0 && blindStructure.some((l, i) => i > currentLevelIdx && l.is_break)) {
       nextBreakSec = secsUntilBreak;
@@ -551,7 +551,7 @@ export default function ClockDisplay() {
                     <span style={{ color: isCurrent ? '#1877F2' : '#fff' }}>{level.is_break ? '-' : (level.small_blind || 0).toLocaleString()}</span>
                     <span style={{ color: isCurrent ? '#1877F2' : '#fff' }}>{level.is_break ? '-' : (level.big_blind || 0).toLocaleString()}</span>
                     <span style={{ color: isCurrent ? '#1877F2' : '#fff' }}>{level.is_break ? '-' : (level.ante || 0).toLocaleString()}</span>
-                    <span style={{ color: isCurrent ? '#1877F2' : '#fff' }}>{level.duration_minutes || '-'}m</span>
+                    <span style={{ color: isCurrent ? '#1877F2' : '#fff' }}>{level.duration || '-'}m</span>
                   </React.Fragment>
                 );
               })}
@@ -622,7 +622,6 @@ export default function ClockDisplay() {
 
                 {(() => {
                   const stacks = editableStacks.map(p => p.chips).filter(c => c > 0);
-                  const validStacks = editableStacks.filter(p => p.chips > 0);
                   const icm = stacks.length > 1 ? calculateICM(stacks, prizeAmounts) : [];
                   const chipChop = stacks.length > 1 ? calculateChipChop(stacks, prizePool) : [];
                   let icmIdx = 0;
