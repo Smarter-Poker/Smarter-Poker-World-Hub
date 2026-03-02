@@ -1235,7 +1235,10 @@ export default function MessengerPage() {
 
         async function checkPendingCalls() {
             try {
-                const res = await fetch(`/api/calls/pending?userId=${user.id}`);
+                const { data: { session: pendingSession } } = await supabase.auth.getSession();
+                const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
+                    headers: pendingSession?.access_token ? { Authorization: `Bearer ${pendingSession.access_token}` } : {},
+                });
                 const result = await res.json();
 
                 if (result.success && result.pendingCall) {
@@ -1463,10 +1466,15 @@ export default function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            fetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            supabase.auth.getSession().then(({ data: { session: cancelSession } }) => {
+                fetch('/api/calls/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(cancelSession?.access_token ? { Authorization: `Bearer ${cancelSession.access_token}` } : {}),
+                    },
+                    body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+                }).catch(() => { });
             }).catch(() => { });
         }
 
@@ -1506,10 +1514,15 @@ export default function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            fetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            supabase.auth.getSession().then(({ data: { session: declineSession } }) => {
+                fetch('/api/calls/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(declineSession?.access_token ? { Authorization: `Bearer ${declineSession.access_token}` } : {}),
+                    },
+                    body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+                }).catch(() => { });
             }).catch(() => { });
         }
 
@@ -2313,9 +2326,13 @@ export default function MessengerPage() {
 
             // 📱 Create pending call in database (for offline users)
             try {
+                const { data: { session: callSession } } = await supabase.auth.getSession();
                 await fetch('/api/calls/create', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(callSession?.access_token ? { Authorization: `Bearer ${callSession.access_token}` } : {}),
+                    },
                     body: JSON.stringify({
                         callerId: user.id,
                         calleeId: otherUser.id,
@@ -2429,13 +2446,18 @@ export default function MessengerPage() {
 
         // Cancel any pending call in database (in case call wasn't answered)
         if (activeConversation?.otherUser?.id && user?.id) {
-            fetch('/api/calls/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    callerId: user.id,
-                    calleeId: activeConversation.otherUser.id
-                }),
+            supabase.auth.getSession().then(({ data: { session: endSession } }) => {
+                fetch('/api/calls/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(endSession?.access_token ? { Authorization: `Bearer ${endSession.access_token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        callerId: user.id,
+                        calleeId: activeConversation.otherUser.id
+                    }),
+                }).catch(() => { });
             }).catch(() => { });
         }
 
