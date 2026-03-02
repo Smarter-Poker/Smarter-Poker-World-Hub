@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -60,9 +60,13 @@ function PostCard({ post, user, onLike, onComment }) {
     const submitComment = async () => {
         if (!commentText.trim() || !user) return;
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages/engage', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     action: 'comment', post_id: post.id,
                     user_id: user.id, content: commentText.trim(),
@@ -290,9 +294,13 @@ export default function SocialPageDetail() {
         } : prev);
 
         try {
+            const token = getAccessToken();
             await fetch('/api/social/pages/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     page_id: page.id, user_id: user.id,
                     action: newState ? 'follow' : 'unfollow',
@@ -305,9 +313,13 @@ export default function SocialPageDetail() {
         if (!newPost.trim() || !user || !page) return;
         setPosting(true);
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     page_id: page.id, author_id: user.id,
                     content: newPost.trim(), content_type: 'text',
@@ -333,9 +345,13 @@ export default function SocialPageDetail() {
         ));
 
         try {
+            const token = getAccessToken();
             await fetch('/api/social/pages/engage', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
         } catch { }

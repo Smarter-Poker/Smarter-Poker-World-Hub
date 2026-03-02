@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -207,16 +207,20 @@ export default function SocialPagesHub() {
         ));
 
         try {
+            const token = getAccessToken();
             await fetch('/api/social/pages/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     page_id: pageId,
                     user_id: user.id,
                     action: isFollowing ? 'unfollow' : 'follow'
                 }),
             });
-        } catch {}
+        } catch { }
     };
 
     return (
@@ -260,7 +264,7 @@ export default function SocialPagesHub() {
                         <div style={{ position: 'relative', marginBottom: 12 }}>
                             <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
                                 width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
                             <input
                                 type="text" placeholder="Search Pages..."
@@ -320,7 +324,7 @@ export default function SocialPagesHub() {
                                 width: 32, height: 32, border: `3px solid #E4E6EB`,
                                 borderTopColor: C.blue, borderRadius: '50%',
                                 animation: 'spin 0.8s linear infinite', margin: '0 auto',
-                            }}/>
+                            }} />
                             <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading Pages...</p>
                         </div>
                     ) : pages.length === 0 ? (
@@ -329,7 +333,7 @@ export default function SocialPagesHub() {
                             borderRadius: 12, border: `1px solid ${C.border}`,
                         }}>
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CCD0D5" strokeWidth="1.5">
-                                <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/>
+                                <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="9" x2="22" y2="9" />
                             </svg>
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: C.text, margin: '16px 0 4px' }}>
                                 {tab === 'following' ? 'No followed pages yet' : tab === 'managed' ? 'No pages created yet' : 'No pages found'}
@@ -389,11 +393,11 @@ export default function SocialPagesHub() {
                             }}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill={nav.active ? 'currentColor' : 'none'}
                                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    {i === 0 && <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>}
-                                    {i === 1 && <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>}
-                                    {i === 2 && <><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/></>}
-                                    {i === 3 && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>}
-                                    {i === 4 && <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}
+                                    {i === 0 && <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></>}
+                                    {i === 1 && <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>}
+                                    {i === 2 && <><rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="9" x2="22" y2="9" /></>}
+                                    {i === 3 && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></>}
+                                    {i === 4 && <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>}
                                 </svg>
                                 <span>{nav.label}</span>
                             </a>

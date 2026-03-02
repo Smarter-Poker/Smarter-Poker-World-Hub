@@ -6,7 +6,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import { getAuthUser } from '../../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -85,7 +85,7 @@ export default function ManageSocialPage() {
             const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`);
             const json = await res.json();
             if (json.success) setMembers(json.data || []);
-        } catch {}
+        } catch { }
     };
 
     const fetchPosts = async () => {
@@ -93,16 +93,20 @@ export default function ManageSocialPage() {
             const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&limit=50`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch {}
+        } catch { }
     };
 
     const handleSave = async () => {
         setSaving(true);
         setMessage('');
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ id: page.id, owner_id: user.id, ...form }),
             });
             const json = await res.json();
@@ -121,20 +125,28 @@ export default function ManageSocialPage() {
     const handleDeletePost = async (postId) => {
         if (!confirm('Delete this post?')) return;
         try {
-            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${user.id}`, { method: 'DELETE' });
+            const token = getAccessToken();
+            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${user.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             setPosts(prev => prev.filter(p => p.id !== postId));
-        } catch {}
+        } catch { }
     };
 
     const handlePinPost = async (postId, pinned) => {
         try {
+            const token = getAccessToken();
             await fetch('/api/social/pages/posts', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ id: postId, author_id: user.id, is_pinned: !pinned }),
             });
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: !pinned } : p));
-        } catch {}
+        } catch { }
     };
 
     const inputStyle = {
@@ -146,20 +158,24 @@ export default function ManageSocialPage() {
     if (loading) {
         return (
             <><UniversalHeader />
-            <div style={{ minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
-                fontFamily: "'Inter', -apple-system, sans-serif" }}>
-                <p style={{ color: C.textSec }}>Loading...</p>
-            </div></>
+                <div style={{
+                    minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
+                    fontFamily: "'Inter', -apple-system, sans-serif"
+                }}>
+                    <p style={{ color: C.textSec }}>Loading...</p>
+                </div></>
         );
     }
 
     if (!page) {
         return (
             <><UniversalHeader />
-            <div style={{ minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
-                fontFamily: "'Inter', -apple-system, sans-serif" }}>
-                <p style={{ color: C.textSec }}>Page Not Found Or Access Denied.</p>
-            </div></>
+                <div style={{
+                    minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
+                    fontFamily: "'Inter', -apple-system, sans-serif"
+                }}>
+                    <p style={{ color: C.textSec }}>Page Not Found Or Access Denied.</p>
+                </div></>
         );
     }
 
@@ -185,7 +201,7 @@ export default function ManageSocialPage() {
                             display: 'flex', alignItems: 'center', gap: 4,
                         }}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="15 18 9 12 15 6"/>
+                                <polyline points="15 18 9 12 15 6" />
                             </svg>
                             Back to Page
                         </button>
@@ -297,7 +313,7 @@ export default function ManageSocialPage() {
                                                     position: 'absolute', top: 2,
                                                     left: form[s.field] ? 22 : 2, transition: 'left 0.2s',
                                                     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                                                }}/>
+                                                }} />
                                             </button>
                                         </div>
                                     ))}

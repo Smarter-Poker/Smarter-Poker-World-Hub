@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -65,9 +65,13 @@ export default function CreateSocialPage() {
         setError(null);
 
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ ...form, owner_id: user.id }),
             });
             const json = await res.json();
@@ -115,7 +119,7 @@ export default function CreateSocialPage() {
                         cursor: 'pointer', padding: 0, marginBottom: 16, fontFamily: 'inherit',
                     }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="15 18 9 12 15 6"/>
+                            <polyline points="15 18 9 12 15 6" />
                         </svg>
                         {step > 1 ? 'Back' : 'Cancel'}
                     </button>
@@ -158,10 +162,10 @@ export default function CreateSocialPage() {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                         }}>
                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d={pt.icon}/>
-                                                {pt.key === 'venue' && <circle cx="12" cy="10" r="3"/>}
-                                                {pt.key === 'group' && <circle cx="9" cy="7" r="4"/>}
-                                                {pt.key === 'community' && <><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>}
+                                                <path d={pt.icon} />
+                                                {pt.key === 'venue' && <circle cx="12" cy="10" r="3" />}
+                                                {pt.key === 'group' && <circle cx="9" cy="7" r="4" />}
+                                                {pt.key === 'community' && <><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>}
                                             </svg>
                                         </div>
                                         <div>
@@ -256,7 +260,7 @@ export default function CreateSocialPage() {
                                                     position: 'absolute', top: 2,
                                                     left: form[setting.field] ? 22 : 2,
                                                     transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                                                }}/>
+                                                }} />
                                             </button>
                                         </div>
                                     ))}
