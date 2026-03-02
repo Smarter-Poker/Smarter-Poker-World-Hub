@@ -40,6 +40,17 @@ export default async function handler(req, res) {
     if (token) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
+      // BUG #123 FIX: Require platform admin or club owner
+      const { data: adminCheck } = await supabaseAdmin
+        .from('profiles').select('role').eq('id', user.id).single();
+      const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin';
+      if (!isAdmin) {
+        const { data: ownedClubs } = await supabaseAdmin
+          .from('clubs').select('id').eq('owner_id', user.id).limit(1);
+        if (!ownedClubs || ownedClubs.length === 0) {
+          return res.status(403).json({ error: 'Only admins or club owners can manually trigger' });
+        }
+      }
     } else {
       return res.status(401).json({ error: 'Unauthorized' });
     }

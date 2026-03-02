@@ -39,12 +39,30 @@ export default async function handler(req, res) {
   const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
 
   if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
-    // Not a valid cron invocation — require JWT auth
+    // Not a valid cron invocation — require JWT auth + admin role
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
-      // Caller is authenticated — allow manual trigger
+      // BUG #123 FIX: Manual trigger requires platform admin or club owner role
+      // Any authenticated user could previously trigger settlement for ALL clubs
+      const { data: adminCheck } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin';
+      if (!isAdmin) {
+        // Check if they own at least one club (owners may manually trigger for testing)
+        const { data: ownedClubs } = await supabaseAdmin
+          .from('clubs')
+          .select('id')
+          .eq('owner_id', user.id)
+          .limit(1);
+        if (!ownedClubs || ownedClubs.length === 0) {
+          return res.status(403).json({ error: 'Only platform admins or club owners can manually trigger settlement' });
+        }
+      }
     } else {
       return res.status(401).json({ error: 'Unauthorized — missing cron secret or auth token' });
     }
