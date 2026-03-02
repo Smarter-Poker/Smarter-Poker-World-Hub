@@ -43,7 +43,7 @@ export function OneSignalProvider({ children }) {
                         slidedown: {
                             prompts: [{
                                 type: 'push',
-                                autoPrompt: true,
+                                autoPrompt: false, // CRITICAL: We use our own NotificationPrompt UI — never auto-prompt
                                 text: {
                                     actionMessage: 'Allow Notifications',
                                     acceptButton: 'Allow',

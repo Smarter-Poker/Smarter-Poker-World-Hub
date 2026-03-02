@@ -53,8 +53,12 @@ export default async function handler(req, res) {
         const { action, user_id } = req.body || {};
 
         try {
-            // First, ensure the table exists (auto-create if needed)
-            await ensureTable();
+            // Check if table exists (cached after first check)
+            const exists = await ensureTable();
+            if (!exists) {
+                // Table doesn't exist — silently succeed (prompt won't re-appear due to localStorage)
+                return res.status(200).json({ ok: true, note: 'table_pending' });
+            }
 
             // Check if already recorded for this IP (idempotent)
             const { data: existing } = await supabase
@@ -94,41 +98,50 @@ export default async function handler(req, res) {
 }
 
 /**
- * Auto-create the notification_prompt_log table if it doesn't exist.
- * Uses raw SQL via Supabase's rpc or direct query.
+ * Check if notification_prompt_log table exists.
+ * If not, log a warning — table must be created manually in Supabase Dashboard:
+ * 
+ * CREATE TABLE notification_prompt_log (
+ *   id BIGSERIAL PRIMARY KEY,
+ *   ip_address TEXT NOT NULL UNIQUE,
+ *   user_id UUID,
+ *   action TEXT DEFAULT 'dismissed',
+ *   responded_at TIMESTAMPTZ DEFAULT NOW()
+ * );
+ * CREATE INDEX idx_notification_prompt_ip ON notification_prompt_log(ip_address);
  */
+let tableChecked = false;
+let tableExists = false;
+
 async function ensureTable() {
+    // Only check once per cold start
+    if (tableChecked) return tableExists;
+
     try {
-        // Try a simple select first — if it works, table exists
         const { error } = await supabase
             .from('notification_prompt_log')
             .select('id')
             .limit(1);
 
-        if (!error) return; // Table exists
+        tableChecked = true;
 
-        // If table doesn't exist, create it via SQL
-        if (error.code === '42P01' || error.message?.includes('does not exist')) {
-            const { error: createError } = await supabase.rpc('exec_sql', {
-                query: `
-          CREATE TABLE IF NOT EXISTS notification_prompt_log (
-            id BIGSERIAL PRIMARY KEY,
-            ip_address TEXT NOT NULL,
-            user_id UUID,
-            action TEXT DEFAULT 'dismissed',
-            responded_at TIMESTAMPTZ DEFAULT NOW(),
-            UNIQUE(ip_address)
-          );
-          CREATE INDEX IF NOT EXISTS idx_notification_prompt_ip ON notification_prompt_log(ip_address);
-        `
-            });
-
-            // If exec_sql doesn't exist, just silently fail — table needs manual creation
-            if (createError) {
-                console.warn('[prompt-status] Could not auto-create table. Please create it manually:', createError.message);
-            }
+        if (!error) {
+            tableExists = true;
+            return true;
         }
+
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+            console.warn('[prompt-status] Table "notification_prompt_log" does not exist. Please create it manually in the Supabase Dashboard. See source code for schema.');
+            tableExists = false;
+            return false;
+        }
+
+        // Other errors (RLS, etc.) — table likely exists but has access issues
+        tableExists = true;
+        return true;
     } catch (err) {
-        // Silently fail — worst case, prompt shows again
+        tableChecked = true;
+        return false;
     }
 }
+

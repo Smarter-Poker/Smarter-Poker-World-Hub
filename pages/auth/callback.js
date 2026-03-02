@@ -16,7 +16,7 @@ export default function AuthCallback() {
         const handleCallback = async () => {
             try {
                 // Get the current session from the URL hash (after email verification)
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
                 if (sessionError) {
                     console.error('Session error:', sessionError);
@@ -36,6 +36,8 @@ export default function AuthCallback() {
                         setTimeout(() => router.push('/auth/signin'), 3000);
                         return;
                     }
+                    // Use the retry session going forward
+                    session = retrySession;
                 }
 
                 const user = session?.user;
