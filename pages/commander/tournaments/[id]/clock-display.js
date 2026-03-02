@@ -367,7 +367,7 @@ export default function ClockDisplay() {
             <button style={{ ...S.controlBtn, background: 'rgba(239,68,68,0.3)', borderColor: '#EF4444' }} onClick={() => clockAction('previous_level')} disabled={actionLoading}>
               ← Prev Level
             </button>
-            {data?.tournament?.status === 'running' ? (
+            {data?.clock?.clock_state?.status === 'running' ? (
               <button style={{ ...S.controlBtn, ...S.controlBtnPrimary, background: 'rgba(245,158,11,0.3)', borderColor: '#F59E0B' }} onClick={() => clockAction('pause')} disabled={actionLoading}>
                 ⏸ Pause
               </button>
@@ -447,7 +447,7 @@ export default function ClockDisplay() {
                   {formatClock(displaySeconds)}
                 </div>
 
-                {data?.tournament?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
+                {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
 
                 <div style={S.blindsBlock}>
                   <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>

@@ -81,11 +81,11 @@ export default function TDClock() {
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 60000); return () => clearInterval(i); }, [fetchFloor]);
 
-  // Client-side countdown
+  // Client-side countdown — only restart interval when clock status changes (not on every tick)
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     const cs = floor?.clock?.clock_state;
-    if (cs?.status === 'running' && clockSeconds > 0) {
+    if (cs?.status === 'running') {
       timerRef.current = setInterval(() => {
         setClockSeconds(prev => {
           if (prev === 1) {
@@ -118,7 +118,7 @@ export default function TDClock() {
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [floor?.clock?.clock_state?.status, clockSeconds]);
+  }, [floor?.clock?.clock_state?.status]);
 
   const clockAction = async (action) => {
     setActionLoading(action);

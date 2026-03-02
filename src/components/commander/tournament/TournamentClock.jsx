@@ -21,11 +21,14 @@ export default function TournamentClock({
   // Fetch clock state
   const fetchClockState = useCallback(async () => {
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`);
-      const data = await res.json();
-      if (res.ok) {
-        setClockData(data);
-        setTimeRemaining(data.clock?.timeRemaining || 0);
+      const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') || '' : '';
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
+        headers: { 'x-staff-session': staffSession }
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setClockData(json.data);
+        setTimeRemaining(json.data?.clock?.timeRemaining || 0);
       }
     } catch (error) {
       console.error('Failed to fetch clock state:', error);
@@ -72,13 +75,13 @@ export default function TournamentClock({
       });
 
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
         await fetchClockState();
         if (action === 'next_level' || action === 'previous_level') {
-          onLevelChange?.(data.tournament.current_level);
+          onLevelChange?.(data.data?.tournament?.current_level);
         }
       } else {
-        toast.error(data.error || 'Action failed');
+        toast.error(data.error?.message || data.error || 'Action failed');
       }
     } catch (error) {
       console.error('Clock action error:', error);
@@ -128,9 +131,9 @@ export default function TournamentClock({
           <p className="text-[#4A5E78] text-sm">Level {(tournament.current_level || 0) + 1}</p>
         </div>
         <div className={`px-3 py-1 rounded text-sm font-medium ${tournament.status === 'running' ? 'bg-[#10B981] text-white' :
-            tournament.status === 'paused' ? 'bg-[#F59E0B] text-white' :
-              tournament.status === 'final_table' ? 'bg-[#8B5CF6] text-white' :
-                'bg-[#6B7280] text-white'
+          tournament.status === 'paused' ? 'bg-[#F59E0B] text-white' :
+            tournament.status === 'final_table' ? 'bg-[#8B5CF6] text-white' :
+              'bg-[#6B7280] text-white'
           }`}>
           {tournament.status === 'final_table' ? 'Final Table' : tournament.status?.toUpperCase()}
         </div>
@@ -285,11 +288,14 @@ export function TournamentClockCompact({ tournamentId, initialData }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`);
-        const data = await res.json();
-        if (res.ok) {
-          setClockData(data);
-          setTimeRemaining(data.clock?.timeRemaining || 0);
+        const staffSession = typeof window !== 'undefined' ? localStorage.getItem('commander_staff') || '' : '';
+        const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
+          headers: { 'x-staff-session': staffSession }
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setClockData(json.data);
+          setTimeRemaining(json.data?.clock?.timeRemaining || 0);
         }
       } catch (error) {
         console.error('Failed to fetch clock:', error);

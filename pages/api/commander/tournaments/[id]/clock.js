@@ -69,7 +69,7 @@ async function getClockState(req, res, tournamentId) {
     const settings = tournament.settings || {};
     let clockState = settings.clock_state || null;
 
-    if (!clockState && tournament.status === 'running') {
+    if (!clockState && ['running', 'paused', 'final_table'].includes(tournament.status)) {
       // Initialize clock state and persist it
       clockState = {
         isRunning: true,
@@ -308,20 +308,55 @@ async function handleClockAction(req, res, tournamentId) {
       }
 
       case 'add_time': {
-        // Add 60 seconds to the remaining time by pushing levelStartedAt back by 60s
+        // Add 60 seconds to remaining time by pushing levelStartedAt 60s earlier (less elapsed → more remaining)
         if (!clockState.levelStartedAt) break;
         const started = new Date(clockState.levelStartedAt);
-        started.setSeconds(started.getSeconds() + 60);
+        started.setSeconds(started.getSeconds() - 60);
         clockState.levelStartedAt = started.toISOString();
         break;
       }
 
       case 'subtract_time': {
-        // Remove 60 seconds from the remaining time by pushing levelStartedAt forward by 60s
+        // Remove 60 seconds from remaining time by pushing levelStartedAt 60s later (more elapsed → less remaining)
         if (!clockState.levelStartedAt) break;
         const started2 = new Date(clockState.levelStartedAt);
-        started2.setSeconds(started2.getSeconds() - 60);
+        started2.setSeconds(started2.getSeconds() + 60);
         clockState.levelStartedAt = started2.toISOString();
+        break;
+      }
+
+      case 'break': {
+        // Toggle on_break in the clock_state JSONB column (same column hand-for-hand uses)
+        const currentClockState = tournament.clock_state || {};
+        const isCurrentlyOnBreak = currentClockState.on_break || false;
+        const updatedBreakState = {
+          ...currentClockState,
+          on_break: !isCurrentlyOnBreak,
+          break_started_at: !isCurrentlyOnBreak ? new Date().toISOString() : null
+        };
+        // Write to clock_state column (not settings) — matches floor-view.js read path
+        await supabase
+          .from('commander_tournaments')
+          .update({ clock_state: updatedBreakState })
+          .eq('id', tournamentId);
+        // If starting break, pause the clock; if ending break, resume it
+        if (!isCurrentlyOnBreak && tournament.status === 'running') {
+          updates = { status: 'paused' };
+          clockState = {
+            isRunning: false,
+            levelStartedAt: clockState.levelStartedAt,
+            pausedAt: new Date().toISOString(),
+            pausedDuration: clockState.pausedDuration || 0
+          };
+        } else if (isCurrentlyOnBreak && tournament.status === 'paused') {
+          updates = { status: 'running' };
+          clockState = {
+            isRunning: true,
+            levelStartedAt: clockState.levelStartedAt,
+            pausedAt: null,
+            pausedDuration: (clockState.pausedDuration || 0) + (clockState.pausedAt ? Date.now() - new Date(clockState.pausedAt).getTime() : 0)
+          };
+        }
         break;
       }
 
