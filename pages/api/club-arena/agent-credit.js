@@ -26,8 +26,8 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const { clubId, agentUserId, action, amount, notes } = req.body;
-  if (!clubId || !agentUserId || !action || !amount) {
-    return res.status(400).json({ error: 'clubId, agentUserId, action, and amount required' });
+  if (!clubId || !agentUserId || !action || !amount || amount <= 0) {
+    return res.status(400).json({ error: 'clubId, agentUserId, action, and positive amount required' });
   }
 
   const validActions = ['issue_credit', 'add_prepaid', 'revoke_credit'];

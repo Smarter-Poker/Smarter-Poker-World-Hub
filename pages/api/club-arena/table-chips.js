@@ -38,8 +38,8 @@ export default async function handler(req, res) {
   }
 
   const { clubId, tableId, userId, action, amount } = req.body;
-  if (!clubId || !userId || !action || amount === undefined) {
-    return res.status(400).json({ error: 'clubId, userId, action, and amount required' });
+  if (!clubId || !userId || !action || amount === undefined || amount <= 0) {
+    return res.status(400).json({ error: 'clubId, userId, action, and positive amount required' });
   }
 
   if (!['lock', 'unlock', 'rebuy'].includes(action)) {
