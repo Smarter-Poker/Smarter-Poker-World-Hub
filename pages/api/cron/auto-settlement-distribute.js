@@ -94,7 +94,7 @@ export default async function handler(req, res) {
             const { data: agentMember } = await supabaseAdmin
               .from('club_members')
               .select('chip_balance')
-              .eq('club_id', parseInt(clubId))
+              .eq('club_id', clubId)
               .eq('user_id', agentUserId)
               .single();
 
@@ -106,28 +106,11 @@ export default async function handler(req, res) {
               continue;
             }
 
-            // Calculate total rakeback this agent needs to distribute
-            const totalRakebackForAgent = agentDists.reduce((sum, d) => sum + d.rakeback_amount, 0);
-
-            // Check if agent has enough chips
-            if ((agentMember.chip_balance || 0) < totalRakebackForAgent) {
-              // Distribute what we can, proportionally
-              const availableBalance = agentMember.chip_balance || 0;
-              const ratio = availableBalance > 0 ? availableBalance / totalRakebackForAgent : 0;
-
-              for (const dist of agentDists) {
-                if (ratio <= 0) {
-                  await markDistributionFailed(dist.id, 'Insufficient agent balance');
-                  results.distributions_failed++;
-                  continue;
-                }
-                // Adjust amount proportionally
-                dist.rakeback_amount = Math.floor(dist.rakeback_amount * ratio * 100) / 100;
-              }
-            }
-
             // Process each player distribution
+            // IMPORTANT: Debit agent BEFORE crediting player to prevent
+            // creating chips from thin air if the cron crashes mid-way.
             let agentTotalDeducted = 0;
+            let playersDistributed = 0;
 
             for (const dist of agentDists) {
               if (dist.rakeback_amount <= 0) {
@@ -137,11 +120,11 @@ export default async function handler(req, res) {
               }
 
               try {
-                // Get player's current balance
+                // Verify player still exists in club
                 const { data: playerMember } = await supabaseAdmin
                   .from('club_members')
                   .select('chip_balance, nickname')
-                  .eq('club_id', parseInt(clubId))
+                  .eq('club_id', clubId)
                   .eq('user_id', dist.player_user_id)
                   .single();
 
@@ -151,7 +134,20 @@ export default async function handler(req, res) {
                   continue;
                 }
 
-                // Credit player atomically
+                // STEP 1: Debit agent FIRST (safe — if this fails, no chips move)
+                const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+                  p_club_id: clubId,
+                  p_user_id: agentUserId,
+                  p_amount: dist.rakeback_amount,
+                });
+
+                if (debitErr) {
+                  await markDistributionFailed(dist.id, 'Agent debit failed: ' + debitErr.message);
+                  results.distributions_failed++;
+                  continue;
+                }
+
+                // STEP 2: Credit player (agent already debited — safe)
                 const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
                   p_club_id: clubId,
                   p_user_id: dist.player_user_id,
@@ -159,7 +155,13 @@ export default async function handler(req, res) {
                 });
 
                 if (creditErr) {
-                  await markDistributionFailed(dist.id, 'Credit failed: ' + creditErr.message);
+                  // ROLLBACK: re-credit agent since player didn't receive chips
+                  await supabaseAdmin.rpc('fn_credit_chips', {
+                    p_club_id: clubId,
+                    p_user_id: agentUserId,
+                    p_amount: dist.rakeback_amount,
+                  }).catch(rbErr => console.error('[rakeback] Rollback failed:', rbErr.message));
+                  await markDistributionFailed(dist.id, 'Player credit failed: ' + creditErr.message);
                   results.distributions_failed++;
                   continue;
                 }
@@ -168,7 +170,7 @@ export default async function handler(req, res) {
                 const { data: txn } = await supabaseAdmin
                   .from('chip_transactions')
                   .insert({
-                    club_id: parseInt(clubId),
+                    club_id: clubId,
                     from_user_id: agentUserId,
                     to_user_id: dist.player_user_id,
                     amount: dist.rakeback_amount,
@@ -211,7 +213,7 @@ export default async function handler(req, res) {
                   title: '💰 Rakeback Received!',
                   message: `You received ${dist.rakeback_amount.toLocaleString()} chips rakeback (${(dist.rakeback_percentage * 100).toFixed(1)}% of your ${dist.player_rake_contributed.toLocaleString()} rake). Chips added to your balance!`,
                   metadata: {
-                    club_id: parseInt(clubId),
+                    club_id: clubId,
                     period_id: dist.period_id,
                     rakeback_amount: dist.rakeback_amount,
                     agent_user_id: agentUserId,
@@ -220,6 +222,7 @@ export default async function handler(req, res) {
                 }).catch(e => console.error('[rakeback-notify] Error:', e.message));
 
                 agentTotalDeducted += dist.rakeback_amount;
+                playersDistributed++;
                 results.distributions_processed++;
                 results.total_rakeback_distributed += dist.rakeback_amount;
                 results.players_paid++;
@@ -235,39 +238,17 @@ export default async function handler(req, res) {
               }
             }
 
-            // Deduct total from agent's balance atomically
+            // Notify agent of distributions
             if (agentTotalDeducted > 0) {
-              const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
-                p_club_id: clubId,
-                p_user_id: agentUserId,
-                p_amount: agentTotalDeducted,
-              });
-
-              if (debitErr) {
-                // Players were already credited — log critical error but don't reverse
-                // The settlement lock prevents further operations, so this is recoverable
-                console.error(`[rakeback] ⚠️ CRITICAL: Agent ${agentUserId} debit failed after players credited:`, debitErr.message);
-                results.errors.push({
-                  phase: 'agent_debit',
-                  agent: agentUserId,
-                  club_id: clubId,
-                  amount: agentTotalDeducted,
-                  error: debitErr.message,
-                  critical: true,
-                });
-              }
-
-              // Notify agent of distributions
-              const playerCount = agentDists.filter(d => d.rakeback_amount > 0).length;
               await supabaseAdmin.from('notifications').insert({
                 user_id: agentUserId,
                 type: 'rakeback_sent',
                 title: '📤 Rakeback Distributed to Players',
-                message: `Auto-rakeback complete: ${agentTotalDeducted.toLocaleString()} chips distributed to ${playerCount} player${playerCount !== 1 ? 's' : ''}.`,
+                message: `Auto-rakeback complete: ${agentTotalDeducted.toLocaleString()} chips distributed to ${playersDistributed} player${playersDistributed !== 1 ? 's' : ''}.`,
                 metadata: {
-                  club_id: parseInt(clubId),
+                  club_id: clubId,
                   total_distributed: agentTotalDeducted,
-                  player_count: playerCount,
+                  player_count: playersDistributed,
                 },
                 read: false,
               }).catch(e => console.error('[rakeback-agent-notify] Error:', e.message));
