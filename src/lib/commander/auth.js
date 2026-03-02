@@ -381,8 +381,10 @@ export const DEFAULT_PERMISSIONS = {
 };
 
 // ── Sensitive Routes — ALWAYS require PIN challenge, even for owners/managers ──
-// These pages expose confidential data (PINs, financials, settings) and must
-// gate behind a per-session PIN verification regardless of cached staff session.
+// These are OWNER/MANAGER-ONLY pages that expose confidential data (employee PINs,
+// venue config, business intelligence). They require a per-session PIN verification
+// regardless of cached staff session. Pages that floor, cashier, or dualrate staff
+// need access to are NOT included here — those rely on the standard role gate.
 export const SENSITIVE_ROUTES = [
   '/commander/staff',              // Employee PINs and management
   '/commander/settings',           // Venue configuration
@@ -390,10 +392,7 @@ export const SENSITIVE_ROUTES = [
   '/commander/reports',            // Financial reports
   '/commander/close-day',          // End-of-day financial close
   '/commander/exports',            // Data exports
-  '/commander/time-billing',       // Revenue / billing
   '/commander/churn-prediction',   // Business intelligence
-  '/commander/cashier',            // Financial transactions
-  '/commander/membership-plans',   // Pricing management
 ];
 
 /**
