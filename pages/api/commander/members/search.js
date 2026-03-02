@@ -103,28 +103,49 @@ export default async function handler(req, res) {
           if (memberMatch) {
             memberByStaffId[s.id] = memberMatch;
           } else {
-            // AUTO-CREATE a commander_members record for this staff member
-            const memberNum = `STAFF-${Date.now().toString(36).toUpperCase()}`;
-            const { data: newMember, error: createErr } = await supabase
+            // ═══ DOUBLE-CHECK: broader search before auto-creating ═══
+            // Try broader match: check both first+last name variations
+            const { data: broaderMatch } = await supabase
               .from('commander_members')
-              .insert({
-                venue_id: venueFilter,
-                first_name: sfFirst,
-                last_name: sfLast,
-                member_number: memberNum,
-                membership_tier: 'standard',
-                membership_status: 'active',
-                time_balance_minutes: 0,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
               .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
-              .single();
-            if (!createErr && newMember) {
-              memberByStaffId[s.id] = newMember;
-              console.log(`Auto-created commander_members record for staff: ${s.display_name} → ${newMember.id}`);
+              .eq('venue_id', venueFilter)
+              .or(`first_name.ilike.%${sfFirst}%,last_name.ilike.%${sfLast || sfFirst}%`)
+              .limit(5);
+
+            // Check if any broader match is actually this person (both name parts match)
+            const realMatch = broaderMatch?.find(m => {
+              const fMatch = (m.first_name || '').toLowerCase().includes(sfFirst.toLowerCase()) || sfFirst.toLowerCase().includes((m.first_name || '').toLowerCase());
+              const lMatch = sfLast ? ((m.last_name || '').toLowerCase().includes(sfLast.toLowerCase()) || sfLast.toLowerCase().includes((m.last_name || '').toLowerCase())) : true;
+              return fMatch && lMatch;
+            });
+
+            if (realMatch) {
+              memberByStaffId[s.id] = realMatch;
+              console.log(`[Search] Broader match found for staff ${s.display_name} → existing member ${realMatch.id}`);
             } else {
-              console.warn(`Failed to auto-create member record for ${s.display_name}:`, createErr?.message);
+              // No match at all — safe to auto-create
+              const memberNum = `STAFF-${Date.now().toString(36).toUpperCase()}`;
+              const { data: newMember, error: createErr } = await supabase
+                .from('commander_members')
+                .insert({
+                  venue_id: venueFilter,
+                  first_name: sfFirst,
+                  last_name: sfLast,
+                  member_number: memberNum,
+                  membership_tier: 'standard',
+                  membership_status: 'active',
+                  time_balance_minutes: 0,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
+                .single();
+              if (!createErr && newMember) {
+                memberByStaffId[s.id] = newMember;
+                console.log(`Auto-created commander_members record for staff: ${s.display_name} → ${newMember.id}`);
+              } else {
+                console.warn(`Failed to auto-create member record for ${s.display_name}:`, createErr?.message);
+              }
             }
           }
         }

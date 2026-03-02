@@ -100,6 +100,46 @@ async function handleCreate(req, res) {
     }
 
     try {
+        // ═══ DUPLICATE DETECTION ═══
+        // Check by name (case-insensitive) in same venue
+        let existingQuery = supabase
+            .from('commander_members')
+            .select('*')
+            .eq('venue_id', venue_id)
+            .ilike('first_name', first_name.trim())
+            .ilike('last_name', last_name.trim());
+
+        const { data: nameMatches } = await existingQuery;
+
+        if (nameMatches && nameMatches.length > 0) {
+            console.log(`[Members] Duplicate detected by name: ${first_name} ${last_name} → returning existing ID ${nameMatches[0].id}`);
+            return res.status(200).json({
+                success: true,
+                data: { member: nameMatches[0] },
+                duplicate: true,
+                message: `Member "${first_name} ${last_name}" already exists`,
+            });
+        }
+
+        // Check by email (case-insensitive) if provided
+        if (email && email.trim()) {
+            const { data: emailMatches } = await supabase
+                .from('commander_members')
+                .select('*')
+                .eq('venue_id', venue_id)
+                .ilike('email', email.trim());
+
+            if (emailMatches && emailMatches.length > 0) {
+                console.log(`[Members] Duplicate detected by email: ${email} → returning existing ID ${emailMatches[0].id}`);
+                return res.status(200).json({
+                    success: true,
+                    data: { member: emailMatches[0] },
+                    duplicate: true,
+                    message: `Member with email "${email}" already exists`,
+                });
+            }
+        }
+
         // Generate unique member number: PREFIX-NNNNN
         const { data: venue } = await supabase
             .from('poker_venues')
