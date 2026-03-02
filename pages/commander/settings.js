@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, Image, Upload, X as XIcon } from 'lucide-react';
+import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, Image, Upload, X as XIcon, Shield } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
@@ -35,7 +35,8 @@ export default function CommanderSettingsPage() {
     venue_type: 'texas',
     time_billing_rate: 12,
     auto_comp_rate: 1,
-    bulk_time_packages: []
+    bulk_time_packages: [],
+    security_gate_enabled: true,
   });
 
   // Check staff session
@@ -87,8 +88,11 @@ export default function CommanderSettingsPage() {
               venue_type: data.data.venue_type ?? prev.venue_type,
               time_billing_rate: data.data.time_billing_rate ?? prev.time_billing_rate,
               auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
-              bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages
+              bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages,
+              security_gate_enabled: data.data.security_gate_enabled ?? true,
             }));
+            // Persist security gate state to localStorage for CommanderLayout
+            localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
             // Load logo URL
             if (data.data.club_logo_url !== undefined) {
               setLogoUrl(data.data.club_logo_url || null);
@@ -120,8 +124,10 @@ export default function CommanderSettingsPage() {
             venue_type: data.data.venue_type ?? prev.venue_type,
             time_billing_rate: data.data.time_billing_rate ?? prev.time_billing_rate,
             auto_comp_rate: data.data.auto_comp_rate ?? prev.auto_comp_rate,
-            bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages
+            bulk_time_packages: data.data.bulk_time_packages ?? prev.bulk_time_packages,
+            security_gate_enabled: data.data.security_gate_enabled ?? true,
           }));
+          localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
           if (data.data.club_logo_url !== undefined) setLogoUrl(data.data.club_logo_url || null);
         }
       })
@@ -158,13 +164,16 @@ export default function CommanderSettingsPage() {
           venue_type: settings.venue_type,
           time_billing_rate: settings.time_billing_rate,
           auto_comp_rate: settings.auto_comp_rate,
-          bulk_time_packages: settings.bulk_time_packages
+          bulk_time_packages: settings.bulk_time_packages,
+          security_gate_enabled: settings.security_gate_enabled
         })
       });
 
       const data = await res.json();
       if (data.success) {
         broadcastChange('settings');
+        // Store security gate state for CommanderLayout to read
+        localStorage.setItem('commander_security_gate', settings.security_gate_enabled === false ? 'off' : 'on');
         setSuccess('Settings saved successfully');
         setIsDirty(false);
         setTimeout(() => setSuccess(null), 3000);
@@ -262,6 +271,48 @@ export default function CommanderSettingsPage() {
                   You don't have permission to modify settings. Contact a manager.
                 </p>
               </div>
+            )}
+
+            {/* ── Security Gate Toggle (OWNER ONLY) ── */}
+            {staff.role === 'owner' && (
+              <section className="cmd-panel">
+                <div className="p-4 border-b border-[#3A3B3C]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#EF4444]/10 rounded-lg flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-[#EF4444]" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-white">Security Gate</h2>
+                      <p className="text-xs text-[#B0B3B8]">PIN verification for restricted pages (Owner Only)</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="divide-y divide-[#3A3B3C]">
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">Require PIN For Sensitive Pages</p>
+                      <p className="text-sm text-[#B0B3B8]">Staff, Settings, Analytics, Reports, Close Day, Exports</p>
+                    </div>
+                    <button
+                      onClick={() => handleToggle('security_gate_enabled')}
+                      className={`w-12 h-7 rounded-full transition-colors relative ${settings.security_gate_enabled ? 'bg-[#31A24C]' : 'bg-[#3A3B3C]'
+                        }`}
+                    >
+                      <span
+                        className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings.security_gate_enabled ? 'right-1' : 'left-1'
+                          }`}
+                      />
+                    </button>
+                  </div>
+                  {!settings.security_gate_enabled && (
+                    <div className="px-4 py-3 bg-[#F59E0B]/5">
+                      <p className="text-xs text-[#F59E0B] flex items-center gap-1.5">
+                        ⚠️ Security gate is OFF — restricted pages are accessible without PIN verification
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
             )}
 
             {/* ── Club Branding (Logo Upload) ── */}

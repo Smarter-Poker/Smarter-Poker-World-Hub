@@ -121,9 +121,13 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     const unlocked = sessionStorage.getItem(`pin_unlock_${path}`);
     const sensitive = isSensitiveRoute(path);
 
-    // For SENSITIVE routes: Always require PIN unlock (even for owners/managers).
-    // The PIN must have been entered in this browser session.
-    if (sensitive) {
+    // Check if security gate is enabled (defaults to ON if not set)
+    const securityGateSetting = localStorage.getItem('commander_security_gate');
+    const securityGateOn = securityGateSetting !== 'off';
+
+    // For SENSITIVE routes: require PIN unlock only if security gate is ON.
+    // When gate is OFF (owner disabled it), fall through to standard role check.
+    if (sensitive && securityGateOn) {
       if (unlocked === 'true') {
         setRouteBlocked(false);
         setGateGranted(true);

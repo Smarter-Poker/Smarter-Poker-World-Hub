@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock, CreditCard, Globe } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
-import PushNotificationProvider from '../../../src/components/commander/shared/PushNotificationProvider';
+// NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
   const [venues, setVenues] = useState([]);
@@ -118,12 +118,12 @@ export default function CommanderHub() {
   );
 
   return (
-    <PushNotificationProvider>
+    <>
       <SEOHead
-                title="Club Commander"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Club Commander"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header with chrome rail and glow strip */}
@@ -372,6 +372,6 @@ export default function CommanderHub() {
           </div>
         </main>
       </div>
-    </PushNotificationProvider>
+    </>
   );
 }

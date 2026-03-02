@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         'auto_refresh_interval', 'show_player_names_on_display',
         'sms_notifications_enabled', 'push_notifications_enabled',
         'max_waitlist_size', 'call_timeout_minutes', 'default_wait_time_per_player',
-        'desk_customization'];
+        'desk_customization', 'security_gate_enabled'];
 
       const filtered = {};
       for (const key of allowedFields) {
