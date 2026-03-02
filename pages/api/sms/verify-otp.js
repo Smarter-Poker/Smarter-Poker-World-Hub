@@ -145,6 +145,21 @@ export default async function handler(req, res) {
                     .eq('id', userId)
                     .maybeSingle();
 
+                // ── GUARD: Final Phone Uniqueness Check ──────────────────
+                // Prevent race condition VIP farming
+                const { data: duplicateProfiles } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('phone', cleanPhone)
+                    .eq('phone_verified', true)
+                    .neq('id', userId) // Ignore the current user if they are just re-verifying
+                    .limit(1);
+
+                if (duplicateProfiles && duplicateProfiles.length > 0) {
+                    console.error(`[verify-otp] Security block: User ${userId} tried to verify phone ${cleanPhone} already in use by another account.`);
+                    return res.status(409).json({ error: 'This phone number is already registered to another verified account.' });
+                }
+
                 // If user already has VIP that expires AFTER this grant, skip VIP update
                 const existingExpiry = profile?.vip_expires_at ? new Date(profile.vip_expires_at) : null;
                 const shouldGrantVip = !profile?.is_vip || !existingExpiry || existingExpiry < vipExpires;

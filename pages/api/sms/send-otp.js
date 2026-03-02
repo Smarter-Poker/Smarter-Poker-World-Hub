@@ -64,6 +64,22 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Please enter a valid 10-digit US phone number' });
         }
 
+        // ── Guard: Phone Uniqueness ──────────────────────────────────────
+        // Prevent users from farming multiple VIP cards with the same phone number
+        const { data: existingProfiles } = await supabase
+            .from('profiles')
+            .select('id, phone_verified')
+            .eq('phone', cleanPhone)
+            .eq('phone_verified', true)
+            .limit(1);
+
+        if (existingProfiles && existingProfiles.length > 0) {
+            // Note: If this is the current user re-verifying, that's fine, but send-otp doesn't know userId yet. 
+            // In the VIP Modal we only show it if the user IS NOT verified. 
+            // So if ANY user has this phone verified, we reject it to stop abuse.
+            return res.status(409).json({ error: 'This phone number is already registered to a verified account.' });
+        }
+
         // ── Housekeeping: purge ALL expired OTP rows (any phone) ─────────
         // Keeps the table lean — runs on every send request
         await supabase
