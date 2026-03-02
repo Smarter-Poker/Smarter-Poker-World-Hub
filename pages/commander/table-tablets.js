@@ -618,6 +618,7 @@ export default function TableTabletsPage() {
                 });
                 fetchAll();
                 broadcastChange('dealers');
+                broadcastChange('tables'); // <== NEW FIX: ensuring other clients know the dealer changed
                 setTimeout(() => closeDealerScan(), 3000);
             } else {
                 setScanError(data.error || 'Failed to assign dealer');
@@ -627,10 +628,7 @@ export default function TableTabletsPage() {
         }
     };
 
-    const handleManualDealerScan = (e) => {
-        e.preventDefault();
-        if (manualDealerQR.trim()) handleDealerScan(manualDealerQR.trim());
-    };
+    // Manual dealer scan function removed (code cleanup for issue #6)
 
     // ── Toast auto-clear ──
     useEffect(() => {
@@ -647,6 +645,7 @@ export default function TableTabletsPage() {
                 body: JSON.stringify({ table_number: tableNumber, seat_number: seatNumber, venue_id: venueId, action, ...extra }),
             });
             const json = await res.json();
+            if (json.success) broadcastChange('tables'); // <== NEW FIX: Sync player actions across floor
             setPlayerActionLoading(false);
             return json;
         } catch {
@@ -779,6 +778,7 @@ export default function TableTabletsPage() {
             const json = await res.json();
             if (json.success) {
                 setToast({ type: 'success', text: `${json.data.player_name} seated at S${seatNumber}` });
+                broadcastChange('tables'); // <== NEW FIX: Realtime sync across the floor
                 fetchAll();
             } else {
                 setToast({ type: 'error', text: json.error || 'Could not seat player' });
