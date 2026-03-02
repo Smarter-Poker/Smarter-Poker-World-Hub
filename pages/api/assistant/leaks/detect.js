@@ -346,7 +346,7 @@ export default async function handler(req, res) {
         if (!_token) return res.status(401).json({ error: 'Authentication required' });
         const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
         if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-        if (req.body) req.body.userId = req.body.userId || _authUser.id;
+        if (req.body) req.body.userId = _authUser.id;
     }
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
