@@ -222,7 +222,7 @@ export default function UniversalHeader({
                                     avatar: profile.avatar_url,
                                     name: profile.full_name || profile.username
                                 }));
-                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { xpTotal, diamonds: profile.diamonds });
+                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
                             }
                         } catch (e) {
                             console.error('[UniversalHeader] Direct REST fallback failed:', e);

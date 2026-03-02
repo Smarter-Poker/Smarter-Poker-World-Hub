@@ -215,9 +215,13 @@ export class UnifiedSocialService {
         // 🛡️ MULTI-DEVICE RESILIENT: Try API first (bypasses RLS), fallback to direct
         try {
             // PRIMARY: Use API with service_role - bypasses all RLS issues
+            const { data: { session } } = await this.supabase.auth.getSession();
             const resp = await fetch('/api/messenger/get-conversations', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                },
                 body: JSON.stringify({ userId }),
             });
             const apiResult = await resp.json();
