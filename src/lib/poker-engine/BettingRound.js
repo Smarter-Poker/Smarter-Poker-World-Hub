@@ -110,6 +110,13 @@ class BettingRound {
     // Build action order based on street and positions
     this._buildActionOrder();
     
+    // Mark any player with 0 stack as all-in (e.g. went all-in on previous street)
+    for (const player of this.players) {
+      if (player.stack <= 0 && !player.folded) {
+        player.allIn = true;
+      }
+    }
+    
     // Set first player to act
     this.actionIndex = 0;
     this.status = ROUND_STATUS.IN_PROGRESS;

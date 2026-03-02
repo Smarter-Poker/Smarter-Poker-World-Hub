@@ -290,7 +290,8 @@ class GameStateMachine {
     } else if (result.action.amount > 0) {
       player.stack -= result.action.amount;
       this.potCalculator.addContribution(playerId, result.action.amount);
-      if (result.action.type === ACTION_TYPES.ALL_IN) {
+      // Mark all-in if action was explicitly all_in OR if stack is now 0
+      if (result.action.type === ACTION_TYPES.ALL_IN || player.stack <= 0) {
         player.allIn = true;
         player.stack = 0;
         this.potCalculator.markAllIn(playerId);
@@ -1116,8 +1117,22 @@ class GameStateMachine {
       this._offerInsurance(fromStreet, activePlayers);
     }
 
-    const streets = STREETS.slice(STREETS.indexOf(fromStreet));
-    for (const street of streets) {
+    // fromStreet has ALREADY been dealt by _onRoundComplete → _dealCommunityCards.
+    // Only deal the streets AFTER fromStreet.
+    const streetIdx = STREETS.indexOf(fromStreet);
+    const remainingStreets = STREETS.slice(streetIdx + 1);
+
+    // Emit event for fromStreet (already dealt, just announce it)
+    const equity0 = this._computeEquity(activePlayers);
+    this.emit('street_start', {
+      street: fromStreet,
+      communityCards: [...this.currentHand.communityCards],
+      potTotal: this.potCalculator.totalPot,
+      allIn: true,
+      equity: equity0,
+    });
+
+    for (const street of remainingStreets) {
       this._dealCommunityCards(street);
       this.phase = street;
 
@@ -1196,7 +1211,9 @@ class GameStateMachine {
    */
   _runItMultiple(fromStreet, activePlayers, numBoards) {
     const boardBefore = [...this.currentHand.communityCards];
-    const streetsRemaining = STREETS.slice(STREETS.indexOf(fromStreet));
+    // fromStreet has ALREADY been dealt by _onRoundComplete → _dealCommunityCards.
+    // Only deal streets AFTER fromStreet.
+    const streetsRemaining = STREETS.slice(STREETS.indexOf(fromStreet) + 1);
     
     const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
     const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
