@@ -267,19 +267,19 @@ export default function MembershipPlansPage() {
           white-space: nowrap;
         }
         .mp-btn-cancel:hover { border-color: #666; color: #fff; }
-        /* Dynamic price overlay — white text over the card */
+        /* Dynamic price overlay — white text on the right side of each card */
         .mp-price-overlay {
           position: absolute;
-          left: 50%;
-          transform: translate(-50%, -50%);
+          right: 12%;
+          transform: translateY(-50%);
           display: flex;
-          justify-content: center;
-          text-align: center;
+          justify-content: flex-end;
+          text-align: right;
           align-items: center;
           pointer-events: none;
           z-index: 10;
           font-family: 'Inter', -apple-system, sans-serif;
-          font-size: clamp(18px, 3.5vw, 36px);
+          font-size: clamp(16px, 2.8vw, 28px);
           font-weight: 700;
           color: #ffffff;
           letter-spacing: 0.5px;

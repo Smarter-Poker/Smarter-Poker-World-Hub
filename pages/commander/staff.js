@@ -60,11 +60,7 @@ export default function CommanderStaffPage() {
         router.push('/commander/login').catch(() => { });
         return;
       }
-      // Access check: only owner and manager can access staff page
-      if (!['owner', 'manager'].includes(staffData.role)) {
-        router.push('/commander/dashboard').catch(() => { });
-        return;
-      }
+      // Role access check is handled by CommanderLayout PIN gate
       setCurrentStaff(staffData);
       setVenueId(staffData.venue_id);
       if (staffData.venue_name) {

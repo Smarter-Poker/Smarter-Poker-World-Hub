@@ -337,8 +337,8 @@ export default function TournamentSettings() {
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => router.back()}
-              className="p-1.5 rounded-lg hover:bg-[#3A3B3C] transition-colors">
-              <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+              className="p-1.5 rounded-lg transition-colors" style={{ background: '#3A3B3C', border: '1px solid #4A4B4C' }}>
+              <ArrowLeft className="w-5 h-5 text-white" />
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Tournament Settings</h1>

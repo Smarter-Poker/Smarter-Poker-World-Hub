@@ -92,7 +92,7 @@ export default function PlayerActivityReport() {
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg active:bg-[#3A3B3C] flex-shrink-0"><ArrowLeft className="w-5 h-5 text-[#B0B3B8]" /></button>
+              <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg flex-shrink-0" style={{ background: '#3A3B3C', border: '1px solid #4A4B4C' }}><ArrowLeft className="w-5 h-5 text-white" /></button>
               <h1 className="text-lg font-bold text-white">Player Activity</h1>
             </div>
             <div className="flex items-center gap-2">
