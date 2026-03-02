@@ -45,14 +45,20 @@ export default async function handler(req, res) {
         // Get raw body for signature verification
         const rawBody = await getRawBody(req);
 
-        // If Stripe is configured, verify signature
-        if (endpointSecret && sig && stripe) {
-            event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
-        } else {
-            // For testing without signature verification
-            event = JSON.parse(rawBody.toString());
-            console.warn('⚠️  Webhook signature verification skipped - configure STRIPE_WEBHOOK_SECRET');
+        // SECURITY: Signature verification is REQUIRED.
+        // If webhook secret is not configured, reject all events.
+        if (!endpointSecret) {
+            console.error('STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+            return res.status(500).json({ error: 'Webhook secret not configured' });
         }
+        if (!sig) {
+            return res.status(400).json({ error: 'Missing stripe-signature header' });
+        }
+        if (!stripe) {
+            return res.status(500).json({ error: 'Stripe not configured' });
+        }
+
+        event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
         return res.status(400).json({ error: `Webhook Error: ${err.message}` });
@@ -107,7 +113,7 @@ async function handleCheckoutCompleted(session) {
     if (mode === 'payment') {
         // One-time payment (diamonds or merchandise)
         if (metadata.type === 'diamonds' && metadata.purchase_id) {
-            // Complete diamond purchase
+            // IDEMPOTENCY: Only credit diamonds if purchase was still pending
             const { data: purchase } = await supabase
                 .from('diamond_purchases')
                 .update({
@@ -116,6 +122,7 @@ async function handleCheckoutCompleted(session) {
                     completed_at: new Date().toISOString()
                 })
                 .eq('id', metadata.purchase_id)
+                .eq('status', 'pending') // Only update if still pending — prevents double-credit on retries
                 .select()
                 .single();
 

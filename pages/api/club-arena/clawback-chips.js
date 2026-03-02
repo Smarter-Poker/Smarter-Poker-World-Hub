@@ -128,35 +128,9 @@ export default async function handler(req, res) {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // 6. Verify player has enough chips
-    // ═════════════════════════════════════════════════════════════
-    const { data: playerMember } = await supabaseAdmin
-      .from('club_members')
-      .select('chip_balance, nickname')
-      .eq('club_id', clubId)
-      .eq('user_id', txn.to_user_id)
-      .single();
-
-    if (!playerMember) {
-      return res.status(404).json({ error: 'Player no longer in club' });
-    }
-
-    if (playerMember.chip_balance < clawbackAmount) {
-      // Unclaim the transaction since we can't execute
-      await supabaseAdmin
-        .from('chip_transactions')
-        .update({ notes: txn.notes || '' })
-        .eq('id', transactionId);
-      return res.status(400).json({
-        error: 'Player has insufficient chips for full clawback',
-        playerBalance: playerMember.chip_balance,
-        requested: clawbackAmount,
-        message: 'Player may have already played or transferred some chips.',
-      });
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    // 7. Execute clawback: atomic debit player, credit agent
+    // 6+7. Execute clawback: atomic debit player (with balance check), credit agent
+    // Uses fn_debit_chips which atomically does SET chip_balance = chip_balance - N 
+    // WHERE chip_balance >= N, preventing negative balances without TOCTOU
     // ═════════════════════════════════════════════════════════════
     const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
       p_club_id: clubId,
@@ -164,7 +138,18 @@ export default async function handler(req, res) {
       p_amount: clawbackAmount,
     });
 
-    if (debitErr) throw debitErr;
+    if (debitErr) {
+      // Debit failed (likely insufficient balance) — unclaim the transaction
+      await supabaseAdmin
+        .from('chip_transactions')
+        .update({ notes: txn.notes || '' })
+        .eq('id', transactionId);
+      return res.status(400).json({
+        error: 'Player has insufficient chips for clawback',
+        requested: clawbackAmount,
+        message: 'Player may have already played or transferred some chips.',
+      });
+    }
 
     const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
       p_club_id: clubId,

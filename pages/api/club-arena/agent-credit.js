@@ -132,11 +132,22 @@ export default async function handler(req, res) {
       });
       if (creditErr) throw creditErr;
 
-      // Update agents table
-      await supabaseAdmin
+      // Update agents table with optimistic lock
+      const oldBal = agentRecord.business_balance || 0;
+      const { data: balUpd } = await supabaseAdmin
         .from('agents')
-        .update({ business_balance: (agentRecord.business_balance || 0) + amount })
-        .eq('id', agentRecord.id);
+        .update({ business_balance: oldBal + amount })
+        .eq('id', agentRecord.id)
+        .eq('business_balance', oldBal) // optimistic lock
+        .select('id');
+
+      // Retry once on conflict
+      if (!balUpd?.length) {
+        const { data: freshAgent } = await supabaseAdmin.from('agents').select('business_balance').eq('id', agentRecord.id).single();
+        if (freshAgent) {
+          await supabaseAdmin.from('agents').update({ business_balance: (freshAgent.business_balance || 0) + amount }).eq('id', agentRecord.id);
+        }
+      }
 
       await supabaseAdmin.from('club_transactions').insert({
         club_id: clubId,

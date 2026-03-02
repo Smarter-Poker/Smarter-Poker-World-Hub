@@ -51,6 +51,11 @@ export default async function handler(req, res) {
 
     if (coErr || !cashout) return res.status(404).json({ error: 'Cashout request not found' });
 
+    // Settlement lock check — block during Monday 4:00-4:10 AM CST
+    // Must happen BEFORE claiming status, otherwise a lock leaves it orphaned
+    const lockCheck = await checkSettlementLock(supabaseAdmin, cashout.club_id);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+
     // Atomic status claim — prevents concurrent double-processing
     const { data: claimed, error: claimErr } = await supabaseAdmin
       .from('cashout_requests')
@@ -63,10 +68,6 @@ export default async function handler(req, res) {
     if (claimErr || !claimed) {
       return res.status(409).json({ error: 'Cashout already processed or claimed by another request' });
     }
-
-    // Settlement lock check — block during Monday 4:00-4:10 AM CST
-    const lockCheck = await checkSettlementLock(supabaseAdmin, cashout.club_id);
-    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
     // ═════════════════════════════════════════════════════════════
     // 2. Verify caller is the assigned agent or club owner/admin
@@ -254,7 +255,10 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
     if (baseUrl) {
       await fetch(`${baseUrl}/api/notifications/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+        },
         body: JSON.stringify({
           userId: cashout.player_id,
           title: pushText.startsWith('✅') ? '✅ Cashout Approved' : '❌ Cashout Cancelled',

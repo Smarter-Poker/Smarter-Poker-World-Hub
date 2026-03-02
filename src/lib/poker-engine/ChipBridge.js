@@ -200,7 +200,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       player_contributions: Object.keys(contribMap).length > 0 ? contribMap : null,
     });
 
-    // 2. Update club total rake
+    // 2. Update club total rake with optimistic lock
     const { data: club } = await sb
       .from('clubs')
       .select('total_rake, hands_played')
@@ -208,13 +208,28 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       .single();
 
     if (club) {
-      await sb
+      const oldRake = club.total_rake || 0;
+      const oldHands = club.hands_played || 0;
+      const { data: upd } = await sb
         .from('clubs')
         .update({
-          total_rake: (club.total_rake || 0) + rakeAmount,
-          hands_played: (club.hands_played || 0) + 1,
+          total_rake: oldRake + rakeAmount,
+          hands_played: oldHands + 1,
         })
-        .eq('id', clubId);
+        .eq('id', clubId)
+        .eq('total_rake', oldRake) // optimistic lock
+        .select('id');
+
+      // Retry once on conflict (concurrent hand)
+      if (!upd?.length) {
+        const { data: fresh } = await sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).single();
+        if (fresh) {
+          await sb.from('clubs').update({
+            total_rake: (fresh.total_rake || 0) + rakeAmount,
+            hands_played: (fresh.hands_played || 0) + 1,
+          }).eq('id', clubId);
+        }
+      }
     }
 
     // 3. Track rake per agent (for commission calculations)
@@ -247,13 +262,27 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
             .single();
 
           if (agent) {
-            await sb
+            const oldWeekly = agent.weekly_rake_generated || 0;
+            const { data: rUpd } = await sb
               .from('agents')
               .update({
-                weekly_rake_generated: (agent.weekly_rake_generated || 0) + rakeGenerated,
+                weekly_rake_generated: oldWeekly + rakeGenerated,
                 last_active_at: new Date().toISOString(),
               })
-              .eq('id', agent.id);
+              .eq('id', agent.id)
+              .eq('weekly_rake_generated', oldWeekly) // optimistic lock
+              .select('id');
+
+            // Retry once on conflict
+            if (!rUpd?.length) {
+              const { data: freshA } = await sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).single();
+              if (freshA) {
+                await sb.from('agents').update({
+                  weekly_rake_generated: (freshA.weekly_rake_generated || 0) + rakeGenerated,
+                  last_active_at: new Date().toISOString(),
+                }).eq('id', agent.id);
+              }
+            }
           }
         }
       }

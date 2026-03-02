@@ -24,13 +24,15 @@ const STREAK_MILESTONES = [
 export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const userId = user.id; // From JWT, not request
+
     // GET: Fetch user streak
     if (req.method === 'GET') {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
 
         try {
             const { data: streak } = await supabase
@@ -87,11 +89,8 @@ export default async function handler(req, res) {
 
     // POST: Record training activity (call after session)
     if (req.method === 'POST') {
-        const { userId, action } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
+        const { action } = req.body;
+        // userId from JWT (set at top of handler)
 
         try {
             const today = new Date().toISOString().split('T')[0];
@@ -185,10 +184,11 @@ export default async function handler(req, res) {
 
     // PUT: Claim milestone reward
     if (req.method === 'PUT') {
-        const { userId, milestoneDays } = req.body;
+        const { milestoneDays } = req.body;
+        // userId from JWT (set at top of handler)
 
-        if (!userId || !milestoneDays) {
-            return res.status(400).json({ error: 'userId and milestoneDays required' });
+        if (!milestoneDays) {
+            return res.status(400).json({ error: 'milestoneDays required' });
         }
 
         try {

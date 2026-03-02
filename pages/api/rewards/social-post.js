@@ -30,7 +30,14 @@ export default async function handler(req, res) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+    // ── Auth: JWT required (awards diamonds) ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
     const { userId, postId } = req.body;
+    const userId = authUser.id; // Override: use JWT identity
 
     if (!userId) {
         return res.status(400).json({ error: 'userId required' });

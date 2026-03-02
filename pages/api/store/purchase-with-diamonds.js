@@ -67,16 +67,26 @@ export default async function handler(req, res) {
             });
         }
 
-        // Deduct diamonds atomically
+        // Deduct diamonds atomically via optimistic lock
         const newBalance = currentBalance - diamondCost;
-        const { error: updateError } = await supabase
+        const { data: updatedRows, error: updateError } = await supabase
             .from('profiles')
             .update({ diamonds: newBalance })
             .eq('id', user.id)
-            .eq('diamonds', currentBalance); // Optimistic lock
+            .eq('diamonds', currentBalance) // Optimistic lock — fails if balance changed
+            .select('id');
 
         if (updateError) {
             return res.status(500).json({ success: false, error: 'Failed to deduct diamonds' });
+        }
+
+        // If optimistic lock failed (concurrent spend), no row was updated
+        if (!updatedRows || updatedRows.length === 0) {
+            return res.status(409).json({
+                success: false,
+                error: 'Balance changed — please retry',
+                code: 'CONCURRENT_MODIFICATION'
+            });
         }
 
         // Record each item as a transaction

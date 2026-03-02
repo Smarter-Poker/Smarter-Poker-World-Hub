@@ -8,7 +8,7 @@ const supabase = createClient(
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id',
+  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
 };
 
 export default async function handler(req, res) {
@@ -19,6 +19,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
+
+  // ── Auth: verify JWT identity ──
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Auth required' });
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  const authenticatedUserId = user.id;
 
   try {
     if (req.method === 'POST') {
@@ -61,11 +68,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const { user_id, unread, limit = '20', offset = '0' } = req.query;
-
-      if (!user_id) {
-        return res.status(400).json({ success: false, error: 'user_id is required' });
-      }
+      const { unread, limit = '20', offset = '0' } = req.query;
+      const user_id = authenticatedUserId; // Use JWT identity, not query param
 
       const limitNum = parseInt(limit, 10);
       const offsetNum = parseInt(offset, 10);
@@ -138,11 +142,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { notification_id, user_id, mark_all } = req.body;
-
-      if (!user_id) {
-        return res.status(400).json({ success: false, error: 'user_id is required' });
-      }
+      const { notification_id, mark_all } = req.body;
+      const user_id = authenticatedUserId; // Use JWT identity, not body param
 
       // Mark all as read
       if (mark_all === true) {

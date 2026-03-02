@@ -1157,16 +1157,24 @@ class TournamentController extends EventEmitter {
 
     const finishOrder = [...this.eliminationOrder];
     const payouts = [];
+    let totalAwarded = 0;
 
     for (let i = 0; i < structure.length && i < finishOrder.length; i++) {
       const playerId = finishOrder[i];
       const entry = this.entries.get(playerId);
       const amount = Math.floor(this.prizePool * (structure[i].percentage / 100));
+      totalAwarded += amount;
 
       payouts.push({
         place: i + 1, playerId, playerName: entry?.playerName || playerId,
         clubId: entry?.clubId, amount, percentage: structure[i].percentage,
       });
+    }
+
+    // Distribute rounding remainder to 1st place so no chips are lost
+    const remainder = this.prizePool - totalAwarded;
+    if (remainder > 0 && payouts.length > 0) {
+      payouts[0].amount += remainder;
     }
 
     return payouts;

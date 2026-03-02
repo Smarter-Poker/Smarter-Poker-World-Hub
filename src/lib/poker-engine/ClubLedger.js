@@ -82,18 +82,8 @@ class ClubLedger {
       });
 
       if (error) {
-        // Fallback: direct update
-        const current = await this.getBalance(clubId, userId);
-        const newBal = current + amount;
-        const { error: upErr } = await this.supabase
-          .from('club_members')
-          .update({ chip_balance: newBal })
-          .eq('club_id', clubId)
-          .eq('user_id', userId);
-        if (upErr) return { success: false, error: upErr.message };
-
-        await this._recordTransaction(clubId, userId, amount, type, meta);
-        return { success: true, newBalance: newBal };
+        console.error('[ClubLedger] fn_credit_chips RPC failed:', error.message);
+        return { success: false, error: error.message };
       }
 
       await this._recordTransaction(clubId, userId, amount, type, meta);
@@ -116,22 +106,22 @@ class ClubLedger {
     if (!this.supabase || amount <= 0) return { success: false, error: 'Invalid' };
 
     try {
-      const current = await this.getBalance(clubId, userId);
-      if (current < amount) {
-        return { success: false, error: 'Insufficient balance', available: current };
+      // Use atomic RPC to prevent TOCTOU double-spend
+      const { data, error } = await this.supabase.rpc('fn_debit_chips', {
+        p_club_id: clubId,
+        p_user_id: userId,
+        p_amount: amount,
+      });
+
+      if (error) {
+        if (error.message?.includes('Insufficient')) {
+          return { success: false, error: 'Insufficient balance' };
+        }
+        return { success: false, error: error.message };
       }
 
-      const newBal = current - amount;
-      const { error } = await this.supabase
-        .from('club_members')
-        .update({ chip_balance: newBal })
-        .eq('club_id', clubId)
-        .eq('user_id', userId);
-
-      if (error) return { success: false, error: error.message };
-
       await this._recordTransaction(clubId, userId, -amount, type, meta);
-      return { success: true, newBalance: newBal };
+      return { success: true, newBalance: data };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -205,6 +195,70 @@ class ClubLedger {
 
     const { data } = await query;
     return data || [];
+  }
+
+  /**
+   * Credit tournament/bounty winnings to a member's balance.
+   * Called by TournamentController for payouts, bounty awards, and refunds.
+   * @param {string} clubId
+   * @param {string} userId
+   * @param {number} amount
+   * @param {Object} [meta] - { tournamentId, type: 'tournament_payout'|'pko_bounty'|'tournament_refund'|... }
+   * @returns {Promise<{ success: boolean, newBalance?: number, error?: string }>}
+   */
+  async creditWinnings(clubId, userId, amount, meta = {}) {
+    return this.credit(clubId, userId, amount, TRANSACTION_TYPE.TOURNAMENT_PAYOUT, meta);
+  }
+
+  /**
+   * Deduct tournament buy-in (+ fee) from a player's club balance.
+   * Called by TournamentController for initial buy-in, rebuys, and add-ons.
+   * @param {string} clubId
+   * @param {string} userId
+   * @param {number} buyinAmount - The amount going into the prize pool
+   * @param {number} feeAmount - The rake/fee portion
+   * @param {Object} [meta]
+   * @returns {Promise<{ success: boolean, newBalance?: number, error?: string }>}
+   */
+  async deductBuyin(clubId, userId, buyinAmount, feeAmount = 0, meta = {}) {
+    const totalDeduction = buyinAmount + feeAmount;
+    if (totalDeduction <= 0) return { success: true };
+    return this.debit(clubId, userId, totalDeduction, TRANSACTION_TYPE.TOURNAMENT_BUYIN, {
+      ...meta,
+      buyinAmount,
+      feeAmount,
+    });
+  }
+
+  /**
+   * Record tournament rake to club treasury.
+   * Called at tournament end to credit the club with collected fees.
+   * @param {string} clubId
+   * @param {number} amount - Total rake/fees collected
+   * @param {Object} [meta]
+   * @returns {Promise<{ success: boolean, error?: string }>}
+   */
+  async processRake(clubId, amount, meta = {}) {
+    if (!this.supabase || amount <= 0) return { success: true };
+
+    try {
+      // Credit rake to club treasury via RPC
+      const { error } = await this.supabase.rpc('fn_credit_treasury', {
+        p_club_id: clubId,
+        p_amount: amount,
+      });
+
+      if (error) {
+        console.error('[ClubLedger] processRake RPC failed:', error.message);
+        // Still record the transaction for audit trail even if treasury credit fails
+      }
+
+      await this._recordTransaction(clubId, null, amount, TRANSACTION_TYPE.RAKE, meta);
+      return { success: true };
+    } catch (err) {
+      console.error('[ClubLedger] processRake error:', err.message);
+      return { success: false, error: err.message };
+    }
   }
 
   /**

@@ -95,7 +95,7 @@ export default async function handler(req, res) {
                     ? `${followerName} wants to follow your page "${ownerPage.name}". Approve or reject in your Live Games tab.`
                     : `${followerName} is now following your page "${ownerPage.name}"!`;
                 await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
                     body: JSON.stringify({
                         title: notifTitle,
                         message: notifMsg,

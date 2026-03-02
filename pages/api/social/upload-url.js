@@ -35,6 +35,12 @@ export default async function handler(req, res) {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
     try {
         const { fileName, fileSize, mimeType, folder, prefix } = req.body || {};
 

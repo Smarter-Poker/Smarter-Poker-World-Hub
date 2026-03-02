@@ -10,6 +10,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Internal-only endpoint — called server-side by create-subscription.js.
+  // Require admin secret to prevent external abuse (phishing via branded emails).
+  const adminSecret = req.headers['x-admin-secret'];
+  const envSecret = process.env.ADMIN_ROUTE_SECRET;
+  
+  if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+    return res.status(403).json({ error: 'This endpoint is for internal use only' });
+  }
+
   const { to, name, clubName, tier, loginUrl } = req.body;
 
   if (!to || !name || !clubName) {

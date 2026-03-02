@@ -22,6 +22,21 @@ const stripe = process.env.STRIPE_SECRET_KEY
     })
     : null;
 
+// ═══════════════════════════════════════════════════════════════
+// SERVER-SIDE DIAMOND PACKAGE DEFINITIONS (source of truth)
+// Client-submitted prices/amounts are NEVER trusted.
+// ═══════════════════════════════════════════════════════════════
+const VALID_DIAMOND_PACKAGES = {
+    micro:    { diamonds: 100,   price: 1.00,   bonus: 0,    name: 'Micro' },
+    small:    { diamonds: 500,   price: 5.00,   bonus: 0,    name: 'Small' },
+    medium:   { diamonds: 1000,  price: 10.00,  bonus: 0,    name: 'Medium' },
+    standard: { diamonds: 2500,  price: 25.00,  bonus: 0,    name: 'Standard' },
+    large:    { diamonds: 5000,  price: 50.00,  bonus: 0,    name: 'Large' },
+    value:    { diamonds: 10000, price: 100.00, bonus: 500,  name: 'Value' },
+    premium:  { diamonds: 25000, price: 250.00, bonus: 1250, name: 'Premium' },
+    whale:    { diamonds: 50000, price: 500.00, bonus: 2500, name: 'Whale' },
+};
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({
@@ -140,28 +155,41 @@ export default async function handler(req, res) {
         // Build line items based on type
         if (type === 'diamonds') {
             // Diamond purchase - one-time payment
-            sessionConfig.line_items = items.map(item => ({
+            // SECURITY: Validate against server-side package definitions
+            const clientItem = items[0];
+            const packageId = clientItem?.id || clientItem?.packageId;
+            const serverPackage = VALID_DIAMOND_PACKAGES[packageId];
+
+            if (!serverPackage) {
+                return res.status(400).json({
+                    success: false,
+                    error: { code: 'INVALID_PACKAGE', message: `Unknown diamond package: ${packageId}` }
+                });
+            }
+
+            // Use SERVER-SIDE values only — never trust client amounts
+            sessionConfig.line_items = [{
                 price_data: {
                     currency: 'usd',
                     product_data: {
-                        name: item.name,
-                        description: `${item.diamonds} Diamonds${item.bonus ? ` + ${item.bonus} Bonus` : ''}`,
+                        name: serverPackage.name,
+                        description: `${serverPackage.diamonds} Diamonds${serverPackage.bonus ? ` + ${serverPackage.bonus} Bonus` : ''}`,
                         images: ['https://smarter.poker/images/diamond-icon.png']
                     },
-                    unit_amount: Math.round(item.price * 100) // Convert to cents
+                    unit_amount: Math.round(serverPackage.price * 100) // Convert to cents
                 },
-                quantity: item.quantity || 1
-            }));
+                quantity: 1
+            }];
 
-            // Create pending purchase record
+            // Create pending purchase record with SERVER-SIDE values
             const { data: purchase } = await supabase
                 .from('diamond_purchases')
                 .insert({
                     user_id: user.id,
-                    package_name: items[0].name,
-                    diamonds_amount: items[0].diamonds,
-                    bonus_diamonds: items[0].bonus || 0,
-                    price_usd: items[0].price,
+                    package_name: serverPackage.name,
+                    diamonds_amount: serverPackage.diamonds,
+                    bonus_diamonds: serverPackage.bonus,
+                    price_usd: serverPackage.price,
                     status: 'pending'
                 })
                 .select()

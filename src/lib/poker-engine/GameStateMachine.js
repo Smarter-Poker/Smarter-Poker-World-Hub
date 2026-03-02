@@ -221,16 +221,18 @@ class GameStateMachine {
     if (isBombPot) {
       // ── BOMB POT: Everyone antes, skip preflop, deal flop ──
       const bombPotAnte = this.config.bigBlind * 2; // 2x BB per player
+      const bombPotAmounts = [];
       for (const player of this.currentHand.players) {
         const amount = Math.min(bombPotAnte, player.stack);
         player.stack -= amount;
         this.potCalculator.addContribution(player.id, amount);
+        bombPotAmounts.push({ id: player.id, amount, stack: player.stack });
         if (player.stack <= 0) player.allIn = true;
       }
       this.emit('blinds_posted', {
         bombPot: true,
         ante: bombPotAnte,
-        players: this.currentHand.players.map(p => ({ id: p.id, amount: Math.min(bombPotAnte, p.stack + Math.min(bombPotAnte, p.stack)), stack: p.stack })),
+        players: bombPotAmounts,
       });
       
       // Deal hole cards
@@ -1238,45 +1240,92 @@ class GameStateMachine {
       return b;
     });
     
-    // Split pot evenly across boards, AFTER applying rake
+    // ── Use PotCalculator for correct side pot distribution per board ──
+    const pots = this.potCalculator.calculatePots();
     const totalPot = this.potCalculator.totalPot;
     
-    // Apply rake to total pot (same as normal showdown)
+    // Apply rake to total pot
     const rakePercent = this.config.rakePercent || 0;
     const rakeCap = this.config.rakeCap || 0;
     let rake = 0;
     if (rakePercent > 0) {
-      rake = Math.min(Math.floor(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
+      const hasMultiple = pots.some(p => p.eligible.size > 1);
+      if (hasMultiple) {
+        rake = Math.min(Math.floor(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
+      }
     }
-    const distributablePot = totalPot - rake;
     
-    const basePortion = Math.floor(distributablePot / numBoards);
-    const remainder = distributablePot - (basePortion * numBoards);
+    // Deduct rake from pots (main pot first)
+    let rakeRemaining = rake;
+    for (const pot of pots) {
+      if (rakeRemaining <= 0) break;
+      const deduction = Math.min(rakeRemaining, pot.amount);
+      pot.amount -= deduction;
+      rakeRemaining -= deduction;
+    }
     
-    // Build payouts — first board gets the remainder
+    // Distribute each pot across boards, respecting eligibility
     const payouts = {};
+    const boardPayouts = allResults.map(() => ({})); // per-board payout map
+    
+    for (const pot of pots) {
+      if (pot.amount <= 0) continue;
+      
+      // Split this pot across N boards
+      const basePortion = Math.floor(pot.amount / numBoards);
+      let potRemainder = pot.amount - (basePortion * numBoards);
+      
+      allResults.forEach((b, boardIdx) => {
+        const portion = basePortion + (boardIdx === 0 ? potRemainder : 0);
+        if (portion <= 0) return;
+        
+        // Find best eligible hand for this pot on this board
+        const eligibleResults = b.results.filter(r => pot.eligible.has(r.playerId));
+        if (eligibleResults.length === 0) return;
+        
+        // Best score among eligible (handle ties)
+        const bestScore = eligibleResults[0].score;
+        const winners = eligibleResults.filter(r => r.score === bestScore);
+        
+        const share = Math.floor(portion / winners.length);
+        let shareRemainder = portion - (share * winners.length);
+        
+        for (const winner of winners) {
+          const award = share + (shareRemainder > 0 ? 1 : 0);
+          if (shareRemainder > 0) shareRemainder--;
+          payouts[winner.playerId] = (payouts[winner.playerId] || 0) + award;
+          boardPayouts[boardIdx][winner.playerId] = (boardPayouts[boardIdx][winner.playerId] || 0) + award;
+        }
+      });
+    }
+    
+    // Compute per-board total payouts for reporting
     allResults.forEach((b, i) => {
-      const portion = basePortion + (i === 0 ? remainder : 0);
-      b.payout = portion;
-      payouts[b.winner.playerId] = (payouts[b.winner.playerId] || 0) + portion;
+      b.payout = Object.values(boardPayouts[i]).reduce((s, v) => s + v, 0);
     });
     
     // Apply payouts to player stacks
     for (const [pid, amount] of Object.entries(payouts)) {
-      const player = this.currentHand.players.find(p => p.id === pid);
+      const player = this.currentHand.players.find(p => String(p.id) === String(pid));
       if (player) player.stack += amount;
     }
     
     // Store multi-runout results
     const runoutData = {
       numBoards,
-      boards: allResults.map((b, i) => ({
-        boardIndex: i + 1,
-        cards: b.board,
-        results: b.results,
-        winner: b.winner.playerId,
-        payout: b.payout,
-      })),
+      boards: allResults.map((b, i) => {
+        // Primary winner = player with highest payout on this board
+        const bpEntries = Object.entries(boardPayouts[i]);
+        bpEntries.sort((a, b2) => b2[1] - a[1]);
+        const boardWinner = bpEntries.length > 0 ? bpEntries[0][0] : (b.results[0]?.playerId || null);
+        return {
+          boardIndex: i + 1,
+          cards: b.board,
+          results: b.results,
+          winner: boardWinner,
+          payout: b.payout,
+        };
+      }),
       payouts,
       totalPot,
     };
@@ -1288,7 +1337,7 @@ class GameStateMachine {
       this.currentHand.runItTwice = {
         board1: allResults[0].board, board2: allResults[1].board,
         results1: allResults[0].results, results2: allResults[1].results,
-        winner1: allResults[0].winner.playerId, winner2: allResults[1].winner.playerId,
+        winner1: runoutData.boards[0].winner, winner2: runoutData.boards[1].winner,
         payout1: allResults[0].payout, payout2: allResults[1].payout,
       };
     }
@@ -1549,7 +1598,7 @@ class GameStateMachine {
       
       for (let b = 0; b < numBoards; b++) {
         const board = this.currentHand.boards[b];
-        if (!board || board.length < 5) continue; // need full board
+        if (!board || board.length < 5) continue;
         const result = evalBoard(board);
         const winners = result.hiWinners || result.winners || [];
         winners.forEach(w => allWinnerIds.add(String(w.playerId)));
@@ -1561,39 +1610,66 @@ class GameStateMachine {
         player.showCards = this.config.autoMuck ? allWinnerIds.has(String(player.id)) : true;
       }
       
-      // Split pot across boards
+      // ── Side-pot-aware distribution across boards ──
+      const pots = this.potCalculator.calculatePots();
       const totalPot = this.potCalculator.totalPot;
-      const basePortion = Math.floor(totalPot / boardResults.length);
-      const remainder = totalPot - (basePortion * boardResults.length);
       
       // Calculate rake on full pot
       const rakeAmount = Math.min(
         Math.floor(totalPot * (this.config.rakePercent || 0) / 100),
         this.config.rakeCap || Infinity
       );
-      const distributablePot = totalPot - rakeAmount;
-      const boardPortion = Math.floor(distributablePot / boardResults.length);
-      const boardRemainder = distributablePot - (boardPortion * boardResults.length);
+      
+      // Deduct rake from pots (main pot first)
+      let rakeLeft = rakeAmount;
+      for (const pot of pots) {
+        if (rakeLeft <= 0) break;
+        const deduct = Math.min(rakeLeft, pot.amount);
+        pot.amount -= deduct;
+        rakeLeft -= deduct;
+      }
       
       const payouts = {};
       const boardWinners = [];
       
-      boardResults.forEach((br, i) => {
-        const portion = boardPortion + (i === 0 ? boardRemainder : 0);
-        const winners = br.winners;
-        const perWinner = winners.length > 0 ? Math.floor(portion / winners.length) : 0;
-        const winnerRemainder = portion - (perWinner * winners.length);
+      for (const pot of pots) {
+        if (pot.amount <= 0) continue;
         
-        winners.forEach((w, wi) => {
-          const amount = perWinner + (wi === 0 ? winnerRemainder : 0);
-          payouts[w.playerId] = (payouts[w.playerId] || 0) + amount;
+        const basePortion = Math.floor(pot.amount / boardResults.length);
+        let potRemainder = pot.amount - (basePortion * boardResults.length);
+        
+        boardResults.forEach((br, i) => {
+          const portion = basePortion + (i === 0 ? potRemainder : 0);
+          if (portion <= 0) return;
+          
+          // Find the best hand(s) AMONG eligible players for this pot
+          // (not just the overall board winners — they may not be eligible for side pots)
+          const allRankings = br.result.hiRankings || br.result.rankings || [];
+          const eligibleRankings = allRankings.filter(r => pot.eligible.has(r.playerId));
+          
+          if (eligibleRankings.length === 0) return;
+          
+          // Best score among eligible players (rankings are already sorted desc)
+          const bestScore = eligibleRankings[0].hand.score;
+          const eligibleWinners = eligibleRankings.filter(r => r.hand.score === bestScore);
+          
+          const perWinner = Math.floor(portion / eligibleWinners.length);
+          let shareRemainder = portion - (perWinner * eligibleWinners.length);
+          
+          for (const w of eligibleWinners) {
+            const award = perWinner + (shareRemainder > 0 ? 1 : 0);
+            if (shareRemainder > 0) shareRemainder--;
+            payouts[w.playerId] = (payouts[w.playerId] || 0) + award;
+          }
         });
-        
+      }
+      
+      boardResults.forEach((br, i) => {
         boardWinners.push({
           boardIndex: br.boardIndex,
           board: br.board,
-          winners: winners.map(w => w.playerId),
-          portion,
+          winners: br.winners.map(w => w.playerId),
+          portion: Object.values(payouts).reduce((s, v) => s + v, 0) / boardResults.length,
         });
       });
       

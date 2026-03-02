@@ -38,10 +38,13 @@ export default async function handler(req, res) {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { userId } = req.body;
-    if (!userId) {
-        return res.status(400).json({ error: 'userId required' });
-    }
+    // ── Auth: JWT required (awards diamonds) ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    const userId = user.id; // From JWT, not body
 
     const now = new Date();
     const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));

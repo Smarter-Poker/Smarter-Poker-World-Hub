@@ -142,7 +142,7 @@ export default async function handler(req, res) {
 
         if (createErr) throw createErr;
 
-        // Update table count on club
+        // Update table count on club with optimistic lock
         const { data: club } = await supabaseAdmin
             .from('clubs')
             .select('table_count')
@@ -150,10 +150,20 @@ export default async function handler(req, res) {
             .single();
 
         if (club) {
-            await supabaseAdmin
+            const oldCount = club.table_count || 0;
+            const { data: upd } = await supabaseAdmin
                 .from('clubs')
-                .update({ table_count: (club.table_count || 0) + 1 })
-                .eq('id', clubId);
+                .update({ table_count: oldCount + 1 })
+                .eq('id', clubId)
+                .eq('table_count', oldCount)
+                .select('id');
+
+            if (!upd?.length) {
+                const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).single();
+                if (fresh) {
+                    await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                }
+            }
         }
 
         return res.status(200).json({ success: true, table });

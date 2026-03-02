@@ -21,11 +21,15 @@ export default async function handler(req, res) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { user_id, duel_type = 'quick', entry_fee = 25 } = req.body;
 
-    if (!user_id) {
-        return res.status(400).json({ error: 'user_id required' });
-    }
+    // ── Auth: JWT required (handles diamond entry fees + prizes) ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const { duel_type = 'quick', entry_fee = 25 } = req.body;
+    const user_id = authUser.id; // From JWT, not body
 
     const validTypes = { 'quick': 25, 'best-of-3': 50, 'high-roller': 100 };
     if (!validTypes[duel_type]) {

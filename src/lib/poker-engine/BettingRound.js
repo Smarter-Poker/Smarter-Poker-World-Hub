@@ -84,7 +84,8 @@ class BettingRound {
         if (player) {
           player.invested = blind.amount;
           player.totalInvested = blind.invested || blind.amount;
-          player.stack -= blind.amount; // Already deducted, but track
+          // NOTE: Do NOT deduct from stack — stacks passed to constructor
+          // are already post-blind (deducted in GameStateMachine._postBlinds)
           if (player.stack <= 0) {
             player.allIn = true;
           }
@@ -376,7 +377,13 @@ class BettingRound {
       const playerIdx = this._actionOrder[this.actionIndex];
       const player = this.players[playerIdx];
       
-      if (!player.folded && !player.allIn && !player.hasActed) {
+      // A player needs to act if:
+      // - Not folded, not all-in, AND
+      // - Either hasn't acted yet, OR invested less than current bet
+      //   (covers undersized all-in: action not reopened for re-raising,
+      //    but player still needs to call the difference or fold)
+      if (!player.folded && !player.allIn && 
+          (!player.hasActed || player.invested < this.currentBet)) {
         return; // Found next active player
       }
       
@@ -402,9 +409,9 @@ class BettingRound {
     // All active players are all-in
     const nonAllIn = activePlayers.filter(p => !p.allIn);
     if (nonAllIn.length <= 1) {
-      // If one player remains and has matched the bet, done
+      // If one player remains and has matched the bet AND has acted, done
       if (nonAllIn.length === 0) return true;
-      if (nonAllIn[0].hasActed || nonAllIn[0].invested >= this.currentBet) return true;
+      if (nonAllIn[0].invested >= this.currentBet && nonAllIn[0].hasActed) return true;
     }
     
     // All active non-all-in players have acted and bets are equal

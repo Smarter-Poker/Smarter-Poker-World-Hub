@@ -210,6 +210,9 @@ export default async function handler(req, res) {
       case 'stand_up': {
         result = await controller.standUp(tableId, playerId);
 
+        // If pending (player in a hand), don't unlock yet — handled after hand completes
+        if (result.pending) break;
+
         // Clean up anti-cheat tracking for this player/table
         if (result.success) {
           antiCheat.removePlayerFromTable(playerId, tableId);
@@ -219,7 +222,7 @@ export default async function handler(req, res) {
 
         // If club table: return chips to club balance
         if (result.success && clubId) {
-          const cashoutAmount = result.cashout || 0;
+          const cashoutAmount = typeof result.cashout === 'number' ? result.cashout : 0;
           const unlockResult = await ChipBridge.unlockChips(clubId, playerId, tableId, cashoutAmount);
           result.chipBridge = {
             returned: unlockResult.returned,
@@ -328,6 +331,15 @@ export default async function handler(req, res) {
       case 'invite_player': {
         const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        // Verify admin role
+        if (clubId) {
+          const { data: inviterMember } = await supabaseAdmin
+            .from('club_members').select('role')
+            .eq('club_id', clubId).eq('user_id', playerId).single();
+          if (!inviterMember || !['owner', 'admin', 'manager', 'agent'].includes(inviterMember.role)) {
+            return res.status(403).json({ error: 'Only owners, admins, managers, or agents can invite players' });
+          }
+        }
         result = controller.invitePlayer(tableId, targetId);
         break;
       }
@@ -336,6 +348,15 @@ export default async function handler(req, res) {
       case 'approve_buyin': {
         const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        // Verify admin role
+        if (clubId) {
+          const { data: approverMember } = await supabaseAdmin
+            .from('club_members').select('role')
+            .eq('club_id', clubId).eq('user_id', playerId).single();
+          if (!approverMember || !['owner', 'admin', 'manager'].includes(approverMember.role)) {
+            return res.status(403).json({ error: 'Only owners, admins, or managers can approve buy-ins' });
+          }
+        }
         result = controller.approveBuyIn(tableId, targetId);
         break;
       }
@@ -344,6 +365,15 @@ export default async function handler(req, res) {
       case 'reject_buyin': {
         const targetId = params.targetPlayerId;
         if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
+        // Verify admin role
+        if (clubId) {
+          const { data: rejecterMember } = await supabaseAdmin
+            .from('club_members').select('role')
+            .eq('club_id', clubId).eq('user_id', playerId).single();
+          if (!rejecterMember || !['owner', 'admin', 'manager'].includes(rejecterMember.role)) {
+            return res.status(403).json({ error: 'Only owners, admins, or managers can reject buy-ins' });
+          }
+        }
         result = controller.rejectBuyIn(tableId, targetId);
         break;
       }

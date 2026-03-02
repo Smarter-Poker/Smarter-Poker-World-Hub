@@ -23,6 +23,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Auth: verify JWT
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
     try {
         const {
             gameId,
@@ -124,7 +130,7 @@ export default async function handler(req, res) {
             // Only insert if we have a valid game UUID
             if (gameUUID) {
                 await supabase.from('god_mode_hand_history').insert({
-                    user_id: userId,
+                    user_id: user.id,
                     game_id: gameUUID,
                     source_file_id: effectiveFileId || 'unknown',
                     variant_hash: effectiveVariantHash || '0',

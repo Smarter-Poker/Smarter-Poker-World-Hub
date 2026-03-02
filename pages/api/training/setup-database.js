@@ -17,6 +17,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // ── Auth: Admin-only DB migration ──
+    const adminSecret = req.headers['x-admin-secret'];
+    const envSecret = process.env.ADMIN_ROUTE_SECRET;
+    if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+        return res.status(403).json({ error: 'Admin access required for DB setup' });
+    }
+
     try {
         // Initialize Supabase admin client
         const supabase = createClient(

@@ -127,13 +127,15 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const periods = getPeriodKeys();
 
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const userId = user.id; // From JWT, not request
+
     // GET: Fetch active challenges with user progress
     if (req.method === 'GET') {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
 
         try {
             // Get active challenge definitions
@@ -215,11 +217,8 @@ export default async function handler(req, res) {
 
     // POST: Update challenge progress after session
     if (req.method === 'POST') {
-        const { userId, sessionData } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
+        const { sessionData } = req.body;
+        // userId from JWT (set at top of handler)
 
         try {
             const {
@@ -357,10 +356,11 @@ export default async function handler(req, res) {
 
     // PUT: Claim completed challenge reward
     if (req.method === 'PUT') {
-        const { userId, challengeId, periodKey } = req.body;
+        const { challengeId, periodKey } = req.body;
+        // userId from JWT (set at top of handler)
 
-        if (!userId || !challengeId || !periodKey) {
-            return res.status(400).json({ error: 'userId, challengeId, and periodKey required' });
+        if (!challengeId || !periodKey) {
+            return res.status(400).json({ error: 'challengeId and periodKey required' });
         }
 
         try {

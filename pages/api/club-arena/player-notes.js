@@ -8,7 +8,7 @@
  *   upsert   — Create or update a note
  *   delete   — Remove a note
  * 
- * Auth: User's own notes only (RLS enforced)
+ * Auth: JWT required — user can only access their own notes
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -21,9 +21,15 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
+  // ── Auth: verify JWT identity ──
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Auth required' });
+  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
   try {
-    const { action, userId, targetUserId, targetUserIds, note } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const { action, targetUserId, targetUserIds, note } = req.body;
+    const userId = user.id; // From JWT, not body — prevents reading/writing other users' notes
 
     switch (action) {
       // ── GET single note ──────────────────────────────────────

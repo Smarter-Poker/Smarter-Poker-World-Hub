@@ -35,15 +35,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Auth: Vercel cron secret or manual trigger with admin token
+  // Auth: Vercel cron secret OR authenticated user with JWT
   const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
-  const isManual = req.body?.manual === true;
 
-  if (!isManual && cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
+  if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
+    // Not a valid cron invocation — require JWT auth
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
+      // Caller is authenticated — allow manual trigger
     } else {
       return res.status(401).json({ error: 'Unauthorized — missing cron secret or auth token' });
     }

@@ -422,7 +422,13 @@ class GameController {
    */
   _inferBettingStructure(variant) {
     const v = (variant || '').toLowerCase();
-    if (v.startsWith('plo') || v.startsWith('omaha')) return BETTING_STRUCTURES.POT_LIMIT;
+    // Use the explicit mapping first
+    if (VARIANT_STRUCTURE_MAP[v]) {
+      return STRUCTURE_MAP[VARIANT_STRUCTURE_MAP[v]] || BETTING_STRUCTURES.NO_LIMIT;
+    }
+    // Fallback: prefix detection
+    if (v.startsWith('plo') || v.includes('omaha')) return BETTING_STRUCTURES.POT_LIMIT;
+    if (v.startsWith('fl') || v.includes('fixed_limit')) return BETTING_STRUCTURES.FIXED_LIMIT;
     return BETTING_STRUCTURES.NO_LIMIT;
   }
 
@@ -519,7 +525,8 @@ class GameController {
     const result = entry.table.standUp(playerId);
     this._broadcastTableState(tableId);
     this._updateTablePlayerCount(tableId);
-    return { success: true, cashout: result };
+    // Return the result directly — it already has { success, cashout } or { success, pending }
+    return result;
   }
 
   /**
@@ -770,7 +777,8 @@ class GameController {
     await this._ensureInit();
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
-    const result = entry.table.game.voluntaryShowCards(playerId);
+    const result = entry.table.game?.voluntaryShowCards?.(playerId);
+    if (!result) return { success: false, error: 'No active hand' };
     return result;
   }
 
@@ -1061,11 +1069,14 @@ class GameController {
 
           await this.lobby.createTable(config);
 
-          // Try mid-hand recovery from live_state first
+          // Try mid-hand recovery from live_state + private hole cards
           if (row.live_state && row.live_state.savedAt) {
             const entry = this.lobby.tables.get(row.id);
             if (entry) {
-              const recovered = StateSerializer.restore(entry.table, row.live_state);
+              // MUST use loadFromDB to merge hole cards from hand_private_state
+              // raw row.live_state has holeCards: null for security
+              const fullState = await StateSerializer.loadFromDB(row.id, this.supabase);
+              const recovered = fullState ? StateSerializer.restore(entry.table, fullState) : false;
               if (recovered) {
                 console.log(`[GameController] Mid-hand recovered: ${row.id}`);
                 continue; // Skip snapshot recovery

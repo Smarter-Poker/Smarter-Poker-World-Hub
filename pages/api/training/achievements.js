@@ -14,13 +14,15 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const userId = user.id; // From JWT, not request
+
     // GET: Fetch user achievements
     if (req.method === 'GET') {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
 
         try {
             // Get all achievement definitions
@@ -70,11 +72,8 @@ export default async function handler(req, res) {
 
     // POST: Check and unlock achievements
     if (req.method === 'POST') {
-        const { userId, stats } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
+        const { stats } = req.body;
+        // userId is from JWT (set at top of handler)
 
         try {
             const newlyUnlocked = [];

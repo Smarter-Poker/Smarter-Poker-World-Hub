@@ -13,9 +13,16 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ── Auth: verify JWT identity (tournament registration and diamond rewards require identity) ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const userId = user.id; // From JWT, not request
+
     // GET: Fetch tournaments (upcoming, live, or completed)
     if (req.method === 'GET') {
-        const { status, userId, tournamentId } = req.query;
+        const { status, tournamentId } = req.query;
 
         try {
             // Single tournament with entries leaderboard
@@ -97,10 +104,11 @@ export default async function handler(req, res) {
 
     // POST: Register for tournament
     if (req.method === 'POST') {
-        const { userId, tournamentId, action } = req.body;
+        const { tournamentId, action } = req.body;
+        // userId from JWT (set at top of handler)
 
-        if (!userId || !tournamentId) {
-            return res.status(400).json({ error: 'userId and tournamentId required' });
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'tournamentId required' });
         }
 
         try {
@@ -225,10 +233,11 @@ export default async function handler(req, res) {
 
     // PUT: Submit tournament results
     if (req.method === 'PUT') {
-        const { userId, tournamentId, score, accuracy, timeTaken, questionsAnswered, questionsCorrect } = req.body;
+        const { tournamentId, score, accuracy, timeTaken, questionsAnswered, questionsCorrect } = req.body;
+        // userId from JWT (set at top of handler)
 
-        if (!userId || !tournamentId) {
-            return res.status(400).json({ error: 'userId and tournamentId required' });
+        if (!tournamentId) {
+            return res.status(400).json({ error: 'tournamentId required' });
         }
 
         try {

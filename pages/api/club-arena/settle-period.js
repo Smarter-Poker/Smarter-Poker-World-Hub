@@ -304,29 +304,37 @@ export default async function handler(req, res) {
     if (action === 'pay') {
       if (!commissionId) return res.status(400).json({ error: 'commissionId required for pay action' });
 
+      // Verify commission belongs to this club (via its settlement period)
+      const { data: cr } = await supabaseAdmin
+        .from('commission_records')
+        .select('id, agent_id, period_id, status, period:settlement_periods!inner(club_id)')
+        .eq('id', commissionId)
+        .single();
+
+      if (!cr) return res.status(404).json({ error: 'Commission record not found' });
+      if (cr.period?.club_id !== clubId) {
+        return res.status(403).json({ error: 'Commission does not belong to this club' });
+      }
+      if (cr.status === 'paid') {
+        return res.status(400).json({ error: 'Commission already paid' });
+      }
+
       const now = new Date().toISOString();
       const { error: payErr } = await supabaseAdmin
         .from('commission_records')
         .update({ status: 'paid', paid_at: now })
-        .eq('id', commissionId);
+        .eq('id', commissionId)
+        .eq('status', 'pending'); // Guard against double-pay race
 
       if (payErr) throw payErr;
 
       // Also update commission_history
-      const { data: cr } = await supabaseAdmin
-        .from('commission_records')
-        .select('agent_id, period_id')
-        .eq('id', commissionId)
-        .single();
-
-      if (cr) {
-        await supabaseAdmin
-          .from('commission_history')
-          .update({ status: 'paid', paid_at: now })
-          .eq('agent_id', cr.agent_id)
-          .eq('club_id', clubId)
-          .eq('status', 'pending');
-      }
+      await supabaseAdmin
+        .from('commission_history')
+        .update({ status: 'paid', paid_at: now })
+        .eq('agent_id', cr.agent_id)
+        .eq('club_id', clubId)
+        .eq('status', 'pending');
 
       return res.status(200).json({ success: true, message: 'Commission marked as paid' });
     }
@@ -365,7 +373,7 @@ export default async function handler(req, res) {
           .eq('club_id', clubId)
           .eq('status', 'pending');
 
-        // Update agent's lifetime_earnings
+        // Update agent's lifetime_earnings with optimistic lock to prevent TOCTOU
         const { data: agent } = await supabaseAdmin
           .from('agents')
           .select('id, lifetime_earnings')
@@ -373,10 +381,28 @@ export default async function handler(req, res) {
           .single();
 
         if (agent) {
-          await supabaseAdmin
+          const oldVal = agent.lifetime_earnings || 0;
+          const { data: updated, error: updErr } = await supabaseAdmin
             .from('agents')
-            .update({ lifetime_earnings: (agent.lifetime_earnings || 0) + cr.commission_amount })
-            .eq('id', agent.id);
+            .update({ lifetime_earnings: oldVal + cr.commission_amount })
+            .eq('id', agent.id)
+            .eq('lifetime_earnings', oldVal) // optimistic lock — fails if changed
+            .select('id');
+
+          // Retry once on conflict
+          if (!updated?.length && !updErr) {
+            const { data: fresh } = await supabaseAdmin
+              .from('agents')
+              .select('id, lifetime_earnings')
+              .eq('id', cr.agent_id)
+              .single();
+            if (fresh) {
+              await supabaseAdmin
+                .from('agents')
+                .update({ lifetime_earnings: (fresh.lifetime_earnings || 0) + cr.commission_amount })
+                .eq('id', fresh.id);
+            }
+          }
         }
       }
 

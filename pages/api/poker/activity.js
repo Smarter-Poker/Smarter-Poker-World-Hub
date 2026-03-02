@@ -8,8 +8,16 @@ const supabase = createClient(
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id',
+  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
 };
+
+/** Helper: extract verified user ID from JWT, or null */
+async function getVerifiedUserId(req) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return null;
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  return (!error && user) ? user.id : null;
+}
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -24,10 +32,16 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { page_type, page_id, user_id, content, activity_type } = req.body;
+      // Require JWT auth for writes
+      const verifiedUserId = await getVerifiedUserId(req);
+      if (!verifiedUserId) {
+        return res.status(401).json({ success: false, error: 'Authentication required for posting activity' });
+      }
 
-      if (!page_type || !page_id || !user_id || !content || !activity_type) {
-        return res.status(400).json({ success: false, error: 'Missing required fields: page_type, page_id, user_id, content, activity_type' });
+      const { page_type, page_id, content, activity_type } = req.body;
+
+      if (!page_type || !page_id || !content || !activity_type) {
+        return res.status(400).json({ success: false, error: 'Missing required fields: page_type, page_id, content, activity_type' });
       }
 
       const validTypes = ['update', 'announcement', 'promotion', 'result'];
@@ -40,7 +54,7 @@ export default async function handler(req, res) {
         .insert({
           page_type,
           page_id,
-          user_id,
+          user_id: verifiedUserId,
           content,
           activity_type,
           created_at: new Date().toISOString(),

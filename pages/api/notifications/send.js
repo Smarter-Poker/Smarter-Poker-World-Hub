@@ -2,11 +2,19 @@
    ONESIGNAL — SEND PUSH NOTIFICATION API
    POST /api/notifications/send
    
-   Send push notifications to users via OneSignal
+   Send push notifications to users via OneSignal.
+   Auth: Bearer token required.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+import { createClient } from '@supabase/supabase-js';
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -15,6 +23,18 @@ export default async function handler(req, res) {
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
         return res.status(500).json({ error: 'OneSignal not configured' });
+    }
+
+    // ── Auth: verify JWT identity OR admin secret (for internal server-to-server calls) ──
+    const adminSecret = req.headers['x-admin-secret'];
+    const envSecret = process.env.ADMIN_ROUTE_SECRET;
+    const hasAdminAuth = envSecret && adminSecret === envSecret;
+
+    if (!hasAdminAuth) {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Auth required' });
+        const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
     }
 
     try {

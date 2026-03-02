@@ -123,6 +123,9 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: 'Parent agent not found or not active in this club' });
         }
 
+        // Store the agent RECORD id (not user_id) — all queries use agent.id
+        params._parentAgentRecordId = parentAgent.id;
+
         if (commissionRate >= parentAgent.commission_rate) {
           return res.status(400).json({
             error: 'Sub-agent commission rate must be LESS than parent agent rate',
@@ -193,7 +196,7 @@ export default async function handler(req, res) {
           business_balance: 0,
           active_player_count: 0,
           total_players: 0,
-          parent_agent_id: agentTier === 'sub_agent' ? parentAgentId : null,
+          parent_agent_id: agentTier === 'sub_agent' ? params._parentAgentRecordId : null,
           auto_rakeback_enabled: rakebackPercentage > 0,
           rakeback_percentage: rakebackPercentage || 0,
         })
@@ -249,13 +252,28 @@ export default async function handler(req, res) {
             .eq('club_id', clubId)
             .single();
           if (newAgent) {
-            await supabaseAdmin
+            const oldActive = newAgent.active_player_count || 0;
+            const oldTotal = newAgent.total_players || 0;
+            const { data: upd } = await supabaseAdmin
               .from('agents')
               .update({
-                active_player_count: (newAgent.active_player_count || 0) + playerCount,
-                total_players: (newAgent.total_players || 0) + playerCount,
+                active_player_count: oldActive + playerCount,
+                total_players: oldTotal + playerCount,
               })
-              .eq('id', newAgent.id);
+              .eq('id', newAgent.id)
+              .eq('active_player_count', oldActive) // optimistic lock
+              .select('id');
+
+            // Retry once on conflict
+            if (!upd?.length) {
+              const { data: freshA } = await supabaseAdmin.from('agents').select('active_player_count, total_players').eq('id', newAgent.id).single();
+              if (freshA) {
+                await supabaseAdmin.from('agents').update({
+                  active_player_count: (freshA.active_player_count || 0) + playerCount,
+                  total_players: (freshA.total_players || 0) + playerCount,
+                }).eq('id', newAgent.id);
+              }
+            }
           }
         }
       }
@@ -448,6 +466,18 @@ export default async function handler(req, res) {
 
       // If promoting TO agent → create agent record if needed
       if (newRole === 'agent' && oldRole !== 'agent') {
+        // Validate commission rate (same rules as 'promote' action)
+        const cr = params.commissionRate;
+        if (cr === undefined || cr === null) {
+          return res.status(400).json({
+            error: 'commissionRate is REQUIRED when promoting to agent via change_role',
+            hint: 'Set a commission rate between 0.01 (1%) and 0.90 (90%)',
+          });
+        }
+        if (typeof cr !== 'number' || cr < 0.01 || cr > 0.90) {
+          return res.status(400).json({ error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
+        }
+
         const { data: existingAgent } = await supabaseAdmin
           .from('agents')
           .select('id')
@@ -458,7 +488,7 @@ export default async function handler(req, res) {
         if (existingAgent) {
           await supabaseAdmin
             .from('agents')
-            .update({ status: 'active', role: 'agent' })
+            .update({ status: 'active', role: 'agent', commission_rate: cr })
             .eq('id', existingAgent.id);
         } else {
           await supabaseAdmin
@@ -468,7 +498,7 @@ export default async function handler(req, res) {
               club_id: clubId,
               role: 'agent',
               status: 'active',
-              commission_rate: params.commissionRate || 0.50,
+              commission_rate: cr,
               is_prepaid: params.isPrepaid || false,
               business_balance: 0,
               active_player_count: 0,
@@ -580,10 +610,24 @@ export default async function handler(req, res) {
 
       if (!targetAgent) return res.status(404).json({ error: 'Target agent not found' });
 
+      // Resolve parentAgentId (user_id) to agent RECORD id for storage consistency
+      let parentRecordId = null;
+      if (parentAgentId) {
+        const { data: parentAgent } = await supabaseAdmin
+          .from('agents')
+          .select('id')
+          .eq('user_id', parentAgentId)
+          .eq('club_id', clubId)
+          .eq('status', 'active')
+          .single();
+        if (!parentAgent) return res.status(404).json({ error: 'Parent agent not found' });
+        parentRecordId = parentAgent.id;
+      }
+
       // If parentAgentId is null, remove parent (make standalone)
       const { error } = await supabaseAdmin
         .from('agents')
-        .update({ parent_agent_id: parentAgentId || null })
+        .update({ parent_agent_id: parentRecordId })
         .eq('id', targetAgent.id);
 
       if (error) throw error;
@@ -873,7 +917,7 @@ export default async function handler(req, res) {
           status: 'active',
           commission_rate: commissionRate,
           agent_tier: 'sub_agent',
-          parent_agent_id: user.id,
+          parent_agent_id: parentAgent.id,
           is_prepaid: false,
           credit_limit: 0,
         }, { onConflict: 'user_id,club_id' });

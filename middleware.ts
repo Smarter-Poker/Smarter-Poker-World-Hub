@@ -17,11 +17,21 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(newUrl, 301);
     }
 
-    // ── Block admin/debug/emergency API routes without proper auth ──
+    // ── Block admin/debug/emergency/destructive API routes without proper auth ──
     // These are one-off migration scripts that should never be publicly accessible.
+    const DESTRUCTIVE_POKER_ROUTES = [
+        '/api/poker/nuclear-import',
+        '/api/poker/full-import',
+        '/api/poker/import-fresh-data',
+        '/api/poker/seed-database',
+        '/api/poker/seed',
+        '/api/poker/create-tables',
+        '/api/poker/setup-venue-scraping',
+    ];
     const isProtectedRoute = pathname.startsWith('/api/admin') ||
                              pathname.startsWith('/api/debug') ||
-                             pathname.startsWith('/api/emergency');
+                             pathname.startsWith('/api/emergency') ||
+                             DESTRUCTIVE_POKER_ROUTES.includes(pathname);
     
     if (isProtectedRoute) {
         const adminSecret = request.headers.get('x-admin-secret');
@@ -47,5 +57,13 @@ export const config = {
         '/api/admin/:path*',
         '/api/debug/:path*',
         '/api/emergency/:path*',
+        // Destructive poker data import routes
+        '/api/poker/nuclear-import',
+        '/api/poker/full-import',
+        '/api/poker/import-fresh-data',
+        '/api/poker/seed-database',
+        '/api/poker/seed',
+        '/api/poker/create-tables',
+        '/api/poker/setup-venue-scraping',
     ],
 };

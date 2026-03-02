@@ -78,42 +78,20 @@ export default async function handler(req, res) {
                     continue;
                 }
 
-                // 3. Credit diamonds — upsert into user_diamond_balance
-                const { data: currentBalance } = await supabase
-                    .from('user_diamond_balance')
-                    .select('balance')
-                    .eq('user_id', user.id)
-                    .single();
+                // 3. Credit diamonds atomically via RPC
+                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: user.id,
+                    p_amount: VIP_MONTHLY_STIPEND,
+                    p_type: 'bonus',
+                    p_description: `VIP Monthly Stipend — ${monthKey}`,
+                    p_reference_id: null
+                });
 
-                const newBalance = (currentBalance?.balance || 0) + VIP_MONTHLY_STIPEND;
-
-                await supabase
-                    .from('user_diamond_balance')
-                    .upsert({
-                        user_id: user.id,
-                        balance: newBalance,
-                        updated_at: now.toISOString()
-                    }, { onConflict: 'user_id' });
-
-                // Also update profiles.diamonds for consistency
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: newBalance })
-                    .eq('id', user.id);
-
-                // 4. Log transaction for audit trail
-                //    Uses transaction_type, description, metadata, balance_after
-                //    matching the schema in premiumFeatureGate.js
-                await supabase
-                    .from('diamond_transactions')
-                    .insert({
-                        user_id: user.id,
-                        amount: VIP_MONTHLY_STIPEND,
-                        transaction_type: 'bonus',
-                        description: `VIP Monthly Stipend — ${monthKey}`,
-                        metadata: { source: 'vip_stipend', month: monthKey },
-                        balance_after: newBalance
-                    });
+                if (rpcErr) {
+                    console.error(`[VIP Stipend] RPC error for ${user.id}:`, rpcErr.message);
+                    errors.push({ userId: user.id, error: rpcErr.message });
+                    continue;
+                }
 
                 credited++;
                 console.log(`[VIP Stipend] ✅ Credited ${VIP_MONTHLY_STIPEND} 💎 to ${user.username || user.id}`);

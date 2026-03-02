@@ -33,11 +33,12 @@ export default async function handler(req, res) {
 
         if (memErr || !member) return res.status(404).json({ error: 'Not a member' });
 
-        // Get item
+        // Get item (scoped to this club)
         const { data: item, error: itemErr } = await supabaseAdmin
             .from('club_shop_items')
             .select('*')
             .eq('id', itemId)
+            .eq('club_id', clubId)
             .single();
 
         if (itemErr || !item) return res.status(404).json({ error: 'Item not found' });

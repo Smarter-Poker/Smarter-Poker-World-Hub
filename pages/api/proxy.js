@@ -43,8 +43,64 @@ const CONFIG = {
     RETRY_DELAY_MS: 1000,        // Initial retry delay (doubles each attempt)
     MAX_BODY_SIZE: 10 * 1024 * 1024, // 10MB max
     ALLOWED_PROTOCOLS: ['http:', 'https:'],
-    BLOCKED_HOSTS: ['localhost', '127.0.0.1', '0.0.0.0'], // Prevent SSRF
+    BLOCKED_HOSTS: ['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'], // Prevent SSRF
+    // Additional private/reserved IP ranges checked in isPrivateIP()
 };
+
+/**
+ * Check if a hostname resolves to a private/reserved IP range (SSRF prevention).
+ * Blocks: loopback, link-local, private ranges, cloud metadata endpoints.
+ */
+function isPrivateOrReservedHost(hostname) {
+    // Block known metadata endpoints
+    const metadataHosts = [
+        '169.254.169.254',    // AWS/GCP/Azure metadata
+        'metadata.google.internal',
+        'metadata.google',
+        '100.100.100.200',    // Alibaba Cloud metadata
+    ];
+    if (metadataHosts.includes(hostname)) return true;
+
+    // Block IPv6 loopback variations
+    if (hostname === '::1' || hostname === '[::1]' || hostname.startsWith('fe80:')) return true;
+
+    // Parse as IPv4 and check private ranges
+    const parts = hostname.split('.');
+    if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
+        const octets = parts.map(Number);
+        if (octets.some(o => o < 0 || o > 255)) return false; // Invalid IP, let URL parser handle
+        const [a, b] = octets;
+        if (a === 0) return true;          // 0.0.0.0/8
+        if (a === 10) return true;         // 10.0.0.0/8
+        if (a === 127) return true;        // 127.0.0.0/8
+        if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+        if (a === 192 && b === 168) return true; // 192.168.0.0/16
+        if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local)
+    }
+
+    // Block decimal IP (e.g. 2130706433 = 127.0.0.1)
+    if (/^\d+$/.test(hostname)) {
+        const num = parseInt(hostname);
+        if (num >= 0 && num <= 0xFFFFFFFF) {
+            const a = (num >>> 24) & 0xFF;
+            const b = (num >>> 16) & 0xFF;
+            if (a === 0 || a === 10 || a === 127) return true;
+            if (a === 172 && b >= 16 && b <= 31) return true;
+            if (a === 192 && b === 168) return true;
+            if (a === 169 && b === 254) return true;
+        }
+    }
+
+    // Block octal IPs (e.g. 0177.0.0.1 = 127.0.0.1)
+    if (hostname.split('.').some(p => p.startsWith('0') && p.length > 1 && /^\d+$/.test(p))) {
+        return true; // Reject any octal-looking IP entirely
+    }
+
+    // Block hex IPs (e.g. 0x7f000001)
+    if (/^0x[0-9a-fA-F]+$/.test(hostname)) return true;
+
+    return false;
+}
 
 // User agent rotation for better success rate
 const USER_AGENTS = [
@@ -53,11 +109,53 @@ const USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
 ];
 
+// Simple in-memory rate limiter for proxy
+const proxyRateMap = new Map();
+const PROXY_RATE_LIMIT = 30; // requests per minute per IP
+const PROXY_RATE_WINDOW = 60000;
+
+function checkProxyRate(ip) {
+    const now = Date.now();
+    const entry = proxyRateMap.get(ip);
+    if (!entry || now - entry.start > PROXY_RATE_WINDOW) {
+        proxyRateMap.set(ip, { start: now, count: 1 });
+        return true;
+    }
+    entry.count++;
+    return entry.count <= PROXY_RATE_LIMIT;
+}
+
+// Cleanup every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of proxyRateMap) {
+        if (now - v.start > PROXY_RATE_WINDOW) proxyRateMap.delete(k);
+    }
+}, 300000);
+
 /**
  * Main handler with comprehensive error handling
  */
 export default async function handler(req, res) {
     const { url } = req.query;
+
+    // Rate limit by IP
+    const fwd = req.headers['x-forwarded-for'];
+    const clientIp = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || 'unknown';
+    if (!checkProxyRate(clientIp)) {
+        return res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many proxy requests. Please slow down.' });
+    }
+
+    // Referer check — only allow requests originating from smarter.poker
+    const referer = req.headers.referer || req.headers.referrer || '';
+    const origin = req.headers.origin || '';
+    const isInternalRequest = referer.includes('smarter.poker') || origin.includes('smarter.poker')
+        || referer.includes('localhost') || origin.includes('localhost')
+        || !referer; // Allow direct browser navigation (iframe src)
+
+    if (!isInternalRequest) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: 'Proxy only available from smarter.poker' });
+    }
 
     // ═══════════════════════════════════════════════════════════════════
     // VALIDATION
@@ -86,7 +184,7 @@ export default async function handler(req, res) {
         }
 
         // Block internal addresses (SSRF prevention)
-        if (CONFIG.BLOCKED_HOSTS.some(h => parsed.hostname.includes(h))) {
+        if (CONFIG.BLOCKED_HOSTS.some(h => parsed.hostname === h) || isPrivateOrReservedHost(parsed.hostname)) {
             return res.status(403).json({
                 error: 'BLOCKED_HOST',
                 message: 'This host is not allowed'

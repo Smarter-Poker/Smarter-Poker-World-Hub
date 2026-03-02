@@ -1,6 +1,43 @@
 // API endpoint to fetch OpenGraph metadata from URLs for rich link previews
 // Returns: { title, description, image, siteName, url }
 
+/**
+ * SSRF protection — block private/internal IPs and cloud metadata endpoints.
+ */
+function isBlockedUrl(urlStr) {
+    try {
+        const parsed = new URL(urlStr);
+        
+        // Only allow http/https
+        if (!['http:', 'https:'].includes(parsed.protocol)) return true;
+        
+        const hostname = parsed.hostname.toLowerCase();
+        
+        // Block known metadata endpoints
+        const blocked = ['169.254.169.254', 'metadata.google.internal', '100.100.100.200',
+                         'localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'];
+        if (blocked.includes(hostname)) return true;
+        
+        // Block private IPv4 ranges
+        const parts = hostname.split('.');
+        if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
+            const [a, b] = parts.map(Number);
+            if (a === 0 || a === 10 || a === 127) return true;
+            if (a === 172 && b >= 16 && b <= 31) return true;
+            if (a === 192 && b === 168) return true;
+            if (a === 169 && b === 254) return true;
+        }
+        
+        // Block decimal/hex/octal IP tricks
+        if (/^\d+$/.test(hostname) || /^0x[0-9a-f]+$/i.test(hostname)) return true;
+        if (parts.some(p => p.startsWith('0') && p.length > 1 && /^\d+$/.test(p))) return true;
+        
+        return false;
+    } catch {
+        return true;
+    }
+}
+
 export default async function handler(req, res) {
     // Allow CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,6 +54,11 @@ export default async function handler(req, res) {
 
     if (!url) {
         return res.status(400).json({ error: 'URL parameter is required' });
+    }
+
+    // SSRF protection
+    if (isBlockedUrl(url)) {
+        return res.status(403).json({ error: 'This URL is not allowed' });
     }
 
     // Check if this is a social platform that needs Microlink for preview

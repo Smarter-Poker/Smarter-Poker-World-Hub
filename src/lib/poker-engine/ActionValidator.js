@@ -229,10 +229,10 @@ class ActionValidator {
    * @private
    */
   _calculatePotSizeRaise(potTotal, currentBet, toCall) {
-    // The pot-size raise: After you call, the pot will be potTotal + toCall
-    // You can then raise by that amount
-    // So total raise amount (above the call) = potTotal + toCall
-    return potTotal + currentBet + toCall;
+    // Pot-size raise: after calling, the pot is potTotal + toCall.
+    // You can raise by that amount (the pot after your call).
+    // So raise increment = potTotal + toCall
+    return potTotal + toCall;
   }
 
   /**

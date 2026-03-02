@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id, Authorization');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -165,7 +165,13 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
 
 async function handlePost(req, res) {
     const { page_type, page_id, action } = req.body;
-    const userId = req.headers['x-user-id'] || req.body.user_id;
+
+    // Require JWT for follow/unfollow writes
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required for follow/unfollow' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    const userId = authUser.id;
 
     // Validate inputs
     if (!page_type || !page_id) {
@@ -176,12 +182,6 @@ async function handlePost(req, res) {
     }
     if (!['follow', 'unfollow'].includes(action)) {
         return res.status(400).json({ error: 'action must be follow or unfollow' });
-    }
-    if (!userId) {
-        return res.status(400).json({ error: 'user_id is required (body or x-user-id header)' });
-    }
-    if (!UUID_RE.test(userId)) {
-        return res.status(400).json({ error: 'user_id must be a valid UUID (anonymous users cannot persist follows)' });
     }
 
     // Normalize tour page_id to uppercase (tour registry uses uppercase codes like WPT, WSOP)

@@ -264,7 +264,16 @@ export default async function handler(req, res) {
     let stripeCustomerId = null;
     let stripeSubscriptionId = null;
 
-    if (!skipPayment && paymentMethodId) {
+    // SECURITY: Payment is required when Stripe is configured with real price IDs.
+    // skipPayment from client is NEVER honored — only server config determines this.
+    const hasRealStripeConfig = process.env.STRIPE_SECRET_KEY && 
+      TIER_PRICES[tier].priceId && 
+      !['price_home_game', 'price_charity', 'price_club'].includes(TIER_PRICES[tier].priceId);
+
+    if (hasRealStripeConfig) {
+      if (!paymentMethodId) {
+        return res.status(400).json({ error: 'Payment method is required' });
+      }
       const customer = await stripe.customers.create({
         email,
         name: ownerInfo.name,
@@ -415,7 +424,10 @@ export default async function handler(req, res) {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/send-welcome`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+        },
         body: JSON.stringify({
           to: email, name: ownerInfo.name, clubName: clubInfo.name,
           tier, loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/commander/login`

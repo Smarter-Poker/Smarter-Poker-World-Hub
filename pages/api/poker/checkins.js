@@ -8,7 +8,7 @@ const supabase = createClient(
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id',
+  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
 };
 
 export default async function handler(req, res) {
@@ -22,10 +22,17 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { venue_id, user_id, user_name, message } = req.body;
+      // Require JWT for writes
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required for check-ins' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      if (!venue_id || !user_id || !user_name) {
-        return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, user_id, user_name' });
+      const { venue_id, user_name, message } = req.body;
+      const user_id = authUser.id;
+
+      if (!venue_id || !user_name) {
+        return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, user_name' });
       }
 
       const venueIdNum = parseInt(venue_id, 10);

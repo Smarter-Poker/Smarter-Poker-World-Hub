@@ -318,8 +318,31 @@ class LobbyManager {
     const entry = this.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
     
-    // Close table (cashes out all players)
+    // ── Collect seated players BEFORE close (close clears all seats) ──
+    const clubId = entry.config?.clubId;
+    const seatedPlayers = [];
+    if (clubId) {
+      for (const seat of entry.table.seats) {
+        if (seat.player && seat.player.id) {
+          seatedPlayers.push({ playerId: seat.player.id, stack: seat.stack || 0 });
+        }
+      }
+    }
+    
+    // Close table (cashes out all players via _vacateSeat)
     entry.table.close();
+    
+    // ── Unlock chips for ALL seated players (close() doesn't emit player_left) ──
+    if (clubId && seatedPlayers.length > 0) {
+      for (const { playerId, stack } of seatedPlayers) {
+        try {
+          await ChipBridge.unlockChips(clubId, playerId, tableId, stack);
+          console.log(`[LobbyManager.closeTable] Unlocked ${stack} chips for ${playerId}`);
+        } catch (e) {
+          console.error(`[LobbyManager.closeTable] Failed to unlock chips for ${playerId}:`, e.message);
+        }
+      }
+    }
     
     // Clean up
     await entry.sync.destroy();
@@ -924,13 +947,7 @@ class LobbyManager {
       console.log(`[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`);
       this.createTable(newConfig).then(result => {
         if (result.success) {
-          this.emit('auto_table_created', {
-            tableId: newConfig.tableId,
-            clubId,
-            variant,
-            bigBlind,
-            reason: `All ${tableCount} tables full`,
-          });
+          console.log(`[LobbyManager] Auto-created table ${newConfig.tableId} for ${variant} ${bigBlind}BB`);
         }
       }).catch(err => {
         console.error('[LobbyManager] Auto-create table failed:', err.message);

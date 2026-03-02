@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       }
 
       // Add to union_clubs with commission rate
-      const { clubCommissionRate = 0.90 } = params || {};  // 90% default for clubs
+      const clubCommissionRate = req.body.clubCommissionRate || 0.90;  // 90% default for clubs
       
       const { error: linkErr } = await supabaseAdmin
         .from('union_clubs')

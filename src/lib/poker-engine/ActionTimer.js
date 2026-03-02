@@ -229,7 +229,7 @@ class ActionTimer {
 
   /**
    * Player acted — deduct timebank if they used it.
-   * Call this AFTER cancelTurn() when the player acts.
+   * Call this BEFORE cancelTurn() so _isTimebank and _startTime are still set.
    * @param {string|number} playerId
    */
   recordAction(playerId) {

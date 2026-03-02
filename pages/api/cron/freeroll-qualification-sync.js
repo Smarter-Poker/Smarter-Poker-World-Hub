@@ -249,20 +249,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Auth: Vercel cron secret OR staff token
+    // Auth: Vercel cron secret OR validated JWT
     const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
-    const isManual = req.body?.manual === true || req.method === 'POST';
 
-    if (!isManual && cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // If manual POST, allow staff auth
-    if (isManual) {
+    if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
+        // Not a valid cron invocation — require JWT auth
         const token = req.headers.authorization?.replace('Bearer ', '');
-        const staffSession = req.headers['x-staff-session'];
-        if (!token && !staffSession) {
-            return res.status(401).json({ error: 'Unauthorized — no auth token or staff session' });
+        if (!token) {
+            return res.status(401).json({ error: 'Unauthorized — no auth token' });
+        }
+        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !user) {
+            return res.status(401).json({ error: 'Unauthorized — invalid token' });
         }
     }
 

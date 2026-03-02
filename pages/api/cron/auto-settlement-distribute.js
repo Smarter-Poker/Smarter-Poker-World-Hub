@@ -34,9 +34,8 @@ export default async function handler(req, res) {
 
   // Auth
   const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
-  const isManual = req.body?.manual === true;
 
-  if (!isManual && cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
+  if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);

@@ -125,7 +125,7 @@ export default async function handler(req, res) {
       if (botCheck.suspicious) {
         console.warn(`[AntiCheat] Bot suspect: ${playerId} score=${botCheck.score} reason=${botCheck.reason}`);
         // Persist bot flags
-        const entry = controller._tables?.get(tableId);
+        const entry = controller.lobby?.tables?.get(tableId);
         const clubId = entry?.config?.clubId;
         antiCheat.persistFlags(playerId, clubId, tableId)
           .catch(err => console.error('[AntiCheat] Persist bot flags error:', err.message));

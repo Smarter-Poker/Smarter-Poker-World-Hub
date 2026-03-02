@@ -26,13 +26,15 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const userId = user.id; // From JWT, not request
+
     // GET: Check if daily bonus is available
     if (req.method === 'GET') {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
 
         try {
             // Check if already claimed today
@@ -90,11 +92,7 @@ export default async function handler(req, res) {
 
     // POST: Claim daily bonus (called after first session of the day)
     if (req.method === 'POST') {
-        const { userId, claimNow } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
+        const { claimNow } = req.body;
 
         try {
             // Check if already claimed today

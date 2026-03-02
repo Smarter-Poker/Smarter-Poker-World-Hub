@@ -21,14 +21,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verify cron secret for automated calls
+  // Verify cron secret for automated calls, or JWT for manual triggers
   const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
-  const isManual = req.body?.manual === true;
   const targetDate = req.body?.date || req.query?.date || null;
 
-  // Allow manual triggers from staff with auth, or cron with secret
-  if (!isManual && cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
-    // Also allow if called from staff with valid token
+  if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       const { data: { user } } = await supabase.auth.getUser(token);

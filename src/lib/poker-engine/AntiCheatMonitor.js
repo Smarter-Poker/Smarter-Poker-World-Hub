@@ -167,7 +167,7 @@ class AntiCheatMonitor {
     try {
       // 1. Force stand-up in engine
       const standResult = await this.controller.standUp(tableId, playerId);
-      const cashoutAmount = standResult?.stack || stack || 0;
+      const cashoutAmount = standResult?.cashout ?? stack ?? 0;
 
       // 2. Unlock chips back to balance
       if (clubId && cashoutAmount > 0) {

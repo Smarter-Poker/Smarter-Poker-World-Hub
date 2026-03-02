@@ -192,7 +192,10 @@ export default async function handler(req, res) {
       if (baseUrl) {
         await fetch(`${baseUrl}/api/notifications/send`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+          },
           body: JSON.stringify({
             userId: member.agent_id,
             title: '💰 Cashout Request',

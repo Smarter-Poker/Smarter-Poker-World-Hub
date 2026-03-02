@@ -361,12 +361,12 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Cannot unregister from running tournament' });
         }
 
-        // Refund
-        await supabaseAdmin.rpc('distribute_chips', {
+        // Refund by unlocking chips (registration used lock_chips_for_table)
+        await supabaseAdmin.rpc('unlock_chips_from_table', {
+          p_user_id: user.id,
           p_club_id: tourn.club_id,
-          p_target_user_id: user.id,
+          p_table_id: tournamentId,
           p_amount: reg.buy_in_amount,
-          p_note: `Tournament unregister refund: ${tourn.name}`,
         });
 
         // Update registration

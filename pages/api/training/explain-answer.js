@@ -33,6 +33,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
     const {
         question,      // The original question object
         userAnswer,    // What the user selected
@@ -46,7 +53,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
     const cacheKey = generateCacheKey(question, correctAnswer);
 
     try {

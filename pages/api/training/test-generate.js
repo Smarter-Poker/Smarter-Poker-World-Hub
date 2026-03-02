@@ -23,6 +23,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // ── Auth: Admin-only test operation (calls Grok API) ──
+    const adminSecret = req.headers['x-admin-secret'];
+    const envSecret = process.env.ADMIN_ROUTE_SECRET;
+    if (!envSecret || !adminSecret || adminSecret !== envSecret) {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+
     try {
         const gameId = 'mtt-007';
         const game = { id: 'mtt-007', name: 'Deep Stack MTT', category: 'MTT' };
