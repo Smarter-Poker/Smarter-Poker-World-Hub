@@ -133,6 +133,32 @@ export default function Cashier() {
       const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=200`, { headers });
       const txJson = await txRes.json();
       setTransactions(txJson.data || []);
+
+      // ═══ CRITICAL: Refresh selectedPlayer with fresh member data ═══
+      // When other pages (comps, member detail) modify member data and
+      // fire broadcastChange('members'), this cashier tab needs to update
+      // its selectedPlayer state with the latest values from the server
+      setSelectedPlayer(prev => {
+        if (!prev?.id || String(prev.id).startsWith('wl-')) return prev;
+        // Fire async refresh for the selected player
+        fetch(`/api/commander/members/${prev.id}`, {
+          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        }).then(r => r.json()).then(json => {
+          if (json.success && json.data?.member) {
+            const m = json.data.member;
+            setSelectedPlayer(p => p?.id === m.id ? {
+              ...p,
+              time_balance_minutes: m.time_balance_minutes || 0,
+              comp_balance: m.comp_balance || 0,
+              comp_lifetime_earned: m.comp_lifetime_earned || 0,
+              membership_tier: m.membership_tier,
+              membership_status: m.membership_status,
+              membership_expires: m.membership_expires,
+            } : p);
+          }
+        }).catch(() => { /* silent — don't break cashier if refresh fails */ });
+        return prev;
+      });
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [venueId]);
@@ -281,6 +307,8 @@ export default function Cashier() {
       membership_status: member.membership_status,
       membership_expires: member.membership_expires,
       time_balance_minutes: member.time_balance_minutes || 0,
+      comp_balance: member.comp_balance || 0,
+      comp_lifetime_earned: member.comp_lifetime_earned || 0,
       member_number: member.member_number,
       phone: member.phone,
     });
