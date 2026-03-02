@@ -63,14 +63,14 @@ export default async function handler(req, res) {
         for (const user of vipUsers) {
             try {
                 // 2. Check if stipend already granted this month
-                //    Uses transaction_type + metadata to identify stipend entries
+                //    Uses unique reference_id per user per month for reliable idempotency
+                const stipendRefId = `vip_stipend_${user.id}_${monthKey}`;
+
                 const { data: existing } = await supabase
                     .from('diamond_transactions')
                     .select('id')
                     .eq('user_id', user.id)
-                    .eq('transaction_type', 'bonus')
-                    .gte('created_at', `${monthKey}-01T00:00:00Z`)
-                    .ilike('description', '%VIP Monthly Stipend%')
+                    .eq('reference_id', stipendRefId)
                     .limit(1);
 
                 if (existing && existing.length > 0) {
@@ -78,13 +78,13 @@ export default async function handler(req, res) {
                     continue;
                 }
 
-                // 3. Credit diamonds atomically via RPC
+                // 3. Credit diamonds atomically via RPC with unique reference_id
                 const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: user.id,
                     p_amount: VIP_MONTHLY_STIPEND,
                     p_type: 'bonus',
                     p_description: `VIP Monthly Stipend — ${monthKey}`,
-                    p_reference_id: null
+                    p_reference_id: stipendRefId
                 });
 
                 if (rpcErr) {
