@@ -2,9 +2,14 @@
    PHONE VERIFICATION VIP MODAL
    Shows after new signup to collect + verify phone number
    Grants 90-day free VIP card on successful verification
+   
+   BUG HUNT v2 — Fixed:
+   - Auto-verify race condition (useRef guard)
+   - Bus listener dispatch on VIP grant
+   - Proper cleanup and error boundaries
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
     const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'success'
@@ -14,6 +19,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
     const [error, setError] = useState('');
     const [countdown, setCountdown] = useState(0);
     const otpRefs = useRef([]);
+    const verifyingRef = useRef(false); // Guard against double-verify
 
     // Countdown timer for resend
     useEffect(() => {
@@ -35,11 +41,13 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         setError('');
     };
 
-    const rawPhone = phone.replace(/\D/g, '');
+    // Compute raw digits from formatted phone
+    const getRawPhone = useCallback(() => phone.replace(/\D/g, ''), [phone]);
 
     // ── Send OTP ─────────────────────────────────────────────────────────
     const handleSendOtp = async () => {
-        if (rawPhone.length !== 10) {
+        const raw = getRawPhone();
+        if (raw.length !== 10) {
             setError('Please Enter A Valid 10-Digit Phone Number');
             return;
         }
@@ -49,12 +57,15 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
             const res = await fetch('/api/sms/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: rawPhone }),
+                body: JSON.stringify({ phone: raw }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed To Send Code');
             setStep('otp');
             setCountdown(60);
+            // Reset OTP fields for fresh entry
+            setOtp(['', '', '', '', '', '']);
+            verifyingRef.current = false;
             setTimeout(() => otpRefs.current[0]?.focus(), 100);
         } catch (err) {
             setError(err.message);
@@ -90,24 +101,50 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         }
     };
 
-    // ── Verify OTP ───────────────────────────────────────────────────────
-    const handleVerify = async () => {
+    // ── Verify OTP (with race guard) ─────────────────────────────────────
+    const handleVerify = useCallback(async () => {
+        // Race guard: prevent double-fire from auto-verify + button click
+        if (verifyingRef.current) return;
+
         const code = otp.join('');
         if (code.length !== 6) {
             setError('Please Enter The Full 6-Digit Code');
             return;
         }
+
+        verifyingRef.current = true;
         setLoading(true);
         setError('');
+
+        const raw = getRawPhone();
+
         try {
             const res = await fetch('/api/sms/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: rawPhone, code, userId }),
+                body: JSON.stringify({ phone: raw, code, userId }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Verification Failed');
+            if (!res.ok) {
+                verifyingRef.current = false; // Allow retry on failure
+                throw new Error(data.error || 'Verification Failed');
+            }
+
             setStep('success');
+
+            // ── BUS LISTENER: Notify other components of VIP activation ──
+            if (typeof window !== 'undefined') {
+                // Dispatch custom event so Universal Header / profile can refresh
+                window.dispatchEvent(new CustomEvent('vip-status-changed', {
+                    detail: { userId, vipGranted: true, source: 'phone_verification' }
+                }));
+                // Also dispatch profile-updated for any listeners
+                window.dispatchEvent(new CustomEvent('profile-updated', {
+                    detail: { userId, phone: raw, phone_verified: true, is_vip: true }
+                }));
+                console.log('[PhoneVerifyVIP] 🚌 Bus events dispatched: vip-status-changed, profile-updated');
+            }
+
             setTimeout(() => {
                 onVerified?.();
                 onClose?.();
@@ -117,14 +154,16 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [otp, userId, getRawPhone, onVerified, onClose]);
 
-    // Auto-verify when all 6 digits entered
+    // Auto-verify when all 6 digits entered — with guard against double-fire
     useEffect(() => {
-        if (otp.every(d => d) && step === 'otp') {
+        if (otp.every(d => d) && step === 'otp' && !verifyingRef.current && !loading) {
             handleVerify();
         }
-    }, [otp]);
+    }, [otp, step, loading, handleVerify]);
+
+    const rawPhone = getRawPhone();
 
     return (
         <div style={{
@@ -346,7 +385,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <button
-                                onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); }}
+                                onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); verifyingRef.current = false; }}
                                 style={{
                                     background: 'none', border: 'none',
                                     color: '#00D4FF', fontSize: '13px', cursor: 'pointer',

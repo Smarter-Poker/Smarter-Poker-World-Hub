@@ -15,7 +15,7 @@ import { CarouselEngine } from './carousel/CarouselEngine';
 import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex } from '../state/userPreferences';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
-import { COMMANDER_ORB, POKER_IQ_ORBS } from '../orbs/manifest/registry';
+import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
@@ -417,6 +417,7 @@ export default function WorldHub() {
     const [notificationCount] = useState(0);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
     const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
+    const [hasLinkedVenues, setHasLinkedVenues] = useState(false);
 
     // Check if user has a Commander account — localStorage first for instant display
     useEffect(() => {
@@ -430,11 +431,14 @@ export default function WorldHub() {
         } catch { }
     }, []);
 
-    // Build carousel orbs — inject Commander card at position 0 if user has account
+    // Build carousel orbs — inject Commander and/or Employee Portal cards
     const carouselOrbs = useMemo(() => {
-        if (!hasCommanderAccount) return undefined; // use default POKER_IQ_ORBS
-        return [COMMANDER_ORB, ...POKER_IQ_ORBS];
-    }, [hasCommanderAccount]);
+        if (!hasCommanderAccount && !hasLinkedVenues) return undefined; // use default POKER_IQ_ORBS
+        const orbs = [...POKER_IQ_ORBS];
+        if (hasLinkedVenues) orbs.unshift(EMPLOYEE_PORTAL_ORB);
+        if (hasCommanderAccount) orbs.unshift(COMMANDER_ORB);
+        return orbs;
+    }, [hasCommanderAccount, hasLinkedVenues]);
 
     // Fetch user profile data including avatar + Commander account detection via Supabase
     useEffect(() => {
@@ -487,6 +491,28 @@ export default function WorldHub() {
                             }
                         } catch (e) {
                             console.warn('[WorldHub] Commander check failed (non-critical):', e);
+                        }
+                    }
+
+                    // 🏢 Employee Portal detection — check if user has linked venues
+                    if (!hasLinkedVenues) {
+                        try {
+                            const { getAccessToken } = await import('../lib/authUtils');
+                            const empToken = getAccessToken();
+                            if (empToken) {
+                                const empRes = await fetch('/api/employee/venues', {
+                                    headers: { 'Authorization': `Bearer ${empToken}` },
+                                });
+                                if (empRes.ok) {
+                                    const empData = await empRes.json();
+                                    if (empData.success && empData.data?.venues?.length > 0) {
+                                        setHasLinkedVenues(true);
+                                        console.log('[WorldHub] 📋 Employee venues detected —', empData.data.venues.length, 'linked');
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[WorldHub] Employee venue check failed (non-critical):', e);
                         }
                     }
                 }
@@ -557,6 +583,12 @@ export default function WorldHub() {
             return;
         }
 
+        // Employee Portal card routes to my-venues
+        if (cardId === 'employee-portal') {
+            router.push('/hub/my-venues');
+            return;
+        }
+
         // Intro video config - same as handleOrbSelect
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
@@ -596,6 +628,12 @@ export default function WorldHub() {
         // Commander card routes to commander dashboard, not /hub/
         if (orbId === 'club-commander') {
             router.push('/commander/dashboard');
+            return;
+        }
+
+        // Employee Portal card routes to my-venues
+        if (orbId === 'employee-portal') {
+            router.push('/hub/my-venues');
             return;
         }
 

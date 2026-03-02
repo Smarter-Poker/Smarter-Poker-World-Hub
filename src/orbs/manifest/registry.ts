@@ -41,6 +41,16 @@ export const COMMANDER_ORB: OrbConfig = {
     description: 'MANAGE YOUR POKER ROOM — FULL COMMAND CENTER FOR YOUR VENUE',
 };
 
+// Work Schedule & Dealer Downs — only shown to users linked as staff at a venue
+export const EMPLOYEE_PORTAL_ORB: OrbConfig = {
+    id: 'employee-portal',
+    color: '#2374e1',
+    label: 'Work Schedule & Dealer Downs',
+    gradient: ['#2374e1', '#1a56db'],
+    imageUrl: '/cards/employee-portal.jpg',
+    description: 'YOUR WORK HUB — VIEW SCHEDULE, TRACK DOWNS, AND TIME CLOCK',
+};
+
 // Utility exports
 export const ORB_COUNT = POKER_IQ_ORBS.length;
 export const getOrbById = (id: string) => POKER_IQ_ORBS.find(orb => orb.id === id);

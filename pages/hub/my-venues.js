@@ -547,7 +547,37 @@ export default function MyVenuesPage() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // ── REAL-TIME BUS LISTENER ──
+    // When Commander updates staff data (schedule, downs, time-clock), refresh the portal
+    useEffect(() => {
+        let bc;
+        try {
+            bc = new BroadcastChannel('commander_sync');
+            bc.onmessage = (event) => {
+                const { type, venue_id } = event.data || {};
+                // Refresh data when staff-related changes happen
+                if (['staff_schedule_update', 'dealer_rotation', 'time_clock_update', 'staff_update'].includes(type)) {
+                    console.log('[MyVenues] Bus event received:', type);
+                    loadData(); // Re-fetch all data
+                }
+            };
+        } catch (e) {
+            // BroadcastChannel not supported in some browsers
+        }
+        return () => { if (bc) bc.close(); };
+    }, [loadData]);
+
+    // ── AUTO-REFRESH: Check for new data every 60 seconds ──
+    useEffect(() => {
+        if (!user) return;
+        const interval = setInterval(() => {
+            loadData();
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [user, loadData]);
+
     const handleLinked = () => {
+        // Clear the linked venue from emailMatches and refresh venues
         loadData();
     };
 
