@@ -331,11 +331,14 @@ export default async function handler(req, res) {
               });
 
               // Update agents table
+              // NOTE: lifetime_earnings is already credited correctly per-hand by
+              // calculate_cascading_commission RPC. We do NOT re-credit here.
+              // business_balance is zeroed because the agent's commission has now been
+              // paid out to their chip_balance via fn_credit_chips above.
               await supabaseAdmin
                 .from('agents')
                 .update({
-                  business_balance: netCommission, // Reset to current commission
-                  lifetime_earnings: (agent.lifetime_earnings || 0) + netCommission,
+                  business_balance: 0, // Paid out — zero the tracking balance
                 })
                 .eq('id', agent.id);
 
