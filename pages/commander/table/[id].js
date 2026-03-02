@@ -16,7 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import {
   Clock, Users, Plus, Minus, Loader2,
-  RefreshCw, Timer, UserPlus, ChevronDown
+  RefreshCw, Timer, UserPlus, ChevronDown, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
@@ -138,6 +138,7 @@ export default function TableSeating() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/commander/tables')} className="p-2 rounded-lg active:bg-[#3A3B3C] flex-shrink-0"><ArrowLeft className="w-5 h-5 text-[#B0B3B8]" /></button>
             <div>
               <h1 className="text-lg font-bold text-white">Table {tableNum}</h1>
               <p className="text-xs text-[#B0B3B8]">

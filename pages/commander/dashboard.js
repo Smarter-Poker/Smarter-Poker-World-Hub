@@ -183,16 +183,18 @@ export default function CommanderDashboard() {
           // Try to refresh
           const { data: { session: refreshed } } = await supabase.auth.refreshSession();
           if (!refreshed) {
-            // Session truly expired — check if Remember Me was set
+            // Session truly expired — clear session-specific data and redirect to login
+            localStorage.removeItem('commander_venue');
+            localStorage.removeItem('commander_subscription');
             const remembered = localStorage.getItem('commander_remember');
             if (!remembered) {
-              // Not remembered — clear and redirect
+              // Not remembered — clear everything
               localStorage.removeItem('commander_staff');
-              localStorage.removeItem('commander_venue');
-              localStorage.removeItem('commander_subscription');
               if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+            } else {
+              // Remembered — keep staff email for pre-fill, redirect with expired flag
+              if (router.asPath !== '/commander/login') router.push('/commander/login?expired=1').catch(() => { });
             }
-            // If remembered, keep the localStorage data — login page will handle re-auth
           }
         }
       } catch (err) {

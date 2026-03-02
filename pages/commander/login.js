@@ -20,6 +20,18 @@ export default function CommanderLogin() {
   const [rememberMe, setRememberMe] = useState(true);
   const [checkingSession, setCheckingSession] = useState(true);
 
+  // Pre-fill email from stored staff data if available (remember me)
+  useEffect(() => {
+    try {
+      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      if (staffData.email) setEmail(staffData.email);
+    } catch { }
+    // Show 'session expired' message if redirected from expired session
+    if (router.query.expired === '1') {
+      setError('Your session has expired. Please sign in again.');
+    }
+  }, [router.query.expired]);
+
   // Auto-restore session — if user has valid Supabase session + remember flag, skip login
   useEffect(() => {
     async function checkExistingSession() {
@@ -47,9 +59,8 @@ export default function CommanderLogin() {
           return;
         }
 
-        // Refresh failed — clear stale data
-        localStorage.removeItem('commander_remember');
-        localStorage.removeItem('commander_staff');
+        // Refresh failed — keep commander_remember and staff email for pre-fill
+        // Only clear session-specific tokens, not the remember flag
         localStorage.removeItem('commander_venue');
         localStorage.removeItem('commander_subscription');
       } catch (err) {
