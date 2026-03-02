@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
     // Verify admin auth (check for service key in header)
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_API_KEY && adminKey !== 'init-diamonds-2026') {
+    if (adminKey !== process.env.ADMIN_API_KEY || !process.env.ADMIN_API_KEY) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
