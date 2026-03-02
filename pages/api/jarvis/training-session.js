@@ -50,11 +50,6 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'userId must match authenticated user' });
     }
 
-    if (!supabaseUrl || !supabaseKey) {
-        return res.status(500).json({ error: 'Missing Supabase configuration' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
         console.log(`[JarvisTraining] 📊 Recording session for user ${userId}: ${gameId} Level ${level}`);
