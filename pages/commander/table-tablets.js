@@ -140,7 +140,7 @@ export default function TableTabletsPage() {
     const [scanCameraActive, setScanCameraActive] = useState(false);
     const [scanResult, setScanResult] = useState(null);
     const [scanError, setScanError] = useState('');
-    const [manualDealerQR, setManualDealerQR] = useState('');
+    // manualDealerQR removed — scan only (issue #6)
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const scanIntervalRef = useRef(null);
@@ -294,6 +294,15 @@ export default function TableTabletsPage() {
             document.body.style.overscrollBehavior = '';
         };
     }, [fullscreenTable, lockedTable]);
+
+    // ── Cleanup camera streams on unmount — prevents tablet camera resource leaks ──
+    useEffect(() => {
+        return () => {
+            if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+            if (seatScannerStreamRef.current) { seatScannerStreamRef.current.getTracks().forEach(t => t.stop()); seatScannerStreamRef.current = null; }
+            if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+        };
+    }, []);
 
     // Browser back/navigation prevention when locked
     useEffect(() => {
@@ -556,7 +565,6 @@ export default function TableTabletsPage() {
         setScanningTable(tableNumber);
         setScanResult(null);
         setScanError('');
-        setManualDealerQR('');
     };
 
     const closeDealerScan = () => {
@@ -591,7 +599,7 @@ export default function TableTabletsPage() {
                 scanIntervalRef.current = interval;
             }
         } catch {
-            setScanError('Camera access denied. Use manual entry.');
+            setScanError('Camera access denied. Please check permissions.');
         }
     };
 
@@ -815,7 +823,7 @@ export default function TableTabletsPage() {
                     setTimeout(scanLoop, 500);
                 }
             } catch {
-                setToast({ type: 'error', text: 'Camera access denied — use manual entry' });
+                setToast({ type: 'error', text: 'Camera access denied — check permissions' });
             }
         }, 200);
     };
@@ -1437,7 +1445,7 @@ export default function TableTabletsPage() {
                             {/* Lock button — only on tournament tables, shows Unlock icon since page is unlocked */}
                             {isTournamentTable(fullscreenTable) && (
                                 <button
-                                    onClick={() => { haptic(); lockToTable(fullscreenTable.table_number); }}
+                                    onClick={() => { haptic(); lockToTable(fullscreenTable.table_number || fullscreenTable.number); }}
                                     style={{
                                         background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
