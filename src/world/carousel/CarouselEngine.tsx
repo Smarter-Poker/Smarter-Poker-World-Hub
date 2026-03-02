@@ -214,7 +214,7 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
 
         // Sort by depth (furthest cards render first)
         return result.sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset));
-    }, [scrollPosition]);
+    }, [scrollPosition, allOrbs, TOTAL_ORBS]);
 
     // Calculate viewport-based positioning
     const halfVW = viewport.width / 2;
