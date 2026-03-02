@@ -380,6 +380,32 @@ export const DEFAULT_PERMISSIONS = {
   }
 };
 
+// ── Sensitive Routes — ALWAYS require PIN challenge, even for owners/managers ──
+// These pages expose confidential data (PINs, financials, settings) and must
+// gate behind a per-session PIN verification regardless of cached staff session.
+export const SENSITIVE_ROUTES = [
+  '/commander/staff',              // Employee PINs and management
+  '/commander/settings',           // Venue configuration
+  '/commander/analytics',          // Business analytics
+  '/commander/reports',            // Financial reports
+  '/commander/close-day',          // End-of-day financial close
+  '/commander/exports',            // Data exports
+  '/commander/time-billing',       // Revenue / billing
+  '/commander/churn-prediction',   // Business intelligence
+  '/commander/cashier',            // Financial transactions
+  '/commander/membership-plans',   // Pricing management
+];
+
+/**
+ * Check if a route is sensitive (requires mandatory PIN even for authenticated staff)
+ * @param {string} href - Route path
+ * @returns {boolean}
+ */
+export function isSensitiveRoute(href) {
+  const clean = href.split('?')[0]; // strip query params
+  return SENSITIVE_ROUTES.some(r => clean === r || clean.startsWith(r + '/'));
+}
+
 // ── Role-Based Route Access Map ──
 // Each role maps to an array of allowed route prefixes.
 // Owner and manager get '*' (all routes).

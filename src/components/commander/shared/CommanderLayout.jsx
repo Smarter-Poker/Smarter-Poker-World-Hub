@@ -23,7 +23,7 @@ import {
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import FloorCallAlert from './FloorCallAlert';
 import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
-import { canRoleAccessRoute } from '../../../lib/commander/auth';
+import { canRoleAccessRoute, isSensitiveRoute } from '../../../lib/commander/auth';
 import useClubBranding from '../../../lib/commander/useClubBranding';
 
 const NAV_ITEMS = [
@@ -118,8 +118,25 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     }
     const role = staff.role;
     const hasAccess = canRoleAccessRoute(role, path);
-    // Check if this route was previously unlocked via PIN in this session
     const unlocked = sessionStorage.getItem(`pin_unlock_${path}`);
+    const sensitive = isSensitiveRoute(path);
+
+    // For SENSITIVE routes: Always require PIN unlock (even for owners/managers).
+    // The PIN must have been entered in this browser session.
+    if (sensitive) {
+      if (unlocked === 'true') {
+        setRouteBlocked(false);
+        setGateGranted(true);
+      } else {
+        setRouteBlocked(true);
+        setGateGranted(false);
+        setPinInput('');
+        setPinError('');
+      }
+      return;
+    }
+
+    // For NON-sensitive routes: standard role-based check
     if (hasAccess || unlocked === 'true') {
       setRouteBlocked(false);
       setGateGranted(true);
