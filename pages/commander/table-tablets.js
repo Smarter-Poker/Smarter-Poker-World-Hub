@@ -271,6 +271,31 @@ export default function TableTabletsPage() {
         }
     }, [fullscreenTable, lockedTournamentId]);
 
+    // ── Body scroll lock when fullscreen is active ──
+    // Prevents iOS rubber-band overscroll from revealing the page underneath
+    useEffect(() => {
+        if (fullscreenTable || lockedTable) {
+            const orig = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+            // Also prevent touch-move on body to stop pull-to-refresh / overscroll on tablets
+            const preventTouchMove = (e) => {
+                // Allow scrolling inside specific scrollable containers
+                if (e.target.closest('[data-scrollable]')) return;
+                e.preventDefault();
+            };
+            document.body.addEventListener('touchmove', preventTouchMove, { passive: false });
+            // Set overscroll-behavior on html+body for full coverage
+            document.documentElement.style.overscrollBehavior = 'none';
+            document.body.style.overscrollBehavior = 'none';
+            return () => {
+                document.body.style.overflow = orig;
+                document.body.removeEventListener('touchmove', preventTouchMove);
+                document.documentElement.style.overscrollBehavior = '';
+                document.body.style.overscrollBehavior = '';
+            };
+        }
+    }, [fullscreenTable, lockedTable]);
+
     // Browser back/navigation prevention when locked
     useEffect(() => {
         if (!lockedTable) return;
@@ -542,7 +567,7 @@ export default function TableTabletsPage() {
         setScanError('');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
             });
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
@@ -764,7 +789,7 @@ export default function TableTabletsPage() {
         setTimeout(async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 seatScannerStreamRef.current = stream;
                 if (seatScannerVideoRef.current) {
@@ -885,42 +910,64 @@ export default function TableTabletsPage() {
                     {(() => {
                         const dealerName = dealerMap[tNum] || game?.dealer_name || 'No Dealer';
                         return (
-                            <div style={{
-                                position: 'absolute', top: dealerPos.top, left: dealerPos.left,
-                                transform: 'translate(-50%, -50%)', zIndex: 3,
-                                display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8,
-                                background: 'rgba(36,37,38,0.9)',
-                                borderRadius: 12,
-                                padding: '5px 10px 5px 5px',
-                                border: '2px solid rgba(24,119,242,0.6)',
-                                backdropFilter: 'blur(6px)',
-                                minWidth: isFullscreen ? 80 : 70,
-                            }}>
-                                {/* D avatar circle */}
-                                <div style={{
-                                    width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                    border: '2px solid #1877F2',
-                                    boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
-                                    fontSize: isFullscreen ? 28 : 24, fontWeight: 900, color: '#fff',
+                            <div
+                                onClick={isFullscreen ? (e) => { e.stopPropagation(); haptic(); openDealerScan(tNum); } : undefined}
+                                style={{
+                                    position: 'absolute', top: dealerPos.top, left: dealerPos.left,
+                                    transform: 'translate(-50%, -50%)', zIndex: 3,
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    cursor: isFullscreen ? 'pointer' : 'default',
                                 }}>
-                                    D
-                                </div>
-                                {/* Name + DEALER label */}
-                                <div style={{ overflow: 'hidden' }}>
+                                {/* Dealer card */}
+                                <div style={{
+                                    display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8,
+                                    background: 'rgba(36,37,38,0.9)',
+                                    borderRadius: 12,
+                                    padding: '5px 10px 5px 5px',
+                                    border: `2px solid ${isFullscreen ? 'rgba(24,119,242,0.8)' : 'rgba(24,119,242,0.6)'}`,
+                                    backdropFilter: 'blur(6px)',
+                                    minWidth: isFullscreen ? 80 : 70,
+                                }}>
+                                    {/* D avatar circle */}
                                     <div style={{
-                                        fontSize, fontWeight: 600, lineHeight: 1.2,
-                                        color: '#E4E6EB',
-                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        maxWidth: nameMaxWidth,
+                                        width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
+                                        border: '2px solid #1877F2',
+                                        boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                                        fontSize: isFullscreen ? 28 : 24, fontWeight: 900, color: '#fff',
                                     }}>
-                                        {dealerName}
+                                        D
                                     </div>
-                                    <div style={{ fontSize: isFullscreen ? 11 : 10, fontWeight: 700, color: '#1877F2', lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                        Dealer
+                                    {/* Name + DEALER label */}
+                                    <div style={{ overflow: 'hidden' }}>
+                                        <div style={{
+                                            fontSize, fontWeight: 600, lineHeight: 1.2,
+                                            color: '#E4E6EB',
+                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                            maxWidth: nameMaxWidth,
+                                        }}>
+                                            {dealerName}
+                                        </div>
+                                        <div style={{ fontSize: isFullscreen ? 11 : 10, fontWeight: 700, color: '#1877F2', lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            {isFullscreen ? 'Tap to Scan' : 'Dealer'}
+                                        </div>
                                     </div>
                                 </div>
+                                {/* Lock button — only in fullscreen, below dealer badge */}
+                                {isFullscreen && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); haptic(); lockToTable(tNum); }}
+                                        style={{
+                                            background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)',
+                                            borderRadius: 8, padding: '4px 10px', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                            fontSize: 10, fontWeight: 700, color: '#F59E0B',
+                                        }}
+                                    >
+                                        <Lock size={10} /> Lock
+                                    </button>
+                                )}
                             </div>
                         );
                     })()}
@@ -1380,7 +1427,7 @@ export default function TableTabletsPage() {
 
             {/* ── FULLSCREEN TABLE POPUP ── */}
             {fullscreenTable && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1a1f22', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1a1f22', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out', overscrollBehavior: 'none', touchAction: 'manipulation', overflow: 'hidden' }}>
                     {/* Fullscreen header — hidden when locked for true fullscreen */}
                     {!lockedTable && (
                         <div style={{
@@ -1421,30 +1468,6 @@ export default function TableTabletsPage() {
                                 )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <button
-                                    onClick={() => { haptic(); openDealerScan(fullscreenTable.table_number); }}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 6,
-                                        fontSize: 13, fontWeight: 700, color: '#fff',
-                                    }}
-                                >
-                                    <ScanLine size={14} /> Scan Dealer
-                                </button>
-                                {/* Lock button */}
-                                <button
-                                    onClick={() => { haptic(); lockToTable(fullscreenTable.table_number || fullscreenTable.number); }}
-                                    style={{
-                                        background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
-                                        borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 6,
-                                        fontSize: 13, fontWeight: 700, color: '#F59E0B',
-                                    }}
-                                    title="Lock tablet to this table"
-                                >
-                                    <Lock size={14} /> Lock Tablet
-                                </button>
                                 {/* Close button */}
                                 <button
                                     onClick={() => { haptic('light'); setFullscreenTable(null); }}
@@ -1830,29 +1853,49 @@ export default function TableTabletsPage() {
                                 ));
                             })()}
                         </div>
-                        {chipCountInput !== null && tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber && isTournamentTable(t)) && (
-                            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                <input type="text" inputMode="numeric" pattern="[0-9,]*" value={chipCountInput}
-                                    onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ''); setChipCountInput(raw ? parseInt(raw).toLocaleString() : ''); }}
-                                    placeholder="Enter chip count..."
-                                    autoComplete="off"
-                                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', color: '#E4E6EB', fontSize: 18, fontWeight: 700, outline: 'none', letterSpacing: 1, WebkitAppearance: 'none', MozAppearance: 'textfield' }} />
-                                <button onClick={async () => {
-                                    const rawVal = parseInt((chipCountInput || '').replace(/[^0-9]/g, ''));
-                                    if (!rawVal || isNaN(rawVal)) return;
-                                    const eId = showPlayerMenu.taken?.entry_id;
-                                    const tId = showPlayerMenu.taken?.tournament_id || tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber)?.tournament_id;
-                                    const pN = showPlayerMenu.taken?.player_name || 'Player';
-                                    if (eId && tId) {
-                                        await updateTournamentChipCount(tId, eId, rawVal, pN);
-                                    } else {
-                                        setToast({ type: 'error', text: 'Missing entry data - try refreshing' });
-                                    }
-                                    setChipCountInput(null);
-                                    setShowPlayerMenu(null);
-                                }} style={{ padding: '12px 20px', borderRadius: 12, background: '#FFD700', border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Save</button>
-                            </div>
-                        )}
+                        {chipCountInput !== null && tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber && isTournamentTable(t)) && (() => {
+                            const appendDigit = (d) => { const raw = (chipCountInput || '').replace(/[^0-9]/g, '') + d; if (raw.length > 10) return; setChipCountInput(parseInt(raw).toLocaleString()); };
+                            const backspace = () => { const raw = (chipCountInput || '').replace(/[^0-9]/g, ''); if (!raw) return; const trimmed = raw.slice(0, -1); setChipCountInput(trimmed ? parseInt(trimmed).toLocaleString() : ''); };
+                            const clearAll = () => setChipCountInput('');
+                            const rawVal = parseInt((chipCountInput || '').replace(/[^0-9]/g, ''));
+                            const kBtn = { minHeight: 56, borderRadius: 10, border: '1px solid #3A3B3C', background: '#2A2B2C', color: '#E4E6EB', fontSize: 22, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.1s' };
+                            return (
+                                <div style={{ marginTop: 16 }}>
+                                    {/* Chip count display */}
+                                    <div style={{ padding: '14px 16px', borderRadius: 12, border: '2px solid #FFD700', background: '#18191A', marginBottom: 10, textAlign: 'center', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span style={{ fontSize: chipCountInput ? 28 : 16, fontWeight: 800, color: chipCountInput ? '#FFD700' : '#555', letterSpacing: 2, fontVariantNumeric: 'tabular-nums' }}>
+                                            {chipCountInput || 'Enter chip count'}
+                                        </span>
+                                    </div>
+                                    {/* Keypad grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                                            <button key={n} onClick={() => { haptic('light'); appendDigit(String(n)); }} style={kBtn}>{n}</button>
+                                        ))}
+                                        <button onClick={() => { haptic('light'); clearAll(); }} style={{ ...kBtn, color: '#EF4444', fontSize: 14, fontWeight: 800 }}>CLR</button>
+                                        <button onClick={() => { haptic('light'); appendDigit('0'); }} style={kBtn}>0</button>
+                                        <button onClick={() => { haptic('light'); backspace(); }} style={{ ...kBtn, color: '#F59E0B', fontSize: 18 }}>⌫</button>
+                                    </div>
+                                    {/* Save button */}
+                                    <button disabled={!rawVal || isNaN(rawVal) || playerActionLoading} onClick={async () => {
+                                        if (!rawVal || isNaN(rawVal)) return;
+                                        haptic();
+                                        const eId = showPlayerMenu.taken?.entry_id;
+                                        const tId = showPlayerMenu.taken?.tournament_id || tables.find(t => (t.table_number || t.number) === showPlayerMenu?.tableNumber)?.tournament_id;
+                                        const pN = showPlayerMenu.taken?.player_name || 'Player';
+                                        if (eId && tId) {
+                                            await updateTournamentChipCount(tId, eId, rawVal, pN);
+                                        } else {
+                                            setToast({ type: 'error', text: 'Missing entry data - try refreshing' });
+                                        }
+                                        setChipCountInput(null);
+                                        setShowPlayerMenu(null);
+                                    }} style={{ width: '100%', marginTop: 10, padding: '14px', borderRadius: 12, background: (!rawVal || isNaN(rawVal)) ? '#3A3B3C' : '#FFD700', border: 'none', color: (!rawVal || isNaN(rawVal)) ? '#666' : '#000', fontSize: 16, fontWeight: 800, cursor: (!rawVal || isNaN(rawVal)) ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}>
+                                        {playerActionLoading ? 'Saving...' : `Save — ${rawVal && !isNaN(rawVal) ? rawVal.toLocaleString() : '0'} chips`}
+                                    </button>
+                                </div>
+                            );
+                        })()}
                         <button onClick={() => { haptic('light'); setShowPlayerMenu(null); setChipCountInput(null); }} style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 12, background: '#3A3B3C', border: 'none', color: '#8A8D91', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                     </div>
                 </div>
