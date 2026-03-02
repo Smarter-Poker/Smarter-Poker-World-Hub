@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Users, UserPlus, ScanLine, Search, Filter,
-    ChevronDown, User, Clock, Star, Loader2
+    ChevronDown, User, Clock, Star, Loader2, DollarSign, CreditCard
 } from 'lucide-react';
 import AddMemberModal from '../../src/components/commander/members/AddMemberModal';
 import ScanMemberModal from '../../src/components/commander/members/ScanMemberModal';
@@ -214,75 +214,163 @@ export default function MembersPage() {
                                             <thead>
                                                 <tr className="border-b border-[#3A3B3C]">
                                                     <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Member</th>
-                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Number</th>
-                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Tier</th>
-                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Status</th>
-                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Visits</th>
-                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Last Visit</th>
+                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Membership</th>
+                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Expires</th>
+                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Time Balance</th>
+                                                    <th className="text-left px-4 py-3 text-xs text-[#8A8D91] font-medium uppercase tracking-wider">Comps</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {members.map(m => (
-                                                    <tr key={m.id} onClick={() => setSelectedMember(m)}
-                                                        className="border-b border-[#3A3B3C] last:border-0 hover:bg-[#3A3B3C]/30 cursor-pointer transition-colors">
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-9 h-9 bg-[#3A3B3C] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                                                    {m.photo_url ? <img src={m.photo_url} alt="" className="w-9 h-9 rounded-full object-cover" /> : <User className="w-4 h-4 text-[#B0B3B8]" />}
+                                                {members.map(m => {
+                                                    const timeMin = m.time_balance_minutes || 0;
+                                                    const timeH = Math.floor(timeMin / 60);
+                                                    const timeM = timeMin % 60;
+                                                    const timeStr = timeMin > 0 ? `${timeH}h ${timeM > 0 ? timeM + 'm' : ''}`.trim() : '0h';
+                                                    const compBal = m.comp_balance || 0;
+                                                    const memberName = `${m.first_name || ''} ${m.last_name || ''}`.trim();
+                                                    const expiresDate = m.membership_expires ? new Date(m.membership_expires) : null;
+                                                    const isExpired = expiresDate && expiresDate < new Date();
+                                                    const expiresStr = expiresDate
+                                                        ? expiresDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                                        : '--';
+
+                                                    return (
+                                                        <tr key={m.id} className="border-b border-[#3A3B3C] last:border-0 hover:bg-[#3A3B3C]/30 transition-colors">
+                                                            <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedMember(m)}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-9 h-9 bg-[#3A3B3C] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                                        {m.photo_url ? <img src={m.photo_url} alt="" className="w-9 h-9 rounded-full object-cover" /> : <User className="w-4 h-4 text-[#B0B3B8]" />}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-sm font-medium text-[#E4E6EB]">{m.first_name} {m.last_name}</div>
+                                                                        <div className="text-xs font-mono text-[#1877F2]">{m.member_number}</div>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <div className="text-sm font-medium text-[#E4E6EB]">{m.first_name} {m.last_name}</div>
-                                                                    {m.phone && <div className="text-xs text-[#8A8D91]">{m.phone}</div>}
+                                                            </td>
+                                                            {/* Membership tier — click to go to cashier membership */}
+                                                            <td className="px-4 py-3">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); router.push(`/commander/cashier?action=membership&member=${encodeURIComponent(memberName)}&member_id=${m.id}`); }}
+                                                                    className="group flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                                                                    title="Click to update membership"
+                                                                >
+                                                                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                                                        style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] || '#B0B3B8' }}>
+                                                                        {TIER_LABELS[m.membership_tier] || m.membership_tier || '--'}
+                                                                    </span>
+                                                                    <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                                                        style={{ backgroundColor: (STATUS_COLORS[m.membership_status] || '#8A8D91') + '20', color: STATUS_COLORS[m.membership_status] }}>
+                                                                        {m.membership_status || '--'}
+                                                                    </span>
+                                                                    <CreditCard className="w-3 h-3 text-[#8A8D91] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                </button>
+                                                            </td>
+                                                            {/* Expires */}
+                                                            <td className="px-4 py-3">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); router.push(`/commander/cashier?action=membership&member=${encodeURIComponent(memberName)}&member_id=${m.id}`); }}
+                                                                    className="text-sm hover:underline transition-colors"
+                                                                    style={{ color: isExpired ? '#EF4444' : '#B0B3B8' }}
+                                                                    title="Click to renew membership"
+                                                                >
+                                                                    {expiresStr}
+                                                                </button>
+                                                            </td>
+                                                            {/* Time Balance — click to add time */}
+                                                            <td className="px-4 py-3">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); router.push(`/commander/cashier?action=addtime&member=${encodeURIComponent(memberName)}&member_id=${m.id}`); }}
+                                                                    className="flex items-center gap-1.5 group hover:opacity-80 transition-opacity"
+                                                                    title="Click to add time"
+                                                                >
+                                                                    <Clock className="w-3.5 h-3.5 text-[#3B82F6]" />
+                                                                    <span className={`text-sm font-semibold ${timeMin > 0 ? 'text-[#3B82F6]' : 'text-[#8A8D91]'}`}>{timeStr}</span>
+                                                                    <span className="text-[10px] text-[#8A8D91] opacity-0 group-hover:opacity-100 transition-opacity">+ Add</span>
+                                                                </button>
+                                                            </td>
+                                                            {/* Comp Balance */}
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <DollarSign className="w-3.5 h-3.5 text-[#10B981]" />
+                                                                    <span className={`text-sm font-semibold ${compBal > 0 ? 'text-[#10B981]' : 'text-[#8A8D91]'}`}>
+                                                                        ${Number(compBal).toFixed(2)}
+                                                                    </span>
                                                                 </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-mono text-[#1877F2]">{m.member_number}</td>
-                                                        <td className="px-4 py-3">
-                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                                                style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] || '#B0B3B8' }}>
-                                                                {TIER_LABELS[m.membership_tier] || m.membership_tier || '—'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                                                style={{ backgroundColor: (STATUS_COLORS[m.membership_status] || '#8A8D91') + '20', color: STATUS_COLORS[m.membership_status] }}>
-                                                                {m.membership_status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-[#B0B3B8]">{m.total_visits || 0}</td>
-                                                        <td className="px-4 py-3 text-sm text-[#B0B3B8]">
-                                                            {m.last_visit ? new Date(m.last_visit).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
 
                                     {/* Mobile Cards */}
                                     <div className="md:hidden space-y-2">
-                                        {members.map(m => (
-                                            <button key={m.id} onClick={() => setSelectedMember(m)}
-                                                className="w-full bg-[#242526] rounded-xl border border-[#3A3B3C] p-4 text-left hover:bg-[#3A3B3C]/30 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 bg-[#3A3B3C] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                                        {m.photo_url ? <img src={m.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" /> : <User className="w-6 h-6 text-[#B0B3B8]" />}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="text-sm font-semibold text-[#E4E6EB]">{m.first_name} {m.last_name}</div>
-                                                        <div className="text-xs font-mono text-[#1877F2]">{m.member_number}</div>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                                                                style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] || '#B0B3B8' }}>
-                                                                {TIER_LABELS[m.membership_tier] || m.membership_tier || '—'}
-                                                            </span>
-                                                            <span className="text-xs text-[#8A8D91] flex items-center gap-1"><Clock className="w-3 h-3" />{m.total_visits || 0} visits</span>
+                                        {members.map(m => {
+                                            const timeMin = m.time_balance_minutes || 0;
+                                            const timeH = Math.floor(timeMin / 60);
+                                            const timeM = timeMin % 60;
+                                            const timeStr = timeMin > 0 ? `${timeH}h ${timeM > 0 ? timeM + 'm' : ''}`.trim() : '0h';
+                                            const compBal = m.comp_balance || 0;
+                                            const memberName = `${m.first_name || ''} ${m.last_name || ''}`.trim();
+                                            const expiresDate = m.membership_expires ? new Date(m.membership_expires) : null;
+                                            const isExpired = expiresDate && expiresDate < new Date();
+                                            const expiresStr = expiresDate
+                                                ? expiresDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                                : '--';
+
+                                            return (
+                                                <div key={m.id} className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4 hover:bg-[#3A3B3C]/30 transition-colors">
+                                                    {/* Top row — name + member detail */}
+                                                    <button onClick={() => setSelectedMember(m)} className="w-full text-left">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="w-10 h-10 bg-[#3A3B3C] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                                {m.photo_url ? <img src={m.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" /> : <User className="w-5 h-5 text-[#B0B3B8]" />}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm font-semibold text-[#E4E6EB]">{m.first_name} {m.last_name}</div>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                                                        style={{ backgroundColor: (TIER_COLORS[m.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[m.membership_tier] || '#B0B3B8' }}>
+                                                                        {TIER_LABELS[m.membership_tier] || m.membership_tier || '--'}
+                                                                    </span>
+                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                                                        style={{ backgroundColor: (STATUS_COLORS[m.membership_status] || '#8A8D91') + '20', color: STATUS_COLORS[m.membership_status] }}>
+                                                                        {m.membership_status}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <ChevronDown className="w-4 h-4 text-[#8A8D91] -rotate-90" />
+                                                        </div>
+                                                    </button>
+                                                    {/* Bottom row — account data shortcuts */}
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <button
+                                                            onClick={() => router.push(`/commander/cashier?action=membership&member=${encodeURIComponent(memberName)}&member_id=${m.id}`)}
+                                                            className="bg-[#18191A] rounded-lg p-2 text-center hover:bg-[#3A3B3C]/50 transition-colors"
+                                                        >
+                                                            <div className="text-[10px] text-[#8A8D91] mb-0.5">Expires</div>
+                                                            <div className={`text-xs font-bold ${isExpired ? 'text-[#EF4444]' : 'text-[#B0B3B8]'}`}>{expiresStr}</div>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => router.push(`/commander/cashier?action=addtime&member=${encodeURIComponent(memberName)}&member_id=${m.id}`)}
+                                                            className="bg-[#18191A] rounded-lg p-2 text-center hover:bg-[#3A3B3C]/50 transition-colors"
+                                                        >
+                                                            <div className="text-[10px] text-[#8A8D91] mb-0.5">Time</div>
+                                                            <div className={`text-xs font-bold flex items-center justify-center gap-1 ${timeMin > 0 ? 'text-[#3B82F6]' : 'text-[#8A8D91]'}`}>
+                                                                <Clock className="w-3 h-3" />{timeStr}
+                                                            </div>
+                                                        </button>
+                                                        <div className="bg-[#18191A] rounded-lg p-2 text-center">
+                                                            <div className="text-[10px] text-[#8A8D91] mb-0.5">Comps</div>
+                                                            <div className={`text-xs font-bold flex items-center justify-center gap-0.5 ${compBal > 0 ? 'text-[#10B981]' : 'text-[#8A8D91]'}`}>
+                                                                <DollarSign className="w-3 h-3" />{Number(compBal).toFixed(2)}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <ChevronDown className="w-4 h-4 text-[#8A8D91] -rotate-90" />
                                                 </div>
-                                            </button>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
 
                                     {/* Pagination */}

@@ -168,6 +168,53 @@ export default function Cashier() {
   // Commander Data Bus — sync cashier transactions + members across tabs
   useCommanderSync(venueId, fetchData, { entities: ['members', 'tables', 'games'] });
 
+  // ═══ URL PARAM HANDLER — auto-open modal from members page shortcuts ═══
+  // Supports: ?action=addtime&member=NAME&member_id=UUID
+  //           ?action=membership&member=NAME&member_id=UUID
+  useEffect(() => {
+    if (!router.isReady || !venueId) return;
+    const { action, member, member_id } = router.query;
+    if (!action || !member_id) return;
+
+    const loadAndOpen = async () => {
+      try {
+        const token = getToken();
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+        const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
+        const json = await res.json();
+        if (json.success && (json.data?.member || json.data)) {
+          const m = json.data?.member || json.data;
+          const name = member || `${m.first_name || ''} ${m.last_name || ''}`.trim();
+          setSelectedPlayer({
+            id: m.id,
+            player_name: name,
+            user_id: m.user_id || m.id,
+            membership_tier: m.membership_tier,
+            membership_status: m.membership_status,
+            membership_expires: m.membership_expires,
+            time_balance_minutes: m.time_balance_minutes || 0,
+            comp_balance: m.comp_balance || 0,
+            comp_lifetime_earned: m.comp_lifetime_earned || 0,
+            member_number: m.member_number,
+            phone: m.phone,
+          });
+          if (action === 'addtime') {
+            setShowAddTime(true);
+          } else if (action === 'membership') {
+            setSelectedTier(m.membership_tier || null);
+            setShowMembership(true);
+          }
+        }
+      } catch (err) { console.error('Auto-load member error:', err); }
+      // Clear URL params after handling so refresh doesn't re-trigger
+      router.replace('/commander/cashier', undefined, { shallow: true });
+    };
+
+    // Small delay to let pricing data load first
+    setTimeout(loadAndOpen, 300);
+  }, [router.isReady, venueId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch owner-configured pricing from Time Billing settings + membership plans
   useEffect(() => {
     if (!venueId) return;
