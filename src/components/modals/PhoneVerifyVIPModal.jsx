@@ -20,6 +20,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
     const [countdown, setCountdown] = useState(0);
     const otpRefs = useRef([]);
     const verifyingRef = useRef(false); // Guard against double-verify
+    const lastAttemptedOtpRef = useRef(''); // Guard against infinite loop on error
 
     // Countdown timer for resend
     useEffect(() => {
@@ -66,6 +67,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
             // Reset OTP fields for fresh entry
             setOtp(['', '', '', '']);
             verifyingRef.current = false;
+            lastAttemptedOtpRef.current = '';
             setTimeout(() => otpRefs.current[0]?.focus(), 100);
         } catch (err) {
             setError(err.message);
@@ -112,6 +114,8 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
             return;
         }
 
+        lastAttemptedOtpRef.current = code;
+
         verifyingRef.current = true;
         setLoading(true);
         setError('');
@@ -136,11 +140,11 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
             if (typeof window !== 'undefined') {
                 // Dispatch custom event so Universal Header / profile can refresh
                 window.dispatchEvent(new CustomEvent('vip-status-changed', {
-                    detail: { userId, vipGranted: true, source: 'phone_verification' }
+                    detail: { userId, vipGranted: data.vipGranted, source: 'phone_verification' }
                 }));
                 // Also dispatch profile-updated for any listeners
                 window.dispatchEvent(new CustomEvent('profile-updated', {
-                    detail: { userId, phone: raw, phone_verified: true, is_vip: true }
+                    detail: { userId, phone: raw, phone_verified: true, is_vip: data.vipGranted !== false }
                 }));
                 console.log('[PhoneVerifyVIP] 🚌 Bus events dispatched: vip-status-changed, profile-updated');
             }
@@ -156,9 +160,11 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         }
     }, [otp, userId, getRawPhone, onVerified, onClose]);
 
-    // Auto-verify when all 4 digits entered — with guard against double-fire
+    // Auto-verify when all 4 digits entered — with guard against double-fire and infinite loops
     useEffect(() => {
-        if (otp.every(d => d) && step === 'otp' && !verifyingRef.current && !loading) {
+        const currentCode = otp.join('');
+        if (otp.every(d => d) && step === 'otp' && !verifyingRef.current && !loading && lastAttemptedOtpRef.current !== currentCode) {
+            lastAttemptedOtpRef.current = currentCode;
             handleVerify();
         }
     }, [otp, step, loading, handleVerify]);
@@ -385,7 +391,13 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <button
-                                onClick={() => { setStep('phone'); setOtp(['', '', '', '']); setError(''); verifyingRef.current = false; }}
+                                onClick={() => {
+                                    setStep('phone');
+                                    setOtp(['', '', '', '']);
+                                    setError('');
+                                    verifyingRef.current = false;
+                                    lastAttemptedOtpRef.current = '';
+                                }}
                                 style={{
                                     background: 'none', border: 'none',
                                     color: '#00D4FF', fontSize: '13px', cursor: 'pointer',
