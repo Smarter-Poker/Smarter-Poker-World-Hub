@@ -319,6 +319,49 @@ export default function UniversalHeader({
         return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
     }, [user?.id]);
 
+    // ── VIP status bus listener — updates VIP badge in real time ──
+    // Triggered by PhoneVerifyVIPModal after successful phone verification
+    useEffect(() => {
+        const handleVipChange = (e) => {
+            console.log('[UniversalHeader] 🚌 VIP status change event received:', e.detail);
+            if (e.detail?.vipGranted) {
+                setIsVip(true);
+            }
+        };
+
+        const handleProfileUpdate = async () => {
+            // Re-fetch header stats to pick up all profile changes
+            if (!user?.id) return;
+            try {
+                const response = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id }),
+                });
+                const result = await response.json();
+                if (result.success && result.profile) {
+                    setStats({ diamonds: result.profile.diamonds });
+                    setIsVip(!!result.profile.is_vip);
+                    setUser(prev => ({
+                        ...prev,
+                        avatar: result.profile.avatar_url || prev?.avatar,
+                        name: result.profile.full_name || result.profile.username || prev?.name
+                    }));
+                    console.log('[UniversalHeader] 🚌 Profile refreshed via bus event');
+                }
+            } catch (e) {
+                console.warn('[UniversalHeader] Profile refresh failed:', e.message);
+            }
+        };
+
+        window.addEventListener('vip-status-changed', handleVipChange);
+        window.addEventListener('profile-updated', handleProfileUpdate);
+        return () => {
+            window.removeEventListener('vip-status-changed', handleVipChange);
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+        };
+    }, [user?.id]);
+
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
             router.back();
