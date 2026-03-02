@@ -9,9 +9,16 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { code, userId } = req.body;
-    if (!code || !userId) {
-        return res.status(400).json({ error: 'Code and userId are required' });
+    // Require JWT auth — promo codes credit real currency
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: authUser }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const { code } = req.body;
+    const userId = authUser.id; // Always use verified user ID
+    if (!code) {
+        return res.status(400).json({ error: 'Code is required' });
     }
 
     try {

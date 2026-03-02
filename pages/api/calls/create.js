@@ -13,7 +13,14 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { callerId, calleeId, callerName, callerAvatar, callType, roomName } = req.body;
+    // Require JWT auth
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const { calleeId, callerName, callerAvatar, callType, roomName } = req.body;
+    const callerId = authUser.id;
 
     if (!callerId || !calleeId || !callerName || !callType || !roomName) {
         return res.status(400).json({ error: 'Missing required fields' });
