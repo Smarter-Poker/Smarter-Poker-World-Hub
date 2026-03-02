@@ -79,7 +79,7 @@ export default function AuthCallback() {
                                 const staffSession = {
                                     user_id: user.id,
                                     email: user.email,
-                                    display_name: subscription.billing_name || user.email,
+                                    display_name: subscription.billing_name || (user.user_metadata?.name) || (user.user_metadata?.full_name) || user.email,
                                     role: 'owner',
                                     venue_id: subscription.venue_id,
                                     venue_name: subscription.venue?.name || 'My Venue',
@@ -115,20 +115,31 @@ export default function AuthCallback() {
                 }
 
                 // Extract user metadata
+                // Google OAuth provides: name, given_name, family_name, picture, email
+                // Email/password provides: full_name, poker_alias, city, state
                 const metadata = user.user_metadata || {};
+                const fullName = metadata.full_name
+                    || metadata.name
+                    || [metadata.given_name, metadata.family_name].filter(Boolean).join(' ')
+                    || '';
+                const avatarUrl = metadata.avatar_url || metadata.picture || '';
                 const state = metadata.state || '';
+                // For Google users, generate a username from their name if no poker_alias
+                const username = metadata.poker_alias
+                    || (fullName ? fullName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15) : '')
+                    || '';
 
                 // Try to initialize profile via RPC
                 try {
                     const { data: profileData, error: rpcError } = await supabase
                         .rpc('initialize_player_profile', {
                             p_user_id: user.id,
-                            p_full_name: metadata.full_name || '',
+                            p_full_name: fullName,
                             p_email: user.email || '',
-                            p_phone: '', // Will be set later
+                            p_phone: metadata.phone || '', // Google doesn't share phone
                             p_city: metadata.city || '',
                             p_state: state,
-                            p_username: metadata.poker_alias || '',
+                            p_username: username,
                         });
 
                     if (rpcError) {
@@ -151,11 +162,12 @@ export default function AuthCallback() {
                         .from('profiles')
                         .upsert({
                             id: user.id,
-                            full_name: metadata.full_name || '',
+                            full_name: fullName,
                             email: user.email || '',
                             city: metadata.city || '',
                             state: state,
-                            username: metadata.poker_alias || '',
+                            username: username,
+                            avatar_url: avatarUrl,
                             xp_total: 50,
                             diamonds: 300,
                             diamond_multiplier: 1.0,
