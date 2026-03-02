@@ -40,7 +40,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
     // ── Send OTP ─────────────────────────────────────────────────────────
     const handleSendOtp = async () => {
         if (rawPhone.length !== 10) {
-            setError('Please enter a valid 10-digit phone number');
+            setError('Please Enter A Valid 10-Digit Phone Number');
             return;
         }
         setLoading(true);
@@ -52,7 +52,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                 body: JSON.stringify({ phone: rawPhone }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to send code');
+            if (!res.ok) throw new Error(data.error || 'Failed To Send Code');
             setStep('otp');
             setCountdown(60);
             setTimeout(() => otpRefs.current[0]?.focus(), 100);
@@ -94,7 +94,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
     const handleVerify = async () => {
         const code = otp.join('');
         if (code.length !== 6) {
-            setError('Please enter the full 6-digit code');
+            setError('Please Enter The Full 6-Digit Code');
             return;
         }
         setLoading(true);
@@ -106,7 +106,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                 body: JSON.stringify({ phone: rawPhone, code, userId }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Verification failed');
+            if (!res.ok) throw new Error(data.error || 'Verification Failed');
             setStep('success');
             setTimeout(() => {
                 onVerified?.();
@@ -171,7 +171,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                             color: '#FFD700',
                             margin: '0 0 8px',
                         }}>
-                            Verify Your Phone
+                            Verify Your Phone Number
                         </h2>
                         <p style={{
                             fontSize: '15px',
@@ -187,7 +187,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                             fontWeight: 700,
                             margin: '0 0 24px',
                         }}>
-                            FREE for 90 Days! 🔥
+                            FREE For 90 Days! 🔥
                         </p>
 
                         <div style={{ position: 'relative', marginBottom: '16px' }}>
@@ -276,7 +276,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                             color: '#B0B3B8',
                             margin: '0 0 20px',
                         }}>
-                            Sent to <span style={{ color: '#00D4FF', fontWeight: 600 }}>+1 {phone}</span>
+                            Sent To <span style={{ color: '#00D4FF', fontWeight: 600 }}>+1 {phone}</span>
                         </p>
 
                         <div style={{
@@ -363,7 +363,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                                     fontSize: '13px', cursor: countdown > 0 ? 'default' : 'pointer',
                                 }}
                             >
-                                {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
+                                {countdown > 0 ? `Resend In ${countdown}s` : 'Resend Code'}
                             </button>
                         </div>
                     </>
@@ -387,7 +387,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                             margin: '0 0 8px',
                             lineHeight: '1.5',
                         }}>
-                            Your phone is verified and your
+                            Your Phone Is Verified And Your
                         </p>
                         <p style={{
                             fontSize: '20px',
@@ -395,7 +395,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                             fontWeight: 700,
                             margin: '0 0 16px',
                         }}>
-                            90-Day FREE VIP Card is Active!
+                            90-Day FREE VIP Card Is Active!
                         </p>
                         <div style={{
                             background: 'rgba(255, 215, 0, 0.1)',

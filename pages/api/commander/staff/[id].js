@@ -11,7 +11,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-const VALID_ROLES = ['owner', 'manager', 'floor', 'cashier', 'brush', 'dealer', 'security'];
+const VALID_ROLES = ['owner', 'manager', 'dualrate', 'floor', 'cashier', 'brush', 'dealer', 'security'];
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -69,7 +69,7 @@ async function handlePatch(req, res, id) {
       });
     }
 
-    const { role, permissions, pin_code, is_active } = req.body;
+    const { role, permissions, pin_code, is_active, display_name, email, phone, id_type, id_number, id_state, id_expiry, date_of_birth } = req.body;
 
     // Validate role if provided
     if (role && !VALID_ROLES.includes(role)) {
@@ -82,6 +82,14 @@ async function handlePatch(req, res, id) {
     const updates = {};
     if (role !== undefined) updates.role = role;
     if (permissions !== undefined) updates.permissions = permissions;
+    if (display_name !== undefined) updates.display_name = display_name;
+    if (email !== undefined) updates.email = email;
+    if (phone !== undefined) updates.phone = phone;
+    if (id_type !== undefined) updates.id_type = id_type;
+    if (id_number !== undefined) updates.id_number = id_number;
+    if (id_state !== undefined) updates.id_state = id_state;
+    if (id_expiry !== undefined) updates.id_expiry = id_expiry;
+    if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth;
     if (pin_code !== undefined) {
       // Check for duplicate PIN at this venue (exclude self)
       if (pin_code) {

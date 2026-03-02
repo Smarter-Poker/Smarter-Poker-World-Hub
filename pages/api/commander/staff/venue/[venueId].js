@@ -105,6 +105,13 @@ export default async function handler(req, res) {
         phone,
         hired_at,
         created_at,
+        qr_code,
+        linked_user_id,
+        id_type,
+        id_number,
+        id_state,
+        id_expiry,
+        date_of_birth,
         profiles (
           id,
           display_name,
