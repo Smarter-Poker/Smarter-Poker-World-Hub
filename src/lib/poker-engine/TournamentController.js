@@ -103,16 +103,16 @@ const SNG_BLIND_STRUCTURE = [
   { level: 12, small_blind: 1000, big_blind: 2000, ante: 200, duration: 3 },
 ];
 
-/** Hyper-turbo for Spins (very fast) */
+/** Hyper-turbo for Spins (very fast) — BBA antes from level 3 */
 const SPIN_BLIND_STRUCTURE = [
   { level: 1, small_blind: 10, big_blind: 20, ante: 0, duration: 3 },
   { level: 2, small_blind: 20, big_blind: 40, ante: 0, duration: 3 },
-  { level: 3, small_blind: 30, big_blind: 60, ante: 0, duration: 3 },
-  { level: 4, small_blind: 50, big_blind: 100, ante: 0, duration: 2 },
-  { level: 5, small_blind: 75, big_blind: 150, ante: 0, duration: 2 },
-  { level: 6, small_blind: 100, big_blind: 200, ante: 0, duration: 2 },
-  { level: 7, small_blind: 150, big_blind: 300, ante: 0, duration: 2 },
-  { level: 8, small_blind: 250, big_blind: 500, ante: 0, duration: 1 },
+  { level: 3, small_blind: 30, big_blind: 60, ante: 8, duration: 3 },
+  { level: 4, small_blind: 50, big_blind: 100, ante: 13, duration: 2 },
+  { level: 5, small_blind: 75, big_blind: 150, ante: 19, duration: 2 },
+  { level: 6, small_blind: 100, big_blind: 200, ante: 25, duration: 2 },
+  { level: 7, small_blind: 150, big_blind: 300, ante: 38, duration: 2 },
+  { level: 8, small_blind: 250, big_blind: 500, ante: 63, duration: 1 },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -723,6 +723,7 @@ class TournamentController extends EventEmitter {
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
       ante: blinds.ante,
+      bigBlindAnte: true, // All tournaments/SNGs/Spins use BBA
       minBuyIn: 0,
       maxBuyIn: this.startingChips * 1000,
       rakePercent: 0,

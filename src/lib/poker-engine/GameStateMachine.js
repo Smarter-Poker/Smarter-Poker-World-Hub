@@ -57,7 +57,8 @@ class GameStateMachine {
    * @param {string} config.bettingStructure - no_limit, pot_limit, fixed_limit
    * @param {number} config.smallBlind
    * @param {number} config.bigBlind
-   * @param {number} [config.ante] - Per-player ante
+   * @param {number} [config.ante] - Per-player ante (in BBA mode, BB posts ante × numPlayers)
+   * @param {boolean} [config.bigBlindAnte] - Big Blind Ante mode: BB posts full table ante
    * @param {number} [config.rakePercent] - Rake percentage
    * @param {number} [config.rakeCap] - Maximum rake per pot
    * @param {boolean} [config.runItTwice] - Allow run-it-twice
@@ -73,6 +74,7 @@ class GameStateMachine {
       smallBlind: config.smallBlind,
       bigBlind: config.bigBlind,
       ante: config.ante || 0,
+      bigBlindAnte: config.bigBlindAnte || false,
       rakePercent: config.rakePercent || 0,
       rakeCap: config.rakeCap || Infinity,
       runItTwice: config.runItTwice || false,
@@ -489,8 +491,9 @@ class GameStateMachine {
       || (players.length === 2 ? players.find(p => p.position === 'btn') : null);
     const bbPlayer = players.find(p => p.position === 'bb');
     
-    // Post antes first
-    if (ante > 0) {
+    // Post antes (traditional ante: before blinds; BBA: after blinds)
+    if (ante > 0 && !this.config.bigBlindAnte) {
+      // ── TRADITIONAL ANTE: Each player posts individually ──
       for (const player of players) {
         const anteAmount = Math.min(ante, player.stack);
         player.stack -= anteAmount;
@@ -526,11 +529,26 @@ class GameStateMachine {
       }
     }
     
+    // BIG BLIND ANTE: posted AFTER BB blind so blind is always covered first
+    if (ante > 0 && this.config.bigBlindAnte && bbPlayer) {
+      const totalAnte = ante * players.length;
+      const anteAmount = Math.min(totalAnte, bbPlayer.stack);
+      if (anteAmount > 0) {
+        bbPlayer.stack -= anteAmount;
+        this.potCalculator.addContribution(bbPlayer.id, anteAmount);
+        if (bbPlayer.stack <= 0) {
+          bbPlayer.allIn = true;
+          this.potCalculator.markAllIn(bbPlayer.id);
+        }
+      }
+    }
+    
     this.emit('blinds_posted', {
       smallBlind: this.currentHand.blinds.sb,
       bigBlind: this.currentHand.blinds.bb,
       straddle: this.currentHand.blinds.straddle || null,
       ante: ante > 0 ? ante : null,
+      bigBlindAnte: this.config.bigBlindAnte,
       potTotal: this.potCalculator.totalPot,
     });
 

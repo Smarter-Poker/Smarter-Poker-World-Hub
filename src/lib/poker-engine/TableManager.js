@@ -97,6 +97,7 @@ class TableManager {
       smallBlind: config.smallBlind,
       bigBlind: config.bigBlind,
       ante: config.ante || 0,
+      bigBlindAnte: config.bigBlindAnte || false,
       rakePercent: config.rakePercent || 0,
       rakeCap: config.rakeCap || Infinity,
       runItTwice: config.runItTwice || false,
@@ -366,6 +367,19 @@ class TableManager {
     this._checkAutoStart();
     
     return { success: true };
+  }
+
+  /**
+   * Update blind levels (called by TournamentController on level change).
+   * Takes effect on the next hand dealt.
+   * @param {number} smallBlind
+   * @param {number} bigBlind
+   * @param {number} [ante=0]
+   */
+  updateBlinds(smallBlind, bigBlind, ante = 0) {
+    this.game.config.smallBlind = smallBlind;
+    this.game.config.bigBlind = bigBlind;
+    this.game.config.ante = ante;
   }
 
   /**
