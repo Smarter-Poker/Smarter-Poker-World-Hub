@@ -274,26 +274,25 @@ export default function TableTabletsPage() {
     // ── Body scroll lock when fullscreen is active ──
     // Prevents iOS rubber-band overscroll from revealing the page underneath
     useEffect(() => {
-        if (fullscreenTable || lockedTable) {
-            const orig = document.body.style.overflow;
-            document.body.style.overflow = 'hidden';
-            // Also prevent touch-move on body to stop pull-to-refresh / overscroll on tablets
-            const preventTouchMove = (e) => {
-                // Allow scrolling inside specific scrollable containers
-                if (e.target.closest('[data-scrollable]')) return;
-                e.preventDefault();
-            };
-            document.body.addEventListener('touchmove', preventTouchMove, { passive: false });
-            // Set overscroll-behavior on html+body for full coverage
-            document.documentElement.style.overscrollBehavior = 'none';
-            document.body.style.overscrollBehavior = 'none';
-            return () => {
-                document.body.style.overflow = orig;
-                document.body.removeEventListener('touchmove', preventTouchMove);
-                document.documentElement.style.overscrollBehavior = '';
-                document.body.style.overscrollBehavior = '';
-            };
-        }
+        if (!fullscreenTable && !lockedTable) return;
+        const orig = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        // Also prevent touch-move on body to stop pull-to-refresh / overscroll on tablets
+        const preventTouchMove = (e) => {
+            // Allow scrolling inside specific scrollable containers
+            if (e.target.closest('[data-scrollable]')) return;
+            e.preventDefault();
+        };
+        document.body.addEventListener('touchmove', preventTouchMove, { passive: false });
+        // Set overscroll-behavior on html+body for full coverage
+        document.documentElement.style.overscrollBehavior = 'none';
+        document.body.style.overscrollBehavior = 'none';
+        return () => {
+            document.body.style.overflow = orig;
+            document.body.removeEventListener('touchmove', preventTouchMove);
+            document.documentElement.style.overscrollBehavior = '';
+            document.body.style.overscrollBehavior = '';
+        };
     }, [fullscreenTable, lockedTable]);
 
     // Browser back/navigation prevention when locked
@@ -868,7 +867,7 @@ export default function TableTabletsPage() {
         const nameMaxWidth = isFullscreen ? 140 : 110;
 
         return (
-            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '42%' : '60%', overflow: 'hidden', background: `radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, ${isFullscreen ? '#1a1f22' : '#1a1a2e'} 90%)`, borderRadius: isFullscreen ? 0 : 12 }}>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '42%' : '60%', overflow: isFullscreen ? 'visible' : 'hidden', background: `radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, ${isFullscreen ? '#1a1f22' : '#1a1a2e'} 90%)`, borderRadius: isFullscreen ? 0 : 12 }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: isFullscreen ? '-18%' : '-16%' }}>
                     {/* Poker table image */}
                     <img
@@ -1427,60 +1426,21 @@ export default function TableTabletsPage() {
 
             {/* ── FULLSCREEN TABLE POPUP ── */}
             {fullscreenTable && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1a1f22', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out', overscrollBehavior: 'none', touchAction: 'manipulation', overflow: 'hidden' }}>
-                    {/* Fullscreen header — hidden when locked for true fullscreen */}
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1a1f22', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out', overscrollBehavior: 'none', touchAction: 'manipulation', overflow: 'hidden', height: '100vh', width: '100vw' }}>
+                    {/* NO HEADER in fullscreen — table takes up full screen.
+                       Close button is a small floating X in top-right corner */}
                     {!lockedTable && (
-                        <div style={{
-                            padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            background: isTournamentTable(fullscreenTable)
-                                ? 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)'
-                                : fullscreenTable.status === 'in_use'
-                                    ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                                    : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                            color: isTournamentTable(fullscreenTable) ? '#000' : '#fff', flexShrink: 0,
-                        }}>
-                            <div>
-                                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.1 }}>
-                                    {isTournamentTable(fullscreenTable) && fullscreenTable.tournament
-                                        ? `${fullscreenTable.tournament.name}`
-                                        : `Table ${fullscreenTable.table_number}`}
-                                    {!isTournamentTable(fullscreenTable) && fullscreenTable.table_name && fullscreenTable.table_name !== `Table ${fullscreenTable.table_number}` ? ` · ${fullscreenTable.table_name}` : ''}
-                                </div>
-                                <div style={{ fontSize: 18, fontWeight: 700, opacity: 0.95, marginTop: 4 }}>
-                                    {(() => {
-                                        if (isTournamentTable(fullscreenTable) && fullscreenTable.tournament) {
-                                            const t = fullscreenTable.tournament;
-                                            const buyIn = t.buyin_amount > 0 ? `$${t.buyin_amount}${t.buyin_fee ? `+$${t.buyin_fee}` : ''} Buy-In` : 'Freeroll';
-                                            return `Table ${fullscreenTable.table_number} · ${buyIn} · ${getSeatedCount(fullscreenTable)}/${fullscreenTable.max_seats || 9} seated`;
-                                        }
-                                        const g = getTableGame(fullscreenTable);
-                                        const gameType = getFullGameName(g?.game_type || fullscreenTable.game_type);
-                                        const stakes = formatStakes(g?.stakes || fullscreenTable.stakes);
-                                        return g
-                                            ? `${stakes} ${gameType} · ${getSeatedCount(fullscreenTable)}/${fullscreenTable.max_seats || 9} seated`
-                                            : `${stakes} ${gameType} · ${fullscreenTable.max_seats || 9} seats`;
-                                    })()}
-                                </div>
-                                {fullscreenTable.table_purpose && (
-                                    <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 10px', borderRadius: 4, marginTop: 4, display: 'inline-block', letterSpacing: 1.5, textTransform: 'uppercase', background: isTournamentTable(fullscreenTable) ? 'rgba(0,0,0,0.2)' : fullscreenTable.table_purpose === 'must_move' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)', color: isTournamentTable(fullscreenTable) ? '#000' : fullscreenTable.table_purpose === 'must_move' ? '#FCD34D' : '#fff' }}>
-                                        {isTournamentTable(fullscreenTable) ? 'Tournament' : fullscreenTable.table_purpose === 'must_move' ? 'Must Move' : 'Main Game'}
-                                    </span>
-                                )}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                {/* Close button */}
-                                <button
-                                    onClick={() => { haptic('light'); setFullscreenTable(null); }}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
-                                        width: 40, height: 40, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    }}
-                                >
-                                    <X size={22} color="#fff" />
-                                </button>
-                            </div>
-                        </div>
+                        <button
+                            onClick={() => { haptic('light'); setFullscreenTable(null); }}
+                            style={{
+                                position: 'absolute', top: 12, right: 12, zIndex: 70,
+                                background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%',
+                                width: 36, height: 36, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >
+                            <X size={18} color="#fff" />
+                        </button>
                     )}
                     {/* Locked: show small unlock button in top-right corner */}
                     {lockedTable && (
@@ -1500,9 +1460,9 @@ export default function TableTabletsPage() {
                         </div>
                     )}
 
-                    {/* Fullscreen table visual */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0px 16px', overflow: 'visible', position: 'relative' }}>
-                        <div style={{ width: '100%', maxWidth: 1000 }}>
+                    {/* Fullscreen table visual — constrained to viewport height */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0px 16px', overflow: 'visible', position: 'relative', background: '#1a1f22', maxHeight: '100vh' }}>
+                        <div style={{ width: 'min(100%, calc(100vh / 0.55))', maxWidth: 1000 }}>
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
 
@@ -1513,8 +1473,10 @@ export default function TableTabletsPage() {
                         {(() => {
                             const isA = callFloorSent; return (
                                 <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
-                                    style={{ position: 'fixed', bottom: 8, left: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
-                                    <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                                    style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
+                                    {/* Dark fill behind the PNG frame text area */}
+                                    <div style={{ position: 'absolute', inset: '15%', background: 'rgba(10,12,15,0.92)', borderRadius: 8, zIndex: 0 }} />
+                                    <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                                     {isA && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, fontWeight: 900, textShadow: '0 0 8px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>Cancel Floor</div>}
                                 </button>);
                         })()}
@@ -1523,8 +1485,10 @@ export default function TableTabletsPage() {
                         {(() => {
                             const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; return (
                                 <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
-                                    style={{ position: 'fixed', bottom: 8, right: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
-                                    <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
+                                    style={{ position: 'fixed', bottom: 4, right: 4, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                    {/* Dark fill behind the PNG frame text area */}
+                                    <div style={{ position: 'absolute', inset: '15%', background: 'rgba(10,12,15,0.92)', borderRadius: 8, zIndex: 0 }} />
+                                    <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
                                 </button>);
                         })()}
 
@@ -1532,8 +1496,10 @@ export default function TableTabletsPage() {
                         {/* Tournament Clock button — only on tournament tables, only when clock overlay is NOT open */}
                         {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && !showTournamentClock && (
                             <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
-                                style={{ position: 'fixed', top: 8, left: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
-                                <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                                style={{ position: 'fixed', top: 4, left: 4, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                {/* Dark fill behind the PNG frame text area */}
+                                <div style={{ position: 'absolute', inset: '15%', background: 'rgba(10,12,15,0.92)', borderRadius: 8, zIndex: 0 }} />
+                                <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                             </button>
                         )}
 

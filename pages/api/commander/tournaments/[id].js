@@ -129,9 +129,9 @@ async function cancelTournament(req, res, id, staff) {
       return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' } });
     }
 
-    // Only owners/managers can cancel
-    if (!['owner', 'manager'].includes(staff.role)) {
-      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only owners and managers can cancel tournaments' } });
+    // Only owners/managers/dualrate can cancel
+    if (!['owner', 'manager', 'dualrate'].includes(staff.role)) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only owners, managers, and dual rate staff can cancel tournaments' } });
     }
 
     // Get tournament

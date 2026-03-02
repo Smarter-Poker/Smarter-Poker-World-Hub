@@ -11,6 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { supabase } from '../../src/lib/supabase';
 // Dashboard is a static navigation menu — no live data to sync
 import { canAccessRoute, getUpgradeTier, getTierConfig, hasFeature } from '../../src/lib/commander/tierConfig';
+import { canRoleAccessRoute } from '../../src/lib/commander/auth';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -273,6 +274,13 @@ export default function CommanderDashboard() {
   );
 
   const openCard = CARDS.find(c => c.id === activeCard);
+
+  // ── Role-based filtering ──
+  const staffRole = staff?.role || 'dealer';
+  const filteredCards = CARDS.map(card => ({
+    ...card,
+    features: card.features.filter(f => canRoleAccessRoute(staffRole, f.href)),
+  })).filter(card => card.features.length > 0);
 
   return (
     <CommanderLayout title="Club Commander | Dashboard" backHref="/commander/dashboard" hideBack={true}>
@@ -551,7 +559,7 @@ export default function CommanderDashboard() {
           {/* ── MAIN: 4-CARD GRID ── */}
           {!activeCard && (
             <div className="cmd-grid">
-              {CARDS.map(card => (
+              {filteredCards.map(card => (
                 <div
                   key={card.id}
                   className="cmd-card"
@@ -582,54 +590,58 @@ export default function CommanderDashboard() {
           )}
 
           {/* ── OPENED CARD: sub-features ── */}
-          {openCard && (
-            <div className="cmd-open">
-              <div className="cmd-open-header">
-                <button className="cmd-open-back" onClick={() => { setActiveCard(null); router.replace('/commander/dashboard', undefined, { shallow: true }); }}>
-                  <ArrowLeft size={16} /> Back
-                </button>
-                <div className="cmd-open-title" style={{ color: openCard.glow }}>
-                  {openCard.headerTitle || openCard.title}
+          {openCard && (() => {
+            const filtered = openCard.features.filter(f => canRoleAccessRoute(staffRole, f.href));
+            if (filtered.length === 0) return null;
+            return (
+              <div className="cmd-open">
+                <div className="cmd-open-header">
+                  <button className="cmd-open-back" onClick={() => { setActiveCard(null); router.replace('/commander/dashboard', undefined, { shallow: true }); }}>
+                    <ArrowLeft size={16} /> Back
+                  </button>
+                  <div className="cmd-open-title" style={{ color: openCard.glow }}>
+                    {openCard.headerTitle || openCard.title}
+                  </div>
+                </div>
+                <div className={`cmd-features ${filtered.length > 12 ? 'cmd-features-4col' : filtered.length > 6 ? 'cmd-features-3col' : ''}`}>
+                  {filtered.map((feat, i) => {
+                    const isLocked = !canAccessRoute(currentTier, feat.href);
+                    return (
+                      <button
+                        key={i}
+                        className="cmd-feature-btn"
+                        style={{
+                          '--glow': openCard.glow,
+                          '--glow-dim': `${openCard.glow}30`,
+                          opacity: isLocked ? 0.4 : 1,
+                          filter: isLocked ? 'grayscale(0.6)' : 'none',
+                        }}
+                        onClick={() => handleFeatureClick(feat)}
+                      >
+                        <img src={feat.icon} alt={feat.label} />
+                        {isLocked && (
+                          <div style={{
+                            position: 'absolute', inset: 0, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                            background: 'rgba(0,0,0,0.55)', borderRadius: 14,
+                          }}>
+                            <div style={{
+                              background: 'rgba(0,0,0,0.7)', borderRadius: 8,
+                              padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 5,
+                              border: '2px solid rgba(245,158,11,0.3)',
+                            }}>
+                              <Lock size={14} color="#F59E0B" />
+                              <span style={{ color: '#F59E0B', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>UPGRADE</span>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div className={`cmd-features ${openCard.features.length > 12 ? 'cmd-features-4col' : openCard.features.length > 6 ? 'cmd-features-3col' : ''}`}>
-                {openCard.features.map((feat, i) => {
-                  const isLocked = !canAccessRoute(currentTier, feat.href);
-                  return (
-                    <button
-                      key={i}
-                      className="cmd-feature-btn"
-                      style={{
-                        '--glow': openCard.glow,
-                        '--glow-dim': `${openCard.glow}30`,
-                        opacity: isLocked ? 0.4 : 1,
-                        filter: isLocked ? 'grayscale(0.6)' : 'none',
-                      }}
-                      onClick={() => handleFeatureClick(feat)}
-                    >
-                      <img src={feat.icon} alt={feat.label} />
-                      {isLocked && (
-                        <div style={{
-                          position: 'absolute', inset: 0, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                          background: 'rgba(0,0,0,0.55)', borderRadius: 14,
-                        }}>
-                          <div style={{
-                            background: 'rgba(0,0,0,0.7)', borderRadius: 8,
-                            padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 5,
-                            border: '2px solid rgba(245,158,11,0.3)',
-                          }}>
-                            <Lock size={14} color="#F59E0B" />
-                            <span style={{ color: '#F59E0B', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>UPGRADE</span>
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── UPGRADE MODAL ── */}
           {showUpgradeModal && (

@@ -252,6 +252,15 @@ export default function CompSystem() {
 
       const authorizer = pinData.data?.staff;
       const authorizerName = authorizer?.display_name || 'Staff';
+
+      // ── ROLE CHECK: Only owner, manager, dualrate can issue comps ──
+      const compRoles = ['owner', 'manager', 'dualrate'];
+      if (!authorizer?.role || !compRoles.includes(authorizer.role)) {
+        setPinError(`Insufficient permissions — ${authorizer?.role || 'unknown'} role cannot issue comps. Requires Owner, Manager, or Dual Rate.`);
+        setVerifying(false);
+        return;
+      }
+
       setShowPinModal(false);
       setAwarding(true);
       setAwardError('');
@@ -450,6 +459,13 @@ export default function CompSystem() {
           return;
         }
         var staff = pinData.data.staff;
+        // ── ROLE CHECK: Only owner, manager, dualrate can void comps ──
+        var voidRoles = ['owner', 'manager', 'dualrate'];
+        if (!staff || !staff.role || voidRoles.indexOf(staff.role) === -1) {
+          setVoidPinError('Insufficient permissions — ' + (staff && staff.role || 'unknown') + ' role cannot void comps. Requires Owner, Manager, or Dual Rate.');
+          setVoidLoading(false);
+          return;
+        }
         var entry = voidPinModal.logEntry;
         var token = getToken();
         var staffSession = getStaffSession();

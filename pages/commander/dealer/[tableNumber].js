@@ -221,7 +221,7 @@ export default function DealerTablet() {
     setScanError(''); setScannedMember(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
       });
       streamRef.current = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
@@ -509,14 +509,6 @@ export default function DealerTablet() {
           </div>
         </div>
 
-        {/* Lock Button — upper-right below header */}
-        <div className="flex justify-end px-4 py-1">
-          <button onClick={() => setScreenLocked(!screenLocked)}
-            className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-medium ${screenLocked ? 'bg-[#EF4444]/15 text-[#EF4444]' : 'bg-[#3A3B3C]/50 text-[#B0B3B8]'}`}>
-            {screenLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-            {screenLocked ? 'Locked' : 'Lock'}
-          </button>
-        </div>
 
         {/* Screen Lock Overlay */}
         {screenLocked && (
@@ -544,10 +536,10 @@ export default function DealerTablet() {
           <div className="relative w-full max-w-lg mx-auto" style={{ aspectRatio: '4/3' }}>
             <div className="absolute inset-[12%] rounded-[50%] bg-[#31A24C]/8 border-2 border-[#31A24C]/20" />
             {/* Dealer Position — center of table */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-              <p className="text-[9px] text-[#B0B3B8] uppercase tracking-wider mb-1">T{tableNumber}</p>
-              {breakTimer && <p className="text-sm font-mono font-bold text-[#F59E0B] mb-1">Break {Math.floor(breakSeconds / 60)}:{(breakSeconds % 60).toString().padStart(2, '0')}</p>}
-              {/* Dealer Button — shows "Scan Dealer" if none, dealer name if scanned */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-2">
+              <p className="text-[9px] text-[#B0B3B8] uppercase tracking-wider">T{tableNumber}</p>
+              {breakTimer && <p className="text-sm font-mono font-bold text-[#F59E0B]">Break {Math.floor(breakSeconds / 60)}:{(breakSeconds % 60).toString().padStart(2, '0')}</p>}
+              {/* Dealer Scan Button — shows "Scan Dealer" if none, dealer name if scanned */}
               <button
                 onTouchStart={() => {
                   dealerLongPressRef.current = setTimeout(() => {
@@ -594,8 +586,14 @@ export default function DealerTablet() {
                   ? 'bg-[#31A24C]/20 border border-[#31A24C]/40 text-[#31A24C]'
                   : 'bg-[#1877F2]/20 border border-[#1877F2]/40 text-[#1877F2] animate-pulse'
                   }`}>
-                <User className="w-3.5 h-3.5" />
+                <ScanLine className="w-3.5 h-3.5" />
                 {currentDealer ? currentDealer.name?.split(' ')[0] : 'Scan Dealer'}
+              </button>
+              {/* Lock Screen Button — in dealer position */}
+              <button onClick={() => setScreenLocked(!screenLocked)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center gap-1 select-none ${screenLocked ? 'bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444]' : 'bg-[#3A3B3C]/60 border border-[#4A4B4C]/40 text-[#8A8D91]'}`}>
+                {screenLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                {screenLocked ? 'Locked' : 'Lock'}
               </button>
             </div>
 

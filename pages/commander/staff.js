@@ -26,9 +26,12 @@ const US_STATES = [
 const ROLES = [
   { value: 'owner', label: 'Owner', color: 'bg-[#7C3AED] text-white' },
   { value: 'manager', label: 'Manager', color: 'bg-[#2563EB] text-white' },
+  { value: 'dualrate', label: 'Dual Rate', color: 'bg-[#0D9488] text-white' },
   { value: 'floor', label: 'Floor', color: 'bg-[#059669] text-white' },
   { value: 'brush', label: 'Brush', color: 'bg-[#D97706] text-white' },
-  { value: 'dealer', label: 'Dealer', color: 'bg-[#6B7280] text-white' }
+  { value: 'cashier', label: 'Cashier', color: 'bg-[#7C3AED]/80 text-white' },
+  { value: 'dealer', label: 'Dealer', color: 'bg-[#6B7280] text-white' },
+  { value: 'security', label: 'Security', color: 'bg-[#DC2626] text-white' },
 ];
 
 export default function CommanderStaffPage() {

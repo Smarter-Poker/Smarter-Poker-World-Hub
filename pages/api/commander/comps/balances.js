@@ -34,6 +34,12 @@ async function awardComp(req, res, staffAuth) {
     // display_name comes from request body (authorized_by) — set by PIN verifier
     const staffRecord = staffAuth;
 
+    // ── ROLE CHECK: Only owner, manager, dualrate can issue comps ──
+    const compRoles = ['owner', 'manager', 'dualrate'];
+    if (staffRecord && staffRecord !== true && staffRecord.role && !compRoles.includes(staffRecord.role)) {
+      return res.status(403).json({ success: false, error: `Comp issuance requires Owner, Manager, or Dual Rate role. Current role: ${staffRecord.role}` });
+    }
+
     const { member_id, amount, reason, type, authorized_by, authorized_pin, comp_category, notes, membership_days } = req.body;
     if (!member_id) return res.status(400).json({ success: false, error: 'member_id required' });
 
@@ -477,6 +483,12 @@ async function voidComp(req, res, staffAuth) {
   try {
     const { comp_log_id, authorized_by, authorized_pin, void_reason } = req.body;
     if (!comp_log_id) return res.status(400).json({ success: false, error: 'comp_log_id required' });
+
+    // ── ROLE CHECK: Only owner, manager, dualrate can void comps ──
+    const compRoles = ['owner', 'manager', 'dualrate'];
+    if (staffAuth && staffAuth !== true && staffAuth.role && !compRoles.includes(staffAuth.role)) {
+      return res.status(403).json({ success: false, error: `Void/revoke requires Owner, Manager, or Dual Rate role. Current role: ${staffAuth.role}` });
+    }
 
     // 1. Fetch the original comp log entry
     const { data: logEntry, error: logErr } = await supabase

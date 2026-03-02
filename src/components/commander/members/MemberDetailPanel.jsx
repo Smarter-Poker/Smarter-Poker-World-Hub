@@ -5,7 +5,7 @@
  * Features:
  * - Full profile display (name, email, phone, address, DOB, ID)
  * - Expanded edit form with all fields
- * - PIN-protected save (floor_manager, management, owner)
+ * - PIN-protected save (floor, manager, dualrate, owner)
  * - Audit trail: last_edited_by + last_edited_at
  * - Bottom section: Club Status, Available Time, Comps Available
  */
@@ -103,9 +103,9 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                 return;
             }
 
-            // Check role — only floor_manager, management, owner allowed
+            // Check role — only floor, manager, dualrate, owner allowed
             const staffRole = pinJson.data.staff?.role;
-            const allowedRoles = ['floor_manager', 'management', 'owner'];
+            const allowedRoles = ['floor', 'manager', 'dualrate', 'owner'];
             if (!allowedRoles.includes(staffRole)) {
                 setPinError('Insufficient permissions — floor manager or above required');
                 setPinLoading(false);

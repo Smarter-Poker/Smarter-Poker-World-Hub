@@ -150,9 +150,9 @@ async function createTransaction(req, res) {
       return res.status(403).json({ error: 'Staff access required to issue comps' });
     }
 
-    // For adjustments (negative), require supervisor or higher
-    if (amount < 0 && !['owner', 'manager', 'supervisor'].includes(staff.role)) {
-      return res.status(403).json({ error: 'Supervisor role or higher required for adjustments' });
+    // For adjustments (negative), require dualrate or higher
+    if (amount < 0 && !['owner', 'manager', 'dualrate'].includes(staff.role)) {
+      return res.status(403).json({ error: 'Dual Rate role or higher required for adjustments' });
     }
 
     // Use the database function to issue manual comp

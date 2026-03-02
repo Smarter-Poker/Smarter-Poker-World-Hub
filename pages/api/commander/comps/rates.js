@@ -114,7 +114,7 @@ async function createRate(req, res) {
       .select('id, role')
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
-      .in('role', ['owner', 'manager'])
+      .in('role', ['owner', 'manager', 'dualrate'])
       .eq('is_active', true)
       .single();
 
