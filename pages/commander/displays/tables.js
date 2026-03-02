@@ -276,7 +276,7 @@ export default function TablesDisplay() {
     setTimeout(async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
         });
         scannerStreamRef.current = stream;
         if (scannerVideoRef.current) {

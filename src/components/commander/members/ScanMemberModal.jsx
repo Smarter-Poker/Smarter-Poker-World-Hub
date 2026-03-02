@@ -22,7 +22,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
         setError(''); setMember(null);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
             });
             streamRef.current = stream;
             if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }

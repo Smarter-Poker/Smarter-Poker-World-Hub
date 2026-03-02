@@ -924,10 +924,10 @@ export default function DealerTablet() {
                     <div className="border-t border-[#3A3B3C] pt-4">
                       <p className="text-xs text-[#B0B3B8] mb-2">Or Enter Code Manually:</p>
                       <div className="flex gap-2">
-                        <input type="text" value={manualCode} onChange={e => setManualCode(e.target.value)} placeholder="CMD-1996-abc12345"
+                        <input type="text" value={manualCode} onChange={e => setManualCode(e.target.value)} placeholder={dealerScanMode ? "Employee QR Code" : "CMD-1996-abc12345"}
                           className="flex-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-[#E4E6EB] text-sm focus:border-[#1877F2] focus:outline-none"
-                          onKeyDown={e => e.key === 'Enter' && lookupMember(manualCode.trim())} />
-                        <button onClick={() => lookupMember(manualCode.trim())} className="px-4 py-2.5 bg-[#1877F2] text-white rounded-lg text-sm font-medium active:bg-[#1565D8]">Look Up</button>
+                          onKeyDown={e => e.key === 'Enter' && (dealerScanMode ? dealerScanIn(manualCode.trim()) : lookupMember(manualCode.trim()))} />
+                        <button onClick={() => dealerScanMode ? dealerScanIn(manualCode.trim()) : lookupMember(manualCode.trim())} className="px-4 py-2.5 bg-[#1877F2] text-white rounded-lg text-sm font-medium active:bg-[#1565D8]">{dealerScanMode ? 'Scan In' : 'Look Up'}</button>
                       </div>
                     </div>
                   </>

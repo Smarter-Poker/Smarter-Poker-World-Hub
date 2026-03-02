@@ -62,7 +62,7 @@ export default function TimeClock() {
         setScanResult(null);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
             });
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
@@ -190,8 +190,8 @@ export default function TimeClock() {
                         {/* Scan Result Banner */}
                         {scanResult && (
                             <div className={`p-4 rounded-xl border-2 flex items-center gap-3 animate-pulse ${scanResult.action === 'clock_in'
-                                    ? 'bg-[#10B981]/10 border-[#10B981]/40'
-                                    : 'bg-[#EF4444]/10 border-[#EF4444]/40'
+                                ? 'bg-[#10B981]/10 border-[#10B981]/40'
+                                : 'bg-[#EF4444]/10 border-[#EF4444]/40'
                                 }`}>
                                 <CheckCircle className={`w-8 h-8 flex-shrink-0 ${scanResult.action === 'clock_in' ? 'text-[#10B981]' : 'text-[#EF4444]'
                                     }`} />

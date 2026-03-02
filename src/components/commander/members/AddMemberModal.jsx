@@ -71,7 +71,7 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
     const startCamera = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
             });
             streamRef.current = stream;
             if (videoRef.current) {

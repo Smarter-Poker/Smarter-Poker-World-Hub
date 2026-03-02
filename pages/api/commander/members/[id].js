@@ -55,6 +55,7 @@ async function handleUpdate(req, res, id) {
         'photo_url', 'address', 'membership_tier', 'membership_status',
         'membership_expires', 'notes', 'time_balance_minutes',
         'comp_balance', 'comp_lifetime_earned', 'comp_lifetime_redeemed',
+        'last_edited_by', 'last_edited_by_staff_id', 'last_edited_at',
     ];
 
     const updates = {};
