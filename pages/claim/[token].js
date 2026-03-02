@@ -5,13 +5,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '../../src/lib/supabase';
 import { Shield, CheckCircle, XCircle, Loader2, Building2, User, Briefcase } from 'lucide-react';
 
 export default function ClaimPage() {
     const router = useRouter();
     const { token } = router.query;
-    const supabase = createClientComponentClient();
 
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
