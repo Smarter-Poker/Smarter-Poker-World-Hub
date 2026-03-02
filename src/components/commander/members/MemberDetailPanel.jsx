@@ -365,7 +365,10 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                                 <h4 className="text-xs font-bold text-[#8A8D91] uppercase tracking-wider mb-3">Account Status</h4>
                                 <div className="grid grid-cols-3 gap-2">
                                     {/* Club Status */}
-                                    <div className="bg-[#242526] rounded-lg p-3 text-center border border-[#3A3B3C]">
+                                    <button
+                                        onClick={() => window.location.href = `/commander/cashier?action=membership&member=${encodeURIComponent((member.first_name + ' ' + member.last_name).trim())}&member_id=${member.id}`}
+                                        className="bg-[#242526] rounded-lg p-3 text-center border border-[#3A3B3C] hover:bg-[#3A3B3C]/50 transition-colors cursor-pointer block w-full"
+                                    >
                                         <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center"
                                             style={{ backgroundColor: (STATUS_COLORS[member.membership_status] || '#8A8D91') + '20' }}>
                                             <Shield className="w-4 h-4" style={{ color: STATUS_COLORS[member.membership_status] || '#8A8D91' }} />
@@ -373,11 +376,16 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                                         <div className="text-sm font-bold capitalize" style={{ color: STATUS_COLORS[member.membership_status] || '#8A8D91' }}>
                                             {member.membership_status || 'Unknown'}
                                         </div>
-                                        <div className="text-[10px] text-[#8A8D91] mt-0.5">Club Status</div>
-                                    </div>
+                                        <div className={`text-[10px] mt-0.5 ${member.membership_expires && new Date(member.membership_expires) < new Date() ? 'text-[#EF4444] font-bold' : 'text-[#8A8D91]'}`}>
+                                            {member.membership_expires ? `Expires ${new Date(member.membership_expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Club Status'}
+                                        </div>
+                                    </button>
 
                                     {/* Available Time */}
-                                    <div className="bg-[#242526] rounded-lg p-3 text-center border border-[#3A3B3C]">
+                                    <button
+                                        onClick={() => window.location.href = `/commander/cashier?action=addtime&member=${encodeURIComponent((member.first_name + ' ' + member.last_name).trim())}&member_id=${member.id}`}
+                                        className="bg-[#242526] rounded-lg p-3 text-center border border-[#3A3B3C] hover:bg-[#3A3B3C]/50 transition-colors cursor-pointer block w-full"
+                                    >
                                         <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center bg-[#3B82F6]/20">
                                             <Clock className="w-4 h-4 text-[#3B82F6]" />
                                         </div>
@@ -385,10 +393,13 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                                             {formatTime(member.time_balance_minutes)}
                                         </div>
                                         <div className="text-[10px] text-[#8A8D91] mt-0.5">Available Time</div>
-                                    </div>
+                                    </button>
 
                                     {/* Comps Available */}
-                                    <div className="bg-[#242526] rounded-lg p-3 text-center border border-[#3A3B3C]">
+                                    <button
+                                        onClick={() => window.location.href = `/commander/comps?member=${encodeURIComponent((member.first_name + ' ' + member.last_name).trim())}&member_id=${member.id}`}
+                                        className="bg-[#242526] rounded-lg p-3 text-center border border-[#3A3B3C] hover:bg-[#3A3B3C]/50 transition-colors cursor-pointer block w-full"
+                                    >
                                         <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center bg-[#10B981]/20">
                                             <DollarSign className="w-4 h-4 text-[#10B981]" />
                                         </div>
@@ -396,7 +407,7 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
                                             {formatCurrency(member.comp_balance)}
                                         </div>
                                         <div className="text-[10px] text-[#8A8D91] mt-0.5">Comps Available</div>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
 
