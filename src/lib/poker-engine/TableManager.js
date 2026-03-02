@@ -230,6 +230,21 @@ class TableManager {
     this._listeners.get(event).push(callback);
   }
 
+  once(event, callback) {
+    const wrapped = (data) => {
+      this.off(event, wrapped);
+      callback(data);
+    };
+    this.on(event, wrapped);
+  }
+
+  off(event, callback) {
+    const listeners = this._listeners.get(event);
+    if (!listeners) return;
+    const idx = listeners.indexOf(callback);
+    if (idx !== -1) listeners.splice(idx, 1);
+  }
+
   emit(event, data) {
     const listeners = this._listeners.get(event) || [];
     for (const cb of listeners) {
@@ -1284,7 +1299,7 @@ class TableManager {
         nitGame: this.nitGame,
         maintainPercent: this.maintainPercent || 0,
         numBoards: this.game.config.numBoards || 1,
-        bombPot: !!this.bombPotConfig?.enabled,
+        bombPot: !!this.game.config.bombPot,
         sevenDeuce: this.sevenDeuce,
         noRathole: this.noRathole,
         pineapple: this.game.config.variant === 'pineapple',

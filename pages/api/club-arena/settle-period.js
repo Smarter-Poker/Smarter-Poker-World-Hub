@@ -351,6 +351,18 @@ export default async function handler(req, res) {
     if (action === 'pay_all') {
       if (!periodId) return res.status(400).json({ error: 'periodId required for pay_all action' });
 
+      // Verify this period belongs to this club
+      const { data: verifyPeriod } = await supabaseAdmin
+        .from('settlement_periods')
+        .select('id, club_id, start_at')
+        .eq('id', periodId)
+        .single();
+
+      if (!verifyPeriod) return res.status(404).json({ error: 'Period not found' });
+      if (verifyPeriod.club_id !== clubId) {
+        return res.status(403).json({ error: 'Period does not belong to this club' });
+      }
+
       const now = new Date().toISOString();
 
       const { data: pending } = await supabaseAdmin
@@ -370,13 +382,6 @@ export default async function handler(req, res) {
         .eq('period_id', periodId)
         .eq('status', 'pending');
 
-      // Get the period's start_at to scope history updates correctly
-      const { data: payPeriod } = await supabaseAdmin
-        .from('settlement_periods')
-        .select('start_at')
-        .eq('id', periodId)
-        .single();
-
       // Update commission_history — scoped to THIS period only
       for (const cr of pending) {
         await supabaseAdmin
@@ -384,7 +389,7 @@ export default async function handler(req, res) {
           .update({ status: 'paid', paid_at: now })
           .eq('agent_id', cr.agent_id)
           .eq('club_id', clubId)
-          .eq('period_start', payPeriod?.start_at)
+          .eq('period_start', verifyPeriod.start_at)
           .eq('status', 'pending');
 
         // NOTE: lifetime_earnings is already credited per-hand in real-time by the

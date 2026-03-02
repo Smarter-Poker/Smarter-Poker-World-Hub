@@ -576,7 +576,7 @@ class GameStateMachine {
         const isAuto = this.config.autoUtgStraddle;
         const isVoluntary = this.config.voluntaryStraddle;
         // Auto straddle: always post. Voluntary: check pending flag.
-        const shouldStraddle = isAuto || (isVoluntary && this._pendingStraddles?.has(utgPlayer.id));
+        const shouldStraddle = isAuto || (isVoluntary && this._pendingStraddles?.has(String(utgPlayer.id)));
 
         if (shouldStraddle) {
           const straddleAmount = Math.min(bigBlind * 2, utgPlayer.stack);
@@ -902,11 +902,9 @@ class GameStateMachine {
       if (board.length >= 3) {
         // We have community cards — evaluate partial hand
         if (isOmaha) {
-          hand = this.handEvaluator.evaluateOmaha(p.holeCards, board);
-        } else if (isShortDeck) {
-          hand = this.handEvaluator.evaluateShortDeck(p.holeCards, board);
+          hand = evaluateOmaha(p.holeCards, board);
         } else {
-          hand = this.handEvaluator.evaluateHoldem(p.holeCards, board);
+          hand = evaluateHoldem(p.holeCards, board, { shortDeck: isShortDeck });
         }
       } else {
         // Preflop all-in — just use hole card rank sum as tiebreaker
@@ -1224,11 +1222,9 @@ class GameStateMachine {
       for (const p of activePlayers) {
         let hand;
         if (isOmaha) {
-          hand = this.handEvaluator.evaluateOmaha(p.holeCards, board);
-        } else if (isShortDeck) {
-          hand = this.handEvaluator.evaluateShortDeck(p.holeCards, board);
+          hand = evaluateOmaha(p.holeCards, board);
         } else {
-          hand = this.handEvaluator.evaluateHoldem(p.holeCards, board);
+          hand = evaluateHoldem(p.holeCards, board, { shortDeck: isShortDeck });
         }
         results.push({ playerId: p.id, hand, score: hand.score });
       }
@@ -1426,11 +1422,9 @@ class GameStateMachine {
     const evaluations = activePlayers.map(p => {
       let hand;
       if (isOmaha) {
-        hand = this.handEvaluator.evaluateOmaha(p.holeCards, board);
-      } else if (isShortDeck) {
-        hand = this.handEvaluator.evaluateShortDeck(p.holeCards, board);
+        hand = evaluateOmaha(p.holeCards, board);
       } else {
-        hand = this.handEvaluator.evaluateHoldem(p.holeCards, board);
+        hand = evaluateHoldem(p.holeCards, board, { shortDeck: isShortDeck });
       }
       return { playerId: p.id, hand, score: hand.score, holeCards: p.holeCards };
     }).sort((a, b) => b.score - a.score);
