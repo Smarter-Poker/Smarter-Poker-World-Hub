@@ -2879,15 +2879,6 @@ export default function MessengerPage() {
                         justifyContent: 'space-between',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            {/* Back Button */}
-                            <Link href="/hub/social-media" style={{ textDecoration: 'none' }}>
-                                <button style={{
-                                    width: 36, height: 36, borderRadius: '50%',
-                                    background: C.bg, border: 'none', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 18, color: C.text,
-                                }}>←</button>
-                            </Link>
                             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.blue }}>Messenger</h1>
                         </div>
                         <button
@@ -3054,7 +3045,15 @@ export default function MessengerPage() {
                     }}>
                         <Link href="/hub/social-media" style={{
                             color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                        }}>Back To Social Hub</Link>
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                        }}>
+                            <span style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                width: 28, height: 28, borderRadius: '50%', background: C.bg,
+                                fontSize: 14, color: C.text,
+                            }}>←</span>
+                            Back To Social Hub
+                        </Link>
                     </div>
                 </aside>
 
