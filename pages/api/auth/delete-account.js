@@ -35,6 +35,51 @@ export default async function handler(req, res) {
     try {
         const userId = user.id;
 
+        // ── 0. BLOCK deletion if user has active chip balances ──
+        // Chips must be cashed out or returned to agents first.
+        const { data: activeBalances } = await supabaseAdmin
+            .from('club_members')
+            .select('club_id, chip_balance, locked_chips')
+            .eq('user_id', userId)
+            .or('chip_balance.gt.0,locked_chips.gt.0');
+
+        if (activeBalances?.length > 0) {
+            const totalChips = activeBalances.reduce((sum, m) => sum + (m.chip_balance || 0) + (m.locked_chips || 0), 0);
+            return res.status(400).json({
+                error: 'Cannot delete account with active chip balances',
+                details: `You have ${totalChips.toLocaleString()} chips across ${activeBalances.length} club(s). Please cash out or contact your agent first.`,
+                clubs_with_balance: activeBalances.length,
+            });
+        }
+
+        // ── 0b. Block if user is an active agent (would break settlement) ──
+        const { data: activeAgent } = await supabaseAdmin
+            .from('agents')
+            .select('id, club_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(1);
+
+        if (activeAgent?.length > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete account while active as an agent',
+                details: 'Please have the club owner remove your agent role first.',
+            });
+        }
+
+        // ── 0c. Cancel any pending cashout requests ──
+        await supabaseAdmin
+            .from('cashout_requests')
+            .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Account deleted' })
+            .eq('player_id', userId)
+            .eq('status', 'pending');
+
+        // ── 0d. Remove club memberships (zero-balance only at this point) ──
+        await supabaseAdmin
+            .from('club_members')
+            .delete()
+            .eq('user_id', userId);
+
         // ── 1. Delete user profile data ──
         // Remove diamond balance
         await supabaseAdmin

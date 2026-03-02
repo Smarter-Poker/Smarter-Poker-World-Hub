@@ -303,7 +303,7 @@ async function handleRefund(charge) {
             p_amount: -totalDiamonds,
             p_type: 'refund',
             p_description: `Refund — ${purchase.package_name} (${totalDiamonds} diamonds)`,
-            p_reference_id: purchase.id
+            p_reference_id: `refund_${purchase.id}`
         });
 
         console.log(`💎 Removed ${totalDiamonds} diamonds from user ${purchase.user_id}`);

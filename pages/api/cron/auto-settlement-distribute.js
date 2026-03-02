@@ -235,15 +235,27 @@ export default async function handler(req, res) {
               }
             }
 
-            // Deduct total from agent's balance
+            // Deduct total from agent's balance atomically
             if (agentTotalDeducted > 0) {
-              await supabaseAdmin
-                .from('club_members')
-                .update({
-                  chip_balance: Math.max(0, (agentMember.chip_balance || 0) - agentTotalDeducted),
-                })
-                .eq('club_id', parseInt(clubId))
-                .eq('user_id', agentUserId);
+              const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+                p_club_id: clubId,
+                p_user_id: agentUserId,
+                p_amount: agentTotalDeducted,
+              });
+
+              if (debitErr) {
+                // Players were already credited — log critical error but don't reverse
+                // The settlement lock prevents further operations, so this is recoverable
+                console.error(`[rakeback] ⚠️ CRITICAL: Agent ${agentUserId} debit failed after players credited:`, debitErr.message);
+                results.errors.push({
+                  phase: 'agent_debit',
+                  agent: agentUserId,
+                  club_id: clubId,
+                  amount: agentTotalDeducted,
+                  error: debitErr.message,
+                  critical: true,
+                });
+              }
 
               // Notify agent of distributions
               const playerCount = agentDists.filter(d => d.rakeback_amount > 0).length;
