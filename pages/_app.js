@@ -273,6 +273,7 @@ function NavigationGuard({ children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // PHONE VERIFY VIP GATE — Shows phone verification popup for new signups
 // Checks sessionStorage for `needs_phone_verify` flag set by auth callback
+// ONLY shows if user hasn't already verified their phone
 // ═══════════════════════════════════════════════════════════════════════════
 function PhoneVerifyGate() {
   const [showPhoneVerify, setShowPhoneVerify] = useState(false);
@@ -281,17 +282,38 @@ function PhoneVerifyGate() {
 
   useEffect(() => {
     // Check on route change or mount — slight delay to let page settle
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       const userId = sessionStorage.getItem('needs_phone_verify');
-      if (userId && userId.length > 10) {
-        // Only show on hub or commander pages, not auth pages
-        const path = router.asPath;
-        if (path.startsWith('/hub') || path.startsWith('/commander/dashboard')) {
-          setVerifyUserId(userId);
-          setShowPhoneVerify(true);
+      if (!userId || userId.length < 10) return;
+
+      // Only show on hub or commander pages, not auth pages
+      const path = router.asPath;
+      if (!path.startsWith('/hub') && !path.startsWith('/commander/dashboard')) return;
+
+      // ── CRITICAL: Check if user already has phone verified ──────────
+      // Don't show popup for returning users who already verified
+      try {
+        const { supabase } = await import('../src/lib/supabase');
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone_verified, phone')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profile?.phone_verified && profile?.phone) {
+          // Already verified — don't show popup, clean up flag
+          sessionStorage.removeItem('needs_phone_verify');
+          console.log('[PhoneVerifyGate] User already verified phone, skipping popup');
+          return;
         }
+      } catch (err) {
+        console.warn('[PhoneVerifyGate] Profile check failed (showing popup):', err.message);
+        // On error, still show popup — better to ask again than skip
       }
-    }, 2000); // 2s delay so the user sees the page first
+
+      setVerifyUserId(userId);
+      setShowPhoneVerify(true);
+    }, 2500); // 2.5s delay so the user sees the page first
     return () => clearTimeout(timer);
   }, [router.asPath]);
 

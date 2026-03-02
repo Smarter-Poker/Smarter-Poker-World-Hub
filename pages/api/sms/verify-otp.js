@@ -137,38 +137,58 @@ export default async function handler(req, res) {
                 const now = new Date();
                 const vipExpires = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
 
-                // Update profile: phone, phone_verified, and 90-day VIP
+                // ── SAFETY: Check if user already has a longer VIP ──────
+                // Don't downgrade existing paid/longer VIP subscriptions
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('is_vip, vip_expires_at, phone_verified')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                // If user already has VIP that expires AFTER this grant, skip VIP update
+                const existingExpiry = profile?.vip_expires_at ? new Date(profile.vip_expires_at) : null;
+                const shouldGrantVip = !profile?.is_vip || !existingExpiry || existingExpiry < vipExpires;
+
+                // Always update phone + phone_verified
+                const updateFields = {
+                    phone: cleanPhone,
+                    phone_verified: true,
+                };
+
+                // Only update VIP if we're extending, not shortening
+                if (shouldGrantVip) {
+                    updateFields.is_vip = true;
+                    updateFields.vip_expires_at = vipExpires.toISOString();
+                }
+
                 const { error: updateError } = await supabase
                     .from('profiles')
-                    .update({
-                        phone: cleanPhone,
-                        phone_verified: true,
-                        is_vip: true,
-                        vip_expires_at: vipExpires.toISOString(),
-                    })
+                    .update(updateFields)
                     .eq('id', userId);
 
                 if (updateError) {
                     console.error('[verify-otp] Profile update error:', updateError);
                 } else {
-                    vipGranted = true;
-                    console.log(`[verify-otp] 🎉 90-day VIP granted to ${userId} for verifying ${cleanPhone}`);
+                    vipGranted = shouldGrantVip;
+                    console.log(`[verify-otp] 🎉 Phone verified for ${userId}. VIP ${shouldGrantVip ? 'granted (90 days)' : 'already active (no downgrade)'}`);
 
-                    // Log the VIP grant as a diamond transaction
-                    await supabase
-                        .from('diamond_transactions')
-                        .insert({
-                            user_id: userId,
-                            amount: 0,
-                            transaction_type: 'bonus',
-                            description: 'VIP Card Activated — 90-day FREE VIP for Phone Verification! 📱',
-                            metadata: {
-                                source: 'phone_verification_vip',
-                                phone: cleanPhone,
-                                vip_expires_at: vipExpires.toISOString(),
-                            },
-                            balance_after: 0, // We don't adjust diamonds here
-                        });
+                    // Log the VIP grant as a diamond transaction (only if VIP was actually granted)
+                    if (shouldGrantVip) {
+                        await supabase
+                            .from('diamond_transactions')
+                            .insert({
+                                user_id: userId,
+                                amount: 0,
+                                transaction_type: 'bonus',
+                                description: 'VIP Card Activated — 90-Day FREE VIP For Phone Verification! 📱',
+                                metadata: {
+                                    source: 'phone_verification_vip',
+                                    phone: cleanPhone,
+                                    vip_expires_at: vipExpires.toISOString(),
+                                },
+                                balance_after: 0,
+                            });
+                    }
                 }
             } catch (profileErr) {
                 console.error('[verify-otp] Profile/VIP update error (non-blocking):', profileErr);
