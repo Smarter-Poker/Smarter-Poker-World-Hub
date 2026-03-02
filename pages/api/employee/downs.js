@@ -57,14 +57,19 @@ export default async function handler(req, res) {
         const { data: rotations, error: rotErr } = await query;
         if (rotErr) throw rotErr;
 
-        // Also check for table assignments using staff_id as dealer
-        let tableQuery = supabase
-            .from('commander_tables')
-            .select('id, table_number, current_dealer_id, current_dealer_name, game_type')
+        // Check for currently active dealing assignments (open rotations)
+        const { data: activeRotations } = await supabase
+            .from('commander_dealer_rotations')
+            .select('id, table_number, started_at')
             .eq('venue_id', venue_id)
-            .eq('current_dealer_id', staff_id);
+            .eq('dealer_id', staff_id)
+            .is('ended_at', null);
 
-        const { data: activeTables } = await tableQuery;
+        const activeTables = (activeRotations || []).map(r => ({
+            id: r.id,
+            table_number: r.table_number,
+            game_type: null,
+        }));
 
         // Calculate stats
         const downs = rotations || [];
