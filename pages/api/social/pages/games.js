@@ -273,6 +273,13 @@ export default async function handler(req, res) {
 
     // ===== POST =====
     if (req.method === 'POST') {
+        // Require JWT auth for all game write operations
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        const verified_user_id = authUser.id;
+
         const { action } = req.body;
 
         // === SEAT ACTIONS ===
@@ -295,7 +302,8 @@ export default async function handler(req, res) {
         };
 
         if (action === 'take_seat') {
-            const { game_id, seat_number, player_id, player_name } = req.body;
+            const { game_id, seat_number, player_name } = req.body;
+            const player_id = verified_user_id;
             if (!game_id || !seat_number || !player_name) {
                 return res.status(400).json({ error: 'game_id, seat_number, and player_name required' });
             }
@@ -339,7 +347,8 @@ export default async function handler(req, res) {
         }
 
         if (action === 'join_waitlist') {
-            const { game_id, player_id, player_name } = req.body;
+            const { game_id, player_name } = req.body;
+            const player_id = verified_user_id;
             if (!game_id || !player_name) {
                 return res.status(400).json({ error: 'game_id and player_name required' });
             }
@@ -383,7 +392,7 @@ export default async function handler(req, res) {
         }
 
         // === CREATE GAME ===
-        const { page_id, game_name, game_type, stakes, max_seats, table_number, notes, created_by } = req.body;
+        const { page_id, game_name, game_type, stakes, max_seats, table_number, notes } = req.body;
         if (!page_id || !game_name) {
             return res.status(400).json({ error: 'page_id and game_name required' });
         }
@@ -393,7 +402,7 @@ export default async function handler(req, res) {
                 page_id, game_name, game_type: game_type || 'NLH',
                 stakes: stakes || '1/2', max_seats: max_seats || 9,
                 table_number: table_number || null, notes: notes || null,
-                created_by: created_by || null, status: 'open'
+                created_by: verified_user_id, status: 'open'
             }).select().single();
 
         if (error) return res.status(500).json({ error: error.message });
@@ -402,7 +411,12 @@ export default async function handler(req, res) {
 
     // ===== PUT =====
     if (req.method === 'PUT') {
-        const { id, owner_id, status, game_name, stakes, max_seats, notes, table_number } = req.body;
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
+        const { id, status, game_name, stakes, max_seats, notes, table_number } = req.body;
         if (!id) return res.status(400).json({ error: 'id required' });
 
         const updates = {};
@@ -426,6 +440,11 @@ export default async function handler(req, res) {
 
     // ===== DELETE =====
     if (req.method === 'DELETE') {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
         const { id } = req.query;
         if (!id) return res.status(400).json({ error: 'id required' });
 

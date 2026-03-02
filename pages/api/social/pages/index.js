@@ -180,17 +180,20 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data: enriched, total: count });
 
     } else if (req.method === 'POST') {
+        // Require JWT auth
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
         const { name, page_type, description, category, avatar_url, cover_url,
             website, contact_email, phone, location_city, location_state,
             linked_venue_id, is_public, allow_member_posts, require_post_approval,
-            metadata, owner_id } = req.body;
+            metadata } = req.body;
+        const owner_id = authUser.id;
 
         if (!name || !page_type) {
             return res.status(400).json({ error: 'name and page_type are required' });
-        }
-
-        if (!owner_id) {
-            return res.status(400).json({ error: 'owner_id is required' });
         }
 
         const slug = generateSlug(name);
@@ -269,10 +272,17 @@ export default async function handler(req, res) {
         return res.status(201).json({ success: true, data });
 
     } else if (req.method === 'PUT') {
-        const { id, owner_id, ...updates } = req.body;
+        // Require JWT auth
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-        if (!id || !owner_id) {
-            return res.status(400).json({ error: 'id and owner_id are required' });
+        const { id, ...updates } = req.body;
+        const owner_id = authUser.id;
+
+        if (!id) {
+            return res.status(400).json({ error: 'id is required' });
         }
 
         // Verify ownership and get existing data for change detection
@@ -304,7 +314,7 @@ export default async function handler(req, res) {
         const createAutoPost = (postType, mediaUrl, location) => {
             fetch(`${baseUrl}/api/social/auto-post`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET || '' },
                 body: JSON.stringify({
                     user_id: owner_id,
                     post_type: postType,
@@ -348,20 +358,25 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data });
 
     } else if (req.method === 'DELETE') {
+        // Require JWT auth
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
         const { id } = req.query;
-        const { owner_id } = req.body || {};
 
         if (!id) return res.status(400).json({ error: 'id is required' });
 
-        // Verify ownership
+        // Verify ownership via JWT user
         const { data: existing } = await supabase
             .from('social_pages')
             .select('owner_id')
             .eq('id', id)
             .single();
 
-        if (!existing || (owner_id && existing.owner_id !== owner_id)) {
-            return res.status(403).json({ error: 'Not authorized' });
+        if (!existing || existing.owner_id !== authUser.id) {
+            return res.status(403).json({ error: 'Not authorized — only the page owner can delete' });
         }
 
         const { error } = await supabase

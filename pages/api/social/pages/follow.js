@@ -17,10 +17,17 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method === 'POST') {
-        const { page_id, user_id, action, follower_id } = req.body;
+        // Require JWT auth for follow/unfollow
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-        if (!page_id || !user_id) {
-            return res.status(400).json({ error: 'page_id and user_id required' });
+        const { page_id, action, follower_id } = req.body;
+        const user_id = authUser.id;
+
+        if (!page_id) {
+            return res.status(400).json({ error: 'page_id required' });
         }
 
         // === Approve/Reject (Commander actions) ===

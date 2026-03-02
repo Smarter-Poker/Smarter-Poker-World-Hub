@@ -312,6 +312,7 @@ export default async function handler(req, res) {
         });
       }
 
+      default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
   } catch (err) {

@@ -33,7 +33,25 @@ export default async function handler(req, res) {
     }
 
     const supabase = getSupabase();
-    const { user_id, post_type, media_url, entity_name, entity_type, page_id, location } = req.body;
+
+    // Auth: require JWT token OR internal secret (for server-to-server calls)
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const internalSecret = req.headers['x-internal-secret'];
+    let verified_user_id = null;
+
+    if (internalSecret === process.env.CRON_SECRET) {
+        // Internal server-to-server call — trust user_id from body
+        verified_user_id = req.body.user_id;
+    } else if (token) {
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        verified_user_id = authUser.id;
+    } else {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { post_type, media_url, entity_name, entity_type, page_id, location } = req.body;
+    const user_id = verified_user_id;
 
     if (!user_id || !post_type || !entity_name) {
         return res.status(400).json({ error: 'user_id, post_type, and entity_name are required' });

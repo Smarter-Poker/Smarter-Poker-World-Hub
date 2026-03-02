@@ -64,10 +64,17 @@ export default async function handler(req, res) {
             });
 
         } else if (req.method === 'POST') {
-            const { page_id, reviewer_id, overall_rating, title, content } = req.body;
+            // Require JWT auth
+            const token = req.headers.authorization?.replace('Bearer ', '');
+            if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+            const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+            if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-            if (!page_id || !reviewer_id || !overall_rating) {
-                return res.status(400).json({ success: false, error: 'page_id, reviewer_id, and overall_rating are required' });
+            const { page_id, overall_rating, title, content } = req.body;
+            const reviewer_id = authUser.id;
+
+            if (!page_id || !overall_rating) {
+                return res.status(400).json({ success: false, error: 'page_id and overall_rating are required' });
             }
 
             if (overall_rating < 1 || overall_rating > 5) {

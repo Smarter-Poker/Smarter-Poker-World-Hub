@@ -86,10 +86,17 @@ export default async function handler(req, res) {
         });
 
     } else if (req.method === 'POST') {
-        const { post_id, user_id, interaction_type, content } = req.body;
+        // Require JWT auth for social interactions
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-        if (!post_id || !user_id || !interaction_type) {
-            return res.status(400).json({ error: 'post_id, user_id, and interaction_type required' });
+        const { post_id, interaction_type, content } = req.body;
+        const user_id = authUser.id;
+
+        if (!post_id || !interaction_type) {
+            return res.status(400).json({ error: 'post_id and interaction_type required' });
         }
 
         if (interaction_type === 'comment') {
@@ -183,10 +190,17 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid interaction_type' });
 
     } else if (req.method === 'DELETE') {
-        const { post_id, user_id, interaction_type } = req.query;
+        // Require JWT auth for deleting interactions
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-        if (!post_id || !user_id) {
-            return res.status(400).json({ error: 'post_id and user_id required' });
+        const { post_id, interaction_type } = req.query;
+        const user_id = authUser.id;
+
+        if (!post_id) {
+            return res.status(400).json({ error: 'post_id required' });
         }
 
         let query = supabase

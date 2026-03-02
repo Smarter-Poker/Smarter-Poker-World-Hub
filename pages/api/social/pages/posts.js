@@ -75,11 +75,18 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data: enriched });
 
     } else if (req.method === 'POST') {
-        const { page_id, author_id, content, content_type, media_urls,
-            link_preview, visibility, is_pinned, metadata } = req.body;
+        // Require JWT auth for creating posts
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-        if (!page_id || !author_id) {
-            return res.status(400).json({ error: 'page_id and author_id required' });
+        const { page_id, content, content_type, media_urls,
+            link_preview, visibility, is_pinned, metadata } = req.body;
+        const author_id = authUser.id;
+
+        if (!page_id) {
+            return res.status(400).json({ error: 'page_id required' });
         }
 
         if (!content && (!media_urls || media_urls.length === 0)) {

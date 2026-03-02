@@ -17,10 +17,17 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method === 'POST') {
-        const { action, post_id, user_id, content, parent_id } = req.body;
+        // Require JWT auth
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
-        if (!post_id || !user_id || !action) {
-            return res.status(400).json({ error: 'action, post_id, and user_id required' });
+        const { action, post_id, content, parent_id } = req.body;
+        const user_id = authUser.id;
+
+        if (!post_id || !action) {
+            return res.status(400).json({ error: 'action and post_id required' });
         }
 
         if (action === 'like') {
