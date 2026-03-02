@@ -132,7 +132,7 @@ export default function CommanderLogin() {
       const staffSession = {
         user_id: data.user.id,
         email: data.user.email,
-        display_name: subscription.billing_name || data.user.email,
+        display_name: subscription.billing_name || data.user.user_metadata?.full_name || data.user.user_metadata?.name || data.user.email,
         role: 'owner',
         venue_id: subscription.venue_id,
         venue_name: subscription.venue?.name || 'My Venue',
