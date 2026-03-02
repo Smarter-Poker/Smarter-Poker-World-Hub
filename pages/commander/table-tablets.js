@@ -750,7 +750,7 @@ export default function TableTabletsPage() {
             });
             const json = await res.json();
             if (json.success) {
-                setToast({ type: 'success', text: `✅ ${json.data.player_name} seated at S${seatNumber}` });
+                setToast({ type: 'success', text: `${json.data.player_name} seated at S${seatNumber}` });
                 fetchAll();
             } else {
                 setToast({ type: 'error', text: json.error || 'Could not seat player' });
@@ -1490,7 +1490,7 @@ export default function TableTabletsPage() {
                         {(() => {
                             const isA = callFloorSent; return (
                                 <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
-                                    style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
+                                    style={{ position: 'fixed', bottom: 8, left: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
                                     <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                                     {isA && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, fontWeight: 900, textShadow: '0 0 8px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>Cancel Floor</div>}
                                 </button>);
@@ -1500,7 +1500,7 @@ export default function TableTabletsPage() {
                         {(() => {
                             const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; return (
                                 <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
-                                    style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                    style={{ position: 'fixed', bottom: 8, right: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
                                     <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
                                 </button>);
                         })()}
@@ -1509,7 +1509,7 @@ export default function TableTabletsPage() {
                         {/* Tournament Clock button — only on tournament tables, only when clock overlay is NOT open */}
                         {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && !showTournamentClock && (
                             <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
-                                style={{ position: 'absolute', top: 8, left: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                style={{ position: 'fixed', top: 8, left: 8, zIndex: 60, width: 200, height: 150, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
                                 <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                             </button>
                         )}
@@ -1779,7 +1779,7 @@ export default function TableTabletsPage() {
                             background: 'rgba(24,119,242,0.95)', color: '#fff', fontSize: 14, fontWeight: 700,
                             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                         }}>
-                            🪑 Moving {movingPlayer.player_name} — tap an empty seat
+                            Moving {movingPlayer.player_name} — tap an empty seat
                             <button onClick={() => { haptic(); setMovingPlayer(null); setToast({ type: 'success', text: 'Move cancelled' }); }}
                                 style={{ padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                             >Cancel</button>
@@ -1825,8 +1825,8 @@ export default function TableTabletsPage() {
                                 return actions.map((btn, i) => (
                                     React.createElement('button', {
                                         key: i, onClick: () => { haptic(); btn.action(); }, disabled: playerActionLoading,
-                                        style: { padding: '14px 16px', borderRadius: 12, border: '1px solid #3A3B3C', cursor: 'pointer', background: '#3A3B3C', color: '#E4E6EB', fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s' }
-                                    }, React.createElement('span', { style: { color: btn.color, display: 'flex', alignItems: 'center', flexShrink: 0 } }, btn.icon), ' ', btn.label)
+                                        style: { padding: '14px 16px', borderRadius: 12, border: '1px solid #3A3B3C', borderLeft: `3px solid ${btn.color}`, cursor: 'pointer', background: '#3A3B3C', color: '#E4E6EB', fontSize: 15, fontWeight: 700, textAlign: 'left', display: 'flex', alignItems: 'center', transition: 'background 0.15s' }
+                                    }, btn.label)
                                 ));
                             })()}
                         </div>
@@ -1858,7 +1858,7 @@ export default function TableTabletsPage() {
             {seatScanner && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10003, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                        <div style={{ fontSize: 36, marginBottom: 8 }}>📸</div>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}><ScanLine size={36} color="#10B981" /></div>
                         <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>Scan Player for Seat {seatScanner.seatNumber}</h3>
                         <p style={{ fontSize: 13, color: '#8A8D91', margin: '6px 0 0' }}>Hold QR code in front of camera</p>
                     </div>
