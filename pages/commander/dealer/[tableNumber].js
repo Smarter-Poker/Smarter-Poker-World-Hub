@@ -97,6 +97,8 @@ export default function DealerTablet() {
       if (!tableJson.success) { setLoading(false); return; }
       const tbl = tableJson.data;
       setTable(tbl);
+      // Seed hand count from persisted DB value
+      setHandCount(tbl.hands_dealt || 0);
 
       // Route based on table mode set by floor manager in Table Assignments
       if (tbl.mode === 'tournament' && tbl.tournament_id) {
@@ -612,7 +614,19 @@ export default function DealerTablet() {
           )}
 
           <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => setHandCount(h => h + 1)} className="py-4 rounded-xl bg-[#1877F2] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]"><Hash className="w-5 h-5" /> Hand +1</button>
+            <button onClick={async () => {
+              setHandCount(h => h + 1);
+              try {
+                const token = getToken();
+                const res = await fetch('/api/commander/dealer/hand-count', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'increment' })
+                });
+                const json = await res.json();
+                if (json.success) setHandCount(json.hands_dealt);
+              } catch (err) { console.error('Hand count error:', err); }
+            }} className="py-4 rounded-xl bg-[#1877F2] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]"><Hash className="w-5 h-5" /> Hand +1</button>
             <button onClick={requestFloor} disabled={floorRequested}
               className={`py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${floorRequested ? 'bg-[#F59E0B] text-white animate-pulse' : 'bg-[#EF4444] text-white active:bg-[#DC2626]'}`}>
               <Bell className="w-5 h-5" /> {floorRequested ? 'Called' : 'Floor!'}
@@ -641,7 +655,17 @@ export default function DealerTablet() {
           )}
 
           <div className="flex gap-2">
-            <button onClick={() => setHandCount(0)} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium flex items-center justify-center gap-1 active:bg-[#4A4B4C]"><RotateCcw className="w-3.5 h-3.5" /> Reset</button>
+            <button onClick={async () => {
+              setHandCount(0);
+              try {
+                const token = getToken();
+                await fetch('/api/commander/dealer/hand-count', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ table_number: parseInt(tableNumber), action: 'reset' })
+                });
+              } catch (err) { console.error('Hand reset error:', err); }
+            }} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium flex items-center justify-center gap-1 active:bg-[#4A4B4C]"><RotateCcw className="w-3.5 h-3.5" /> Reset</button>
             <button onClick={() => router.push('/commander/poker-room')} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium active:bg-[#4A4B4C]">Exit</button>
           </div>
         </div>
