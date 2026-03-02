@@ -317,7 +317,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           .cmd-global-title { font-size: 16px; }
         }
         .cmd-global-venue {
-          font-size: 11px;
+          font-size: 28px;
           color: #888;
           margin-top: 2px;
         }
@@ -668,19 +668,9 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             )}
           </div>
           <div className="cmd-global-right">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {clubLogoUrl && (
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8, overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0,
-                }}>
-                  <img src={clubLogoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              )}
-              <div>
-                <div className="cmd-global-title">Club Commander</div>
-                <div className="cmd-global-venue">{venueName}</div>
-              </div>
+            <div>
+              <div className="cmd-global-title">Club Commander</div>
+              <div className="cmd-global-venue">{venueName}</div>
             </div>
           </div>
         </div>
