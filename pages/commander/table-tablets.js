@@ -227,29 +227,48 @@ export default function TableTabletsPage() {
     // SAFEGUARD: When fullscreen table changes, ALWAYS close the tournament clock overlay
     // and clear the locked tournament ID. Also auto-close if the table's tournament_id
     // no longer matches what was locked (e.g., table was reassigned to a different tournament).
+    const prevTableNumRef = useRef(null);
     useEffect(() => {
         if (!fullscreenTable) {
             setShowTournamentClock(false);
             setLockedTournamentId(null);
-        } else if (lockedTournamentId && fullscreenTable.tournament_id !== lockedTournamentId) {
-            // Tournament mismatch — table was reassigned, close immediately
-            console.warn('[SAFEGUARD] Tournament mismatch detected — closing clock overlay.',
-                'Locked:', lockedTournamentId, 'Table:', fullscreenTable.tournament_id);
-            setShowTournamentClock(false);
-            setLockedTournamentId(null);
+            prevTableNumRef.current = null;
+            // Full reset when closing fullscreen
+            setCallFloorSent(false);
+            setCallFloorId(null);
+            if (callClockRef.current) { clearInterval(callClockRef.current); callClockRef.current = null; }
+            setCallClockSeconds(null);
+            if (shotClockRef.current) { clearInterval(shotClockRef.current); shotClockRef.current = null; }
+            setShotClockSeconds(null);
+            setShotClockCollapsed(false);
+            shotClockVoiceFired.current = false;
+            setShowPlayerMenu(null);
+            setMovingPlayer(null);
+            setChipCountInput(null);
+        } else {
+            if (lockedTournamentId && fullscreenTable.tournament_id !== lockedTournamentId) {
+                console.warn('[SAFEGUARD] Tournament mismatch detected — closing clock overlay.',
+                    'Locked:', lockedTournamentId, 'Table:', fullscreenTable.tournament_id);
+                setShowTournamentClock(false);
+                setLockedTournamentId(null);
+            }
+            // Only reset interactive state when SWITCHING tables (not during data refresh)
+            const currentNum = fullscreenTable.table_number || fullscreenTable.number;
+            if (prevTableNumRef.current !== null && prevTableNumRef.current !== currentNum) {
+                setCallFloorSent(false);
+                setCallFloorId(null);
+                if (callClockRef.current) { clearInterval(callClockRef.current); callClockRef.current = null; }
+                setCallClockSeconds(null);
+                if (shotClockRef.current) { clearInterval(shotClockRef.current); shotClockRef.current = null; }
+                setShotClockSeconds(null);
+                setShotClockCollapsed(false);
+                shotClockVoiceFired.current = false;
+                setShowPlayerMenu(null);
+                setMovingPlayer(null);
+                setChipCountInput(null);
+            }
+            prevTableNumRef.current = currentNum;
         }
-        // Reset transient per-table state when switching tables
-        setCallFloorSent(false);
-        setCallFloorId(null);
-        if (callClockRef.current) { clearInterval(callClockRef.current); callClockRef.current = null; }
-        setCallClockSeconds(null);
-        if (shotClockRef.current) { clearInterval(shotClockRef.current); shotClockRef.current = null; }
-        setShotClockSeconds(null);
-        setShotClockCollapsed(false);
-        shotClockVoiceFired.current = false;
-        setShowPlayerMenu(null);
-        setMovingPlayer(null);
-        setChipCountInput(null);
     }, [fullscreenTable, lockedTournamentId]);
 
     // Browser back/navigation prevention when locked
@@ -824,7 +843,7 @@ export default function TableTabletsPage() {
         const nameMaxWidth = isFullscreen ? 140 : 110;
 
         return (
-            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '38%' : '60%', overflow: 'hidden', background: `radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, ${isFullscreen ? '#1a1f22' : '#1a1a2e'} 90%)`, borderRadius: isFullscreen ? 0 : 12 }}>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: isFullscreen ? '42%' : '60%', overflow: 'hidden', background: `radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, ${isFullscreen ? '#1a1f22' : '#1a1a2e'} 90%)`, borderRadius: isFullscreen ? 0 : 12 }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: isFullscreen ? '-18%' : '-16%' }}>
                     {/* Poker table image */}
                     <img
@@ -1365,7 +1384,7 @@ export default function TableTabletsPage() {
                     {/* Fullscreen header — hidden when locked for true fullscreen */}
                     {!lockedTable && (
                         <div style={{
-                            padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             background: isTournamentTable(fullscreenTable)
                                 ? 'linear-gradient(135deg, #FFD700 0%, #B8860B 100%)'
                                 : fullscreenTable.status === 'in_use'
@@ -1459,7 +1478,7 @@ export default function TableTabletsPage() {
                     )}
 
                     {/* Fullscreen table visual */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 16px', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0px 16px', overflow: 'visible', position: 'relative' }}>
                         <div style={{ width: '100%', maxWidth: 1000 }}>
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
