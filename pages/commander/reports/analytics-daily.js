@@ -6,9 +6,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { BarChart3, Users, DollarSign, Clock, TrendingUp,
+import {
+  BarChart3, Users, DollarSign, Clock, TrendingUp,
   Loader2, RefreshCw, Calendar, Trophy, CreditCard, AlertTriangle,
-  ArrowUpRight, ArrowDownRight
+  ArrowUpRight, ArrowDownRight, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
@@ -26,12 +27,12 @@ export default function AnalyticsDailyReport() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, []);
 
   useEffect(() => {
@@ -112,14 +113,17 @@ export default function AnalyticsDailyReport() {
   return (
     <>
       <SEOHead
-                title="Commander — Analytics Daily"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Analytics Daily"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<BarChart3 size={22} />
+          <button onClick={() => router.push('/commander/reports')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ArrowLeft size={20} color="white" />
+          </button>
+          <BarChart3 size={22} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Analytics Daily</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Aggregated Daily Metrics (auto-runs At 4 AM)</div>
@@ -212,17 +216,17 @@ export default function AnalyticsDailyReport() {
                     const pct = (rev / maxRevenue) * 100;
                     const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     return (
-                      <CommanderLayout title="Analytics Daily" backHref="/commander/dashboard?card=reports">
-                      <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 11, color: '#65676B', minWidth: 50, textAlign: 'right' }}>{dateLabel}</div>
-                        <div style={{ flex: 1, height: 20, background: '#F0F2F5', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${Math.max(pct, 2)}%`, background: '#31A24C', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6 }}>
-                            {pct > 20 && <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>{fmt(rev)}</span>}
+                      <>
+                        <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: 11, color: '#65676B', minWidth: 50, textAlign: 'right' }}>{dateLabel}</div>
+                          <div style={{ flex: 1, height: 20, background: '#F0F2F5', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.max(pct, 2)}%`, background: '#31A24C', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6 }}>
+                              {pct > 20 && <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>{fmt(rev)}</span>}
+                            </div>
                           </div>
+                          {pct <= 20 && <span style={{ fontSize: 11, fontWeight: 600, color: '#444', minWidth: 30 }}>{fmt(rev)}</span>}
                         </div>
-                        {pct <= 20 && <span style={{ fontSize: 11, fontWeight: 600, color: '#444', minWidth: 30 }}>{fmt(rev)}</span>}
-                      </div>
-                      </CommanderLayout>
+                      </>
                     );
                   })}
                 </div>

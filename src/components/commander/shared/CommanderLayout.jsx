@@ -23,6 +23,7 @@ import {
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import FloorCallAlert from './FloorCallAlert';
 import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
+import { canRoleAccessRoute } from '../../../lib/commander/auth';
 import useClubBranding from '../../../lib/commander/useClubBranding';
 
 const NAV_ITEMS = [
@@ -62,6 +63,13 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
   const [currentTier, setCurrentTier] = useState('home_game');
 
+  // ── PIN SECURITY GATE STATE ──
+  const [routeBlocked, setRouteBlocked] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const [gateGranted, setGateGranted] = useState(false);
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem('commander_staff');
@@ -87,6 +95,30 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       }
     } catch { }
   }, []);
+
+  // ── ROUTE GUARD: Check if staff role can access this page ──
+  useEffect(() => {
+    if (!staff) return;
+    const path = router.asPath.split('?')[0]; // Strip query params
+    // Skip guard for dashboard, login, index
+    if (path === '/commander/dashboard' || path === '/commander/login' || path === '/commander') {
+      setRouteBlocked(false);
+      return;
+    }
+    const role = staff.role || 'dealer'; // default to most restricted
+    const hasAccess = canRoleAccessRoute(role, path);
+    // Check if this route was previously unlocked via PIN in this session
+    const unlocked = sessionStorage.getItem(`pin_unlock_${path}`);
+    if (hasAccess || unlocked === 'true') {
+      setRouteBlocked(false);
+      setGateGranted(true);
+    } else {
+      setRouteBlocked(true);
+      setGateGranted(false);
+      setPinInput('');
+      setPinError('');
+    }
+  }, [staff, router.asPath]);
 
   // Club Page creation reminder popup
   useEffect(() => {
@@ -144,8 +176,52 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
+    // Clear all PIN unlock grants from this session
+    try {
+      Object.keys(sessionStorage).forEach(k => {
+        if (k.startsWith('pin_unlock_')) sessionStorage.removeItem(k);
+      });
+    } catch { }
     if (router.asPath !== '/commander/login') {
       router.push('/commander/login').catch(() => { });
+    }
+  };
+
+  // ── PIN GATE VERIFICATION ──
+  const handlePinSubmit = async () => {
+    if (!pinInput || pinInput.length < 4) {
+      setPinError('Enter at least 4 digits');
+      return;
+    }
+    setPinLoading(true);
+    setPinError('');
+    try {
+      const res = await fetch('/api/commander/staff/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue_id: staff?.venue_id, pin_code: pinInput }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.data?.staff) {
+        setPinError(data.error || 'Invalid PIN');
+        setPinLoading(false);
+        return;
+      }
+      const verifiedRole = data.data.staff.role;
+      const path = router.asPath.split('?')[0];
+      if (canRoleAccessRoute(verifiedRole, path)) {
+        // Grant access for this session
+        sessionStorage.setItem(`pin_unlock_${path}`, 'true');
+        setRouteBlocked(false);
+        setGateGranted(true);
+        setPinInput('');
+      } else {
+        setPinError(`Access denied — ${verifiedRole} role does not have permission for this page`);
+      }
+    } catch (e) {
+      setPinError('Verification failed — try again');
+    } finally {
+      setPinLoading(false);
     }
   };
 
@@ -422,6 +498,122 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           width: auto;
           display: block;
         }
+
+        /* ── PIN GATE MODAL ── */
+        .cmd-pin-gate-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(8px);
+        }
+        .cmd-pin-gate-modal {
+          position: relative;
+          background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+          border-radius: 16px;
+          width: 90%;
+          max-width: 380px;
+          padding: 32px 28px;
+          box-shadow: 0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+          border: 2px solid rgba(239,68,68,0.3);
+          text-align: center;
+        }
+        .cmd-pin-gate-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #EF4444, #DC2626);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+        }
+        .cmd-pin-gate-title {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 18px;
+          font-weight: 700;
+          color: #fff;
+          margin: 0 0 6px;
+          letter-spacing: 1px;
+        }
+        .cmd-pin-gate-subtitle {
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          color: #888;
+          margin: 0 0 20px;
+          line-height: 1.4;
+        }
+        .cmd-pin-gate-input {
+          width: 100%;
+          padding: 14px 16px;
+          border-radius: 10px;
+          border: 2px solid rgba(255,255,255,0.15);
+          background: rgba(0,0,0,0.4);
+          color: #fff;
+          font-size: 24px;
+          font-weight: 700;
+          text-align: center;
+          letter-spacing: 12px;
+          font-family: 'Orbitron', sans-serif;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .cmd-pin-gate-input:focus {
+          border-color: #22D3EE;
+        }
+        .cmd-pin-gate-input::placeholder {
+          color: #444;
+          font-size: 14px;
+          letter-spacing: 2px;
+        }
+        .cmd-pin-gate-error {
+          color: #EF4444;
+          font-size: 12px;
+          margin-top: 8px;
+          font-family: 'Inter', sans-serif;
+        }
+        .cmd-pin-gate-btn {
+          width: 100%;
+          margin-top: 16px;
+          padding: 12px;
+          border-radius: 10px;
+          border: none;
+          background: linear-gradient(135deg, #22D3EE, #06B6D4);
+          color: #000;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          transition: all 0.2s;
+        }
+        .cmd-pin-gate-btn:hover {
+          filter: brightness(1.1);
+          transform: scale(1.02);
+        }
+        .cmd-pin-gate-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .cmd-pin-gate-back {
+          margin-top: 12px;
+          padding: 10px;
+          border-radius: 10px;
+          border: 2px solid rgba(255,255,255,0.12);
+          background: transparent;
+          color: #888;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          width: 100%;
+        }
+        .cmd-pin-gate-back:hover {
+          color: #ccc;
+          border-color: rgba(255,255,255,0.25);
+        }
       `}</style>
 
       <CommanderErrorBoundary>
@@ -522,6 +714,10 @@ export default function CommanderLayout({ children, title, backHref = '/commande
                 const Icon = item.icon;
                 const isActive = router.asPath === item.href;
                 const isLocked = !canAccessRoute(currentTier, item.href);
+                // Role-based filtering: hide items the current role can't access
+                const staffRole = staff?.role || 'dealer';
+                const isRoleBlocked = !canRoleAccessRoute(staffRole, item.href);
+                if (isRoleBlocked) return null; // Don't show in menu at all
                 return (
                   <button
                     key={item.href}
@@ -636,11 +832,55 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           </div>
         )}
 
+        {/* ── PIN SECURITY GATE ── */}
+        {routeBlocked && (
+          <div className="cmd-pin-gate-overlay">
+            <div className="cmd-pin-gate-modal">
+              <div className="cmd-pin-gate-icon">
+                <Lock size={32} color="#fff" />
+              </div>
+              <h2 className="cmd-pin-gate-title">ACCESS RESTRICTED</h2>
+              <p className="cmd-pin-gate-subtitle">
+                This page requires elevated permissions.<br />
+                Enter an authorized PIN to continue.
+              </p>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                className="cmd-pin-gate-input"
+                placeholder="• • • •"
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value.replace(/\D/g, ''));
+                  setPinError('');
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handlePinSubmit(); }}
+                autoFocus
+              />
+              {pinError && <div className="cmd-pin-gate-error">{pinError}</div>}
+              <button
+                className="cmd-pin-gate-btn"
+                onClick={handlePinSubmit}
+                disabled={pinLoading || pinInput.length < 4}
+              >
+                {pinLoading ? 'Verifying...' : 'Unlock'}
+              </button>
+              <button
+                className="cmd-pin-gate-back"
+                onClick={() => router.push('/commander/dashboard')}
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── FLOOR CALL REAL-TIME ALERT ── */}
         {staff?.venue_id && <FloorCallAlert venueId={staff.venue_id} />}
 
-        {/* ── PAGE CONTENT ── */}
-        {children}
+        {/* ── PAGE CONTENT (hidden when route is blocked) ── */}
+        {routeBlocked ? null : children}
       </CommanderErrorBoundary>
     </>
   );

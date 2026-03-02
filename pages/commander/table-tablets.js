@@ -1427,20 +1427,32 @@ export default function TableTabletsPage() {
             {/* ── FULLSCREEN TABLE POPUP ── */}
             {fullscreenTable && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1a1f22', display: 'flex', flexDirection: 'column', animation: 'fullscreenIn 0.2s ease-out', overscrollBehavior: 'none', touchAction: 'manipulation', overflow: 'hidden', height: '100vh', width: '100vw' }}>
-                    {/* NO HEADER in fullscreen — table takes up full screen.
-                       Close button is a small floating X in top-right corner */}
+                    {/* NO HEADER in fullscreen — table takes up full screen */}
                     {!lockedTable && (
-                        <button
-                            onClick={() => { haptic('light'); setFullscreenTable(null); }}
-                            style={{
-                                position: 'absolute', top: 12, right: 12, zIndex: 70,
-                                background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%',
-                                width: 36, height: 36, cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
-                        >
-                            <X size={18} color="#fff" />
-                        </button>
+                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 70, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {/* Lock button — large silver icon, no frame */}
+                            <button
+                                onClick={() => { haptic(); lockToTable(fullscreenTable.table_number); }}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.7))',
+                                }}
+                            >
+                                <Lock size={42} color="#C0C0C0" strokeWidth={2.2} />
+                            </button>
+                            {/* Close X button */}
+                            <button
+                                onClick={() => { haptic('light'); setFullscreenTable(null); }}
+                                style={{
+                                    background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%',
+                                    width: 40, height: 40, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >
+                                <X size={20} color="#fff" />
+                            </button>
+                        </div>
                     )}
                     {/* Locked: show small unlock button in top-right corner */}
                     {lockedTable && (
@@ -1460,9 +1472,9 @@ export default function TableTabletsPage() {
                         </div>
                     )}
 
-                    {/* Fullscreen table visual — constrained to viewport height */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0px 16px', overflow: 'visible', position: 'relative', background: '#1a1f22', maxHeight: '100vh' }}>
-                        <div style={{ width: 'min(100%, calc(100vh / 0.55))', maxWidth: 1000 }}>
+                    {/* Fullscreen table visual — fills screen, minimal padding */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, overflow: 'visible', position: 'relative', background: '#1a1f22' }}>
+                        <div style={{ width: '100%', maxWidth: 1100 }}>
                             {renderTableVisual(fullscreenTable, true)}
                         </div>
 
@@ -1473,7 +1485,7 @@ export default function TableTabletsPage() {
                         {(() => {
                             const isA = callFloorSent; return (
                                 <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) setToast({ type: 'success', text: 'Floor call cancelled' }); } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
-                                    style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
+                                    style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, width: 300, height: 225, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
                                     {/* Dark fill behind the PNG frame text area */}
                                     <div style={{ position: 'absolute', inset: '15%', background: 'rgba(10,12,15,0.92)', borderRadius: 8, zIndex: 0 }} />
                                     <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
@@ -1485,18 +1497,17 @@ export default function TableTabletsPage() {
                         {(() => {
                             const a = callClockSeconds !== null; const d = a && callClockSeconds <= 10; return (
                                 <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
-                                    style={{ position: 'fixed', bottom: 4, right: 4, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                    style={{ position: 'fixed', bottom: 4, right: 4, zIndex: 60, width: 300, height: 225, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
                                     {/* Dark fill behind the PNG frame text area */}
                                     <div style={{ position: 'absolute', inset: '15%', background: 'rgba(10,12,15,0.92)', borderRadius: 8, zIndex: 0 }} />
                                     <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} />
                                 </button>);
                         })()}
 
-                        {/* UPPER-LEFT: Tournament Clock / Tournament Table (NEVER on cash tables) */}
-                        {/* Tournament Clock button — only on tournament tables, only when clock overlay is NOT open */}
+                        {/* BOTTOM-CENTER: Tournament Clock — only on tournament tables, only when clock overlay is NOT open */}
                         {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && !showTournamentClock && (
                             <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
-                                style={{ position: 'fixed', top: 4, left: 4, zIndex: 60, width: 120, height: 90, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
+                                style={{ position: 'fixed', bottom: 4, left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 300, height: 225, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
                                 {/* Dark fill behind the PNG frame text area */}
                                 <div style={{ position: 'absolute', inset: '15%', background: 'rgba(10,12,15,0.92)', borderRadius: 8, zIndex: 0 }} />
                                 <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />

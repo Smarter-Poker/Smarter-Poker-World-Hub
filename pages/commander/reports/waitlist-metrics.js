@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { Clock, Users, Phone, TrendingUp, Loader2, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Clock, Users, Phone, TrendingUp, Loader2, RefreshCw, AlertTriangle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const RANGES = [
@@ -50,13 +50,14 @@ export default function WaitlistMetrics() {
   return (
     <>
       <SEOHead
-                title="Commander — Waitlist Metrics"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Waitlist Metrics"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1"><h1 className="text-lg font-bold text-white">Waitlist Metrics</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
+          <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg active:bg-[#3A3B3C] flex-shrink-0"><ArrowLeft className="w-5 h-5 text-[#B0B3B8]" /></button>
+          <div className="flex-1"><h1 className="text-lg font-bold text-white">Waitlist Metrics</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>
 
@@ -131,17 +132,17 @@ export default function WaitlistMetrics() {
                     const pct = (v / maxHourly) * 100;
                     const isTop = v === maxHourly && v > 0;
                     return (
-                      <CommanderLayout title="Waitlist Metrics" backHref="/commander/dashboard?card=reports">
-                      <div key={hour} className="flex-1 flex flex-col items-center justify-end h-full">
-                        {v > 0 && <span className="text-[8px] text-[#B0B3B8] mb-0.5">{v}</span>}
-                        <div className="w-full rounded-t" style={{
-                          height: `${Math.max(pct, v > 0 ? 4 : 0)}%`,
-                          background: isTop ? '#1877F2' : v > 0 ? '#1877F2' + '80' : '#3A3B3C30',
-                          minHeight: v > 0 ? 4 : 0
-                        }} />
-                        <span className="text-[7px] text-[#6A6B6D] mt-1">{fmtHour(hour)}</span>
-                      </div>
-                      </CommanderLayout>
+                      <>
+                        <div key={hour} className="flex-1 flex flex-col items-center justify-end h-full">
+                          {v > 0 && <span className="text-[8px] text-[#B0B3B8] mb-0.5">{v}</span>}
+                          <div className="w-full rounded-t" style={{
+                            height: `${Math.max(pct, v > 0 ? 4 : 0)}%`,
+                            background: isTop ? '#1877F2' : v > 0 ? '#1877F2' + '80' : '#3A3B3C30',
+                            minHeight: v > 0 ? 4 : 0
+                          }} />
+                          <span className="text-[7px] text-[#6A6B6D] mt-1">{fmtHour(hour)}</span>
+                        </div>
+                      </>
                     );
                   })}
                 </div>
@@ -157,7 +158,7 @@ export default function WaitlistMetrics() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

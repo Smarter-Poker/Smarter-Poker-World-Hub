@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   FileText, DollarSign, AlertTriangle, CheckCircle2,
-  Loader2, Printer, Download, ChevronDown, ChevronUp, Search
+  Loader2, Printer, Download, ChevronDown, ChevronUp, Search, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
@@ -29,12 +29,12 @@ export default function TaxCompliance() {
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => {}); return; }
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => {}); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
-    } catch { router.push('/commander/login').catch(() => {}); }
+    } catch { router.push('/commander/login').catch(() => { }); }
   }, []);
 
   useEffect(() => {
@@ -211,13 +211,16 @@ export default function TaxCompliance() {
   return (
     <>
       <SEOHead
-                title="Commander — Tax Compliance"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Tax Compliance"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => router.push('/commander/reports')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ArrowLeft size={20} color="white" />
+          </button>
           <FileText size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Tax Compliance / W-2G</div>
@@ -286,7 +289,7 @@ export default function TaxCompliance() {
                 const isExpanded = expandedId === evt.id;
                 const isPending = !evt.w2g_generated && evt.withholding_required;
                 return (
-                  <CommanderLayout title="W-2G Form" backHref="/commander/dashboard?card=reports">
+                  <>
                     <div key={evt.id} style={{ background: 'white', borderRadius: 10, border: isPending ? '2px solid #F59E0B' : '2px solid #E4E6EB', overflow: 'hidden' }}>
                       <button onClick={() => setExpandedId(isExpanded ? null : evt.id)}
                         style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
@@ -354,7 +357,7 @@ export default function TaxCompliance() {
                         </div>
                       )}
                     </div>
-                  </CommanderLayout>
+                  </>
                 );
               })}
             </div>

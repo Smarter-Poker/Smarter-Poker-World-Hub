@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Users, Clock, TrendingUp, Star, Loader2,
-  BarChart3, Repeat, ChevronDown, Search
+  BarChart3, Repeat, ChevronDown, Search, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
@@ -84,14 +84,15 @@ export default function PlayerActivityReport() {
   return (
     <>
       <SEOHead
-                title="Commander — Player Activity"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Player Activity"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg active:bg-[#3A3B3C] flex-shrink-0"><ArrowLeft className="w-5 h-5 text-[#B0B3B8]" /></button>
               <h1 className="text-lg font-bold text-white">Player Activity</h1>
             </div>
             <div className="flex items-center gap-2">
@@ -211,7 +212,7 @@ export default function PlayerActivityReport() {
                     const playerSessions = isExpanded ? getPlayerSessions(p.id) : [];
 
                     return (
-                      <CommanderLayout title="Player Activity" backHref="/commander/dashboard?card=reports">
+                      <>
                         <div key={p.id}>
                           <button onClick={() => setExpandedPlayer(isExpanded ? null : p.id)}
                             className="w-full px-4 py-3 grid grid-cols-12 items-center hover:bg-[#18191A] transition-colors text-left">
@@ -265,7 +266,7 @@ export default function PlayerActivityReport() {
                             </div>
                           )}
                         </div>
-                      </CommanderLayout>
+                      </>
                     );
                   })}
                   {filteredPlayers.length === 0 && (
