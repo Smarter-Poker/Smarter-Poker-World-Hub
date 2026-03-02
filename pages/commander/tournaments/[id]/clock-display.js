@@ -314,11 +314,22 @@ export default function ClockDisplay() {
   // Dynamic payouts — only show remaining positions for remaining players
   const remainingPayouts = payouts.filter((_, i) => i < playersIn);
 
-  const nextBreakSec = clockState.next_break_seconds;
-  const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
   const blindStructure = t.blind_structure || [];
 
-  // ICM / Chop calculations
+  // Calculate next break from blind structure if not provided by clock state
+  let nextBreakSec = clockState.next_break_seconds;
+  if (!nextBreakSec && blindStructure.length > 0) {
+    const currentLevelIdx = clock.current_level || 0;
+    let secsUntilBreak = displaySeconds || 0;
+    for (let i = currentLevelIdx + 1; i < blindStructure.length; i++) {
+      if (blindStructure[i].is_break) break;
+      secsUntilBreak += (blindStructure[i].duration_minutes || 0) * 60;
+    }
+    if (secsUntilBreak > 0 && blindStructure.some((l, i) => i > currentLevelIdx && l.is_break)) {
+      nextBreakSec = secsUntilBreak;
+    }
+  }
+  const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
   const playerStacks = stats.player_stacks || [];
   const prizeAmounts = payouts.map(p => p.amount || (prizePool * (p.percentage || 0) / 100));
   const icmResults = playerStacks.length > 1 ? calculateICM(playerStacks.map(p => p.chips), prizeAmounts) : [];
