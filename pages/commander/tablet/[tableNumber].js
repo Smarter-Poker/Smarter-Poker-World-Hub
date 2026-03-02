@@ -320,8 +320,8 @@ export default function TabletDisplay() {
                 {/* ── Table Visual ────────────────────────── */}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 24px', overflow: 'hidden' }}>
                     <div style={{ width: '100%', maxWidth: 1100, position: 'relative' }}>
-                        <div style={{ position: 'relative', width: '100%', paddingBottom: '42%', overflow: 'hidden' }}>
-                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-24%' }}>
+                        <div style={{ position: 'relative', width: '100%', paddingBottom: '52%', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-20%' }}>
                                 {/* Poker table image */}
                                 <img
                                     src="/images/poker-table-black-gold.png"
