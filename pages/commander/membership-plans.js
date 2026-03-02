@@ -16,8 +16,8 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
 const PRICE_SUFFIX = { daily: ' Per Day', weekly: ' Per Week', monthly: ' Per Month', yearly: ' Per Year' };
-// Y% positioning: centered within each CARD_ZONE (midpoint of top/bottom)
-const PRICE_TEXT_Y = { daily: 32.5, weekly: 45, monthly: 58, yearly: 71 };
+// Y% positioning: centered within each card zone (measured from background image)
+const PRICE_TEXT_Y = { daily: 28, weekly: 40.5, monthly: 53, yearly: 65.5 };
 
 // Card zones in the source image — measured as percentage of image height
 // Each entry: [topPercent, bottomPercent]
@@ -271,7 +271,7 @@ export default function MembershipPlansPage() {
         .mp-price-overlay {
           position: absolute;
           left: 50%;
-          transform: translateX(-50%);
+          transform: translate(-50%, -50%);
           display: flex;
           justify-content: center;
           text-align: center;
@@ -279,7 +279,7 @@ export default function MembershipPlansPage() {
           pointer-events: none;
           z-index: 10;
           font-family: 'Inter', -apple-system, sans-serif;
-          font-size: 32px;
+          font-size: clamp(18px, 3.5vw, 36px);
           font-weight: 700;
           color: #ffffff;
           letter-spacing: 0.5px;
