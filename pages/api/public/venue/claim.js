@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// Generate a 6-digit verification code
+// Generate a 4-digit verification code
 function generateVerificationCode() {
     return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -225,10 +225,10 @@ async function handlePost(req, res) {
             status: claim.status,
             verification_method,
             message: `Claim submitted successfully. ${verification_method === 'email'
-                    ? 'Check your email for verification instructions.'
-                    : verification_method === 'phone'
-                        ? 'You will receive an SMS with a verification code.'
-                        : 'Our team will review your claim within 1-2 business days.'
+                ? 'Check your email for verification instructions.'
+                : verification_method === 'phone'
+                    ? 'You will receive an SMS with a verification code.'
+                    : 'Our team will review your claim within 1-2 business days.'
                 }`,
             // In development, include the code for testing
             ...(process.env.NODE_ENV === 'development' ? { verification_code: verificationCode } : {})

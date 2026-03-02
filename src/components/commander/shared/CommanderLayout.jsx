@@ -208,6 +208,8 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
+    localStorage.removeItem('commander_security_gate');
+    localStorage.removeItem('commander_branding');
     // Clear all PIN unlock grants from this session
     try {
       Object.keys(sessionStorage).forEach(k => {

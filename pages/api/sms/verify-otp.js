@@ -6,7 +6,7 @@
    ─────────────────────────────────────────────────────────────────────────
    • Supabase-backed OTP store (survives serverless cold starts)
    • Shared phone normalisation logic (identical to send-otp.js)
-   • Strict 6-digit code validation
+   • Strict 4-digit code validation
    • Auto-cleanup of expired rows before lookup
    • Atomic attempt tracking + remaining-attempt feedback
    • Defensive error handling at every Supabase call
@@ -48,10 +48,10 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Phone number and code are required' });
         }
 
-        // ── Guard: code must be exactly 6 digits ─────────────────────────
+        // ── Guard: code must be exactly 4 digits ─────────────────────
         const trimmedCode = String(code).trim();
-        if (!/^\d{6}$/.test(trimmedCode)) {
-            return res.status(400).json({ error: 'Verification code must be 6 digits' });
+        if (!/^\d{4}$/.test(trimmedCode)) {
+            return res.status(400).json({ error: 'Verification Code Must Be 4 Digits' });
         }
 
         const cleanPhone = normalizePhone(phone);

@@ -156,7 +156,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
         }
     }, [otp, userId, getRawPhone, onVerified, onClose]);
 
-    // Auto-verify when all 6 digits entered — with guard against double-fire
+    // Auto-verify when all 4 digits entered — with guard against double-fire
     useEffect(() => {
         if (otp.every(d => d) && step === 'otp' && !verifyingRef.current && !loading) {
             handleVerify();

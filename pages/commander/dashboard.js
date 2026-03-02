@@ -237,6 +237,10 @@ export default function CommanderDashboard() {
             } else {
               setHardStop(null);
             }
+            // Bootstrap security gate state for CommanderLayout
+            if (data?.data?.security_gate_enabled !== undefined) {
+              localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
+            }
           })
           .catch(() => { });
       } catch { }
