@@ -1543,9 +1543,13 @@ export default function MessengerPage() {
             // PRIMARY: Use API with service_role + circuit breaker
             const result = await circuit.execute(
                 async () => {
+                    const { data: { session } } = await supabase.auth.getSession();
                     const resp = await fetch('/api/messenger/get-conversations', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                        },
                         body: JSON.stringify({ userId }),
                     });
                     if (!resp.ok) throw new Error(`API returned ${resp.status}`);
@@ -1686,9 +1690,13 @@ export default function MessengerPage() {
             console.log('[ANTIGRAVITY] Loading messages for conversation:', conversationId);
 
             // Use API route to bypass RLS issues
+            const { data: { session: msgSession } } = await supabase.auth.getSession();
             const response = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(msgSession?.access_token ? { Authorization: `Bearer ${msgSession.access_token}` } : {}),
+                },
                 body: JSON.stringify({ conversationId, userId: user.id }),
             });
 
@@ -1704,9 +1712,13 @@ export default function MessengerPage() {
 
             // Mark as read - use API with service role to bypass RLS
             try {
+                const { data: { session: readSession } } = await supabase.auth.getSession();
                 await fetch('/api/messenger/mark-read', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(readSession?.access_token ? { Authorization: `Bearer ${readSession.access_token}` } : {}),
+                    },
                     body: JSON.stringify({ conversationId, userId: user.id }),
                 });
             } catch (e) {
