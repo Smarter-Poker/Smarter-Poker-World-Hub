@@ -535,7 +535,7 @@ class TournamentController extends EventEmitter {
       this.ledger.creditWinnings(
         entry.clubId, playerId, this.buyinAmount + this.buyinFee,
         { tournamentId: this.tournamentId, type: 'tournament_refund' }
-      );
+      ).catch(err => console.error('[Tournament] Cancel refund failed:', playerId, err.message));
     }
 
     this.emit('registration_cancelled', { playerId });
@@ -773,7 +773,7 @@ class TournamentController extends EventEmitter {
   // ═══════════════════════════════════════════════════════
 
   /** @private */
-  _onHandComplete(tableId, result) {
+  async _onHandComplete(tableId, result) {
     this.handsPlayed++;
     const tableInfo = this.tables.get(tableId);
     if (!tableInfo) return;
@@ -796,7 +796,7 @@ class TournamentController extends EventEmitter {
     // Victory / final table check
     const remaining = this._getActivePlayers();
     if (remaining.length === 1) {
-      this._handleVictory(remaining[0]);
+      await this._handleVictory(remaining[0]);
       return;
     }
     if (this.tables.size > 1 && remaining.length <= this.maxTableSize) {
@@ -850,7 +850,8 @@ class TournamentController extends EventEmitter {
             const eliminatorEntry = this.entries.get(award.playerId);
             if (eliminatorEntry?.clubId) {
               this.ledger.creditWinnings(eliminatorEntry.clubId, award.playerId, award.amount,
-                { tournamentId: this.tournamentId, type: award.type });
+                { tournamentId: this.tournamentId, type: award.type })
+                .catch(err => console.error('[Tournament] Bounty credit failed:', award.playerId, err.message));
             }
           }
         }
@@ -878,7 +879,7 @@ class TournamentController extends EventEmitter {
   // REBUY & ADDON
   // ═══════════════════════════════════════════════════════
 
-  processRebuy(playerId) {
+  async processRebuy(playerId) {
     const entry = this.entries.get(playerId);
     if (!entry) return { success: false, error: 'Player not found' };
     if (entry.status !== ENTRY_STATUS.BUSTED_REBUY) return { success: false, error: 'Cannot rebuy right now' };
@@ -888,7 +889,7 @@ class TournamentController extends EventEmitter {
 
     // Ledger: deduct rebuy cost
     if (this.ledger && entry.clubId) {
-      const d = this.ledger.deductBuyin(entry.clubId, playerId, this.rebuyAmount, 0,
+      const d = await this.ledger.deductBuyin(entry.clubId, playerId, this.rebuyAmount, 0,
         { tournamentId: this.tournamentId, type: 'tournament_rebuy' });
       if (!d.success) return { success: false, error: d.error };
     }
@@ -918,7 +919,7 @@ class TournamentController extends EventEmitter {
     return { success: true, chips: this.rebuyChips, rebuyCount: entry.rebuyCount };
   }
 
-  processAddon(playerId) {
+  async processAddon(playerId) {
     const entry = this.entries.get(playerId);
     if (!entry) return { success: false, error: 'Player not found' };
     if (!this.allowsAddon) return { success: false, error: 'Add-ons not allowed' };
@@ -927,7 +928,7 @@ class TournamentController extends EventEmitter {
 
     // Ledger: deduct
     if (this.ledger && entry.clubId) {
-      const d = this.ledger.deductBuyin(entry.clubId, playerId, this.addonAmount, 0,
+      const d = await this.ledger.deductBuyin(entry.clubId, playerId, this.addonAmount, 0,
         { tournamentId: this.tournamentId, type: 'tournament_addon' });
       if (!d.success) return { success: false, error: d.error };
     }
@@ -1065,7 +1066,7 @@ class TournamentController extends EventEmitter {
   // ═══════════════════════════════════════════════════════
 
   /** @private */
-  _handleVictory(winner) {
+  async _handleVictory(winner) {
     winner.finishPosition = 1;
     this.eliminationOrder.unshift(winner.playerId);
 
@@ -1077,7 +1078,7 @@ class TournamentController extends EventEmitter {
 
       // Debit overlay from club treasury via ledger
       if (this.ledger && this.clubId) {
-        this.ledger.debitOverlay(this.clubId, this.overlay, {
+        await this.ledger.debitOverlay(this.clubId, this.overlay, {
           tournamentId: this.tournamentId,
           type: 'tournament_guarantee_overlay',
         });
@@ -1095,7 +1096,7 @@ class TournamentController extends EventEmitter {
     if (this.bountyManager) {
       winnerBountyAward = this.bountyManager.onTournamentEnd(winner.playerId);
       if (winnerBountyAward && this.ledger && winner.clubId) {
-        this.ledger.creditWinnings(winner.clubId, winner.playerId, winnerBountyAward.amount,
+        await this.ledger.creditWinnings(winner.clubId, winner.playerId, winnerBountyAward.amount,
           { tournamentId: this.tournamentId, type: 'pko_self_bounty' });
       }
     }
@@ -1111,17 +1112,17 @@ class TournamentController extends EventEmitter {
       for (const payout of payouts) {
         const entry = this.entries.get(payout.playerId);
         if (entry?.clubId) {
-          this.ledger.creditWinnings(entry.clubId, payout.playerId, payout.amount,
+          await this.ledger.creditWinnings(entry.clubId, payout.playerId, payout.amount,
             { tournamentId: this.tournamentId, type: 'tournament_payout', place: payout.place });
         }
       }
       // Process rake per-club
       if (this.tournamentType === TOURNAMENT_TYPE.XMTT) {
         for (const [cid, rake] of this.clubRake) {
-          this.ledger.processRake(cid, rake, { tournamentId: this.tournamentId, type: 'tournament_rake' });
+          await this.ledger.processRake(cid, rake, { tournamentId: this.tournamentId, type: 'tournament_rake' });
         }
       } else if (this.clubId) {
-        this.ledger.processRake(this.clubId, this.totalRake, { tournamentId: this.tournamentId, type: 'tournament_rake' });
+        await this.ledger.processRake(this.clubId, this.totalRake, { tournamentId: this.tournamentId, type: 'tournament_rake' });
       }
     }
 

@@ -529,6 +529,140 @@ assert(history.actions.length > 0, 'Actions recorded in history');
 assert(history.communityCards.length >= 0, 'Community cards recorded');
 
 // ============================================================
+// CHIP CONSERVATION TESTS
+// ============================================================
+section('CHIP CONSERVATION — All-In Side Pot Scenarios');
+
+// 3-way all-in with different stack sizes
+const pcCons1 = new PotCalculator();
+pcCons1.addContribution('short', 30);
+pcCons1.markAllIn('short');
+pcCons1.addContribution('medium', 80);
+pcCons1.markAllIn('medium');
+pcCons1.addContribution('big', 200);
+
+assertEq(pcCons1.totalPot, 310, 'Conservation: total pot = 30+80+200 = 310');
+
+const potsCons = pcCons1.calculatePots();
+const potSum = potsCons.reduce((sum, p) => sum + p.amount, 0);
+assertEq(potSum, 310, 'Conservation: sum of all pots = total pot (310)');
+assertEq(potsCons.length, 3, '3-way all-in creates 3 pots');
+assertEq(potsCons[0].amount, 90, 'Main pot: 3 x 30 = 90');
+assertEq(potsCons[1].amount, 100, 'Side pot 1: 2 x 50 = 100');
+assertEq(potsCons[2].amount, 120, 'Side pot 2: 1 x 120 = 120');
+
+// Distribution: short stack wins
+const distCons = pcCons1.distribute([
+  { playerId: 'short', handScore: 9000 },
+  { playerId: 'medium', handScore: 5000 },
+  { playerId: 'big', handScore: 1000 },
+]);
+
+const totalPaid = [...distCons.payouts.values()].reduce((s, v) => s + v, 0);
+assertEq(totalPaid, 310, 'Conservation: total payouts = total pot (no rake)');
+assertEq(distCons.payouts.get('short'), 90, 'Short stack only wins main pot (90)');
+assertEq(distCons.payouts.get('medium'), 100, 'Medium wins side pot 1 (100)');
+assertEq(distCons.payouts.get('big'), 120, 'Big wins side pot 2 (120)');
+
+// Distribution with rake: chips still conserve
+const pcRake = new PotCalculator();
+pcRake.addContribution('a', 100);
+pcRake.addContribution('b', 100);
+pcRake.addContribution('c', 100);
+const distRake2 = pcRake.distribute(
+  [{ playerId: 'a', handScore: 9000 }, { playerId: 'b', handScore: 5000 }, { playerId: 'c', handScore: 1000 }],
+  { rakePercent: 5, rakeCap: 50 }
+);
+const totalPayRake = [...distRake2.payouts.values()].reduce((s, v) => s + v, 0);
+assertEq(totalPayRake + distRake2.rake, 300, 'Conservation: payouts + rake = total pot');
+
+// 4-player pot with fold — folded player's chips stay in pot
+const pcFold = new PotCalculator();
+pcFold.addContribution('p1', 100);
+pcFold.addContribution('p2', 100);
+pcFold.addContribution('p3', 50);
+pcFold.markFolded('p3');
+pcFold.addContribution('p4', 100);
+assertEq(pcFold.totalPot, 350, 'Fold pot: 100+100+50+100 = 350');
+const distFold = pcFold.distribute([
+  { playerId: 'p1', handScore: 9000 },
+  { playerId: 'p2', handScore: 5000 },
+  { playerId: 'p4', handScore: 1000 },
+]);
+const totalPayFold = [...distFold.payouts.values()].reduce((s, v) => s + v, 0);
+assertEq(totalPayFold, 350, 'Fold conservation: all chips accounted for');
+
+// ============================================================
+// GSM — CHIP CONSERVATION THROUGH FULL HAND
+// ============================================================
+section('GSM — CHIP CONSERVATION THROUGH FULL HAND');
+
+const game3 = new GameStateMachine({
+  variant: GAME_VARIANT.HOLDEM,
+  bettingStructure: BETTING_STRUCTURES.NO_LIMIT,
+  smallBlind: 5,
+  bigBlind: 10,
+});
+
+const initialStacks = [
+  { id: 'p1', stack: 500, seatIndex: 0 },
+  { id: 'p2', stack: 500, seatIndex: 1 },
+  { id: 'p3', stack: 500, seatIndex: 2 },
+];
+const totalStarting = initialStacks.reduce((s, p) => s + p.stack, 0); // 1500
+
+game3.startHand(initialStacks, 0);
+
+// Play: everyone calls preflop, then checks to showdown
+let safety3 = 0;
+while (game3.phase !== GAME_PHASE.IDLE && safety3 < 30) {
+  const cur = game3.getCurrentActions();
+  if (!cur) break;
+  const hasCheck = cur.actions.find(a => a.type === 'check');
+  const hasCall = cur.actions.find(a => a.type === 'call');
+  if (hasCheck) game3.processAction(cur.playerId, { type: 'check' });
+  else if (hasCall) game3.processAction(cur.playerId, { type: 'call' });
+  else game3.processAction(cur.playerId, { type: 'fold' });
+  safety3++;
+}
+
+const finalStacks = game3.currentHand.players.reduce((s, p) => s + p.stack, 0);
+const handRake = game3.currentHand.result?.rake || 0;
+assertEq(finalStacks + handRake, totalStarting, 'GSM conservation: final stacks + rake = starting stacks');
+
+// ============================================================
+// OMAHA EVALUATION — Must use exactly 2 hole + 3 board
+// ============================================================
+section('OMAHA HAND EVALUATION');
+
+// Player has flush on board but not in hole cards — should NOT have flush
+const omahaHole = parseCards('AhKh2c3c');  // hearts in hole
+const omahaBoard = parseCards('5s6s7s8s9s'); // spade straight flush on board
+const omahaResult = evaluateOmaha(omahaHole, omahaBoard);
+// Must use exactly 2 hole + 3 board: best possible is a straight (using 2 hole cards + 3 board)
+assert(omahaResult.category < HAND_CATEGORIES.FLUSH, 'Omaha: cannot play board flush without 2 suited hole cards');
+
+// ============================================================
+// SPLIT POT — Odd Chip Goes to First Winner
+// ============================================================
+section('SPLIT POT — ODD CHIP HANDLING');
+
+const pcOdd = new PotCalculator();
+pcOdd.addContribution('a', 101);
+pcOdd.addContribution('b', 101);
+pcOdd.addContribution('c', 101);
+const distOdd = pcOdd.distribute([
+  { playerId: 'a', handScore: 500 },
+  { playerId: 'b', handScore: 500 },
+  { playerId: 'c', handScore: 500 },
+]);
+const totalOdd = [...distOdd.payouts.values()].reduce((s, v) => s + v, 0);
+assertEq(totalOdd, 303, 'Odd chip: 3-way split of 303 still totals 303');
+// One player gets 102, two get 101 (or similar)
+const oddPayouts = [...distOdd.payouts.values()].sort((a, b) => b - a);
+assert(oddPayouts[0] === 101 || oddPayouts[0] === 102, 'Odd chip distributed (not lost)');
+
+// ============================================================
 // SUMMARY
 // ============================================================
 console.log(`\n${'═'.repeat(60)}`);
