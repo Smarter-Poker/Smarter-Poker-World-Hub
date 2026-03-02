@@ -70,6 +70,8 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
   const [gateGranted, setGateGranted] = useState(false);
+  const [pinAttempts, setPinAttempts] = useState(0);
+  const [pinLockout, setPinLockout] = useState(false);
 
   useEffect(() => {
     try {
@@ -198,8 +200,24 @@ export default function CommanderLayout({ children, title, backHref = '/commande
 
   // ── PIN GATE VERIFICATION ──
   const handlePinSubmit = async () => {
+    if (pinLockout) {
+      setPinError('Too many attempts — wait 30 seconds');
+      return;
+    }
     if (!pinInput || pinInput.length < 4) {
       setPinError('Enter at least 4 digits');
+      return;
+    }
+    // Get venue_id from staff session or localStorage fallback
+    let venueId = staff?.venue_id;
+    if (!venueId) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        venueId = stored.venue_id;
+      } catch { }
+    }
+    if (!venueId) {
+      setPinError('No venue session — please log in first');
       return;
     }
     setPinLoading(true);
@@ -208,14 +226,24 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       const res = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venue_id: staff?.venue_id, pin_code: pinInput }),
+        body: JSON.stringify({ venue_id: venueId, pin_code: pinInput }),
       });
       const data = await res.json();
       if (!res.ok || !data.data?.staff) {
-        setPinError(data.error || 'Invalid PIN');
+        const nextAttempts = pinAttempts + 1;
+        setPinAttempts(nextAttempts);
+        if (nextAttempts >= 5) {
+          setPinLockout(true);
+          setPinError('Too many failed attempts — locked for 30 seconds');
+          setTimeout(() => { setPinLockout(false); setPinAttempts(0); setPinError(''); }, 30000);
+        } else {
+          setPinError(data.error || `Invalid PIN (${5 - nextAttempts} attempts remaining)`);
+        }
         setPinLoading(false);
         return;
       }
+      // Reset attempts on success
+      setPinAttempts(0);
       const verifiedRole = data.data.staff.role;
       const path = router.asPath.split('?')[0];
       if (canRoleAccessRoute(verifiedRole, path)) {
