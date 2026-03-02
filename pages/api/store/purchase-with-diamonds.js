@@ -39,7 +39,14 @@ export default async function handler(req, res) {
         }
 
         // Calculate total USD and diamond cost
+        // NOTE: No server-side catalog exists yet. Client prices are used but validated.
+        // TODO: When merchandise_items table is created, lookup prices server-side.
         const totalUsd = items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+
+        if (totalUsd <= 0 || items.some(i => !i.price || i.price <= 0 || !i.name)) {
+            return res.status(400).json({ success: false, error: 'Invalid item data — all items must have a name and positive price' });
+        }
+
         const diamondCost = Math.ceil(totalUsd * DIAMONDS_PER_DOLLAR);
 
         // Get current diamond balance
