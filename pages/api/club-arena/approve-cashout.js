@@ -136,7 +136,7 @@ export default async function handler(req, res) {
         from_user_id: cashout.player_id,
         to_user_id: cashout.agent_id,
         amount: cashout.amount,
-        transaction_type: 'send',
+        transaction_type: 'cashout_approved',
         notes: `Cashout approved: ${cashout.amount.toLocaleString()} chips → ${diamondsReturned} 💎`,
       });
 
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
         from_user_id: cashout.agent_id,
         to_user_id: cashout.player_id,
         amount: cashout.amount,
-        transaction_type: 'send',
+        transaction_type: 'cashout_cancelled',
         notes: `Cashout cancelled: ${cashout.amount.toLocaleString()} chips returned to player`,
       });
 

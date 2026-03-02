@@ -25,9 +25,13 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, agentUserId, action, amount, notes } = req.body;
-  if (!clubId || !agentUserId || !action || !amount || amount <= 0) {
+  const { clubId, agentUserId, action, amount: rawAmount, notes } = req.body;
+  if (!clubId || !agentUserId || !action || !rawAmount || rawAmount <= 0) {
     return res.status(400).json({ error: 'clubId, agentUserId, action, and positive amount required' });
+  }
+  const amount = Math.floor(Number(rawAmount));
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
+    return res.status(400).json({ error: 'amount must be a positive integer (max 100M)' });
   }
 
   const validActions = ['issue_credit', 'add_prepaid', 'revoke_credit'];

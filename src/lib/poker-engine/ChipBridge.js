@@ -224,10 +224,11 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       if (!upd?.length) {
         const { data: fresh } = await sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).single();
         if (fresh) {
+          const freshRake = fresh.total_rake || 0;
           await sb.from('clubs').update({
-            total_rake: (fresh.total_rake || 0) + rakeAmount,
+            total_rake: freshRake + rakeAmount,
             hands_played: (fresh.hands_played || 0) + 1,
-          }).eq('id', clubId);
+          }).eq('id', clubId).eq('total_rake', freshRake); // optimistic lock on retry too
         }
       }
     }
@@ -277,10 +278,11 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
             if (!rUpd?.length) {
               const { data: freshA } = await sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).single();
               if (freshA) {
+                const freshWeekly = freshA.weekly_rake_generated || 0;
                 await sb.from('agents').update({
-                  weekly_rake_generated: (freshA.weekly_rake_generated || 0) + rakeGenerated,
+                  weekly_rake_generated: freshWeekly + rakeGenerated,
                   last_active_at: new Date().toISOString(),
-                }).eq('id', agent.id);
+                }).eq('id', agent.id).eq('weekly_rake_generated', freshWeekly); // optimistic lock on retry
               }
             }
           }

@@ -175,7 +175,7 @@ export default async function handler(req, res) {
       from_user_id: txn.to_user_id,
       to_user_id: user.id,
       amount: clawbackAmount,
-      transaction_type: 'send',
+      transaction_type: 'clawback',
       notes: `Clawback: ${clawbackAmount.toLocaleString()} chips reversed (original txn: ${transactionId})`,
     });
 

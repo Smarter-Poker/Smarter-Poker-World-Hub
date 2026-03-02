@@ -188,11 +188,11 @@ class ClubLedger {
       .from('chip_transactions')
       .select('*')
       .eq('club_id', clubId)
-      .eq('user_id', userId)
+      .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
       .order('created_at', { ascending: false })
       .limit(options.limit || 50);
 
-    if (options.type) query = query.eq('type', options.type);
+    if (options.type) query = query.eq('transaction_type', options.type);
 
     const { data } = await query;
     return data || [];
@@ -269,40 +269,43 @@ class ClubLedger {
    * @param {Object} metadata
    * @returns {{ success: boolean, error?: string }}
    */
-  debitOverlay(clubId, amount, metadata = {}) {
+  async debitOverlay(clubId, amount, metadata = {}) {
     if (!this.supabase || amount <= 0) return { success: true };
 
-    // Use atomic treasury debit RPC
-    const result = this.supabase.rpc('fn_debit_treasury', {
-      p_club_id: clubId,
-      p_amount: amount,
-    });
+    try {
+      // Use atomic treasury debit RPC
+      const { error } = await this.supabase.rpc('fn_debit_treasury', {
+        p_club_id: clubId,
+        p_amount: amount,
+      });
 
-    // Fire-and-forget with logging (tournament payouts proceed regardless)
-    result.then(({ error }) => {
       if (error) {
         console.error(`[ClubLedger] Overlay debit failed for club ${clubId}: ${error.message}`);
         // Record as pending if treasury insufficient
-        this.supabase.from('chip_transactions').insert({
+        await this.supabase.from('chip_transactions').insert({
           club_id: clubId,
           transaction_type: 'guarantee_overlay',
           amount,
           notes: `Tournament guarantee overlay (pending): ${metadata.tournamentId}`,
           metadata: { ...metadata, status: 'pending', error: error.message },
-        }).then(() => {});
-      } else {
-        // Record successful overlay transaction
-        this.supabase.from('chip_transactions').insert({
-          club_id: clubId,
-          transaction_type: 'guarantee_overlay',
-          amount,
-          notes: `Tournament guarantee overlay: ${metadata.tournamentId}`,
-          metadata,
-        }).then(() => {});
+        });
+        return { success: false, error: error.message };
       }
-    });
 
-    return { success: true };
+      // Record successful overlay transaction
+      await this.supabase.from('chip_transactions').insert({
+        club_id: clubId,
+        transaction_type: 'guarantee_overlay',
+        amount,
+        notes: `Tournament guarantee overlay: ${metadata.tournamentId}`,
+        metadata,
+      });
+
+      return { success: true };
+    } catch (err) {
+      console.error(`[ClubLedger] Overlay error: ${err.message}`);
+      return { success: false, error: err.message };
+    }
   }
 }
 

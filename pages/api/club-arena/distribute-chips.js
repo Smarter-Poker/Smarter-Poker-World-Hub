@@ -23,9 +23,13 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, toUserId, amount, notes } = req.body;
-  if (!clubId || !toUserId || !amount || amount <= 0) {
+  const { clubId, toUserId, amount: rawAmount, notes } = req.body;
+  if (!clubId || !toUserId || !rawAmount || rawAmount <= 0) {
     return res.status(400).json({ error: 'clubId, toUserId, and positive amount required' });
+  }
+  const amount = Math.floor(Number(rawAmount));
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
+    return res.status(400).json({ error: 'amount must be a positive integer (max 100M)' });
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
