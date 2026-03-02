@@ -55,7 +55,59 @@ export default function AuthCallback() {
                     .single();
 
                 if (existingProfile?.player_number) {
-                    // Profile already exists, go to hub
+                    // Profile already exists, check if redirecting to commander
+                    const isCommanderOrigin = localStorage.getItem('commander_login_origin') === 'true';
+
+                    if (isCommanderOrigin) {
+                        setStatus('Welcome back to Club Commander! Allocating session...');
+                        localStorage.removeItem('commander_login_origin');
+
+                        try {
+                            // Fetch subscription to populate commander_staff session
+                            const subRes = await fetch('/api/commander/check-subscription', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user.id }),
+                            });
+                            const subData = await subRes.json();
+
+                            if (subRes.ok && subData.subscription) {
+                                const subscription = subData.subscription;
+                                localStorage.setItem('commander_venue', JSON.stringify(subscription.venue));
+                                localStorage.setItem('commander_subscription', JSON.stringify(subscription));
+
+                                const staffSession = {
+                                    user_id: user.id,
+                                    email: user.email,
+                                    display_name: subscription.billing_name || user.email,
+                                    role: 'owner',
+                                    venue_id: subscription.venue_id,
+                                    venue_name: subscription.venue?.name || 'My Venue',
+                                    permissions: {
+                                        manage_games: true, manage_waitlist: true, manage_staff: true,
+                                        manage_tables: true, manage_tournaments: true, manage_settings: true,
+                                        view_analytics: true, view_reports: true, send_announcements: true,
+                                    }
+                                };
+                                localStorage.setItem('commander_staff', JSON.stringify(staffSession));
+                                localStorage.setItem('commander_remember', 'true');
+
+                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                                return;
+                            } else {
+                                // If no subscription, redirect to commander lobby anyway
+                                // (They might just be a staff member with a row in commander_staff instead of an owner)
+                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                                return;
+                            }
+                        } catch (err) {
+                            console.error('Failed to init commander session:', err);
+                            setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                            return;
+                        }
+                    }
+
+                    // Otherwise go to hub
                     setStatus('Welcome back! Redirecting...');
                     sessionStorage.setItem('just_authenticated', 'true');
                     setTimeout(() => router.replace('/hub'), 1000);
@@ -181,9 +233,16 @@ export default function AuthCallback() {
                     console.error('[Auth Callback] Welcome package error (non-blocking):', welcomeErr);
                 }
 
-                // Redirect to hub with intro
-                sessionStorage.setItem('just_authenticated', 'true');
-                setTimeout(() => router.replace('/hub'), 1500);
+                // Check origin for redirect
+                const isCommanderOrigin = localStorage.getItem('commander_login_origin') === 'true';
+                if (isCommanderOrigin) {
+                    localStorage.removeItem('commander_login_origin');
+                    setTimeout(() => router.replace('/commander/dashboard'), 1500);
+                } else {
+                    // Redirect to hub with intro
+                    sessionStorage.setItem('just_authenticated', 'true');
+                    setTimeout(() => router.replace('/hub'), 1500);
+                }
 
             } catch (err) {
                 console.error('Callback error:', err);
