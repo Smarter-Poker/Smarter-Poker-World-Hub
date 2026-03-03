@@ -366,8 +366,8 @@ export default function ClockDisplay() {
           animation: payoutTickerScroll 15s linear infinite;
         }
         @keyframes sportsTickerScroll {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
         .sports-ticker {
           animation: sportsTickerScroll 75s linear infinite;
@@ -490,9 +490,8 @@ export default function ClockDisplay() {
 
                 {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
                   <div style={S.nextRound}>
-                    <strong>Next Round</strong><br />
-                    Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                    {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                    <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                    {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
                   </div>
                 )}
 
@@ -545,9 +544,9 @@ export default function ClockDisplay() {
             {top20Leaders.length > 0 && (
               <div style={S.sportsTickerBar}>
                 <div className="sports-ticker" style={S.sportsTickerTrack}>
-                  {top20Leaders.map((player, i) => (
+                  {[...top20Leaders, ...top20Leaders].map((player, i) => (
                     <span key={i} style={S.sportsTickerItem}>
-                      <span style={{ opacity: 0.5, fontWeight: 800 }}>{i + 1}.</span>{' '}
+                      <span style={{ opacity: 0.5, fontWeight: 800 }}>{(i % top20Leaders.length) + 1}.</span>{' '}
                       <span style={{ fontWeight: 700 }}>{player.name || 'Player'}</span>{' '}
                       <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{formatChipCount(player.chips)}</span>
                     </span>
@@ -825,7 +824,7 @@ const S = {
   blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
-    width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
+    width: '100%', textAlign: 'center', padding: '16px 16px', fontSize: 24, lineHeight: 1.5, flexShrink: 0,
   },
   // Right panel sections — Prizes + Chip Leaders
   rightSection: {
