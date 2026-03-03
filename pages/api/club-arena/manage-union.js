@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         .insert({
           name: name.trim(),
           description: description?.trim() || '',
-          union_code: unionCode,
+          code: unionCode,
           owner_id: user.id,
           settings: settings || { union_rake_hold: 0.10, default_agent_commission: 0.50, default_club_commission_rate: 0.90 },
         })

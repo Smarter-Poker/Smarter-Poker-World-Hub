@@ -290,7 +290,7 @@ export default function UnionDashboard() {
                         {union?.name || 'Union Dashboard'}
                     </h1>
                     <p style={{ fontSize: 13, color: FB.textSecondary, margin: '4px 0 0' }}>
-                        Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.union_code || 'N/A'}</span>
+                        Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.code || 'N/A'}</span>
                         &nbsp; · &nbsp; Role: <span style={{ color: FB.gold }}>{dashboard.adminRole || 'admin'}</span>
                     </p>
                 </div>
@@ -650,6 +650,17 @@ export default function UnionDashboard() {
                             </div>
                         </div>
 
+                        {/* Union Hold Rate */}
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Union Rake Hold Rate (%)</label>
+                            <input type="number" value={unionHoldRate} onChange={e => setUnionHoldRate(e.target.value)}
+                                min="0" max="100" placeholder="10"
+                                style={{ width: 140, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                            <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 4 }}>
+                                Percentage of total rake retained by the union before agent commissions.
+                            </div>
+                        </div>
+
                         {/* BBJ Split Config */}
                         <div style={{ marginBottom: 16 }}>
                             <label style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, display: 'block', marginBottom: 8 }}>🎰 BBJ Split Percentages</label>
@@ -688,6 +699,7 @@ export default function UnionDashboard() {
                                     description: unionDesc,
                                     settings: {
                                         ...union?.settings,
+                                        union_rake_hold: parseFloat(unionHoldRate || '10') / 100,
                                         bbj_main_pct: parseInt(bbjMainPct),
                                         bbj_backup_pct: parseInt(bbjBackupPct),
                                         bbj_promo_pct: parseInt(bbjPromoPct),
