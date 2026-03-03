@@ -15,7 +15,7 @@ import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync'
 import {
   Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
-  LayoutGrid, UserCheck, Scale, UserPlus, Monitor,
+  LayoutGrid, UserCheck, UserPlus, Monitor,
   Hand, Star, Coffee, MessageSquare, Volume2, X
 } from 'lucide-react';
 
@@ -268,7 +268,7 @@ export default function TDControlCenter() {
         {(alerts.imbalanced || alerts.can_break_table || stats.late_reg_open) && (
           <div className="px-4 py-2 space-y-2">
             {alerts.imbalanced && (
-              <button onClick={() => navigateTo('balance')}
+              <button onClick={() => navigateTo('tables')}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl">
                 <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0" />
                 <span className="text-[#EF4444] text-sm font-medium flex-1 text-left">Tables Are Imbalanced</span>
@@ -276,7 +276,7 @@ export default function TDControlCenter() {
               </button>
             )}
             {alerts.can_break_table && (
-              <button onClick={() => navigateTo('balance')}
+              <button onClick={() => navigateTo('tables')}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl">
                 <LayoutGrid className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
                 <span className="text-[#F59E0B] text-sm font-medium flex-1 text-left">A Table Can Be Broken</span>

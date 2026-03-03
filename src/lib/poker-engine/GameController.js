@@ -523,8 +523,10 @@ class GameController {
     const result = entry.table.sitDown(playerId, seatIndex, buyIn, playerInfo);
 
     if (result.success) {
-      // Track AI sessions (Phase 2 feature)
-      HorsePokerBrain.recordSitDown(tableId, playerId, buyIn);
+      // Track AI sessions ONLY for horses (Phase 2 feature)
+      HorsePokerBrain.isHorse(String(playerId)).then(isAI => {
+        if (isAI) HorsePokerBrain.recordSitDown(tableId, String(playerId), buyIn);
+      }).catch(() => { });
 
       // Broadcast via RealtimeSync
       this._broadcastTableState(tableId);
@@ -690,8 +692,10 @@ class GameController {
 
     const result = entry.table.addChips(playerId, amount);
     if (result.success) {
-      // Track AI rebuy/add-on stats (Phase 2 feature)
-      HorsePokerBrain.recordRebuy(tableId, playerId, amount);
+      // Track AI rebuy/add-on stats ONLY for horses (Phase 2 feature)
+      HorsePokerBrain.isHorse(String(playerId)).then(isAI => {
+        if (isAI) HorsePokerBrain.recordRebuy(tableId, String(playerId), amount);
+      }).catch(() => { });
     }
     return result;
   }

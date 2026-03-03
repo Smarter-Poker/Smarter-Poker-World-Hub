@@ -12,7 +12,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
-  Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
+  Trophy, LayoutGrid, Users, Monitor,
   Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw,
   Maximize, Minimize, Coffee, Hand, Star, Volume2,
   Plus, Minus, Clock as ClockIcon, AlertTriangle
@@ -20,10 +20,9 @@ import {
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
-  { key: 'players', path: '/players' }, { key: 'balance', path: '/balance' },
-  { key: 'register', path: '/register' }, { key: 'clock', path: '/clock' },
+  { key: 'players', path: '/players' }, { key: 'clock', path: '/clock' },
 ];
-const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, balance: Scale, register: UserPlus, clock: Monitor };
+const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, clock: Monitor };
 
 function formatClockTime(seconds) {
   if (!seconds && seconds !== 0) return '--:--';

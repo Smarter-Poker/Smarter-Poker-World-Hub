@@ -461,11 +461,15 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         }
 
         // Classify hand type for timing tells
-        const strength = getPreflopStrength(handStr);
-        if (strength >= 75) {
-            handType = 'strong';
-        } else if ((finalAction === 'raise' || finalAction === 'bet') && strength < 40) {
-            handType = 'bluff';
+        // On postflop streets, preflop strength is less relevant, so use GTO confidence
+        const preflopStrength = getPreflopStrength(handStr);
+        if (street === 'preflop') {
+            if (preflopStrength >= 75) handType = 'strong';
+            else if ((finalAction === 'raise' || finalAction === 'bet') && preflopStrength < 40) handType = 'bluff';
+        } else {
+            // Postflop: classify based on action + GTO confidence
+            if (gtoDecision.confidence && gtoDecision.confidence > 0.7) handType = 'strong';
+            else if ((finalAction === 'raise' || finalAction === 'bet') && (!gtoDecision.confidence || gtoDecision.confidence < 0.3)) handType = 'bluff';
         }
 
         // Apply REAL tilt overlay (Phase 3A #1)
@@ -476,7 +480,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
                 // Tilted horses make suboptimal plays
                 if (tiltLevel >= 3 && adv.getImageAdjustedAction) {
-                    const adjusted = adv.getImageAdjustedAction(profileId, finalAction, strength / 100);
+                    const adjusted = adv.getImageAdjustedAction(profileId, finalAction, preflopStrength / 100);
                     if (adjusted && adjusted !== finalAction) {
                         console.log(`[HorseBrain] 🔥 Tilt override: ${finalAction} → ${adjusted} (tilt=${tiltLevel.toFixed(1)})`);
                         finalAction = adjusted;
@@ -528,11 +532,13 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
     // --- 6. COMPUTE TIMING DELAY (Phase 3A #8 - Personality Timing Tells) ---
     let delayMs;
+    let usedAdvancedTiming = false;
     try {
         const adv = await getAdvancedModule();
         if (adv?.getActionDelay) {
             // Use personality timing tells from Advanced module
             delayMs = adv.getActionDelay(profileId, handType);
+            usedAdvancedTiming = true;
         } else {
             delayMs = getActionDelay(profileId, validAction.type, street === 'preflop');
         }
@@ -540,8 +546,8 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         delayMs = getActionDelay(profileId, validAction.type, street === 'preflop');
     }
 
-    // Street factor: preflop is faster
-    if (street === 'preflop') delayMs *= 0.7;
+    // Only apply preflop speedup if we used the basic delay (Advanced module already accounts for it)
+    if (!usedAdvancedTiming && street === 'preflop') delayMs *= 0.7;
 
     // Clamp to human-realistic range
     delayMs = Math.round(Math.max(800, Math.min(7000, delayMs)));
@@ -770,6 +776,13 @@ async function evaluateSessions(gameController, tableManager) {
         const session = tableSessions.get(playerId);
         if (!session) continue;
 
+        // Belt-and-suspenders: verify this is actually a horse
+        const isAI = await isHorse(playerId);
+        if (!isAI) {
+            tableSessions.delete(playerId); // Clean up stale human entry
+            continue;
+        }
+
         // 1. Update Daily Playtime
         let daily = dailyPlayTracker.get(playerId);
         if (!daily || daily.dateString !== today) {
@@ -795,9 +808,18 @@ async function evaluateSessions(gameController, tableManager) {
             const minutesPlayed = (now - session.startTime) / 60000;
             const currentStack = seat.stack;
 
-            // Note: We need getPreflopStrength/makeDecision for tilt, but let's approximate tilt.
-            // Tilt scales up slightly if they are stuck buyins.
-            const estimatedTilt = session.buyinsUsed > 1 && currentStack <= 0 ? 0.95 : 0.1;
+            // Use real tilt level from Advanced module instead of estimate
+            let estimatedTilt = 0.1;
+            try {
+                const adv = await getAdvancedModule();
+                if (adv?.getTiltLevel) {
+                    // getTiltLevel returns 0-10, shouldCashOut expects 0-1
+                    estimatedTilt = adv.getTiltLevel(playerId) / 10;
+                }
+            } catch (_) {
+                // Fall back to session-based estimate
+                estimatedTilt = session.buyinsUsed > 1 && currentStack <= 0 ? 0.95 : 0.1;
+            }
 
             const { shouldLeave, reason } = personality.shouldCashOut(
                 playerId,

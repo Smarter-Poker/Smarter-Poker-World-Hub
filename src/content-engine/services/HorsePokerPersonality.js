@@ -312,13 +312,21 @@ export function getStakesPreference(profileId) {
  */
 export function getSessionProfile(profileId) {
     const hash = getHorseHash(profileId);
+    const style = getPlayStyle(profileId);
+
+    // maxBuyins varies by play style:
+    //   Nit/TAG = 2 buy-ins, LAG = 3, Maniac = 5, Fish/Calling Station = 4
+    const buyinLimits = { TAG: 2, nit: 2, LAG: 3, maniac: 5, calling_station: 4 };
+    const maxBuyins = buyinLimits[style.key] || 3;
 
     return {
         preferredHours: getPreferredPlayHours(hash),
         avgSessionLength: 30 + (hash % 90), // 30-120 minutes
+        typicalLengthMin: 30 + (hash % 90),  // alias used by shouldCashOut
         tablesPerSession: 1 + (hash % 4),   // 1-4 tables
         daysActivePerWeek: 2 + (hash % 5),  // 2-6 days
-        breakFrequency: 0.1 + (hash % 20) / 100 // 10-30% chance of break
+        breakFrequency: 0.1 + (hash % 20) / 100, // 10-30% chance of break
+        maxBuyins
     };
 }
 
@@ -532,6 +540,53 @@ export function shouldLeaveTable(profileId, sessionState) {
     return { shouldLeave: false, reason: 'Continuing session' };
 }
 
+/**
+ * Advanced cashout logic — evaluates whether a horse should cash out after each hand.
+ * @param {string} profileId - Horse profile UUID
+ * @param {number} currentStack - Current chip stack
+ * @param {number} startingStack - Stack when session started
+ * @param {number} minutesPlayed - Minutes in current session
+ * @param {number} buyinsUsed - Number of buy-ins used this session
+ * @param {number} tiltLevel - Current tilt level 0-1 scale
+ * @returns {{ shouldLeave: boolean, reason: string }}
+ */
+export function shouldCashOut(profileId, currentStack, startingStack, minutesPlayed, buyinsUsed, tiltLevel) {
+    const session = getSessionProfile(profileId);
+    const tiltFactor = getTiltFactor(profileId);
+
+    // 1. Hit-and-Run: Lock up profit if stack > 2.5x original buy-in
+    if (currentStack > startingStack * 2.5) {
+        // Higher skill players are less likely to hit-and-run
+        const skill = getSkillTier(profileId);
+        const hitRunChance = skill.level >= 4 ? 0.15 : 0.40;
+        if (Math.random() < hitRunChance) {
+            return { shouldLeave: true, reason: 'hit_and_run' };
+        }
+    }
+
+    // 2. Stop-Loss: Leave if used too many buy-ins
+    if (buyinsUsed >= session.maxBuyins && currentStack <= startingStack * 0.5) {
+        return { shouldLeave: true, reason: 'stop_loss' };
+    }
+
+    // 3. Session Boredom: Leave if past typical session length
+    if (minutesPlayed >= session.typicalLengthMin) {
+        // Gradually increasing chance to leave (10% at session end, 80% at 2x session)
+        const overTime = minutesPlayed / session.typicalLengthMin;
+        const leaveChance = Math.min(0.8, (overTime - 1) * 0.35 + 0.1);
+        if (Math.random() < leaveChance) {
+            return { shouldLeave: true, reason: 'session_length' };
+        }
+    }
+
+    // 4. Tilt Quit: Leave if heavily tilted
+    if (tiltLevel >= 0.9 && tiltFactor > 0.5) {
+        return { shouldLeave: true, reason: 'tilt_quit' };
+    }
+
+    return { shouldLeave: false, reason: 'continuing' };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLE CHAT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -581,6 +636,7 @@ export default {
     makeDecision,
     shouldSitAtTable,
     shouldLeaveTable,
+    shouldCashOut,
     getTableChat,
     PLAY_STYLES,
     SKILL_TIERS,

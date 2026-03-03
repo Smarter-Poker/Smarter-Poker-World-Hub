@@ -12,7 +12,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
-  Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
+  Trophy, LayoutGrid, Users, Monitor,
   X, ChevronRight, AlertTriangle, Loader2, RefreshCw,
   ArrowRightLeft, UserX, Coins, Printer
 } from 'lucide-react';

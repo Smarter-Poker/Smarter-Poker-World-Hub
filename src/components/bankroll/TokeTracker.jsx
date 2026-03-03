@@ -769,38 +769,37 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         style={styles.modalOverlay}
                     >
                         <motion.div
+                            id="toke-pure-modal"
                             className="toke-modal-card"
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             style={styles.modalCard}
                         >
                             <style>{`
-                                body .bankroll-page div.toke-modal-card,
-                                body.world-bankroll-manager div.toke-modal-card {
+                                #toke-pure-modal.toke-modal-card {
                                     border: none !important;
                                     box-shadow: none !important;
                                     background-color: transparent !important;
                                 }
-                                body .bankroll-page button.toke-img-map-element,
-                                body .bankroll-page input.toke-img-map-element,
-                                body .bankroll-page select.toke-img-map-element,
-                                body.world-bankroll-manager button.toke-img-map-element,
-                                body.world-bankroll-manager input.toke-img-map-element,
-                                body.world-bankroll-manager select.toke-img-map-element {
+                                #toke-pure-modal button.toke-img-map-element,
+                                #toke-pure-modal input.toke-img-map-element,
+                                #toke-pure-modal select.toke-img-map-element {
                                     border: none !important;
                                     outline: none !important;
                                     box-shadow: none !important;
                                     background-color: transparent !important;
                                     -webkit-tap-highlight-color: transparent !important;
+                                    -webkit-appearance: none !important;
+                                    appearance: none !important;
                                 }
-                                body .bankroll-page button.toke-img-map-element:focus,
-                                body .bankroll-page button.toke-img-map-element:hover,
-                                body .bankroll-page button.toke-img-map-element:active {
+                                #toke-pure-modal button.toke-img-map-element:focus,
+                                #toke-pure-modal button.toke-img-map-element:hover,
+                                #toke-pure-modal button.toke-img-map-element:active {
                                     border: none !important;
                                     outline: none !important;
                                     box-shadow: none !important;
                                     background-color: transparent !important;
                                 }
-                                body .bankroll-page select.toke-img-map-element option {
+                                #toke-pure-modal select.toke-img-map-element option {
                                     background-color: #1a1a1a !important;
                                     color: #fff !important;
                                 }
@@ -1154,6 +1153,7 @@ const styles = {
     },
     imgMapBtn: {
         position: 'absolute', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none',
+        WebkitAppearance: 'none', appearance: 'none',
         WebkitTapHighlightColor: 'rgba(0,0,0,0)', boxShadow: 'none'
     },
     imgMapInput: {
