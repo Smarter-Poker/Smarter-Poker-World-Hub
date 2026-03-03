@@ -620,7 +620,7 @@ function evaluatePostflopHand(holeCards, board) {
         const tripRank = Object.keys(rankCounts).find(r => rankCounts[r] === 3);
         if (tripRank && heroRanks.includes(Number(tripRank))) {
             const boardHasTrip = boardRanks.filter(r => r === Number(tripRank)).length >= 2;
-            strength = boardHasTrip ? 55 : 65; // Set vs. trips
+            strength = boardHasTrip ? 55 : 80; // Set vs. trips (sets are very strong)
             category = boardHasTrip ? 'trips' : 'set';
         }
     }
@@ -1151,7 +1151,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
             // GUARDRAIL 2: Bet strong hands when not facing action
             // Override GTO 'check' with 'bet' if hand strength >= 65 (strong made hand)
-            if (finalAction === 'check' && !facingBet && handEval.strength >= 65) {
+            if (finalAction === 'check' && !facingBet && handEval.strength >= 60) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                 if (raiseAction) {
                     const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
@@ -1321,6 +1321,45 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         const fallback = makeFallbackDecision(profileId, adaptedState, legalActions);
         finalAction = fallback.type;
         finalAmount = fallback.amount;
+    }
+
+    // --- 4b. UNIVERSAL HAND STRENGTH GUARDRAILS ---
+    // These apply to BOTH GTO and fallback decisions to prevent egregious mistakes
+    if (street !== 'preflop' && finalAction) {
+        const handEval = evaluatePostflopHand(holeCardStrings, boardStrings);
+        const drawEq = getDrawEquity(handEval, street);
+        const facingBet = toCall > 0;
+
+        // Fold garbage facing a bet (unless pot odds are amazing)
+        if (finalAction === 'call' && facingBet && handEval.strength < 15 && drawEq.outs === 0) {
+            const potOdds = toCall / (potSize + toCall);
+            if (potOdds >= 0.20) {
+                finalAction = 'fold';
+                finalAmount = null;
+            }
+        }
+
+        // Bet strong hands when not facing action
+        if ((finalAction === 'check') && !facingBet && handEval.strength >= 60) {
+            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+            if (raiseAction && Math.random() < 0.70) { // 70% bet frequency for strong hands
+                const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+                const betSize = Math.round(potSize * sizeFrac);
+                finalAction = raiseAction.type;
+                finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+            }
+        }
+
+        // Value bet the river with medium-strong+ hands
+        if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
+            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+            if (raiseAction && Math.random() < 0.65) {
+                const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false);
+                const betSize = Math.round(potSize * sizeFrac);
+                finalAction = raiseAction.type;
+                finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+            }
+        }
     }
 
     // --- 5. APPLY FATIGUE OVERLAY (#22) ---

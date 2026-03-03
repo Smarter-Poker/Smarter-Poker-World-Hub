@@ -504,6 +504,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             <span style={{ ...styles.reportStatValue, color: '#f59e0b' }}>{formatCurrency(stats.totalTokes)}</span>
                         </div>
                         <div style={styles.reportStat}>
+                            <span style={styles.reportStatLabel}>Expenses</span>
+                            <span style={{ ...styles.reportStatValue, color: '#ef4444' }}>{formatCurrency(stats.totalExpenses || 0)}</span>
+                        </div>
+                        <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Hourly Pay</span>
                             <span style={styles.reportStatValue}>{formatCurrency(stats.hourlyPay)}</span>
                         </div>
@@ -531,6 +535,24 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             <span style={styles.breakdownItem}>Double Downs: {stats.doubleDownCount}</span>
                         </div>
                     </div>
+
+                    {/* Expenses Breakdown */}
+                    {selectedReport.expenses && selectedReport.expenses.length > 0 && (
+                        <div style={{ ...styles.reportBreakdown, marginTop: 12 }}>
+                            <h4 style={styles.reportBreakdownTitle}>Expense Breakdown</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {selectedReport.expenses.map(exp => (
+                                    <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                                        <span style={{ color: '#B0B3B8', fontSize: 13 }}>
+                                            {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
+                                            {exp.description && ` — ${exp.description}`}
+                                        </span>
+                                        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -656,6 +678,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                     {down.is_double_down && ' (x2)'}
                                                 </span>
                                                 {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
+                                                {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
                                                 {down.table_number && <span style={styles.downDetail}>T{down.table_number}</span>}
                                                 <span style={styles.downTime}>
                                                     {new Date(down.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}

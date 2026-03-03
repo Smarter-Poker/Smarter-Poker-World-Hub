@@ -481,7 +481,6 @@ export default function ClockDisplay() {
                 {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
 
                 <div style={S.blindsBlock}>
-                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
                   <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
                   <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
                     {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
@@ -491,7 +490,7 @@ export default function ClockDisplay() {
 
                 {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
                   <div style={S.nextRound}>
-                    <strong>Next Round:</strong> {gameType}<br />
+                    <strong>Next Round</strong><br />
                     Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
                     {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
                   </div>
@@ -504,7 +503,7 @@ export default function ClockDisplay() {
                       <div key={i} style={S.top3Row}>
                         <span style={{ fontSize: 35, fontWeight: 800, opacity: 0.5, minWidth: 30 }}>{i + 1}</span>
                         <span style={{ flex: 1, fontSize: 35, fontWeight: 700 }}>{player.name || 'Player'}</span>
-                        <span style={{ fontSize: 35, fontWeight: 800, color: '#31A24C' }}>{formatChipCount(player.chips)}</span>
+                        <span style={{ fontSize: 35, fontWeight: 800, color: '#FFFFFF' }}>{formatChipCount(player.chips)}</span>
                       </div>
                     ))}
                   </div>
@@ -550,7 +549,7 @@ export default function ClockDisplay() {
                     <span key={i} style={S.sportsTickerItem}>
                       <span style={{ opacity: 0.5, fontWeight: 800 }}>{i + 1}.</span>{' '}
                       <span style={{ fontWeight: 700 }}>{player.name || 'Player'}</span>{' '}
-                      <span style={{ color: '#31A24C', fontWeight: 800 }}>{formatChipCount(player.chips)}</span>
+                      <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{formatChipCount(player.chips)}</span>
                     </span>
                   ))}
                 </div>
@@ -808,8 +807,8 @@ const S = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '4px 8px', textAlign: 'center'
   },
-  statLabel: { fontSize: 13, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
-  statValue: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
+  statLabel: { fontSize: 18, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
+  statValue: { fontSize: 28, fontWeight: 700, lineHeight: 1.3 },
   timer: {
     fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,

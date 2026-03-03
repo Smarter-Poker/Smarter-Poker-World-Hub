@@ -27,7 +27,9 @@ export interface TokeGig {
     totalTokes?: number;
     totalDowns?: number;
     totalHoursWorked?: number;
+    totalExpenses?: number;
     downs?: TokeDown[];
+    expenses?: TokeExpense[];
 }
 
 export interface TokeDown {
