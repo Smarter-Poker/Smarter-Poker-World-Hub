@@ -96,7 +96,7 @@ export default function DiamondArenaTableSettings() {
                                 width: '100%'
                             }}
                         >
-                            Save Settings
+                            Back to Diamond Arena
                         </button>
                     </div>
                 </div>

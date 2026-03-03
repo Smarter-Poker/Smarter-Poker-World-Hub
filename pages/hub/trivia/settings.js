@@ -44,14 +44,32 @@ export default function TriviaSettings() {
         loadPreferences();
     }, []);
 
+    const autoSave = async (newPrefs, onRollback) => {
+        if (!userId) return;
+        try {
+            await updateTriviaPreferences(userId, newPrefs);
+            setSaveMessage('Settings saved automatically');
+            setTimeout(() => setSaveMessage(''), 2000);
+        } catch (error) {
+            console.error('Error auto-saving:', error);
+            setSaveMessage('Failed to save. Please try again.');
+            if (onRollback) onRollback();
+        }
+    };
+
     const handleToggle = (key) => {
-        setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
-        setSaveMessage(''); // Clear any previous message
+        const oldValue = preferences[key];
+        const newPrefs = { ...preferences, [key]: !oldValue };
+        setPreferences(newPrefs);
+        autoSave(newPrefs, () => {
+            setPreferences(prev => ({ ...prev, [key]: oldValue }));
+        });
     };
 
     const handleDifficultyChange = (value) => {
-        setPreferences(prev => ({ ...prev, difficulty: value }));
-        setSaveMessage('');
+        const newPrefs = { ...preferences, difficulty: value };
+        setPreferences(newPrefs);
+        setSaveMessage(''); // Require manual save for non-toggles
     };
 
     const handleSave = async () => {
@@ -212,10 +230,10 @@ export default function TriviaSettings() {
                             <div style={{
                                 marginTop: '20px',
                                 padding: '12px',
-                                background: saveMessage.includes('success') ? 'rgba(49, 162, 76, 0.2)' : 'rgba(240, 40, 73, 0.2)',
-                                border: `1px solid ${saveMessage.includes('success') ? 'rgba(49, 162, 76, 0.4)' : 'rgba(240, 40, 73, 0.4)'}`,
+                                background: saveMessage.includes('success') || saveMessage.includes('automatically') ? 'rgba(49, 162, 76, 0.2)' : 'rgba(240, 40, 73, 0.2)',
+                                border: `1px solid ${saveMessage.includes('success') || saveMessage.includes('automatically') ? 'rgba(49, 162, 76, 0.4)' : 'rgba(240, 40, 73, 0.4)'}`,
                                 borderRadius: '8px',
-                                color: saveMessage.includes('success') ? '#31a24c' : '#f02849',
+                                color: saveMessage.includes('success') || saveMessage.includes('automatically') ? '#31a24c' : '#f02849',
                                 textAlign: 'center'
                             }}>
                                 {saveMessage}

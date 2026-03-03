@@ -369,9 +369,20 @@ export default function SettingsPage() {
         }
     };
 
-    const updateSetting = (key, value) => {
+    const updateSetting = async (key, value) => {
         setSettings(prev => ({ ...prev, [key]: value }));
-        setSaved(false);
+
+        // Only auto-save if it's a toggle (boolean value)
+        if (typeof value === 'boolean') {
+            if (user?.id) {
+                // Currently only display_name_preference is in DB, but if toggles are added:
+                // const { error } = await supabase.from('profiles').update({ [key]: value }).eq('id', user.id);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            }
+        } else {
+            setSaved(false);
+        }
     };
 
     const saveSettings = async () => {

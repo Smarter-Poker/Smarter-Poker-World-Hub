@@ -187,9 +187,37 @@ export default function CommanderSettingsPage() {
     }
   }
 
-  function handleToggle(key) {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
-    setIsDirty(true);
+  async function handleToggle(key) {
+    const newValue = !settings[key];
+    setSettings(prev => ({ ...prev, [key]: newValue }));
+
+    // Auto-save toggle instantly
+    try {
+      const staffSession = localStorage.getItem('commander_staff');
+      const res = await fetch('/api/commander/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+        body: JSON.stringify({ [key]: newValue })
+      });
+      const data = await res.json();
+      if (data.success) {
+        broadcastChange('settings');
+        if (key === 'security_gate_enabled') {
+          localStorage.setItem('commander_security_gate', newValue === false ? 'off' : 'on');
+        }
+      } else {
+        // Rollback on server error
+        setSettings(prev => ({ ...prev, [key]: !newValue }));
+        setError(typeof data.error === 'string' ? data.error : 'Failed to save toggle');
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to auto-save toggle', err);
+      // Rollback on network error
+      setSettings(prev => ({ ...prev, [key]: !newValue }));
+      setError('Network error saving toggle');
+      setTimeout(() => setError(null), 3000);
+    }
   }
 
   function handleChange(key, value) {

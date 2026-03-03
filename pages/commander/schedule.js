@@ -10,7 +10,7 @@
  * - Send schedule to all staff via SMS/Email
  * - 6 months of demo data for Dealers, Floor, Cashier, Security
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
@@ -19,7 +19,7 @@ import {
   CheckCircle2, Shield
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -75,6 +75,12 @@ const ROLE_FILTERS = [
   { value: 'brush', label: 'Brush', color: '#8B5CF6' },
 ];
 
+// Title Case helper — capitalize first letter of every word
+function titleCase(str) {
+  if (!str) return '';
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const ROLE_COLORS = {
   owner: '#7C3AED', manager: '#2563EB', floor: '#059669',
   cashier: '#D97706', brush: '#8B5CF6', dealer: '#6B7280',
@@ -86,26 +92,26 @@ const ROLE_COLORS = {
 // ═══════════════════════════════════════════════════════════════
 
 const MOCK_STAFF = [
-  // Dealers
+  // Dealers — Club JAQK Demo Staff
   { id: 'demo-d1', display_name: 'Marcus Chen', role: 'dealer', is_active: true },
   { id: 'demo-d2', display_name: 'Sarah Williams', role: 'dealer', is_active: true },
   { id: 'demo-d3', display_name: 'Jake Morrison', role: 'dealer', is_active: true },
   { id: 'demo-d4', display_name: 'Lisa Park', role: 'dealer', is_active: true },
   { id: 'demo-d5', display_name: 'Tommy Nguyen', role: 'dealer', is_active: true },
   { id: 'demo-d6', display_name: 'Rachel Adams', role: 'dealer', is_active: true },
-  // Floor
+  // Floor — Club JAQK Demo Staff
   { id: 'demo-f1', display_name: 'Mike Torres', role: 'floor', is_active: true },
   { id: 'demo-f2', display_name: 'Diana Reyes', role: 'floor', is_active: true },
   { id: 'demo-f3', display_name: 'Chris Banks', role: 'floor', is_active: true },
-  // Cashier
+  // Cashier — Club JAQK Demo Staff
   { id: 'demo-c1', display_name: 'Amy Rodriguez', role: 'cashier', is_active: true },
   { id: 'demo-c2', display_name: 'Kevin Patel', role: 'cashier', is_active: true },
   { id: 'demo-c3', display_name: 'Nina Foster', role: 'cashier', is_active: true },
-  // Security
+  // Security — Club JAQK Demo Staff
   { id: 'demo-s1', display_name: 'Ray Johnson', role: 'security', is_active: true },
   { id: 'demo-s2', display_name: 'Victor Cruz', role: 'security', is_active: true },
   { id: 'demo-s3', display_name: 'Tony Martinez', role: 'security', is_active: true },
-  // Manager
+  // Manager — Club JAQK Demo Staff
   { id: 'demo-m1', display_name: 'Daniel Bekavac', role: 'manager', is_active: true },
 ];
 
@@ -225,6 +231,12 @@ export default function StaffSchedule() {
   const [toast, setToast] = useState(null);
   const [usingMockData, setUsingMockData] = useState(false);
 
+  // Post-write cooldown — suppress Supabase Realtime echo after local writes
+  // When we create/delete a shift, the DB change fires a Realtime event
+  // back to this same tab. Without this guard, we get a double-fetch.
+  const lastWriteRef = useRef(0);
+  const WRITE_COOLDOWN_MS = 2000;
+
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
   const getVenueId = () => {
@@ -259,8 +271,10 @@ export default function StaffSchedule() {
         : [];
       const activeStaff = rawStaff.filter(s => s.is_active !== false);
 
-      // If no real staff or shifts, use mock data as demo
-      if (activeStaff.length === 0 && realShifts.length === 0) {
+      // Only fall back to mock data if NO real staff exist at all
+      // This ensures linked venues (e.g. Club JAQK) always show real staff
+      // even when they have zero shifts for the selected week
+      if (activeStaff.length === 0) {
         setAllStaff(MOCK_STAFF);
         setShifts(generateMockShifts());
         setUsingMockData(true);
@@ -282,7 +296,17 @@ export default function StaffSchedule() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Commander Data Bus — sync staff/schedule across tabs
-  useCommanderSync(getVenueId(), fetchData, { entities: ['staff'] });
+  // Listen for both 'staff' changes (new employees) and 'settings' changes (schedule shifts)
+  // Use a guarded callback to skip Supabase echo refetches within WRITE_COOLDOWN_MS of a local write
+  const guardedFetch = useCallback(() => {
+    const elapsed = Date.now() - lastWriteRef.current;
+    if (elapsed < WRITE_COOLDOWN_MS) {
+      // Skip — this is a Supabase echo from our own write
+      return;
+    }
+    fetchData();
+  }, [fetchData]);
+  useCommanderSync(getVenueId(), guardedFetch, { entities: ['staff', 'settings'] });
 
   // Navigation
   const changeWeek = (delta) => {
@@ -317,9 +341,11 @@ export default function StaffSchedule() {
       });
       const result = await res.json();
       if (result.success) {
+        lastWriteRef.current = Date.now();
+        broadcastChange('staff');
         fetchData();
         setShowAddModal(false);
-        showToast('Shift added', 'success');
+        showToast('Shift Added', 'success');
       } else {
         showToast(result.error?.message || 'Failed to add shift', 'error');
       }
@@ -343,8 +369,10 @@ export default function StaffSchedule() {
       });
       const result = await res.json();
       if (result.success) {
+        lastWriteRef.current = Date.now();
+        broadcastChange('staff');
         fetchData();
-        showToast('Shift deleted', 'success');
+        showToast('Shift Deleted', 'success');
       }
     } catch (err) {
       showToast('Failed to delete', 'error');
@@ -400,32 +428,33 @@ export default function StaffSchedule() {
 
   return (
     <CommanderLayout title="Staff Schedule" backHref="/commander/dashboard?card=staff">
-      <SEOHead title="Commander — Staff Schedule" description="Weekly staff scheduling for Club Commander." noindex={true} />
+      <SEOHead title="Commander — Staff Schedule" description="Weekly Staff Scheduling For Club Commander." noindex={true} />
 
-      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      {/* ══ EXTERIOR FRAME — 2px border matching other Commander pages ══ */}
+      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', -apple-system, sans-serif", border: '2px solid #3A3B3C' }}>
 
-        {/* Demo banner */}
+        {/* Demo Banner */}
         {usingMockData && (
-          <div style={{ background: '#1877F215', borderBottom: '1px solid #1877F230', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: '#1877F215', borderBottom: '2px solid #1877F230', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertCircle size={14} color="#1877F2" />
-            <span style={{ fontSize: 12, color: '#1877F2', fontWeight: 600 }}>Demo Mode — Showing sample schedule data (6 months)</span>
+            <span style={{ fontSize: 12, color: '#1877F2', fontWeight: 600 }}>Demo Mode — Showing Sample Schedule Data (6 Months)</span>
           </div>
         )}
 
-        {/* Header bar */}
-        <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '12px 16px' }}>
+        {/* Header Bar */}
+        <div style={{ background: '#242526', borderBottom: '2px solid #3A3B3C', padding: '12px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Calendar size={20} color="#1877F2" />
               <h1 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: 0 }}>Staff Schedule</h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={fetchData} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }} title="Refresh">
+              <button onClick={fetchData} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: '1px solid #3A3B3C', cursor: 'pointer' }} title="Refresh">
                 <RefreshCw size={16} color="#B0B3B8" />
               </button>
               <button
                 onClick={() => setShowBroadcastModal(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: '#1877F2', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: '#1877F2', color: 'white', border: '1px solid #1877F280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 <Send size={14} />
                 <span>Send Schedule</span>
@@ -434,23 +463,23 @@ export default function StaffSchedule() {
           </div>
         </div>
 
-        {/* Week navigator */}
-        <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '8px 16px' }}>
+        {/* Week Navigator */}
+        <div style={{ background: '#242526', borderBottom: '2px solid #3A3B3C', padding: '8px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1200, margin: '0 auto' }}>
-            <button onClick={() => changeWeek(-1)} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => changeWeek(-1)} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: '1px solid #3A3B3C', cursor: 'pointer' }}>
               <ChevronLeft size={20} color="#B0B3B8" />
             </button>
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 16, fontWeight: 700, color: 'white', margin: 0 }}>{weekLabel}</p>
-              <button onClick={goToday} style={{ fontSize: 12, color: '#1877F2', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Today</button>
+              <button onClick={goToday} style={{ fontSize: 12, color: '#1877F2', fontWeight: 600, background: 'none', border: '1px solid #1877F240', borderRadius: 4, cursor: 'pointer', padding: '2px 8px' }}>Today</button>
             </div>
-            <button onClick={() => changeWeek(1)} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => changeWeek(1)} style={{ padding: 8, borderRadius: 8, background: 'transparent', border: '1px solid #3A3B3C', cursor: 'pointer' }}>
               <ChevronRight size={20} color="#B0B3B8" />
             </button>
           </div>
         </div>
 
-        {/* Stats bar */}
+        {/* Stats Bar */}
         <div style={{ padding: '12px 16px', maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', gap: 8 }}>
             {[
@@ -460,17 +489,17 @@ export default function StaffSchedule() {
               { value: allStaff.length, label: 'Total Staff', color: '#E4E6EB' },
             ].map((stat, i) => (
               <div key={i} style={{
-                flex: 1, background: `${stat.color}10`, border: `1px solid ${stat.color}30`,
+                flex: 1, background: `${stat.color}10`, border: `1px solid ${stat.color}40`,
                 borderRadius: 12, padding: '8px 12px', textAlign: 'center'
               }}>
                 <p style={{ fontSize: 18, fontWeight: 800, color: stat.color, margin: 0 }}>{stat.value}</p>
-                <p style={{ fontSize: 10, color: '#B0B3B8', margin: 0 }}>{stat.label}</p>
+                <p style={{ fontSize: 10, color: '#B0B3B8', margin: 0, textTransform: 'capitalize' }}>{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Role filter */}
+        {/* Role Filter */}
         <div style={{ padding: '0 16px 12px', maxWidth: 1200, margin: '0 auto', overflowX: 'auto' }}>
           <div style={{ display: 'flex', gap: 6, minWidth: 'max-content' }}>
             {ROLE_FILTERS.map(f => {
@@ -482,13 +511,13 @@ export default function StaffSchedule() {
                   onClick={() => setRoleFilter(f.value)}
                   style={{
                     padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                    cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    border: roleFilter === f.value ? `1px solid ${f.color}60` : '1px solid #4A4B4C',
                     background: roleFilter === f.value ? `${f.color}25` : '#3A3B3C',
                     color: roleFilter === f.value ? f.color : '#B0B3B8',
-                    outline: roleFilter === f.value ? `1px solid ${f.color}50` : 'none',
                   }}
                 >
-                  {f.label} ({count})
+                  {titleCase(f.label)} ({count})
                 </button>
               );
             })}
@@ -505,33 +534,35 @@ export default function StaffSchedule() {
             <Users size={48} color="#3A3B3C" style={{ margin: '0 auto 12px' }} />
             <p style={{ fontSize: 18, fontWeight: 700, color: 'white', margin: '0 0 4px' }}>No Staff Found</p>
             <p style={{ fontSize: 14, color: '#B0B3B8' }}>
-              {roleFilter !== 'all' ? 'Try a different role filter or ' : ''}
-              Add staff on the <button onClick={() => router.push('/commander/staff')} style={{ color: '#1877F2', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}>Staff Management</button> page.
+              {roleFilter !== 'all' ? 'Try A Different Role Filter Or ' : ''}
+              Add Staff On The <button onClick={() => router.push('/commander/staff')} style={{ color: '#1877F2', background: 'none', border: '1px solid #1877F240', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>Staff Management</button> Page.
             </p>
           </div>
         ) : (
           <div style={{ padding: '0 8px 96px', maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700, border: '1px solid #3A3B3C' }}>
                 <thead>
-                  <tr>
+                  <tr style={{ borderBottom: '2px solid #3A3B3C' }}>
                     <th style={{
-                      position: 'sticky', left: 0, background: '#18191A', zIndex: 10,
+                      position: 'sticky', left: 0, background: '#242526', zIndex: 10,
                       width: 150, padding: '8px', textAlign: 'left', fontSize: 11,
-                      fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1
+                      fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1,
+                      borderRight: '1px solid #3A3B3C'
                     }}>
                       Employee
                     </th>
                     {weekDays.map(day => (
                       <th key={day.date} style={{
                         padding: '8px 4px', textAlign: 'center', minWidth: 100,
-                        background: day.isToday ? '#1877F208' : 'transparent'
+                        background: day.isToday ? '#1877F210' : '#242526',
+                        borderRight: '1px solid #3A3B3C'
                       }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', margin: 0 }}>{day.label}</p>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', margin: 0 }}>{titleCase(day.label)}</p>
                         <p style={{ fontSize: 14, fontWeight: 800, color: day.isToday ? '#1877F2' : 'white', margin: 0 }}>{day.dayNum}</p>
                       </th>
                     ))}
-                    <th style={{ padding: '8px', textAlign: 'center', width: 64 }}>
+                    <th style={{ padding: '8px', textAlign: 'center', width: 64, background: '#242526' }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', margin: 0 }}>Hours</p>
                     </th>
                   </tr>
@@ -542,9 +573,9 @@ export default function StaffSchedule() {
                     const personHours = personWeekShifts.reduce((sum, s) => sum + shiftHours(s.start_time, s.end_time), 0);
                     const roleColor = ROLE_COLORS[person.role] || '#6B7280';
                     return (
-                      <tr key={person.id} style={{ borderTop: '1px solid #3A3B3C30' }}>
-                        {/* Staff name */}
-                        <td style={{ position: 'sticky', left: 0, background: '#18191A', zIndex: 10, padding: '8px' }}>
+                      <tr key={person.id} style={{ borderTop: '1px solid #3A3B3C' }}>
+                        {/* Staff Name */}
+                        <td style={{ position: 'sticky', left: 0, background: '#18191A', zIndex: 10, padding: '8px', borderRight: '1px solid #3A3B3C' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{
                               width: 28, height: 28, borderRadius: '50%', display: 'flex',
@@ -556,10 +587,10 @@ export default function StaffSchedule() {
                             </div>
                             <div style={{ minWidth: 0 }}>
                               <p style={{ fontSize: 13, fontWeight: 600, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>
-                                {person.display_name || person.name || 'Staff'}
+                                {titleCase(person.display_name || person.name || 'Staff')}
                               </p>
                               <p style={{ fontSize: 10, color: roleColor, margin: 0, textTransform: 'capitalize', fontWeight: 600 }}>
-                                {person.role || 'staff'}
+                                {titleCase(person.role || 'staff')}
                               </p>
                             </div>
                           </div>
@@ -570,7 +601,8 @@ export default function StaffSchedule() {
                           return (
                             <td key={day.date} style={{
                               padding: '4px', verticalAlign: 'top',
-                              background: day.isToday ? '#1877F208' : 'transparent'
+                              background: day.isToday ? '#1877F210' : 'transparent',
+                              borderRight: '1px solid #3A3B3C30'
                             }}>
                               {dayShifts.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -635,12 +667,12 @@ export default function StaffSchedule() {
               </table>
             </div>
 
-            {/* Add shift FAB */}
+            {/* Add Shift FAB */}
             <button
               onClick={() => { setAddDate(null); setAddStaffId(null); setShowAddModal(true); }}
               style={{
                 position: 'fixed', bottom: 24, right: 24, width: 56, height: 56,
-                borderRadius: '50%', background: '#1877F2', color: 'white', border: 'none',
+                borderRadius: '50%', background: '#1877F2', color: 'white', border: '2px solid #1877F280',
                 boxShadow: '0 4px 20px #1877F230', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', cursor: 'pointer', zIndex: 20
               }}
@@ -742,7 +774,7 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
-      <div style={{ background: '#242526', borderRadius: 16, width: '100%', maxWidth: 420, border: '1px solid #3A3B3C', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: '#242526', borderRadius: 16, width: '100%', maxWidth: 420, border: '2px solid #3A3B3C', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #3A3B3C' }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Plus size={20} color="#1877F2" /> Add Shift
@@ -755,11 +787,11 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
           {/* Employee picker */}
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 4 }}>Employee</label>
-            <select value={staffId} onChange={e => setStaffId(e.target.value)} style={inputStyle} required>
+            <select value={staffId} onChange={e => setStaffId(e.target.value)} style={{ ...inputStyle, border: '1px solid #4A4B4C' }} required>
               <option value="">Select Employee...</option>
               {allStaff.map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.display_name || s.name || 'Staff'} — {(s.role || 'staff').charAt(0).toUpperCase() + (s.role || 'staff').slice(1)}
+                  {titleCase(s.display_name || s.name || 'Staff')} — {titleCase(s.role || 'staff')}
                 </option>
               ))}
             </select>
@@ -788,17 +820,17 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
           {/* Quick presets */}
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 4 }}>Quick Presets</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
               {presets.map(p => (
                 <button key={p.label} type="button"
                   onClick={() => { setStartTime(p.start); setEndTime(p.end); }}
                   style={{
                     padding: '4px 10px', borderRadius: 16, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    border: 'none',
+                    border: startTime === p.start && endTime === p.end ? '1px solid #1877F260' : '1px solid #4A4B4C',
                     background: startTime === p.start && endTime === p.end ? '#1877F2' : '#3A3B3C',
                     color: startTime === p.start && endTime === p.end ? 'white' : '#B0B3B8',
                   }}>
-                  {p.label}
+                  {titleCase(p.label)}
                 </button>
               ))}
             </div>
@@ -833,11 +865,11 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
           {/* Submit */}
           <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, height: 48, background: '#3A3B3C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>
+              style={{ flex: 1, height: 48, background: '#3A3B3C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: '1px solid #4A4B4C', cursor: 'pointer' }}>
               Cancel
             </button>
             <button type="submit" disabled={saving || !staffId || !date}
-              style={{ flex: 1, height: 48, background: '#1877F2', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', opacity: (saving || !staffId || !date) ? 0.5 : 1 }}>
+              style={{ flex: 1, height: 48, background: '#1877F2', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: '1px solid #1877F280', cursor: 'pointer', opacity: (saving || !staffId || !date) ? 0.5 : 1 }}>
               {saving ? 'Adding...' : 'Add Shift'}
             </button>
           </div>
@@ -854,7 +886,7 @@ function AddShiftModal({ allStaff, defaultDate, defaultStaffId, weekDays, onClos
 function BroadcastModal({ weekLabel, totalShifts, staffCount, broadcasting, result, onSend, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
-      <div style={{ background: '#242526', borderRadius: 16, width: '100%', maxWidth: 380, border: '1px solid #3A3B3C', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: '#242526', borderRadius: 16, width: '100%', maxWidth: 380, border: '2px solid #3A3B3C', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #3A3B3C' }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Send size={20} color="#1877F2" /> Send Schedule
@@ -865,14 +897,14 @@ function BroadcastModal({ weekLabel, totalShifts, staffCount, broadcasting, resu
         </div>
 
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ background: '#18191A', borderRadius: 12, padding: 12, textAlign: 'center' }}>
+          <div style={{ background: '#18191A', borderRadius: 12, padding: 12, textAlign: 'center', border: '1px solid #3A3B3C' }}>
             <p style={{ fontSize: 13, color: '#B0B3B8', margin: '0 0 4px' }}>{weekLabel}</p>
-            <p style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: '0 0 4px' }}>{totalShifts} shifts</p>
-            <p style={{ fontSize: 12, color: '#B0B3B8', margin: 0 }}>for {staffCount} employees</p>
+            <p style={{ fontSize: 24, fontWeight: 800, color: 'white', margin: '0 0 4px' }}>{totalShifts} Shifts</p>
+            <p style={{ fontSize: 12, color: '#B0B3B8', margin: 0 }}>For {staffCount} Employees</p>
           </div>
 
           <p style={{ fontSize: 13, color: '#B0B3B8', textAlign: 'center', margin: 0 }}>
-            Each employee will receive their personal schedule.
+            Each Employee Will Receive Their Personal Schedule.
           </p>
 
           {result ? (
@@ -886,16 +918,16 @@ function BroadcastModal({ weekLabel, totalShifts, staffCount, broadcasting, resu
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button onClick={() => onSend('sms')} disabled={broadcasting}
-                style={{ height: 48, background: '#31A24C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: broadcasting ? 0.5 : 1 }}>
+                style={{ height: 48, background: '#31A24C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: '1px solid #31A24C80', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: broadcasting ? 0.5 : 1 }}>
                 {broadcasting ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <MessageSquare size={16} />}
-                {broadcasting ? 'Sending...' : 'Send via Text (SMS)'}
+                {broadcasting ? 'Sending...' : 'Send Via Text (SMS)'}
               </button>
               <button onClick={() => onSend('email')} disabled={broadcasting}
-                style={{ height: 48, background: '#3A3B3C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: broadcasting ? 0.5 : 1 }}>
-                <Mail size={16} /> Send via Email
+                style={{ height: 48, background: '#3A3B3C', color: 'white', borderRadius: 12, fontWeight: 600, fontSize: 14, border: '1px solid #4A4B4C', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: broadcasting ? 0.5 : 1 }}>
+                <Mail size={16} /> Send Via Email
               </button>
               <button onClick={() => onSend('both')} disabled={broadcasting}
-                style={{ height: 40, background: 'transparent', color: '#B0B3B8', borderRadius: 12, fontWeight: 600, fontSize: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                style={{ height: 40, background: 'transparent', color: '#B0B3B8', borderRadius: 12, fontWeight: 600, fontSize: 12, border: '1px solid #3A3B3C', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 Send Both (SMS + Email)
               </button>
             </div>
