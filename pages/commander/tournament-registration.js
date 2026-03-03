@@ -78,46 +78,120 @@ export default function TournamentRegistration() {
         setSearchResults([]);
     };
 
-    // Build a single receipt HTML page for a given copy type
-    const buildReceiptHtml = ({ copyLabel, playerName, tournamentName, buyinAmount, buyinFee, staffName }) => {
+    // Generate a unique transaction ID for receipts
+    const generateTxnId = (playerName) => {
+        const now = new Date();
+        const datePart = now.toISOString().replace(/[-T:\.Z]/g, '').slice(0, 14);
+        const initials = (playerName || 'XX').split(' ').map(w => w[0]?.toUpperCase() || '').join('').slice(0, 2);
+        return `TXN-${datePart}-${initials}`;
+    };
+
+    // Build a professional casino-grade receipt HTML (80mm thermal)
+    const buildReceiptHtml = ({
+        copyLabel, playerName, tournamentName, buyinAmount, buyinFee,
+        staffName, venueName, venueCity, venueState, scheduledStart,
+        startingChips, tableNumber, seatNumber, playerId, txnId
+    }) => {
         const total = (buyinAmount || 0) + (buyinFee || 0);
+        const startFormatted = scheduledStart
+            ? new Date(scheduledStart).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+            : 'TBD';
+        const nowFormatted = new Date().toLocaleString('en-US', {
+            month: '2-digit', day: '2-digit', year: 'numeric',
+            hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+        });
+        const chipsFormatted = startingChips ? parseInt(startingChips).toLocaleString() : null;
+
         return `<!DOCTYPE html><html><head><title>${copyLabel}</title>
 <style>
 @page { margin: 0; size: 80mm auto; }
-body { font-family: 'Courier New', monospace; margin: 0; padding: 0; }
+* { box-sizing: border-box; }
+body { font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0; color: #000; }
 .receipt { width: 72mm; padding: 4mm; margin: 0 auto; }
 .center { text-align: center; }
 .bold { font-weight: bold; }
-.big { font-size: 24px; }
-.med { font-size: 14px; }
-.sm { font-size: 11px; }
-.divider { border-top: 1px dashed #000; margin: 3mm 0; }
-.row { display: flex; justify-content: space-between; }
-.copy-label { font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+.venue-name { font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+.venue-loc { font-size: 10px; color: #555; margin-top: 1mm; }
+.copy-badge { font-size: 11px; font-weight: bold; letter-spacing: 2px; margin: 2mm 0; text-transform: uppercase; }
+.txn-type { font-size: 15px; font-weight: bold; letter-spacing: 1px; }
+.divider { border-top: 1px dashed #000; margin: 2.5mm 0; }
+.row { display: flex; justify-content: space-between; font-size: 11px; line-height: 1.6; }
+.row-label { color: #333; }
+.row-value { font-weight: bold; text-align: right; }
+.total { font-size: 28px; font-weight: bold; margin: 1mm 0; }
+.total-method { font-size: 11px; letter-spacing: 1px; color: #555; }
+.sm { font-size: 10px; color: #555; }
+.xs { font-size: 9px; color: #888; }
+.legal { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; margin-top: 1mm; }
+.footer-brand { font-size: 9px; color: #aaa; margin-top: 2mm; letter-spacing: 1px; }
 </style></head><body>
 <div class="receipt">
-<div class="center bold med">SMARTER.POKER</div>
-<div class="center sm">Tournament Registration Receipt</div>
-<div class="center copy-label" style="margin-top:2mm">-- ${copyLabel} --</div>
+
+<!-- Venue Header -->
+<div class="center venue-name">${venueName || 'POKER ROOM'}</div>
+${venueCity || venueState ? `<div class="center venue-loc">${[venueCity, venueState].filter(Boolean).join(', ')}</div>` : ''}
 <div class="divider"></div>
-<div class="center bold med">TOURNAMENT BUY-IN</div>
+
+<!-- Copy Label -->
+<div class="center copy-badge">* ${copyLabel} *</div>
 <div class="divider"></div>
-<div class="row sm"><span>Player:</span><span class="bold">${playerName}</span></div>
-<div class="row sm"><span>Tournament:</span><span class="bold">${tournamentName}</span></div>
-${staffName ? `<div class="row sm"><span>Processed By:</span><span class="bold">${staffName}</span></div>` : ''}
+
+<!-- Transaction Type -->
+<div class="center txn-type">TOURNAMENT BUY-IN</div>
 <div class="divider"></div>
-${buyinAmount > 0 ? `<div class="row sm"><span>Buy-in:</span><span>$${buyinAmount.toLocaleString()}</span></div>` : ''}
-${buyinFee > 0 ? `<div class="row sm"><span>Fee:</span><span>$${buyinFee.toLocaleString()}</span></div>` : ''}
-${total > 0 ? `<div class="divider"></div><div class="center bold big">$${total.toLocaleString()}</div><div class="center sm">CASH</div>` : '<div class="center bold big">REGISTERED</div>'}
+
+<!-- Event Details -->
+<div class="row"><span class="row-label">Event:</span><span class="row-value">${tournamentName}</span></div>
+<div class="row"><span class="row-label">Date:</span><span class="row-value">${startFormatted}</span></div>
+
+<!-- Player Info -->
 <div class="divider"></div>
-<div class="sm center" style="opacity:0.6">${new Date().toLocaleString()}</div>
-<div class="sm center copy-label" style="margin-top:2mm">-- ${copyLabel} --</div>
-<div class="sm center" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
+<div class="row"><span class="row-label">Player:</span><span class="row-value">${playerName}</span></div>
+${playerId ? `<div class="row"><span class="row-label">Member:</span><span class="row-value">#${String(playerId).slice(-6).toUpperCase()}</span></div>` : ''}
+
+<!-- Financial Breakdown -->
+<div class="divider"></div>
+${buyinAmount > 0 ? `<div class="row"><span class="row-label">Buy-In:</span><span class="row-value">$${buyinAmount.toLocaleString()}</span></div>` : ''}
+${buyinFee > 0 ? `<div class="row"><span class="row-label">Fee:</span><span class="row-value">$${buyinFee.toLocaleString()}</span></div>` : ''}
+${total > 0 ? `
+<div class="divider"></div>
+<div class="center total">$${total.toLocaleString()}</div>
+<div class="center total-method">CASH</div>
+` : '<div class="center total" style="font-size:20px">REGISTERED</div>'}
+
+<!-- Seat Assignment + Starting Chips -->
+${tableNumber || seatNumber || chipsFormatted ? `
+<div class="divider"></div>
+${tableNumber ? `<div class="row"><span class="row-label">Table:</span><span class="row-value">${tableNumber}</span></div>` : ''}
+${seatNumber ? `<div class="row"><span class="row-label">Seat:</span><span class="row-value">${seatNumber}</span></div>` : ''}
+${chipsFormatted ? `<div class="row"><span class="row-label">Starting Stack:</span><span class="row-value">${chipsFormatted}</span></div>` : ''}
+` : ''}
+
+<!-- Transaction Meta -->
+<div class="divider"></div>
+${txnId ? `<div class="row"><span class="row-label">Receipt #:</span><span class="row-value">${txnId}</span></div>` : ''}
+<div class="row"><span class="row-label">Date/Time:</span><span class="row-value">${nowFormatted}</span></div>
+${staffName ? `<div class="row"><span class="row-label">Cashier:</span><span class="row-value">${staffName}</span></div>` : ''}
+
+<!-- Legal Footer -->
+<div class="divider"></div>
+<div class="center legal">NON-TRANSFERABLE</div>
+<div class="center legal">Present receipt to dealer to receive chips</div>
+
+<!-- Copy Label Repeat + Venue Footer -->
+<div class="divider"></div>
+<div class="center copy-badge">* ${copyLabel} *</div>
+<div class="center footer-brand">${venueName || 'Smarter.Poker'}</div>
+
 </div></body></html>`;
     };
 
     // Rapid-fire print multiple receipt copies based on tournament settings
-    const printTournamentReceipts = ({ playerName, tournamentName, buyinAmount, buyinFee, staffName, receiptSettings }) => {
+    const printTournamentReceipts = ({
+        playerName, tournamentName, buyinAmount, buyinFee, staffName,
+        receiptSettings, venueName, venueCity, venueState,
+        scheduledStart, startingChips, tableNumber, seatNumber, playerId
+    }) => {
         // Default: all 3 copies if no settings defined
         const receipts = receiptSettings || { player: true, dealer: true, cage: true };
         const copies = [];
@@ -128,12 +202,18 @@ ${total > 0 ? `<div class="divider"></div><div class="center bold big">$${total.
         // If no copies selected, skip printing
         if (copies.length === 0) return;
 
+        const txnId = generateTxnId(playerName);
+
         // Print each copy with a staggered delay to avoid popup blocking
         copies.forEach((copyLabel, index) => {
             setTimeout(() => {
                 const printWindow = window.open('', '_blank', 'width=400,height=600');
                 if (!printWindow) return;
-                const html = buildReceiptHtml({ copyLabel, playerName, tournamentName, buyinAmount, buyinFee, staffName });
+                const html = buildReceiptHtml({
+                    copyLabel, playerName, tournamentName, buyinAmount, buyinFee,
+                    staffName, venueName, venueCity, venueState,
+                    scheduledStart, startingChips, tableNumber, seatNumber, playerId, txnId
+                });
                 printWindow.document.write(html);
                 printWindow.document.close();
                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
@@ -184,13 +264,20 @@ ${total > 0 ? `<div class="divider"></div><div class="center bold big">$${total.
             // 3. Auto-print registration receipts (Player/Dealer/Cashier copies per tournament settings)
             let staffName = '';
             try { staffName = JSON.parse(localStorage.getItem('commander_staff') || '{}').name || ''; } catch { }
+            const venue = selectedTournament.poker_venues || {};
             printTournamentReceipts({
                 playerName: selectedPlayer.player_name,
                 tournamentName: selectedTournament.name || 'Tournament',
                 buyinAmount,
                 buyinFee,
                 staffName,
-                receiptSettings: selectedTournament.settings?.receipts
+                receiptSettings: selectedTournament.settings?.receipts,
+                venueName: venue.name || '',
+                venueCity: venue.city || '',
+                venueState: venue.state || '',
+                scheduledStart: selectedTournament.scheduled_start,
+                startingChips: selectedTournament.starting_chips,
+                playerId: selectedPlayer.id
             });
 
             setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}${buyinAmount > 0 ? ` — $${buyinAmount} buy-in` : ''}` });
