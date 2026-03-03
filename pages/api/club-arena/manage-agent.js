@@ -290,7 +290,7 @@ export default async function handler(req, res) {
       // Demote in club_members
       await supabaseAdmin
         .from('club_members')
-        .update({ role: 'member', credit_limit: 0 })
+        .update({ role: 'player', credit_limit: 0 })
         .eq('club_id', clubId)
         .eq('user_id', targetUserId);
 

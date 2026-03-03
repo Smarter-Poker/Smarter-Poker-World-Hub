@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       'club_activity',
       'club_shop_purchases',
       'club_shop_items',
-      'hand_history',
+      'hand_histories',
       'tables',
       'union_clubs',
       'agents',

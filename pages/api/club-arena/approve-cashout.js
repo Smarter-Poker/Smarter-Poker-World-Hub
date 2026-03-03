@@ -246,8 +246,8 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
 
   try {
     const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
-      p_user_id: cashout.agent_id,
-      p_other_user_id: cashout.player_id,
+      user1_id: cashout.agent_id,
+      user2_id: cashout.player_id,
     });
     if (convId) {
       await supabaseAdmin.rpc('fn_send_message', {

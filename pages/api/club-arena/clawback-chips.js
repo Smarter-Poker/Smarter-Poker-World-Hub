@@ -72,8 +72,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Club ID mismatch' });
     }
 
-    // Must be a send transaction (distribution), not a cashout or other type
-    if (txn.transaction_type !== 'send' || txn.from_user_id === txn.to_user_id) {
+    // Must be an agent→player distribution, not a cashout or other type
+    const clawbackableTypes = ['agent_to_player', 'promo_agent_to_player', 'send'];
+    if (!clawbackableTypes.includes(txn.transaction_type) || txn.from_user_id === txn.to_user_id) {
       return res.status(400).json({ error: 'Can only clawback agent→player distributions' });
     }
 

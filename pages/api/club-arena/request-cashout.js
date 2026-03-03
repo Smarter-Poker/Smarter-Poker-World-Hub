@@ -170,8 +170,8 @@ export default async function handler(req, res) {
 
   try {
       const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
-        p_user_id: user.id,
-        p_other_user_id: member.agent_id,
+        user1_id: user.id,
+        user2_id: member.agent_id,
       });
       if (convId) {
         await supabaseAdmin.rpc('fn_send_message', {
