@@ -9,26 +9,30 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    // Require JWT auth for write operations
-    if (req.method !== 'GET') {
-        const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-        if (req.body) req.body.userId = _authUser.id;
-    }
     if (req.method !== 'DELETE' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Require JWT auth
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const authenticatedUserId = authUser.id;
     const { callId, callerId, calleeId } = req.body;
 
     try {
         let query = supabase.from('pending_calls').delete();
 
         if (callId) {
-            query = query.eq('id', callId);
+            // SECURITY: Only allow canceling a call if the authenticated user is the caller OR callee
+            query = query.eq('id', callId).or(`caller_id.eq.${authenticatedUserId},callee_id.eq.${authenticatedUserId}`);
         } else if (callerId && calleeId) {
+            // SECURITY: Verify the authenticated user is one of the parties
+            if (callerId !== authenticatedUserId && calleeId !== authenticatedUserId) {
+                return res.status(403).json({ error: 'Not authorized to cancel this call' });
+            }
             query = query.eq('caller_id', callerId).eq('callee_id', calleeId);
         } else {
             return res.status(400).json({ error: 'Missing callId or callerId+calleeId' });

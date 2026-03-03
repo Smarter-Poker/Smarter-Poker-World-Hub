@@ -1849,9 +1849,13 @@ export default function MessengerPage() {
             setMessages(prev => [...prev, typingMsg]);
 
             try {
+                const { data: { session: jarvisSession } } = await supabase.auth.getSession();
                 const response = await fetch('/api/geeves/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(jarvisSession?.access_token ? { Authorization: `Bearer ${jarvisSession.access_token}` } : {}),
+                    },
                     body: JSON.stringify({
                         message: content,
                         context: 'messenger',
