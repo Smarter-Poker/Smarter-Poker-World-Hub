@@ -61,6 +61,11 @@ export function useAssistantStats() {
     }
 
     fetchStats();
+
+    // 🔄 BUS LISTENER for real-time Stat updates
+    const handleUpdate = () => fetchStats();
+    window.addEventListener('pa-data-updated', handleUpdate);
+    return () => window.removeEventListener('pa-data-updated', handleUpdate);
   }, []);
 
   return { stats, isLoading, error };
@@ -121,6 +126,11 @@ export function useLeaks(statusFilter = null) {
 
   useEffect(() => {
     fetchLeaks();
+
+    // 🔄 BUS LISTENER for real-time Leak updates
+    const handleUpdate = () => fetchLeaks();
+    window.addEventListener('pa-data-updated', handleUpdate);
+    return () => window.removeEventListener('pa-data-updated', handleUpdate);
   }, [fetchLeaks]);
 
   const updateLeakStatus = async (leakId, newStatus) => {
@@ -136,7 +146,11 @@ export function useLeaks(statusFilter = null) {
       });
       const data = await response.json();
       if (data.success) {
-        await fetchLeaks(); // Refresh
+        // 📢 Dispatch BUS LISTENER update
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('pa-data-updated'));
+        }
+        await fetchLeaks(); // Refresh local hook state as well
       }
       return data;
     } catch (err) {
@@ -237,6 +251,11 @@ export function useSandboxAnalysis() {
           whyNot: data.whyNot,
           sessionId: data.sessionId,
         });
+
+        // 📢 Dispatch BUS LISTENER update (Sandbox affects Stats)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('pa-data-updated'));
+        }
       } else {
         setError(data.error || 'Analysis failed');
       }
@@ -367,6 +386,11 @@ export function useLeakDetection() {
           leaksDetected: data.leaksDetected,
           leaks: data.leaks,
         });
+
+        // 📢 Dispatch BUS LISTENER update (Leak finding affects Stats and Leak lists)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('pa-data-updated'));
+        }
       } else {
         setError(data.error || 'Detection failed');
       }

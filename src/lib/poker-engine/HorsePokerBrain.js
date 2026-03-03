@@ -281,7 +281,7 @@ async function getAdvancedModule() {
  * @returns {Object} Decision { type, amount? }
  */
 function makeFallbackDecision(profileId, gameState, legalActions) {
-    const { handStr, position, street, potSize, toCall, stackBB } = gameState;
+    const { handStr, position, street, potSize, toCall, stackBB, bb = 2 } = gameState;
     const hash = getHash(profileId);
 
     // Get personality bias (tight/loose, passive/aggressive)
@@ -323,7 +323,7 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
             if (canCall) return { type: 'call' };
             if (canCheck) return { type: 'check' };
         }
-        if (adjustedStrength >= 35 && toCall <= 2 && canCall) {
+        if (adjustedStrength >= 35 && toCall <= bb && canCall) {
             // Marginal: limp/call small raises
             return canCheck ? { type: 'check' } : { type: 'call' };
         }
@@ -420,6 +420,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         stackBB,
         potSize,
         toCall,
+        bb, // Big blind in chips (for BB-relative thresholds)
         gameType: 'Cash',
         topology: numPlayers <= 3 ? '3-Max' : numPlayers <= 6 ? '6-Max' : '9-Max',
         mode: 'ChipEV'

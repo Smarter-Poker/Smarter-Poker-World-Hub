@@ -331,7 +331,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         if (!activeGig) return;
         try {
             const gameType = downForm.down_type === 'cash'
-                ? `${downForm.cash_variant} ${downForm.cash_stakes}`
+                ? downForm.cash_variant
                 : downForm.game_type || null;
             const down = await createDown(userId, activeGig.id, {
                 down_type: downForm.down_type,
@@ -772,98 +772,77 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             style={styles.modalCard}
                         >
-                            <h3 style={styles.modalTitle}>Add Down</h3>
+                            {/* ── IMAGE-MAPPED INTERACTIVE ZONES ── */}
 
-                            {/* Down Type Selector */}
-                            <div style={styles.downTypeGrid}>
-                                {DOWN_TYPES.map(dt => (
-                                    <button
-                                        key={dt.id}
-                                        onClick={() => setDownForm({ ...downForm, down_type: dt.id })}
-                                        style={{
-                                            ...styles.downTypeBtn,
-                                            background: downForm.down_type === dt.id ? `${dt.color}22` : 'rgba(255,255,255,0.05)',
-                                            border: `2px solid ${downForm.down_type === dt.id ? dt.color : 'rgba(255,255,255,0.1)'}`,
-                                            color: downForm.down_type === dt.id ? dt.color : '#8A8D91',
-                                        }}
-                                    >
-                                        <span style={{ fontSize: 12, fontWeight: 600 }}>{dt.label}</span>
-                                    </button>
-                                ))}
-                            </div>
+                            {/* Down Type Selection Zones */}
+                            <button
+                                onClick={() => setDownForm({ ...downForm, down_type: 'cash' })}
+                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '8%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'cash' ? 'inset 0 0 20px rgba(59,130,246,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                title="Cash Game"
+                            />
+                            <button
+                                onClick={() => setDownForm({ ...downForm, down_type: 'tournament' })}
+                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '51%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'tournament' ? 'inset 0 0 20px rgba(245,158,11,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                title="Tournament"
+                            />
+                            <button
+                                onClick={() => setDownForm({ ...downForm, down_type: 'break' })}
+                                style={{ ...styles.imgMapBtn, top: '31%', left: '8%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'break' ? 'inset 0 0 20px rgba(139,92,246,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                title="On Break"
+                            />
+                            <button
+                                onClick={() => setDownForm({ ...downForm, down_type: 'brush' })}
+                                style={{ ...styles.imgMapBtn, top: '31%', left: '51%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'brush' ? 'inset 0 0 20px rgba(16,185,129,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                title="Brush"
+                            />
 
-                            {/* Tournament Name (only for tournament) */}
-                            {downForm.down_type === 'tournament' && (
-                                <>
-                                    <label style={styles.formLabel}>Tournament Name</label>
-                                    <input
-                                        type="text" value={downForm.tournament_name}
-                                        onChange={e => setDownForm({ ...downForm, tournament_name: e.target.value })}
-                                        style={styles.formInput}
-                                    />
-                                </>
-                            )}
-
-                            {/* Cash Game Variant + Stakes */}
-                            {downForm.down_type === 'cash' && (
-                                <>
-                                    <label style={styles.formLabel}>Game Type</label>
-                                    <div style={styles.checkboxRow}>
-                                        {CASH_GAME_VARIANTS.map(variant => (
-                                            <label key={variant} style={{
-                                                ...styles.checkboxLabel,
-                                                color: downForm.cash_variant === variant ? '#3b82f6' : '#B0B3B8',
-                                                border: `1px solid ${downForm.cash_variant === variant ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
-                                                background: downForm.cash_variant === variant ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.04)',
-                                            }}>
-                                                <input
-                                                    type="radio"
-                                                    name="cash_variant"
-                                                    checked={downForm.cash_variant === variant}
-                                                    onChange={() => setDownForm({ ...downForm, cash_variant: variant })}
-                                                    style={{ display: 'none' }}
-                                                />
-                                                <span style={{
-                                                    width: 16, height: 16, borderRadius: 4,
-                                                    border: `2px solid ${downForm.cash_variant === variant ? '#3b82f6' : '#4E4F50'}`,
-                                                    background: downForm.cash_variant === variant ? '#3b82f6' : 'transparent',
-                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                                    marginRight: 6, flexShrink: 0, fontSize: 11, color: '#fff',
-                                                }}>{downForm.cash_variant === variant ? '✓' : ''}</span>
-                                                {variant}
-                                            </label>
-                                        ))}
-                                    </div>
-
-                                    <label style={styles.formLabel}>Stakes</label>
-                                    <select
-                                        value={downForm.cash_stakes}
-                                        onChange={e => setDownForm({ ...downForm, cash_stakes: e.target.value })}
-                                        style={styles.formSelect}
-                                    >
-                                        {CASH_GAME_STAKES.map(s => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </>
-                            )}
-
-                            {/* Table Number (optional for both cash/tournament) */}
+                            {/* Game Type Input Zone */}
                             {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <>
-                                    <label style={styles.formLabel}>Table Number</label>
-                                    <input
-                                        type="text" value={downForm.table_number}
-                                        onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
-                                        style={styles.formInput}
-                                    />
-                                </>
+                                <div style={{ position: 'absolute', top: '56%', left: '9.5%', width: '81%', height: '8.5%', display: 'flex' }}>
+                                    {downForm.down_type === 'cash' ? (
+                                        <select
+                                            value={downForm.cash_variant}
+                                            onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}
+                                            style={styles.imgMapInput}
+                                        >
+                                            <option value="Holdem" style={{ color: '#000' }}>Holdem</option>
+                                            <option value="PLO" style={{ color: '#000' }}>PLO</option>
+                                            <option value="Mixed" style={{ color: '#000' }}>Mixed</option>
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={downForm.tournament_name || ''}
+                                            onChange={e => setDownForm({ ...downForm, tournament_name: e.target.value })}
+                                            style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
+                                        />
+                                    )}
+                                </div>
                             )}
 
-                            <div style={styles.formActions}>
-                                <button onClick={handleAddDown} style={styles.formSubmitBtn}>Start Down</button>
-                                <button onClick={() => setShowAddDown(false)} style={styles.formCancelBtn}>Cancel</button>
-                            </div>
+                            {/* Table Number Input Zone */}
+                            {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
+                                <div style={{ position: 'absolute', top: '71%', left: '9.5%', width: '81%', height: '8.5%', display: 'flex' }}>
+                                    <input
+                                        type="text"
+                                        value={downForm.table_number || ''}
+                                        onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
+                                        style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <button
+                                onClick={handleAddDown}
+                                style={{ ...styles.imgMapBtn, top: '82.5%', left: '9%', width: '56.5%', height: '9%' }}
+                                title="Start Down"
+                            />
+                            <button
+                                onClick={() => setShowAddDown(false)}
+                                style={{ ...styles.imgMapBtn, top: '82.5%', left: '68.5%', width: '22.5%', height: '9%' }}
+                                title="Cancel"
+                            />
                         </motion.div>
                     </motion.div>
                 )}
@@ -1119,24 +1098,26 @@ const styles = {
     // Modal
     modalOverlay: {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     },
     modalCard: {
+        position: 'relative',
         backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
-        backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-        border: 'none', borderRadius: 0, padding: '28px 24px',
-        width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%',
-        boxShadow: 'none', overflow: 'auto',
-        display: 'flex', flexDirection: 'column',
+        backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+        border: 'none', borderRadius: 0, padding: 0,
+        width: '100%', maxWidth: 450,
+        aspectRatio: '854 / 1018',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8)', overflow: 'hidden',
+        display: 'block',
     },
-    modalTitle: { fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 20px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' },
-
-    // Down type grid
-    downTypeGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 },
-    downTypeBtn: {
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-        padding: '16px 10px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
-        backdropFilter: 'blur(4px)',
+    imgMapBtn: {
+        position: 'absolute', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', outline: 'none',
+        WebkitTapHighlightColor: 'transparent', transition: 'box-shadow 0.2s ease'
+    },
+    imgMapInput: {
+        width: '100%', height: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: 18,
+        textAlignLast: 'center', fontWeight: 600, outline: 'none', appearance: 'none',
+        WebkitAppearance: 'none'
     },
 
     // Double down prompt

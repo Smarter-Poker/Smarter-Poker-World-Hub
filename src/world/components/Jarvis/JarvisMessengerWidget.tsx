@@ -86,6 +86,11 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
             };
 
             setMessages(prev => [...prev, assistantMessage]);
+
+            // 📢 Dispatch BUS LISTENER update
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('pa-chat-updated'));
+            }
         } catch (error) {
             console.error('Jarvis chat error:', error);
             setMessages(prev => [...prev, {

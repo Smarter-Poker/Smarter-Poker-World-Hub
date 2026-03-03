@@ -23,6 +23,11 @@ export function ConversationList({ onSelectConversation, onClose }: Conversation
 
     useEffect(() => {
         loadConversations();
+
+        // 🔄 BUS LISTENER for real-time chat updates
+        const handleUpdate = () => loadConversations();
+        window.addEventListener('pa-chat-updated', handleUpdate);
+        return () => window.removeEventListener('pa-chat-updated', handleUpdate);
     }, []);
 
     const getAuthToken = () => {
