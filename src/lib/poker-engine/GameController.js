@@ -1049,6 +1049,23 @@ class GameController {
       return { success: true, seated: 0 };
     }
 
+    // ─── AUDIT 14: RESOURCE EXHAUSTION GUARD ───
+    // If humans are deliberately holding the table hostage by maxing timebanks,
+    // the hands-per-hour will collapse. Horses refuse to sit at maliciously slow tables.
+    const createdAt = new Date(entry.config?.createdAt || Date.now());
+    const elapsedMinutes = (Date.now() - createdAt.getTime()) / 60000;
+
+    if (elapsedMinutes > 15) { // Only judge after table has been open 15 mins
+      const handsPlayed = entry.table.handCount || 0;
+      const handsPerHour = (handsPlayed / elapsedMinutes) * 60;
+
+      // Normal online poker is 40-70. If it drops below 15, it's a hostage situation.
+      if (handsPerHour < 15) {
+        console.warn(`[HorseAI] 🛑 Refusing to seat horses at ${tableId}: Table is incredibly slow (${handsPerHour.toFixed(1)} HPH). Hostage guard engaged.`);
+        return { success: false, error: 'Table too slow', seated: 0 };
+      }
+    }
+
     // Get all horse IDs
     const horseIds = await HorsePokerBrain.loadHorseIds();
     if (!horseIds || horseIds.size === 0) {
@@ -1174,23 +1191,62 @@ class GameController {
 
     if (horsesToRegister <= 0) return { success: true, registered: 0 };
 
-    // Get horse profiles
+    // Get horse profiles and verify they have the money (Phase 2)
     const sb = this.supabase;
     if (!sb) return { success: false, error: 'No Supabase client', registered: 0 };
 
-    const { data: horseProfiles } = await sb
-      .from('profiles')
-      .select('id, alias')
-      .eq('is_horse', true)
-      .limit(100);
+    const clubId = entry.config?.clubId;
+    const buyIn = entry.config?.buyIn || 0;
+
+    // We need to load all known horse IDs from the Brain first
+    const horseIds = await HorsePokerBrain.loadHorseIds();
+    if (!horseIds || horseIds.size === 0) {
+      return { success: false, error: 'No horse profiles found in Brain', registered: 0 };
+    }
+
+    let horseProfiles = [];
+
+    if (clubId) {
+      // Exactly like Cash Games, horses MUST have enough physical chips in the club
+      const { data } = await sb
+        .from('club_members')
+        .select(`
+        chip_balance,
+        profile_id,
+        profiles!inner ( id, alias, avatar_url )
+      `)
+        .eq('club_id', clubId)
+        .gte('chip_balance', buyIn)
+        .limit(100);
+
+      horseProfiles = (data || [])
+        .filter(row => row.profiles && horseIds.has(row.profile_id))
+        .map(row => ({
+          id: row.profile_id,
+          alias: row.profiles.alias || null,
+          avatar_url: row.profiles.avatar_url || null,
+          balance: row.chip_balance
+        }));
+    } else {
+      // Global fallback (very rare)
+      const { data } = await sb
+        .from('profiles')
+        .select('id, alias, avatar_url')
+        .eq('is_horse', true)
+        .limit(100);
+      horseProfiles = data || [];
+    }
 
     if (!horseProfiles || horseProfiles.length === 0) {
-      return { success: false, error: 'No horse profiles', registered: 0 };
+      return { success: false, error: 'No horse profiles with sufficient funds', registered: 0 };
     }
 
     // Shuffle and register
     const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
     let registered = 0;
+
+    // Phase 2: Filter by stakes preference
+    const personalityModule = await this._getPersonalityModule();
 
     for (const horse of shuffled) {
       if (registered >= horsesToRegister) break;
@@ -1198,10 +1254,19 @@ class GameController {
       // Skip already registered
       if (t.entries?.has(horse.id)) continue;
 
+      // Phase 2: Check personality fit (stakes preference)
+      if (personalityModule?.shouldSitAtTable) {
+        // We pass the tournament buyIn as the "stakes" metric.
+        // We pass 1 for current players to bypass the "empty table" hesitance.
+        const decision = personalityModule.shouldSitAtTable(horse.id, buyIn, 1);
+        if (!decision.shouldSit) continue;
+      }
+
       const result = t.registerPlayer(horse.id, horse.alias || `Horse ${horse.id.substring(0, 6)}`, {});
       if (result.success) {
         registered++;
-        console.log(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId}`);
+        // We don't need ChipBridge locking here; TournamentController.registerPlayer handles `ledger.deductBuyin` natively.
+        console.log(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId} for ${buyIn} chips`);
       }
     }
 

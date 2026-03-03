@@ -206,38 +206,48 @@ function getHash(profileId) {
 
 /**
  * Get a human-like action delay in milliseconds.
- * Varies by action type and horse personality.
+ * 
+ * ─── AUDIT 14: DECOUPLED TIMING SECURITY PATCH ───
+ * Previously, delays were derived from actionType (folds were inherently faster than raises).
+ * This allowed humans using HUDs to build timing-tell profiles and reverse-engineer hand strength.
+ * The delay generator is now completely decoupled from actionType. Fast snap-calls and long tank-folds
+ * are generated at an even distribution based entirely on the street and stack depth.
+ * 
  * @param {string} profileId - Horse profile UUID
- * @param {string} actionType - 'fold', 'check', 'call', 'raise', 'all_in'
+ * @param {string} actionType - 'fold', 'check', 'call', 'raise', 'all_in' (now ignored for security)
  * @param {boolean} isPreflop - Whether it's preflop
  * @returns {number} Delay in ms (1500-6000)
  */
 function getActionDelay(profileId, actionType, isPreflop = false) {
     const hash = getHash(profileId);
 
-    // Base delay by action type
-    const baseDelays = {
-        'fold': [1000, 2500],
-        'check': [800, 2000],
-        'call': [1500, 3500],
-        'raise': [2000, 5000],
-        'bet': [2000, 4500],
-        'all_in': [3000, 6000],
-    };
+    // Standard window (1.5s to 4.5s)
+    const baseMin = 1500;
+    const baseMax = 4500;
 
-    const [min, max] = baseDelays[actionType] || [1500, 3500];
+    // Is the player inherently fast or slow? (0.8x to 1.2x)
+    const speedFactor = 0.8 + (hash % 40) / 100;
 
-    // Personality variation (fast player, slow player)
-    const speedFactor = 0.7 + (hash % 60) / 100; // 0.7 to 1.3
+    // Preflop is generally faster overall, but still ranges widely
+    const streetFactor = isPreflop ? 0.6 : 1.1;
 
-    // Preflop is generally faster
-    const streetFactor = isPreflop ? 0.7 : 1.0;
+    // 5% of the time, the player goes deep into the tank (5 - 8 seconds)
+    // 10% of the time, the player snap acts (0.5s - 1.2s)
+    const rng = Math.random();
+    let finalDelay;
 
-    // Random jitter ±30%
-    const jitter = 0.7 + Math.random() * 0.6;
+    if (rng > 0.95) {
+        // Deep Tank
+        finalDelay = 5000 + (Math.random() * 3000);
+    } else if (rng < 0.10) {
+        // Snap Action
+        finalDelay = 500 + (Math.random() * 700);
+    } else {
+        // Standard Action
+        finalDelay = (baseMin + Math.random() * (baseMax - baseMin)) * speedFactor * streetFactor;
+    }
 
-    const delay = (min + Math.random() * (max - min)) * speedFactor * streetFactor * jitter;
-    return Math.round(Math.max(800, Math.min(7000, delay)));
+    return Math.round(Math.max(800, Math.min(8000, finalDelay)));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1451,6 +1461,31 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 }
             }
         } catch (_) { }
+
+        // ─── AUDIT 14: GTO CHAOS (ANTI-TRACKING DETERMINISM PATCH) ───
+        // Mathematical solvers expect identical play against identical sizing.
+        // We inject 4% pure entropy where the horse ignores GTO and plays wildly aggressive.
+        // This breaks human HUD tracking data over massive sample sizes.
+        if (legalActions.length > 0 && Math.random() < 0.04) {
+            console.log(`[HorseBrain] 🌪️ GTO CHAOS TRIGGERED! Hand: ${handStr}, Street: ${street}`);
+            const aggroActions = legalActions.filter(a => a.type === 'raise' || a.type === 'bet' || a.type === 'all_in');
+
+            if (aggroActions.length > 0) {
+                const chaoticAction = aggroActions[Math.floor(Math.random() * aggroActions.length)];
+                finalAction = chaoticAction.type;
+
+                if (finalAction === 'raise' || finalAction === 'bet') {
+                    // Random wild sizing between min and max (or pot)
+                    const min = chaoticAction.minAmount || bb * 2;
+                    let max = chaoticAction.maxAmount || potSize * 2;
+                    if (max < min) max = min;
+                    finalAmount = min + Math.floor(Math.random() * (max - min));
+                }
+            } else if (legalActions.some(a => a.type === 'call')) {
+                // If can't raise, just spite call
+                finalAction = 'call';
+            }
+        }
     }
 
     // --- 6. VALIDATE AGAINST LEGAL ACTIONS ---
@@ -1623,6 +1658,10 @@ function clearTableSessions(tableId) {
     sessionTracker.delete(tableId);
 }
 
+// --- Audit 14: Anti-Collusion Tracker ---
+// Tracks if a horse loses massive pots to the same human repeatedly.
+const collusionTracker = new Map(); // horseId -> Map<opponentId, count>
+
 /**
  * Process hand result for a horse — feeds tilt tracking and showdown recording.
  * Called from `hand_complete` event in GameController.
@@ -1633,7 +1672,6 @@ async function processHandResult(handData, bb = 2) {
     if (!handData?.result) return;
 
     const adv = await getAdvancedModule();
-    if (!adv) return;
 
     const winners = handData.result.winners || [];
     const players = handData.result.players || handData.players || [];
@@ -1645,6 +1683,34 @@ async function processHandResult(handData, bb = 2) {
 
         const won = winners.some(w => String(w.playerId) === pid);
         const chipDelta = player.chipDelta || 0;
+
+        // ─── AUDIT 14: COLLUSION / CHIP DUMPING GUARD ───
+        // If the horse lost a huge pot (>40bb), track who won it.
+        // If the SAME human stacks them 3 times, the horse flees the table.
+        if (!won && chipDelta < -(bb * 40)) {
+            const opps = winners.map(w => String(w.playerId));
+            if (!collusionTracker.has(pid)) collusionTracker.set(pid, new Map());
+            const horseTracker = collusionTracker.get(pid);
+
+            for (const oppId of opps) {
+                const isOppAI = await isHorse(oppId);
+                if (!isOppAI) { // Only track humans farming the horse
+                    const count = (horseTracker.get(oppId) || 0) + 1;
+                    horseTracker.set(oppId, count);
+
+                    if (count >= 3) {
+                        console.error(`[HorseBrain] 🚨 ANTI-COLLUSION TRIGGERED: ${pid} has been stacked 3x by ${oppId}! Fleeing table.`);
+                        // Spike tilt to 1.0 — evaluateSessions will immediately detect this and stand them up
+                        if (!tiltMap.has(pid)) tiltMap.set(pid, {});
+                        const state = tiltMap.get(pid);
+                        state.multiplier = 1.0;
+                        state.reason = `Farm protection vs ${oppId}`;
+                    }
+                }
+            }
+        }
+
+        if (!adv) continue;
 
         // --- Record wins for consecutive loss reset (#6) ---
         if (won && adv.recordWin) {
@@ -1689,20 +1755,10 @@ async function processHandResult(handData, bb = 2) {
             }
         }
 
-        // --- Emit table chat (#10) ---
-        try {
-            const personality = await getPersonalityModule();
-            if (personality?.getTableChat) {
-                const situation = won ? (chipDelta > bb * 20 ? 'bigpot' : 'win') : 'lose';
-                const msg = personality.getTableChat(pid, situation);
-                if (msg) {
-                    // Emit chat message to the table (picked up by RealtimeSync)
-                    chatMessages.push({ playerId: pid, message: msg, timestamp: Date.now() });
-                    // Prune old chat messages
-                    if (chatMessages.length > 50) chatMessages.splice(0, chatMessages.length - 50);
-                }
-            }
-        } catch (_) { }
+        // ─── AUDIT 14: CHAT STEALTH MODE ───
+        // Horses must never type in chat to prevent prompt injections, 
+        // harassment, and breaking the illusion.
+        // Disabled `personality.getTableChat` entirely.
     }
 }
 
