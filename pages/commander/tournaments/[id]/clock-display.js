@@ -351,8 +351,9 @@ export default function ClockDisplay() {
     <>
       <SEOHead title="Commander — Clock Display" description="Club Commander Poker Room Management Tool." noindex={true} />
 
-      {/* Ticker animation keyframes */}
+      {/* Ticker animation keyframes + overscroll prevention */}
       <style>{`
+        html, body { overflow: hidden !important; overscroll-behavior: none !important; }
         @keyframes tickerScrollUp {
           0% { transform: translateY(0); }
           100% { transform: translateY(-50%); }
