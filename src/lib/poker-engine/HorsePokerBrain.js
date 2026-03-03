@@ -1707,12 +1707,13 @@ async function processHandResult(handData, bb = 2) {
 }
 
 /**
- * Check if a horse is allowed to rebuy based on maxBuyins stop-loss
+ * Check if a horse is allowed to rebuy based on maxBuyins stop-loss AND physical chip balance
  * @param {string} tableId 
  * @param {string} playerId 
+ * @param {number} minBuyIn - the minimum cost to buy back in
  * @returns {Promise<boolean>}
  */
-async function canRebuy(tableId, playerId) {
+async function canRebuy(tableId, playerId, minBuyIn = 0) {
     const tableSessions = sessionTracker.get(tableId);
     if (!tableSessions) return true; // Not tracking, allow
 
@@ -1726,6 +1727,31 @@ async function canRebuy(tableId, playerId) {
         const sessionPref = personality.getSessionProfile(playerId);
         if (session.buyinsUsed >= sessionPref.maxBuyins) {
             console.log(`[HorseBrain] 🛑 Stop-Loss: ${playerId.substring(0, 8)} reached max buyins (${sessionPref.maxBuyins}). No rebuy allowed.`);
+            return false;
+        }
+    }
+
+    // ─── GAP 7: Enforce True Bankrolls  ───
+    // Query physical chip balance from the club ledger
+    const sb = getSupabase();
+    if (sb && tableSessions.clubId) {
+        try {
+            const { data, error } = await sb
+                .from('club_members')
+                .select('chip_balance')
+                .eq('club_id', tableSessions.clubId)
+                .eq('profile_id', playerId)
+                .single();
+
+            if (error) throw error;
+
+            const realBalance = data?.chip_balance || 0;
+            if (realBalance <= 0 || realBalance < minBuyIn) {
+                console.log(`[HorseBrain] 💸 BANKRUPT: ${playerId.substring(0, 8)} has 0 chips in club. Rebuy DENIED until 9AM reload.`);
+                return false;
+            }
+        } catch (err) {
+            console.warn(`[HorseBrain] Failed to verify bankroll for ${playerId.substring(0, 8)}, defaulting to deny:`, err.message);
             return false;
         }
     }

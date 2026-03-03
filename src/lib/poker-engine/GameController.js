@@ -231,14 +231,63 @@ class GameController {
    */
   async _runHorsePipeline() {
     try {
-      // 1. Auto-fill cash tables
-      // Find tables that are active/waiting and have open seats
-      for (const [tableId, entry] of this.lobby.tables.entries()) {
-        const seats = entry.table?.seats || [];
-        const occupied = seats.filter(s => s.player && s.status !== 'empty').length;
-        const target = Math.min(entry.config?.maxPlayers || 9, 6); // Aim for 6 players
+      const now = Date.now();
+      const horseIds = await HorsePokerBrain.loadHorseIds();
 
-        if (occupied < target) {
+      // 1. Auto-fill cash tables & Watchdog Sweep
+      for (const [tableId, entry] of this.lobby.tables.entries()) {
+        const table = entry.table;
+        const seats = table?.seats || [];
+
+        let occupied = 0;
+        let requiresHeal = false;
+
+        for (const seat of seats) {
+          if (!seat.player || seat.status === 'empty') continue;
+          occupied++;
+
+          // ─── WATCHDOG: Self-Healing Anomalies (Gap 5) ───
+          if (horseIds.has(seat.player.id)) {
+            const playerId = seat.player.id;
+
+            // Anomaly 1: Sitting Out Zombie (> 5 mins)
+            if (seat.status === 'sitting_out') {
+              seat._sitOutTime = seat._sitOutTime || now;
+              if (now - seat._sitOutTime > 5 * 60000) {
+                console.log(`[HorseAI Watchdog] 🧟 Zombie removed: ${playerId.substring(0, 8)} sitting out > 5m on ${tableId}`);
+                this.standUp(tableId, playerId);
+                requiresHeal = true;
+              }
+            } else {
+              seat._sitOutTime = null; // reset if back
+            }
+
+            // Anomaly 2: Zero-Chip Zombie (Failed to rebuy)
+            if (seat.stack === 0 && table.game && !table.game.handInProgress) {
+              console.log(`[HorseAI Watchdog] 💸 Zero-Chip removed: ${playerId.substring(0, 8)} busted on ${tableId}`);
+              this.standUp(tableId, playerId);
+              requiresHeal = true;
+            }
+
+            // Anomaly 3: Action Stall (> 60s without acting)
+            const game = table.game;
+            if (game?.bettingRound && String(game.bettingRound.getCurrentPlayer()?.id) === String(playerId)) {
+              entry.timer._actionStartTime = entry.timer._actionStartTime || now;
+              if (now - entry.timer._actionStartTime > 60000) {
+                console.warn(`[HorseAI Watchdog] ⏱️ Stall detected: ${playerId.substring(0, 8)} frozen > 60s on ${tableId}. Forcing fold.`);
+                table.processAction(playerId, { type: 'fold' });
+                requiresHeal = true;
+              }
+            }
+          }
+        }
+
+        // Re-count after watchdog purges
+        if (requiresHeal) occupied = table.seats.filter(s => s.player && s.status !== 'empty').length;
+
+        // Auto-fill active tables 
+        const target = Math.min(entry.config?.maxPlayers || 9, 6); // Aim for 6 players
+        if (occupied < target && table.status !== 'paused') {
           await this.fillTableWithHorses(tableId, target);
         }
       }
@@ -1519,6 +1568,21 @@ class GameController {
               const recovered = fullState ? StateSerializer.restore(entry.table, fullState) : false;
               if (recovered) {
                 console.log(`[GameController] Mid-hand recovered: ${row.id}`);
+
+                // ─── GAP 6: Resume Horse AI if it was their turn when server crashed ───
+                const game = entry.table.game;
+                if (game?.bettingRound) {
+                  const currPlayer = game.bettingRound.getCurrentPlayer();
+                  if (currPlayer) {
+                    HorsePokerBrain.isHorse(String(currPlayer.id)).then(isAI => {
+                      if (isAI) {
+                        console.log(`[HorseAI] Resuming interrupted turn for ${currPlayer.id.substring(0, 8)} on ${row.id}`);
+                        this._triggerHorseAction(row.id, currPlayer.id);
+                      }
+                    }).catch(() => { });
+                  }
+                }
+
                 continue; // Skip snapshot recovery
               }
             }

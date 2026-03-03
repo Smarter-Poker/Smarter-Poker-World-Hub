@@ -8,6 +8,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, Image as ImageIcon } from 'lucide-react';
+import ReceiptScanner from './ReceiptScanner';
 import {
     getActiveGig,
     fetchGigs,
@@ -105,7 +107,9 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
     // Expense state
     const [showAddExpense, setShowAddExpense] = useState(false);
-    const [expenseForm, setExpenseForm] = useState({ category: 'food', amount: '', description: '' });
+    const [expenseForm, setExpenseForm] = useState({ category: 'food', amount: '', description: '', receipt_url: null });
+    const [showScanner, setShowScanner] = useState(false);
+    const [viewingReceiptUrl, setViewingReceiptUrl] = useState(null);
 
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
@@ -432,10 +436,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 category: expenseForm.category,
                 amount: parseFloat(expenseForm.amount) || 0,
                 description: expenseForm.description || null,
+                receipt_url: expenseForm.receipt_url || null,
             });
             toast.success('Expense added');
             setShowAddExpense(false);
-            setExpenseForm({ category: 'food', amount: '', description: '' });
+            setExpenseForm({ category: 'food', amount: '', description: '', receipt_url: null });
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to add expense');
@@ -575,8 +580,20 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const isDownActive = currentDown && !currentDown.ended_at;
 
     return (
-        <div style={styles.container}>
-            {/* ── ACTIVE GIG BANNER ── */}
+        <div style={styles.trackerContainer}>
+            <AnimatePresence>
+                {viewingReceiptUrl && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={styles.lightboxOverlay}
+                        onClick={() => setViewingReceiptUrl(null)}
+                    >
+                        <img src={viewingReceiptUrl} alt="Receipt" style={styles.lightboxImage} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── ACTIVE GIG VIEW ── */}
             {activeGig && (
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -774,6 +791,15 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                             <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
                                                 {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             </span>
+                                            {exp.receipt_url && (
+                                                <button
+                                                    style={styles.receiptIconBtn}
+                                                    onClick={() => setViewingReceiptUrl(exp.receipt_url)}
+                                                    title="View Receipt"
+                                                >
+                                                    <Camera size={14} color="#ef4444" />
+                                                </button>
+                                            )}
                                             {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                         </div>
                                         <div style={styles.downRight}>
@@ -1043,50 +1069,77 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         style={styles.modalOverlay}
-                        onClick={() => setShowAddExpense(false)}
+                        onClick={() => { setShowAddExpense(false); setShowScanner(false); }}
                     >
-                        <motion.form
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            style={{ ...styles.promptCard, border: '2px solid rgba(239,68,68,0.4)' }}
-                            onClick={e => e.stopPropagation()}
-                            onSubmit={handleAddExpense}
-                        >
-                            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' }}>Add Expense</h3>
-
-                            <label style={styles.formLabel}>Category</label>
-                            <select
-                                value={expenseForm.category}
-                                onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                style={styles.formSelect}
-                            >
-                                {EXPENSE_CATEGORIES.map(c => (
-                                    <option key={c.id} value={c.id}>{c.label}</option>
-                                ))}
-                            </select>
-
-                            <label style={{ ...styles.formLabel, marginTop: 12 }}>Amount ($)</label>
-                            <input
-                                type="number"
-                                value={expenseForm.amount}
-                                onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                                style={styles.formInput}
-                                step="0.01"
-                                autoFocus
-                            />
-
-                            <label style={{ ...styles.formLabel, marginTop: 12 }}>Description (optional)</label>
-                            <input
-                                type="text"
-                                value={expenseForm.description}
-                                onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                                style={styles.formInput}
-                            />
-
-                            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                                <button type="submit" style={{ ...styles.formSubmitBtn, background: '#ef4444', color: '#fff' }}>Add Expense</button>
-                                <button type="button" onClick={() => setShowAddExpense(false)} style={styles.formCancelBtn}>Cancel</button>
+                        {showScanner ? (
+                            <div style={{ width: '100%', maxWidth: 450 }} onClick={e => e.stopPropagation()}>
+                                <ReceiptScanner
+                                    userId={userId}
+                                    onScanComplete={({ imageUrl }) => {
+                                        setExpenseForm({ ...expenseForm, receipt_url: imageUrl });
+                                        setShowScanner(false);
+                                    }}
+                                />
+                                <button type="button" onClick={() => setShowScanner(false)} style={{ ...styles.formCancelBtn, width: '100%', marginTop: 12 }}>Cancel Scan</button>
                             </div>
-                        </motion.form>
+                        ) : (
+                            <motion.form
+                                initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                                style={{ ...styles.promptCard, border: '2px solid rgba(239,68,68,0.4)' }}
+                                onClick={e => e.stopPropagation()}
+                                onSubmit={handleAddExpense}
+                            >
+                                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' }}>Add Expense</h3>
+
+                                <label style={styles.formLabel}>Category</label>
+                                <select
+                                    value={expenseForm.category}
+                                    onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                    style={styles.formSelect}
+                                >
+                                    {EXPENSE_CATEGORIES.map(c => (
+                                        <option key={c.id} value={c.id}>{c.label}</option>
+                                    ))}
+                                </select>
+
+                                <label style={{ ...styles.formLabel, marginTop: 12 }}>Amount ($)</label>
+                                <input
+                                    type="number"
+                                    value={expenseForm.amount}
+                                    onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                    style={styles.formInput}
+                                    step="0.01"
+                                    autoFocus
+                                />
+
+                                <label style={{ ...styles.formLabel, marginTop: 12 }}>Description (optional)</label>
+                                <input
+                                    type="text"
+                                    value={expenseForm.description}
+                                    onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                    style={styles.formInput}
+                                />
+
+                                <div style={{ marginTop: 16 }}>
+                                    {expenseForm.receipt_url ? (
+                                        <div style={styles.attachedReceiptBox}>
+                                            <ImageIcon size={16} color="#10b981" />
+                                            <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>Receipt Attached</span>
+                                            <button type="button" onClick={() => setExpenseForm({ ...expenseForm, receipt_url: null })} style={styles.removeReceiptBtn}>✕</button>
+                                        </div>
+                                    ) : (
+                                        <button type="button" onClick={() => setShowScanner(true)} style={styles.scanReceiptBtn}>
+                                            <Camera size={16} /> Scan Receipt
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                                    <button type="submit" style={{ ...styles.formSubmitBtn, background: '#ef4444', color: '#fff' }}>Add Expense</button>
+                                    <button type="button" onClick={() => setShowAddExpense(false)} style={styles.formCancelBtn}>Cancel</button>
+                                </div>
+                            </motion.form>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1312,9 +1365,38 @@ const styles = {
     formTitle: { fontSize: 18, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' },
     formLabel: { fontSize: 13, fontWeight: 600, color: '#B0B3B8', marginBottom: 4, display: 'block', marginTop: 12 },
     formInput: {
-        width: '100%', padding: '10px 12px', background: '#3A3B3C', border: '1px solid #4E4F50',
-        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+        width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
+        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
         transition: 'border-color 0.2s ease',
+    },
+    attachedReceiptBox: {
+        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+        background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+        borderRadius: 8, width: '100%', boxSizing: 'border-box'
+    },
+    removeReceiptBtn: {
+        marginLeft: 'auto', background: 'transparent', border: 'none', color: '#10b981',
+        fontSize: 16, cursor: 'pointer', padding: 4
+    },
+    scanReceiptBtn: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: '100%', padding: '12px', background: 'transparent',
+        border: '2px dashed rgba(255,255,255,0.2)', borderRadius: 8,
+        color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600,
+        cursor: 'pointer', transition: 'all 0.2s'
+    },
+    receiptIconBtn: {
+        background: 'transparent', border: 'none', padding: 4, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginLeft: 8, opacity: 0.8, transition: 'opacity 0.2s'
+    },
+    lightboxOverlay: {
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 11000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+    },
+    lightboxImage: {
+        maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain',
+        borderRadius: 8, boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
     },
     formSelect: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',

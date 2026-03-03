@@ -53,9 +53,10 @@ export interface TokeExpense {
     id: string;
     user_id: string;
     gig_id: string;
-    category: 'tip_out' | 'ride_share' | 'gas' | 'mileage' | 'air_fare' | 'other';
+    category: 'food' | 'ride_share' | 'gas' | 'mileage' | 'air_fare' | 'lodging' | 'supplies' | 'other' | 'tip_out';
     amount: number;
     description?: string | null;
+    receipt_url?: string | null;
     created_at: string;
 }
 
@@ -395,6 +396,7 @@ export async function updateDownMultiplier(downId: string, multiplier: number): 
     return data;
 }
 
+
 // ─── EXPENSE CRUD ───────────────────────────────────────────
 
 export async function fetchExpenses(gigId: string): Promise<TokeExpense[]> {
@@ -421,6 +423,7 @@ export async function createExpense(
             category: expense.category || 'other',
             amount: expense.amount || 0,
             description: expense.description || null,
+            receipt_url: expense.receipt_url || null,
         })
         .select()
         .single();
