@@ -65,7 +65,7 @@ export default function ClockDisplay() {
   const { id } = router.query;
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);
-
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [preset, setPreset] = useState(null);
@@ -106,7 +106,11 @@ export default function ClockDisplay() {
     return () => { wakeLockRef.current?.release().catch(() => { }); document.removeEventListener('visibilitychange', h); };
   }, []);
 
-
+  // Wall clock
+  useEffect(() => {
+    const i = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(i);
+  }, []);
 
   // Burn-in prevention
   useEffect(() => {
@@ -337,7 +341,7 @@ export default function ClockDisplay() {
       nextBreakSec = secsUntilBreak;
     }
   }
-
+  const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
   const playerStacks = stats.player_stacks || [];
   const prizeAmounts = payouts.map(p => p.amount || (prizePool * (p.percentage || 0) / 100));
   const icmResults = playerStacks.length > 1 ? calculateICM(playerStacks.map(p => p.chips), prizeAmounts) : [];
@@ -350,21 +354,6 @@ export default function ClockDisplay() {
   return (
     <>
       <SEOHead title="Commander — Clock Display" description="Club Commander Poker Room Management Tool." noindex={true} />
-
-      {/* Ticker animation keyframes + overscroll prevention */}
-      <style>{`
-        html, body { overflow: hidden !important; overscroll-behavior: none !important; }
-        @keyframes tickerScrollUp {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(-50%); }
-        }
-        .ticker-scroll-up {
-          animation: tickerScrollUp 20s linear infinite;
-        }
-        .ticker-scroll-up:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
 
       <div style={{
         ...S.container, ...bgStyle,
@@ -430,9 +419,8 @@ export default function ClockDisplay() {
           </div>
         )}
 
-        {/* ===== HEADER with Back Button ===== */}
+        {/* ===== HEADER ===== */}
         <div style={{ ...S.header, background: theme.headerBg, borderBottomColor: theme.accent + '26' }}>
-          <button onClick={(e) => { e.stopPropagation(); router.back(); }} style={S.backBtn}>← Back</button>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             {displayOpts.logo_url && <img src={displayOpts.logo_url} alt="" style={{ height: 32 }} />}
             <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
@@ -456,13 +444,13 @@ export default function ClockDisplay() {
                 <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
                 <StatCell label="Entries" value={totalEntries} />
                 <StatCell label="Players In" value={playersIn} />
-                {t.rebuy_allowed && <StatCell label="Rebuys" value={totalRebuys} />}
+                <StatCell label="Rebuys" value={totalRebuys} />
                 <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
                 <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
                 <StatCell label="Total Pot" value={formatMoney(prizePool)} />
               </div>
 
-              {/* CENTER — Clock + Blinds */}
+              {/* CENTER — Clock + Blinds + Chip Leaders */}
               <div style={S.centerPanel}>
                 {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
                 {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
@@ -474,7 +462,7 @@ export default function ClockDisplay() {
                 {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
 
                 <div style={S.blindsBlock}>
-                  <div style={S.blindsGame}>{gameType}</div>
+                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
                   <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
                   <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
                     {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
@@ -484,55 +472,72 @@ export default function ClockDisplay() {
 
                 {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
                   <div style={S.nextRound}>
-                    <strong>Next Round:</strong><br />
+                    <strong>Next Round:</strong> {gameType}<br />
                     Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
                     {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
                   </div>
                 )}
+
+
               </div>
 
-              {/* RIGHT — Next Break + Chip Leaders (auto-scrolling ticker) */}
+              {/* RIGHT — Time + Remaining Payouts (scrollable) */}
               <div style={S.rightPanel}>
-                <div style={S.nextBreakBox}>
-                  <div style={S.nextBreakLabel}>Next Break</div>
-                  <div style={S.nextBreakValue}>{nextBreakSec ? formatClock(nextBreakSec) : '--:--'}</div>
-                </div>
+                <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
+                <StatCell label="Elapsed Time" value={elapsedDisplay} />
+                <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
 
-                {/* Chip Leaders — auto-scrolling ticker with full names */}
-                {chipLeaders.length > 0 && (
-                  <div style={S.tickerSection}>
-                    <div style={S.tickerHeader}>Chip Leaders</div>
-                    <div style={S.tickerViewport}>
-                      <div style={S.tickerTrack} className="ticker-scroll-up">
-                        {[...chipLeaders, ...chipLeaders].map((player, i) => (
-                          <div key={i} style={S.tickerItem}>
-                            <span style={S.tickerName}>{player.name || 'Player'}</span>
-                            <span style={S.tickerChips}>{formatChipCount(player.chips)}</span>
+                {/* Dynamic Payouts — only remaining positions for remaining players */}
+                {remainingPayouts.length > 0 && (
+                  <div style={S.rightSection}>
+                    <div style={S.rightSectionHeader}>Remaining Payouts</div>
+                    <div style={S.payoutScroll}>
+                      {remainingPayouts.map((p, i) => {
+                        const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
+                        const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+                        const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
+                        return (
+                          <div key={i} style={S.payoutRow}>
+                            <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
+                            <span style={{ color, fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* BOTTOM — Payouts horizontal bar */}
-            {remainingPayouts.length > 0 && (
-              <div style={S.payoutBar}>
-                {remainingPayouts.map((p, i) => {
-                  const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-                  const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                  const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
-                  return (
-                    <span key={i} style={{ whiteSpace: 'nowrap' }}>
-                      <span style={{ opacity: 0.6 }}>{place} Place:</span>{' '}
-                      <span style={{ color, fontWeight: 700 }}>{formatMoney(amount)}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
+              {/* CHIP LEADERS — bottom of page, full-width, top 20, 5 visible with scroll */}
+              {chipLeaders.length > 0 && (
+                <div style={{
+                  width: '100%', background: 'rgba(0,0,0,0.3)',
+                  borderTop: '2px solid rgba(255,255,255,0.12)',
+                  display: 'flex', flexDirection: 'column', flexShrink: 0,
+                }}>
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+                    textAlign: 'center', padding: '6px 8px', opacity: 0.5,
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  }}>Chip Leaders</div>
+                  <div style={{
+                    overflowY: 'auto', maxHeight: 240, padding: '4px 16px',
+                    display: 'flex', flexDirection: 'column', gap: 2,
+                  }}>
+                    {chipLeaders.map((player, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, opacity: 0.5, minWidth: 28, textAlign: 'center' }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontSize: 18, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name || 'Player'}</span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#31A24C', whiteSpace: 'nowrap' }}>{formatChipCount(player.chips)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         )}
 
@@ -758,98 +763,47 @@ function StatCell({ label, value }) {
 const S = {
   loading: { minHeight: '100vh', background: '#0D192E', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   container: {
-    height: '100vh', maxHeight: '100vh', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff',
-    display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative',
-    overflow: 'hidden', transition: 'transform 0.5s ease',
+    minHeight: '100vh', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff',
+    display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative', overflow: 'hidden',
+    transition: 'transform 0.5s ease',
   },
   header: {
-    background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '8px 16px 6px',
-    borderBottom: '2px solid rgba(255,255,255,0.15)', flexShrink: 0, position: 'relative',
+    background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
+    borderBottom: '2px solid rgba(255,255,255,0.15)', flexShrink: 0
   },
-  backBtn: {
-    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)',
-    borderRadius: 6, color: '#fff', fontSize: 13, fontWeight: 600, padding: '6px 14px',
-    cursor: 'pointer', fontFamily: "'Inter', sans-serif", zIndex: 5,
-  },
-  headerTitle: { fontSize: 26, fontWeight: 700 },
-  headerSub: { fontSize: 12, opacity: 0.65, marginTop: 1 },
-  main: { flex: 1, display: 'grid', gridTemplateColumns: '140px 1fr 240px', minHeight: 0, overflow: 'hidden' },
-  leftPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  headerTitle: { fontSize: 28, fontWeight: 700 },
+  headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
+  main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 260px', minHeight: 0 },
+  leftPanel: { display: 'flex', flexDirection: 'column' },
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', position: 'relative', padding: '4px 0',
+    justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1,
     overflow: 'hidden',
   },
   statCell: {
     flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '2px 6px', textAlign: 'center', minHeight: 0,
+    padding: '4px 8px', textAlign: 'center'
   },
-  statLabel: { fontSize: 12, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
-  statValue: { fontSize: 18, fontWeight: 700, lineHeight: 1.3 },
+  statLabel: { fontSize: 13, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
+  statValue: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
   timer: {
-    fontSize: 'min(14vw, 140px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+    fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
-    fontFamily: "'Inter', monospace", padding: '4px 0', textAlign: 'center', width: '100%',
+    fontFamily: "'Inter', monospace", padding: '8px 0', textAlign: 'center', width: '100%'
   },
   blindsBlock: {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
-    width: '100%', textAlign: 'center', padding: '6px 16px',
+    width: '100%', textAlign: 'center', padding: '8px 16px'
   },
-  blindsGame: { fontSize: 15, opacity: 0.8, fontWeight: 500, color: '#fff' },
-  blindsLabel: { fontSize: 24, fontWeight: 600, opacity: 0.5 },
-  blindsValue: { fontSize: 42, fontWeight: 800, lineHeight: 1.15 },
-  blindsAnte: { fontSize: 28, fontWeight: 700 },
+  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500 },
+  blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5 },
+  blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15 },
+  blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
-    width: '100%', textAlign: 'center', padding: '6px 16px', fontSize: 14, lineHeight: 1.4,
-  },
-  // Next Break box — prominent top-right
-  nextBreakBox: {
-    background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '8px 8px', textAlign: 'center', flexShrink: 0,
-  },
-  nextBreakLabel: { fontSize: 13, opacity: 0.65, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' },
-  nextBreakValue: { fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontFamily: "'Inter', monospace", marginTop: 2 },
-  // Ticker section — chip leaders auto-scroll
-  tickerSection: {
-    flex: 1, display: 'flex', flexDirection: 'column',
-    background: 'rgba(255,255,255,0.04)',
-    border: '2px solid rgba(255,255,255,0.12)',
-    overflow: 'hidden', minHeight: 0,
-  },
-  tickerHeader: {
-    fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
-    textAlign: 'center', padding: '5px 8px', opacity: 0.6,
-    borderBottom: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(0,0,0,0.2)', flexShrink: 0,
-  },
-  tickerViewport: {
-    flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0,
-  },
-  tickerTrack: {
-    display: 'flex', flexDirection: 'column',
-  },
-  tickerItem: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-    padding: '3px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-  },
-  tickerName: {
-    flex: 1, fontSize: 13, fontWeight: 600, overflow: 'visible',
-  },
-  tickerChips: {
-    fontSize: 13, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
-  },
-  // Bottom payouts bar — horizontal, full-width, frozen
-  payoutBar: {
-    flexShrink: 0, background: 'rgba(0,0,0,0.4)',
-    borderTop: '2px solid rgba(255,255,255,0.15)',
-    padding: '6px 16px', display: 'flex', flexWrap: 'wrap',
-    justifyContent: 'center', gap: '4px 20px',
-    fontSize: 14, fontWeight: 600, overflow: 'hidden', maxHeight: 36,
+    width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
   },
   // Right panel sections — Prizes + Chip Leaders
   rightSection: {
