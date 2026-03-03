@@ -180,6 +180,12 @@ export function getActionDelay(profileId, handType) {
 // Tilt state per horse
 const tiltState = new Map();
 
+// Consecutive loss tracking for escalating tilt (#6)
+const consecutiveLosses = new Map();
+
+// Fatigue tracking (#22)
+const fatigueTracker = new Map();
+
 const TILT_STYLE_SHIFTS = {
     nit: 'TAG',           // Nit becomes normally aggressive
     TAG: 'LAG',           // TAG loosens up
@@ -197,14 +203,38 @@ const TILT_STYLE_SHIFTS = {
 export function recordBadBeat(profileId, bbLost, wasBadBeat = false) {
     const current = tiltState.get(profileId) || { level: 0, decayTime: 0 };
 
-    // Increase tilt level
-    let tiltIncrease = bbLost * 0.1;
+    // Track consecutive losses (#6 Escalating Tilt)
+    const consec = (consecutiveLosses.get(profileId) || 0) + 1;
+    consecutiveLosses.set(profileId, consec);
+
+    // Escalating multiplier: 3 losses in a row = 2x tilt, 5+ = 3x
+    const escalationMultiplier = consec >= 5 ? 3.0 : consec >= 3 ? 2.0 : consec >= 2 ? 1.5 : 1.0;
+
+    // Increase tilt level with escalation
+    let tiltIncrease = bbLost * 0.1 * escalationMultiplier;
     if (wasBadBeat) tiltIncrease *= 2;
 
     current.level = Math.min(current.level + tiltIncrease, 10);
-    current.decayTime = Date.now() + (15 * 60 * 1000); // Decay after 15 minutes
+    current.decayTime = Date.now() + (15 * 60 * 1000);
 
     tiltState.set(profileId, current);
+}
+
+/**
+ * Record a win (resets consecutive loss counter)
+ * @param {string} profileId
+ */
+export function recordWin(profileId) {
+    consecutiveLosses.set(profileId, 0);
+}
+
+/**
+ * Get consecutive loss count
+ * @param {string} profileId
+ * @returns {number}
+ */
+export function getConsecutiveLosses(profileId) {
+    return consecutiveLosses.get(profileId) || 0;
 }
 
 /**
@@ -686,6 +716,54 @@ export function getGoalProgress(profileId, currentStats = {}) {
     };
 }
 
+/**
+ * Record fatigue start (called when horse sits down)
+ * @param {string} profileId
+ */
+export function recordSessionStart(profileId) {
+    if (!fatigueTracker.has(profileId)) {
+        fatigueTracker.set(profileId, { sessionStartMs: Date.now() });
+    }
+}
+
+/**
+ * Get fatigue level (0-1) based on hours played
+ * Fatigue kicks in after 8 hours, maxes out at 16 hours
+ * @param {string} profileId
+ * @returns {number} 0 = fresh, 1 = exhausted
+ */
+export function getFatigueLevel(profileId) {
+    const data = fatigueTracker.get(profileId);
+    if (!data) return 0;
+
+    const hoursPlayed = (Date.now() - data.sessionStartMs) / (1000 * 60 * 60);
+    if (hoursPlayed < 8) return 0;        // Fresh for first 8 hours
+    if (hoursPlayed >= 16) return 1.0;     // Maximum fatigue at 16h
+    return (hoursPlayed - 8) / 8;          // Linear 0→1 from 8h to 16h
+}
+
+/**
+ * Get fatigue-adjusted action — occasionally makes suboptimal plays
+ * @param {string} profileId
+ * @param {string} action - The optimal action
+ * @param {boolean} canCheck - Whether check is available
+ * @returns {string} Potentially degraded action
+ */
+export function getFatigueAdjustedAction(profileId, action, canCheck = false) {
+    const fatigue = getFatigueLevel(profileId);
+    if (fatigue <= 0) return action;
+
+    // Chance of making a mistake increases with fatigue
+    // At max fatigue: 25% mistake rate
+    const mistakeChance = fatigue * 0.25;
+    if (Math.random() > mistakeChance) return action;
+
+    // Fatigued mistakes: call instead of raise, check instead of bet, fold strong
+    if (action === 'raise' || action === 'bet') return canCheck ? 'check' : 'call';
+    if (action === 'call') return Math.random() < 0.5 ? 'fold' : 'call'; // Tired fold
+    return action;
+}
+
 export default {
     // Hand History
     recordHandHistory,
@@ -699,6 +777,8 @@ export default {
 
     // Tilt
     recordBadBeat,
+    recordWin,
+    getConsecutiveLosses,
     getTiltLevel,
     getTiltedStyle,
     getTiltedStats,
@@ -722,6 +802,11 @@ export default {
     recordGrudge,
     getGrudgeLevel,
     getGrudgeTargeting,
+
+    // Fatigue (#22)
+    recordSessionStart,
+    getFatigueLevel,
+    getFatigueAdjustedAction,
 
     // Leaderboard
     getLeaderboardStrategy,

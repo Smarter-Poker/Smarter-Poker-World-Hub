@@ -24,27 +24,6 @@ const NAV_ITEMS = [
 ];
 const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, clock: Monitor };
 
-function formatClockTime(seconds) {
-  if (!seconds && seconds !== 0) return '--:--';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatChips(n) {
-  if (!n) return '0';
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
-  return n.toLocaleString();
-}
-
-function formatBlinds(blinds) {
-  if (!blinds) return '--/--';
-  const { small_blind, big_blind, ante } = blinds;
-  let str = `${formatChips(small_blind)}/${formatChips(big_blind)}`;
-  if (ante) str += ` (${formatChips(ante)})`;
-  return str;
-}
 
 export default function TDClock() {
   const router = useRouter();
@@ -197,7 +176,6 @@ export default function TDClock() {
   const clockState = clock.clock_state || {};
   const isRunning = clockState.status === 'running';
   const isPaused = clockState.status === 'paused';
-  const displaySeconds = clockSeconds ?? clockState.remaining_seconds ?? 0;
 
   return (
     <CommanderLayout title="Commander — Clock" backHref={`/commander/td/${tournamentId}`}>

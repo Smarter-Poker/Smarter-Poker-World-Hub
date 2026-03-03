@@ -53,6 +53,12 @@ function mapPosition(enginePosition) {
     return POSITION_MAP[enginePosition] || 'MP';
 }
 
+// Chat message buffer for AI table chat (#10)
+const chatMessages = [];
+
+// Multi-table tracking (#5) — Map<playerId, Set<tableId>>
+const multiTableTracker = new Map();
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND STRENGTH EVALUATOR (Fallback when no solver data)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -331,38 +337,274 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
-    // --- POSTFLOP FALLBACK ---
-    // Without hand evaluation, use pot odds and random aggression
-    const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
-    const aggressionChance = 0.35 + aggressionBias / 50;
+    // --- POSTFLOP FALLBACK (#18 Hand Evaluation + #3 Board Texture) ---
+    const { holeCards: hCards, board: bCards } = gameState;
+
+    // Evaluate hand strength (0-100)
+    const handEval = evaluatePostflopHand(hCards, bCards);
+    const boardWetness = evaluateBoardWetness(bCards);
+
+    // Adjust strength by personality
+    const effectiveStrength = handEval.strength + aggressionBias;
 
     if (canCheck && toCall === 0) {
-        // No bet to face — bet or check
-        if (canRaise && Math.random() < aggressionChance) {
-            const betSize = Math.round(potSize * (0.33 + Math.random() * 0.67));
+        // --- NO BET TO FACE ---
+        // Strong hands: bet for value
+        if (effectiveStrength >= 70 && canRaise) {
+            // Size based on board texture: smaller on dry, larger on wet
+            const sizeFactor = boardWetness === 'dry' ? 0.33 : boardWetness === 'wet' ? 0.75 : 0.50;
+            const betSize = Math.round(potSize * sizeFactor);
+            const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+            return { type: raiseAction.type, amount };
+        }
+        // Draws: semi-bluff sometimes
+        if (handEval.hasFlushDraw || handEval.hasOESD) {
+            if (canRaise && Math.random() < (0.45 + aggressionBias / 30)) {
+                const betSize = Math.round(potSize * 0.55);
+                const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                return { type: raiseAction.type, amount };
+            }
+        }
+        // Medium hands: bet sometimes on dry boards
+        if (effectiveStrength >= 40 && boardWetness === 'dry' && canRaise && Math.random() < aggressionChance) {
+            const betSize = Math.round(potSize * 0.40);
             const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount };
         }
         return { type: 'check' };
     }
 
-    // Facing a bet
-    if (potOdds < 0.25) {
-        // Good odds — call or raise
-        if (canRaise && Math.random() < aggressionChance * 0.5) {
-            const raiseSize = Math.round(toCall * (2.2 + Math.random() * 1.5));
+    // --- FACING A BET ---
+    const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
+
+    // Monster hands: raise
+    if (effectiveStrength >= 85 && canRaise) {
+        const raiseSize = Math.round(toCall * (2.5 + Math.random()));
+        const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
+        return { type: raiseAction.type, amount };
+    }
+
+    // Strong hands: call (or raise sometimes)
+    if (effectiveStrength >= 60) {
+        if (canRaise && Math.random() < 0.2 + aggressionBias / 40) {
+            const raiseSize = Math.round(toCall * (2.2 + Math.random()));
             const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
             return { type: raiseAction.type, amount };
         }
         if (canCall) return { type: 'call' };
     }
 
-    if (potOdds < 0.4 && canCall) {
-        return Math.random() < 0.6 ? { type: 'call' } : { type: 'fold' };
+    // Draws with good odds
+    if ((handEval.hasFlushDraw || handEval.hasOESD) && potOdds < 0.30) {
+        if (canCall) return { type: 'call' };
     }
 
-    // Bad odds — fold most of the time
+    // Medium hands with good odds
+    if (effectiveStrength >= 35 && potOdds < 0.25) {
+        if (canCall) return { type: 'call' };
+    }
+
+    // Weak: fold
     return canCheck ? { type: 'check' } : { type: 'fold' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POSTFLOP HAND EVALUATOR (#18)
+// Basic made-hand + draw detection when solver data is unavailable
+// ═══════════════════════════════════════════════════════════════════════════
+
+function evaluatePostflopHand(holeCards, board) {
+    if (!holeCards || holeCards.length < 2 || !board || board.length < 3) {
+        return { strength: 20, category: 'unknown', hasFlushDraw: false, hasOESD: false, hasGutshot: false };
+    }
+
+    const allCards = [...holeCards, ...board];
+    const ranks = allCards.map(c => RANKS.indexOf(c[0]));
+    const suits = allCards.map(c => c[1]);
+    const heroRanks = holeCards.map(c => RANKS.indexOf(c[0]));
+    const heroSuits = holeCards.map(c => c[1]);
+    const boardRanks = board.map(c => RANKS.indexOf(c[0]));
+    const boardSuits = board.map(c => c[1]);
+
+    // Count ranks and suits
+    const rankCounts = {};
+    ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+    const suitCounts = {};
+    suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+
+    // --- Made hand detection ---
+    let strength = 10;
+    let category = 'high_card';
+
+    // Quads
+    const quadRank = Object.keys(rankCounts).find(r => rankCounts[r] === 4);
+    if (quadRank && heroRanks.includes(Number(quadRank))) {
+        strength = 97; category = 'quads';
+    }
+
+    // Full house (check before flush/straight)
+    if (category === 'high_card') {
+        const trips = Object.keys(rankCounts).filter(r => rankCounts[r] >= 3);
+        const pairs = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2);
+        if (trips.length >= 1 && pairs.length >= 2) {
+            if (heroRanks.some(r => rankCounts[r] >= 2)) {
+                strength = 90; category = 'full_house';
+            }
+        }
+    }
+
+    // Flush
+    if (category === 'high_card') {
+        const flushSuit = Object.keys(suitCounts).find(s => suitCounts[s] >= 5);
+        if (flushSuit && heroSuits.includes(flushSuit)) {
+            strength = 82; category = 'flush';
+            // Nut flush bonus
+            const flushCards = allCards.filter(c => c[1] === flushSuit).map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
+            if (heroRanks.includes(flushCards[0])) strength = 88; // Top flush
+        }
+    }
+
+    // Straight
+    if (category === 'high_card') {
+        const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
+        for (let i = uniqueRanks.length - 1; i >= 4; i--) {
+            if (uniqueRanks[i] - uniqueRanks[i - 4] === 4) {
+                const straightRanks = uniqueRanks.slice(i - 4, i + 1);
+                if (heroRanks.some(r => straightRanks.includes(r))) {
+                    strength = 75; category = 'straight';
+                    if (heroRanks.includes(straightRanks[4])) strength = 80; // Top of straight
+                }
+                break;
+            }
+        }
+        // Wheel straight (A-2-3-4-5)
+        if (category === 'high_card' && uniqueRanks.includes(12) && uniqueRanks.includes(0) && uniqueRanks.includes(1) && uniqueRanks.includes(2) && uniqueRanks.includes(3)) {
+            if (heroRanks.some(r => [12, 0, 1, 2, 3].includes(r))) {
+                strength = 72; category = 'straight';
+            }
+        }
+    }
+
+    // Three of a kind
+    if (category === 'high_card') {
+        const tripRank = Object.keys(rankCounts).find(r => rankCounts[r] === 3);
+        if (tripRank && heroRanks.includes(Number(tripRank))) {
+            const boardHasTrip = boardRanks.filter(r => r === Number(tripRank)).length >= 2;
+            strength = boardHasTrip ? 55 : 65; // Set vs. trips
+            category = boardHasTrip ? 'trips' : 'set';
+        }
+    }
+
+    // Two pair
+    if (category === 'high_card') {
+        const pairRanks = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2).map(Number);
+        if (pairRanks.length >= 2) {
+            const heroPairs = pairRanks.filter(r => heroRanks.includes(r));
+            if (heroPairs.length >= 2) {
+                strength = 58; category = 'two_pair';
+            } else if (heroPairs.length === 1) {
+                // One pair from hero, one from board pairing
+                strength = 50; category = 'two_pair_weak';
+            }
+        }
+    }
+
+    // One pair
+    if (category === 'high_card') {
+        const pairRanks = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2).map(Number);
+        if (pairRanks.length >= 1) {
+            const heroPair = pairRanks.find(r => heroRanks.includes(r));
+            if (heroPair !== undefined) {
+                const topBoardRank = Math.max(...boardRanks);
+                if (heroPair > topBoardRank) {
+                    strength = 48; category = 'overpair';
+                } else if (heroPair === topBoardRank) {
+                    strength = 42; category = 'top_pair';
+                    // Kicker bonus
+                    const kicker = Math.max(...heroRanks.filter(r => r !== heroPair));
+                    if (kicker >= 10) strength += 4; // Good kicker
+                } else {
+                    strength = 30; category = 'underpair';
+                }
+            } else {
+                // Board paired, no hero pair
+                strength = 18; category = 'no_pair';
+            }
+        }
+    }
+
+    // High card only
+    if (category === 'high_card') {
+        const highCard = Math.max(...heroRanks);
+        strength = 8 + Math.min(12, highCard); // 8-20 range
+    }
+
+    // --- Draw detection ---
+    let hasFlushDraw = false;
+    let hasOESD = false;
+    let hasGutshot = false;
+
+    // Flush draw
+    for (const suit of heroSuits) {
+        if ((suitCounts[suit] || 0) === 4) {
+            hasFlushDraw = true;
+            if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 32);
+        }
+    }
+
+    // Straight draws
+    const uniqueSorted = [...new Set(ranks)].sort((a, b) => a - b);
+    for (let i = 0; i <= uniqueSorted.length - 4; i++) {
+        const window = uniqueSorted.slice(i, i + 4);
+        if (window[3] - window[0] === 3 && heroRanks.some(r => window.includes(r))) {
+            hasGutshot = true;
+            if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 25);
+        }
+        if (window[3] - window[0] === 4 && heroRanks.some(r => window.includes(r))) {
+            // Check if it's an open-ender (both ends open)
+            const lowEnd = window[0] - 1;
+            const highEnd = window[3] + 1;
+            if (lowEnd >= 0 && highEnd <= 12) {
+                hasOESD = true;
+                if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 30);
+            } else {
+                hasGutshot = true;
+            }
+        }
+    }
+
+    // Combo draw bonus
+    if (hasFlushDraw && (hasOESD || hasGutshot)) {
+        strength = Math.max(strength, 50); // Combo draws are very strong
+    }
+
+    return { strength: Math.min(100, strength), category, hasFlushDraw, hasOESD, hasGutshot };
+}
+
+/**
+ * Evaluate board wetness (dry/medium/wet) (#3 Board Texture)
+ */
+function evaluateBoardWetness(board) {
+    if (!board || board.length < 3) return 'medium';
+
+    const suits = board.map(c => c[1]);
+    const ranks = board.map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
+
+    // Suit analysis
+    const suitCounts = {};
+    suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+    const maxSuit = Math.max(...Object.values(suitCounts));
+
+    // Connectedness
+    const gaps = [];
+    for (let i = 0; i < ranks.length - 1; i++) {
+        gaps.push(ranks[i] - ranks[i + 1]);
+    }
+    const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+
+    if (maxSuit >= 3 || (maxSuit >= 2 && avgGap <= 2)) return 'wet';
+    if (maxSuit <= 1 && avgGap >= 4) return 'dry';
+    return 'medium';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -518,6 +760,89 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         } catch (err) {
             // Exploit overlay is non-critical
         }
+
+        // Apply PERSONALITY BET SIZING (#21)
+        // Each play style has a different open-raise size and postflop aggression
+        if ((finalAction === 'raise' || finalAction === 'bet') && finalAmount) {
+            try {
+                const personality = await getPersonalityModule();
+                if (personality?.getPlayStyle) {
+                    const style = personality.getPlayStyle(profileId);
+                    // Preflop open-raise multiplier
+                    if (street === 'preflop') {
+                        const styleMultipliers = {
+                            TAG: 1.0,     // Standard GTO sizing
+                            nit: 0.9,     // Slightly smaller (less value)
+                            LAG: 1.15,    // Bigger opens
+                            maniac: 1.35, // Oversize opens
+                            calling_station: 0.85 // Limpy/small
+                        };
+                        const mult = styleMultipliers[style.key] || 1.0;
+                        finalAmount = Math.round(finalAmount * mult);
+                    } else {
+                        // Postflop: maniacs overbet, nits underbet
+                        const postflopMults = {
+                            TAG: 1.0, nit: 0.80, LAG: 1.1,
+                            maniac: 1.30, calling_station: 0.90
+                        };
+                        const mult = postflopMults[style.key] || 1.0;
+                        finalAmount = Math.round(finalAmount * mult);
+                    }
+                }
+            } catch (_) { }
+        }
+
+        // Apply OPPONENT-AWARE BET SIZING (#7)
+        // Adjust sizing based on opponent tendencies
+        if ((finalAction === 'raise' || finalAction === 'bet') && finalAmount) {
+            try {
+                const adv = await getAdvancedModule();
+                if (adv?.getOpponentRead) {
+                    const opponents = engineState.players?.filter(p =>
+                        String(p.id) !== String(profileId) && !p.folded
+                    ) || [];
+                    if (opponents.length > 0) {
+                        const mainOpp = opponents[0];
+                        const read = adv.getOpponentRead(profileId, String(mainOpp.id));
+                        if (read) {
+                            // Calling station → bet bigger for value
+                            if (read.callFrequency > 0.7) {
+                                finalAmount = Math.round(finalAmount * 1.20);
+                            }
+                            // Nit / overfolder → bet smaller (but still bet)
+                            if (read.foldFrequency > 0.6) {
+                                finalAmount = Math.round(finalAmount * 0.80);
+                            }
+                        }
+                    }
+                }
+            } catch (_) { }
+        }
+
+        // Apply TOURNAMENT ICM ADJUSTMENTS (#4)
+        // Tighten ranges near the bubble, loosen when short-stacked
+        if (adaptedState.gameType === 'Tournament') {
+            try {
+                const gto = await getGTOModule();
+                if (gto?.getICMAdjustment && engineState.tourneyState) {
+                    const icm = gto.getICMAdjustment(engineState.tourneyState, profileId);
+                    if (icm.strategy === 'survival') {
+                        // On the bubble: don't call marginal spots
+                        if (finalAction === 'call' && toCall > potSize * 0.3) {
+                            finalAction = 'fold';
+                        }
+                        // Don't bluff near the bubble
+                        if (handType === 'bluff' && (finalAction === 'raise' || finalAction === 'bet')) {
+                            finalAction = 'check';
+                        }
+                    }
+                    // Adjust sizing by ICM pressure
+                    if (finalAmount && icm.rangeAdjustment) {
+                        finalAmount = Math.round(finalAmount * icm.rangeAdjustment);
+                    }
+                }
+            } catch (_) { }
+        }
     }
 
     // --- 4. FALLBACK IF NO GTO ---
@@ -527,7 +852,58 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         finalAmount = fallback.amount;
     }
 
-    // --- 5. VALIDATE AGAINST LEGAL ACTIONS ---
+    // --- 5. APPLY FATIGUE OVERLAY (#22) ---
+    if (finalAction) {
+        try {
+            const adv = await getAdvancedModule();
+            if (adv?.getFatigueAdjustedAction) {
+                const canCheck = legalActions.some(a => a.type === 'check');
+                const fatigued = adv.getFatigueAdjustedAction(profileId, finalAction, canCheck);
+                if (fatigued !== finalAction) {
+                    console.log(`[HorseBrain] 😴 Fatigue: ${finalAction} → ${fatigued} (fatigue=${(adv.getFatigueLevel?.(profileId) || 0).toFixed(2)})`);
+                    finalAction = fatigued;
+                }
+            }
+        } catch (_) { }
+    }
+
+    // --- 5b. APPLY RIVALRY DYNAMICS (#11) ---
+    if (finalAction && (finalAction === 'raise' || finalAction === 'bet' || finalAction === 'call')) {
+        try {
+            const adv = await getAdvancedModule();
+            if (adv?.areRivals && adv?.areFriends) {
+                const opponents = engineState.players?.filter(p =>
+                    String(p.id) !== String(profileId) && !p.folded
+                ) || [];
+                for (const opp of opponents) {
+                    const oppId = String(opp.id);
+                    if (adv.areRivals(profileId, oppId)) {
+                        // Rivals: increase aggression
+                        if (finalAction === 'call' && legalActions.some(a => a.type === 'raise' || a.type === 'bet') && Math.random() < 0.35) {
+                            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                            if (raiseAction) {
+                                finalAction = raiseAction.type;
+                                finalAmount = finalAmount || raiseAction.minAmount;
+                                console.log(`[HorseBrain] ⚔️ Rivalry aggression vs ${oppId.substring(0, 8)}`);
+                            }
+                        }
+                        break;
+                    }
+                    if (adv.areFriends(profileId, oppId)) {
+                        // Friends: soft play (don't raise as much)
+                        if (finalAction === 'raise' && Math.random() < 0.25) {
+                            finalAction = 'call';
+                            finalAmount = null;
+                            console.log(`[HorseBrain] 🤝 Soft play vs friend ${oppId.substring(0, 8)}`);
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (_) { }
+    }
+
+    // --- 6. VALIDATE AGAINST LEGAL ACTIONS ---
     const validAction = validateAndClamp(finalAction, finalAmount, legalActions);
 
     // --- 6. COMPUTE TIMING DELAY (Phase 3A #8 - Personality Timing Tells) ---
@@ -659,6 +1035,16 @@ function recordSitDown(tableId, playerId, buyInAmount) {
             buyinsUsed: 1,
             lastEvalMs: Date.now()
         });
+
+        // Start fatigue tracking (#22)
+        getAdvancedModule().then(adv => {
+            if (adv?.recordSessionStart) adv.recordSessionStart(playerId);
+        }).catch(() => { });
+
+        // Track multi-table count (#5)
+        if (!multiTableTracker.has(playerId)) multiTableTracker.set(playerId, new Set());
+        multiTableTracker.get(playerId).add(tableId);
+
         console.log(`[HorseBrain] 🐎 Session started for ${playerId.substring(0, 8)} at ${tableId} (Buy-in: ${buyInAmount})`);
     }
 }
@@ -707,10 +1093,14 @@ async function processHandResult(handData, bb = 2) {
         const won = winners.some(w => String(w.playerId) === pid);
         const chipDelta = player.chipDelta || 0;
 
+        // --- Record wins for consecutive loss reset (#6) ---
+        if (won && adv.recordWin) {
+            adv.recordWin(pid);
+        }
+
         // --- Record bad beats for tilt system ---
         if (!won && chipDelta < 0 && adv.recordBadBeat) {
             const bbLost = Math.abs(chipDelta) / bb;
-            // Consider it a "bad beat" if lost > 20bb
             const wasBadBeat = bbLost >= 20;
             adv.recordBadBeat(pid, bbLost, wasBadBeat);
         }
@@ -720,6 +1110,21 @@ async function processHandResult(handData, bb = 2) {
             const wasBetting = player.lastAction === 'raise' || player.lastAction === 'bet';
             adv.recordShowdown(pid, won, wasBetting);
         }
+
+        // --- Emit table chat (#10) ---
+        try {
+            const personality = await getPersonalityModule();
+            if (personality?.getTableChat) {
+                const situation = won ? (chipDelta > bb * 20 ? 'bigpot' : 'win') : 'lose';
+                const msg = personality.getTableChat(pid, situation);
+                if (msg) {
+                    // Emit chat message to the table (picked up by RealtimeSync)
+                    chatMessages.push({ playerId: pid, message: msg, timestamp: Date.now() });
+                    // Prune old chat messages
+                    if (chatMessages.length > 50) chatMessages.splice(0, chatMessages.length - 50);
+                }
+            }
+        } catch (_) { }
     }
 }
 
