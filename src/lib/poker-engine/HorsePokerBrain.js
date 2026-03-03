@@ -918,7 +918,9 @@ function getRiverStrategy(handStrength, potOdds, canBet, facingBet, aggressionBi
         // --- RIVER NO BET FACING ---
         // Thin value bet (50-75 strength): small sizing
         if (handStrength >= 50 && handStrength < 75) {
-            if (Math.random() < 0.55 + aggressionBias / 40) {
+            // Higher strength within this range = higher bet frequency
+            const strengthBonus = (handStrength - 50) / 100; // 0-0.25 bonus for stronger hands
+            if (Math.random() < 0.65 + strengthBonus + aggressionBias / 40) {
                 return { action: 'bet', sizeFraction: 0.33 };
             }
             return { action: 'check', sizeFraction: 0 };
@@ -1127,6 +1129,48 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const raiseSize = Math.round(potSize * gtoDecision.sizing);
             const currentBet = engineState.currentBet || 0;
             finalAmount = currentBet + raiseSize; // Total bet = currentBet + our raise
+        }
+
+        // --- POSTFLOP HAND STRENGTH GUARDRAILS ---
+        // GTO solver sometimes returns suboptimal actions for edge cases.
+        // Apply sanity checks using the hand evaluator to override obvious mistakes.
+        if (street !== 'preflop') {
+            const handEval = evaluatePostflopHand(holeCardStrings, boardStrings);
+            const drawEq = getDrawEquity(handEval, street);
+            const facingBet = toCall > 0;
+
+            // GUARDRAIL 1: Don't call with garbage hands facing a bet
+            // Override GTO 'call' with 'fold' if hand strength < 15 and no draws
+            if (finalAction === 'call' && facingBet && handEval.strength < 15 && drawEq.outs === 0) {
+                const potOdds = toCall / (potSize + toCall);
+                if (potOdds >= 0.20) { // Only fold if pot odds aren't amazing
+                    finalAction = 'fold';
+                    finalAmount = null;
+                }
+            }
+
+            // GUARDRAIL 2: Bet strong hands when not facing action
+            // Override GTO 'check' with 'bet' if hand strength >= 65 (strong made hand)
+            if (finalAction === 'check' && !facingBet && handEval.strength >= 65) {
+                const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                if (raiseAction) {
+                    const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+                    const betSize = Math.round(potSize * sizeFrac);
+                    finalAction = raiseAction.type;
+                    finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+                }
+            }
+
+            // GUARDRAIL 3: Value bet strong hands on the river
+            if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
+                const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                if (raiseAction && Math.random() < 0.65) { // 65% value bet frequency
+                    const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false);
+                    const betSize = Math.round(potSize * sizeFrac);
+                    finalAction = raiseAction.type;
+                    finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+                }
+            }
         }
 
         // Classify hand type for timing tells

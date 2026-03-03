@@ -176,7 +176,7 @@ async function registerPlayer(req, res, tournamentId) {
       // XP system removed
     }
 
-    return res.status(201).json({ entry });
+    return res.status(201).json({ success: true, data: { entry } });
   } catch (error) {
     console.error('Register player error:', error);
     return res.status(500).json({ error: error.message });
@@ -313,7 +313,7 @@ async function updateEntry(req, res, tournamentId) {
 
     if (error) throw error;
 
-    return res.status(200).json({ entry: updated });
+    return res.status(200).json({ success: true, data: { entry: updated } });
   } catch (error) {
     console.error('Update entry error:', error);
     return res.status(500).json({ error: error.message });

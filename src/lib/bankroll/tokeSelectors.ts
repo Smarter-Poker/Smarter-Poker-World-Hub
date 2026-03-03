@@ -42,7 +42,18 @@ export interface TokeDown {
     ended_at?: string | null;
     toke_amount: number;
     is_double_down: boolean;
+    down_multiplier: number;
     notes?: string | null;
+    created_at: string;
+}
+
+export interface TokeExpense {
+    id: string;
+    user_id: string;
+    gig_id: string;
+    category: 'tip_out' | 'ride_share' | 'gas' | 'mileage' | 'air_fare' | 'other';
+    amount: number;
+    description?: string | null;
     created_at: string;
 }
 
@@ -109,19 +120,30 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
         .eq('gig_id', data.id)
         .order('started_at', { ascending: true });
 
+    // Load expenses for active gig
+    const { data: expenses } = await supabase
+        .from('toke_expenses')
+        .select('*')
+        .eq('gig_id', data.id)
+        .order('created_at', { ascending: false });
+
     const allDowns = downs || [];
+    const allExpenses = expenses || [];
     const dealingDowns = allDowns.filter((d: TokeDown) =>
         d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'
     );
     const totalTokes = dealingDowns.reduce((sum: number, d: TokeDown) => sum + (d.toke_amount || 0), 0);
     const totalHoursWorked = computeTotalHours(allDowns);
+    const totalExpenses = allExpenses.reduce((sum: number, e: TokeExpense) => sum + (e.amount || 0), 0);
 
     return {
         ...data,
         totalTokes,
         totalDowns: dealingDowns.length,
         totalHoursWorked,
+        totalExpenses,
         downs: allDowns,
+        expenses: allExpenses,
     };
 }
 
@@ -284,6 +306,7 @@ export async function createDown(
             started_at: new Date().toISOString(),
             toke_amount: down.toke_amount || 0,
             is_double_down: down.is_double_down || false,
+            down_multiplier: down.down_multiplier || 1.0,
             notes: down.notes || null,
         })
         .select()
@@ -355,6 +378,64 @@ export async function updateDownToke(downId: string, tokeAmount: number): Promis
     return data;
 }
 
+/**
+ * Update a down's multiplier (for tournament mixed games)
+ */
+export async function updateDownMultiplier(downId: string, multiplier: number): Promise<TokeDown> {
+    const { data, error } = await supabase
+        .from('toke_downs')
+        .update({ down_multiplier: multiplier })
+        .eq('id', downId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+// ─── EXPENSE CRUD ───────────────────────────────────────────
+
+export async function fetchExpenses(gigId: string): Promise<TokeExpense[]> {
+    const { data, error } = await supabase
+        .from('toke_expenses')
+        .select('*')
+        .eq('gig_id', gigId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createExpense(
+    userId: string,
+    gigId: string,
+    expense: Partial<TokeExpense>
+): Promise<TokeExpense> {
+    const { data, error } = await supabase
+        .from('toke_expenses')
+        .insert({
+            user_id: userId,
+            gig_id: gigId,
+            category: expense.category || 'other',
+            amount: expense.amount || 0,
+            description: expense.description || null,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteExpense(expenseId: string): Promise<void> {
+    const { error } = await supabase
+        .from('toke_expenses')
+        .delete()
+        .eq('id', expenseId);
+
+    if (error) throw error;
+}
+
 // ─── GIG REPORT ─────────────────────────────────────────────
 
 /**
@@ -378,7 +459,15 @@ export async function getGigReport(userId: string, gigId: string) {
 
     if (downsError) throw downsError;
 
+    // Load expenses
+    const { data: expenses } = await supabase
+        .from('toke_expenses')
+        .select('*')
+        .eq('gig_id', gigId)
+        .order('created_at', { ascending: false });
+
     const allDowns = downs || [];
+    const allExpenses = expenses || [];
     const dealingDowns = allDowns.filter((d: TokeDown) =>
         d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'
     );
@@ -389,10 +478,11 @@ export async function getGigReport(userId: string, gigId: string) {
     const tournamentDowns = allDowns.filter((d: TokeDown) => d.down_type === 'tournament');
     const brushDowns = allDowns.filter((d: TokeDown) => d.down_type === 'brush');
     const doubleDowns = allDowns.filter((d: TokeDown) => d.is_double_down);
+    const totalExpenses = allExpenses.reduce((sum: number, e: TokeExpense) => sum + (e.amount || 0), 0);
 
     const hourlyRate = gig.hourly_rate || 0;
     const hourlyPay = totalHoursWorked * hourlyRate;
-    const totalEarnings = hourlyPay + totalTokes;
+    const totalEarnings = hourlyPay + totalTokes - totalExpenses;
 
     const startDate = new Date(gig.start_date);
     const endDate = gig.end_date ? new Date(gig.end_date) : new Date();
@@ -401,6 +491,7 @@ export async function getGigReport(userId: string, gigId: string) {
     return {
         gig,
         downs: allDowns,
+        expenses: allExpenses,
         stats: {
             totalTokes,
             totalDowns: dealingDowns.length,
@@ -408,6 +499,7 @@ export async function getGigReport(userId: string, gigId: string) {
             hourlyRate,
             hourlyPay: Math.round(hourlyPay * 100) / 100,
             totalEarnings: Math.round(totalEarnings * 100) / 100,
+            totalExpenses: Math.round(totalExpenses * 100) / 100,
             cashDownCount: cashDowns.length,
             tournamentDownCount: tournamentDowns.length,
             brushDownCount: brushDowns.length,

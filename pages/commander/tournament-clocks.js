@@ -40,7 +40,7 @@ export default function TournamentClocks() {
             if (json.success || json.data) {
                 const all = json.data?.tournaments || json.data || [];
                 // Show running, paused, registration, and scheduled tournaments
-                const active = all.filter(t => ['running', 'paused', 'registration', 'final_table', 'scheduled'].includes(t.status));
+                const active = all.filter(t => ['running', 'paused', 'registering', 'final_table', 'scheduled'].includes(t.status));
                 setTournaments(active);
             }
         } catch (err) { console.error(err); }
@@ -61,7 +61,7 @@ export default function TournamentClocks() {
     }
 
     const runningTournaments = tournaments.filter(t => ['running', 'paused', 'final_table'].includes(t.status));
-    const upcomingTournaments = tournaments.filter(t => ['scheduled', 'registration'].includes(t.status));
+    const upcomingTournaments = tournaments.filter(t => ['scheduled', 'registering'].includes(t.status));
 
     return (
         <CommanderLayout title="Tournament Clocks | Commander" backHref="/commander/dashboard?card=tournaments">

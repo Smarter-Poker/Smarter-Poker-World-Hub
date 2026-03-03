@@ -370,7 +370,7 @@ export default function ClockDisplay() {
           100% { transform: translateX(-100%); }
         }
         .sports-ticker {
-          animation: sportsTickerScroll 25s linear infinite;
+          animation: sportsTickerScroll 75s linear infinite;
         }
       `}</style>
 
@@ -502,9 +502,9 @@ export default function ClockDisplay() {
                   <div style={S.top3Container}>
                     {top3Leaders.map((player, i) => (
                       <div key={i} style={S.top3Row}>
-                        <span style={{ fontSize: 14, fontWeight: 800, opacity: 0.5, minWidth: 20 }}>{i + 1}</span>
-                        <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{player.name || 'Player'}</span>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: '#31A24C' }}>{formatChipCount(player.chips)}</span>
+                        <span style={{ fontSize: 35, fontWeight: 800, opacity: 0.5, minWidth: 30 }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontSize: 35, fontWeight: 700 }}>{player.name || 'Player'}</span>
+                        <span style={{ fontSize: 35, fontWeight: 800, color: '#31A24C' }}>{formatChipCount(player.chips)}</span>
                       </div>
                     ))}
                   </div>
@@ -530,8 +530,8 @@ export default function ClockDisplay() {
                           const place = idx === 0 ? '1st' : idx === 1 ? '2nd' : idx === 2 ? '3rd' : `${idx + 1}th`;
                           return (
                             <div key={i} style={S.payoutRow}>
-                              <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
-                              <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
+                              <span style={{ opacity: 0.6, minWidth: 40, fontSize: 26, fontWeight: 600 }}>{place}</span>
+                              <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 30 }}>{formatMoney(amount)}</span>
                             </div>
                           );
                         })}

@@ -17,7 +17,7 @@ const STATUS_COLORS = {
     running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
     break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
     final_table: { bg: 'bg-[#8B5CF6]/10', text: 'text-[#8B5CF6]', label: 'Final Table' },
-    registration: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
+    registering: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
     scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Scheduled' },
 };
 
@@ -55,7 +55,7 @@ export default function TournamentDirector() {
     const [syncVenueId] = useState(() => getVenueId());
     useCommanderSync(syncVenueId, fetchTournaments, { entities: ['tournaments'] });
 
-    const currentStatuses = ['running', 'break', 'final_table', 'registration'];
+    const currentStatuses = ['running', 'break', 'final_table', 'registering'];
     const currentTournaments = tournaments.filter(t => currentStatuses.includes(t.status));
     const upcomingTournaments = tournaments.filter(t => t.status === 'scheduled');
     const displayList = tab === 'current' ? currentTournaments : upcomingTournaments;

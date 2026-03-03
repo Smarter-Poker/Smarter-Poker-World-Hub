@@ -20,6 +20,9 @@ import {
     createDoubleDown,
     deleteDown,
     updateDownToke,
+    updateDownMultiplier,
+    createExpense,
+    deleteExpense,
     getGigReport,
 } from '../../lib/bankroll/tokeSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
@@ -57,6 +60,15 @@ const DOWN_TYPE_COLORS = {
 // 35 minutes in milliseconds
 const DOWN_TIMER_MS = 35 * 60 * 1000;
 
+const EXPENSE_CATEGORIES = [
+    { id: 'tip_out', label: 'Tip Out' },
+    { id: 'ride_share', label: 'Ride Share' },
+    { id: 'gas', label: 'Gas' },
+    { id: 'mileage', label: 'Mileage' },
+    { id: 'air_fare', label: 'Air Fare' },
+    { id: 'other', label: 'Other' },
+];
+
 export default function TokeTracker({ userId, refreshTrigger }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
@@ -83,6 +95,14 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     // Toke edit state  
     const [editingTokeId, setEditingTokeId] = useState(null);
     const [tokeEditValue, setTokeEditValue] = useState('');
+
+    // Multiplier edit state
+    const [editingMultiplierId, setEditingMultiplierId] = useState(null);
+    const [multiplierEditValue, setMultiplierEditValue] = useState('');
+
+    // Expense state
+    const [showAddExpense, setShowAddExpense] = useState(false);
+    const [expenseForm, setExpenseForm] = useState({ category: 'tip_out', amount: '', description: '' });
 
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
@@ -190,23 +210,21 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             message = `Still dealing the same table${tableInfo}?`;
         }
 
-        // Browser Notification API
-        if ('Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification(title, {
-                body: message + '\nTap to respond.',
-                icon: '/icons/icon-192x192.png',
-                tag: 'toke-down-timer',
-                requireInteraction: true,
-            });
-            notification.onclick = () => {
-                notification.close();
-                window.focus();
-                // Show the double-down prompt
-                handleDoubleDownPrompt(lastDown);
-            };
-        } else {
-            // Fallback: in-app toast
-            handleDoubleDownPrompt(lastDown);
+        // Always fire the in-app prompt
+        handleDoubleDownPrompt(lastDown);
+
+        // Also try browser notification as a bonus
+        try {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: message + '\nTap to respond.',
+                    icon: '/icons/icon-192x192.png',
+                    tag: 'toke-down-timer',
+                    requireInteraction: true,
+                });
+            }
+        } catch (e) {
+            // Silently fail — the in-app prompt is the primary mechanism
         }
     }, []);
 
@@ -387,6 +405,51 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         }
     };
 
+    const handleSaveMultiplier = async (downId) => {
+        try {
+            await updateDownMultiplier(downId, parseFloat(multiplierEditValue) || 1.0);
+            toast.success('Multiplier updated');
+            setEditingMultiplierId(null);
+            setMultiplierEditValue('');
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to update multiplier');
+        }
+    };
+
+    // ── Expense Handlers ──
+    const handleAddExpense = async (e) => {
+        e.preventDefault();
+        if (!activeGig || !expenseForm.amount) {
+            toast.error('Please enter an amount');
+            return;
+        }
+        try {
+            await createExpense(userId, activeGig.id, {
+                category: expenseForm.category,
+                amount: parseFloat(expenseForm.amount) || 0,
+                description: expenseForm.description || null,
+            });
+            toast.success('Expense added');
+            setShowAddExpense(false);
+            setExpenseForm({ category: 'tip_out', amount: '', description: '' });
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to add expense');
+        }
+    };
+
+    const handleDeleteExpense = async (expenseId) => {
+        if (!confirm('Delete this expense?')) return;
+        try {
+            await deleteExpense(expenseId);
+            toast.success('Expense deleted');
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete expense');
+        }
+    };
+
     // ── Report View ──
     const handleViewReport = async (gigId) => {
         try {
@@ -542,7 +605,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
                     {/* Running Totals */}
                     {!editMode && (
-                        <div style={styles.runningStats}>
+                        <div style={{ ...styles.runningStats, gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Total Tokes</span>
                                 <span style={{ ...styles.runningStatValue, color: '#f59e0b' }}>
@@ -557,6 +620,12 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <span style={styles.runningStatLabel}>Hours</span>
                                 <span style={styles.runningStatValue}>
                                     {(activeGig.totalHoursWorked || 0).toFixed(1)}h
+                                </span>
+                            </div>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Expenses</span>
+                                <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
+                                    {formatCurrency(activeGig.totalExpenses || 0)}
                                 </span>
                             </div>
                         </div>
@@ -594,7 +663,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                 </span>
                                             </div>
                                             <div style={styles.downRight}>
-                                                {/* Toke amount (editable) */}
+                                                {/* Toke amount (editable) — cash and brush only */}
                                                 {(down.down_type === 'cash' || down.down_type === 'brush') && (
                                                     editingTokeId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
@@ -616,6 +685,39 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                         </button>
                                                     )
                                                 )}
+                                                {/* Down Multiplier — tournament only */}
+                                                {down.down_type === 'tournament' && (
+                                                    editingMultiplierId === down.id ? (
+                                                        <div style={styles.tokeEditRow}>
+                                                            <select
+                                                                value={multiplierEditValue}
+                                                                onChange={e => setMultiplierEditValue(e.target.value)}
+                                                                style={{ ...styles.tokeInput, width: 70 }}
+                                                            >
+                                                                <option value="1">1.0x</option>
+                                                                <option value="1.2">1.2x</option>
+                                                                <option value="1.5">1.5x</option>
+                                                                <option value="2">2.0x</option>
+                                                            </select>
+                                                            <button onClick={() => handleSaveMultiplier(down.id)} style={styles.tokeSaveBtn}>✓</button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingMultiplierId(down.id);
+                                                                setMultiplierEditValue(down.down_multiplier || 1);
+                                                            }}
+                                                            style={{
+                                                                ...styles.tokeDisplay,
+                                                                color: (down.down_multiplier || 1) > 1 ? '#8b5cf6' : '#64748b',
+                                                                fontSize: 11,
+                                                            }}
+                                                            title="Down Multiplier"
+                                                        >
+                                                            {(down.down_multiplier || 1).toFixed(1)}x
+                                                        </button>
+                                                    )
+                                                )}
                                                 {isOpen && (
                                                     <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>
                                                 )}
@@ -631,6 +733,29 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         </div>
                     )}
 
+                    {/* Expense List */}
+                    {!editMode && activeGig.expenses && activeGig.expenses.length > 0 && (
+                        <div style={{ ...styles.downsSection, marginTop: 8 }}>
+                            <h4 style={styles.downsSectionTitle}>Expenses ({activeGig.expenses.length})</h4>
+                            <div style={styles.downsScroll}>
+                                {activeGig.expenses.map(exp => (
+                                    <div key={exp.id} style={{ ...styles.downRow, borderLeft: '3px solid #ef4444' }}>
+                                        <div style={styles.downInfo}>
+                                            <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                                {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
+                                            </span>
+                                            {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
+                                        </div>
+                                        <div style={styles.downRight}>
+                                            <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
+                                            <button onClick={() => handleDeleteExpense(exp.id)} style={styles.downDeleteBtn}>✕</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Actions */}
                     <div style={styles.activeActions}>
                         {editMode ? (
@@ -642,6 +767,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             <>
                                 <button onClick={startEditing} style={styles.editBtn}>Edit</button>
                                 <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>+ Add Down</button>
+                                <button onClick={() => setShowAddExpense(true)} style={styles.addExpenseBtn}>+ Expense</button>
                                 <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>
                             </>
                         ) : (
@@ -872,6 +998,60 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 )}
             </AnimatePresence>
 
+            {/* ── ADD EXPENSE MODAL ── */}
+            <AnimatePresence>
+                {showAddExpense && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={styles.modalOverlay}
+                        onClick={() => setShowAddExpense(false)}
+                    >
+                        <motion.form
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            style={styles.promptCard}
+                            onClick={e => e.stopPropagation()}
+                            onSubmit={handleAddExpense}
+                        >
+                            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' }}>Add Expense</h3>
+
+                            <label style={styles.formLabel}>Category</label>
+                            <select
+                                value={expenseForm.category}
+                                onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                style={styles.formSelect}
+                            >
+                                {EXPENSE_CATEGORIES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.label}</option>
+                                ))}
+                            </select>
+
+                            <label style={{ ...styles.formLabel, marginTop: 12 }}>Amount ($)</label>
+                            <input
+                                type="number"
+                                value={expenseForm.amount}
+                                onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                style={styles.formInput}
+                                step="0.01"
+                                autoFocus
+                            />
+
+                            <label style={{ ...styles.formLabel, marginTop: 12 }}>Description (optional)</label>
+                            <input
+                                type="text"
+                                value={expenseForm.description}
+                                onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                style={styles.formInput}
+                            />
+
+                            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                                <button type="submit" style={styles.formSubmitBtn}>Add Expense</button>
+                                <button type="button" onClick={() => setShowAddExpense(false)} style={styles.formCancelBtn}>Cancel</button>
+                            </div>
+                        </motion.form>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ── DOUBLE DOWN PROMPT ── */}
             <AnimatePresence>
                 {showDoubleDownPrompt && promptDown && (
@@ -1029,6 +1209,10 @@ const styles = {
     },
     addDownBtn: {
         background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '2px solid rgba(245, 158, 11, 0.3)',
+        borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    },
+    addExpenseBtn: {
+        background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '2px solid rgba(239, 68, 68, 0.3)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
     },
     completeBtn: {

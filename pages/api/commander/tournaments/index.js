@@ -47,14 +47,21 @@ async function listTournaments(req, res) {
     }
 
     if (status) {
-      if (status === 'upcoming') {
-        query = query.in('status', ['scheduled', 'registering']);
-      } else if (status === 'active') {
-        query = query.in('status', ['running', 'paused', 'final_table']);
-      } else if (status === 'current_future') {
+      // Support comma-separated compound filters like 'upcoming,active'
+      const statusParts = status.split(',').map(s => s.trim());
+
+      // Map shorthand labels to actual DB status arrays
+      const resolveStatuses = (label) => {
+        if (label === 'upcoming') return ['scheduled', 'registering'];
+        if (label === 'active') return ['running', 'paused', 'final_table'];
+        return [label]; // raw status value
+      };
+
+      if (status === 'current_future') {
         query = query.not('status', 'in', '("completed","cancelled")');
       } else {
-        query = query.eq('status', status);
+        const allStatuses = [...new Set(statusParts.flatMap(resolveStatuses))];
+        query = query.in('status', allStatuses);
       }
     }
 
