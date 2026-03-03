@@ -1276,10 +1276,12 @@ class GameStateMachine {
     const totalPot = this.potCalculator.totalPot;
     
     // Apply rake to total pot
+    // "No flop, no drop" — no rake if flop was never dealt
+    const flopSeen = this.currentHand.communityCards.length >= 3;
     const rakePercent = this.config.rakePercent || 0;
     const rakeCap = this.config.rakeCap || 0;
     let rake = 0;
-    if (rakePercent > 0) {
+    if (rakePercent > 0 && flopSeen) {
       const hasMultiple = pots.some(p => p.eligible.size > 1);
       if (hasMultiple) {
         rake = Math.min(Math.floor(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
@@ -1643,11 +1645,12 @@ class GameStateMachine {
       const pots = this.potCalculator.calculatePots();
       const totalPot = this.potCalculator.totalPot;
       
-      // Calculate rake on full pot
-      const rakeAmount = Math.min(
+      // Calculate rake on full pot ("no flop, no drop")
+      const flopSeen = this.currentHand.communityCards.length >= 3;
+      const rakeAmount = flopSeen ? Math.min(
         Math.floor(totalPot * (this.config.rakePercent || 0) / 100),
         this.config.rakeCap || Infinity
-      );
+      ) : 0;
       
       // Deduct rake from pots (main pot first)
       let rakeLeft = rakeAmount;
@@ -1777,9 +1780,12 @@ class GameStateMachine {
   _handleFoldWin(winner) {
     this.phase = GAME_PHASE.PAYOUT;
     
+    // "No flop, no drop" — standard poker rule: no rake if hand ends before flop
+    const flopSeen = this.currentHand.communityCards.length >= 3 || this.phase !== 'preflop';
     const { payouts, rake } = this.potCalculator.awardToLastPlayer(winner.id, {
       rakePercent: this.config.rakePercent,
       rakeCap: this.config.rakeCap,
+      flopSeen,
     });
     
     // Update player stacks

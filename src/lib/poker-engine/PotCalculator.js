@@ -400,13 +400,14 @@ class PotCalculator {
    * @returns {{ payouts: Map, rake: number }}
    */
   awardToLastPlayer(winnerId, options = {}) {
-    const { rakePercent = 0, rakeCap = Infinity } = options;
+    const { rakePercent = 0, rakeCap = Infinity, flopSeen = true } = options;
     
     const total = this.totalPot;
     let rake = 0;
     
-    // Some rooms don't rake if no flop was seen ("no flop, no drop")
-    if (rakePercent > 0) {
+    // "No flop, no drop" — standard poker rule.
+    // Rake is only taken if a flop was dealt.
+    if (rakePercent > 0 && flopSeen) {
       rake = Math.min(Math.floor(total * rakePercent / 100), rakeCap);
     }
     
