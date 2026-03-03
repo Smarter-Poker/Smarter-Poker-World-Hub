@@ -227,154 +227,72 @@ export default function TDClock() {
           </div>
         )}
 
-        {/* Main Clock Display */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-6">
-
-          {/* H4H / Break banner */}
-          {alerts.hand_for_hand && (
-            <div className="px-6 py-2 rounded-full bg-[#EF4444]/20 border border-[#EF4444]/40 mb-4">
-              <span className="text-[#EF4444] text-lg font-bold uppercase tracking-wider">Hand For Hand</span>
-            </div>
-          )}
-          {alerts.on_break && (
-            <div className="px-6 py-2 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B]/40 mb-4">
-              <span className="text-[#F59E0B] text-lg font-bold uppercase tracking-wider">On Break</span>
-            </div>
-          )}
-
-          {/* Current message */}
-          {clockState.current_message && new Date(clockState.current_message.expires_at) > new Date() && (
-            <div className="px-6 py-2 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 mb-4 max-w-lg text-center">
-              <p className="text-[#1877F2] text-base font-medium">{clockState.current_message.text}</p>
-            </div>
-          )}
-
-          {/* Level */}
-          <p className="text-[#B0B3B8] text-sm uppercase tracking-[0.2em] mb-2">
-            Level {(clock.current_level || 0) + 1} of {clock.total_levels || '--'}
-          </p>
-
-          {/* Blinds */}
-          <p className={`font-bold mb-4 ${isFullscreen ? 'text-5xl' : 'text-3xl'} text-white`}>
-            {formatBlinds(clock.current_blinds)}
-          </p>
-
-          {/* Big Countdown */}
-          <p className={`font-mono font-bold tabular-nums mb-2 ${isFullscreen ? 'text-[120px] leading-none' : 'text-7xl'
-            } ${displaySeconds <= 60 ? 'text-[#EF4444]' :
-              displaySeconds <= 120 ? 'text-[#F59E0B]' : 'text-white'
-            }`}>
-            {formatClockTime(displaySeconds)}
-          </p>
-
-          {/* Next level */}
-          {clock.next_blinds && (
-            <p className="text-[#B0B3B8] text-sm mb-6">
-              Next: {formatBlinds(clock.next_blinds)}
-            </p>
-          )}
-
-          {/* Stats row */}
-          <div className="flex items-center gap-6 text-sm text-[#B0B3B8] mb-8">
-            <span><strong className="text-white">{stats.players_remaining}</strong> Players</span>
-            <span><strong className="text-white">{stats.tables_active}</strong> Tables</span>
-            <span><strong className="text-white">{formatChips(stats.average_stack)}</strong> Avg</span>
-            <span><strong className="text-white">${(stats.prize_pool || 0).toLocaleString()}</strong> Pool</span>
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center gap-3 mb-6">
-            <button onClick={() => clockAction('prev_level')} disabled={!!actionLoading}
-              className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
-              <SkipBack className="w-6 h-6 text-[#E4E6EB]" />
+        {/* Main Clock Mirror */}
+        <div className={`w-full bg-black relative ${isFullscreen ? 'flex-1' : 'aspect-[16/9] min-h-[250px] max-h-[50vh]'}`}>
+          <iframe
+            src={`/commander/tournaments/${tournamentId}/clock-display?preview=true`}
+            className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+            title="Clock Mirror"
+            style={{ pointerEvents: 'none' }}
+          />
+          {isFullscreen && (
+            <button onClick={toggleFullscreen} className="absolute top-4 right-4 z-50 p-3 bg-black/50 hover:bg-black/80 rounded-full backdrop-blur">
+              <Minimize className="w-6 h-6 text-white" />
             </button>
-
-            <button onClick={() => clockAction('subtract_time')} disabled={!!actionLoading}
-              className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
-              <Minus className="w-6 h-6 text-[#E4E6EB]" />
-            </button>
-
-            {isRunning ? (
-              <button onClick={() => clockAction('pause')} disabled={!!actionLoading}
-                className="w-24 h-24 rounded-3xl bg-[#F59E0B] flex items-center justify-center active:bg-[#D97706] disabled:opacity-50 shadow-lg shadow-[#F59E0B]/20">
-                {actionLoading === 'pause' ? <Loader2 className="w-10 h-10 text-white animate-spin" /> : <Pause className="w-10 h-10 text-white" />}
-              </button>
-            ) : (
-              <button onClick={() => clockAction(isPaused ? 'resume' : 'start')} disabled={!!actionLoading}
-                className="w-24 h-24 rounded-3xl bg-[#31A24C] flex items-center justify-center active:bg-[#28883F] disabled:opacity-50 shadow-lg shadow-[#31A24C]/20">
-                {actionLoading === 'start' || actionLoading === 'resume'
-                  ? <Loader2 className="w-10 h-10 text-white animate-spin" />
-                  : <Play className="w-10 h-10 text-white ml-1" />}
-              </button>
-            )}
-
-            <button onClick={() => clockAction('add_time')} disabled={!!actionLoading}
-              className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
-              <Plus className="w-6 h-6 text-[#E4E6EB]" />
-            </button>
-
-            <button onClick={() => clockAction('next_level')} disabled={!!actionLoading}
-              className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
-              <SkipForward className="w-6 h-6 text-[#E4E6EB]" />
-            </button>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-            <ActionChip icon={Coffee} label="Break" onClick={() => clockAction('break')}
-              active={alerts.on_break} activeColor="#F59E0B" />
-            <ActionChip icon={Hand} label={alerts.hand_for_hand ? 'End H4H' : 'H4H'}
-              onClick={toggleH4H} active={alerts.hand_for_hand} activeColor="#EF4444" />
-            <ActionChip icon={Star} label="Final Table" onClick={triggerFinalTable}
-              active={floor?.tournament?.status === 'final_table'} activeColor="#1877F2"
-              disabled={stats.players_remaining > 10} />
-            <ActionChip icon={Volume2} label="Announce" onClick={() => setShowMessage(true)} />
-            {isFullscreen && (
-              <ActionChip icon={Minimize} label="Exit FS" onClick={toggleFullscreen} />
-            )}
-            {!isFullscreen && (
-              <ActionChip icon={Maximize} label="Fullscreen" onClick={toggleFullscreen} />
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Blind Structure Table */}
-        {!isFullscreen && tournament.blind_structure?.length > 0 && (
-          <div className="w-full max-w-lg mx-auto px-4 mb-6">
-            <h3 className="text-sm font-bold text-[#B0B3B8] uppercase tracking-wider mb-2">Blind Structure</h3>
-            <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] overflow-hidden max-h-48 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-[#3A3B3C] sticky top-0">
-                  <tr>
-                    <th className="py-2 px-3 text-left text-[#B0B3B8] text-xs font-medium">Lvl</th>
-                    <th className="py-2 px-3 text-left text-[#B0B3B8] text-xs font-medium">Blinds</th>
-                    <th className="py-2 px-3 text-right text-[#B0B3B8] text-xs font-medium">Ante</th>
-                    <th className="py-2 px-3 text-right text-[#B0B3B8] text-xs font-medium">Min</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tournament.blind_structure.map((level, i) => {
-                    const isCurrent = i === (clock.current_level || 0);
-                    const isPast = i < (clock.current_level || 0);
-                    return (
-                      <tr key={i} className={`border-t border-[#3A3B3C]/50 ${isCurrent ? 'bg-[#1877F2]/10' : ''} ${isPast ? 'opacity-40' : ''}`}>
-                        <td className={`py-2 px-3 font-medium ${isCurrent ? 'text-[#1877F2]' : 'text-white'}`}>
-                          {level.is_break ? '☕' : i + 1}
-                        </td>
-                        <td className={`py-2 px-3 ${isCurrent ? 'text-[#1877F2] font-bold' : 'text-white'}`}>
-                          {level.is_break ? 'Break' : `${(level.small_blind || level.sb || 0).toLocaleString()} / ${(level.big_blind || level.bb || 0).toLocaleString()}`}
-                        </td>
-                        <td className="py-2 px-3 text-right text-[#B0B3B8]">
-                          {level.ante ? level.ante.toLocaleString() : '–'}
-                        </td>
-                        <td className="py-2 px-3 text-right text-[#B0B3B8]">
-                          {level.duration || '–'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        {/* Controls Section */}
+        {!isFullscreen && (
+          <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col items-center">
+            {/* Controls */}
+            <div className="flex items-center gap-3 mb-6">
+              <button onClick={() => clockAction('prev_level')} disabled={!!actionLoading}
+                className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
+                <SkipBack className="w-6 h-6 text-[#E4E6EB]" />
+              </button>
+
+              <button onClick={() => clockAction('subtract_time')} disabled={!!actionLoading}
+                className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
+                <Minus className="w-6 h-6 text-[#E4E6EB]" />
+              </button>
+
+              {isRunning ? (
+                <button onClick={() => clockAction('pause')} disabled={!!actionLoading}
+                  className="w-24 h-24 rounded-3xl bg-[#F59E0B] flex items-center justify-center active:bg-[#D97706] disabled:opacity-50 shadow-lg shadow-[#F59E0B]/20">
+                  {actionLoading === 'pause' ? <Loader2 className="w-10 h-10 text-white animate-spin" /> : <Pause className="w-10 h-10 text-white" />}
+                </button>
+              ) : (
+                <button onClick={() => clockAction(isPaused ? 'resume' : 'start')} disabled={!!actionLoading}
+                  className="w-24 h-24 rounded-3xl bg-[#31A24C] flex items-center justify-center active:bg-[#28883F] disabled:opacity-50 shadow-lg shadow-[#31A24C]/20">
+                  {actionLoading === 'start' || actionLoading === 'resume'
+                    ? <Loader2 className="w-10 h-10 text-white animate-spin" />
+                    : <Play className="w-10 h-10 text-white ml-1" />}
+                </button>
+              )}
+
+              <button onClick={() => clockAction('add_time')} disabled={!!actionLoading}
+                className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
+                <Plus className="w-6 h-6 text-[#E4E6EB]" />
+              </button>
+
+              <button onClick={() => clockAction('next_level')} disabled={!!actionLoading}
+                className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50">
+                <SkipForward className="w-6 h-6 text-[#E4E6EB]" />
+              </button>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+              <ActionChip icon={Coffee} label="Break" onClick={() => clockAction('break')}
+                active={alerts.on_break} activeColor="#F59E0B" />
+              <ActionChip icon={Hand} label={alerts.hand_for_hand ? 'End H4H' : 'H4H'}
+                onClick={toggleH4H} active={alerts.hand_for_hand} activeColor="#EF4444" />
+              <ActionChip icon={Star} label="Final" onClick={triggerFinalTable}
+                active={floor?.tournament?.status === 'final_table'} activeColor="#1877F2"
+                disabled={stats.players_remaining > 10} />
+              <ActionChip icon={Volume2} label="Announce" onClick={() => setShowMessage(true)} />
+              <ActionChip icon={Maximize} label="Fullscreen" onClick={toggleFullscreen} />
             </div>
           </div>
         )}

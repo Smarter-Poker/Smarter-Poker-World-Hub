@@ -769,26 +769,38 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         style={styles.modalOverlay}
                     >
                         <motion.div
+                            className="toke-modal-card"
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             style={styles.modalCard}
                         >
                             <style>{`
-                                .toke-img-map-element {
+                                body .bankroll-page div.toke-modal-card,
+                                body.world-bankroll-manager div.toke-modal-card {
+                                    border: none !important;
+                                    box-shadow: none !important;
+                                    background-color: transparent !important;
+                                }
+                                body .bankroll-page button.toke-img-map-element,
+                                body .bankroll-page input.toke-img-map-element,
+                                body .bankroll-page select.toke-img-map-element,
+                                body.world-bankroll-manager button.toke-img-map-element,
+                                body.world-bankroll-manager input.toke-img-map-element,
+                                body.world-bankroll-manager select.toke-img-map-element {
                                     border: none !important;
                                     outline: none !important;
                                     box-shadow: none !important;
                                     background-color: transparent !important;
                                     -webkit-tap-highlight-color: transparent !important;
                                 }
-                                .toke-img-map-element:focus,
-                                .toke-img-map-element:hover,
-                                .toke-img-map-element:active {
+                                body .bankroll-page button.toke-img-map-element:focus,
+                                body .bankroll-page button.toke-img-map-element:hover,
+                                body .bankroll-page button.toke-img-map-element:active {
                                     border: none !important;
                                     outline: none !important;
                                     box-shadow: none !important;
                                     background-color: transparent !important;
                                 }
-                                .toke-img-map-element option {
+                                body .bankroll-page select.toke-img-map-element option {
                                     background-color: #1a1a1a !important;
                                     color: #fff !important;
                                 }
@@ -1134,14 +1146,14 @@ const styles = {
         position: 'relative',
         backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
         backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-        border: 'none', borderRadius: 0, padding: 0, backgroundColor: 'transparent',
+        border: 'none', padding: 0, backgroundColor: 'transparent',
         width: '100%', maxWidth: 450,
         aspectRatio: '854 / 1018',
         boxShadow: '0 20px 60px rgba(0,0,0,0.8)', overflow: 'hidden',
         display: 'block',
     },
     imgMapBtn: {
-        position: 'absolute', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', outline: 'none',
+        position: 'absolute', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none',
         WebkitTapHighlightColor: 'rgba(0,0,0,0)', boxShadow: 'none'
     },
     imgMapInput: {

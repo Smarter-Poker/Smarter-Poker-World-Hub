@@ -28,6 +28,48 @@ function getSupabase() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LRU CACHE (Phase 3A #9) — Prevents redundant Supabase queries
+// Preflop charts have ~30 unique keys; postflop is more varied but still cacheable
+// ═══════════════════════════════════════════════════════════════════════════
+
+const GTO_CACHE_MAX = 200;
+const gtoCache = new Map(); // key → { value, accessTime }
+let _gtoCacheHits = 0;
+let _gtoCacheMisses = 0;
+
+function cacheGet(key) {
+    const entry = gtoCache.get(key);
+    if (entry) {
+        entry.accessTime = Date.now();
+        _gtoCacheHits++;
+        return entry.value;
+    }
+    _gtoCacheMisses++;
+    return undefined;
+}
+
+function cacheSet(key, value) {
+    if (gtoCache.size >= GTO_CACHE_MAX) {
+        // Evict least recently accessed entry
+        let oldestKey = null;
+        let oldestTime = Infinity;
+        for (const [k, v] of gtoCache) {
+            if (v.accessTime < oldestTime) {
+                oldestTime = v.accessTime;
+                oldestKey = k;
+            }
+        }
+        if (oldestKey) gtoCache.delete(oldestKey);
+    }
+    gtoCache.set(key, { value, accessTime: Date.now() });
+}
+
+/** Get cache statistics for monitoring */
+export function getCacheStats() {
+    return { size: gtoCache.size, max: GTO_CACHE_MAX, hits: _gtoCacheHits, misses: _gtoCacheMisses };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -77,6 +119,11 @@ function formatHand(card1, card2) {
  * @returns {Object} Chart grid with hand actions
  */
 export async function getPreflopRange(chartName) {
+    // Check cache first (Phase 3A #9)
+    const cacheKey = `preflop:${chartName}`;
+    const cached = cacheGet(cacheKey);
+    if (cached !== undefined) return cached;
+
     const sb = getSupabase();
     if (!sb) return null;
 
@@ -87,6 +134,8 @@ export async function getPreflopRange(chartName) {
         .single();
 
     if (error || !data) return null;
+
+    cacheSet(cacheKey, data.chart_grid);
     return data.chart_grid;
 }
 
@@ -97,6 +146,12 @@ export async function getPreflopRange(chartName) {
  */
 export async function getPostflopStrategy(params) {
     const { board, street, stackDepth, gameType, topology, mode } = params;
+
+    // Check cache first (Phase 3A #9)
+    const cacheKey = `postflop:${street}:${stackDepth}:${gameType}:${topology}:${mode}:${(board || []).join(',')}`;
+    const cached = cacheGet(cacheKey);
+    if (cached !== undefined) return cached;
+
     const sb = getSupabase();
     if (!sb) return null;
 
@@ -112,6 +167,8 @@ export async function getPostflopStrategy(params) {
         .single();
 
     if (error || !data) return null;
+
+    cacheSet(cacheKey, data);
     return data;
 }
 
