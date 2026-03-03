@@ -340,14 +340,14 @@ function generateExplanation(leakType, currentValue, optimalRange) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Require JWT auth for write operations
-    if (req.method !== 'GET') {
-        const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-        if (req.body) req.body.userId = _authUser.id;
-    }
+  // Require JWT auth for write operations
+  if (req.method !== 'GET') {
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (req.body) req.body.userId = _authUser.id;
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -458,6 +458,36 @@ export default async function handler(req, res) {
           .eq('id', existingLeak.id);
       }
     }
+
+    // 🚀 NEW BUG #11 FIX: Update Global PA Stats
+    // Recalculate active/resolved leaks
+    const { data: updatedLeaks } = await supabase
+      .from('user_leaks')
+      .select('status')
+      .eq('user_id', userId);
+
+    const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
+    const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
+
+    // Fetch existing stats to increment hands
+    const { data: existingStats } = await supabase
+      .from('user_assistant_stats')
+      .select('total_hands_analyzed')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const currentHands = existingStats?.total_hands_analyzed || 0;
+
+    // Atomic Upsert for Stats Sync
+    await supabase
+      .from('user_assistant_stats')
+      .upsert({
+        user_id: userId,
+        total_hands_analyzed: currentHands + stats.handsPlayed,
+        active_leaks_count: activeLeaks,
+        resolved_leaks_count: resolvedLeaksCount,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
 
     return res.status(200).json({
       success: true,

@@ -566,6 +566,164 @@ function validateAndClamp(actionType, amount, legalActions) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SESSION & BANKROLL TRACKING (Phase 2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Tracks active session data per table per horse
+// Map<tableId, Map<playerId, { startTime, startingStack, buyinsUsed, lastEvalsMs }>>
+const sessionTracker = new Map();
+
+// Tracks cumulative daily playtime per horse in MS
+// Map<playerId, { dateString, totalMs }>
+const dailyPlayTracker = new Map();
+
+function getTodayString() {
+    return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Record a horse sitting down at a table
+ */
+function recordSitDown(tableId, playerId, buyInAmount) {
+    if (!sessionTracker.has(tableId)) {
+        sessionTracker.set(tableId, new Map());
+    }
+    const tableSessions = sessionTracker.get(tableId);
+
+    // Only init if they aren't already sitting
+    if (!tableSessions.has(playerId)) {
+        tableSessions.set(playerId, {
+            startTime: Date.now(),
+            startingStack: buyInAmount,
+            buyinsUsed: 1,
+            lastEvalMs: Date.now()
+        });
+        console.log(`[HorseBrain] 🐎 Session started for ${playerId.substring(0, 8)} at ${tableId} (Buy-in: ${buyInAmount})`);
+    }
+}
+
+/**
+ * Record a horse rebuying/adding chips at a table
+ */
+function recordRebuy(tableId, playerId, amount) {
+    const tableSessions = sessionTracker.get(tableId);
+    if (!tableSessions) return;
+
+    const session = tableSessions.get(playerId);
+    if (session) {
+        session.buyinsUsed += 1;
+        console.log(`[HorseBrain] 🐎 Rebuy recorded for ${playerId.substring(0, 8)} at ${tableId} (Buyins used: ${session.buyinsUsed})`);
+    }
+}
+
+/**
+ * Clean up tracking when a table is destroyed
+ */
+function clearTableSessions(tableId) {
+    sessionTracker.delete(tableId);
+}
+
+/**
+ * Check if a horse is allowed to rebuy based on maxBuyins stop-loss
+ * @param {string} tableId 
+ * @param {string} playerId 
+ * @returns {Promise<boolean>}
+ */
+async function canRebuy(tableId, playerId) {
+    const tableSessions = sessionTracker.get(tableId);
+    if (!tableSessions) return true; // Not tracking, allow
+
+    const session = tableSessions.get(playerId);
+    if (!session) return true;
+
+    // Fast reject if they are deep into buyins
+    // We defer to personality profile for exact limit
+    const personality = await getPersonalityModule();
+    if (personality && typeof personality.getSessionProfile === 'function') {
+        const sessionPref = personality.getSessionProfile(playerId);
+        if (session.buyinsUsed >= sessionPref.maxBuyins) {
+            console.log(`[HorseBrain] 🛑 Stop-Loss: ${playerId.substring(0, 8)} reached max buyins (${sessionPref.maxBuyins}). No rebuy allowed.`);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Evaluate all seated horses at a table between hands to see if they should leave
+ * @param {Object} gameController - GameController instance
+ * @param {Object} tableManager - TableManager instance
+ */
+async function evaluateSessions(gameController, tableManager) {
+    if (!tableManager || !tableManager.seats) return;
+    const tableId = tableManager.id;
+    const tableSessions = sessionTracker.get(tableId);
+
+    if (!tableSessions) return; // No horses tracked here
+
+    const now = Date.now();
+    const today = getTodayString();
+
+    // Lazy-load personality module to get shouldCashOut
+    const personality = await getPersonalityModule();
+
+    for (const seat of tableManager.seats) {
+        if (!seat.player || seat.status === 'empty') continue;
+        const playerId = seat.player.id;
+
+        // Is it a horse we are tracking?
+        const session = tableSessions.get(playerId);
+        if (!session) continue;
+
+        // 1. Update Daily Playtime
+        let daily = dailyPlayTracker.get(playerId);
+        if (!daily || daily.dateString !== today) {
+            daily = { dateString: today, totalMs: 0 };
+        }
+
+        const elapsedSinceLastEval = now - session.lastEvalMs;
+        daily.totalMs += elapsedSinceLastEval;
+        dailyPlayTracker.set(playerId, daily);
+        session.lastEvalMs = now;
+
+        // 2. Check 16-Hour Daily Limit (16 * 60 * 60 * 1000 = 57,600,000 ms)
+        const SIXTEEN_HOURS_MS = 57600000;
+        if (daily.totalMs >= SIXTEEN_HOURS_MS) {
+            console.log(`[HorseBrain] 🛑 Daily 16-hour limit reached for ${playerId.substring(0, 8)}. Forcing standUp.`);
+            tableSessions.delete(playerId);
+            await gameController.standUp(tableId, playerId);
+            continue;
+        }
+
+        // 3. Evaluate Advanced Cashout Logic (if personality module loaded)
+        if (personality && typeof personality.shouldCashOut === 'function') {
+            const minutesPlayed = (now - session.startTime) / 60000;
+            const currentStack = seat.stack;
+
+            // Note: We need getPreflopStrength/makeDecision for tilt, but let's approximate tilt.
+            // Tilt scales up slightly if they are stuck buyins.
+            const estimatedTilt = session.buyinsUsed > 1 && currentStack <= 0 ? 0.95 : 0.1;
+
+            const { shouldLeave, reason } = personality.shouldCashOut(
+                playerId,
+                currentStack,
+                session.startingStack,
+                minutesPlayed,
+                session.buyinsUsed,
+                estimatedTilt
+            );
+
+            if (shouldLeave) {
+                console.log(`[HorseBrain] 💸 Cashout triggered for ${playerId.substring(0, 8)}. Reason: ${reason}`);
+                tableSessions.delete(playerId);
+                await gameController.standUp(tableId, playerId);
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -574,6 +732,13 @@ module.exports = {
     isHorse,
     getDecision,
     loadHorseIds,
+
+    // Session & Bankroll (Phase 2)
+    recordSitDown,
+    recordRebuy,
+    evaluateSessions,
+    clearTableSessions,
+    canRebuy,
 
     // Helpers (exposed for testing)
     cardIntToString,

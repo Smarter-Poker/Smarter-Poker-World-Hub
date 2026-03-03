@@ -74,7 +74,7 @@ class TableManager {
     this.smallBlind = config.smallBlind;
     this.bigBlind = config.bigBlind;
     this.autoStartDelay = config.autoStartDelay || 3000;
-    
+
     // Seats array (indexed by seat number 0..maxSeats-1)
     this.seats = Array.from({ length: this.maxSeats }, (_, i) => ({
       seatIndex: i,
@@ -86,10 +86,10 @@ class TableManager {
       reservedAt: null,      // Timestamp
       disconnectedAt: null,  // Timestamp
     }));
-    
+
     // Waitlist
     this.waitlist = [];     // [{ playerId, displayName, requestedAt, seatPreference? }]
-    
+
     // Game engine
     this.game = new GameStateMachine({
       variant: config.variant || GAME_VARIANT.HOLDEM,
@@ -108,35 +108,35 @@ class TableManager {
       autoUtgStraddle: config.autoUtgStraddle || false,
       voluntaryStraddle: config.voluntaryStraddle || false,
     });
-    
+
     // Table state
     this.status = TABLE_STATUS.WAITING;
     this.handCount = 0;
     this._autoStartTimer = null;
     this._disconnectTimers = new Map();
     this._reservationTimers = new Map();
-    
+
     // No-rathole enforcement: tracks departed stacks to prevent hit-and-run
     // Map<playerId, { stack: number, leftAt: number }>
     this.noRathole = config.noRathole || config.clubSettings?.no_rathole || false;
     this._departedStacks = new Map();
     this._ratholeTimeoutMs = 30 * 60 * 1000; // 30 minutes
-    
+
     // Seven-Deuce bonus game
     this.sevenDeuce = config.sevenDeuce || config.clubSettings?.seven_deuce || false;
     this.sevenDeuceBonus = config.sevenDeuceBonus || config.bigBlind * 10; // Default: 10BB bonus
     this.banChat = config.banChat || config.clubSettings?.ban_chat || false;
-    
+
     // Bomb pot tracking
     this._lastBombPotHand = 0;
-    
+
     // Nit game / VPIP enforcement
     this.nitGame = config.nitGame || config.clubSettings?.nit_game || false;
     this.maintainPercent = config.maintainPercent || config.clubSettings?.maintain_percent || 0;
     this.maintainHands = Math.max(config.maintainHands || config.clubSettings?.maintain_hands || 12, 12);
     // Per-player tracking: Map<playerId, { handsDealt, vpipHands, warned }>
     this._vpipTracker = new Map();
-    
+
     // Table access control
     this.anonymousTable = config.anonymousTable || config.clubSettings?.anonymous_table || false;
 
@@ -148,7 +148,7 @@ class TableManager {
     this._mixedGameIndex = 0;
     this._mixedOrbitStart = -1; // buttonSeat when current variant started
     this._mixedHandsSinceRotation = 0;
-    
+
     if (this.mixedGame && !this.variantRotation) {
       // Default HORSE rotation
       this.variantRotation = ['holdem', 'omaha4', 'omaha_hilo', 'short_deck'];
@@ -159,29 +159,29 @@ class TableManager {
     this.privateGame = config.privateGame || config.clubSettings?.private_game || false;
     this.vipOnly = config.vipOnly || config.clubSettings?.vip_only || false;
     this.buyInAuthorization = config.clubSettings?.buy_in_authorization || false;
-    
+
     // Private game invite list + buy-in auth pending queue
     this._privateInvites = new Set(); // Set<playerId>
     this._pendingBuyIns = new Map();  // Map<playerId, { playerId, seatIndex, buyIn, playerInfo, requestedAt }>
     this._approvedBuyIns = new Set(); // Set<playerId>
-    
+
     // Auto-rebuy preferences: Map<playerId, boolean>
     this._autoRebuyPrefs = new Map();
-    
+
     // Auto top-up preferences: Map<playerId, number|boolean>
     // When set to true: top up to max buy-in between hands
     // When set to a number: top up to that specific amount
     this._autoTopUpPrefs = new Map();
-    
+
     // Auto-rebuy callback — set by LobbyManager for club chip locking
     this.onAutoRebuy = null;
-    
+
     // Auto top-up callback — set by LobbyManager for club chip locking
     this.onAutoTopUp = null;
-    
+
     // Event listeners
     this._listeners = new Map();
-    
+
     // Wire game engine events through
     this.game.on('hand_start', (d) => this.emit('hand_start', d));
     this.game.on('blinds_posted', (d) => this.emit('blinds_posted', d));
@@ -264,7 +264,7 @@ class TableManager {
    */
   sitDown(playerId, seatIndex, buyIn, playerInfo = {}) {
     // ── Access Control ──
-    
+
     // Private game: only invited players or staff can sit
     if (this.privateGame) {
       const isInvited = this._privateInvites?.has(String(playerId));
@@ -273,7 +273,7 @@ class TableManager {
         return { success: false, error: 'Private table — ask admin for an invitation', code: 'PRIVATE_TABLE' };
       }
     }
-    
+
     // VIP-only table: check member tier
     if (this.vipOnly) {
       const tier = (playerInfo.tier || 'bronze').toLowerCase();
@@ -283,7 +283,7 @@ class TableManager {
         return { success: false, error: 'VIP-only table — upgrade your membership', code: 'VIP_ONLY' };
       }
     }
-    
+
     // Buy-in authorization: queue for admin approval
     if (this.buyInAuthorization) {
       const isStaff = playerInfo.role === 'owner' || playerInfo.role === 'admin' || playerInfo.role === 'agent';
@@ -305,29 +305,29 @@ class TableManager {
       // Clear approval after use
       this._approvedBuyIns?.delete(String(playerId));
     }
-    
+
     // Validate seat
     if (seatIndex < 0 || seatIndex >= this.maxSeats) {
       return { success: false, error: `Invalid seat: ${seatIndex}` };
     }
-    
+
     const seat = this.seats[seatIndex];
-    
+
     // Check if seat is available
     if (seat.status === SEAT_STATUS.OCCUPIED || seat.status === SEAT_STATUS.SITTING_OUT) {
       return { success: false, error: 'Seat is occupied' };
     }
-    
+
     if (seat.status === SEAT_STATUS.RESERVED && seat.reservedFor !== playerId) {
       return { success: false, error: 'Seat is reserved for another player' };
     }
-    
+
     // Check if player is already seated
     const existingSeat = this.seats.find(s => s.player?.id === playerId);
     if (existingSeat) {
       return { success: false, error: 'Player already seated at this table' };
     }
-    
+
     // Validate buy-in
     if (buyIn < this.minBuyIn) {
       return { success: false, error: `Minimum buy-in is ${this.minBuyIn}` };
@@ -335,7 +335,7 @@ class TableManager {
     if (buyIn > this.maxBuyIn) {
       return { success: false, error: `Maximum buy-in is ${this.maxBuyIn}` };
     }
-    
+
     // No-rathole enforcement: returning players must buy in at or above their previous stack
     if (this.noRathole) {
       const departed = this._departedStacks.get(String(playerId));
@@ -352,11 +352,11 @@ class TableManager {
       // Clear the record once they successfully sit down
       this._departedStacks.delete(String(playerId));
     }
-    
+
     // Sit down
     seat.status = SEAT_STATUS.OCCUPIED;
     seat.player = { id: playerId, displayName: playerInfo.displayName || playerId, avatarUrl: playerInfo.avatarUrl || null };
-    
+
     // Reset VPIP tracker — fresh session for this player at this table
     this._vpipTracker.delete(String(playerId));
     seat.stack = buyIn;
@@ -364,23 +364,23 @@ class TableManager {
     seat.reservedFor = null;
     seat.reservedAt = null;
     seat.disconnectedAt = null;
-    
+
     // Clear any reservation timer
     this._clearReservation(seatIndex);
-    
+
     // Remove from waitlist if present
     this.waitlist = this.waitlist.filter(w => w.playerId !== playerId);
-    
+
     this.emit('player_seated', {
       playerId,
       seatIndex,
       stack: buyIn,
       displayName: seat.player.displayName,
     });
-    
+
     // Check if we can start a hand
     this._checkAutoStart();
-    
+
     return { success: true };
   }
 
@@ -405,7 +405,7 @@ class TableManager {
   standUp(playerId) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return { success: false, error: 'Player not at this table' };
-    
+
     // If hand is in progress and player is in the hand, they must fold first
     if (this.game.phase !== GAME_PHASE.IDLE) {
       const handPlayer = this.game.currentHand?.players.find(p => String(p.id) === String(playerId));
@@ -416,9 +416,9 @@ class TableManager {
         return { success: true, pending: true, message: 'Will stand up after current hand' };
       }
     }
-    
+
     const cashout = seat.stack;
-    
+
     // No-rathole: record departing stack so returning player must buy in at this level
     if (this.noRathole && cashout > this.minBuyIn) {
       this._departedStacks.set(String(playerId), {
@@ -426,14 +426,14 @@ class TableManager {
         leftAt: Date.now(),
       });
     }
-    
+
     this._vacateSeat(seat);
-    
+
     this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout });
-    
+
     // Seat next waitlist player
     this._seatFromWaitlist(seat.seatIndex);
-    
+
     return { success: true, cashout };
   }
 
@@ -475,10 +475,10 @@ class TableManager {
   sitOut(playerId) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return { success: false, error: 'Player not at this table' };
-    
+
     seat.status = SEAT_STATUS.SITTING_OUT;
     seat.sittingOutHands = 0;
-    
+
     this.emit('player_sitting_out', { playerId, seatIndex: seat.seatIndex });
     return { success: true };
   }
@@ -491,24 +491,24 @@ class TableManager {
   sitIn(playerId) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return { success: false, error: 'Player not at this table' };
-    
+
     if (seat.status !== SEAT_STATUS.SITTING_OUT && seat.status !== SEAT_STATUS.DISCONNECTED) {
       return { success: false, error: 'Player is not sitting out' };
     }
-    
+
     seat.status = SEAT_STATUS.OCCUPIED;
     seat.sittingOutHands = 0;
     seat.disconnectedAt = null;
-    
+
     // Clear disconnect timer
     if (this._disconnectTimers.has(playerId)) {
       clearTimeout(this._disconnectTimers.get(playerId));
       this._disconnectTimers.delete(playerId);
     }
-    
+
     this.emit('player_sitting_in', { playerId, seatIndex: seat.seatIndex });
     this._checkAutoStart();
-    
+
     return { success: true };
   }
 
@@ -564,16 +564,16 @@ class TableManager {
   addChips(playerId, amount) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return { success: false, error: 'Player not at this table' };
-    
+
     if (amount <= 0) return { success: false, error: 'Amount must be positive' };
-    
+
     const newStack = seat.stack + amount;
     if (newStack > this.maxBuyIn) {
       return { success: false, error: `Stack would exceed max buy-in of ${this.maxBuyIn}` };
     }
-    
+
     seat.stack += amount;
-    
+
     this.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex: seat.seatIndex });
     return { success: true, newStack: seat.stack };
   }
@@ -600,18 +600,18 @@ class TableManager {
   setAutoTopUp(playerId, value) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return { success: false, error: 'Player not at this table' };
-    
+
     if (value === false || value === 0) {
       this._autoTopUpPrefs.delete(String(playerId));
       return { success: true, autoTopUp: false };
     }
-    
+
     // Validate target amount
     const target = (value === true) ? this.maxBuyIn : Math.min(Number(value), this.maxBuyIn);
     if (target < this.minBuyIn) {
       return { success: false, error: `Target must be at least ${this.minBuyIn}` };
     }
-    
+
     this._autoTopUpPrefs.set(String(playerId), target);
     return { success: true, autoTopUp: true, targetAmount: target };
   }
@@ -644,17 +644,17 @@ class TableManager {
   approveBuyIn(playerId) {
     const pending = this._pendingBuyIns.get(String(playerId));
     if (!pending) return { success: false, error: 'No pending buy-in for this player' };
-    
+
     this._pendingBuyIns.delete(String(playerId));
     this._approvedBuyIns.add(String(playerId));
-    
+
     this.emit('buyin_authorized', {
       playerId,
       displayName: pending.playerInfo?.displayName,
       seatIndex: pending.seatIndex,
       buyIn: pending.buyIn,
     });
-    
+
     // Auto-seat the player if the seat is still available
     const result = this.sitDown(playerId, pending.seatIndex, pending.buyIn, pending.playerInfo);
     return result;
@@ -667,7 +667,7 @@ class TableManager {
   rejectBuyIn(playerId) {
     const pending = this._pendingBuyIns.get(String(playerId));
     if (!pending) return { success: false, error: 'No pending buy-in' };
-    
+
     this._pendingBuyIns.delete(String(playerId));
     this.emit('buyin_rejected', {
       playerId,
@@ -683,12 +683,12 @@ class TableManager {
   handleDisconnect(playerId) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return;
-    
+
     seat.status = SEAT_STATUS.DISCONNECTED;
     seat.disconnectedAt = Date.now();
-    
+
     this.emit('player_disconnected', { playerId, seatIndex: seat.seatIndex });
-    
+
     // Start grace period timer
     const timer = setTimeout(() => {
       // If still disconnected after grace period, sit them out
@@ -698,7 +698,7 @@ class TableManager {
       }
       this._disconnectTimers.delete(playerId);
     }, DISCONNECT_GRACE_MS);
-    
+
     this._disconnectTimers.set(playerId, timer);
   }
 
@@ -710,20 +710,20 @@ class TableManager {
   handleReconnect(playerId) {
     const seat = this._findPlayerSeat(playerId);
     if (!seat) return { success: false };
-    
+
     if (seat.status === SEAT_STATUS.DISCONNECTED) {
       seat.status = SEAT_STATUS.OCCUPIED;
       seat.disconnectedAt = null;
-      
+
       if (this._disconnectTimers.has(playerId)) {
         clearTimeout(this._disconnectTimers.get(playerId));
         this._disconnectTimers.delete(playerId);
       }
-      
+
       this.emit('player_reconnected', { playerId, seatIndex: seat.seatIndex });
       return { success: true, seatIndex: seat.seatIndex };
     }
-    
+
     return { success: true, seatIndex: seat.seatIndex };
   }
 
@@ -740,29 +740,29 @@ class TableManager {
     if (this._findPlayerSeat(playerId)) {
       return { success: false, error: 'Already seated at this table' };
     }
-    
+
     // Check if already on waitlist
     if (this.waitlist.some(w => w.playerId === playerId)) {
       return { success: false, error: 'Already on the waitlist' };
     }
-    
+
     this.waitlist.push({
       playerId,
       displayName: options.displayName || playerId,
       requestedAt: Date.now(),
       seatPreference: options.seatPreference || null,
     });
-    
+
     const position = this.waitlist.length;
-    
+
     this.emit('waitlist_joined', { playerId, position });
-    
+
     // If there's an empty seat, offer it immediately
     const emptySeat = this.seats.find(s => s.status === SEAT_STATUS.EMPTY);
     if (emptySeat) {
       this._offerSeatFromWaitlist(emptySeat.seatIndex);
     }
-    
+
     return { success: true, position };
   }
 
@@ -774,7 +774,7 @@ class TableManager {
   leaveWaitlist(playerId) {
     const idx = this.waitlist.findIndex(w => w.playerId === playerId);
     if (idx === -1) return { success: false, error: 'Not on the waitlist' };
-    
+
     this.waitlist.splice(idx, 1);
     this.emit('waitlist_left', { playerId });
     return { success: true };
@@ -790,7 +790,7 @@ class TableManager {
     if (this.game.phase !== GAME_PHASE.IDLE) {
       return { success: false, error: 'Hand already in progress' };
     }
-    
+
     // Get active players (occupied seats with chips)
     const activePlayers = this.seats
       .filter(s => s.status === SEAT_STATUS.OCCUPIED && s.stack > 0)
@@ -799,12 +799,12 @@ class TableManager {
         stack: s.stack,
         seatIndex: s.seatIndex,
       }));
-    
+
     if (activePlayers.length < 2) {
       this.status = TABLE_STATUS.WAITING;
       return { success: false, error: 'Need at least 2 active players' };
     }
-    
+
     // Increment sitting-out counters and handle auto-remove
     for (const seat of this.seats) {
       if (seat.status === SEAT_STATUS.SITTING_OUT) {
@@ -819,10 +819,10 @@ class TableManager {
         }
       }
     }
-    
+
     this.status = TABLE_STATUS.RUNNING;
     this.handCount++;
-    
+
     // Bomb Pot detection
     const bombPotEnabled = this.game.config.bombPot;
     let isBombPot = false;
@@ -835,10 +835,10 @@ class TableManager {
         this.emit('bomb_pot_starting', { handNumber: this.handCount });
       }
     }
-    
+
     // Start the hand on the game engine
     this.game.startHand(activePlayers, undefined, { bombPot: isBombPot });
-    
+
     return { success: true };
   }
 
@@ -852,14 +852,14 @@ class TableManager {
     if (this.game.phase === GAME_PHASE.IDLE) {
       return { success: false, error: 'No hand in progress' };
     }
-    
+
     const result = this.game.processAction(playerId, action);
-    
+
     // Sync stacks back from engine after each action
     if (result.success) {
       this._syncStacks();
     }
-    
+
     return result;
   }
 
@@ -883,7 +883,7 @@ class TableManager {
    * @private
    */
   _findPlayerSeat(playerId) {
-    return this.seats.find(s => 
+    return this.seats.find(s =>
       s.player && String(s.player.id) === String(playerId) &&
       s.status !== SEAT_STATUS.EMPTY
     );
@@ -911,7 +911,7 @@ class TableManager {
    */
   _syncStacks() {
     if (!this.game.currentHand) return;
-    
+
     for (const player of this.game.currentHand.players) {
       const seat = this.seats.find(s => s.player?.id === player.id);
       if (seat) {
@@ -927,9 +927,9 @@ class TableManager {
   _onHandComplete(data) {
     // Sync final stacks
     this._syncStacks();
-    
+
     this.status = TABLE_STATUS.BETWEEN_HANDS;
-    
+
     // ── Seven-Deuce Bonus Game ──
     // If enabled, players who win a pot with 7-2 offsuit collect a bonus from every other player
     if (this.sevenDeuce && data.result?.winners?.length > 0 && data.result.type !== 'fold') {
@@ -937,17 +937,17 @@ class TableManager {
       for (const winner of data.result.winners) {
         const player = this.game.currentHand?.players?.find(p => String(p.id) === String(winner.playerId));
         if (!player?.holeCards || player.holeCards.length < 2) continue;
-        
+
         // Check for 7-2 offsuit (rank 5 = '7', rank 0 = '2')
         const ranks = player.holeCards.map(c => getRank(c)).sort((a, b) => a - b);
         const suits = player.holeCards.map(c => getSuit(c));
         const is72 = ranks[0] === 0 && ranks[1] === 5 && suits[0] !== suits[1];
-        
+
         if (is72) {
           const bonus = this.sevenDeuceBonus;
           let totalCollected = 0;
           const payers = [];
-          
+
           // Collect from all other seated players
           for (const seat of this.seats) {
             if (!seat.player || String(seat.player.id) === String(winner.playerId)) continue;
@@ -959,7 +959,7 @@ class TableManager {
               payers.push({ playerId: seat.player.id, amount: payment });
             }
           }
-          
+
           // Award to winner
           const winnerSeat = this._findPlayerSeat(winner.playerId);
           if (winnerSeat && totalCollected > 0) {
@@ -976,15 +976,15 @@ class TableManager {
         }
       }
     }
-    
+
     this.emit('hand_complete', data);
-    
+
     // ── NIT GAME / VPIP ENFORCEMENT ──
     // Track VPIP per player and warn/sit-out players who play too tight
     if (this.nitGame && this.maintainPercent > 0 && this.game.currentHand) {
       const handPlayers = this.game.currentHand.players || [];
       const actions = this.game.currentHand.actions || [];
-      
+
       for (const player of handPlayers) {
         const pid = String(player.id);
         let tracker = this._vpipTracker.get(pid);
@@ -992,9 +992,9 @@ class TableManager {
           tracker = { handsDealt: 0, vpipHands: 0, warned: false };
           this._vpipTracker.set(pid, tracker);
         }
-        
+
         tracker.handsDealt++;
-        
+
         // Check if player VPIP'd (voluntarily put money in preflop)
         const playerPreflopActions = actions.filter(a =>
           String(a.playerId) === pid && a.street === 'preflop' &&
@@ -1003,11 +1003,11 @@ class TableManager {
         if (playerPreflopActions.length > 0) {
           tracker.vpipHands++;
         }
-        
+
         // Enforce after minimum hands played
         if (tracker.handsDealt >= this.maintainHands) {
           const vpipRate = (tracker.vpipHands / tracker.handsDealt) * 100;
-          
+
           if (vpipRate < this.maintainPercent) {
             if (!tracker.warned) {
               // First offense: warning
@@ -1036,35 +1036,56 @@ class TableManager {
         }
       }
     }
-    
+
     // Handle pending stand-ups and busted players
     for (const seat of this.seats) {
       if (seat.status === SEAT_STATUS.SITTING_OUT && seat.stack <= 0) {
         const playerId = seat.player?.id;
-        
+
         // ── Auto-Rebuy: if enabled and callback available, attempt rebuy ──
         if (playerId && this._autoRebuyPrefs.get(String(playerId)) && this.onAutoRebuy) {
           const rebuyAmount = this.minBuyIn;
-          this.emit('auto_rebuy_attempt', { playerId, amount: rebuyAmount, seatIndex: seat.seatIndex });
-          
-          // onAutoRebuy is async — set by LobbyManager for ChipBridge integration
-          // We fire-and-forget; LobbyManager will call addChips if successful
-          Promise.resolve(this.onAutoRebuy(playerId, rebuyAmount, seat.seatIndex)).catch(err => {
-            console.error('[TableManager] Auto-rebuy failed for', playerId, err.message);
-            // If rebuy fails, vacate the player
-            this._vacateSeat(seat);
-            this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted_rebuy_failed' });
-            this._seatFromWaitlist(seat.seatIndex);
-          });
+
+          // (Phase 2) AI Bankroll Preservation / Stop-Loss check
+          // TableManager must invoke this asynchronously to prevent horses from infinite rebuying
+          const HorsePokerBrain = require('./HorsePokerBrain');
+
+          Promise.all([
+            HorsePokerBrain.isHorse(String(playerId)),
+            HorsePokerBrain.canRebuy(this.id, String(playerId))
+          ]).then(([isAI, allowedToRebuy]) => {
+            if (isAI && !allowedToRebuy) {
+              // Stop-loss limit reached!
+              this.emit('nit_warning', { playerId, msg: 'Stop-loss limit reached' }); // Generic emission
+              this._vacateSeat(seat);
+              this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'stop_loss_limit' });
+              this._seatFromWaitlist(seat.seatIndex);
+              return;
+            }
+
+            // Continue with normal auto-rebuy
+            this.emit('auto_rebuy_attempt', { playerId, amount: rebuyAmount, seatIndex: seat.seatIndex });
+
+            // onAutoRebuy is async — set by LobbyManager for ChipBridge integration
+            // We fire-and-forget; LobbyManager will call addChips if successful
+            Promise.resolve(this.onAutoRebuy(playerId, rebuyAmount, seat.seatIndex)).catch(err => {
+              console.error('[TableManager] Auto-rebuy failed for', playerId, err.message);
+              // If rebuy fails, vacate the player
+              this._vacateSeat(seat);
+              this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted_rebuy_failed' });
+              this._seatFromWaitlist(seat.seatIndex);
+            });
+          }).catch(err => console.error('[TableManager] Horse rebuy check failed', err));
+
           continue; // Don't vacate yet — waiting for rebuy callback
         }
-        
+
         this._vacateSeat(seat);
         this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted' });
         this._seatFromWaitlist(seat.seatIndex);
       }
     }
-    
+
     // ── Auto Top-Up: top up seated players whose stack is below their target ──
     if (this.onAutoTopUp) {
       for (const seat of this.seats) {
@@ -1072,22 +1093,22 @@ class TableManager {
         const playerId = String(seat.player.id);
         const target = this._autoTopUpPrefs.get(playerId);
         if (!target || seat.stack >= target) continue;
-        
+
         const topUpAmount = target - seat.stack;
         if (topUpAmount <= 0) continue;
-        
+
         this.emit('auto_topup_attempt', { playerId, amount: topUpAmount, currentStack: seat.stack, target, seatIndex: seat.seatIndex });
-        
+
         Promise.resolve(this.onAutoTopUp(playerId, topUpAmount, seat.seatIndex)).catch(err => {
           console.warn('[TableManager] Auto top-up failed for', playerId, err.message);
           // Non-fatal — player just stays at current stack
         });
       }
     }
-    
+
     // ── Mixed Game Rotation: Check if we need to switch variants ──
     this._checkMixedGameRotation();
-    
+
     // Auto-start next hand after delay
     this._checkAutoStart();
   }
@@ -1103,40 +1124,40 @@ class TableManager {
    */
   _checkMixedGameRotation() {
     if (!this.variantRotation || this.variantRotation.length <= 1) return;
-    
+
     this._mixedHandsSinceRotation++;
-    
+
     // One orbit = number of active players at time of rotation start
-    const activePlayers = this.seats.filter(s => 
+    const activePlayers = this.seats.filter(s =>
       s.status === SEAT_STATUS.OCCUPIED && s.stack > 0
     ).length;
-    
+
     // Initialize orbit tracking
     if (this._mixedOrbitStart === -1) {
       this._mixedOrbitStart = this.game.buttonSeat;
       this._mixedHandsSinceRotation = 1;
       return;
     }
-    
+
     // Rotate when button has gone around once (hands >= players)
     if (this._mixedHandsSinceRotation >= Math.max(activePlayers, 2)) {
       this._mixedGameIndex = (this._mixedGameIndex + 1) % this.variantRotation.length;
       const newVariant = this.variantRotation[this._mixedGameIndex];
-      
+
       // Update game config
       this.game.config.variant = newVariant;
-      
+
       // Reset deck for short deck variant
       if (newVariant === 'short_deck') {
         this.game.deck = new (require('./Deck').Deck)({ shortDeck: true });
       } else if (this.game.deck?.shortDeck) {
         this.game.deck = new (require('./Deck').Deck)({ shortDeck: false });
       }
-      
+
       // Reset orbit tracking
       this._mixedOrbitStart = this.game.buttonSeat;
       this._mixedHandsSinceRotation = 0;
-      
+
       // Emit for UI + RealtimeSync
       this.emit('variant_changed', {
         variant: newVariant,
@@ -1144,7 +1165,7 @@ class TableManager {
         rotation: this.variantRotation,
         nextVariant: this.variantRotation[(this._mixedGameIndex + 1) % this.variantRotation.length],
       });
-      
+
       console.log(`[TableManager] Mixed game rotation: ${newVariant} (${this._mixedGameIndex + 1}/${this.variantRotation.length})`);
     }
   }
@@ -1154,14 +1175,14 @@ class TableManager {
       clearTimeout(this._autoStartTimer);
       this._autoStartTimer = null;
     }
-    
+
     if (this.game.phase !== GAME_PHASE.IDLE) return;
     if (this.status === TABLE_STATUS.PAUSED || this.status === TABLE_STATUS.CLOSED) return;
-    
+
     const activePlayers = this.seats.filter(
       s => s.status === SEAT_STATUS.OCCUPIED && s.stack > 0
     );
-    
+
     if (activePlayers.length >= 2) {
       this._autoStartTimer = setTimeout(() => {
         this.startNextHand();
@@ -1184,22 +1205,22 @@ class TableManager {
    */
   _offerSeatFromWaitlist(seatIndex) {
     if (this.waitlist.length === 0) return;
-    
+
     const seat = this.seats[seatIndex];
     if (seat.status !== SEAT_STATUS.EMPTY) return;
-    
+
     const next = this.waitlist.shift();
-    
+
     seat.status = SEAT_STATUS.RESERVED;
     seat.reservedFor = next.playerId;
     seat.reservedAt = Date.now();
-    
+
     this.emit('seat_offered', {
       playerId: next.playerId,
       seatIndex,
       timeout: RESERVATION_TIMEOUT_MS,
     });
-    
+
     // Start reservation timeout
     const timer = setTimeout(() => {
       if (seat.status === SEAT_STATUS.RESERVED && seat.reservedFor === next.playerId) {
@@ -1211,7 +1232,7 @@ class TableManager {
         this._seatFromWaitlist(seatIndex);
       }
     }, RESERVATION_TIMEOUT_MS);
-    
+
     this._reservationTimers.set(seatIndex, timer);
   }
 
@@ -1235,7 +1256,7 @@ class TableManager {
    */
   getState(forPlayerId) {
     const gameState = this.game.getState(forPlayerId);
-    
+
     return {
       tableId: this.tableId,
       clubId: this.clubId,
@@ -1257,7 +1278,7 @@ class TableManager {
         } : null,
         stack: s.stack,
         // Only show hole cards for the requesting player
-        holeCards: gameState.players?.find(p => 
+        holeCards: gameState.players?.find(p =>
           p.id === s.player?.id && (String(p.id) === String(forPlayerId) || p.showCards)
         )?.holeCards || null,
         isInHand: gameState.players?.some(p => p.id === s.player?.id && !p.folded) || false,
@@ -1354,7 +1375,7 @@ class TableManager {
   close() {
     this.status = TABLE_STATUS.CLOSED;
     if (this._autoStartTimer) clearTimeout(this._autoStartTimer);
-    
+
     // Cash out all players
     const cashouts = [];
     for (const seat of this.seats) {
@@ -1363,7 +1384,7 @@ class TableManager {
       }
       this._vacateSeat(seat);
     }
-    
+
     this.emit('table_closed', { tableId: this.tableId, cashouts });
   }
 

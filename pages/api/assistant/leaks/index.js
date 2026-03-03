@@ -14,14 +14,14 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    // Require JWT auth for write operations
-    if (req.method !== 'GET') {
-        const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-        if (req.body) req.body.userId = _authUser.id;
-    }
+  // Require JWT auth for write operations
+  if (req.method !== 'GET') {
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (req.body) req.body.userId = _authUser.id;
+  }
   const { userId, status } = req.query;
 
   if (req.method === 'GET') {
@@ -165,6 +165,26 @@ export default async function handler(req, res) {
         .single();
 
       if (error) throw error;
+
+      // 🚀 NEW BUG #12 FIX: Sync Global PA Stats on Status Change
+      if (updates.status && data.user_id) {
+        const { data: updatedLeaks } = await supabase
+          .from('user_leaks')
+          .select('status')
+          .eq('user_id', data.user_id);
+
+        const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
+        const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
+
+        await supabase
+          .from('user_assistant_stats')
+          .upsert({
+            user_id: data.user_id,
+            active_leaks_count: activeLeaks,
+            resolved_leaks_count: resolvedLeaksCount,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+      }
 
       return res.status(200).json({
         success: true,

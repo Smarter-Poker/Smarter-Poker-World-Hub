@@ -459,6 +459,9 @@ class GameController {
       const result = await this.lobby.closeTable(tableId);
       if (!result.success) return result;
 
+      // Clear AI session tracking
+      HorsePokerBrain.clearTableSessions(tableId);
+
       // Update DB
       if (this.supabase) {
         await this.supabase
@@ -520,6 +523,9 @@ class GameController {
     const result = entry.table.sitDown(playerId, seatIndex, buyIn, playerInfo);
 
     if (result.success) {
+      // Track AI sessions (Phase 2 feature)
+      HorsePokerBrain.recordSitDown(tableId, playerId, buyIn);
+
       // Broadcast via RealtimeSync
       this._broadcastTableState(tableId);
       this._updateTablePlayerCount(tableId);
@@ -682,7 +688,12 @@ class GameController {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
 
-    return entry.table.addChips(playerId, amount);
+    const result = entry.table.addChips(playerId, amount);
+    if (result.success) {
+      // Track AI rebuy/add-on stats (Phase 2 feature)
+      HorsePokerBrain.recordRebuy(tableId, playerId, amount);
+    }
+    return result;
   }
 
   /**
@@ -829,6 +840,13 @@ class GameController {
           }
         }).catch(() => { });
       }
+    });
+
+    // Evaluate horse sessions at the end of every hand (Phase 2)
+    entry.table.on('hand_complete', () => {
+      HorsePokerBrain.evaluateSessions(this, entry.table).catch(err => {
+        console.error(`[HorseAI] evaluateSessions failed:`, err.message);
+      });
     });
   }
 

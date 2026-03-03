@@ -1102,22 +1102,22 @@ const styles = {
     },
     modalCard: {
         position: 'relative',
-        backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
+        backgroundImage: 'url(/images/toke-add-down-bg.png)',
         backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-        border: 'none', borderRadius: 0, padding: 0,
+        border: 'none', borderRadius: 0, padding: 0, backgroundColor: 'transparent',
         width: '100%', maxWidth: 450,
         aspectRatio: '854 / 1018',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.8)', overflow: 'hidden',
+        boxShadow: 'none', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.8))', overflow: 'hidden',
         display: 'block',
     },
     imgMapBtn: {
         position: 'absolute', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', outline: 'none',
-        WebkitTapHighlightColor: 'transparent', transition: 'box-shadow 0.2s ease'
+        WebkitTapHighlightColor: 'rgba(0,0,0,0)', boxShadow: 'none'
     },
     imgMapInput: {
         width: '100%', height: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: 18,
         textAlignLast: 'center', fontWeight: 600, outline: 'none', appearance: 'none',
-        WebkitAppearance: 'none'
+        WebkitAppearance: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'rgba(0,0,0,0)'
     },
 
     // Double down prompt
