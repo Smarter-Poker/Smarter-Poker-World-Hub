@@ -231,6 +231,15 @@ export default function ClockDisplay() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [data?.clock?.clock_state?.status]);
 
+  // Auto-advance level when timer hits 0
+  useEffect(() => {
+    if (seconds === 0 && isRunningRef.current && !actionLoading && data?.clock?.clock_state?.status === 'running') {
+      // Prevent multiple fires
+      isRunningRef.current = false;
+      clockAction('next_level');
+    }
+  }, [seconds, actionLoading, data?.clock?.clock_state?.status]);
+
   // Hand timer tick
   useEffect(() => {
     if (handTimerRef.current) clearInterval(handTimerRef.current);
@@ -328,17 +337,25 @@ export default function ClockDisplay() {
 
   const blindStructure = t.blind_structure || [];
 
-  // Calculate next break from blind structure if not provided by clock state
-  let nextBreakSec = clockState.next_break_seconds;
+  // Calculate next break accurately: remaining seconds in current level + duration of future levels until break
+  let nextBreakSec = clockState.next_break_seconds; // If API provided it, use it
   if (!nextBreakSec && blindStructure.length > 0) {
     const currentLevelIdx = clock.current_level || 0;
-    let secsUntilBreak = displaySeconds || 0;
-    for (let i = currentLevelIdx + 1; i < blindStructure.length; i++) {
-      if (blindStructure[i].is_break) break;
-      secsUntilBreak += (blindStructure[i].duration || 0) * 60;
-    }
-    if (secsUntilBreak > 0 && blindStructure.some((l, i) => i > currentLevelIdx && l.is_break)) {
-      nextBreakSec = secsUntilBreak;
+
+    // Are there any future breaks?
+    const hasFutureBreak = blindStructure.some((l, i) => i > currentLevelIdx && l.is_break);
+
+    if (hasFutureBreak) {
+      let secsUntilBreak = displaySeconds; // Start with current remaining time
+
+      // Add full duration of any levels between now and the break
+      for (let i = currentLevelIdx + 1; i < blindStructure.length; i++) {
+        if (blindStructure[i].is_break) break; // Found the break, stop adding
+        secsUntilBreak += (blindStructure[i].duration || 0) * 60;
+      }
+      nextBreakSec = secsUntilBreak > 0 ? secsUntilBreak : null;
+    } else {
+      nextBreakSec = null; // No breaks left
     }
   }
   const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
