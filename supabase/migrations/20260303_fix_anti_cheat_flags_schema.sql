@@ -23,3 +23,11 @@ ALTER TABLE anti_cheat_flags ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCE
 ALTER TABLE anti_cheat_flags ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
 
 -- Note: close_table_session RPC already exists in 20260301_missing_tables_and_rpcs.sql
+
+-- Fix rakeback_periods status CHECK: code uses 'claiming' as intermediate state
+ALTER TABLE rakeback_periods DROP CONSTRAINT IF EXISTS rakeback_periods_status_check;
+ALTER TABLE rakeback_periods ADD CONSTRAINT rakeback_periods_status_check
+  CHECK (status IN ('open', 'closed', 'claiming', 'claimed'));
+
+-- Add balance_after to chip_transactions (rakeback.js writes it)
+ALTER TABLE chip_transactions ADD COLUMN IF NOT EXISTS balance_after NUMERIC(14,2);

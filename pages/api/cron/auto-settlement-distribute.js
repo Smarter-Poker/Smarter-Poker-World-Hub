@@ -215,7 +215,10 @@ export default async function handler(req, res) {
                     chip_transfer_id: txn?.id || null,
                     status: 'paid',
                   })
-                  .eq('invoice_id', dist.invoice_id);
+                  .eq('club_id', clubId)
+                  .eq('period_id', dist.period_id)
+                  .eq('invoice_type', 'agent_to_player')
+                  .eq('to_entity_id', dist.player_user_id);
 
                 // Notify player
                 await supabaseAdmin.from('notifications').insert({
@@ -325,7 +328,7 @@ export default async function handler(req, res) {
           'Send, receive, buy-in, and cashout operations are now fully available.',
         ].join('\n'),
         author_id: club.owner_id,
-        is_pinned: false,
+        pinned: false,
       }).catch(e => console.error('[unfreeze-msg] Error:', e.message));
     }
 
