@@ -239,7 +239,7 @@ export default function ClockSetup() {
                                 <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 3, marginBottom: 2, color: formTheme.accent }}>
                                     Level 8
                                 </p>
-                                <p style={{ fontSize: 56, fontWeight: 800, fontFamily: "'Inter', monospace", margin: 0, lineHeight: 1, color: formTheme.text }}>
+                                <p style={{ fontSize: 56, fontWeight: 800, fontFamily: "'Inter', 'Segoe UI', sans-serif", fontFeatureSettings: "'zero' 0", margin: 0, lineHeight: 1, color: formTheme.text }}>
                                     12:00
                                 </p>
                                 <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 8, padding: '8px 16px', margin: '8px 0', border: '1px solid rgba(255,255,255,0.1)' }}>

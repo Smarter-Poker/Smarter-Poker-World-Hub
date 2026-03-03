@@ -365,7 +365,7 @@ export default function ClockDisplay() {
           <div style={S.handTimerOverlay} onClick={(e) => { e.stopPropagation(); setHandTimerActive(false); }}>
             <div style={S.handTimerBox}>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 2, opacity: 0.7, marginBottom: 4 }}>PLAYER ON THE CLOCK</div>
-              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', monospace", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
+              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', 'Segoe UI', sans-serif", fontFeatureSettings: "'zero' 0", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
                 {handTimerSeconds}
               </div>
               <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>Click to dismiss</div>
@@ -765,7 +765,7 @@ const S = {
   container: {
     minHeight: '100vh', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff',
     display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative', overflow: 'hidden',
-    transition: 'transform 0.5s ease',
+    transition: 'transform 0.5s ease', fontFeatureSettings: "'zero' 0",
   },
   header: {
     background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
@@ -791,7 +791,8 @@ const S = {
   timer: {
     fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
-    fontFamily: "'Inter', monospace", padding: '8px 0', textAlign: 'center', width: '100%'
+    fontFamily: "'Inter', 'Segoe UI', sans-serif", padding: '8px 0', textAlign: 'center', width: '100%',
+    fontFeatureSettings: "'zero' 0",
   },
   blindsBlock: {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',

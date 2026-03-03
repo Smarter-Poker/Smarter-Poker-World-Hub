@@ -13,10 +13,10 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
-  Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
+  Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
   LayoutGrid, UserCheck, UserPlus, Monitor,
-  Hand, Star, Coffee, MessageSquare, Volume2, X
+  Hand, Star, Coffee, Volume2, X
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -50,34 +50,16 @@ function formatMoney(n) {
   return '$' + n.toLocaleString();
 }
 
-function formatClockTime(seconds) {
-  if (!seconds && seconds !== 0) return '--:--';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatBlinds(blinds) {
-  if (!blinds) return '--/--';
-  const { small_blind, big_blind, ante } = blinds;
-  let str = `${formatChips(small_blind)}/${formatChips(big_blind)}`;
-  if (ante) str += ` (${formatChips(ante)})`;
-  return str;
-}
-
 export default function TDControlCenter() {
   const router = useRouter();
   const { tournamentId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [clockAction, setClockAction] = useState(null);
-  const [clockSeconds, setClockSeconds] = useState(null);
   const [messageModal, setMessageModal] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showActivityLog, setShowActivityLog] = useState(false);
-  const timerRef = useRef(null);
   const pollRef = useRef(null);
 
   const getToken = useCallback(() => {
@@ -122,40 +104,6 @@ export default function TDControlCenter() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [fetchFloor]);
-
-  // Client-side countdown
-  useEffect(() => {
-    const cs = floor?.clock?.clock_state;
-    if (cs?.status === 'running' && clockSeconds > 0) {
-      timerRef.current = setInterval(() => {
-        setClockSeconds(prev => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [floor?.clock?.clock_state?.status, clockSeconds]);
-
-  const handleClockAction = async (action) => {
-    setClockAction(action);
-    try {
-      const token = getToken();
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
-        body: JSON.stringify({ action })
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchFloor();
-        broadcastChange('tournaments');
-      }
-    } catch (err) {
-      console.error('Clock action failed:', err);
-    } finally {
-      setClockAction(null);
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
@@ -222,10 +170,6 @@ export default function TDControlCenter() {
 
   const { tournament, clock, stats, alerts, tables } = floor;
   const statusConf = STATUS_CONFIG[tournament.status] || STATUS_CONFIG.scheduled;
-  const clockState = clock?.clock_state || {};
-  const isRunning = clockState.status === 'running';
-  const isPaused = clockState.status === 'paused';
-  const displaySeconds = clockSeconds ?? clockState.remaining_seconds ?? 0;
 
   return (
     <CommanderLayout title="Commander — Control Center" backHref="/commander/tournament-controls">
