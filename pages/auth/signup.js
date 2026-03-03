@@ -567,6 +567,22 @@ export default function SignUpPage() {
                     // Set the assigned player number
                     setAssignedPlayerNumber(nextPlayerNumber);
                 }
+
+                // ── CRITICAL: Persist phone_verified to Supabase ─────────────
+                // The signup form verifies the phone via verify-otp WITHOUT userId,
+                // so verify-otp does NOT set phone_verified on the profile.
+                // We must do it here to prevent the VIP popup from re-firing.
+                if (phoneVerified) {
+                    try {
+                        await supabase
+                            .from('profiles')
+                            .update({ phone_verified: true })
+                            .eq('id', authData.user.id);
+                        console.log('[Signup] phone_verified persisted to profile');
+                    } catch (pvErr) {
+                        console.error('[Signup] phone_verified persist error (non-blocking):', pvErr);
+                    }
+                }
             }
 
             // Redeem promo code if provided and valid
