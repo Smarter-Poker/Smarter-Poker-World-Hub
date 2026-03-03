@@ -1486,6 +1486,14 @@ class GameController {
     bridge.wire();
     this._tournaments.set(tournamentId, { controller, bridge });
     console.log(`[GameController] Tournament created: ${tournamentId} (${name})`);
+
+    // ─── Phase 2: Auto-Register Horses on Creation ───
+    // Horses will evaluate the buyIn and their physical club_members balance,
+    // then register autonomously if they can afford it.
+    this.autoRegisterHorses(tournamentId).catch(err => {
+      console.warn(`[GameController] Auto-registration failed for ${tournamentId}:`, err);
+    });
+
     return { success: true, tournamentId };
   }
 

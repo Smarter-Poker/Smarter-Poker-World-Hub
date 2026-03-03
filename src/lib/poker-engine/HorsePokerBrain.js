@@ -172,6 +172,29 @@ async function loadHorseIds() {
         _horseIds = new Set((data || []).map(p => p.id));
         _horseCacheTime = now;
         console.log(`[HorseBrain] Cached ${_horseIds.size} horse profile IDs`);
+
+        // ─── Phase 3: Load Skill Evolution (Gap 3) ───
+        // Read the persisted skill drift back into memory so horses don't lose their 
+        // evolution when the Node.js server restarts.
+        const { data: driftData } = await sb
+            .from('horse_session_stats')
+            .select('profile_id, win_rate_bb100, hands_played')
+            .like('table_id', 'evolution_%');
+
+        if (driftData && driftData.length > 0) {
+            let loaded = 0;
+            for (const row of driftData) {
+                if (_horseIds.has(row.profile_id)) {
+                    evolutionTracker.set(row.profile_id, {
+                        drift: Number(row.win_rate_bb100) || 0,
+                        sessions: Number(row.hands_played) || 0
+                    });
+                    loaded++;
+                }
+            }
+            console.log(`[HorseBrain] 🧬 Loaded previous skill evolution for ${loaded} horses`);
+        }
+
         return _horseIds;
     } catch (err) {
         console.error('[HorseBrain] Cache load failed:', err.message);
@@ -323,9 +346,10 @@ async function getAdvancedModule() {
  * @param {string} profileId - Horse UUID
  * @param {Object} gameState - Adapted game state
  * @param {Array} legalActions - Legal actions from engine
+ * @param {Object} opponentAdjustment - Loaded opponent reads (callMod, foldMod)
  * @returns {Object} Decision { type, amount? }
  */
-function makeFallbackDecision(profileId, gameState, legalActions) {
+function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjustment = { callMod: 0, foldMod: 0 }) {
     const { handStr, position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards } = gameState;
     const hash = getHash(profileId);
     const numPlayers = gameState.numPlayers || 2;
@@ -421,23 +445,39 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
     const isIP = ipPositions.has(gameState.position);
 
     // ── RIVER-SPECIFIC LOGIC (#30) ──
-    if (street === 'river') {
-        const riverStrat = getRiverStrategy(effectiveStrength, potOdds, canRaise, toCall > 0, aggressionBias);
+    if (street === 'river') {    // Base Fold Threshold
+        // If we face a bet, and our strength is below this, we fold.
+        // OpponentAdjustment shifts this: lowers threshold if they bluff a lot, raises if they don't.
+        const foldThreshold = 35 + opponentAdjustment.foldMod - opponentAdjustment.callMod;
 
-        if (riverStrat.action === 'bet' && canRaise) {
-            const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, effectiveStrength < 20);
-            const betSize = Math.round(potSize * sizeFrac);
-            const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
-            return { type: raiseAction.type, amount };
+        // Bet/Raise Threshold
+        // We only bet/raise if our hand strength is very high
+        const raiseThreshold = 65;
+
+        // Check/Call Logic
+        const potOdds = toCall / (potSize + toCall);
+        const strongDraw = (drawEquity.outs >= 8); // Corrected drawEquit to drawEquity
+
+        if (canRaise && effectiveStrength > raiseThreshold) { // Corrected adjustedStrength to effectiveStrength
+            // Bet/Raise
+            const hsFrac = getOptimalBetSize(handEval.category, street, potSize, multiway.adjustSizing);
+            const betSize = Math.round(potSize * hsFrac);
+            const amount = Math.max(raiseAction?.minAmount || toCall * 2, betSize);
+            const clamped = Math.min(amount, raiseAction?.maxAmount || amount);
+            return { type: raiseAction.type, amount: Math.round(clamped) };
         }
-        if (riverStrat.action === 'raise' && canRaise) {
-            const raiseSize = Math.round(toCall * 2.5);
-            const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            return { type: raiseAction.type, amount };
+
+        if (toCall > 0) {
+            // Facing a bet
+            // If we exceed fold threshold OR have a strong draw with good pot odds, we call
+            if (effectiveStrength >= foldThreshold || (strongDraw && potOdds < 0.35)) { // Corrected adjustedStrength to effectiveStrength
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+            return { type: 'fold' };
+        } else {
+            // No bet facing us, check
+            return canCheck ? { type: 'check' } : { type: 'fold' };
         }
-        if (riverStrat.action === 'call' && canCall) return { type: 'call' };
-        if (riverStrat.action === 'fold') return canCheck ? { type: 'check' } : { type: 'fold' };
-        return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
     // ── FLOP/TURN LOGIC ──
@@ -1364,7 +1404,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
     // --- 4. FALLBACK IF NO GTO ---
     if (!finalAction) {
-        const fallback = makeFallbackDecision(profileId, adaptedState, legalActions);
+        const fallback = makeFallbackDecision(profileId, adaptedState, legalActions, opponentAdjustment);
         finalAction = fallback.type;
         finalAmount = fallback.amount;
     }

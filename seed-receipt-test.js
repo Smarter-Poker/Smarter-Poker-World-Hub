@@ -4,11 +4,12 @@ require('dotenv').config({ path: '.env.local' });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function run() {
-    // 1. Get a test venue (Club JAQK or whatever is first)
-    const { data: venue } = await supabase.from('poker_venues').select('id, name').limit(1).single();
-    if (!venue) return console.error('No venue found');
+    // 1. Get Club JAQK specifically
+    const { data: venue } = await supabase.from('poker_venues').select('id, name').ilike('name', '%jaqk%').limit(1).single();
+    if (!venue) return console.error('No Club JAQK found');
+    console.log(`Targeting venue: ${venue.name} (${venue.id})`);
 
-    // 2. Create a test tournament starting in 1 hour
+    // 2. Create a test tournament under Club JAQK
     const startTime = new Date();
     startTime.setHours(startTime.getHours() + 1);
 
@@ -17,7 +18,7 @@ async function run() {
 
     const { data: tourn, error: tErr } = await supabase.from('commander_tournaments').insert({
         venue_id: venue.id,
-        name: 'LIVE DATA TEST TOURNAMENT',
+        name: 'CLUB JAQK OFFICIAL TEST',
         scheduled_start: startTime.toISOString(),
         buyin_amount: 500,
         buyin_fee: 50,

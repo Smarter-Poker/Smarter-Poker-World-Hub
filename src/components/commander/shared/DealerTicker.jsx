@@ -192,9 +192,8 @@ export default function DealerTicker({
                 borderTop: showBorder ? `2px solid ${borderColor}55` : 'none',
                 background: bgColor,
                 overflow: 'hidden',
-                whiteSpace: 'nowrap',
                 position: 'relative',
-                height: `${fontSize + 32}px`, // Fixed height based on font size + padding
+                height: `${fontSize + 64}px`, // Increased fixed height to accommodate double lines
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -212,15 +211,22 @@ export default function DealerTicker({
                         fontWeight: 700,
                         letterSpacing: '0.5px',
                         paddingBottom: '120px',
-                        whiteSpace: 'nowrap',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        textAlign: 'center',
+                        width: '100%',
+                        padding: '0 16px 120px 16px', // Replace paddingBottom
                     }}>{message}</span>
                     <span style={{
                         fontSize: `${fontSize}px`,
                         color: accentColor,
                         fontWeight: 700,
                         letterSpacing: '0.5px',
-                        paddingBottom: '120px',
-                        whiteSpace: 'nowrap',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        textAlign: 'center',
+                        width: '100%',
+                        padding: '0 16px 120px 16px',
                     }}>{message}</span>
                 </div>
             </div>
