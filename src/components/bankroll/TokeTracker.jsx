@@ -696,7 +696,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 >
                     <div>
                         <div style={styles.createGigTitle}>Start A New Event</div>
-                        <div style={styles.createGigSub}>Track Downs, Tokes, And Income</div>
+                        <div style={styles.createGigSub}>Track Downs, Tokes, Income And Expenses</div>
                     </div>
                 </motion.button>
             )}
@@ -1086,15 +1086,17 @@ const styles = {
     formTitle: { fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 16px' },
     formLabel: { fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 4, display: 'block', marginTop: 12 },
     formInput: {
-        width: '100%', padding: '10px 12px', background: '#3A3B3C', border: '2px solid rgba(255,255,255,0.1)',
-        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+        width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
+        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+        transition: 'border-color 0.2s ease',
     },
     formSelect: {
-        width: '100%', padding: '10px 12px', background: '#3A3B3C', border: '2px solid rgba(255,255,255,0.1)',
-        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+        width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
+        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
         cursor: 'pointer', WebkitAppearance: 'none', appearance: 'none',
-        backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23B0B3B8\' d=\'M6 8L1 3h10z\'/%3E%3C/svg%3E")',
+        backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23ffffff\' d=\'M6 8L1 3h10z\'/%3E%3C/svg%3E")',
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
+        transition: 'border-color 0.2s ease',
     },
     checkboxRow: {
         display: 'flex', gap: 8, flexWrap: 'wrap',
@@ -1116,20 +1118,25 @@ const styles = {
 
     // Modal
     modalOverlay: {
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 10000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
     },
     modalCard: {
-        background: '#242526', border: '2px solid #3A3B3C', borderRadius: 16, padding: 24,
-        width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
+        backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+        border: 'none', borderRadius: 0, padding: '28px 24px',
+        width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%',
+        boxShadow: 'none', overflow: 'auto',
+        display: 'flex', flexDirection: 'column',
     },
-    modalTitle: { fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 16px' },
+    modalTitle: { fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 20px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' },
 
     // Down type grid
     downTypeGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 },
     downTypeBtn: {
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-        padding: '14px 10px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+        padding: '16px 10px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+        backdropFilter: 'blur(4px)',
     },
 
     // Double down prompt

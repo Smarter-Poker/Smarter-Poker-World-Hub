@@ -415,7 +415,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         holeCards: holeCardStrings,
         board: boardStrings,
         handStr,
-        street: street.charAt(0).toUpperCase() + street.slice(1), // Capitalize for GTO
+        street, // Keep lowercase for fallback ('preflop', 'flop', 'turn', 'river')
         position,
         stackBB,
         potSize,
@@ -432,6 +432,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if (gto?.makeGTODecision) {
             gtoDecision = await gto.makeGTODecision(profileId, {
                 ...adaptedState,
+                street: street.charAt(0).toUpperCase() + street.slice(1), // Capitalize for GTO
                 holeCards: holeCardStrings,
                 board: boardStrings,
             });
@@ -516,6 +517,22 @@ function validateAndClamp(actionType, amount, legalActions) {
     }
     if (actionType === 'call' && !actionTypes.has('call')) {
         actionType = actionTypes.has('check') ? 'check' : 'fold';
+    }
+
+    // Handle 'all_in' — find the engine's all_in legal action
+    if (actionType === 'all_in') {
+        const allInAction = legalActions.find(a => a.type === 'all_in');
+        if (allInAction) {
+            return { type: 'all_in', amount: allInAction.amount };
+        }
+        // No explicit all_in available — use max raise as all-in
+        const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+        if (raiseAction && raiseAction.maxAmount) {
+            return { type: raiseAction.type, amount: raiseAction.maxAmount };
+        }
+        // Last resort: call if possible, else fold
+        if (actionTypes.has('call')) return { type: 'call' };
+        return { type: actionTypes.has('check') ? 'check' : 'fold' };
     }
 
     // If action still not legal, pick the safest legal action
