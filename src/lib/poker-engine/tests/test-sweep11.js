@@ -62,14 +62,14 @@ function assert(condition, label) {
     // Verify persistence in Supabase
     const { data: evoData } = await supabase
         .from('horse_session_stats')
-        .select('session_data')
-        .eq('horse_id', HORSE)
+        .select('win_rate_bb100, hands_played')
+        .eq('profile_id', HORSE)
         .eq('table_id', `evolution_${HORSE}`)
         .single();
     assert(evoData !== null, 'Skill evolution persisted to Supabase');
-    if (evoData?.session_data) {
-        assert(typeof evoData.session_data.skillDrift === 'number', `Persisted drift value: ${evoData.session_data.skillDrift}`);
-        assert(typeof evoData.session_data.totalSessions === 'number', `Persisted session count: ${evoData.session_data.totalSessions}`);
+    if (evoData) {
+        assert(typeof evoData.win_rate_bb100 === 'number', `Persisted drift value (win_rate_bb100): ${evoData.win_rate_bb100}`);
+        assert(typeof evoData.hands_played === 'number', `Persisted session count (hands_played): ${evoData.hands_played}`);
     }
 
     // ═══════════════════════════════════════════════════
@@ -93,12 +93,12 @@ function assert(condition, label) {
     // Verify it's in Supabase
     const { data: readBack } = await supabase
         .from('horse_opponent_reads')
-        .select('read_data')
+        .select('bluff_frequency, tendency')
         .eq('horse_id', HORSE)
         .eq('opponent_id', OPP_ID)
         .single();
-    assert(readBack?.read_data?.bluffFrequency === 0.45, `Opponent read loaded back: bluffFreq=${readBack?.read_data?.bluffFrequency}`);
-    assert(readBack?.read_data?.tendency === 'loose-aggressive', `Opponent tendency: ${readBack?.read_data?.tendency}`);
+    assert(readBack?.bluff_frequency === 0.45, `Opponent read loaded back: bluffFreq=${readBack?.bluff_frequency}`);
+    assert(readBack?.tendency === 'loose-aggressive', `Opponent tendency: ${readBack?.tendency}`);
 
     // Cleanup
     await supabase.from('horse_opponent_reads').delete().eq('horse_id', HORSE).eq('opponent_id', OPP_ID);
@@ -111,7 +111,7 @@ function assert(condition, label) {
     assert(typeof Brain.evaluateSessions === 'function', 'evaluateSessions is exported');
 
     // ═══════════════════════════════════════════════════
-    // TEST 4: GAME CONTROLLER EXPORTS (Gaps 1 & 2)
+    // TEST 4: GAME CONTROLLER EXPORTS & HEARTBEAT
     // ═══════════════════════════════════════════════════
     console.log('\n--- TEST 4: GameController New Methods ---');
 
@@ -119,6 +119,7 @@ function assert(condition, label) {
     assert(typeof GameController.prototype.fillTableWithHorses === 'function', 'fillTableWithHorses is a method');
     assert(typeof GameController.prototype.autoRegisterHorses === 'function', 'autoRegisterHorses is a method');
     assert(typeof GameController.prototype._getPersonalityModule === 'function', '_getPersonalityModule is a method');
+    assert(typeof GameController.prototype._runHorsePipeline === 'function', '_runHorsePipeline (Heartbeat) is a method');
 
     // ═══════════════════════════════════════════════════
     // TEST 5: REGRESSION — CARD CONVERSION

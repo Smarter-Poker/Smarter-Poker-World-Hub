@@ -1108,26 +1108,25 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 const oppId = opponents[0].id;
                 const { data: readData } = await sb
                     .from('horse_opponent_reads')
-                    .select('read_data')
+                    .select('bluff_frequency, call_frequency, tendency')
                     .eq('horse_id', profileId)
                     .eq('opponent_id', oppId)
                     .order('updated_at', { ascending: false })
                     .limit(1)
                     .single();
-                if (readData?.read_data) {
-                    const read = readData.read_data;
+                if (readData) {
                     // If opponent bluffs a lot, call more (lower fold threshold)
-                    if (read.bluffFrequency > 0.35) {
-                        opponentAdjustment.callMod = 5; // Call with 5 more strength points
+                    if (readData.bluff_frequency > 0.35) {
+                        opponentAdjustment.callMod = 5;
                         opponentAdjustment.bluffAware = true;
                     }
                     // If opponent rarely bluffs, fold more marginal spots
-                    if (read.bluffFrequency < 0.15) {
-                        opponentAdjustment.foldMod = 5; // Need 5 more strength to call
+                    if (readData.bluff_frequency < 0.15) {
+                        opponentAdjustment.foldMod = 5;
                     }
                     // If opponent is a calling station, value bet thinner
-                    if (read.callFrequency > 0.55) {
-                        opponentAdjustment.callMod = -3; // Lower bluff frequency
+                    if (readData.call_frequency > 0.55) {
+                        opponentAdjustment.callMod = -3;
                     }
                 }
             }
@@ -2218,19 +2217,23 @@ function evolveHorseSkill(profileId, sessionWinRate) {
     evolutionTracker.set(profileId, current);
 
     // Persist to Supabase (non-blocking) — Gap 3
+    // Uses same schema as saveSessionAnalytics: profile_id, table_id, individual columns
     const sb = getSupabase();
     if (sb) {
         sb.from('horse_session_stats')
             .upsert({
-                horse_id: profileId,
+                profile_id: profileId,
                 table_id: `evolution_${profileId}`,
-                session_data: {
-                    skillDrift: current.drift,
-                    totalSessions: current.sessions,
-                    lastUpdated: new Date().toISOString(),
-                    direction: current.drift > 2 ? 'improving' : current.drift < -2 ? 'regressing' : 'stable'
-                }
-            }, { onConflict: 'horse_id,table_id' })
+                hands_played: current.sessions,
+                vpip: 0,
+                pfr: 0,
+                aggression_factor: 0,
+                win_rate_bb100: current.drift,
+                wins: current.drift > 0 ? current.sessions : 0,
+                losses: current.drift < 0 ? current.sessions : 0,
+                session_minutes: 0,
+                recorded_at: new Date().toISOString()
+            }, { onConflict: 'profile_id,table_id' })
             .then(() => console.log(`[HorseBrain] 📈 Skill drift persisted for ${profileId.substring(0, 8)}: ${current.drift > 0 ? '+' : ''}${current.drift}`))
             .catch(() => { /* Non-critical */ });
     }

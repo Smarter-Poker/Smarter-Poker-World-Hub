@@ -61,12 +61,14 @@ const DOWN_TYPE_COLORS = {
 const DOWN_TIMER_MS = 35 * 60 * 1000;
 
 const EXPENSE_CATEGORIES = [
-    { id: 'tip_out', label: 'Tip Out' },
+    { id: 'food', label: 'Food & Beverage' },
     { id: 'ride_share', label: 'Ride Share' },
     { id: 'gas', label: 'Gas' },
-    { id: 'mileage', label: 'Mileage' },
     { id: 'air_fare', label: 'Air Fare' },
+    { id: 'lodging', label: 'Lodging / Hotel' },
+    { id: 'supplies', label: 'Supplies' },
     { id: 'other', label: 'Other' },
+    { id: 'tip_out', label: 'Tip Out' },
 ];
 
 export default function TokeTracker({ userId, refreshTrigger }) {
@@ -77,6 +79,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAddDown, setShowAddDown] = useState(false);
     const [confirmComplete, setConfirmComplete] = useState(false);
+    const [mileageInput, setMileageInput] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
@@ -102,7 +105,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
     // Expense state
     const [showAddExpense, setShowAddExpense] = useState(false);
-    const [expenseForm, setExpenseForm] = useState({ category: 'tip_out', amount: '', description: '' });
+    const [expenseForm, setExpenseForm] = useState({ category: 'food', amount: '', description: '' });
 
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
@@ -284,10 +287,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         }
     };
 
-    const handleCompleteGig = async () => {
+    const handleCompleteGig = async (mileageCount = 0) => {
         if (!activeGig) return;
         try {
-            await completeGig(userId, activeGig.id);
+            await completeGig(userId, activeGig.id, parseFloat(mileageCount) || 0);
             toast.success('Event completed!');
             setConfirmComplete(false);
             if (downTimerRef.current) clearTimeout(downTimerRef.current);
@@ -432,7 +435,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             });
             toast.success('Expense added');
             setShowAddExpense(false);
-            setExpenseForm({ category: 'tip_out', amount: '', description: '' });
+            setExpenseForm({ category: 'food', amount: '', description: '' });
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to add expense');
@@ -518,6 +521,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Avg Toke/Down</span>
                             <span style={styles.reportStatValue}>{formatCurrency(stats.avgTokePerDown)}</span>
+                        </div>
+                        <div style={styles.reportStat}>
+                            <span style={styles.reportStatLabel}>Mileage</span>
+                            <span style={styles.reportStatValue}>{gig.mileage || 0} mi</span>
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Per Day</span>
@@ -794,10 +801,19 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>
                             </>
                         ) : (
-                            <div style={styles.confirmRow}>
-                                <span style={styles.confirmText}>Finalize This Event?</span>
-                                <button onClick={handleCompleteGig} style={styles.confirmYes}>Yes, Complete</button>
-                                <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
+                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <span style={styles.confirmText}>Finalize This Event? Enter Total Mileage:</span>
+                                <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'center' }}>
+                                    <input
+                                        type="number"
+                                        value={mileageInput}
+                                        onChange={e => setMileageInput(e.target.value)}
+                                        placeholder="0 miles"
+                                        style={{ ...styles.formInput, width: 100, padding: '8px 12px' }}
+                                    />
+                                    <button onClick={() => handleCompleteGig(mileageInput)} style={styles.confirmYes}>Yes, Complete</button>
+                                    <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1031,7 +1047,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     >
                         <motion.form
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            style={styles.promptCard}
+                            style={{ ...styles.promptCard, border: '2px solid rgba(239,68,68,0.4)' }}
                             onClick={e => e.stopPropagation()}
                             onSubmit={handleAddExpense}
                         >
@@ -1067,7 +1083,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             />
 
                             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                                <button type="submit" style={styles.formSubmitBtn}>Add Expense</button>
+                                <button type="submit" style={{ ...styles.formSubmitBtn, background: '#ef4444', color: '#fff' }}>Add Expense</button>
                                 <button type="button" onClick={() => setShowAddExpense(false)} style={styles.formCancelBtn}>Cancel</button>
                             </div>
                         </motion.form>

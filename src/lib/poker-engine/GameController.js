@@ -189,6 +189,10 @@ class GameController {
       console.warn('[GameController] Horse ID pre-load failed:', err.message);
     });
 
+    // ─── Horse AI Heartbeat — Fully Autonomous Pipeline ──────────────
+    // Runs every 60 seconds to continuously ensure tables and tournaments are populated
+    this._horsePipelineInterval = setInterval(() => this._runHorsePipeline(), 60000);
+
     this.initialized = true;
     console.log(`[GameController] Initialized (${this.lobby.tables.size} tables recovered)`);
   }
@@ -201,6 +205,7 @@ class GameController {
 
     if (this._snapshotInterval) clearInterval(this._snapshotInterval);
     if (this._staleCheckInterval) clearInterval(this._staleCheckInterval);
+    if (this._horsePipelineInterval) clearInterval(this._horsePipelineInterval);
 
     // Stop anti-cheat monitor
     if (this.antiCheatMonitor) this.antiCheatMonitor.stop();
@@ -216,6 +221,46 @@ class GameController {
 
     this.initialized = false;
     console.log('[GameController] Shutdown complete');
+  }
+
+  /**
+   * The core autonomic heartbeat for the Horse AI system.
+   * Continuously scans active games and registering tournaments, 
+   * populating them with horses as needed without human intervention.
+   * @private
+   */
+  async _runHorsePipeline() {
+    try {
+      // 1. Auto-fill cash tables
+      // Find tables that are active/waiting and have open seats
+      for (const [tableId, entry] of this.lobby.tables.entries()) {
+        const seats = entry.table?.seats || [];
+        const occupied = seats.filter(s => s.player && s.status !== 'empty').length;
+        const target = Math.min(entry.config?.maxPlayers || 9, 6); // Aim for 6 players
+
+        if (occupied < target) {
+          await this.fillTableWithHorses(tableId, target);
+        }
+      }
+
+      // 2. Auto-register for tournaments
+      // Find tournaments currently in 'registering' state
+      for (const [tournamentId, entry] of this._tournaments.entries()) {
+        const t = entry.controller;
+        if (t.state === 'registering') {
+          const currentEntries = t.entries?.size || 0;
+          const target = Math.min(t.maxPlayers || 100, 30); // Aim for at least 30 entries to fire
+
+          if (currentEntries < target) {
+            // Register horses in small batches over time to look natural
+            const batchSize = Math.floor(Math.random() * 3) + 1;
+            await this.autoRegisterHorses(tournamentId, batchSize);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[HorseAI] Pipeline Heartbeat failed:`, err.message);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════

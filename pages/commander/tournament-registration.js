@@ -121,53 +121,53 @@ body { font-family: 'Times New Roman', Georgia, serif; margin: 0; padding: 0; co
 
 /* Venue Header */
 .venue-name {
-  font-size: 24px; font-weight: bold; text-transform: uppercase;
+  font-size: 28px; font-weight: bold; text-transform: uppercase;
   letter-spacing: 1.5px; margin-bottom: 1mm; line-height: 1.2;
 }
-.venue-sub { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #333; }
+.venue-sub { font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: #333; }
 
 /* Title */
 .receipt-title {
-  font-size: 17px; font-weight: bold; margin: 3mm 0 1mm; text-transform: uppercase;
+  font-size: 20px; font-weight: bold; margin: 3mm 0 1mm; text-transform: uppercase;
 }
 
 /* Event */
-.event-name { font-size: 15px; margin: 1mm 0; }
-.event-date { font-size: 15px; margin: 2mm 0; }
+.event-name { font-size: 17px; margin: 1mm 0; }
+.event-date { font-size: 17px; margin: 2mm 0; }
 .event-date-label { font-weight: bold; }
 
 /* Player */
-.player-name { font-size: 15px; font-weight: bold; margin: 2mm 0 0; }
+.player-name { font-size: 17px; font-weight: bold; margin: 2mm 0 0; }
 .player-name-label { font-weight: bold; }
-.player-id { font-size: 14px; margin: 0 0 2mm; padding-left: 2mm; }
+.player-id { font-size: 16px; margin: 0 0 2mm; padding-left: 2mm; }
 
 /* Financial */
-.fin-row { display: flex; justify-content: flex-end; align-items: baseline; font-size: 14px; line-height: 1.8; }
+.fin-row { display: flex; justify-content: flex-end; align-items: baseline; font-size: 16px; line-height: 1.8; }
 .fin-label { font-weight: bold; text-align: right; margin-right: 2mm; }
-.fin-value { min-width: 22mm; text-align: right; font-weight: bold; }
-.fin-total-row { display: flex; justify-content: flex-end; align-items: baseline; font-size: 15px; line-height: 2; font-weight: bold; }
+.fin-value { min-width: 24mm; text-align: right; font-weight: bold; }
+.fin-total-row { display: flex; justify-content: flex-end; align-items: baseline; font-size: 18px; line-height: 2; font-weight: bold; }
 .fin-total-label { font-weight: bold; text-align: right; margin-right: 2mm; }
-.fin-total-value { min-width: 22mm; text-align: right; font-weight: bold; }
+.fin-total-value { min-width: 24mm; text-align: right; font-weight: bold; }
 
 /* Divider */
-.divider { border-top: 1px solid #000; margin: 2mm 0; }
+.divider { border-top: 1px solid #000; margin: 2.5mm 0; }
 
 /* Table / Seat Boxes */
-.seat-grid { display: flex; justify-content: center; gap: 6mm; margin: 3mm 0; }
+.seat-grid { display: flex; justify-content: center; gap: 8mm; margin: 3mm 0; }
 .seat-box { text-align: center; }
-.seat-box-label { font-size: 15px; font-weight: bold; margin-bottom: 1mm; }
+.seat-box-label { font-size: 17px; font-weight: bold; margin-bottom: 1mm; }
 .seat-box-value {
-  border: 2px solid #000; font-size: 36px; font-weight: bold;
-  min-width: 22mm; min-height: 16mm; display: flex; align-items: center;
-  justify-content: center; padding: 2mm 4mm;
+  border: 2.5px solid #000; font-size: 42px; font-weight: bold;
+  min-width: 24mm; min-height: 18mm; display: flex; align-items: center;
+  justify-content: center; padding: 2mm 5mm;
 }
 
 /* Footer */
-.received { font-size: 14px; margin: 2mm 0; }
+.received { font-size: 16px; margin: 2mm 0; }
 .received-label { font-weight: bold; }
-.receipt-num { font-size: 18px; font-weight: bold; margin: 2mm 0; }
-.legal { font-size: 10px; color: #333; line-height: 1.3; margin: 2mm 2mm; text-align: center; }
-.copy-label { font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-top: 2mm; }
+.receipt-num { font-size: 22px; font-weight: bold; margin: 2mm 0; }
+.legal { font-size: 11px; color: #333; line-height: 1.3; margin: 2mm 2mm; text-align: center; }
+.copy-label { font-size: 15px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-top: 2mm; }
 </style></head><body>
 <div class="receipt">
 
@@ -299,7 +299,8 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                 });
             }
 
-            // 3. Auto-print registration receipts (Player/Dealer/Cashier copies per tournament settings)
+            // 3. Auto-print registration receipts — use REAL data from API response + tournament record
+            const registeredEntry = regJson.data?.entry || {};
             let staffName = '';
             try { staffName = JSON.parse(localStorage.getItem('commander_staff') || '{}').name || ''; } catch { }
             const venue = selectedTournament.poker_venues || {};
@@ -315,7 +316,9 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                 venueState: venue.state || '',
                 scheduledStart: selectedTournament.scheduled_start,
                 startingChips: selectedTournament.starting_chips,
-                playerId: selectedPlayer.id
+                playerId: selectedPlayer.id,
+                tableNumber: registeredEntry.table_number || '',
+                seatNumber: registeredEntry.seat_number || ''
             });
 
             setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}${buyinAmount > 0 ? ` — $${buyinAmount} buy-in` : ''}` });
