@@ -349,7 +349,7 @@ class GameController {
       // Map Club Arena columns → engine config
       const variant = row.game_variant || row.game_type || 'nlh';
       const { getRakeConfig } = require('./RakeConfig');
-      const tierConfig = getRakeConfig(row.big_blind || 2, variant);
+      const tierConfig = getRakeConfig(row.big_blind || 2, variant, row.small_blind);
 
       const config = {
         tableId: row.id,

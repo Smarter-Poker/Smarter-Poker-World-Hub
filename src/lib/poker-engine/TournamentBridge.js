@@ -111,6 +111,31 @@ class TournamentBridge {
         }
       }
 
+      // ── BUG #163 FIX: Release held_chips for ALL registrants ──
+      // Registration used lock_chips_for_table which moved buy-in from
+      // chip_balance → held_chips. Payouts already credited winners via
+      // fn_credit_chips. But held_chips is never cleared — chips stay
+      // permanently frozen. Release via atomic RPC.
+      if (this.supabase) {
+        const tournId = t.tournamentId;
+        const clubId = t.clubId;
+        try {
+          const { data: releaseResult, error: releaseErr } = await this.supabase
+            .rpc('fn_release_tournament_holds', {
+              p_tournament_id: tournId,
+              p_club_id: clubId,
+            });
+
+          if (releaseErr) {
+            console.error('[TournamentBridge] held_chips release RPC failed:', releaseErr.message);
+          } else {
+            console.log(`[TournamentBridge] Released held_chips for ${releaseResult?.released_count || 0} registrants`);
+          }
+        } catch (err) {
+          console.error('[TournamentBridge] held_chips cleanup error:', err.message);
+        }
+      }
+
       // Cleanup all tables after a delay
       setTimeout(() => this._cleanupAll(), 30000);
     });
