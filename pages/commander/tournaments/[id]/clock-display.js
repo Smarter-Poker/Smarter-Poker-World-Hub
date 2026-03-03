@@ -485,22 +485,22 @@ export default function ClockDisplay() {
                   </div>
 
                   {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
-
-                  <div style={S.blindsBlock}>
-                    <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
-                    <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
-                      {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
-                    </div>
-                    {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
-                  </div>
-
-                  {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
-                    <div style={S.nextRound}>
-                      <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                      {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
-                    </div>
-                  )}
                 </div>
+
+                <div style={S.blindsBlock}>
+                  <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
+                  <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
+                    {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                  </div>
+                  {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
+                </div>
+
+                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                  <div style={S.nextRound}>
+                    <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                    {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                  </div>
+                )}
 
                 {/* Top 3 Chip Leaders — fixed under Next Round */}
                 {top3Leaders.length > 0 && (
@@ -806,7 +806,7 @@ const S = {
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column',
-    justifyContent: 'flex-start', position: 'relative', padding: '0',
+    position: 'relative', padding: '0',
     overflow: 'hidden',
   },
   statCell: {
