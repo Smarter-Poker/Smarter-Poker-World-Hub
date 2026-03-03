@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       .eq('user_id', agentUserId)
       .single();
 
-    if (!agentMember || agentMember.role !== 'agent') {
+    if (!agentMember || !['agent', 'sub_agent', 'super_agent'].includes(agentMember.role)) {
       return res.status(404).json({ error: 'Agent not found in this club' });
     }
 

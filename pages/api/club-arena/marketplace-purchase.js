@@ -80,10 +80,9 @@ export default async function handler(req, res) {
             .from('club_shop_purchases')
             .insert({
                 club_id: clubId,
-                user_id: user.id,
+                buyer_id: user.id,
                 item_id: itemId,
-                price,
-                purchased_at: new Date().toISOString(),
+                price_paid: price,
             });
 
         if (purchaseErr) {

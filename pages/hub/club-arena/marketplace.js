@@ -158,7 +158,7 @@ export default function Marketplace() {
                     const { data: purchases } = await supabase
                         .from('club_shop_purchases')
                         .select('*, item:item_id(*)')
-                        .eq('user_id', authUser.id)
+                        .eq('buyer_id', authUser.id)
                         .eq('club_id', clubData.id);
 
                     if (purchases) {

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     if (!callerMember) return res.status(404).json({ error: 'Not a member of this club' });
 
     const isOwnerAdmin = ['owner', 'admin'].includes(callerMember.role);
-    const isAgent = callerMember.role === 'agent';
+    const isAgent = ['agent', 'sub_agent', 'super_agent'].includes(callerMember.role);
 
     if (!isOwnerAdmin && !isAgent) {
       return res.status(403).json({ error: 'Agent, owner, or admin role required' });
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       .from('club_members')
       .select('user_id, role, chip_balance, agent_id, status, nickname, tier, xp')
       .eq('club_id', clubId)
-      .eq('role', 'member');
+      .eq('role', 'player');
 
     if (isAgent) {
       playersQuery = playersQuery.eq('agent_id', user.id);

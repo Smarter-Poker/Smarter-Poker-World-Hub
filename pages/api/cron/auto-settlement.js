@@ -618,7 +618,7 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
       `Rakeback distributions to players will complete by 4:10 AM CST.`,
     ].filter(Boolean).join('\n'),
     author_id: club.owner_id,
-    is_pinned: false,
+    pinned: false,
   }).catch(e => console.error('[settlement-msg] Announcement error:', e.message));
 
   // 2. Individual agent notifications via notifications table

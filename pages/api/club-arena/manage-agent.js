@@ -497,8 +497,10 @@ export default async function handler(req, res) {
       const oldRole = targetMember.role;
       const updates = { role: newRole };
 
-      // If demoting FROM agent → clear downline assignments
-      if (oldRole === 'agent' && newRole !== 'agent') {
+      const agentRoles = ['agent', 'sub_agent', 'super_agent'];
+
+      // If demoting FROM agent role → clear downline assignments
+      if (agentRoles.includes(oldRole) && !agentRoles.includes(newRole)) {
         await supabaseAdmin
           .from('club_members')
           .update({ agent_id: null })
@@ -514,7 +516,7 @@ export default async function handler(req, res) {
       }
 
       // If promoting TO agent → create agent record if needed
-      if (newRole === 'agent' && oldRole !== 'agent') {
+      if (newRole === 'agent' && !agentRoles.includes(oldRole)) {
         // Validate commission rate (same rules as 'promote' action)
         const cr = params.commissionRate;
         if (cr === undefined || cr === null) {
@@ -629,7 +631,7 @@ export default async function handler(req, res) {
       }
 
       // If removing an agent, clear downline + deactivate agent record
-      if (targetMember.role === 'agent') {
+      if (['agent', 'sub_agent', 'super_agent'].includes(targetMember.role)) {
         await supabaseAdmin
           .from('club_members')
           .update({ agent_id: null })

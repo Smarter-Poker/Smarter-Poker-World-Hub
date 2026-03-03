@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
     if (member.role === 'player') {
       query = query.eq('player_id', user.id);
-    } else if (member.role === 'agent') {
+    } else if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
       query = query.eq('agent_id', user.id);
     }
     // owners/admins get all

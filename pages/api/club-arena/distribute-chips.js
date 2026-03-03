@@ -48,12 +48,13 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member || !['owner', 'admin', 'agent'].includes(member.role)) {
+    if (!member || !['owner', 'admin', 'agent', 'sub_agent', 'super_agent'].includes(member.role)) {
       return res.status(403).json({ error: 'Only owners, admins, or agents can distribute chips' });
     }
 
     // If agent, use agent-to-player transfer instead of treasury
-    if (member.role === 'agent') {
+    const isAgentRole = ['agent', 'sub_agent', 'super_agent'].includes(member.role);
+    if (isAgentRole) {
       // ═══════════════════════════════════════════════════════════
       // PROMO DISTRIBUTION — uses promo_balance, NOT credit/chips
       // Promo chips are pre-raked (funded from 30% of BBJ allocation).
