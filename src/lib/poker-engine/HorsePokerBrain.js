@@ -1637,7 +1637,426 @@ async function evaluateSessions(gameController, tableManager) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MULTI-TABLE LIMITS (#5)
+// PHASE 5: ANALYTICS, META-GAME & PERSISTENCE
+// ═══════════════════════════════════════════════════════════════════════════
+
+// --- #34: Performance Stats Tracker ---
+// In-memory per-session stats (VPIP, PFR, aggression, win rate)
+const performanceStats = new Map();
+
+/**
+ * Record a decision for performance tracking
+ * @param {string} profileId
+ * @param {string} street - 'preflop', 'flop', etc.
+ * @param {string} action - 'raise', 'call', 'fold', 'check'
+ * @param {boolean} wasVoluntary - Did hero put money in voluntarily?
+ */
+function recordPerformanceAction(profileId, street, action, wasVoluntary = false) {
+    if (!performanceStats.has(profileId)) {
+        performanceStats.set(profileId, {
+            handsPlayed: 0, vpipHands: 0, pfrHands: 0,
+            raises: 0, calls: 0, folds: 0, checks: 0,
+            wins: 0, losses: 0, totalWonBB: 0,
+            sessionStart: Date.now()
+        });
+    }
+    const stats = performanceStats.get(profileId);
+
+    if (street === 'preflop') {
+        stats.handsPlayed++;
+        if (wasVoluntary || action === 'call' || action === 'raise' || action === 'bet') {
+            stats.vpipHands++;
+        }
+        if (action === 'raise' || action === 'bet') {
+            stats.pfrHands++;
+        }
+    }
+
+    // Track action types
+    if (action === 'raise' || action === 'bet') stats.raises++;
+    else if (action === 'call') stats.calls++;
+    else if (action === 'fold') stats.folds++;
+    else if (action === 'check') stats.checks++;
+}
+
+/**
+ * Get computed stats for a horse
+ * @param {string} profileId
+ * @returns {Object} { vpip, pfr, af, winRate, handsPlayed }
+ */
+function getPerformanceStats(profileId) {
+    const stats = performanceStats.get(profileId);
+    if (!stats || stats.handsPlayed === 0) {
+        return { vpip: 0, pfr: 0, af: 0, winRate: 0, handsPlayed: 0 };
+    }
+
+    return {
+        vpip: Math.round((stats.vpipHands / stats.handsPlayed) * 100),
+        pfr: Math.round((stats.pfrHands / stats.handsPlayed) * 100),
+        af: stats.calls > 0 ? Math.round((stats.raises / stats.calls) * 10) / 10 : stats.raises,
+        winRate: stats.handsPlayed > 0 ? Math.round((stats.totalWonBB / stats.handsPlayed) * 100) / 100 : 0,
+        handsPlayed: stats.handsPlayed,
+        wins: stats.wins,
+        losses: stats.losses,
+        sessionMinutes: Math.round((Date.now() - stats.sessionStart) / 60000)
+    };
+}
+
+/**
+ * Record a hand result for performance stats
+ * @param {string} profileId
+ * @param {boolean} won
+ * @param {number} bbWonLost - BBs won or lost (negative for losses)
+ */
+function recordPerformanceResult(profileId, won, bbWonLost) {
+    const stats = performanceStats.get(profileId);
+    if (!stats) return;
+    if (won) stats.wins++;
+    else stats.losses++;
+    stats.totalWonBB += bbWonLost;
+}
+
+// --- #35: Adaptive Strategy ---
+/**
+ * Get strategy adjustment based on recent results.
+ * Running hot → tighten up (protect winnings).
+ * Running cold → loosen slightly (avoid being exploited by tightening too much).
+ * @param {string} profileId
+ * @returns {{ rangeAdjust: number, aggressionAdjust: number, reason: string }}
+ */
+function getAdaptiveStrategy(profileId) {
+    const stats = performanceStats.get(profileId);
+    if (!stats || stats.handsPlayed < 30) {
+        return { rangeAdjust: 0, aggressionAdjust: 0, reason: 'insufficient_data' };
+    }
+
+    const winRate = stats.totalWonBB / stats.handsPlayed;
+
+    // Running very hot (> 10bb/100): tighten up, protect winnings
+    if (winRate > 0.10) {
+        return { rangeAdjust: -5, aggressionAdjust: -3, reason: 'protecting_profit' };
+    }
+    // Running warm (5-10bb/100): slightly tighter
+    if (winRate > 0.05) {
+        return { rangeAdjust: -2, aggressionAdjust: -1, reason: 'slight_lock_up' };
+    }
+    // Running cold (-5 to -10bb/100): loosen slightly to find spots
+    if (winRate < -0.05 && winRate >= -0.10) {
+        return { rangeAdjust: 3, aggressionAdjust: 2, reason: 'finding_spots' };
+    }
+    // Running very cold (< -10bb/100): getting exploited, adjust
+    if (winRate < -0.10) {
+        return { rangeAdjust: 5, aggressionAdjust: 4, reason: 'adjusting_to_table' };
+    }
+
+    return { rangeAdjust: 0, aggressionAdjust: 0, reason: 'balanced' };
+}
+
+// --- #36: Bankroll-Aware Stake Selection ---
+/**
+ * Recommend the correct stake level based on bankroll.
+ * Uses 20-30 buy-in rule for cash games, 50+ for tournaments.
+ * @param {number} bankroll - Total bankroll in chips
+ * @param {string} gameType - 'Cash' or 'Tournament'
+ * @returns {{ maxBuyIn: number, recommendedBlinds: { sb: number, bb: number }, reason: string }}
+ */
+function getRecommendedStake(bankroll, gameType = 'Cash') {
+    if (gameType === 'Tournament') {
+        // 50 buy-in rule for tournaments
+        const maxBuyIn = Math.floor(bankroll / 50);
+        return { maxBuyIn, recommendedBlinds: null, reason: `tournament_buyIn_${maxBuyIn}` };
+    }
+
+    // Cash game: 25 buy-in rule (100bb per buy-in)
+    const maxBBBankroll = bankroll / 25;
+    const maxBB = maxBBBankroll / 100;
+
+    // Standard stake levels
+    const stakes = [
+        { sb: 0.25, bb: 0.50 }, { sb: 0.50, bb: 1 }, { sb: 1, bb: 2 },
+        { sb: 2, bb: 5 }, { sb: 5, bb: 10 }, { sb: 10, bb: 25 },
+        { sb: 25, bb: 50 }, { sb: 50, bb: 100 }
+    ];
+
+    let recommended = stakes[0];
+    for (const stake of stakes) {
+        if (stake.bb <= maxBB) recommended = stake;
+        else break;
+    }
+
+    return {
+        maxBuyIn: Math.round(recommended.bb * 100),
+        recommendedBlinds: recommended,
+        reason: `bankroll_${bankroll}_supports_${recommended.bb}bb`
+    };
+}
+
+// --- #37: Session Analytics Snapshot (Supabase Persistence) ---
+/**
+ * Save session analytics to Supabase for long-term tracking.
+ * @param {string} profileId
+ * @param {string} tableId
+ * @returns {Promise<boolean>}
+ */
+async function saveSessionAnalytics(profileId, tableId) {
+    try {
+        const stats = getPerformanceStats(profileId);
+        if (stats.handsPlayed === 0) return false;
+
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseKey) return false;
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const { error } = await supabase.from('horse_session_stats').upsert({
+            profile_id: profileId,
+            table_id: tableId,
+            hands_played: stats.handsPlayed,
+            vpip: stats.vpip,
+            pfr: stats.pfr,
+            aggression_factor: stats.af,
+            win_rate_bb100: stats.winRate,
+            wins: stats.wins,
+            losses: stats.losses,
+            session_minutes: stats.sessionMinutes,
+            recorded_at: new Date().toISOString()
+        }, { onConflict: 'profile_id,table_id' });
+
+        if (error) {
+            console.warn(`[HorseBrain] Session save failed:`, error.message);
+            return false;
+        }
+        console.log(`[HorseBrain] 📊 Session analytics saved for ${profileId.substring(0, 8)}: ${stats.handsPlayed} hands, ${stats.vpip}% VPIP`);
+        return true;
+    } catch (err) {
+        console.warn('[HorseBrain] Session analytics save error:', err.message);
+        return false;
+    }
+}
+
+// --- #38: Anti-Collusion Guards ---
+// Track soft-play frequency between horse pairs
+const softPlayLog = new Map();
+
+/**
+ * Check if soft-play between two horses has exceeded the limit.
+ * Max 3 soft-play actions per hour between any pair.
+ * @param {string} horse1Id
+ * @param {string} horse2Id
+ * @returns {boolean} True if soft-play is allowed, false if blocked
+ */
+function isSoftPlayAllowed(horse1Id, horse2Id) {
+    const pairKey = [horse1Id, horse2Id].sort().join('|');
+    const log = softPlayLog.get(pairKey) || [];
+
+    // Clean entries older than 1 hour
+    const oneHourAgo = Date.now() - 3600000;
+    const recent = log.filter(ts => ts > oneHourAgo);
+    softPlayLog.set(pairKey, recent);
+
+    return recent.length < 3; // Max 3 soft-plays per hour
+}
+
+/**
+ * Record a soft-play action between horses
+ * @param {string} horse1Id
+ * @param {string} horse2Id
+ */
+function recordSoftPlay(horse1Id, horse2Id) {
+    const pairKey = [horse1Id, horse2Id].sort().join('|');
+    const log = softPlayLog.get(pairKey) || [];
+    log.push(Date.now());
+    softPlayLog.set(pairKey, log);
+}
+
+// --- #39: Dynamic Rebuy Strategy ---
+/**
+ * Determine whether a horse should rebuy based on table conditions.
+ * @param {string} profileId
+ * @param {number} currentStack - Current stack
+ * @param {number} bb - Big blind
+ * @param {number} buyInsUsed - Buy-ins used this session
+ * @param {number} tableAvgStack - Average stack at the table
+ * @returns {{ shouldRebuy: boolean, reason: string, amount: number }}
+ */
+function getDynamicRebuyStrategy(profileId, currentStack, bb, buyInsUsed, tableAvgStack) {
+    const stackBB = currentStack / bb;
+
+    // Hard limit: never rebuy more than 3 times
+    if (buyInsUsed >= 3) {
+        return { shouldRebuy: false, reason: 'max_buyins_reached', amount: 0 };
+    }
+
+    // Short stacked (< 30bb): rebuy to max
+    if (stackBB < 30) {
+        // Rebuy amount: top up to 100bb or table average, whichever is higher
+        const targetStack = Math.max(100 * bb, tableAvgStack);
+        const rebuyAmount = targetStack - currentStack;
+        return { shouldRebuy: true, reason: 'short_stacked', amount: Math.round(rebuyAmount) };
+    }
+
+    // Medium stack (30-60bb): rebuy if table average is much higher
+    if (stackBB < 60 && tableAvgStack > currentStack * 1.5) {
+        const rebuyAmount = tableAvgStack - currentStack;
+        return { shouldRebuy: true, reason: 'below_table_average', amount: Math.round(rebuyAmount) };
+    }
+
+    return { shouldRebuy: false, reason: 'adequate_stack', amount: 0 };
+}
+
+// --- #40: Opponent Modeling Persistence ---
+/**
+ * Save opponent reads to Supabase for future sessions.
+ * @param {string} horseId
+ * @param {string} opponentId
+ * @param {Object} read - Opponent read data
+ * @returns {Promise<boolean>}
+ */
+async function saveOpponentRead(horseId, opponentId, read) {
+    try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseKey) return false;
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const { error } = await supabase.from('horse_opponent_reads').upsert({
+            horse_id: horseId,
+            opponent_id: opponentId,
+            bluff_frequency: read.bluffFrequency,
+            value_frequency: read.valueFrequency,
+            fold_frequency: read.foldFrequency,
+            call_frequency: read.callFrequency,
+            hands_observed: read.handsObserved,
+            tendency: read.tendency,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'horse_id,opponent_id' });
+
+        if (!error) {
+            console.log(`[HorseBrain] 🧠 Opponent read saved: ${horseId.substring(0, 8)} on ${opponentId.substring(0, 8)}`);
+        }
+        return !error;
+    } catch (err) {
+        return false;
+    }
+}
+
+// --- #41: Hand History Persistence ---
+/**
+ * Save a key hand to Supabase for long-term analysis.
+ * Only saves "interesting" hands (big pots, bad beats, bluffs).
+ * @param {Object} handData - Hand details
+ * @param {number} bb - Big blind
+ * @returns {Promise<boolean>}
+ */
+async function saveKeyHand(handData, bb = 2) {
+    try {
+        if (!handData?.result) return false;
+
+        // Only save hands with significant action (>10bb pot)
+        const potBB = (handData.result.pot || 0) / bb;
+        if (potBB < 10) return false;
+
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseKey) return false;
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const { error } = await supabase.from('horse_hand_history').insert({
+            hand_id: handData.handId || `hand_${Date.now()}`,
+            table_id: handData.tableId,
+            pot_size_bb: Math.round(potBB),
+            players: JSON.stringify(handData.result.players?.map(p => ({
+                id: p.id,
+                won: handData.result.winners?.some(w => String(w.playerId) === String(p.id)),
+                chipDelta: p.chipDelta
+            })) || []),
+            board: JSON.stringify(handData.result.board || []),
+            recorded_at: new Date().toISOString()
+        });
+
+        return !error;
+    } catch (err) {
+        return false;
+    }
+}
+
+// --- #42: Horse Personality Evolution ---
+// Track skill progression per horse
+const evolutionTracker = new Map();
+
+/**
+ * Evolve horse's effective skill based on long-term results.
+ * Winners improve (up to +10%), losers regress (down to -5%).
+ * @param {string} profileId
+ * @param {number} sessionWinRate - BB/100 win rate for session
+ * @returns {{ skillDrift: number, direction: string }}
+ */
+function evolveHorseSkill(profileId, sessionWinRate) {
+    const current = evolutionTracker.get(profileId) || { drift: 0, sessions: 0 };
+    current.sessions++;
+
+    if (sessionWinRate > 5) {
+        // Winning: improve slowly (max +10)
+        current.drift = Math.min(10, current.drift + 1);
+    } else if (sessionWinRate < -5) {
+        // Losing: regress slowly (min -5)
+        current.drift = Math.max(-5, current.drift - 0.5);
+    }
+
+    evolutionTracker.set(profileId, current);
+
+    return {
+        skillDrift: current.drift,
+        direction: current.drift > 2 ? 'improving' : current.drift < -2 ? 'regressing' : 'stable'
+    };
+}
+
+/**
+ * Get current skill drift for a horse
+ * @param {string} profileId
+ * @returns {number} Drift value (-5 to +10)
+ */
+function getSkillDrift(profileId) {
+    return (evolutionTracker.get(profileId) || { drift: 0 }).drift;
+}
+
+// --- #43: Session Review System ---
+/**
+ * Generate a post-session review summary.
+ * @param {string} profileId
+ * @returns {Object} Session review data
+ */
+function getSessionReview(profileId) {
+    const stats = getPerformanceStats(profileId);
+    const adaptive = getAdaptiveStrategy(profileId);
+    const drift = getSkillDrift(profileId);
+
+    const review = {
+        profileId: profileId.substring(0, 8),
+        handsPlayed: stats.handsPlayed,
+        duration: `${stats.sessionMinutes}m`,
+        vpip: `${stats.vpip}%`,
+        pfr: `${stats.pfr}%`,
+        af: stats.af,
+        winRate: `${stats.winRate} BB/hand`,
+        wins: stats.wins,
+        losses: stats.losses,
+        strategyAdjustment: adaptive.reason,
+        skillEvolution: drift > 0 ? `+${drift}` : `${drift}`,
+        grade: stats.winRate > 0.05 ? 'A' :
+            stats.winRate > 0 ? 'B' :
+                stats.winRate > -0.05 ? 'C' : 'D'
+    };
+
+    return review;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**

@@ -562,24 +562,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         </div>
                     )}
 
-                    {/* Active Down Timer */}
-                    {!editMode && timerActive && isDownActive && (
-                        <div style={styles.timerBanner}>
-                            <div style={styles.timerIcon}>T</div>
-                            <div style={styles.timerInfo}>
-                                <span style={styles.timerLabel}>
-                                    {DOWN_TYPE_LABELS[currentDown.down_type]} Down
-                                    {currentDown.table_number && ` · Table ${currentDown.table_number}`}
-                                </span>
-                                <span style={styles.timerCountdown}>
-                                    {formatTimerDisplay(timerSecondsLeft)}
-                                </span>
-                            </div>
-                            <button onClick={() => handleEndDown(currentDown.id)} style={styles.endDownBtn}>
-                                End
-                            </button>
-                        </div>
-                    )}
+                    {/* Timer runs internally — no visible UI */}
 
                     {/* Down List */}
                     {!editMode && activeGig.downs && activeGig.downs.length > 0 && (
@@ -612,7 +595,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                             </div>
                                             <div style={styles.downRight}>
                                                 {/* Toke amount (editable) */}
-                                                {down.down_type !== 'break' && (
+                                                {(down.down_type === 'cash' || down.down_type === 'brush') && (
                                                     editingTokeId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
                                                             <input
@@ -834,13 +817,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
                             {/* Game Type Input Zone */}
                             {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <div style={{ position: 'absolute', top: '56%', left: '9.5%', width: '81%', height: '8.5%', display: 'flex' }}>
+                                <div style={{ position: 'absolute', top: '55%', left: '7%', width: '86%', height: '9%', display: 'flex' }}>
                                     {downForm.down_type === 'cash' ? (
                                         <select
                                             className="toke-img-map-element"
                                             value={downForm.cash_variant}
                                             onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}
-                                            style={styles.imgMapInput}
+                                            style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
                                         >
                                             <option value="Holdem">Holdem</option>
                                             <option value="PLO">PLO</option>
@@ -860,7 +843,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
                             {/* Table Number Input Zone */}
                             {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <div style={{ position: 'absolute', top: '71%', left: '9.5%', width: '81%', height: '8.5%', display: 'flex' }}>
+                                <div style={{ position: 'absolute', top: '70%', left: '7%', width: '86%', height: '9%', display: 'flex' }}>
                                     <input
                                         type="text"
                                         className="toke-img-map-element"
@@ -971,8 +954,8 @@ const styles = {
 
     // Active Gig
     activeGigCard: {
-        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
-        border: '2px solid rgba(245, 158, 11, 0.3)',
+        background: '#242526',
+        border: '1px solid #3A3B3C',
         borderRadius: 12, padding: 20, position: 'relative',
     },
     activeHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
@@ -981,15 +964,15 @@ const styles = {
         boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)', animation: 'pulse 2s infinite',
     },
     activeLabel: { fontSize: 14, fontWeight: 700, letterSpacing: 1.5, color: '#f59e0b', textTransform: 'uppercase' },
-    activeGigName: { fontSize: 22, fontWeight: 700, color: '#fff', margin: '4px 0' },
-    activeGigAddress: { fontSize: 13, color: '#8A8D91', margin: '0 0 4px', fontStyle: 'italic' },
-    activeGigMeta: { fontSize: 14, color: '#94a3b8', margin: '0 0 16px' },
+    activeGigName: { fontSize: 22, fontWeight: 700, color: '#E4E6EB', margin: '4px 0' },
+    activeGigAddress: { fontSize: 13, color: '#B0B3B8', margin: '0 0 4px', fontStyle: 'italic' },
+    activeGigMeta: { fontSize: 14, color: '#B0B3B8', margin: '0 0 16px' },
 
     // Running stats
     runningStats: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 },
-    runningStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '10px 8px' },
-    runningStatLabel: { fontSize: 14, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-    runningStatValue: { fontSize: 18, fontWeight: 700, color: '#fff' },
+    runningStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#3A3B3C', borderRadius: 8, padding: '10px 8px' },
+    runningStatLabel: { fontSize: 14, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+    runningStatValue: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
 
     // Timer
     timerBanner: {
@@ -1011,13 +994,13 @@ const styles = {
     downsSectionTitle: { fontSize: 14, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: 0.5 },
     downsScroll: { maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 },
     downRow: {
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'rgba(0,0,0,0.25)', borderRadius: 6, padding: '8px 10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        background: '#3A3B3C', borderRadius: 6, padding: '8px 10px',
     },
     downInfo: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0, flex: 1 },
     downTypeBadge: { fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' },
-    downDetail: { fontSize: 12, color: '#94a3b8' },
-    downTime: { fontSize: 11, color: '#64748b' },
+    downDetail: { fontSize: 12, color: '#B0B3B8' },
+    downTime: { fontSize: 11, color: '#B0B3B8' },
     downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
     tokeDisplay: { background: 'none', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '2px 4px' },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
@@ -1091,23 +1074,23 @@ const styles = {
 
     // Create Gig
     createGigBtn: {
-        background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.12)',
+        background: '#242526', border: '1px dashed #3A3B3C',
         borderRadius: 12, padding: '24px 20px', cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center', width: '100%',
     },
-    createGigTitle: { fontSize: 18, fontWeight: 700, color: '#fff' },
-    createGigSub: { fontSize: 13, color: '#8A8D91' },
+    createGigTitle: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
+    createGigSub: { fontSize: 13, color: '#B0B3B8' },
 
     // Form
     createForm: {
-        background: 'rgba(36,37,38,0.95)', border: '2px solid rgba(255,255,255,0.1)',
+        background: '#242526', border: '1px solid #3A3B3C',
         borderRadius: 12, padding: 20, overflow: 'hidden',
     },
-    formTitle: { fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 16px' },
-    formLabel: { fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 4, display: 'block', marginTop: 12 },
+    formTitle: { fontSize: 18, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' },
+    formLabel: { fontSize: 13, fontWeight: 600, color: '#B0B3B8', marginBottom: 4, display: 'block', marginTop: 12 },
     formInput: {
-        width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+        width: '100%', padding: '10px 12px', background: '#3A3B3C', border: '1px solid #4E4F50',
+        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
         transition: 'border-color 0.2s ease',
     },
     formSelect: {
@@ -1158,8 +1141,9 @@ const styles = {
     },
     imgMapInput: {
         width: '100%', height: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: 18,
-        textAlignLast: 'center', fontWeight: 600, outline: 'none', appearance: 'none',
-        WebkitAppearance: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'rgba(0,0,0,0)'
+        textAlign: 'left', textAlignLast: 'left', fontWeight: 600, outline: 'none', appearance: 'none',
+        WebkitAppearance: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+        paddingLeft: 12,
     },
 
     // Double down prompt

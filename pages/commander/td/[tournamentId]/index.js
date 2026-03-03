@@ -90,7 +90,7 @@ export default function TDControlCenter() {
     }
   }, [tournamentId, getToken]);
 
-  // Initial load + Realtime subscription + 60s fallback poll
+  // Initial load + Realtime subscription + 5-min fallback poll
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
     fetchFloor();

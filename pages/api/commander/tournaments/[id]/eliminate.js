@@ -241,11 +241,14 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      entry: eliminated,
-      finishPosition,
-      payoutAmount,
-      inTheMoney: payoutAmount > 0,
-      remainingPlayers: remainingCount - 1
+      success: true,
+      data: {
+        entry: eliminated,
+        finishPosition,
+        payoutAmount,
+        inTheMoney: payoutAmount > 0,
+        remainingPlayers: remainingCount - 1
+      }
     });
   } catch (error) {
     console.error('Eliminate player error:', error);

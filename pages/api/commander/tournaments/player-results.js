@@ -59,7 +59,7 @@ export default async function handler(req, res) {
           id,
           name,
           buyin_amount,
-          start_time,
+          scheduled_start,
           status,
           venue_id
         )
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       .map(e => ({
         id: e.id,
         tournament_name: e.commander_tournaments?.name,
-        date: e.commander_tournaments?.start_time || e.registered_at,
+        date: e.commander_tournaments?.scheduled_start || e.registered_at,
         buyin_amount: e.commander_tournaments?.buyin_amount || 0,
         finish_position: e.finish_position,
         payout: e.payout_amount || 0,
