@@ -1620,7 +1620,7 @@ export default function TableTabletsPage() {
                                 <button onClick={() => { haptic(); setShowTournamentClock(false); setLockedTournamentId(null); }}
                                     style={{
                                         position: 'absolute', top: 8, left: 8, zIndex: 10002,
-                                        width: 203, height: 151, border: 'none', background: 'transparent',
+                                        width: 102, height: 76, border: 'none', background: 'transparent',
                                         cursor: 'pointer', padding: 0,
                                     }}>
                                     <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
