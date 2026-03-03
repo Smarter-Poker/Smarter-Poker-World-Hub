@@ -70,6 +70,11 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
   const [addonChips, setAddonChips] = useState(0);
   const [bountyAmount, setBountyAmount] = useState(0);
 
+  // Receipt settings
+  const [printPlayerReceipt, setPrintPlayerReceipt] = useState(true);
+  const [printDealerReceipt, setPrintDealerReceipt] = useState(true);
+  const [printCageReceipt, setPrintCageReceipt] = useState(true);
+
   // Club Page sync
   const [postToClubPage, setPostToClubPage] = useState(true);
 
@@ -150,6 +155,13 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
         bounty_amount: (tournamentType === 'bounty' || tournamentType === 'pko') ? bountyAmount : null,
         status: 'scheduled',
         broadcast_to_smarter: true,
+        settings: {
+          receipts: {
+            player: printPlayerReceipt,
+            dealer: printDealerReceipt,
+            cage: printCageReceipt
+          }
+        },
       };
 
       const staffSession = localStorage.getItem('commander_staff');
@@ -222,6 +234,9 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
     setAllowsRebuys(false);
     setAllowsAddon(false);
     setBountyAmount(0);
+    setPrintPlayerReceipt(true);
+    setPrintDealerReceipt(true);
+    setPrintCageReceipt(true);
     setError(null);
     setShowBlinds(false);
   }
@@ -605,6 +620,30 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                   />
                 </div>
               )}
+            </div>
+
+            {/* Receipt Settings */}
+            <div className="p-3 bg-[#0D192E] rounded-lg space-y-2">
+              <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-2">Registration Receipts</p>
+              {[
+                { label: 'Player Receipt', desc: 'Print copy for the player', value: printPlayerReceipt, setter: setPrintPlayerReceipt },
+                { label: 'Dealer Receipt', desc: 'Print copy for the table dealer', value: printDealerReceipt, setter: setPrintDealerReceipt },
+                { label: 'Cashier Receipt', desc: 'Print copy for the cage', value: printCageReceipt, setter: setPrintCageReceipt },
+              ].map((opt) => (
+                <div key={opt.label} className="flex items-center justify-between py-1">
+                  <div>
+                    <p className="text-sm font-medium text-white">{opt.label}</p>
+                    <p className="text-xs text-[#64748B]">{opt.desc}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => opt.setter(!opt.value)}
+                    className={`w-10 h-6 rounded-full transition-colors ${opt.value ? 'bg-[#10B981]' : 'bg-[#1E3A5F]'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full transition-transform ${opt.value ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                  </button>
+                </div>
+              ))}
             </div>
 
             {/* Post to Club Page Toggle */}

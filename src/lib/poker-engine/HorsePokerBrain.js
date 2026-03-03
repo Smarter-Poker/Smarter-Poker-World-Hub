@@ -313,7 +313,10 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
         const suitedBonus = handStr.endsWith('s') ? deepAdj.suitedBonus : 0;
         const impliedBonus = (baseStrength < 50 && deepAdj.widenRange) ? deepAdj.impliedOddsBonus : 0;
 
-        const adjustedStrength = baseStrength + (positionBonus[position] || 0) + loosenessBias + suitedBonus + impliedBonus;
+        // Adaptive strategy adjustment (#35)
+        const adaptive = getAdaptiveStrategy(profileId);
+
+        const adjustedStrength = baseStrength + (positionBonus[position] || 0) + loosenessBias + suitedBonus + impliedBonus + adaptive.rangeAdjust;
 
         // Push/fold mode for short stacks
         if (stackBB <= 12 && canRaise) {
@@ -1283,9 +1286,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     }
                     if (adv.areFriends(profileId, oppId)) {
                         // Friends: soft play (don't raise as much)
-                        if (finalAction === 'raise' && Math.random() < 0.25) {
+                        // Anti-collusion guard (#38)
+                        if (finalAction === 'raise' && Math.random() < 0.25 && isSoftPlayAllowed(profileId, oppId)) {
                             finalAction = 'call';
                             finalAmount = null;
+                            recordSoftPlay(profileId, oppId);
                             console.log(`[HorseBrain] 🤝 Soft play vs friend ${oppId.substring(0, 8)}`);
                         }
                         break;
@@ -1319,6 +1324,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
     // Clamp to human-realistic range
     delayMs = Math.round(Math.max(800, Math.min(7000, delayMs)));
+
+    // --- Record performance stats (#34) ---
+    recordPerformanceAction(profileId, street, validAction.type, validAction.type !== 'fold' && validAction.type !== 'check');
 
     return { action: validAction, delayMs };
 }
@@ -1503,6 +1511,31 @@ async function processHandResult(handData, bb = 2) {
             adv.recordShowdown(pid, won, wasBetting);
         }
 
+        // --- Record performance result (#34) ---
+        recordPerformanceResult(pid, won, chipDelta / bb);
+
+        // --- Save key hands (#41) ---
+        if (Math.abs(chipDelta) > bb * 10) {
+            saveKeyHand(handData, bb).catch(() => { });
+        }
+
+        // --- Evolve horse skill (#42) ---
+        const stats = getPerformanceStats(pid);
+        if (stats.handsPlayed > 0 && stats.handsPlayed % 50 === 0) {
+            evolveHorseSkill(pid, stats.winRate * 100);
+        }
+
+        // --- Save opponent reads (#40) ---
+        if (adv.getOpponentRead) {
+            const opponents = (handData.players || []).filter(op => String(op.id) !== pid && !op.folded);
+            for (const opp of opponents.slice(0, 2)) {
+                const read = adv.getOpponentRead(pid, String(opp.id));
+                if (read && read.handsObserved >= 10) {
+                    saveOpponentRead(pid, String(opp.id), read).catch(() => { });
+                }
+            }
+        }
+
         // --- Emit table chat (#10) ---
         try {
             const personality = await getPersonalityModule();
@@ -1629,8 +1662,27 @@ async function evaluateSessions(gameController, tableManager) {
 
             if (shouldLeave) {
                 console.log(`[HorseBrain] 💸 Cashout triggered for ${playerId.substring(0, 8)}. Reason: ${reason}`);
+
+                // Save session analytics before leaving (#37)
+                saveSessionAnalytics(playerId, tableId).catch(() => { });
+
                 tableSessions.delete(playerId);
                 await gameController.standUp(tableId, playerId);
+            } else {
+                // Still playing — check if dynamic rebuy is needed (#39)
+                const avgStack = tableManager.seats
+                    .filter(s => s.player && s.status !== 'empty')
+                    .reduce((sum, s) => sum + (s.stack || 0), 0) / Math.max(1, tableManager.seats.filter(s => s.player).length);
+                const bb = tableManager.bigBlind || 2;
+                const rebuyInfo = getDynamicRebuyStrategy(playerId, currentStack, bb, session.buyinsUsed, avgStack);
+
+                if (rebuyInfo.shouldRebuy && await canRebuy(tableId, playerId)) {
+                    console.log(`[HorseBrain] 🔄 Dynamic rebuy for ${playerId.substring(0, 8)}: ${rebuyInfo.reason}, amount: ${rebuyInfo.amount}`);
+                    recordRebuy(tableId, playerId, rebuyInfo.amount);
+                    // Top up the player's stack
+                    if (seat.player) seat.player.stack = (seat.player.stack || 0) + rebuyInfo.amount;
+                    if (seat.stack !== undefined) seat.stack = (seat.stack || 0) + rebuyInfo.amount;
+                }
             }
         }
     }
@@ -2182,4 +2234,20 @@ module.exports = {
     getDeepStackAdjustment,
     getOptimalBetSize,
     shouldAutoSeat,
+
+    // Phase 5: Analytics & Meta-Game
+    recordPerformanceAction,
+    getPerformanceStats,
+    recordPerformanceResult,
+    getAdaptiveStrategy,
+    getRecommendedStake,
+    saveSessionAnalytics,
+    isSoftPlayAllowed,
+    recordSoftPlay,
+    getDynamicRebuyStrategy,
+    saveOpponentRead,
+    saveKeyHand,
+    evolveHorseSkill,
+    getSkillDrift,
+    getSessionReview,
 };

@@ -78,6 +78,69 @@ export default function TournamentRegistration() {
         setSearchResults([]);
     };
 
+    // Build a single receipt HTML page for a given copy type
+    const buildReceiptHtml = ({ copyLabel, playerName, tournamentName, buyinAmount, buyinFee, staffName }) => {
+        const total = (buyinAmount || 0) + (buyinFee || 0);
+        return `<!DOCTYPE html><html><head><title>${copyLabel}</title>
+<style>
+@page { margin: 0; size: 80mm auto; }
+body { font-family: 'Courier New', monospace; margin: 0; padding: 0; }
+.receipt { width: 72mm; padding: 4mm; margin: 0 auto; }
+.center { text-align: center; }
+.bold { font-weight: bold; }
+.big { font-size: 24px; }
+.med { font-size: 14px; }
+.sm { font-size: 11px; }
+.divider { border-top: 1px dashed #000; margin: 3mm 0; }
+.row { display: flex; justify-content: space-between; }
+.copy-label { font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+</style></head><body>
+<div class="receipt">
+<div class="center bold med">SMARTER.POKER</div>
+<div class="center sm">Tournament Registration Receipt</div>
+<div class="center copy-label" style="margin-top:2mm">-- ${copyLabel} --</div>
+<div class="divider"></div>
+<div class="center bold med">TOURNAMENT BUY-IN</div>
+<div class="divider"></div>
+<div class="row sm"><span>Player:</span><span class="bold">${playerName}</span></div>
+<div class="row sm"><span>Tournament:</span><span class="bold">${tournamentName}</span></div>
+${staffName ? `<div class="row sm"><span>Processed By:</span><span class="bold">${staffName}</span></div>` : ''}
+<div class="divider"></div>
+${buyinAmount > 0 ? `<div class="row sm"><span>Buy-in:</span><span>$${buyinAmount.toLocaleString()}</span></div>` : ''}
+${buyinFee > 0 ? `<div class="row sm"><span>Fee:</span><span>$${buyinFee.toLocaleString()}</span></div>` : ''}
+${total > 0 ? `<div class="divider"></div><div class="center bold big">$${total.toLocaleString()}</div><div class="center sm">CASH</div>` : '<div class="center bold big">REGISTERED</div>'}
+<div class="divider"></div>
+<div class="sm center" style="opacity:0.6">${new Date().toLocaleString()}</div>
+<div class="sm center copy-label" style="margin-top:2mm">-- ${copyLabel} --</div>
+<div class="sm center" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
+</div></body></html>`;
+    };
+
+    // Rapid-fire print multiple receipt copies based on tournament settings
+    const printTournamentReceipts = ({ playerName, tournamentName, buyinAmount, buyinFee, staffName, receiptSettings }) => {
+        // Default: all 3 copies if no settings defined
+        const receipts = receiptSettings || { player: true, dealer: true, cage: true };
+        const copies = [];
+        if (receipts.player) copies.push('PLAYER COPY');
+        if (receipts.dealer) copies.push('DEALER COPY');
+        if (receipts.cage) copies.push('CASHIER COPY');
+
+        // If no copies selected, skip printing
+        if (copies.length === 0) return;
+
+        // Print each copy with a staggered delay to avoid popup blocking
+        copies.forEach((copyLabel, index) => {
+            setTimeout(() => {
+                const printWindow = window.open('', '_blank', 'width=400,height=600');
+                if (!printWindow) return;
+                const html = buildReceiptHtml({ copyLabel, playerName, tournamentName, buyinAmount, buyinFee, staffName });
+                printWindow.document.write(html);
+                printWindow.document.close();
+                setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+            }, index * 800);
+        });
+    };
+
     const registerPlayer = async () => {
         if (!selectedPlayer || !selectedTournament) {
             setMessage({ type: 'error', text: 'Select a player and tournament' });
@@ -103,6 +166,7 @@ export default function TournamentRegistration() {
 
             // 2. Record buy-in as cashier transaction (if tournament has a buy-in)
             const buyinAmount = selectedTournament.buyin_amount || selectedTournament.buy_in || 0;
+            const buyinFee = selectedTournament.buyin_fee || 0;
             if (buyinAmount > 0) {
                 await fetch('/api/commander/cashier', {
                     method: 'POST', headers,
@@ -116,6 +180,18 @@ export default function TournamentRegistration() {
                     })
                 });
             }
+
+            // 3. Auto-print registration receipts (Player/Dealer/Cashier copies per tournament settings)
+            let staffName = '';
+            try { staffName = JSON.parse(localStorage.getItem('commander_staff') || '{}').name || ''; } catch { }
+            printTournamentReceipts({
+                playerName: selectedPlayer.player_name,
+                tournamentName: selectedTournament.name || 'Tournament',
+                buyinAmount,
+                buyinFee,
+                staffName,
+                receiptSettings: selectedTournament.settings?.receipts
+            });
 
             setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}${buyinAmount > 0 ? ` — $${buyinAmount} buy-in` : ''}` });
             broadcastChange('tournaments');
