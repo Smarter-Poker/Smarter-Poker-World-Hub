@@ -1589,7 +1589,7 @@ export default function TableTabletsPage() {
                                 <button onClick={() => { haptic(); setShowTournamentClock(false); setLockedTournamentId(null); }}
                                     style={{
                                         position: 'absolute', top: 8, left: 8, zIndex: 10002,
-                                        width: 134, height: 100, border: 'none', background: 'transparent',
+                                        width: 90, height: 67, border: 'none', background: 'transparent',
                                         cursor: 'pointer', padding: 0,
                                     }}>
                                     <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
@@ -1888,12 +1888,7 @@ export default function TableTabletsPage() {
                     <div style={{ width: '90%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 16, overflow: 'hidden', border: '3px solid #1877F2', position: 'relative' }}>
                         <video ref={seatScannerVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} playsInline muted />
                     </div>
-                    <form onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.qr.value.trim(); if (val) handleSeatScan(val, seatScanner.tableNumber, seatScanner.seatNumber); }}
-                        style={{ display: 'flex', gap: 8, marginTop: 16, width: '90%', maxWidth: 400 }}>
-                        <input name="qr" type="text" placeholder="Or enter QR code manually..."
-                            style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '2px solid #3A3B3C', background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none' }} autoComplete="off" />
-                        <button type="submit" style={{ padding: '12px 20px', borderRadius: 12, background: '#1877F2', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Scan</button>
-                    </form>
+                    {/* Manual entry removed — scan only */}
                     <button onClick={() => { haptic(); closeSeatScanner(); }} style={{ marginTop: 12, padding: '14px 48px', borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
                 </div>
             )}
