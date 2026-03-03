@@ -777,22 +777,22 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             {/* Down Type Selection Zones */}
                             <button
                                 onClick={() => setDownForm({ ...downForm, down_type: 'cash' })}
-                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '8%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'cash' ? 'inset 0 0 20px rgba(59,130,246,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '8%', width: '41%', height: '16.5%' }}
                                 title="Cash Game"
                             />
                             <button
                                 onClick={() => setDownForm({ ...downForm, down_type: 'tournament' })}
-                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '51%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'tournament' ? 'inset 0 0 20px rgba(245,158,11,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '51%', width: '41%', height: '16.5%' }}
                                 title="Tournament"
                             />
                             <button
                                 onClick={() => setDownForm({ ...downForm, down_type: 'break' })}
-                                style={{ ...styles.imgMapBtn, top: '31%', left: '8%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'break' ? 'inset 0 0 20px rgba(139,92,246,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                style={{ ...styles.imgMapBtn, top: '31%', left: '8%', width: '41%', height: '16.5%' }}
                                 title="On Break"
                             />
                             <button
                                 onClick={() => setDownForm({ ...downForm, down_type: 'brush' })}
-                                style={{ ...styles.imgMapBtn, top: '31%', left: '51%', width: '41%', height: '16.5%', boxShadow: downForm.down_type === 'brush' ? 'inset 0 0 20px rgba(16,185,129,0.3), inset 0 0 0 2px rgba(255,255,255,0.2)' : 'none' }}
+                                style={{ ...styles.imgMapBtn, top: '31%', left: '51%', width: '41%', height: '16.5%' }}
                                 title="Brush"
                             />
 
