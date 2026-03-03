@@ -7,6 +7,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // BUG #167 FIX: Block in production
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
     try {
         // 1. Check profiles table schema by fetching a sample profile
         const { data: profiles, error: profilesError } = await supabase

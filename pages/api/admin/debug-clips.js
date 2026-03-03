@@ -9,6 +9,10 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export default async function handler(req, res) {
+  // BUG #167 FIX: Block in production
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
     try {
         // Check poker_clips
         const { data: pokerClips, error: pokerError } = await supabase

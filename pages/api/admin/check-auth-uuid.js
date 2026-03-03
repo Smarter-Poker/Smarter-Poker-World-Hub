@@ -9,6 +9,10 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
+  // BUG #167 FIX: Block in production
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false }
     });

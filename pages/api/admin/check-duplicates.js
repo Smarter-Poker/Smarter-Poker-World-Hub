@@ -10,6 +10,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // BUG #167 FIX: Block in production
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
