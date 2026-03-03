@@ -28,10 +28,16 @@ import toast from '../../stores/toastStore';
 
 // ── Down type metadata ──
 const DOWN_TYPES = [
-    { id: 'cash', label: 'Cash Game', color: '#3b82f6', icon: '♠' },
-    { id: 'tournament', label: 'Tournament', color: '#f59e0b', icon: '🏆' },
-    { id: 'break', label: 'On Break', color: '#8b5cf6', icon: '☕' },
-    { id: 'brush', label: 'Brush', color: '#10b981', icon: '🧹' },
+    { id: 'cash', label: 'Cash Game', color: '#3b82f6' },
+    { id: 'tournament', label: 'Tournament', color: '#f59e0b' },
+    { id: 'break', label: 'On Break', color: '#8b5cf6' },
+    { id: 'brush', label: 'Brush', color: '#10b981' },
+];
+
+// ── Cash game variants ──
+const CASH_GAME_VARIANTS = ['Holdem', 'PLO', 'Mixed'];
+const CASH_GAME_STAKES = [
+    '1/2', '1/3', '2/5', '3/5', '5/10', '10/20', '10/25', '25/50', '50/100', 'Other',
 ];
 
 const DOWN_TYPE_LABELS = {
@@ -70,6 +76,8 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         tournament_name: '',
         table_number: '',
         game_type: '',
+        cash_variant: 'Holdem',
+        cash_stakes: '1/3',
     });
 
     // Toke edit state  
@@ -322,15 +330,18 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const handleAddDown = async () => {
         if (!activeGig) return;
         try {
+            const gameType = downForm.down_type === 'cash'
+                ? `${downForm.cash_variant} ${downForm.cash_stakes}`
+                : downForm.game_type || null;
             const down = await createDown(userId, activeGig.id, {
                 down_type: downForm.down_type,
                 tournament_name: downForm.down_type === 'tournament' ? downForm.tournament_name : null,
                 table_number: downForm.table_number || null,
-                game_type: downForm.game_type || null,
+                game_type: gameType,
             });
             toast.success(`${DOWN_TYPE_LABELS[downForm.down_type]} down started!`);
             setShowAddDown(false);
-            setDownForm({ down_type: 'cash', tournament_name: '', table_number: '', game_type: '' });
+            setDownForm({ down_type: 'cash', tournament_name: '', table_number: '', game_type: '', cash_variant: 'Holdem', cash_stakes: '1/3' });
 
             // Start 35-min timer
             startDownTimer(DOWN_TIMER_MS, down);
@@ -450,11 +461,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     <div style={styles.reportBreakdown}>
                         <h4 style={styles.reportBreakdownTitle}>Down Breakdown</h4>
                         <div style={styles.reportBreakdownGrid}>
-                            <span style={styles.breakdownItem}>♠ Cash: {stats.cashDownCount}</span>
-                            <span style={styles.breakdownItem}>🏆 Tournament: {stats.tournamentDownCount}</span>
-                            <span style={styles.breakdownItem}>🧹 Brush: {stats.brushDownCount}</span>
-                            <span style={styles.breakdownItem}>☕ Breaks: {stats.breakCount}</span>
-                            <span style={styles.breakdownItem}>⏫ Double Downs: {stats.doubleDownCount}</span>
+                            <span style={styles.breakdownItem}>Cash: {stats.cashDownCount}</span>
+                            <span style={styles.breakdownItem}>Tournament: {stats.tournamentDownCount}</span>
+                            <span style={styles.breakdownItem}>Brush: {stats.brushDownCount}</span>
+                            <span style={styles.breakdownItem}>Breaks: {stats.breakCount}</span>
+                            <span style={styles.breakdownItem}>Double Downs: {stats.doubleDownCount}</span>
                         </div>
                     </div>
                 </div>
@@ -554,7 +565,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     {/* Active Down Timer */}
                     {!editMode && timerActive && isDownActive && (
                         <div style={styles.timerBanner}>
-                            <div style={styles.timerIcon}>⏱</div>
+                            <div style={styles.timerIcon}>T</div>
                             <div style={styles.timerInfo}>
                                 <span style={styles.timerLabel}>
                                     {DOWN_TYPE_LABELS[currentDown.down_type]} Down
@@ -590,7 +601,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                             <div style={styles.downInfo}>
                                                 <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` }}>
                                                     {DOWN_TYPE_LABELS[down.down_type]}
-                                                    {down.is_double_down && ' ⏫'}
+                                                    {down.is_double_down && ' (x2)'}
                                                 </span>
                                                 {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
                                                 {down.table_number && <span style={styles.downDetail}>T{down.table_number}</span>}
@@ -646,8 +657,8 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             </>
                         ) : !confirmComplete ? (
                             <>
-                                <button onClick={startEditing} style={styles.editBtn}>✏ Edit</button>
-                                <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>＋ Add Down</button>
+                                <button onClick={startEditing} style={styles.editBtn}>Edit</button>
+                                <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>+ Add Down</button>
                                 <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>
                             </>
                         ) : (
@@ -776,7 +787,6 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                             color: downForm.down_type === dt.id ? dt.color : '#8A8D91',
                                         }}
                                     >
-                                        <span style={{ fontSize: 20 }}>{dt.icon}</span>
                                         <span style={{ fontSize: 12, fontWeight: 600 }}>{dt.label}</span>
                                     </button>
                                 ))}
@@ -789,31 +799,63 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                     <input
                                         type="text" value={downForm.tournament_name}
                                         onChange={e => setDownForm({ ...downForm, tournament_name: e.target.value })}
-                                        placeholder="e.g. $1,000 NLH Freezeout" style={styles.formInput}
+                                        style={styles.formInput}
                                     />
                                 </>
                             )}
 
-                            {/* Game Type (for cash) */}
+                            {/* Cash Game Variant + Stakes */}
                             {downForm.down_type === 'cash' && (
                                 <>
-                                    <label style={styles.formLabel}>Game Type (Optional)</label>
-                                    <input
-                                        type="text" value={downForm.game_type}
-                                        onChange={e => setDownForm({ ...downForm, game_type: e.target.value })}
-                                        placeholder="e.g. 1/3 NLH, 2/5 PLO" style={styles.formInput}
-                                    />
+                                    <label style={styles.formLabel}>Game Type</label>
+                                    <div style={styles.checkboxRow}>
+                                        {CASH_GAME_VARIANTS.map(variant => (
+                                            <label key={variant} style={{
+                                                ...styles.checkboxLabel,
+                                                color: downForm.cash_variant === variant ? '#3b82f6' : '#B0B3B8',
+                                                border: `1px solid ${downForm.cash_variant === variant ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+                                                background: downForm.cash_variant === variant ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.04)',
+                                            }}>
+                                                <input
+                                                    type="radio"
+                                                    name="cash_variant"
+                                                    checked={downForm.cash_variant === variant}
+                                                    onChange={() => setDownForm({ ...downForm, cash_variant: variant })}
+                                                    style={{ display: 'none' }}
+                                                />
+                                                <span style={{
+                                                    width: 16, height: 16, borderRadius: 4,
+                                                    border: `2px solid ${downForm.cash_variant === variant ? '#3b82f6' : '#4E4F50'}`,
+                                                    background: downForm.cash_variant === variant ? '#3b82f6' : 'transparent',
+                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                    marginRight: 6, flexShrink: 0, fontSize: 11, color: '#fff',
+                                                }}>{downForm.cash_variant === variant ? '✓' : ''}</span>
+                                                {variant}
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    <label style={styles.formLabel}>Stakes</label>
+                                    <select
+                                        value={downForm.cash_stakes}
+                                        onChange={e => setDownForm({ ...downForm, cash_stakes: e.target.value })}
+                                        style={styles.formSelect}
+                                    >
+                                        {CASH_GAME_STAKES.map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
                                 </>
                             )}
 
                             {/* Table Number (optional for both cash/tournament) */}
                             {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
                                 <>
-                                    <label style={styles.formLabel}>Table Number (Optional)</label>
+                                    <label style={styles.formLabel}>Table Number</label>
                                     <input
                                         type="text" value={downForm.table_number}
                                         onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
-                                        placeholder="e.g. 42" style={styles.formInput}
+                                        style={styles.formInput}
                                     />
                                 </>
                             )}
@@ -838,7 +880,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             style={styles.promptCard}
                         >
-                            <div style={styles.promptIcon}>⏰</div>
+                            <div style={styles.promptIcon}>35m</div>
                             <h3 style={styles.promptTitle}>
                                 {promptDown.down_type === 'break' ? 'Still On Break?' :
                                     promptDown.down_type === 'brush' ? 'Still Brushing?' :
@@ -851,7 +893,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             </p>
                             <div style={styles.promptActions}>
                                 <button onClick={handleDoubleDownYes} style={styles.promptYesBtn}>
-                                    Yes, Double Down ⏫
+                                    Yes, Double Down
                                 </button>
                                 <button onClick={handleDoubleDownNo} style={styles.promptNoBtn}>
                                     No, New Down
@@ -1046,6 +1088,21 @@ const styles = {
     formInput: {
         width: '100%', padding: '10px 12px', background: '#3A3B3C', border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+    },
+    formSelect: {
+        width: '100%', padding: '10px 12px', background: '#3A3B3C', border: '2px solid rgba(255,255,255,0.1)',
+        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+        cursor: 'pointer', WebkitAppearance: 'none', appearance: 'none',
+        backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23B0B3B8\' d=\'M6 8L1 3h10z\'/%3E%3C/svg%3E")',
+        backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
+    },
+    checkboxRow: {
+        display: 'flex', gap: 8, flexWrap: 'wrap',
+    },
+    checkboxLabel: {
+        display: 'flex', alignItems: 'center', padding: '8px 14px',
+        borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        transition: 'all 0.15s ease',
     },
     formActions: { display: 'flex', gap: 10, marginTop: 16 },
     formSubmitBtn: {

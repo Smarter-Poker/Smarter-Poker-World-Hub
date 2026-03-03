@@ -209,15 +209,30 @@ function getActionDelay(profileId, actionType, isPreflop = false) {
 // GTO DECISION PIPELINE
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Lazy-load the GTO and personality modules (ESM)
+// Lazy-load the GTO and personality modules (ESM → CJS bridge)
+// ESM dynamic import in Next.js can resolve to either:
+//   mod.functionName (named export) OR mod.default.functionName (default bundle)
+// We normalize both patterns here.
 let _gtoModule = null;
 let _personalityModule = null;
 let _advancedModule = null;
 
+/**
+ * Resolve an ESM module to its usable export object.
+ * Handles: { default: { fn1, fn2 } } and { fn1, fn2 } and { default: fn1, fn2 }
+ */
+function resolveESM(mod) {
+    if (!mod) return null;
+    // If there's a default export that is an object with functions, use it
+    if (mod.default && typeof mod.default === 'object') return mod.default;
+    return mod;
+}
+
 async function getGTOModule() {
     if (!_gtoModule) {
         try {
-            _gtoModule = await import('../../content-engine/services/HorsePokerGTO.js');
+            const raw = await import('../../content-engine/services/HorsePokerGTO.js');
+            _gtoModule = resolveESM(raw);
         } catch (err) {
             console.error('[HorseBrain] Failed to load HorsePokerGTO:', err.message);
             _gtoModule = null;
@@ -229,7 +244,8 @@ async function getGTOModule() {
 async function getPersonalityModule() {
     if (!_personalityModule) {
         try {
-            _personalityModule = await import('../../content-engine/services/HorsePokerPersonality.js');
+            const raw = await import('../../content-engine/services/HorsePokerPersonality.js');
+            _personalityModule = resolveESM(raw);
         } catch (err) {
             console.error('[HorseBrain] Failed to load HorsePokerPersonality:', err.message);
             _personalityModule = null;
@@ -241,7 +257,8 @@ async function getPersonalityModule() {
 async function getAdvancedModule() {
     if (!_advancedModule) {
         try {
-            _advancedModule = await import('../../content-engine/services/HorsePokerAdvanced.js');
+            const raw = await import('../../content-engine/services/HorsePokerAdvanced.js');
+            _advancedModule = resolveESM(raw);
         } catch (err) {
             console.error('[HorseBrain] Failed to load HorsePokerAdvanced:', err.message);
             _advancedModule = null;
@@ -439,13 +456,12 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
         // Apply tilt overlay
         try {
-            const advanced = await getAdvancedModule();
-            if (advanced?.default) {
-                const adv = advanced.default;
+            const adv = await getAdvancedModule();
+            if (adv?.getTiltLevel) {
                 const tiltLevel = adv.getTiltLevel(profileId);
 
                 // Tilted horses make suboptimal plays
-                if (tiltLevel >= 5) {
+                if (tiltLevel >= 5 && adv.getImageAdjustedAction) {
                     const adjusted = adv.getImageAdjustedAction(profileId, finalAction, 0.5);
                     if (adjusted && adjusted !== finalAction) {
                         finalAction = adjusted;

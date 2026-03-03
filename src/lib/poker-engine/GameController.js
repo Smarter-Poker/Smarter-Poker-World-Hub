@@ -1240,6 +1240,7 @@ class GameController {
           };
 
           await this.lobby.createTable(config);
+          this._wireHorseAI(row.id);
 
           // Try mid-hand recovery from live_state + private hole cards
           if (row.live_state && row.live_state.savedAt) {

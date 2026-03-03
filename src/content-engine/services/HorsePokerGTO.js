@@ -729,7 +729,22 @@ export async function makeGTODecision(profileId, gameState) {
 
     // 1. Get solver data
     let solverStrategy = null;
-    if (board.length >= 3) {
+    let preflopChart = null;
+
+    if (board.length === 0) {
+        // PREFLOP: Query memory_charts_gold for position-based opening/defending ranges
+        // Chart name pattern: "{POSITION}_Open_{roundedBB}bb_{topology}"
+        const roundedBB = Math.max(20, Math.round(stackBB / 20) * 20);
+        const chartName = `${position}_Open_${roundedBB}bb_${topology}`;
+        preflopChart = await getPreflopRange(chartName);
+
+        if (!preflopChart) {
+            // Fallback: try without specific stack depth
+            const fallbackChart = `${position}_Open_100bb_${topology}`;
+            preflopChart = await getPreflopRange(fallbackChart);
+        }
+    } else if (board.length >= 3) {
+        // POSTFLOP: Query solved_spots_gold
         solverStrategy = await getPostflopStrategy({
             board: board.slice(0, 3),
             street,
@@ -766,6 +781,33 @@ export async function makeGTODecision(profileId, gameState) {
     let solverAction = null;
     let solverFreq = null;
 
+    // 8a. PREFLOP: Check preflopChart grid
+    if (preflopChart && !solverAction) {
+        // Chart grid maps hand strings to actions
+        // Formats: { "AKs": "Raise", "72o": "Fold", "TT": "Raise" }
+        // or { "AKs": { action: "Raise", frequency: 0.85 } }
+        const chartEntry = preflopChart[hand];
+        if (chartEntry) {
+            if (typeof chartEntry === 'string') {
+                solverAction = chartEntry; // Direct action string
+            } else if (chartEntry.action) {
+                solverAction = chartEntry.action;
+                solverFreq = chartEntry.frequency;
+
+                // For mixed preflop spots, apply personality bias
+                if (solverFreq && solverFreq < 0.95) {
+                    const bias = hash % 3 === 0 ? 1.15 : hash % 3 === 1 ? 0.85 : 1.0;
+                    const adjustedFreq = Math.min(1, solverFreq * bias);
+                    if (Math.random() > adjustedFreq) {
+                        // Don't take the charted action — use fallback
+                        solverAction = chartEntry.action === 'Raise' ? 'Fold' : 'Call';
+                    }
+                }
+            }
+        }
+    }
+
+    // 8b. POSTFLOP: Check solverStrategy matrix
     if (solverStrategy?.strategy_matrix?.[hand]) {
         const handData = solverStrategy.strategy_matrix[hand];
         solverAction = handData.best_action;
