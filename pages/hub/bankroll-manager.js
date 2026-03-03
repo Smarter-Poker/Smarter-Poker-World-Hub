@@ -63,6 +63,7 @@ import StakingTracker from '../../src/components/bankroll/StakingTracker';
 import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
 import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
+import TokeTracker from '../../src/components/bankroll/TokeTracker';
 import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
 import StartingBankrollModal from '../../src/components/bankroll/StartingBankrollModal';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
@@ -82,6 +83,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
   { id: 'projection', label: 'Run Projections', icon: '' },
   { id: 'staking', label: 'Staking Tracker', icon: '' },
+  { id: 'toke-tracker', label: 'Toke Tracker', icon: '' },
   { id: 'tax', label: 'Tax Reports', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
 ];
@@ -581,6 +583,8 @@ export default function BankrollManagerPage() {
       setShowProjection(true);
     } else if (sectionId === 'staking') {
       setActiveSection('staking');
+    } else if (sectionId === 'toke-tracker') {
+      setActiveSection('toke-tracker');
     } else if (sectionId === 'tax') {
       setActiveSection('tax');
     } else if (sectionId === 'receipts') {
@@ -758,6 +762,7 @@ export default function BankrollManagerPage() {
                   {activeSection === 'settings' && 'Settings'}
                   {activeSection === 'rules' && 'Bankroll Rules'}
                   {activeSection === 'staking' && 'Staking Tracker'}
+                  {activeSection === 'toke-tracker' && 'Toke Tracker'}
                 </h1>
                 <div style={styles.headerActions}>
                   {activeSection === 'dashboard' && categoryFilter === 'all' && (
@@ -1565,6 +1570,13 @@ export default function BankrollManagerPage() {
                   <BankrollProGate userId={userId}>
                     <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
                   </BankrollProGate>
+                </div>
+              )}
+
+              {/* Toke Tracker — Dealer Income & Expense Tracking */}
+              {activeSection === 'toke-tracker' && (
+                <div style={styles.activitySection}>
+                  <TokeTracker userId={userId} refreshTrigger={refreshTrigger} />
                 </div>
               )}
 
