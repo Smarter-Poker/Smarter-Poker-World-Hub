@@ -21,8 +21,6 @@ const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control', path: '' },
   { key: 'tables', icon: LayoutGrid, label: 'Tables', path: '/tables' },
   { key: 'players', icon: Users, label: 'Players', path: '/players' },
-  { key: 'balance', icon: Scale, label: 'Balance', path: '/balance' },
-  { key: 'register', icon: UserPlus, label: 'Register', path: '/register' },
   { key: 'clock', icon: Monitor, label: 'Clock', path: '/clock' },
 ];
 

@@ -16,7 +16,7 @@ import {
   Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
   LayoutGrid, UserCheck, Scale, UserPlus, Monitor,
-  Hand, Star, Coffee, MessageSquare, Volume2
+  Hand, Star, Coffee, MessageSquare, Volume2, X
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -35,8 +35,6 @@ const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control' },
   { key: 'tables', icon: LayoutGrid, label: 'Tables' },
   { key: 'players', icon: Users, label: 'Players' },
-  { key: 'balance', icon: Scale, label: 'Balance' },
-  { key: 'register', icon: UserPlus, label: 'Register' },
   { key: 'clock', icon: Monitor, label: 'Clock' },
 ];
 
@@ -78,6 +76,7 @@ export default function TDControlCenter() {
   const [messageModal, setMessageModal] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showActivityLog, setShowActivityLog] = useState(false);
   const timerRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -295,112 +294,16 @@ export default function TDControlCenter() {
           </div>
         )}
 
-        {/* ===== CLOCK DISPLAY ===== */}
+        {/* ===== CLOCK DISPLAY LINK ===== */}
         <div className="px-4 py-3">
-          <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4">
-            {/* Level + Blinds */}
-            <div className="text-center mb-3">
-              <p className="text-[#B0B3B8] text-xs uppercase tracking-wider mb-1">
-                Level {(clock.current_level || 0) + 1} of {clock.total_levels || '--'}
-              </p>
-              <p className="text-2xl font-bold text-white">
-                {formatBlinds(clock.current_blinds)}
-              </p>
-              {clock.next_blinds && (
-                <p className="text-xs text-[#B0B3B8] mt-1">
-                  Next: {formatBlinds(clock.next_blinds)}
-                </p>
-              )}
+          <button onClick={() => navigateTo('clock')}
+            className="w-full bg-[#1877F2] rounded-xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform shadow-lg">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-white font-bold text-lg">Tournament Clock</span>
+              <span className="text-white/80 text-xs">Tap to open Fullscreen Mirror display</span>
             </div>
-
-            {/* Countdown */}
-            <div className="text-center mb-4">
-              <p className={`text-5xl font-mono font-bold tabular-nums ${displaySeconds <= 60 ? 'text-[#EF4444]' :
-                displaySeconds <= 120 ? 'text-[#F59E0B]' : 'text-white'
-                }`}>
-                {formatClockTime(displaySeconds)}
-              </p>
-            </div>
-
-            {/* Clock Controls — large touch targets */}
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => handleClockAction('prev_level')}
-                disabled={!!clockAction}
-                className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50"
-              >
-                <SkipBack className="w-6 h-6 text-[#E4E6EB]" />
-              </button>
-
-              {isRunning ? (
-                <button
-                  onClick={() => handleClockAction('pause')}
-                  disabled={!!clockAction}
-                  className="w-20 h-20 rounded-2xl bg-[#F59E0B] flex items-center justify-center active:bg-[#D97706] disabled:opacity-50"
-                >
-                  {clockAction === 'pause'
-                    ? <Loader2 className="w-8 h-8 text-white animate-spin" />
-                    : <Pause className="w-8 h-8 text-white" />
-                  }
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleClockAction(isPaused ? 'resume' : 'start')}
-                  disabled={!!clockAction}
-                  className="w-20 h-20 rounded-2xl bg-[#31A24C] flex items-center justify-center active:bg-[#28883F] disabled:opacity-50"
-                >
-                  {clockAction === 'start' || clockAction === 'resume'
-                    ? <Loader2 className="w-8 h-8 text-white animate-spin" />
-                    : <Play className="w-8 h-8 text-white ml-1" />
-                  }
-                </button>
-              )}
-
-              <button
-                onClick={() => handleClockAction('next_level')}
-                disabled={!!clockAction}
-                className="w-14 h-14 rounded-xl bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C] disabled:opacity-50"
-              >
-                <SkipForward className="w-6 h-6 text-[#E4E6EB]" />
-              </button>
-            </div>
-
-            {/* Quick actions row */}
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <button
-                onClick={handleHandForHand}
-                className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 ${alerts.hand_for_hand
-                  ? 'bg-[#EF4444] text-white'
-                  : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                  }`}
-              >
-                <Hand className="w-3.5 h-3.5" />
-                {alerts.hand_for_hand ? 'End H4H' : 'Hand 4 Hand'}
-              </button>
-
-              <button
-                onClick={() => handleClockAction('add_time')}
-                className="px-3 py-2 rounded-lg text-xs font-medium bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]"
-              >
-                +1 min
-              </button>
-
-              <button
-                onClick={() => handleClockAction('subtract_time')}
-                className="px-3 py-2 rounded-lg text-xs font-medium bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]"
-              >
-                -1 min
-              </button>
-
-              <button
-                onClick={() => setMessageModal(true)}
-                className="px-3 py-2 rounded-lg text-xs font-medium bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C] flex items-center gap-1.5"
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                Announce
-              </button>
-            </div>
-          </div>
+            <Monitor className="w-8 h-8 text-white opacity-90" />
+          </button>
         </div>
 
         {/* ===== STATS GRID ===== */}
@@ -475,48 +378,69 @@ export default function TDControlCenter() {
           </div>
         )}
 
-        {/* ===== ACTIVITY LOG ===== */}
-        {floor.entries && floor.entries.length > 0 && (
-          <div className="px-4 py-2">
-            <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">
-              Activity Log
-            </h2>
-            <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] divide-y divide-[#3A3B3C] max-h-[300px] overflow-y-auto">
-              {[...floor.entries]
-                .sort((a, b) => {
-                  const aTime = a.eliminated_at || a.registered_at || '1970';
-                  const bTime = b.eliminated_at || b.registered_at || '1970';
-                  return new Date(bTime) - new Date(aTime);
-                })
-                .slice(0, 20)
-                .map((e, i) => {
-                  const isEliminated = e.status === 'eliminated';
-                  const isAlternate = e.status === 'alternate';
-                  const isActive = ['active', 'seated'].includes(e.status);
-                  const time = e.eliminated_at || e.registered_at;
-                  const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        {/* ===== FLOATING ACTIVITY BUTTON & SHEET ===== */}
+        <div className="fixed bottom-20 left-0 right-0 px-4 z-40 flex justify-center pointer-events-none">
+          <button
+            onClick={() => setShowActivityLog(true)}
+            className="pointer-events-auto bg-[#3A3B3C] border border-[#4A4B4C] rounded-full px-6 py-3 shadow-lg flex items-center gap-2 active:scale-95 transition-transform"
+          >
+            <RefreshCw className="w-4 h-4 text-[#E4E6EB]" />
+            <span className="text-sm font-bold text-white tracking-widest uppercase">Activity Log</span>
+          </button>
+        </div>
 
-                  return (
-                    <div key={e.entry_id + '-' + i} className="px-4 py-2.5 flex items-center gap-3">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isEliminated ? 'bg-[#EF4444]' :
-                        isAlternate ? 'bg-[#F59E0B]' :
-                          isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
-                        }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#E4E6EB] truncate">{e.player_name}</p>
-                        <p className="text-[10px] text-[#B0B3B8]">
-                          {isEliminated ? `Eliminated #${e.finish_position || '?'}` :
-                            isAlternate ? 'Added to alternates' :
-                              isActive ? `Seated T${e.table_number || '?'}-S${e.seat_number || '?'}` :
-                                'Registered'}
-                          {e.rebuy_count > 0 ? ` \u2022 ${e.rebuy_count}R` : ''}
-                          {e.addon_taken ? ' \u2022 Add-on' : ''}
-                        </p>
-                      </div>
-                      <span className="text-[10px] text-[#B0B3B8] flex-shrink-0">{timeStr}</span>
-                    </div>
-                  );
-                })}
+        {showActivityLog && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setShowActivityLog(false)}>
+            <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg max-h-[70vh] flex flex-col pointer-events-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#3A3B3C]">
+                <h3 className="text-lg font-bold text-white">Activity Log</h3>
+                <button onClick={() => setShowActivityLog(false)} className="w-10 h-10 rounded-full bg-[#3A3B3C] flex items-center justify-center">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-2 py-2">
+                {floor.entries && floor.entries.length > 0 ? (
+                  <div className="divide-y divide-[#3A3B3C]">
+                    {[...floor.entries]
+                      .sort((a, b) => {
+                        const aTime = a.eliminated_at || a.registered_at || '1970';
+                        const bTime = b.eliminated_at || b.registered_at || '1970';
+                        return new Date(bTime) - new Date(aTime);
+                      })
+                      .slice(0, 50)
+                      .map((e, i) => {
+                        const isEliminated = e.status === 'eliminated';
+                        const isAlternate = e.status === 'alternate';
+                        const isActive = ['active', 'seated'].includes(e.status);
+                        const time = e.eliminated_at || e.registered_at;
+                        const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                        return (
+                          <div key={e.entry_id + '-' + i} className="px-4 py-3 flex items-center gap-3">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isEliminated ? 'bg-[#EF4444]' :
+                              isAlternate ? 'bg-[#F59E0B]' :
+                                isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
+                              }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-[#E4E6EB] truncate">{e.player_name}</p>
+                              <p className="text-xs text-[#B0B3B8] mt-0.5">
+                                {isEliminated ? `Eliminated #${e.finish_position || '?'}` :
+                                  isAlternate ? 'Added to alternates' :
+                                    isActive ? `Seated T${e.table_number || '?'}-S${e.seat_number || '?'}` :
+                                      'Registered'}
+                                {e.rebuy_count > 0 ? ` \u2022 ${e.rebuy_count}R` : ''}
+                                {e.addon_taken ? ' \u2022 Add-on' : ''}
+                              </p>
+                            </div>
+                            <span className="text-xs text-[#B0B3B8] flex-shrink-0">{timeStr}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-[#B0B3B8]">No activity yet</div>
+                )}
+              </div>
             </div>
           </div>
         )}

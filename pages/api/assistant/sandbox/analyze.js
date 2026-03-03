@@ -755,24 +755,26 @@ export default async function handler(req, res) {
         });
 
         // Update user stats
-        await supabase.rpc('increment_sandbox_count', { p_user_id: userId }).catch(async () => {
-          // RPC might not exist, try direct increment
-          const { data: existing } = await supabase
-            .from('user_assistant_stats')
-            .select('sandbox_sessions_count')
-            .eq('user_id', userId)
-            .maybeSingle();
+        const { data: existing } = await supabase
+          .from('user_assistant_stats')
+          .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-          const currentCount = existing?.sandbox_sessions_count || 0;
-          await supabase
-            .from('user_assistant_stats')
-            .upsert({
-              user_id: userId,
-              sandbox_sessions_count: currentCount + 1,
-              last_sandbox_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-        });
+        const currentSandbox = existing?.sandbox_sessions_count || 0;
+        const currentSessions = existing?.total_sessions_reviewed || 0;
+        const currentHands = existing?.total_hands_analyzed || 0;
+
+        await supabase
+          .from('user_assistant_stats')
+          .upsert({
+            user_id: userId,
+            sandbox_sessions_count: currentSandbox + 1,
+            total_sessions_reviewed: currentSessions + 1,
+            total_hands_analyzed: currentHands + 1,
+            last_sandbox_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
       }
     }
 

@@ -39,13 +39,14 @@ export default async function handler(req, res) {
     if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
 
-    // Get ALL entries (active + eliminated + registered)
+    // Get ALL entries (active + eliminated + registered) - Up to 5000 to prevent cutoff on massive fields
     const { data: allEntries } = await supabase
       .from('commander_tournament_entries')
       .select('*')
       .eq('tournament_id', tournamentId)
       .order('table_number', { ascending: true })
-      .order('seat_number', { ascending: true });
+      .order('seat_number', { ascending: true })
+      .limit(5000);
 
     const entries = allEntries || [];
     const activeEntries = entries.filter(e => ['active', 'seated'].includes(e.status));

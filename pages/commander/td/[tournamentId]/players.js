@@ -18,10 +18,9 @@ import {
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
-  { key: 'players', path: '/players' }, { key: 'balance', path: '/balance' },
-  { key: 'register', path: '/register' }, { key: 'clock', path: '/clock' },
+  { key: 'players', path: '/players' }, { key: 'clock', path: '/clock' },
 ];
-const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, balance: Scale, register: UserPlus, clock: Monitor };
+const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, clock: Monitor };
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -43,7 +42,7 @@ export default function TDPlayers() {
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('active');
+  const [filter, setFilter] = useState('all');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [chipModal, setChipModal] = useState(null);

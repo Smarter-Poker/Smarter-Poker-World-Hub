@@ -26,6 +26,7 @@ const STATUS_CONFIG = {
 };
 
 const FILTER_OPTIONS = [
+  { value: 'current_future', label: 'Current & Future' },
   { value: 'all', label: 'All' },
   { value: 'upcoming', label: 'Upcoming' },
   { value: 'active', label: 'Active' },
@@ -66,8 +67,9 @@ export default function CommanderTournamentsPage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('current_future');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [page, setPage] = useState(1);
 
   // Check staff session
   useEffect(() => {
@@ -144,13 +146,21 @@ export default function CommanderTournamentsPage() {
     ['completed', 'cancelled'].includes(t.status)
   );
 
-  const displayTournaments = filter === 'all'
-    ? tournaments
-    : filter === 'upcoming'
-      ? upcomingTournaments
-      : filter === 'active'
-        ? activeTournaments
-        : completedTournaments;
+  const currentFutureTournaments = tournaments.filter(t =>
+    !['completed', 'cancelled'].includes(t.status)
+  );
+
+  const displayTournaments = filter === 'current_future'
+    ? currentFutureTournaments
+    : filter === 'all'
+      ? tournaments
+      : filter === 'upcoming'
+        ? upcomingTournaments
+        : filter === 'active'
+          ? activeTournaments
+          : completedTournaments;
+
+  const paginatedTournaments = displayTournaments.slice(0, page * 25);
 
   if (!staff || loading) {
     return (
@@ -186,17 +196,17 @@ export default function CommanderTournamentsPage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-4">
-            <button onClick={() => setFilter(filter === 'active' ? 'all' : 'active')} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#31A24C]/40 ${filter === 'active' ? 'border-[#31A24C]/60 ring-1 ring-[#31A24C]/30' : ''}`}>
+            <button onClick={() => { setFilter(filter === 'active' ? 'current_future' : 'active'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#31A24C]/40 ${filter === 'active' ? 'border-[#31A24C]/60 ring-1 ring-[#31A24C]/30' : ''}`}>
               <Play className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{activeTournaments.length}</p>
               <p className="text-xs text-[#B0B3B8]">Active</p>
             </button>
-            <button onClick={() => setFilter(filter === 'upcoming' ? 'all' : 'upcoming')} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#1877F2]/40 ${filter === 'upcoming' ? 'border-[#1877F2]/60 ring-1 ring-[#1877F2]/30' : ''}`}>
+            <button onClick={() => { setFilter(filter === 'upcoming' ? 'current_future' : 'upcoming'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#1877F2]/40 ${filter === 'upcoming' ? 'border-[#1877F2]/60 ring-1 ring-[#1877F2]/30' : ''}`}>
               <Calendar className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{upcomingTournaments.length}</p>
               <p className="text-xs text-[#B0B3B8]">Upcoming</p>
             </button>
-            <button onClick={() => setFilter(filter === 'completed' ? 'all' : 'completed')} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#F59E0B]/40 ${filter === 'completed' ? 'border-[#F59E0B]/60 ring-1 ring-[#F59E0B]/30' : ''}`}>
+            <button onClick={() => { setFilter(filter === 'completed' ? 'current_future' : 'completed'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#F59E0B]/40 ${filter === 'completed' ? 'border-[#F59E0B]/60 ring-1 ring-[#F59E0B]/30' : ''}`}>
               <Trophy className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{completedTournaments.length}</p>
               <p className="text-xs text-[#B0B3B8]">Completed</p>
@@ -209,7 +219,7 @@ export default function CommanderTournamentsPage() {
             {FILTER_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => setFilter(opt.value)}
+                onClick={() => { setFilter(opt.value); setPage(1); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === opt.value
                   ? 'bg-[#1877F2] text-white'
                   : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
@@ -225,10 +235,10 @@ export default function CommanderTournamentsPage() {
             <div className="cmd-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">
-                {filter === 'all' ? 'No Tournaments Yet' : `No ${filter} tournaments`}
+                {filter === 'all' || filter === 'current_future' ? 'No Tournaments Yet' : `No ${filter} tournaments`}
               </h2>
               <p className="text-[#B0B3B8] mb-4">
-                {filter === 'all'
+                {filter === 'all' || filter === 'current_future'
                   ? 'Create your first tournament to get started'
                   : 'Try a different filter or create a new tournament'
                 }
@@ -242,7 +252,7 @@ export default function CommanderTournamentsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {displayTournaments.map((tournament) => {
+              {paginatedTournaments.map((tournament) => {
                 const status = STATUS_CONFIG[tournament.status] || STATUS_CONFIG.scheduled;
                 const isActive = ['running', 'paused', 'break', 'final_table'].includes(tournament.status);
                 const totalPrizePool = tournament.actual_prizepool ||
@@ -343,6 +353,15 @@ export default function CommanderTournamentsPage() {
                   </button>
                 );
               })}
+
+              {displayTournaments.length > paginatedTournaments.length && (
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  className="w-full py-3 mt-4 cmd-panel text-center text-[#B0B3B8] font-medium hover:text-white transition-colors"
+                >
+                  Load More Tournaments
+                </button>
+              )}
             </div>
           )}
         </main>
