@@ -351,9 +351,33 @@ export default function ClockDisplay() {
     ? { backgroundImage: `url(${displayOpts.background_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: `linear-gradient(180deg, ${theme.background} 0%, ${adjustColor(theme.background, -20)} 100%)` };
 
+  // Top 3 chip leaders (fixed under Next Round)
+  const top3Leaders = chipLeaders.slice(0, 3);
+  // Top 20 for horizontal sports ticker at bottom
+  const top20Leaders = chipLeaders.slice(0, 20);
+
   return (
     <>
       <SEOHead title="Commander — Clock Display" description="Club Commander Poker Room Management Tool." noindex={true} />
+
+      {/* Ticker animations */}
+      <style>{`
+        html, body { overflow: hidden !important; overscroll-behavior: none !important; }
+        @keyframes payoutTickerScroll {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        .payout-ticker {
+          animation: payoutTickerScroll 15s linear infinite;
+        }
+        @keyframes sportsTickerScroll {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        .sports-ticker {
+          animation: sportsTickerScroll 25s linear infinite;
+        }
+      `}</style>
 
       <div style={{
         ...S.container, ...bgStyle,
@@ -450,7 +474,7 @@ export default function ClockDisplay() {
                 <StatCell label="Total Pot" value={formatMoney(prizePool)} />
               </div>
 
-              {/* CENTER — Clock + Blinds + Chip Leaders */}
+              {/* CENTER — Clock + Blinds + Top 3 Leaders */}
               <div style={S.centerPanel}>
                 {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
                 {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
@@ -478,65 +502,63 @@ export default function ClockDisplay() {
                   </div>
                 )}
 
-
-              </div>
-
-              {/* RIGHT — Next Break + Remaining Payouts */}
-              <div style={S.rightPanel}>
-                <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
-                <StatCell label="Elapsed Time" value={elapsedDisplay} />
-
-                {/* Remaining Payouts — fills remaining space */}
-                {remainingPayouts.length > 0 && (
-                  <div style={S.rightSection}>
-                    <div style={S.rightSectionHeader}>Remaining Payouts</div>
-                    <div style={S.payoutScroll}>
-                      {remainingPayouts.map((p, i) => {
-                        const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-                        const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                        const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
-                        return (
-                          <div key={i} style={S.payoutRow}>
-                            <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
-                            <span style={{ color, fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                {/* Top 3 Chip Leaders — fixed under Next Round */}
+                {top3Leaders.length > 0 && (
+                  <div style={S.top3Container}>
+                    {top3Leaders.map((player, i) => (
+                      <div key={i} style={S.top3Row}>
+                        <span style={{ fontSize: 14, fontWeight: 800, opacity: 0.5, minWidth: 20 }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{player.name || 'Player'}</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: '#31A24C' }}>{formatChipCount(player.chips)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* CHIP LEADERS — bottom of page, full-width, top 20, 5 visible with scroll */}
-              {chipLeaders.length > 0 && (
-                <div style={{
-                  width: '100%', background: 'rgba(0,0,0,0.3)',
-                  borderTop: '2px solid rgba(255,255,255,0.12)',
-                  display: 'flex', flexDirection: 'column', flexShrink: 0,
-                }}>
-                  <div style={{
-                    fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
-                    textAlign: 'center', padding: '6px 8px', opacity: 0.5,
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
-                  }}>Chip Leaders</div>
-                  <div style={{
-                    overflowY: 'auto', maxHeight: 240, padding: '4px 16px',
-                    display: 'flex', flexDirection: 'column', gap: 2,
-                  }}>
-                    {chipLeaders.map((player, i) => (
-                      <div key={i} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      }}>
-                        <span style={{ fontSize: 16, fontWeight: 800, opacity: 0.5, minWidth: 28, textAlign: 'center' }}>{i + 1}</span>
-                        <span style={{ flex: 1, fontSize: 18, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name || 'Player'}</span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: '#31A24C', whiteSpace: 'nowrap' }}>{formatChipCount(player.chips)}</span>
+              {/* RIGHT — Next Break + Payouts Ticker */}
+              <div style={S.rightPanel}>
+                <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+                <StatCell label="Elapsed Time" value={elapsedDisplay} />
+
+                {/* Payouts — all white, auto-scrolling ticker */}
+                {remainingPayouts.length > 0 && (
+                  <div style={S.rightSection}>
+                    <div style={S.rightSectionHeader}>Remaining Payouts</div>
+                    <div style={S.payoutTickerViewport}>
+                      <div className="payout-ticker">
+                        {[...remainingPayouts, ...remainingPayouts].map((p, i) => {
+                          const idx = i % remainingPayouts.length;
+                          const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
+                          const place = idx === 0 ? '1st' : idx === 1 ? '2nd' : idx === 2 ? '3rd' : `${idx + 1}th`;
+                          return (
+                            <div key={i} style={S.payoutRow}>
+                              <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
+                              <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
+
+            {/* BOTTOM — Chip Leaders horizontal sports ticker (top 20) */}
+            {top20Leaders.length > 0 && (
+              <div style={S.sportsTickerBar}>
+                <div className="sports-ticker" style={S.sportsTickerTrack}>
+                  {top20Leaders.map((player, i) => (
+                    <span key={i} style={S.sportsTickerItem}>
+                      <span style={{ opacity: 0.5, fontWeight: 800 }}>{i + 1}.</span>{' '}
+                      <span style={{ fontWeight: 700 }}>{player.name || 'Player'}</span>{' '}
+                      <span style={{ color: '#31A24C', fontWeight: 800 }}>{formatChipCount(player.chips)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -781,7 +803,7 @@ const S = {
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', position: 'relative', padding: '8px 0', flex: 1,
+    justifyContent: 'center', position: 'relative', padding: '0',
     overflow: 'hidden',
   },
   statCell: {
@@ -815,6 +837,32 @@ const S = {
     background: 'rgba(255,255,255,0.04)',
     border: '2px solid rgba(255,255,255,0.12)',
     overflow: 'hidden', minHeight: 0,
+  },
+  // Top 3 chip leaders fixed under Next Round
+  top3Container: {
+    width: '100%', background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.10)',
+    padding: '4px 16px', marginTop: 2,
+  },
+  top3Row: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
+  },
+  // Payout auto-scroll ticker viewport
+  payoutTickerViewport: {
+    flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0,
+  },
+  // Bottom sports ticker bar
+  sportsTickerBar: {
+    flexShrink: 0, background: 'rgba(0,0,0,0.4)',
+    borderTop: '2px solid rgba(255,255,255,0.15)',
+    overflow: 'hidden', whiteSpace: 'nowrap', height: 32,
+    display: 'flex', alignItems: 'center',
+  },
+  sportsTickerTrack: {
+    display: 'inline-flex', gap: 32, whiteSpace: 'nowrap', fontSize: 14,
+  },
+  sportsTickerItem: {
+    display: 'inline-flex', gap: 6, alignItems: 'center',
   },
   rightSectionHeader: {
     fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
