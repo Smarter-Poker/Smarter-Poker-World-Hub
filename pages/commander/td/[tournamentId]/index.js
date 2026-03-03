@@ -16,7 +16,7 @@ import {
   Trophy, Users, DollarSign,
   AlertTriangle, ChevronRight, RefreshCw, Loader2,
   LayoutGrid, UserPlus, Monitor,
-  Star, Volume2, X
+  Star, Volume2, X, FileText
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -35,6 +35,8 @@ const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control' },
   { key: 'tables', icon: LayoutGrid, label: 'Tables' },
   { key: 'players', icon: Users, label: 'Players' },
+  { key: 'payouts', icon: DollarSign, label: 'Payouts' },
+  { key: 'reports', icon: FileText, label: 'Reports' },
   { key: 'clock', icon: Monitor, label: 'Clock' },
 ];
 

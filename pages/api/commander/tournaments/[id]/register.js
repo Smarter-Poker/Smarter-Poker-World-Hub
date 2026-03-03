@@ -63,20 +63,21 @@ async function handleRegister(req, res, tournamentId) {
     }
 
     // Check if registration is open
-    if (tournament.status !== 'registration' && tournament.status !== 'scheduled') {
+    if (!['scheduled', 'registering', 'running'].includes(tournament.status)) {
       return res.status(400).json({
         success: false,
         error: { code: 'REGISTRATION_CLOSED', message: 'Registration is closed' }
       });
     }
 
-    // Check if already registered
+    // Check if already registered (exclude cancelled/eliminated — they can re-register)
     const { data: existing } = await supabase
       .from('commander_tournament_entries')
-      .select('id')
+      .select('id, status')
       .eq('tournament_id', tournamentId)
       .eq('player_id', player_id)
-      .single();
+      .not('status', 'in', '("eliminated","cancelled")')
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({

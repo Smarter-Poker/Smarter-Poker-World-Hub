@@ -210,7 +210,7 @@ export default function TournamentClock({
               <SkipBack className="w-6 h-6" />
             </button>
 
-            {tournament.status === 'scheduled' || tournament.status === 'registration' ? (
+            {tournament.status === 'scheduled' || tournament.status === 'registering' ? (
               <button
                 onClick={() => handleAction('start')}
                 disabled={isLoading}

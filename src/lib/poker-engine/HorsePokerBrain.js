@@ -26,10 +26,39 @@ const { createClient } = require('@supabase/supabase-js');
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUITS = ['c', 'd', 'h', 's'];
 
-function cardIntToString(cardInt) {
-    const rank = Math.floor(cardInt / 4);
-    const suit = cardInt % 4;
-    return RANKS[rank] + SUITS[suit];
+function cardIntToString(card) {
+    // Handle string cards (already in correct format like 'Ah')
+    if (typeof card === 'string') return card;
+
+    // Handle object cards { rank: 14, suit: 0 } or { rank: 'A', suit: 'h' }
+    if (typeof card === 'object' && card !== null) {
+        let rankChar, suitChar;
+
+        // Rank: number (2-14) or string ('A', 'K', etc.)
+        if (typeof card.rank === 'number') {
+            rankChar = RANKS[card.rank - 2] || RANKS[card.rank]; // rank 2 = index 0, rank 14 (Ace) = index 12
+        } else if (typeof card.rank === 'string') {
+            rankChar = card.rank.length === 1 ? card.rank : card.rank[0];
+        }
+
+        // Suit: number (0-3) or string ('c', 'd', 'h', 's')
+        if (typeof card.suit === 'number') {
+            suitChar = SUITS[card.suit] || 'c';
+        } else if (typeof card.suit === 'string') {
+            suitChar = card.suit.length === 1 ? card.suit : card.suit[0];
+        }
+
+        if (rankChar && suitChar) return rankChar + suitChar;
+    }
+
+    // Handle integer encoding (original format: rank * 4 + suit)
+    if (typeof card === 'number') {
+        const rank = Math.floor(card / 4);
+        const suit = card % 4;
+        if (RANKS[rank] && SUITS[suit]) return RANKS[rank] + SUITS[suit];
+    }
+
+    return '2c'; // Fallback
 }
 
 function cardsToStrings(cardInts) {
@@ -618,7 +647,10 @@ function evaluatePostflopHand(holeCards, board) {
             if (heroPair !== undefined) {
                 const topBoardRank = Math.max(...boardRanks);
                 if (heroPair > topBoardRank) {
-                    strength = 48; category = 'overpair';
+                    strength = 55; category = 'overpair';
+                    // Rank bonus: AA overpair is much better than 77 overpair
+                    if (heroPair >= 12) strength += 5; // KK+
+                    if (heroPair >= 10) strength += 3; // JJ+
                 } else if (heroPair === topBoardRank) {
                     strength = 42; category = 'top_pair';
                     // Kicker bonus

@@ -13,14 +13,17 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, LayoutGrid, Users, Monitor,
-  X, ChevronRight, AlertTriangle, Loader2, RefreshCw,
-  ArrowRightLeft, UserX, Coins, Printer
+  Loader2, RefreshCw, X, ChevronRight,
+  ArrowRightLeft, AlertTriangle, Printer,
+  DollarSign, FileText
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control', path: '' },
   { key: 'tables', icon: LayoutGrid, label: 'Tables', path: '/tables' },
   { key: 'players', icon: Users, label: 'Players', path: '/players' },
+  { key: 'payouts', icon: DollarSign, label: 'Payouts', path: '/payouts' },
+  { key: 'reports', icon: FileText, label: 'Reports', path: '/reports' },
   { key: 'clock', icon: Monitor, label: 'Clock', path: '/clock' },
 ];
 

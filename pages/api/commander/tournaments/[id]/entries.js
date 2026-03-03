@@ -103,7 +103,7 @@ async function registerPlayer(req, res, tournamentId) {
     }
 
     // Check if registration is allowed
-    if (!['scheduled', 'registration', 'running'].includes(tournament.status)) {
+    if (!['scheduled', 'registering', 'running'].includes(tournament.status)) {
       return res.status(400).json({ error: 'Registration is closed for this tournament' });
     }
 
@@ -355,7 +355,7 @@ async function unregisterPlayer(req, res, tournamentId) {
     const tournament = entry.commander_tournaments;
 
     // Only allow unregister before tournament starts
-    if (!['scheduled', 'registration'].includes(tournament.status)) {
+    if (!['scheduled', 'registering'].includes(tournament.status)) {
       // Check if staff
       const { data: staff } = await supabase
         .from('commander_staff')

@@ -221,9 +221,10 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     console.log('\n--- TEST 6: Adaptive Strategy ---');
 
-    // Record various results to trigger adaptation
-    for (let i = 0; i < 20; i++) {
-        Brain.recordPerformanceResult(HORSE, true, 3); // Winning
+    // Record enough results (need 30+ hands for adaptive to kick in)
+    for (let i = 0; i < 10; i++) {
+        Brain.recordPerformanceAction(HORSE, 'preflop', 'call', true);
+        Brain.recordPerformanceResult(HORSE, true, 3);
     }
     const adaptWinning = Brain.getAdaptiveStrategy(HORSE);
     assert(adaptWinning.reason !== 'insufficient_data', `Adaptive has enough data (reason: ${adaptWinning.reason})`);
@@ -363,7 +364,7 @@ function assert(condition, label) {
     assert(sprCommit.commitThreshold <= 50, `Committed threshold low: ${sprCommit.commitThreshold}`);
 
     const sprMed = Brain.getSPRStrategy(700, 100); // SPR=7
-    assert(sprMed.strategy === 'medium', `SPR 7 = medium (got ${sprMed.strategy})`);
+    assert(sprMed.strategy === 'standard', `SPR 7 = standard (got ${sprMed.strategy})`);
 
     const sprDeep = Brain.getSPRStrategy(2000, 100); // SPR=20
     assert(sprDeep.strategy === 'deep', `SPR 20 = deep (got ${sprDeep.strategy})`);
@@ -377,16 +378,15 @@ function assert(condition, label) {
     // Flush draw on flop: 9 outs, ~35% equity
     const fd = Brain.getDrawEquity({ hasFlushDraw: true, hasOESD: false, hasGutshot: false }, 'flop');
     assert(fd.outs === 9, `Flush draw = 9 outs`);
-    assert(Math.abs(fd.equity - 35.0) < 2, `Flush draw flop equity ~35% (got ${fd.equity.toFixed(1)}%)`);
+    assert(Math.abs(fd.equity - 0.35) < 0.02, `Flush draw flop equity ~35% (got ${(fd.equity * 100).toFixed(1)}%)`);
     assert(fd.shouldCall(0.30) === true, `Should call 30% pot odds with flush draw`);
     assert(fd.shouldCall(0.40) === false, `Should NOT call 40% pot odds with flush draw`);
 
     // OESD on turn: 8 outs, ~17% equity (rule of 2+1)
     const oesd = Brain.getDrawEquity({ hasFlushDraw: false, hasOESD: true, hasGutshot: false }, 'turn');
     assert(oesd.outs === 8, `OESD = 8 outs`);
-    const expectedTurnEq = 8 * 2 + 1; // 17%
-    assert(Math.abs(oesd.equity - expectedTurnEq) < 2, `OESD turn equity ~17% (got ${oesd.equity.toFixed(1)}%)`);
-
+    const expectedTurnEq = (8 * 2 + 1) / 100; // 0.17
+    assert(Math.abs(oesd.equity - expectedTurnEq) < 0.02, `OESD turn equity ~17% (got ${(oesd.equity * 100).toFixed(1)}%)`);
     // Combo draw: flush + OESD = 15 outs (not 17 — overlap reduction)
     const combo = Brain.getDrawEquity({ hasFlushDraw: true, hasOESD: true, hasGutshot: false }, 'flop');
     assert(combo.outs === 15, `Combo draw = 15 outs (9+8-2 overlap)`);

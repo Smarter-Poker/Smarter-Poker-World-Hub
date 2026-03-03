@@ -15,14 +15,16 @@ import {
   Trophy, LayoutGrid, Users, Monitor,
   Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw,
   Maximize, Minimize, Coffee, Hand, Star, Volume2,
-  Plus, Minus, Clock as ClockIcon, AlertTriangle
+  Plus, Minus, Clock as ClockIcon, AlertTriangle,
+  DollarSign, FileText
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
-  { key: 'players', path: '/players' }, { key: 'clock', path: '/clock' },
+  { key: 'players', path: '/players' }, { key: 'payouts', path: '/payouts' },
+  { key: 'reports', path: '/reports' }, { key: 'clock', path: '/clock' },
 ];
-const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, clock: Monitor };
+const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts: DollarSign, reports: FileText, clock: Monitor };
 
 
 export default function TDClock() {

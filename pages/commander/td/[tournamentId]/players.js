@@ -13,14 +13,16 @@ import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync'
 import {
   Trophy, LayoutGrid, Users, Monitor,
   Search, X, Loader2, RefreshCw, ChevronDown,
-  ArrowRightLeft, UserX, RotateCcw, Star, Coins, Hash
+  ArrowRightLeft, UserX, RotateCcw, Star, Coins, Hash,
+  DollarSign, FileText
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
-  { key: 'players', path: '/players' }, { key: 'clock', path: '/clock' },
+  { key: 'players', path: '/players' }, { key: 'payouts', path: '/payouts' },
+  { key: 'reports', path: '/reports' }, { key: 'clock', path: '/clock' },
 ];
-const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, clock: Monitor };
+const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts: DollarSign, reports: FileText, clock: Monitor };
 
 const FILTERS = [
   { key: 'all', label: 'All' },

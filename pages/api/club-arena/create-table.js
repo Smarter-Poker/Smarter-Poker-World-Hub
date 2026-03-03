@@ -5,8 +5,9 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+
+const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
@@ -52,13 +53,13 @@ export default async function handler(req, res) {
 
         // Validate stakes against official schedule for cash games
         if (gt === 'cash') {
-          const scheduleMatch = findScheduleMatch(sb, bb);
-          if (!scheduleMatch) {
-            const allowed = getAllowedStakes().map(s => s.label).join(', ');
-            return res.status(400).json({
-              error: `Invalid stakes ${sb}/${bb}. Allowed cash game stakes: ${allowed}`,
-            });
-          }
+            const scheduleMatch = findScheduleMatch(sb, bb);
+            if (!scheduleMatch) {
+                const allowed = getAllowedStakes().map(s => s.label).join(', ');
+                return res.status(400).json({
+                    error: `Invalid stakes ${sb}/${bb}. Allowed cash game stakes: ${allowed}`,
+                });
+            }
         }
 
         // Buy-in defaults: min=40BB, max=200BB (or custom)
@@ -84,14 +85,14 @@ export default async function handler(req, res) {
                 // Cash games: rake/BBJ locked to official schedule (no overrides)
                 // Tournaments/SNG: use tier defaults (overrides allowed for custom structures)
                 rake_percent: gt === 'cash'
-                  ? tierConfig.rakePercent
-                  : Math.min(Math.max(parseFloat(settings?.rakePercent) || tierConfig.rakePercent, 0), 33),
+                    ? tierConfig.rakePercent
+                    : Math.min(Math.max(parseFloat(settings?.rakePercent) || tierConfig.rakePercent, 0), 33),
                 rake_cap_bb: gt === 'cash'
-                  ? tierConfig.rakeCap
-                  : Math.max(parseFloat(settings?.rakeCap) || tierConfig.rakeCapBB, 0),
+                    ? tierConfig.rakeCap
+                    : Math.max(parseFloat(settings?.rakeCap) || tierConfig.rakeCapBB, 0),
                 bbj_percent: tierConfig.bbjEnabled
-                  ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(settings?.bbjPercent) || tierConfig.bbjFeeBB)
-                  : 0,
+                    ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(settings?.bbjPercent) || tierConfig.bbjFeeBB)
+                    : 0,
                 current_players: 0,
                 status: 'waiting',
                 settings: {

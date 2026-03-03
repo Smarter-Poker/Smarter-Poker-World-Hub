@@ -48,7 +48,7 @@ async function listTournaments(req, res) {
 
     if (status) {
       if (status === 'upcoming') {
-        query = query.in('status', ['scheduled', 'registration']);
+        query = query.in('status', ['scheduled', 'registering']);
       } else if (status === 'active') {
         query = query.in('status', ['running', 'paused', 'final_table']);
       } else if (status === 'current_future') {
