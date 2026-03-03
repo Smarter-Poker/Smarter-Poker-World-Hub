@@ -310,14 +310,14 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
         // Standard preflop
         if (adjustedStrength >= 80 && canRaise) {
             // Premium: raise
-            const minRaise = raiseAction?.min || (toCall * 2);
-            const size = Math.min(minRaise * (2.5 + Math.random()), raiseAction?.max || minRaise * 3);
+            const minRaise = raiseAction?.minAmount || (toCall * 2);
+            const size = Math.min(minRaise * (2.5 + Math.random()), raiseAction?.maxAmount || minRaise * 3);
             return { type: raiseAction.type, amount: Math.round(size) };
         }
         if (adjustedStrength >= 55) {
             // Playable: raise sometimes, call sometimes
             if (canRaise && Math.random() < 0.4 + aggressionBias / 30) {
-                const minRaise = raiseAction?.min || (toCall * 2);
+                const minRaise = raiseAction?.minAmount || (toCall * 2);
                 return { type: raiseAction.type, amount: Math.round(minRaise * (2 + Math.random())) };
             }
             if (canCall) return { type: 'call' };
@@ -340,7 +340,7 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
         // No bet to face — bet or check
         if (canRaise && Math.random() < aggressionChance) {
             const betSize = Math.round(potSize * (0.33 + Math.random() * 0.67));
-            const amount = Math.max(raiseAction?.min || 1, Math.min(betSize, raiseAction?.max || betSize));
+            const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount };
         }
         return { type: 'check' };
@@ -351,7 +351,7 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
         // Good odds — call or raise
         if (canRaise && Math.random() < aggressionChance * 0.5) {
             const raiseSize = Math.round(toCall * (2.2 + Math.random() * 1.5));
-            const amount = Math.max(raiseAction?.min || toCall * 2, Math.min(raiseSize, raiseAction?.max || raiseSize));
+            const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
             return { type: raiseAction.type, amount };
         }
         if (canCall) return { type: 'call' };
@@ -449,9 +449,12 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         const actionMap = { 'Raise': 'raise', 'Call': 'call', 'Fold': 'fold', 'Check': 'check', 'Bet': 'bet' };
         finalAction = actionMap[gtoDecision.action] || gtoDecision.action.toLowerCase();
 
-        // Calculate sizing from GTO (sizing is a pot fraction)
+        // Calculate sizing from GTO (sizing is a pot fraction for the bet/raise SIZE)
+        // Engine expects amount = total bet level (currentBet + raise increment)
         if ((finalAction === 'raise' || finalAction === 'bet') && gtoDecision.sizing) {
-            finalAmount = Math.round(potSize * gtoDecision.sizing);
+            const raiseSize = Math.round(potSize * gtoDecision.sizing);
+            const currentBet = engineState.currentBet || 0;
+            finalAmount = currentBet + raiseSize; // Total bet = currentBet + our raise
         }
 
         // Apply tilt overlay
@@ -527,8 +530,8 @@ function validateAndClamp(actionType, amount, legalActions) {
     if (actionType === 'raise' || actionType === 'bet') {
         const raiseAction = legalActions.find(a => a.type === actionType);
         if (raiseAction) {
-            const min = raiseAction.min || 0;
-            const max = raiseAction.max || Infinity;
+            const min = raiseAction.minAmount || 0;
+            const max = raiseAction.maxAmount || Infinity;
 
             if (amount == null || amount < min) {
                 amount = min;
