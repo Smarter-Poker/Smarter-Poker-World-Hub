@@ -364,8 +364,8 @@ export default function ClockDisplay() {
       <style>{`
         html, body { overflow: hidden !important; overscroll-behavior: none !important; }
         @keyframes payoutTickerScroll {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(-50%); }
+          0% { transform: translateY(-50%); }
+          100% { transform: translateY(0); }
         }
         .payout-ticker {
           animation: payoutTickerScroll 15s linear infinite;
