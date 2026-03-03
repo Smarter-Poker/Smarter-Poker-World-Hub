@@ -476,36 +476,38 @@ export default function ClockDisplay() {
 
               {/* CENTER — Clock + Blinds + Top 3 Leaders */}
               <div style={S.centerPanel}>
-                {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
-                {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                  {isH4H && <div style={S.h4hBanner}>HAND FOR HAND</div>}
+                  {isBreak && !isH4H && <div style={S.breakBanner}>BREAK</div>}
 
-                <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>
-                  {formatClock(displaySeconds)}
-                </div>
-
-                {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
-
-                <div style={S.blindsBlock}>
-                  <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
-                  <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
-                    {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                  <div style={{ ...S.timer, color: '#FFFFFF', cursor: 'pointer' }} onClick={toggleControls}>
+                    {formatClock(displaySeconds)}
                   </div>
-                  {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
-                </div>
 
-                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
-                  <div style={S.nextRound}>
-                    <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                    {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                  {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
+
+                  <div style={S.blindsBlock}>
+                    <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
+                    <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
+                      {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
+                    </div>
+                    {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                   </div>
-                )}
+
+                  {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                    <div style={S.nextRound}>
+                      <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                      {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Top 3 Chip Leaders — fixed under Next Round */}
                 {top3Leaders.length > 0 && (
                   <div style={S.top3Container}>
                     <div style={S.top3Header}>CURRENT CHIP LEADERS</div>
                     {top3Leaders.map((player, i) => (
-                      <div key={i} style={S.top3Row}>
+                      <div key={i} style={{ ...S.top3Row, borderBottom: i === top3Leaders.length - 1 ? 'none' : S.top3Row.borderBottom }}>
                         <span style={{ fontSize: 35, fontWeight: 800, opacity: 0.5, minWidth: 30 }}>{i + 1}</span>
                         <span style={{ flex: 1, fontSize: 35, fontWeight: 700 }}>{player.name || 'Player'}</span>
                         <span style={{ fontSize: 35, fontWeight: 800, color: '#FFFFFF' }}>{formatChipCount(player.chips)}</span>
@@ -803,8 +805,8 @@ const S = {
   leftPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', position: 'relative', padding: '0',
+    display: 'flex', flexDirection: 'column',
+    justifyContent: 'flex-start', position: 'relative', padding: '0',
     overflow: 'hidden',
   },
   statCell: {
@@ -840,10 +842,10 @@ const S = {
     border: '2px solid rgba(255,255,255,0.12)',
     overflow: 'hidden', minHeight: 0,
   },
-  // Top 3 chip leaders fixed under Next Round
+  // Top 3 chip leaders fixed at bottom
   top3Container: {
     width: '100%', background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.10)',
-    padding: '4px 16px', marginTop: 2,
+    borderBottom: 'none', padding: '4px 16px', marginTop: 0, flexShrink: 0
   },
   top3Row: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -858,6 +860,8 @@ const S = {
   // Payout auto-scroll ticker viewport
   payoutTickerViewport: {
     flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0,
+    WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 1%, black 99%, transparent)',
+    maskImage: 'linear-gradient(to bottom, transparent, black 1%, black 99%, transparent)'
   },
   // Bottom sports ticker bar
   sportsTickerBar: {
