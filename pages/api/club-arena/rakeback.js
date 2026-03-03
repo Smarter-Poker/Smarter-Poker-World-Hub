@@ -253,6 +253,24 @@ export default async function handler(req, res) {
 
         const totalClaim = pending.reduce((s, p) => s + (p.rakeback_amount || 0), 0);
 
+        // BUG #152 FIX: Debit treasury FIRST, then credit player.
+        // Rakeback chips come FROM the club treasury (which holds all rake).
+        // Without this debit, fn_credit_chips creates chips from nothing.
+        const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
+          p_club_id: clubId,
+          p_amount: totalClaim,
+        });
+
+        if (debitErr) {
+          // Rollback period status
+          const ids = pending.map(p => p.id);
+          await supabaseAdmin
+            .from('rakeback_periods')
+            .update({ status: 'closed' })
+            .in('id', ids);
+          throw debitErr;
+        }
+
         // Atomic credit via RPC (no read-modify-write race)
         const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
           p_club_id: clubId,
