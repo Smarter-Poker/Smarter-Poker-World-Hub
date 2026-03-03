@@ -30,7 +30,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('sb-' + (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', '').split('.')[0] + '-auth-token') || '{}'))?.access_token || ''}`
+                    'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'))?.access_token || ''}`
                 },
                 body: JSON.stringify({ userId })
             });
