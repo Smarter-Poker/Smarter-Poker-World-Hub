@@ -858,11 +858,11 @@ const S = {
   sportsTickerBar: {
     flexShrink: 0, background: 'rgba(0,0,0,0.4)',
     borderTop: '2px solid rgba(255,255,255,0.15)',
-    overflow: 'hidden', whiteSpace: 'nowrap', height: 32,
+    overflow: 'hidden', whiteSpace: 'nowrap', height: 80,
     display: 'flex', alignItems: 'center',
   },
   sportsTickerTrack: {
-    display: 'inline-flex', gap: 32, whiteSpace: 'nowrap', fontSize: 14,
+    display: 'inline-flex', gap: 32, whiteSpace: 'nowrap', fontSize: 35,
   },
   sportsTickerItem: {
     display: 'inline-flex', gap: 6, alignItems: 'center',
