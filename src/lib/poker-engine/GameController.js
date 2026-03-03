@@ -36,6 +36,7 @@ const { TournamentBridge } = require('./TournamentBridge');
 const { AntiCheat } = require('./AntiCheat');
 const { AntiCheatMonitor } = require('./AntiCheatMonitor');
 const { ClubLedger } = require('./ClubLedger');
+const HorsePokerBrain = require('./HorsePokerBrain');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -180,6 +181,11 @@ class GameController {
     this.antiCheat = new AntiCheat(this.supabase);
     this.antiCheatMonitor = new AntiCheatMonitor(this, this.antiCheat, this.supabase);
     this.antiCheatMonitor.start();
+
+    // ─── Horse AI Brain — Pre-load horse identities ──────────────────
+    HorsePokerBrain.loadHorseIds().catch(err => {
+      console.warn('[GameController] Horse ID pre-load failed:', err.message);
+    });
 
     this.initialized = true;
     console.log(`[GameController] Initialized (${this.lobby.tables.size} tables recovered)`);
@@ -708,9 +714,121 @@ class GameController {
 
     if (result.success) {
       this._stats.totalActions++;
+
+      // ─── Horse AI Hook ─────────────────────────────────────────────
+      // After every successful action, check if the next player to act
+      // is an AI horse. If so, schedule their auto-action with delay.
+      this._checkForHorseAction(tableId);
     }
 
     return result;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // HORSE AI — Auto-action system for AI players
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Check if the next player to act at a table is a horse (AI).
+   * If so, schedule their auto-action with a human-like delay.
+   * @param {string} tableId
+   * @private
+   */
+  async _checkForHorseAction(tableId) {
+    try {
+      const entry = this.lobby.tables.get(tableId);
+      if (!entry) return;
+
+      const game = entry.table.game;
+      if (!game || !game.bettingRound) return;
+
+      const currentPlayer = game.bettingRound.getCurrentPlayer();
+      if (!currentPlayer) return;
+
+      const playerId = String(currentPlayer.id);
+      const isAI = await HorsePokerBrain.isHorse(playerId);
+
+      if (isAI) {
+        // Schedule the horse action with a non-blocking delay
+        this._triggerHorseAction(tableId, playerId).catch(err => {
+          console.error(`[HorseAI] Error triggering action for ${playerId}:`, err.message);
+        });
+      }
+    } catch (err) {
+      // Non-critical: log and continue
+      console.warn('[HorseAI] _checkForHorseAction error:', err.message);
+    }
+  }
+
+  /**
+   * Execute an AI horse's poker decision.
+   * 1. Reads game state (with horse's hole cards visible)
+   * 2. Calls HorsePokerBrain.getDecision() for GTO-informed action
+   * 3. Waits for human-like timing delay
+   * 4. Submits the action through the normal processAction pipeline
+   * 
+   * @param {string} tableId
+   * @param {string} playerId - Horse profile UUID
+   * @private
+   */
+  async _triggerHorseAction(tableId, playerId) {
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return;
+
+    // Get full game state (with horse's own cards visible)
+    const game = entry.table.game;
+    if (!game) return;
+
+    const engineState = game.getState(playerId);
+    if (!engineState) return;
+
+    // Verify it's still this horse's turn (action might have changed)
+    const currentPlayerId = game.bettingRound?.getCurrentPlayer()?.id;
+    if (String(currentPlayerId) !== String(playerId)) return;
+
+    // Get legal actions from the engine
+    const actionsInfo = game.getCurrentActions();
+    if (!actionsInfo || !actionsInfo.actions || actionsInfo.actions.length === 0) return;
+
+    // Build table config for the brain
+    const tableConfig = {
+      bigBlind: entry.config?.bigBlind || game.config?.bigBlind || 2,
+      smallBlind: entry.config?.smallBlind || game.config?.smallBlind || 1,
+    };
+
+    // Get the AI decision
+    const { action, delayMs } = await HorsePokerBrain.getDecision(
+      playerId,
+      engineState,
+      actionsInfo.actions,
+      tableConfig
+    );
+
+    // Wait for human-like delay
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+
+    // Verify it's STILL this horse's turn after the delay
+    const game2 = entry.table.game;
+    if (!game2 || !game2.bettingRound) return;
+    const currentPlayerId2 = game2.bettingRound.getCurrentPlayer()?.id;
+    if (String(currentPlayerId2) !== String(playerId)) return;
+
+    // Submit the action through the normal pipeline
+    // (Cancel timer first, matching the processAction flow)
+    entry.timer.recordAction(playerId);
+    entry.timer.cancelTurn();
+
+    const result = entry.table.processAction(playerId, action);
+
+    if (result.success) {
+      this._stats.totalActions++;
+      console.log(`[HorseAI] ${playerId.substring(0, 8)}... → ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
+
+      // Recursive: check if the NEXT player is also a horse
+      this._checkForHorseAction(tableId);
+    } else {
+      console.warn(`[HorseAI] Action rejected for ${playerId.substring(0, 8)}...: ${result.error}`);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -803,7 +921,7 @@ class GameController {
     if (!clean) return { success: false, error: 'Empty message' };
 
     const seat = entry.table.seats.find(s => s.player?.id === playerId);
-    
+
     // Anonymous table: hide real name
     let displayName;
     if (entry.table.anonymousTable) {
@@ -882,10 +1000,12 @@ class GameController {
             name, club_id: clubId, union_id: unionId, type, variant,
             buy_in: buyIn, starting_chips: startingChips, max_players: maxPlayers,
             status: 'registering',
-            settings: { maxTableSize, blindStructure, lateRegLevels, rebuyEnabled, rebuyLevels, maxRebuys,
+            settings: {
+              maxTableSize, blindStructure, lateRegLevels, rebuyEnabled, rebuyLevels, maxRebuys,
               rebuyCost, rebuyChips, addonEnabled, addonCost, addonChips,
               guaranteedPrize, payoutStructure, sngSize, levelDuration, actionTime, timeBankSeconds, autoStartDelay, breakSchedule,
-              bountyType, bountyAmount, mysteryThreshold, mysteryTiers },
+              bountyType, bountyAmount, mysteryThreshold, mysteryTiers
+            },
           })
           .select('id').single();
         if (!error && data) tournamentId = data.id;
@@ -1182,9 +1302,9 @@ class GameController {
         await this.supabase
           .from('tables')
           .update({
-            status: entry.table.status === 'RUNNING' ? 'running' : 
-                    entry.table.status === 'WAITING' ? 'waiting' : 
-                    (entry.table.status || 'running').toLowerCase(),
+            status: entry.table.status === 'RUNNING' ? 'running' :
+              entry.table.status === 'WAITING' ? 'waiting' :
+                (entry.table.status || 'running').toLowerCase(),
             settings: {
               ...currentSettings,
               _snapshot: snapshot,
