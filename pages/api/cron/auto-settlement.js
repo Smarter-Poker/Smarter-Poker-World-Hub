@@ -341,6 +341,15 @@ export default async function handler(req, res) {
               .single();
 
             if (agentMember) {
+              // BUG #150 FIX: Debit club treasury FIRST, then credit agent.
+              // record_rake RPC credits full club_share to chip_treasury.
+              // Without this debit, fn_credit_chips creates chips from nothing,
+              // inflating total supply every settlement cycle.
+              await supabaseAdmin.rpc('fn_debit_treasury', {
+                p_club_id: club.id,
+                p_amount: netCommission,
+              });
+
               // Add to agent's chip balance atomically
               await supabaseAdmin.rpc('fn_credit_chips', {
                 p_club_id: club.id,
