@@ -62,8 +62,11 @@ const TABLE_TO_ENTITY = {
     commander_seats: 'tables',       // Seat changes affect tables
     commander_settings: 'settings',
     commander_staff: 'staff',
+    commander_staff_shifts: 'staff', // Shift schedule changes affect staff views
     commander_members: 'members',
     commander_dealers: 'dealers',
+    commander_dealer_rotations: 'dealers',     // Rotation changes affect dealer views
+    commander_table_sessions: 'tables',        // Session changes affect table views
     commander_tournaments: 'tournaments',
     commander_tournament_entries: 'tournaments',  // Entry changes affect tournaments
     commander_incidents: 'incidents',
@@ -71,14 +74,14 @@ const TABLE_TO_ENTITY = {
 
 // ─── Entity → Supabase tables reverse map (Optimization 2) ────
 const ENTITY_TO_TABLES = {
-    tables: ['commander_tables', 'commander_seats'],
+    tables: ['commander_tables', 'commander_seats', 'commander_table_sessions'],
     games: ['commander_games'],
     waitlist: ['commander_waitlist'],
     floor_calls: ['commander_floor_calls'],
     settings: ['commander_settings'],
-    staff: ['commander_staff'],
+    staff: ['commander_staff', 'commander_staff_shifts'],
     members: ['commander_members'],
-    dealers: ['commander_dealers'],
+    dealers: ['commander_dealers', 'commander_dealer_rotations'],
     tournaments: ['commander_tournaments', 'commander_tournament_entries'],
     incidents: ['commander_incidents'],
 };
