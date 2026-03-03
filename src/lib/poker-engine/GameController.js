@@ -857,6 +857,176 @@ class GameController {
         console.error(`[HorseAI] evaluateSessions failed:`, err.message);
       });
     });
+
+    // Auto-fill table with horses after wiring (non-blocking)
+    this.fillTableWithHorses(tableId).catch(err => {
+      console.error(`[HorseAI] Auto-fill failed for ${tableId}:`, err.message);
+    });
+  }
+
+  /**
+   * Auto-fill a table with horse AI players to reach an ideal player count.
+   * Queries horse profiles, filters by personality preferences, and seats them.
+   * @param {string} tableId
+   * @param {number} targetCount - How many horses to add (default: fill to 6 players)
+   * @returns {{ success: boolean, seated: number }}
+   */
+  async fillTableWithHorses(tableId, targetCount = null) {
+    await this._ensureInit();
+
+    const entry = this.lobby.tables.get(tableId);
+    if (!entry) return { success: false, error: 'Table not found', seated: 0 };
+
+    // Count current players + empty seats
+    const seats = entry.table.seats || [];
+    const maxSeats = entry.config?.maxPlayers || seats.length || 9;
+    const occupiedSeats = seats.filter(s => s.status !== 'empty' && s.player).length;
+    const emptySeats = seats
+      .map((s, i) => ({ seat: s, index: i }))
+      .filter(({ seat }) => seat.status === 'empty' || !seat.player);
+
+    // Determine how many horses to add
+    const targetPlayers = targetCount || Math.min(maxSeats, 6); // Default: fill to 6
+    const horsesNeeded = Math.max(0, targetPlayers - occupiedSeats);
+
+    if (horsesNeeded === 0 || emptySeats.length === 0) {
+      return { success: true, seated: 0 };
+    }
+
+    // Get all horse IDs
+    const horseIds = await HorsePokerBrain.loadHorseIds();
+    if (!horseIds || horseIds.size === 0) {
+      return { success: false, error: 'No horse profiles found', seated: 0 };
+    }
+
+    // Get horse profiles with names for display
+    const sb = this.supabase;
+    let horseProfiles = [];
+    if (sb) {
+      const { data } = await sb
+        .from('profiles')
+        .select('id, alias, avatar_url')
+        .eq('is_horse', true)
+        .limit(100);
+      horseProfiles = data || [];
+    } else {
+      // Fallback: use IDs without names
+      horseProfiles = [...horseIds].map(id => ({ id, alias: `Horse ${id.substring(0, 6)}`, avatar_url: null }));
+    }
+
+    // Shuffle to randomize which horses sit
+    const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
+
+    // Get table stakes for personality filtering
+    const bigBlind = entry.config?.bigBlind || 2;
+
+    // Filter by personality preferences and seat them
+    let seated = 0;
+    const personalityModule = await this._getPersonalityModule();
+
+    for (const horse of shuffled) {
+      if (seated >= horsesNeeded || emptySeats.length === 0) break;
+
+      // Skip horses already at this table
+      const alreadySeated = seats.some(s => s.player?.id === horse.id);
+      if (alreadySeated) continue;
+
+      // Check personality fit (stakes preference, active hours, etc.)
+      if (personalityModule?.shouldSitAtTable) {
+        const decision = personalityModule.shouldSitAtTable(horse.id, bigBlind, occupiedSeats + seated);
+        if (!decision.shouldSit) continue;
+      }
+
+      // Find next empty seat
+      const seatSlot = emptySeats.shift();
+      if (!seatSlot) break;
+
+      // Calculate buy-in (100bb standard)
+      const buyIn = bigBlind * 100;
+
+      const result = entry.table.sitDown(horse.id, seatSlot.index, buyIn, {
+        displayName: horse.alias || `Horse ${horse.id.substring(0, 6)}`,
+        avatarUrl: horse.avatar_url || null,
+      });
+
+      if (result.success) {
+        seated++;
+        HorsePokerBrain.recordSitDown(tableId, horse.id, buyIn);
+        console.log(`[HorseAI] 🐴 ${horse.alias || horse.id.substring(0, 8)} seated at ${tableId} (seat ${seatSlot.index})`);
+      }
+    }
+
+    if (seated > 0) {
+      this._broadcastTableState(tableId);
+      this._updateTablePlayerCount(tableId);
+      console.log(`[HorseAI] ✅ Auto-filled ${seated} horses at table ${tableId}`);
+    }
+
+    return { success: true, seated };
+  }
+
+  /**
+   * Auto-register horse AI players for a tournament.
+   * @param {string} tournamentId
+   * @param {number} maxCount - Max horses to register (default: fill to capacity)
+   * @returns {{ success: boolean, registered: number }}
+   */
+  async autoRegisterHorses(tournamentId, maxCount = null) {
+    await this._ensureInit();
+
+    const entry = this._tournaments.get(tournamentId);
+    if (!entry) return { success: false, error: 'Tournament not found', registered: 0 };
+
+    const t = entry.controller;
+    const currentEntries = t.entries?.size || 0;
+    const maxPlayers = t.maxPlayers || 100;
+    const slotsAvailable = maxPlayers - currentEntries;
+    const horsesToRegister = maxCount ? Math.min(maxCount, slotsAvailable) : slotsAvailable;
+
+    if (horsesToRegister <= 0) return { success: true, registered: 0 };
+
+    // Get horse profiles
+    const sb = this.supabase;
+    if (!sb) return { success: false, error: 'No Supabase client', registered: 0 };
+
+    const { data: horseProfiles } = await sb
+      .from('profiles')
+      .select('id, alias')
+      .eq('is_horse', true)
+      .limit(100);
+
+    if (!horseProfiles || horseProfiles.length === 0) {
+      return { success: false, error: 'No horse profiles', registered: 0 };
+    }
+
+    // Shuffle and register
+    const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
+    let registered = 0;
+
+    for (const horse of shuffled) {
+      if (registered >= horsesToRegister) break;
+
+      // Skip already registered
+      if (t.entries?.has(horse.id)) continue;
+
+      const result = t.registerPlayer(horse.id, horse.alias || `Horse ${horse.id.substring(0, 6)}`, {});
+      if (result.success) {
+        registered++;
+        console.log(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId}`);
+      }
+    }
+
+    console.log(`[HorseAI] ✅ Auto-registered ${registered} horses for tournament ${tournamentId}`);
+    return { success: true, registered };
+  }
+
+  /** @private — Lazy-load personality module */
+  async _getPersonalityModule() {
+    try {
+      return await import('../../content-engine/services/HorsePokerPersonality.js').then(m => m.default || m);
+    } catch {
+      return null;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════

@@ -1097,6 +1097,43 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         mode: 'ChipEV'
     };
 
+    // --- 1b. LOAD OPPONENT READS (Gap 4) ---
+    // Query saved opponent data to adjust decision thresholds
+    let opponentAdjustment = { callMod: 0, foldMod: 0, bluffAware: false };
+    try {
+        const sb = getSupabase();
+        if (sb && numPlayers <= 3) { // Only load reads heads-up or 3-way
+            const opponents = engineState.players?.filter(p => String(p.id) !== String(profileId) && !p.folded) || [];
+            if (opponents.length > 0) {
+                const oppId = opponents[0].id;
+                const { data: readData } = await sb
+                    .from('horse_opponent_reads')
+                    .select('read_data')
+                    .eq('horse_id', profileId)
+                    .eq('opponent_id', oppId)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                if (readData?.read_data) {
+                    const read = readData.read_data;
+                    // If opponent bluffs a lot, call more (lower fold threshold)
+                    if (read.bluffFrequency > 0.35) {
+                        opponentAdjustment.callMod = 5; // Call with 5 more strength points
+                        opponentAdjustment.bluffAware = true;
+                    }
+                    // If opponent rarely bluffs, fold more marginal spots
+                    if (read.bluffFrequency < 0.15) {
+                        opponentAdjustment.foldMod = 5; // Need 5 more strength to call
+                    }
+                    // If opponent is a calling station, value bet thinner
+                    if (read.callFrequency > 0.55) {
+                        opponentAdjustment.callMod = -3; // Lower bluff frequency
+                    }
+                }
+            }
+        }
+    } catch (_) { /* Opponent read loading is optional */ }
+
     // --- 2. TRY GTO SOLVER ---
     let gtoDecision = null;
     try {
@@ -1331,7 +1368,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         const facingBet = toCall > 0;
 
         // Fold garbage facing a bet (unless pot odds are amazing)
-        if (finalAction === 'call' && facingBet && handEval.strength < 15 && drawEq.outs === 0) {
+        // Adjust threshold based on opponent reads: bluffers → lower threshold, tight → higher
+        const foldThreshold = 15 + opponentAdjustment.foldMod - opponentAdjustment.callMod;
+        if (finalAction === 'call' && facingBet && handEval.strength < foldThreshold && drawEq.outs === 0) {
             const potOdds = toCall / (potSize + toCall);
             if (potOdds >= 0.20) {
                 finalAction = 'fold';
@@ -2177,6 +2216,24 @@ function evolveHorseSkill(profileId, sessionWinRate) {
     }
 
     evolutionTracker.set(profileId, current);
+
+    // Persist to Supabase (non-blocking) — Gap 3
+    const sb = getSupabase();
+    if (sb) {
+        sb.from('horse_session_stats')
+            .upsert({
+                horse_id: profileId,
+                table_id: `evolution_${profileId}`,
+                session_data: {
+                    skillDrift: current.drift,
+                    totalSessions: current.sessions,
+                    lastUpdated: new Date().toISOString(),
+                    direction: current.drift > 2 ? 'improving' : current.drift < -2 ? 'regressing' : 'stable'
+                }
+            }, { onConflict: 'horse_id,table_id' })
+            .then(() => console.log(`[HorseBrain] 📈 Skill drift persisted for ${profileId.substring(0, 8)}: ${current.drift > 0 ? '+' : ''}${current.drift}`))
+            .catch(() => { /* Non-critical */ });
+    }
 
     return {
         skillDrift: current.drift,
