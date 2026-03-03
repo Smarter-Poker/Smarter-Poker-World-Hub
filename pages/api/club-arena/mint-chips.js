@@ -28,6 +28,35 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'clubId and positive amount required' });
   }
 
+  // BUG #153 FIX: Verify caller is club owner or union admin
+  // Without this, ANY authenticated user could mint chips into ANY club's treasury.
+  try {
+    const { data: club } = await supabaseAdmin
+      .from('clubs')
+      .select('id, owner_id, union_id')
+      .eq('id', clubId)
+      .single();
+
+    if (!club) return res.status(404).json({ error: 'Club not found' });
+
+    let authorized = club.owner_id === user.id;
+    if (!authorized && club.union_id) {
+      const { data: ua } = await supabaseAdmin
+        .from('union_admins')
+        .select('role')
+        .eq('union_id', club.union_id)
+        .eq('user_id', user.id)
+        .single();
+      authorized = !!ua;
+    }
+
+    if (!authorized) {
+      return res.status(403).json({ error: 'Only club owner or union admin can mint chips' });
+    }
+  } catch (authCheckErr) {
+    return res.status(500).json({ error: 'Authorization check failed' });
+  }
+
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/mint-chips')) return;
 
