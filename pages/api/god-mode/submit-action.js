@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     try {
         const {
             gameId,
-            userId,
+            userId: _clientUserId, // ignored - use JWT
             fileId,
             variantHash,
             action,
@@ -43,7 +43,10 @@ export default async function handler(req, res) {
             handData, // Full hand data from fetch-hand including solver_node
         } = req.body;
 
-        if (!gameId || !userId || !action) {
+        // BUG #151 FIX: Always use JWT user.id, ignore client-supplied userId
+        const userId = user.id;
+
+        if (!gameId || !action) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 

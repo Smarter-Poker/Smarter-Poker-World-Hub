@@ -153,10 +153,12 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     try {
-        const { gameId, userId, currentLevel = 1 } = req.body;
+        const { gameId, currentLevel = 1 } = req.body;
+        // BUG #151 FIX: Always use JWT user.id, ignore client-supplied userId
+        const userId = user.id;
 
-        if (!gameId || !userId) {
-            return res.status(400).json({ error: 'Missing gameId or userId' });
+        if (!gameId) {
+            return res.status(400).json({ error: 'Missing gameId' });
         }
 
         // 1. Get game configuration from game_registry
