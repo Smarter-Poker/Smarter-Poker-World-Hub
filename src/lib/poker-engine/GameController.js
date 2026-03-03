@@ -136,6 +136,8 @@ class GameController {
       peakPlayers: 0,
       totalActions: 0,
     };
+    // Guard against double-triggering horse AI for the same player turn
+    this._horseActionPending = new Set();
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -302,6 +304,7 @@ class GameController {
 
     try {
       await this.lobby.createTable(tableConfig);
+      this._wireHorseAI(tableId);
       console.log(`[GameController] Table created: ${tableId}`);
       return { success: true, tableId };
     } catch (err) {
@@ -412,6 +415,7 @@ class GameController {
       };
 
       await this.lobby.createTable(config);
+      this._wireHorseAI(clubTableId);
 
       // Update Club Arena table status
       await this.supabase
@@ -714,11 +718,6 @@ class GameController {
 
     if (result.success) {
       this._stats.totalActions++;
-
-      // ─── Horse AI Hook ─────────────────────────────────────────────
-      // After every successful action, check if the next player to act
-      // is an AI horse. If so, schedule their auto-action with delay.
-      this._checkForHorseAction(tableId);
     }
 
     return result;
@@ -729,106 +728,108 @@ class GameController {
   // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Check if the next player to act at a table is a horse (AI).
-   * If so, schedule their auto-action with a human-like delay.
-   * @param {string} tableId
-   * @private
-   */
-  async _checkForHorseAction(tableId) {
-    try {
-      const entry = this.lobby.tables.get(tableId);
-      if (!entry) return;
-
-      const game = entry.table.game;
-      if (!game || !game.bettingRound) return;
-
-      const currentPlayer = game.bettingRound.getCurrentPlayer();
-      if (!currentPlayer) return;
-
-      const playerId = String(currentPlayer.id);
-      const isAI = await HorsePokerBrain.isHorse(playerId);
-
-      if (isAI) {
-        // Schedule the horse action with a non-blocking delay
-        this._triggerHorseAction(tableId, playerId).catch(err => {
-          console.error(`[HorseAI] Error triggering action for ${playerId}:`, err.message);
-        });
-      }
-    } catch (err) {
-      // Non-critical: log and continue
-      console.warn('[HorseAI] _checkForHorseAction error:', err.message);
-    }
-  }
-
-  /**
    * Execute an AI horse's poker decision.
-   * 1. Reads game state (with horse's hole cards visible)
-   * 2. Calls HorsePokerBrain.getDecision() for GTO-informed action
-   * 3. Waits for human-like timing delay
-   * 4. Submits the action through the normal processAction pipeline
+   * 1. Guards against double-triggering with _horseActionPending
+   * 2. Reads game state (with horse's hole cards visible)
+   * 3. Calls HorsePokerBrain.getDecision() for GTO-informed action
+   * 4. Waits for human-like timing delay
+   * 5. Submits the action through the normal pipeline
    * 
    * @param {string} tableId
    * @param {string} playerId - Horse profile UUID
    * @private
    */
   async _triggerHorseAction(tableId, playerId) {
+    // Guard: prevent double-trigger for same player at same table
+    const key = `${tableId}:${playerId}`;
+    if (this._horseActionPending.has(key)) return;
+    this._horseActionPending.add(key);
+
+    try {
+      const entry = this.lobby.tables.get(tableId);
+      if (!entry) return;
+
+      // Get full game state (with horse's own cards visible)
+      const game = entry.table.game;
+      if (!game) return;
+
+      const engineState = game.getState(playerId);
+      if (!engineState) return;
+
+      // Verify it's still this horse's turn
+      const currentPlayerId = game.bettingRound?.getCurrentPlayer()?.id;
+      if (String(currentPlayerId) !== String(playerId)) return;
+
+      // Get legal actions from the engine
+      const actionsInfo = game.getCurrentActions();
+      if (!actionsInfo || !actionsInfo.actions || actionsInfo.actions.length === 0) return;
+
+      // Build table config for the brain
+      const tableConfig = {
+        bigBlind: entry.config?.bigBlind || game.config?.bigBlind || 2,
+        smallBlind: entry.config?.smallBlind || game.config?.smallBlind || 1,
+      };
+
+      // Get the AI decision
+      const { action, delayMs } = await HorsePokerBrain.getDecision(
+        playerId,
+        engineState,
+        actionsInfo.actions,
+        tableConfig
+      );
+
+      // Wait for human-like delay
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+
+      // Verify it's STILL this horse's turn after the delay
+      const game2 = entry.table.game;
+      if (!game2 || !game2.bettingRound) return;
+      const currentPlayerId2 = game2.bettingRound.getCurrentPlayer()?.id;
+      if (String(currentPlayerId2) !== String(playerId)) return;
+
+      // Submit the action through the normal pipeline
+      // (Cancel timer first, matching the processAction flow)
+      entry.timer.recordAction(playerId);
+      entry.timer.cancelTurn();
+
+      const result = entry.table.processAction(playerId, action);
+
+      if (result.success) {
+        this._stats.totalActions++;
+        console.log(`[HorseAI] ${playerId.substring(0, 8)}... \u2192 ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
+      } else {
+        console.warn(`[HorseAI] Action rejected for ${playerId.substring(0, 8)}...: ${result.error}`);
+      }
+    } catch (err) {
+      console.error(`[HorseAI] _triggerHorseAction error:`, err.message);
+    } finally {
+      this._horseActionPending.delete(key);
+    }
+  }
+
+  /**
+   * Wire horse AI event listener to a table.
+   * Listens for 'action_required' so the brain triggers on hand/street start
+   * when the first-to-act player is a horse.
+   * @param {string} tableId
+   * @private
+   */
+  _wireHorseAI(tableId) {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return;
 
-    // Get full game state (with horse's own cards visible)
-    const game = entry.table.game;
-    if (!game) return;
-
-    const engineState = game.getState(playerId);
-    if (!engineState) return;
-
-    // Verify it's still this horse's turn (action might have changed)
-    const currentPlayerId = game.bettingRound?.getCurrentPlayer()?.id;
-    if (String(currentPlayerId) !== String(playerId)) return;
-
-    // Get legal actions from the engine
-    const actionsInfo = game.getCurrentActions();
-    if (!actionsInfo || !actionsInfo.actions || actionsInfo.actions.length === 0) return;
-
-    // Build table config for the brain
-    const tableConfig = {
-      bigBlind: entry.config?.bigBlind || game.config?.bigBlind || 2,
-      smallBlind: entry.config?.smallBlind || game.config?.smallBlind || 1,
-    };
-
-    // Get the AI decision
-    const { action, delayMs } = await HorsePokerBrain.getDecision(
-      playerId,
-      engineState,
-      actionsInfo.actions,
-      tableConfig
-    );
-
-    // Wait for human-like delay
-    await new Promise(resolve => setTimeout(resolve, delayMs));
-
-    // Verify it's STILL this horse's turn after the delay
-    const game2 = entry.table.game;
-    if (!game2 || !game2.bettingRound) return;
-    const currentPlayerId2 = game2.bettingRound.getCurrentPlayer()?.id;
-    if (String(currentPlayerId2) !== String(playerId)) return;
-
-    // Submit the action through the normal pipeline
-    // (Cancel timer first, matching the processAction flow)
-    entry.timer.recordAction(playerId);
-    entry.timer.cancelTurn();
-
-    const result = entry.table.processAction(playerId, action);
-
-    if (result.success) {
-      this._stats.totalActions++;
-      console.log(`[HorseAI] ${playerId.substring(0, 8)}... → ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
-
-      // Recursive: check if the NEXT player is also a horse
-      this._checkForHorseAction(tableId);
-    } else {
-      console.warn(`[HorseAI] Action rejected for ${playerId.substring(0, 8)}...: ${result.error}`);
-    }
+    entry.table.on('action_required', (data) => {
+      if (data?.playerId) {
+        // Non-blocking check: is this an AI horse?
+        HorsePokerBrain.isHorse(String(data.playerId)).then(isAI => {
+          if (isAI) {
+            this._triggerHorseAction(tableId, String(data.playerId)).catch(err => {
+              console.error(`[HorseAI] action_required trigger failed:`, err.message);
+            });
+          }
+        }).catch(() => { });
+      }
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════

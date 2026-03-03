@@ -22,6 +22,8 @@ import {
     updateDownToke,
     getGigReport,
 } from '../../lib/bankroll/tokeSelectors';
+import { getUserLocations } from '../../lib/bankroll/locationMemory';
+import VenueSelector from './VenueSelector';
 import toast from '../../stores/toastStore';
 
 // ── Down type metadata ──
@@ -52,6 +54,7 @@ const DOWN_TIMER_MS = 35 * 60 * 1000;
 export default function TokeTracker({ userId, refreshTrigger }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
+    const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAddDown, setShowAddDown] = useState(false);
@@ -79,10 +82,15 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const [timerSecondsLeft, setTimerSecondsLeft] = useState(0);
     const timerTickRef = useRef(null);
 
-    // Create gig form state
+    // Create event form state
     const [newGig, setNewGig] = useState({
         venue_name: '',
         venue_address: '',
+        location_id: null,
+        venue_type: 'casino',
+        poker_venue_id: null,
+        latitude: null,
+        longitude: null,
         start_date: new Date().toISOString().split('T')[0],
         hourly_rate: '',
         notes: '',
@@ -93,12 +101,14 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         if (!userId) return;
         setIsLoading(true);
         try {
-            const [active, gigs] = await Promise.all([
+            const [active, gigs, locs] = await Promise.all([
                 getActiveGig(userId),
                 fetchGigs(userId),
+                getUserLocations(userId),
             ]);
             setActiveGig(active);
             setCompletedGigs(gigs.filter(g => g.status === 'completed'));
+            setLocations(locs || []);
 
             // If there's an active down, restart the timer
             if (active?.downs?.length > 0) {
@@ -230,7 +240,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const handleCreateGig = async (e) => {
         e.preventDefault();
         if (!newGig.venue_name.trim()) {
-            toast.error('Please enter a venue name');
+            toast.error('Please select or enter a venue');
             return;
         }
         try {
@@ -238,9 +248,9 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 ...newGig,
                 hourly_rate: parseFloat(newGig.hourly_rate) || 0,
             });
-            toast.success('Gig started!');
+            toast.success('Event started!');
             setShowCreateForm(false);
-            setNewGig({ venue_name: '', venue_address: '', start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
+            setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
             await requestNotificationPermission();
             await loadData();
         } catch (err) {
@@ -252,7 +262,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         if (!activeGig) return;
         try {
             await completeGig(userId, activeGig.id);
-            toast.success('Gig completed!');
+            toast.success('Event completed!');
             setConfirmComplete(false);
             if (downTimerRef.current) clearTimeout(downTimerRef.current);
             if (timerTickRef.current) clearInterval(timerTickRef.current);
@@ -267,7 +277,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         if (!activeGig) return;
         try {
             await deleteGig(userId, activeGig.id);
-            toast.success('Gig deleted');
+            toast.success('Event deleted');
             setConfirmDelete(false);
             if (downTimerRef.current) clearTimeout(downTimerRef.current);
             if (timerTickRef.current) clearInterval(timerTickRef.current);
@@ -300,7 +310,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 ...editForm,
                 hourly_rate: parseFloat(editForm.hourly_rate) || 0,
             });
-            toast.success('Gig updated!');
+            toast.success('Event updated!');
             setEditMode(false);
             await loadData();
         } catch (err) {
@@ -372,7 +382,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             const report = await getGigReport(userId, gigId);
             setSelectedReport(report);
         } catch (err) {
-            toast.error('Failed to load gig report');
+            toast.error('Failed to load event report');
         }
     };
 
@@ -400,7 +410,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         const { gig, stats } = selectedReport;
         return (
             <div style={styles.container}>
-                <button onClick={() => setSelectedReport(null)} style={styles.backBtn}>← Back To Gigs</button>
+                <button onClick={() => setSelectedReport(null)} style={styles.backBtn}>← Back To Events</button>
                 <div style={styles.reportCard}>
                     <h2 style={styles.reportTitle}>{gig.venue_name}</h2>
                     {gig.venue_address && <p style={styles.reportAddress}>{gig.venue_address}</p>}
@@ -471,11 +481,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     style={styles.activeGigCard}
                 >
                     {/* Delete X */}
-                    <button onClick={() => setConfirmDelete(true)} style={styles.deleteX} title="Delete Gig">✕</button>
+                    <button onClick={() => setConfirmDelete(true)} style={styles.deleteX} title="Delete Event">✕</button>
 
                     <div style={styles.activeHeader}>
                         <div style={styles.activeLed} />
-                        <span style={styles.activeLabel}>LIVE GIG</span>
+                        <span style={styles.activeLabel}>LIVE EVENT</span>
                     </div>
 
                     {/* Gig Info (view vs edit) */}
@@ -492,25 +502,29 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         </>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 12px' }}>
-                            <input
-                                type="text" value={editForm.venue_name}
-                                onChange={e => setEditForm({ ...editForm, venue_name: e.target.value })}
-                                placeholder="Venue Name" style={styles.formInput} autoFocus
-                            />
-                            <input
-                                type="text" value={editForm.venue_address}
-                                onChange={e => setEditForm({ ...editForm, venue_address: e.target.value })}
-                                placeholder="Full Address (For Tax Records)" style={styles.formInput}
+                            <label style={styles.formLabel}>Venue / Location</label>
+                            <VenueSelector
+                                value={editForm.venue_name}
+                                venueType={editForm.venue_type || 'casino'}
+                                userId={userId}
+                                onChange={(name, venueType, pokerVenueId) => {
+                                    const match = locations.find(l => l.name.toLowerCase() === (name || '').toLowerCase());
+                                    setEditForm(prev => ({
+                                        ...prev,
+                                        venue_name: name,
+                                        venue_address: match?.state || prev.venue_address,
+                                    }));
+                                }}
                             />
                             <input
                                 type="number" value={editForm.hourly_rate}
                                 onChange={e => setEditForm({ ...editForm, hourly_rate: e.target.value })}
-                                placeholder="Hourly Rate ($)" style={styles.formInput} step="0.01"
+                                style={styles.formInput} step="0.01"
                             />
                             <textarea
                                 value={editForm.notes}
                                 onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                                placeholder="Notes" style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
+                                style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                             />
                         </div>
                     )}
@@ -634,11 +648,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             <>
                                 <button onClick={startEditing} style={styles.editBtn}>✏ Edit</button>
                                 <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>＋ Add Down</button>
-                                <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Gig</button>
+                                <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>
                             </>
                         ) : (
                             <div style={styles.confirmRow}>
-                                <span style={styles.confirmText}>Finalize This Gig?</span>
+                                <span style={styles.confirmText}>Finalize This Event?</span>
                                 <button onClick={handleCompleteGig} style={styles.confirmYes}>Yes, Complete</button>
                                 <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                             </div>
@@ -650,7 +664,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         {confirmDelete && (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={styles.deleteOverlay}>
                                 <div style={styles.deletePopup}>
-                                    <p style={styles.deletePopupText}>Delete This Gig And All Downs?</p>
+                                    <p style={styles.deletePopupText}>Delete This Event And All Downs?</p>
                                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                                         <button onClick={handleDeleteGig} style={styles.deleteConfirmBtn}>Yes, Delete</button>
                                         <button onClick={() => setConfirmDelete(false)} style={styles.deleteCancelBtn}>Cancel</button>
@@ -662,16 +676,15 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 </motion.div>
             )}
 
-            {/* ── CREATE GIG ── */}
+            {/* ── CREATE EVENT ── */}
             {!activeGig && !showCreateForm && (
                 <motion.button
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     onClick={() => setShowCreateForm(true)}
                     style={styles.createGigBtn}
                 >
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Gig</span>
                     <div>
-                        <div style={styles.createGigTitle}>Start A New Gig</div>
+                        <div style={styles.createGigTitle}>Start A New Event</div>
                         <div style={styles.createGigSub}>Track Downs, Tokes, And Income</div>
                     </div>
                 </motion.button>
@@ -686,20 +699,26 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         onSubmit={handleCreateGig}
                         style={styles.createForm}
                     >
-                        <h3 style={styles.formTitle}>New Gig</h3>
+                        <h3 style={styles.formTitle}>New Event</h3>
 
-                        <label style={styles.formLabel}>Venue / Series *</label>
-                        <input
-                            type="text" value={newGig.venue_name}
-                            onChange={e => setNewGig({ ...newGig, venue_name: e.target.value })}
-                            placeholder="e.g. Bellagio, WSOP Main Event" style={styles.formInput} autoFocus
-                        />
-
-                        <label style={styles.formLabel}>Full Address (For Tax Records)</label>
-                        <input
-                            type="text" value={newGig.venue_address}
-                            onChange={e => setNewGig({ ...newGig, venue_address: e.target.value })}
-                            placeholder="e.g. 3600 Las Vegas Blvd S, Las Vegas, NV 89109" style={styles.formInput}
+                        <label style={styles.formLabel}>Venue / Location</label>
+                        <VenueSelector
+                            value={newGig.venue_name}
+                            venueType={newGig.venue_type}
+                            userId={userId}
+                            onChange={(name, venueType, pokerVenueId, lat, lng) => {
+                                const match = locations.find(l => l.name.toLowerCase() === (name || '').toLowerCase());
+                                setNewGig(prev => ({
+                                    ...prev,
+                                    venue_name: name,
+                                    location_id: match ? match.id : (name ? '__new__' : null),
+                                    venue_type: venueType,
+                                    poker_venue_id: pokerVenueId,
+                                    latitude: lat,
+                                    longitude: lng,
+                                    venue_address: match?.state || '',
+                                }));
+                            }}
                         />
 
                         <label style={styles.formLabel}>Start Date</label>
@@ -724,7 +743,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         />
 
                         <div style={styles.formActions}>
-                            <button type="submit" style={styles.formSubmitBtn}>Start Gig</button>
+                            <button type="submit" style={styles.formSubmitBtn}>Start Event</button>
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
                     </motion.form>
@@ -843,13 +862,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 )}
             </AnimatePresence>
 
-            {/* ── COMPLETED GIGS ── */}
+            {/* ── COMPLETED EVENTS ── */}
             <div style={styles.historySection}>
-                <h3 style={styles.historyTitle}>Completed Gigs</h3>
+                <h3 style={styles.historyTitle}>Completed Events</h3>
                 {isLoading ? (
-                    <div style={styles.loadingPlaceholder}>Loading Gigs...</div>
+                    <div style={styles.loadingPlaceholder}>Loading Events...</div>
                 ) : completedGigs.length === 0 ? (
-                    <div style={styles.emptyState}>No Completed Gigs Yet. Start Your First Gig Above!</div>
+                    <div style={styles.emptyState}>No Completed Events Yet. Start Your First Event Above!</div>
                 ) : (
                     <div style={styles.gigGrid}>
                         {completedGigs.map(gig => (
