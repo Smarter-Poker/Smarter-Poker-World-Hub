@@ -20,6 +20,7 @@ import {
   formatChips,
   estimateDuration
 } from '../tournaments/tournamentTemplates';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 const ICON_MAP = { Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair };
 
@@ -193,6 +194,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
           }
         }
 
+        broadcastChange('tournaments');
         onSubmit(data.data?.tournament || data.data);
         resetForm();
         onClose();

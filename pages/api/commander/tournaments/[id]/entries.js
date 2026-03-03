@@ -64,7 +64,7 @@ async function listEntries(req, res, tournamentId) {
 
     if (error) throw error;
 
-    return res.status(200).json({ entries: data });
+    return res.status(200).json({ success: true, data: { entries: data } });
   } catch (error) {
     console.error('List entries error:', error);
     return res.status(500).json({ error: error.message });
@@ -142,7 +142,7 @@ async function registerPlayer(req, res, tournamentId) {
         .select('id, status')
         .eq('tournament_id', tournamentId)
         .eq('player_id', effectivePlayerId)
-        .not('status', 'eq', 'eliminated')
+        .not('status', 'in', '("eliminated","cancelled")')
         .single();
 
       if (existing) {

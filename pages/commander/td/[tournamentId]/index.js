@@ -2,11 +2,11 @@
  * Tournament Director — Control Center
  * /commander/td/[tournamentId]
  * Main command screen for the TD holding a tablet on the floor
- * Shows: tournament header, clock, stats, alerts, activity feed
- * Bottom nav bar links to Tables, Players, Balance, Register, Clock screens
+ * Shows: tournament header, stats, alerts, activity feed
+ * Bottom nav bar links to Tables, Players, Clock screens
  * UI: Dark theme, Facebook colors, Inter font, 44px+ touch targets
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
@@ -94,11 +94,23 @@ export default function TDControlCenter() {
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
     fetchFloor();
-    pollRef.current = setInterval(fetchFloor, 60000);
+    pollRef.current = setInterval(fetchFloor, 300000); // 5-min fallback (realtime handles instant updates)
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [fetchFloor]);
+
+  // Memoize sorted activity entries (prevents re-sorting 5000 entries on every render)
+  const sortedActivityEntries = useMemo(() => {
+    if (!floor?.entries?.length) return [];
+    return [...floor.entries]
+      .sort((a, b) => {
+        const aTime = a.eliminated_at || a.registered_at || '1970';
+        const bTime = b.eliminated_at || b.registered_at || '1970';
+        return new Date(bTime) - new Date(aTime);
+      })
+      .slice(0, 50);
+  }, [floor?.entries]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
@@ -340,41 +352,34 @@ export default function TDControlCenter() {
               <div className="overflow-y-auto px-2 py-2">
                 {floor.entries && floor.entries.length > 0 ? (
                   <div className="divide-y divide-[#3A3B3C]">
-                    {[...floor.entries]
-                      .sort((a, b) => {
-                        const aTime = a.eliminated_at || a.registered_at || '1970';
-                        const bTime = b.eliminated_at || b.registered_at || '1970';
-                        return new Date(bTime) - new Date(aTime);
-                      })
-                      .slice(0, 50)
-                      .map((e, i) => {
-                        const isEliminated = e.status === 'eliminated';
-                        const isAlternate = e.status === 'alternate';
-                        const isActive = ['active', 'seated'].includes(e.status);
-                        const time = e.eliminated_at || e.registered_at;
-                        const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    {sortedActivityEntries.map((e, i) => {
+                      const isEliminated = e.status === 'eliminated';
+                      const isAlternate = e.status === 'alternate';
+                      const isActive = ['active', 'seated'].includes(e.status);
+                      const time = e.eliminated_at || e.registered_at;
+                      const timeStr = time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-                        return (
-                          <div key={e.entry_id + '-' + i} className="px-4 py-3 flex items-center gap-3">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isEliminated ? 'bg-[#EF4444]' :
-                              isAlternate ? 'bg-[#F59E0B]' :
-                                isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
-                              }`} />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-[#E4E6EB] truncate">{e.player_name}</p>
-                              <p className="text-xs text-[#B0B3B8] mt-0.5">
-                                {isEliminated ? `Eliminated #${e.finish_position || '?'}` :
-                                  isAlternate ? 'Added to alternates' :
-                                    isActive ? `Seated T${e.table_number || '?'}-S${e.seat_number || '?'}` :
-                                      'Registered'}
-                                {e.rebuy_count > 0 ? ` \u2022 ${e.rebuy_count}R` : ''}
-                                {e.addon_taken ? ' \u2022 Add-on' : ''}
-                              </p>
-                            </div>
-                            <span className="text-xs text-[#B0B3B8] flex-shrink-0">{timeStr}</span>
+                      return (
+                        <div key={e.entry_id + '-' + i} className="px-4 py-3 flex items-center gap-3">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isEliminated ? 'bg-[#EF4444]' :
+                            isAlternate ? 'bg-[#F59E0B]' :
+                              isActive ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
+                            }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-[#E4E6EB] truncate">{e.player_name}</p>
+                            <p className="text-xs text-[#B0B3B8] mt-0.5">
+                              {isEliminated ? `Eliminated #${e.finish_position || '?'}` :
+                                isAlternate ? 'Added to alternates' :
+                                  isActive ? `Seated T${e.table_number || '?'}-S${e.seat_number || '?'}` :
+                                    'Registered'}
+                              {e.rebuy_count > 0 ? ` \u2022 ${e.rebuy_count}R` : ''}
+                              {e.addon_taken ? ' \u2022 Add-on' : ''}
+                            </p>
                           </div>
-                        );
-                      })}
+                          <span className="text-xs text-[#B0B3B8] flex-shrink-0">{timeStr}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-8 text-center text-[#B0B3B8]">No activity yet</div>

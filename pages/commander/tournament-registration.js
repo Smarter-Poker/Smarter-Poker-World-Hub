@@ -44,7 +44,8 @@ export default function TournamentRegistration() {
             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
             const res = await fetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             const json = await res.json();
-            setTournaments(json.data || json.tournaments || []);
+            const list = json.data?.tournaments || json.tournaments || json.data || [];
+            setTournaments(Array.isArray(list) ? list : []);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     }, [venueId]);
@@ -229,8 +230,8 @@ export default function TournamentRegistration() {
                                     <div style={{ flex: 1 }}>
                                         <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{t.name || t.tournament_name || 'Tournament'}</p>
                                         <div style={{ display: 'flex', gap: 12, marginTop: 2 }}>
-                                            {t.buy_in && <span style={{ fontSize: 10, color: '#31A24C' }}><DollarSign size={10} style={{ display: 'inline' }} /> ${t.buy_in}</span>}
-                                            {t.start_time && <span style={{ fontSize: 10, color: '#B0B3B8' }}><Clock size={10} style={{ display: 'inline' }} /> {new Date(t.start_time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                                            {(t.buyin_amount || t.buy_in) && <span style={{ fontSize: 10, color: '#31A24C' }}><DollarSign size={10} style={{ display: 'inline' }} /> ${t.buyin_amount || t.buy_in}</span>}
+                                            {(t.scheduled_start || t.start_time) && <span style={{ fontSize: 10, color: '#B0B3B8' }}><Clock size={10} style={{ display: 'inline' }} /> {new Date(t.scheduled_start || t.start_time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
                                         </div>
                                     </div>
                                     {selectedTournament?.id === t.id && <CheckCircle2 size={18} color="#1877F2" />}

@@ -3,7 +3,7 @@
  * List, create, and manage tournaments
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
@@ -95,14 +95,27 @@ export default function CommanderTournamentsPage() {
     }
   }, [router]);
 
-  // Fetch tournaments — always fetch all, filter client-side
-  // (filter categories like 'active'/'upcoming' are composites, not DB statuses)
+  // Fetch tournaments — pass status filter to API for server-side filtering
   const fetchTournaments = useCallback(async (showRefreshing = false) => {
     if (!venueId) return;
     if (showRefreshing) setRefreshing(true);
 
     try {
-      const params = new URLSearchParams({ venue_id: venueId, limit: '100' });
+      const params = new URLSearchParams({ venue_id: venueId, limit: '200' });
+
+      // Server-side status filtering for current_future, active, upcoming, completed, cancelled
+      if (filter === 'current_future') {
+        params.set('status', 'current_future');
+      } else if (filter === 'active') {
+        params.set('status', 'active');
+      } else if (filter === 'upcoming') {
+        params.set('status', 'upcoming');
+      } else if (filter === 'completed') {
+        params.set('status', 'completed');
+      } else if (filter === 'cancelled') {
+        params.set('status', 'cancelled');
+      }
+      // 'all' = no status param
 
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments?${params}`, {
@@ -119,7 +132,7 @@ export default function CommanderTournamentsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [venueId]);
+  }, [venueId, filter]);
 
   useEffect(() => {
     if (venueId) fetchTournaments();
@@ -135,32 +148,19 @@ export default function CommanderTournamentsPage() {
     router.push(`/commander/tournaments/${tournament.id}`);
   }
 
-  // Group tournaments
-  const activeTournaments = tournaments.filter(t =>
+  // Memoized tournament groups for stats display
+  const activeTournaments = useMemo(() => tournaments.filter(t =>
     ['running', 'paused', 'break', 'final_table'].includes(t.status)
-  );
-  const upcomingTournaments = tournaments.filter(t =>
+  ), [tournaments]);
+  const upcomingTournaments = useMemo(() => tournaments.filter(t =>
     ['scheduled', 'registration', 'registering'].includes(t.status)
-  );
-  const completedTournaments = tournaments.filter(t =>
+  ), [tournaments]);
+  const completedTournaments = useMemo(() => tournaments.filter(t =>
     ['completed', 'cancelled'].includes(t.status)
-  );
+  ), [tournaments]);
 
-  const currentFutureTournaments = tournaments.filter(t =>
-    !['completed', 'cancelled'].includes(t.status)
-  );
-
-  const displayTournaments = filter === 'current_future'
-    ? currentFutureTournaments
-    : filter === 'all'
-      ? tournaments
-      : filter === 'upcoming'
-        ? upcomingTournaments
-        : filter === 'active'
-          ? activeTournaments
-          : completedTournaments;
-
-  const paginatedTournaments = displayTournaments.slice(0, page * 25);
+  // Server-side filtering means tournaments are already the correct set
+  const paginatedTournaments = useMemo(() => tournaments.slice(0, page * 25), [tournaments, page]);
 
   if (!staff || loading) {
     return (
@@ -231,7 +231,7 @@ export default function CommanderTournamentsPage() {
           </div>
 
           {/* Tournament List */}
-          {displayTournaments.length === 0 ? (
+          {tournaments.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">
@@ -354,7 +354,7 @@ export default function CommanderTournamentsPage() {
                 );
               })}
 
-              {displayTournaments.length > paginatedTournaments.length && (
+              {tournaments.length > paginatedTournaments.length && (
                 <button
                   onClick={() => setPage(p => p + 1)}
                   className="w-full py-3 mt-4 cmd-panel text-center text-[#B0B3B8] font-medium hover:text-white transition-colors"

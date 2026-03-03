@@ -287,8 +287,9 @@ async function getAdvancedModule() {
  * @returns {Object} Decision { type, amount? }
  */
 function makeFallbackDecision(profileId, gameState, legalActions) {
-    const { handStr, position, street, potSize, toCall, stackBB, bb = 2 } = gameState;
+    const { handStr, position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards } = gameState;
     const hash = getHash(profileId);
+    const numPlayers = gameState.numPlayers || 2;
 
     // Get personality bias (tight/loose, passive/aggressive)
     const loosenessBias = (hash % 20) - 10; // -10 to +9
@@ -300,17 +301,34 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
     const canRaise = legalActions.some(a => a.type === 'raise' || a.type === 'bet');
     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
 
+    // ╔══════════════════════════════════════════════════════════════════════╗
+    // ║  PREFLOP DECISION ENGINE (#28 3-Bet + #31 Deep Stack)             ║
+    // ╚══════════════════════════════════════════════════════════════════════╝
     if (street === 'preflop') {
-        const strength = getPreflopStrength(handStr) + loosenessBias;
+        const baseStrength = getPreflopStrength(handStr);
         const positionBonus = { BTN: 15, CO: 10, HJ: 5, SB: 5, BB: 8, UTG: 0, MP: 3 };
-        const adjustedStrength = strength + (positionBonus[position] || 0);
+
+        // Deep stack adjustment (#31)
+        const deepAdj = getDeepStackAdjustment(stackBB);
+        const suitedBonus = handStr.endsWith('s') ? deepAdj.suitedBonus : 0;
+        const impliedBonus = (baseStrength < 50 && deepAdj.widenRange) ? deepAdj.impliedOddsBonus : 0;
+
+        const adjustedStrength = baseStrength + (positionBonus[position] || 0) + loosenessBias + suitedBonus + impliedBonus;
 
         // Push/fold mode for short stacks
         if (stackBB <= 12 && canRaise) {
-            if (adjustedStrength >= 55) {
-                return { type: 'all_in' };
-            }
+            if (adjustedStrength >= 55) return { type: 'all_in' };
             return { type: 'fold' };
+        }
+
+        // Facing a raise? Consider 3-bet (#28)
+        if (toCall > bb * 2 && canRaise) {
+            const threeBet = get3BetStrategy(position, adjustedStrength, toCall, bb, stackBB);
+            if (threeBet.should3Bet) {
+                const amount = Math.max(raiseAction?.minAmount || toCall * 2.5, threeBet.size3Bet);
+                const clamped = Math.min(amount, raiseAction?.maxAmount || amount);
+                return { type: raiseAction.type, amount: Math.round(clamped) };
+            }
         }
 
         // Standard preflop
@@ -321,7 +339,6 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
             return { type: raiseAction.type, amount: Math.round(size) };
         }
         if (adjustedStrength >= 55) {
-            // Playable: raise sometimes, call sometimes
             if (canRaise && Math.random() < 0.4 + aggressionBias / 30) {
                 const minRaise = raiseAction?.minAmount || (toCall * 2);
                 return { type: raiseAction.type, amount: Math.round(minRaise * (2 + Math.random())) };
@@ -330,56 +347,131 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
             if (canCheck) return { type: 'check' };
         }
         if (adjustedStrength >= 35 && toCall <= bb && canCall) {
-            // Marginal: limp/call small raises
             return canCheck ? { type: 'check' } : { type: 'call' };
         }
-        // Trash: fold (or check if in BB)
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
-    // --- POSTFLOP FALLBACK (#18 Hand Evaluation + #3 Board Texture) ---
-    const { holeCards: hCards, board: bCards } = gameState;
+    // ╔══════════════════════════════════════════════════════════════════════╗
+    // ║  POSTFLOP DECISION ENGINE (ALL Phase 4 features wired)            ║
+    // ╚══════════════════════════════════════════════════════════════════════╝
 
-    // Evaluate hand strength (0-100)
+    // Evaluate hand strength (#18)
     const handEval = evaluatePostflopHand(hCards, bCards);
     const boardWetness = evaluateBoardWetness(bCards);
 
-    // Adjust strength by personality
-    const effectiveStrength = handEval.strength + aggressionBias;
+    // SPR awareness (#24)
+    const heroStack = stackBB * bb;
+    const sprInfo = getSPRStrategy(heroStack, potSize);
 
-    if (canCheck && toCall === 0) {
-        // --- NO BET TO FACE ---
-        // Strong hands: bet for value
-        if (effectiveStrength >= 70 && canRaise) {
-            // Size based on board texture: smaller on dry, larger on wet
-            const sizeFactor = boardWetness === 'dry' ? 0.33 : boardWetness === 'wet' ? 0.75 : 0.50;
-            const betSize = Math.round(potSize * sizeFactor);
+    // Multiway adjustment (#25)
+    const multiway = getMultiwayAdjustment(numPlayers);
+
+    // Draw equity (#29)
+    const drawEquity = getDrawEquity(handEval, street);
+
+    // Adjusted strength = base + personality - multiway penalty
+    const effectiveStrength = handEval.strength + aggressionBias - multiway.strengthPenalty;
+    const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
+
+    // Is hero in position? (BTN, CO, HJ are generally IP postflop)
+    const ipPositions = new Set(['BTN', 'CO', 'HJ']);
+    const isIP = ipPositions.has(gameState.position);
+
+    // ── RIVER-SPECIFIC LOGIC (#30) ──
+    if (street === 'river') {
+        const riverStrat = getRiverStrategy(effectiveStrength, potOdds, canRaise, toCall > 0, aggressionBias);
+
+        if (riverStrat.action === 'bet' && canRaise) {
+            const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, effectiveStrength < 20);
+            const betSize = Math.round(potSize * sizeFrac);
             const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount };
         }
-        // Draws: semi-bluff sometimes
-        if (handEval.hasFlushDraw || handEval.hasOESD) {
-            if (canRaise && Math.random() < (0.45 + aggressionBias / 30)) {
-                const betSize = Math.round(potSize * 0.55);
+        if (riverStrat.action === 'raise' && canRaise) {
+            const raiseSize = Math.round(toCall * 2.5);
+            const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
+            return { type: raiseAction.type, amount };
+        }
+        if (riverStrat.action === 'call' && canCall) return { type: 'call' };
+        if (riverStrat.action === 'fold') return canCheck ? { type: 'check' } : { type: 'fold' };
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // ── FLOP/TURN LOGIC ──
+    if (canCheck && toCall === 0) {
+        // --- NO BET TO FACE ---
+
+        // Check-raise strategy (#26)
+        const crStrat = getCheckRaiseStrategy(effectiveStrength, isIP, handEval.hasFlushDraw || handEval.hasOESD, aggressionBias);
+        if (crStrat.shouldCheckRaise && Math.random() < crStrat.frequency) {
+            // Check now — we'll raise when opponent bets (intent logged for future street awareness)
+            return { type: 'check' }; // Check-raise = check here, raise next action
+        }
+
+        // C-bet strategy (#27) — are we the preflop aggressor?
+        const wasPreAggressor = gameState.wasAggressor || false;
+        if (wasPreAggressor && street === 'flop') {
+            const cbetStrat = getCBetStrategy(true, isIP, boardWetness, numPlayers);
+            if (cbetStrat.shouldCbet && canRaise) {
+                const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, effectiveStrength < 30);
+                const betSize = Math.round(potSize * sizeFrac);
                 const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
                 return { type: raiseAction.type, amount };
             }
         }
-        // Medium hands: bet sometimes on dry boards
-        if (effectiveStrength >= 40 && boardWetness === 'dry' && canRaise && Math.random() < aggressionChance) {
-            const betSize = Math.round(potSize * 0.40);
+
+        // SPR-committed: go all-in with decent hands (#24)
+        if (sprInfo.strategy === 'committed' && effectiveStrength >= sprInfo.commitThreshold && canRaise) {
+            return { type: 'all_in' };
+        }
+
+        // Strong hands: bet for value (use bet sizing trees #32)
+        if (effectiveStrength >= 70 && canRaise) {
+            const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+            const betSize = Math.round(potSize * sizeFrac);
             const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount };
         }
+
+        // Draws: semi-bluff sometimes (informed by draw equity #29)
+        if ((handEval.hasFlushDraw || handEval.hasOESD) && drawEquity.outs >= 8) {
+            const semiBluffFreq = 0.45 + aggressionBias / 30;
+            if (canRaise && Math.random() < semiBluffFreq * multiway.bluffReduction) {
+                const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, true);
+                const betSize = Math.round(potSize * sizeFrac);
+                const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                return { type: raiseAction.type, amount };
+            }
+        }
+
+        // Medium hands: bet sometimes on dry boards
+        if (effectiveStrength >= 40 && boardWetness === 'dry' && canRaise) {
+            const aggressionChance = 0.35 + aggressionBias / 50;
+            if (Math.random() < aggressionChance * multiway.bluffReduction) {
+                const betSize = Math.round(potSize * 0.40);
+                const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                return { type: raiseAction.type, amount };
+            }
+        }
+
         return { type: 'check' };
     }
 
     // --- FACING A BET ---
-    const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
+
+    // SPR-committed: push all-in with decent hands (#24)
+    if (sprInfo.strategy === 'committed' && effectiveStrength >= sprInfo.commitThreshold) {
+        if (canRaise) {
+            return { type: 'all_in' };
+        }
+        if (canCall) return { type: 'call' };
+    }
 
     // Monster hands: raise
     if (effectiveStrength >= 85 && canRaise) {
-        const raiseSize = Math.round(toCall * (2.5 + Math.random()));
+        const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+        const raiseSize = Math.round(toCall + potSize * sizeFrac);
         const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
         return { type: raiseAction.type, amount };
     }
@@ -394,8 +486,14 @@ function makeFallbackDecision(profileId, gameState, legalActions) {
         if (canCall) return { type: 'call' };
     }
 
-    // Draws with good odds
-    if ((handEval.hasFlushDraw || handEval.hasOESD) && potOdds < 0.30) {
+    // Drawing hands: use equity math (#29)
+    if (drawEquity.outs > 0 && drawEquity.shouldCall(potOdds)) {
+        // Raise as semi-bluff sometimes
+        if (canRaise && drawEquity.outs >= 12 && Math.random() < 0.30 * multiway.bluffReduction) {
+            const raiseSize = Math.round(toCall * 2.5);
+            const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
+            return { type: raiseAction.type, amount };
+        }
         if (canCall) return { type: 'call' };
     }
 
@@ -608,6 +706,299 @@ function evaluateBoardWetness(board) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PHASE 4: ADVANCED INTELLIGENCE FEATURES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// --- #24: SPR (Stack-to-Pot Ratio) Awareness ---
+/**
+ * Calculate SPR and return commitment/strategy guidance.
+ * Low SPR (<4): Committed — go all-in with top pair+
+ * Medium SPR (4-10): Standard play
+ * High SPR (>10): Deep — can fold more, speculate more
+ * @param {number} effectiveStack - Hero's stack
+ * @param {number} potSize - Current pot
+ * @returns {{ spr: number, strategy: string, commitThreshold: number }}
+ */
+function getSPRStrategy(effectiveStack, potSize) {
+    if (potSize <= 0) return { spr: 999, strategy: 'deep', commitThreshold: 85 };
+    const spr = effectiveStack / potSize;
+
+    if (spr < 4) return { spr, strategy: 'committed', commitThreshold: 40 }; // Top pair = pot committed
+    if (spr < 7) return { spr, strategy: 'medium-low', commitThreshold: 55 };
+    if (spr < 13) return { spr, strategy: 'standard', commitThreshold: 65 };
+    return { spr, strategy: 'deep', commitThreshold: 75 }; // Need stronger hands deep
+}
+
+// --- #25: Multiway Pot Adjustments ---
+/**
+ * Adjust hand strength requirements when multiway (3+ active players).
+ * Multiway pots require stronger hands to continue.
+ * @param {number} numPlayers - Active (non-folded) players
+ * @returns {{ strengthPenalty: number, bluffReduction: number }}
+ */
+function getMultiwayAdjustment(numPlayers) {
+    if (numPlayers <= 2) return { strengthPenalty: 0, bluffReduction: 1.0 };
+    if (numPlayers === 3) return { strengthPenalty: 8, bluffReduction: 0.6 };
+    if (numPlayers === 4) return { strengthPenalty: 15, bluffReduction: 0.3 };
+    return { strengthPenalty: 22, bluffReduction: 0.15 }; // 5+ players: very tight
+}
+
+// --- #26: Check-Raise Strategy ---
+/**
+ * Determine if the horse should check-raise instead of donk-betting.
+ * @param {number} handStrength - 0-100 hand strength
+ * @param {boolean} isInPosition - Whether hero is IP
+ * @param {boolean} hasStrongDraw - Has flush draw or OESD
+ * @param {number} aggressionBias - Personality aggression bias
+ * @returns {{ shouldCheckRaise: boolean, frequency: number }}
+ */
+function getCheckRaiseStrategy(handStrength, isInPosition, hasStrongDraw, aggressionBias) {
+    // OOP check-raise with monsters (slow-play) or strong draws (semi-bluff)
+    if (!isInPosition) {
+        // Monsters (set+): check-raise for value
+        if (handStrength >= 65) return { shouldCheckRaise: true, frequency: 0.55 + aggressionBias / 50 };
+        // Strong draws: semi-bluff check-raise
+        if (hasStrongDraw && handStrength >= 30) return { shouldCheckRaise: true, frequency: 0.30 + aggressionBias / 40 };
+        return { shouldCheckRaise: false, frequency: 0 };
+    }
+    // IP: rarely check-raise (trap with monsters sometimes)
+    if (handStrength >= 85) return { shouldCheckRaise: true, frequency: 0.20 };
+    return { shouldCheckRaise: false, frequency: 0 };
+}
+
+// --- #27: Continuation Bet Strategy ---
+/**
+ * Determine c-bet frequency and sizing based on position and board.
+ * @param {boolean} wasPreAggressor - Did hero raise preflop?
+ * @param {boolean} isInPosition - IP or OOP?
+ * @param {string} boardWetness - 'dry', 'medium', 'wet'
+ * @param {number} numPlayers - Active players
+ * @returns {{ shouldCbet: boolean, frequency: number, sizeFraction: number }}
+ */
+function getCBetStrategy(wasPreAggressor, isInPosition, boardWetness, numPlayers) {
+    if (!wasPreAggressor) return { shouldCbet: false, frequency: 0, sizeFraction: 0 };
+
+    // Base frequencies
+    let freq, size;
+    if (isInPosition) {
+        // IP c-bet = higher frequency
+        freq = boardWetness === 'dry' ? 0.75 : boardWetness === 'wet' ? 0.50 : 0.65;
+        size = boardWetness === 'dry' ? 0.33 : boardWetness === 'wet' ? 0.66 : 0.50;
+    } else {
+        // OOP c-bet = lower frequency, bigger size
+        freq = boardWetness === 'dry' ? 0.60 : boardWetness === 'wet' ? 0.35 : 0.50;
+        size = boardWetness === 'dry' ? 0.50 : boardWetness === 'wet' ? 0.75 : 0.66;
+    }
+
+    // Reduce c-bet frequency multiway
+    if (numPlayers >= 3) freq *= 0.5;
+    if (numPlayers >= 4) freq *= 0.3;
+
+    return { shouldCbet: Math.random() < freq, frequency: freq, sizeFraction: size };
+}
+
+// --- #28: 3-Bet/4-Bet Preflop Dynamics ---
+/**
+ * Get proper 3-bet range and frequency based on position.
+ * @param {string} position - Hero position
+ * @param {number} handStrength - Preflop strength 0-100
+ * @param {number} facingRaise - Amount of raise being faced
+ * @param {number} bb - Big blind amount
+ * @param {number} stackBB - Stack in BB
+ * @returns {{ should3Bet: boolean, size3Bet: number, isBluff3Bet: boolean }}
+ */
+function get3BetStrategy(position, handStrength, facingRaise, bb, stackBB) {
+    // 3-bet value range (premium hands)
+    const value3BetThreshold = { BTN: 80, CO: 82, HJ: 85, MP: 88, UTG: 90, SB: 78, BB: 76 };
+    const bluff3BetThreshold = { BTN: 35, CO: 40, HJ: 45, MP: 50, UTG: 55, SB: 38, BB: 35 };
+
+    const valueThreshold = value3BetThreshold[position] || 85;
+    const bluffFloor = bluff3BetThreshold[position] || 45;
+
+    // Value 3-bet
+    if (handStrength >= valueThreshold) {
+        const size = Math.round(facingRaise * 3.2);
+        return { should3Bet: true, size3Bet: size, isBluff3Bet: false };
+    }
+
+    // Bluff 3-bet range (hands just below calling range — fold equity play)
+    if (handStrength >= bluffFloor - 10 && handStrength < bluffFloor) {
+        // Only bluff 3-bet with enough stack
+        if (stackBB >= 40 && Math.random() < 0.25) {
+            const size = Math.round(facingRaise * 3);
+            return { should3Bet: true, size3Bet: size, isBluff3Bet: true };
+        }
+    }
+
+    return { should3Bet: false, size3Bet: 0, isBluff3Bet: false };
+}
+
+// --- #29: Draw Equity Calculator ---
+/**
+ * Calculate drawing equity (pot odds vs actual outs).
+ * @param {Object} handEval - From evaluatePostflopHand()
+ * @param {string} street - 'flop', 'turn', 'river'
+ * @returns {{ equity: number, outs: number, shouldCall: Function }}
+ */
+function getDrawEquity(handEval, street) {
+    let outs = 0;
+
+    if (handEval.hasFlushDraw) outs += 9;  // 9 outs for flush draw
+    if (handEval.hasOESD) outs += 8;        // 8 outs for OESD
+    if (handEval.hasGutshot) outs += 4;     // 4 outs for gutshot
+    // Reduce for overlap (flush draw + OESD share some outs)
+    if (handEval.hasFlushDraw && handEval.hasOESD) outs -= 2;
+
+    // Approximate equity: outs × multiplier
+    // Flop (2 cards to come): outs × 4 - (outs - 8) = rough %
+    // Turn (1 card to come): outs × 2 + 1 = rough %
+    let equity;
+    if (street === 'flop') {
+        equity = Math.min(65, outs * 4 - Math.max(0, outs - 8)); // Rule of 4
+    } else if (street === 'turn') {
+        equity = Math.min(45, outs * 2 + 1); // Rule of 2+1
+    } else {
+        equity = 0; // No more cards — no draw equity
+    }
+
+    return {
+        equity: equity / 100,
+        outs,
+        shouldCall: (potOdds) => (equity / 100) >= potOdds
+    };
+}
+
+// --- #30: River Intelligence ---
+/**
+ * Make river-specific decisions: thin value, bluff-catch, or give up.
+ * @param {number} handStrength - 0-100
+ * @param {number} potOdds - Current pot odds (0-1)
+ * @param {boolean} canBet - Can we bet?
+ * @param {boolean} facingBet - Are we facing a bet?
+ * @param {number} aggressionBias - Personality
+ * @returns {{ action: string, sizeFraction: number }}
+ */
+function getRiverStrategy(handStrength, potOdds, canBet, facingBet, aggressionBias) {
+    if (!facingBet && canBet) {
+        // --- RIVER NO BET FACING ---
+        // Thin value bet (50-75 strength): small sizing
+        if (handStrength >= 50 && handStrength < 75) {
+            if (Math.random() < 0.55 + aggressionBias / 40) {
+                return { action: 'bet', sizeFraction: 0.33 };
+            }
+            return { action: 'check', sizeFraction: 0 };
+        }
+        // Strong value bet (75+): bigger sizing
+        if (handStrength >= 75) {
+            return { action: 'bet', sizeFraction: handStrength >= 90 ? 0.85 : 0.66 };
+        }
+        // Bluff with nothing sometimes
+        if (handStrength < 20 && Math.random() < 0.12 + aggressionBias / 60) {
+            return { action: 'bet', sizeFraction: 0.66 }; // Bluff like a value bet
+        }
+        return { action: 'check', sizeFraction: 0 };
+    }
+
+    if (facingBet) {
+        // --- FACING RIVER BET ---
+        // Strong hands: call or raise
+        if (handStrength >= 75) return { action: 'raise', sizeFraction: 2.5 };
+        // Bluff-catch threshold: call with decent hands if pot odds are good
+        if (handStrength >= 45 && potOdds < 0.35) return { action: 'call', sizeFraction: 0 };
+        // Marginal: call sometimes
+        if (handStrength >= 30 && potOdds < 0.25) {
+            return Math.random() < 0.40 ? { action: 'call', sizeFraction: 0 } : { action: 'fold', sizeFraction: 0 };
+        }
+        return { action: 'fold', sizeFraction: 0 };
+    }
+
+    return { action: 'check', sizeFraction: 0 };
+}
+
+// --- #31: Deep Stack Adjustments ---
+/**
+ * Adjust preflop strategy for deep stacks (200bb+).
+ * @param {number} stackBB - Stack in big blinds
+ * @param {string} handStr - Hand string (e.g., 'AKs')
+ * @returns {{ widentRange: boolean, impliedOddsBonus: number, suitedBonus: number }}
+ */
+function getDeepStackAdjustment(stackBB) {
+    if (stackBB < 150) return { widenRange: false, impliedOddsBonus: 0, suitedBonus: 0 };
+
+    // Deep stack: speculative hands (suited connectors, small pairs) gain value
+    const depth = Math.min(300, stackBB);
+    const bonus = Math.round((depth - 150) / 15); // 0 to 10
+
+    return {
+        widenRange: true,
+        impliedOddsBonus: bonus,     // Added to preflop strength for speculative hands
+        suitedBonus: Math.round(bonus * 0.7)  // Extra value for suited hands
+    };
+}
+
+// --- #32: Bet Sizing Trees ---
+/**
+ * Get optimal bet sizing based on hand category and street.
+ * Small for bluffs/thin value, big for value, overbet for nutted.
+ * @param {string} handCategory - From evaluatePostflopHand
+ * @param {string} street - Current street
+ * @param {number} potSize - Current pot
+ * @param {boolean} isBluff - Is this a bluff?
+ * @returns {number} Bet size as fraction of pot
+ */
+function getOptimalBetSize(handCategory, street, potSize, isBluff) {
+    // Bluffs: always use small sizing (better risk/reward)
+    if (isBluff) {
+        return street === 'river' ? 0.66 : 0.33;
+    }
+
+    // Value sizing by hand strength category
+    const sizingMap = {
+        // Nutted: overbet
+        quads: 1.25, full_house: 1.10, flush: 0.80,
+        // Strong: big bet
+        straight: 0.75, set: 0.75, trips: 0.66,
+        // Medium: standard
+        two_pair: 0.60, overpair: 0.55, top_pair: 0.50,
+        // Thin value: small
+        underpair: 0.33, two_pair_weak: 0.40,
+        // Draws: semi-bluff small
+        no_pair: 0.33, high_card: 0.33, unknown: 0.40
+    };
+
+    const baseSizing = sizingMap[handCategory] || 0.50;
+
+    // Increase sizing on later streets (turn/river vs flop)
+    if (street === 'turn') return Math.min(1.5, baseSizing * 1.15);
+    if (street === 'river') return Math.min(1.5, baseSizing * 1.30);
+    return baseSizing;
+}
+
+// --- #33: Auto-Seating Intelligence ---
+/**
+ * Determine if a table needs AI players and which horse should sit.
+ * @param {Object} tableInfo - { seats, minPlayers, maxPlayers, blinds }
+ * @param {string[]} availableHorses - Horse IDs not at max tables
+ * @returns {{ shouldSeat: boolean, horseId: string|null }}
+ */
+function shouldAutoSeat(tableInfo, availableHorses) {
+    if (!tableInfo || !availableHorses || availableHorses.length === 0) {
+        return { shouldSeat: false, horseId: null };
+    }
+
+    const currentPlayers = tableInfo.seats?.filter(s => s.player)?.length || 0;
+    const minNeeded = tableInfo.minPlayers || 2;
+
+    // Seat horses if table needs players (below min, or just 1 human waiting)
+    if (currentPlayers < minNeeded) {
+        // Pick a random available horse
+        const idx = Math.floor(Math.random() * availableHorses.length);
+        return { shouldSeat: true, horseId: availableHorses[idx] };
+    }
+
+    return { shouldSeat: false, horseId: null };
+}
+
 // MASTER DECISION FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -664,6 +1055,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         toCall,
         bb, // Big blind in chips (for BB-relative thresholds)
         gameType: 'Cash',
+        numPlayers,
         topology: numPlayers <= 3 ? '3-Max' : numPlayers <= 6 ? '6-Max' : '9-Max',
         mode: 'ChipEV'
     };
@@ -1359,4 +1751,16 @@ module.exports = {
     makeFallbackDecision,
     evaluatePostflopHand,
     evaluateBoardWetness,
+
+    // Phase 4: Advanced Intelligence
+    getSPRStrategy,
+    getMultiwayAdjustment,
+    getCheckRaiseStrategy,
+    getCBetStrategy,
+    get3BetStrategy,
+    getDrawEquity,
+    getRiverStrategy,
+    getDeepStackAdjustment,
+    getOptimalBetSize,
+    shouldAutoSeat,
 };

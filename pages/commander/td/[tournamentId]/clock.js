@@ -58,7 +58,7 @@ export default function TDClock() {
   }, [tournamentId]);
 
   useTournamentRealtime(tournamentId, fetchFloor);
-  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 60000); return () => clearInterval(i); }, [fetchFloor]);
+  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 300000); return () => clearInterval(i); }, [fetchFloor]); // 5-min fallback
 
   // Client-side countdown — only restart interval when clock status changes (not on every tick)
   useEffect(() => {
@@ -207,7 +207,7 @@ export default function TDClock() {
         {/* Main Clock Mirror */}
         <div className={`w-full bg-black relative ${isFullscreen ? 'flex-1' : 'aspect-[16/9] min-h-[250px] max-h-[50vh]'}`}>
           <iframe
-            src={`/commander/tournaments/${tournamentId}/clock-display?preview=true`}
+            src={`/commander/tournaments/${tournamentId}/clock-display`}
             className="absolute inset-0 w-full h-full border-0 pointer-events-none"
             title="Clock Mirror"
             style={{ pointerEvents: 'none' }}

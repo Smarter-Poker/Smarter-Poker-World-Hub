@@ -68,7 +68,7 @@ export default function TDPlayers() {
   }, [tournamentId]);
 
   useTournamentRealtime(tournamentId, fetchFloor);
-  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 60000); return () => clearInterval(i); }, [fetchFloor]);
+  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 300000); return () => clearInterval(i); }, [fetchFloor]); // 5-min fallback
 
   // Build flat player list from full entries array (all statuses)
   const allPlayers = [];

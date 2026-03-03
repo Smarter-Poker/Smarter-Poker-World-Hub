@@ -89,7 +89,7 @@ export default function TDTablesMap() {
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
     fetchFloor();
-    const interval = setInterval(fetchFloor, 60000);
+    const interval = setInterval(fetchFloor, 300000); // 5-min fallback
     return () => clearInterval(interval);
   }, [fetchFloor]);
 

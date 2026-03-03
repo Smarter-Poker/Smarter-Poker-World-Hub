@@ -4,7 +4,8 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useMemo } from 'react';
-import { X, DollarSign, Trophy, Users, Loader2, Check } from 'lucide-react';
+import { X, DollarSign, Trophy, Loader2, Check, Edit2, AlertCircle, Settings } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 // Standard payout percentages by number of places
 const PAYOUT_STRUCTURES = {
@@ -143,6 +144,7 @@ export default function PayoutModal({
       const data = await res.json();
 
       if (data.success) {
+        broadcastChange('tournaments');
         onSubmit?.({ payouts, prizePool, payingPlaces });
         onClose();
       } else {
@@ -217,8 +219,8 @@ export default function PayoutModal({
                     setCustomPayouts({});
                   }}
                   className={`w-10 h-10 rounded-lg font-medium transition-colors ${payingPlaces === num
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                    ? 'bg-[#22D3EE] text-white'
+                    : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                     }`}
                 >
                   {num}
@@ -252,9 +254,9 @@ export default function PayoutModal({
                   >
                     <div className="w-8 h-8 bg-[#0B1426] rounded-full flex items-center justify-center">
                       <Trophy className={`w-4 h-4 ${payout.position === 1 ? 'text-[#F59E0B]' :
-                          payout.position === 2 ? 'text-[#4A5E78]' :
-                            payout.position === 3 ? 'text-[#B45309]' :
-                              'text-[#64748B]'
+                        payout.position === 2 ? 'text-[#4A5E78]' :
+                          payout.position === 3 ? 'text-[#B45309]' :
+                            'text-[#64748B]'
                         }`} />
                     </div>
 
@@ -292,8 +294,8 @@ export default function PayoutModal({
                       <button
                         onClick={() => markAsPaid(payout.position)}
                         className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isPaid
-                            ? 'bg-[#10B981] text-white'
-                            : 'border border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                          ? 'bg-[#10B981] text-white'
+                          : 'border border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
                           }`}
                       >
                         <Check className="w-4 h-4" />

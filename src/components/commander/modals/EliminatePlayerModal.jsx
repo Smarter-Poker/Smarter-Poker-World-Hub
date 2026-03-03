@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { X, UserMinus, Search, Trophy, Loader2 } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 export default function EliminatePlayerModal({
   isOpen,
@@ -58,6 +59,7 @@ export default function EliminatePlayerModal({
       const data = await res.json();
 
       if (data.success) {
+        broadcastChange('tournaments');
         onSubmit?.({
           entry: selectedEntry,
           eliminatedBy,
@@ -137,10 +139,10 @@ export default function EliminatePlayerModal({
                     onClick={() => setSelectedEntry(entry)}
                     disabled={entry.id === eliminatedBy?.id}
                     className={`w-full p-3 rounded-lg text-left transition-colors flex items-center justify-between ${selectedEntry?.id === entry.id
-                        ? 'bg-[#EF4444] text-white'
-                        : entry.id === eliminatedBy?.id
-                          ? 'bg-[#0D192E] text-[#4A5E78] cursor-not-allowed'
-                          : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#EF4444] text-white'
+                      : entry.id === eliminatedBy?.id
+                        ? 'bg-[#0D192E] text-[#4A5E78] cursor-not-allowed'
+                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                       }`}
                   >
                     <span className="font-medium">
@@ -167,8 +169,8 @@ export default function EliminatePlayerModal({
                 <button
                   onClick={() => setEliminatedBy(null)}
                   className={`w-full p-3 rounded-lg text-left transition-colors ${!eliminatedBy
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                    ? 'bg-[#22D3EE] text-white'
+                    : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                     }`}
                 >
                   Not specified
@@ -180,8 +182,8 @@ export default function EliminatePlayerModal({
                       key={entry.id}
                       onClick={() => setEliminatedBy(entry)}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${eliminatedBy?.id === entry.id
-                          ? 'bg-[#22D3EE] text-white'
-                          : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                        ? 'bg-[#22D3EE] text-white'
+                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                         }`}
                     >
                       {entry.player_name || entry.profiles?.display_name || `Entry #${entry.id.slice(0, 8)}`}

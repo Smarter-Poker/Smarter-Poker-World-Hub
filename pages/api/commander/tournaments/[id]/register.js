@@ -241,7 +241,7 @@ async function handleUnregister(req, res, tournamentId) {
     const { error } = await supabase
       .from('commander_tournament_entries')
       .update({
-        status: 'eliminated',
+        status: 'cancelled',
         notes: 'Registration cancelled'
       })
       .eq('tournament_id', tournamentId)
