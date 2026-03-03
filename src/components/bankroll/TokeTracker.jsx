@@ -772,25 +772,50 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             style={styles.modalCard}
                         >
+                            <style>{`
+                                .toke-img-map-element {
+                                    border: none !important;
+                                    outline: none !important;
+                                    box-shadow: none !important;
+                                    background-color: transparent !important;
+                                    -webkit-tap-highlight-color: transparent !important;
+                                }
+                                .toke-img-map-element:focus,
+                                .toke-img-map-element:hover,
+                                .toke-img-map-element:active {
+                                    border: none !important;
+                                    outline: none !important;
+                                    box-shadow: none !important;
+                                    background-color: transparent !important;
+                                }
+                                .toke-img-map-element option {
+                                    background-color: #1a1a1a !important;
+                                    color: #fff !important;
+                                }
+                            `}</style>
                             {/* ── IMAGE-MAPPED INTERACTIVE ZONES ── */}
 
                             {/* Down Type Selection Zones */}
                             <button
+                                className="toke-img-map-element"
                                 onClick={() => setDownForm({ ...downForm, down_type: 'cash' })}
                                 style={{ ...styles.imgMapBtn, top: '12.5%', left: '8%', width: '41%', height: '16.5%' }}
                                 title="Cash Game"
                             />
                             <button
+                                className="toke-img-map-element"
                                 onClick={() => setDownForm({ ...downForm, down_type: 'tournament' })}
                                 style={{ ...styles.imgMapBtn, top: '12.5%', left: '51%', width: '41%', height: '16.5%' }}
                                 title="Tournament"
                             />
                             <button
+                                className="toke-img-map-element"
                                 onClick={() => setDownForm({ ...downForm, down_type: 'break' })}
                                 style={{ ...styles.imgMapBtn, top: '31%', left: '8%', width: '41%', height: '16.5%' }}
                                 title="On Break"
                             />
                             <button
+                                className="toke-img-map-element"
                                 onClick={() => setDownForm({ ...downForm, down_type: 'brush' })}
                                 style={{ ...styles.imgMapBtn, top: '31%', left: '51%', width: '41%', height: '16.5%' }}
                                 title="Brush"
@@ -801,17 +826,19 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <div style={{ position: 'absolute', top: '56%', left: '9.5%', width: '81%', height: '8.5%', display: 'flex' }}>
                                     {downForm.down_type === 'cash' ? (
                                         <select
+                                            className="toke-img-map-element"
                                             value={downForm.cash_variant}
                                             onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}
                                             style={styles.imgMapInput}
                                         >
-                                            <option value="Holdem" style={{ color: '#000' }}>Holdem</option>
-                                            <option value="PLO" style={{ color: '#000' }}>PLO</option>
-                                            <option value="Mixed" style={{ color: '#000' }}>Mixed</option>
+                                            <option value="Holdem">Holdem</option>
+                                            <option value="PLO">PLO</option>
+                                            <option value="Mixed">Mixed</option>
                                         </select>
                                     ) : (
                                         <input
                                             type="text"
+                                            className="toke-img-map-element"
                                             value={downForm.tournament_name || ''}
                                             onChange={e => setDownForm({ ...downForm, tournament_name: e.target.value })}
                                             style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
@@ -825,6 +852,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <div style={{ position: 'absolute', top: '71%', left: '9.5%', width: '81%', height: '8.5%', display: 'flex' }}>
                                     <input
                                         type="text"
+                                        className="toke-img-map-element"
                                         value={downForm.table_number || ''}
                                         onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
                                         style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
@@ -834,11 +862,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
                             {/* Action Buttons */}
                             <button
+                                className="toke-img-map-element"
                                 onClick={handleAddDown}
                                 style={{ ...styles.imgMapBtn, top: '82.5%', left: '9%', width: '56.5%', height: '9%' }}
                                 title="Start Down"
                             />
                             <button
+                                className="toke-img-map-element"
                                 onClick={() => setShowAddDown(false)}
                                 style={{ ...styles.imgMapBtn, top: '82.5%', left: '68.5%', width: '22.5%', height: '9%' }}
                                 title="Cancel"
@@ -1102,12 +1132,12 @@ const styles = {
     },
     modalCard: {
         position: 'relative',
-        backgroundImage: 'url(/images/toke-add-down-bg.png)',
+        backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
         backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
         border: 'none', borderRadius: 0, padding: 0, backgroundColor: 'transparent',
         width: '100%', maxWidth: 450,
         aspectRatio: '854 / 1018',
-        boxShadow: 'none', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.8))', overflow: 'hidden',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8)', overflow: 'hidden',
         display: 'block',
     },
     imgMapBtn: {

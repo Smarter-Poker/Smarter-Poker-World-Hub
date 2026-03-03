@@ -843,7 +843,12 @@ class GameController {
     });
 
     // Evaluate horse sessions at the end of every hand (Phase 2)
-    entry.table.on('hand_complete', () => {
+    // Process hand results for tilt + showdown tracking (Phase 3A)
+    entry.table.on('hand_complete', (data) => {
+      const bb = entry.table.bigBlind || 2;
+      HorsePokerBrain.processHandResult(data, bb).catch(err => {
+        console.error(`[HorseAI] processHandResult failed:`, err.message);
+      });
       HorsePokerBrain.evaluateSessions(this, entry.table).catch(err => {
         console.error(`[HorseAI] evaluateSessions failed:`, err.message);
       });

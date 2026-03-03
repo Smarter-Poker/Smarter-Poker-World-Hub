@@ -445,6 +445,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // --- 3. APPLY PERSONALITY + ADVANCED OVERLAYS ---
     let finalAction = null;
     let finalAmount = null;
+    let handType = 'weak'; // For timing tells: 'strong', 'weak', 'bluff'
 
     if (gtoDecision?.action) {
         // Map GTO action names to engine format
@@ -459,22 +460,59 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             finalAmount = currentBet + raiseSize; // Total bet = currentBet + our raise
         }
 
-        // Apply tilt overlay
+        // Classify hand type for timing tells
+        const strength = getPreflopStrength(handStr);
+        if (strength >= 75) {
+            handType = 'strong';
+        } else if ((finalAction === 'raise' || finalAction === 'bet') && strength < 40) {
+            handType = 'bluff';
+        }
+
+        // Apply REAL tilt overlay (Phase 3A #1)
         try {
             const adv = await getAdvancedModule();
             if (adv?.getTiltLevel) {
                 const tiltLevel = adv.getTiltLevel(profileId);
 
                 // Tilted horses make suboptimal plays
-                if (tiltLevel >= 5 && adv.getImageAdjustedAction) {
-                    const adjusted = adv.getImageAdjustedAction(profileId, finalAction, 0.5);
+                if (tiltLevel >= 3 && adv.getImageAdjustedAction) {
+                    const adjusted = adv.getImageAdjustedAction(profileId, finalAction, strength / 100);
                     if (adjusted && adjusted !== finalAction) {
+                        console.log(`[HorseBrain] 🔥 Tilt override: ${finalAction} → ${adjusted} (tilt=${tiltLevel.toFixed(1)})`);
                         finalAction = adjusted;
                     }
                 }
             }
         } catch (err) {
             // Tilt overlay is non-critical
+        }
+
+        // Apply EXPLOITATIVE adjustments (Phase 3A #2)
+        try {
+            const adv = await getAdvancedModule();
+            const personality = await getPersonalityModule();
+            if (adv?.getExploitAdjustedAction && personality?.getSkillTier) {
+                const skill = personality.getSkillTier(profileId);
+                // Only skilled horses exploit opponents
+                if (skill.level >= 3) {
+                    // Try to exploit the last aggressor or the player in the pot
+                    const opponents = engineState.players?.filter(p =>
+                        String(p.id) !== String(profileId) && !p.folded
+                    ) || [];
+                    for (const opp of opponents) {
+                        const result = adv.getExploitAdjustedAction(
+                            profileId, String(opp.id), finalAction, skill.level
+                        );
+                        if (result.exploiting) {
+                            console.log(`[HorseBrain] 🎯 Exploit: ${finalAction} → ${result.action} (vs ${String(opp.id).substring(0, 8)}, leak: ${result.leak})`);
+                            finalAction = result.action;
+                            break; // Only exploit one opponent per decision
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            // Exploit overlay is non-critical
         }
     }
 
@@ -488,8 +526,25 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // --- 5. VALIDATE AGAINST LEGAL ACTIONS ---
     const validAction = validateAndClamp(finalAction, finalAmount, legalActions);
 
-    // --- 6. COMPUTE TIMING DELAY ---
-    const delayMs = getActionDelay(profileId, validAction.type, street === 'preflop');
+    // --- 6. COMPUTE TIMING DELAY (Phase 3A #8 - Personality Timing Tells) ---
+    let delayMs;
+    try {
+        const adv = await getAdvancedModule();
+        if (adv?.getActionDelay) {
+            // Use personality timing tells from Advanced module
+            delayMs = adv.getActionDelay(profileId, handType);
+        } else {
+            delayMs = getActionDelay(profileId, validAction.type, street === 'preflop');
+        }
+    } catch (_) {
+        delayMs = getActionDelay(profileId, validAction.type, street === 'preflop');
+    }
+
+    // Street factor: preflop is faster
+    if (street === 'preflop') delayMs *= 0.7;
+
+    // Clamp to human-realistic range
+    delayMs = Math.round(Math.max(800, Math.min(7000, delayMs)));
 
     return { action: validAction, delayMs };
 }
@@ -624,6 +679,45 @@ function clearTableSessions(tableId) {
 }
 
 /**
+ * Process hand result for a horse — feeds tilt tracking and showdown recording.
+ * Called from `hand_complete` event in GameController.
+ * @param {Object} handData - The hand_complete event data
+ * @param {number} bb - Big blind size
+ */
+async function processHandResult(handData, bb = 2) {
+    if (!handData?.result) return;
+
+    const adv = await getAdvancedModule();
+    if (!adv) return;
+
+    const winners = handData.result.winners || [];
+    const players = handData.result.players || handData.players || [];
+
+    for (const player of players) {
+        const pid = String(player.id || player.playerId);
+        const isAI = await isHorse(pid);
+        if (!isAI) continue;
+
+        const won = winners.some(w => String(w.playerId) === pid);
+        const chipDelta = player.chipDelta || 0;
+
+        // --- Record bad beats for tilt system ---
+        if (!won && chipDelta < 0 && adv.recordBadBeat) {
+            const bbLost = Math.abs(chipDelta) / bb;
+            // Consider it a "bad beat" if lost > 20bb
+            const wasBadBeat = bbLost >= 20;
+            adv.recordBadBeat(pid, bbLost, wasBadBeat);
+        }
+
+        // --- Record showdowns for table image tracking ---
+        if (player.showedCards && adv.recordShowdown) {
+            const wasBetting = player.lastAction === 'raise' || player.lastAction === 'bet';
+            adv.recordShowdown(pid, won, wasBetting);
+        }
+    }
+}
+
+/**
  * Check if a horse is allowed to rebuy based on maxBuyins stop-loss
  * @param {string} tableId 
  * @param {string} playerId 
@@ -739,6 +833,7 @@ module.exports = {
     evaluateSessions,
     clearTableSessions,
     canRebuy,
+    processHandResult,
 
     // Helpers (exposed for testing)
     cardIntToString,
