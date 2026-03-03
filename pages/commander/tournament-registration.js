@@ -78,110 +78,148 @@ export default function TournamentRegistration() {
         setSearchResults([]);
     };
 
-    // Generate a unique transaction ID for receipts
-    const generateTxnId = (playerName) => {
+    // Generate a sequential receipt number
+    const generateReceiptNum = () => {
         const now = new Date();
-        const datePart = now.toISOString().replace(/[-T:\.Z]/g, '').slice(0, 14);
-        const initials = (playerName || 'XX').split(' ').map(w => w[0]?.toUpperCase() || '').join('').slice(0, 2);
-        return `TXN-${datePart}-${initials}`;
+        // Use last 3 digits of timestamp for a short sequential-like number
+        return String(now.getTime()).slice(-4);
     };
 
-    // Build a professional casino-grade receipt HTML (80mm thermal)
+    // Build a professional casino-grade receipt HTML (Potawatomi-style, 80mm thermal)
     const buildReceiptHtml = ({
         copyLabel, playerName, tournamentName, buyinAmount, buyinFee,
         staffName, venueName, venueCity, venueState, scheduledStart,
-        startingChips, tableNumber, seatNumber, playerId, txnId
+        startingChips, tableNumber, seatNumber, playerId, receiptNum
     }) => {
         const total = (buyinAmount || 0) + (buyinFee || 0);
-        const startFormatted = scheduledStart
-            ? new Date(scheduledStart).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-            : 'TBD';
-        const nowFormatted = new Date().toLocaleString('en-US', {
-            month: '2-digit', day: '2-digit', year: 'numeric',
-            hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
-        });
-        const chipsFormatted = startingChips ? parseInt(startingChips).toLocaleString() : null;
+        const fmtMoney = (v) => `$ ${parseFloat(v || 0).toFixed(2)}`;
 
-        return `<!DOCTYPE html><html><head><title>${copyLabel}</title>
+        // Tournament date formatted like "02/17/2026    4:00 pm"
+        const tournDate = scheduledStart
+            ? new Date(scheduledStart).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+            : '';
+        const tournTime = scheduledStart
+            ? new Date(scheduledStart).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
+            : '';
+
+        // "Received By" timestamp — written-out format like "February 17, 2026  7:53 pm"
+        const now = new Date();
+        const receivedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        const receivedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+
+        // Map copy labels to receipt-style labels
+        const copyMap = { 'PLAYER COPY': 'CUSTOMER COPY', 'DEALER COPY': 'DEALER COPY', 'CASHIER COPY': 'CAGE COPY' };
+        const displayCopy = copyMap[copyLabel] || copyLabel;
+
+        return `<!DOCTYPE html><html><head><title>${displayCopy}</title>
 <style>
 @page { margin: 0; size: 80mm auto; }
-* { box-sizing: border-box; }
-body { font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0; color: #000; }
-.receipt { width: 72mm; padding: 4mm; margin: 0 auto; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Times New Roman', Georgia, serif; margin: 0; padding: 0; color: #000; -webkit-print-color-adjust: exact; }
+.receipt { width: 72mm; padding: 5mm 4mm; margin: 0 auto; }
 .center { text-align: center; }
-.bold { font-weight: bold; }
-.venue-name { font-size: 16px; font-weight: bold; letter-spacing: 1px; }
-.venue-loc { font-size: 10px; color: #555; margin-top: 1mm; }
-.copy-badge { font-size: 11px; font-weight: bold; letter-spacing: 2px; margin: 2mm 0; text-transform: uppercase; }
-.txn-type { font-size: 15px; font-weight: bold; letter-spacing: 1px; }
-.divider { border-top: 1px dashed #000; margin: 2.5mm 0; }
-.row { display: flex; justify-content: space-between; font-size: 11px; line-height: 1.6; }
-.row-label { color: #333; }
-.row-value { font-weight: bold; text-align: right; }
-.total { font-size: 28px; font-weight: bold; margin: 1mm 0; }
-.total-method { font-size: 11px; letter-spacing: 1px; color: #555; }
-.sm { font-size: 10px; color: #555; }
-.xs { font-size: 9px; color: #888; }
-.legal { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.4; margin-top: 1mm; }
-.footer-brand { font-size: 9px; color: #aaa; margin-top: 2mm; letter-spacing: 1px; }
+
+/* Venue Header */
+.venue-name {
+  font-size: 24px; font-weight: bold; text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 1mm; line-height: 1.2;
+}
+.venue-sub { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #333; }
+
+/* Title */
+.receipt-title {
+  font-size: 17px; font-weight: bold; margin: 3mm 0 1mm; text-transform: uppercase;
+}
+
+/* Event */
+.event-name { font-size: 15px; margin: 1mm 0; }
+.event-date { font-size: 15px; margin: 2mm 0; }
+.event-date-label { font-weight: bold; }
+
+/* Player */
+.player-name { font-size: 15px; font-weight: bold; margin: 2mm 0 0; }
+.player-name-label { font-weight: bold; }
+.player-id { font-size: 14px; margin: 0 0 2mm; padding-left: 2mm; }
+
+/* Financial */
+.fin-row { display: flex; justify-content: flex-end; align-items: baseline; font-size: 14px; line-height: 1.8; }
+.fin-label { font-weight: bold; text-align: right; margin-right: 2mm; }
+.fin-value { min-width: 22mm; text-align: right; font-weight: bold; }
+.fin-total-row { display: flex; justify-content: flex-end; align-items: baseline; font-size: 15px; line-height: 2; font-weight: bold; }
+.fin-total-label { font-weight: bold; text-align: right; margin-right: 2mm; }
+.fin-total-value { min-width: 22mm; text-align: right; font-weight: bold; }
+
+/* Divider */
+.divider { border-top: 1px solid #000; margin: 2mm 0; }
+
+/* Table / Seat Boxes */
+.seat-grid { display: flex; justify-content: center; gap: 6mm; margin: 3mm 0; }
+.seat-box { text-align: center; }
+.seat-box-label { font-size: 15px; font-weight: bold; margin-bottom: 1mm; }
+.seat-box-value {
+  border: 2px solid #000; font-size: 36px; font-weight: bold;
+  min-width: 22mm; min-height: 16mm; display: flex; align-items: center;
+  justify-content: center; padding: 2mm 4mm;
+}
+
+/* Footer */
+.received { font-size: 14px; margin: 2mm 0; }
+.received-label { font-weight: bold; }
+.receipt-num { font-size: 18px; font-weight: bold; margin: 2mm 0; }
+.legal { font-size: 10px; color: #333; line-height: 1.3; margin: 2mm 2mm; text-align: center; }
+.copy-label { font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-top: 2mm; }
 </style></head><body>
 <div class="receipt">
 
 <!-- Venue Header -->
 <div class="center venue-name">${venueName || 'POKER ROOM'}</div>
-${venueCity || venueState ? `<div class="center venue-loc">${[venueCity, venueState].filter(Boolean).join(', ')}</div>` : ''}
-<div class="divider"></div>
+${venueCity || venueState ? `<div class="center venue-sub">${[venueCity, venueState].filter(Boolean).join(', ')}</div>` : ''}
 
-<!-- Copy Label -->
-<div class="center copy-badge">* ${copyLabel} *</div>
-<div class="divider"></div>
+<!-- Title -->
+<div class="center receipt-title">TOURNAMENT BUY-IN RECEIPT</div>
 
-<!-- Transaction Type -->
-<div class="center txn-type">TOURNAMENT BUY-IN</div>
-<div class="divider"></div>
+<!-- Event Name -->
+<div class="event-name">${tournamentName || ''}</div>
 
-<!-- Event Details -->
-<div class="row"><span class="row-label">Event:</span><span class="row-value">${tournamentName}</span></div>
-<div class="row"><span class="row-label">Date:</span><span class="row-value">${startFormatted}</span></div>
+<!-- Tournament Date -->
+${scheduledStart ? `<div class="event-date"><span class="event-date-label">Tournament Date:</span>  ${tournDate}    ${tournTime}</div>` : ''}
 
-<!-- Player Info -->
-<div class="divider"></div>
-<div class="row"><span class="row-label">Player:</span><span class="row-value">${playerName}</span></div>
-${playerId ? `<div class="row"><span class="row-label">Member:</span><span class="row-value">#${String(playerId).slice(-6).toUpperCase()}</span></div>` : ''}
+<!-- Player Name -->
+<div class="player-name"><span class="player-name-label">Name:</span>  ${(playerName || '').toUpperCase()}</div>
+${playerId ? `<div class="player-id">${String(playerId).slice(-7)}</div>` : ''}
 
 <!-- Financial Breakdown -->
 <div class="divider"></div>
-${buyinAmount > 0 ? `<div class="row"><span class="row-label">Buy-In:</span><span class="row-value">$${buyinAmount.toLocaleString()}</span></div>` : ''}
-${buyinFee > 0 ? `<div class="row"><span class="row-label">Fee:</span><span class="row-value">$${buyinFee.toLocaleString()}</span></div>` : ''}
-${total > 0 ? `
-<div class="divider"></div>
-<div class="center total">$${total.toLocaleString()}</div>
-<div class="center total-method">CASH</div>
-` : '<div class="center total" style="font-size:20px">REGISTERED</div>'}
+${buyinAmount > 0 ? `<div class="fin-row"><span class="fin-label">Buy In:</span><span class="fin-value">${fmtMoney(buyinAmount)}</span></div>` : ''}
+${buyinFee > 0 ? `<div class="fin-row"><span class="fin-label">Entry Fee:</span><span class="fin-value">${fmtMoney(buyinFee)}</span></div>` : ''}
+${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Buy In Amount:</span><span class="fin-total-value">${fmtMoney(total)}</span></div>` : ''}
 
-<!-- Seat Assignment + Starting Chips -->
-${tableNumber || seatNumber || chipsFormatted ? `
+<!-- Table & Seat Boxes -->
 <div class="divider"></div>
-${tableNumber ? `<div class="row"><span class="row-label">Table:</span><span class="row-value">${tableNumber}</span></div>` : ''}
-${seatNumber ? `<div class="row"><span class="row-label">Seat:</span><span class="row-value">${seatNumber}</span></div>` : ''}
-${chipsFormatted ? `<div class="row"><span class="row-label">Starting Stack:</span><span class="row-value">${chipsFormatted}</span></div>` : ''}
-` : ''}
+<div class="seat-grid">
+  <div class="seat-box">
+    <div class="seat-box-label">Table</div>
+    <div class="seat-box-value">${tableNumber || '--'}</div>
+  </div>
+  <div class="seat-box">
+    <div class="seat-box-label">Seat</div>
+    <div class="seat-box-value">${seatNumber || '--'}</div>
+  </div>
+</div>
 
-<!-- Transaction Meta -->
-<div class="divider"></div>
-${txnId ? `<div class="row"><span class="row-label">Receipt #:</span><span class="row-value">${txnId}</span></div>` : ''}
-<div class="row"><span class="row-label">Date/Time:</span><span class="row-value">${nowFormatted}</span></div>
-${staffName ? `<div class="row"><span class="row-label">Cashier:</span><span class="row-value">${staffName}</span></div>` : ''}
+<!-- Received By -->
+<div class="received"><span class="received-label">Received By:</span>  ${staffName || ''}</div>
+<div class="received">${receivedDate}   ${receivedTime}</div>
 
-<!-- Legal Footer -->
+<!-- Receipt Number -->
 <div class="divider"></div>
-<div class="center legal">NON-TRANSFERABLE</div>
-<div class="center legal">Present receipt to dealer to receive chips</div>
+<div class="center receipt-num">${receiptNum || ''}</div>
 
-<!-- Copy Label Repeat + Venue Footer -->
-<div class="divider"></div>
-<div class="center copy-badge">* ${copyLabel} *</div>
-<div class="center footer-brand">${venueName || 'Smarter.Poker'}</div>
+<!-- Legal Disclaimer -->
+<div class="legal">Management reserves the right to modify, suspend, or cancel this promotion at its sole discretion and without prior notice.</div>
+
+<!-- Copy Label -->
+<div class="center copy-label">${displayCopy}</div>
 
 </div></body></html>`;
     };
@@ -202,7 +240,7 @@ ${staffName ? `<div class="row"><span class="row-label">Cashier:</span><span cla
         // If no copies selected, skip printing
         if (copies.length === 0) return;
 
-        const txnId = generateTxnId(playerName);
+        const receiptNum = generateReceiptNum();
 
         // Print each copy with a staggered delay to avoid popup blocking
         copies.forEach((copyLabel, index) => {
@@ -212,7 +250,7 @@ ${staffName ? `<div class="row"><span class="row-label">Cashier:</span><span cla
                 const html = buildReceiptHtml({
                     copyLabel, playerName, tournamentName, buyinAmount, buyinFee,
                     staffName, venueName, venueCity, venueState,
-                    scheduledStart, startingChips, tableNumber, seatNumber, playerId, txnId
+                    scheduledStart, startingChips, tableNumber, seatNumber, playerId, receiptNum
                 });
                 printWindow.document.write(html);
                 printWindow.document.close();
