@@ -301,6 +301,7 @@ export default function TableTabletsPage() {
             if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
             if (seatScannerStreamRef.current) { seatScannerStreamRef.current.getTracks().forEach(t => t.stop()); seatScannerStreamRef.current = null; }
             if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+            if (typeof seatScanIntervalRef !== 'undefined' && seatScanIntervalRef?.current) { clearInterval(seatScanIntervalRef.current); seatScanIntervalRef.current = null; }
         };
     }, []);
 
@@ -576,29 +577,44 @@ export default function TableTabletsPage() {
 
     const startDealerCamera = async () => {
         setScanError('');
+        // Mount the video element FIRST by setting camera active before acquiring stream
+        setScanCameraActive(true);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
             });
             streamRef.current = stream;
-            if (videoRef.current) videoRef.current.srcObject = stream;
-            setScanCameraActive(true);
-
-            if ('BarcodeDetector' in window) {
-                const detector = new BarcodeDetector({ formats: ['qr_code'] });
-                const interval = setInterval(async () => {
-                    if (!videoRef.current || videoRef.current.readyState < 2) return;
-                    try {
-                        const barcodes = await detector.detect(videoRef.current);
-                        if (barcodes.length > 0) {
-                            stopDealerCamera();
-                            handleDealerScan(barcodes[0].rawValue);
-                        }
-                    } catch { }
-                }, 300);
-                scanIntervalRef.current = interval;
-            }
+            // Wait for video element to mount (callback ref will attach stream)
+            // Poll for up to 2 seconds
+            let attempts = 0;
+            const waitForVideo = () => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    videoRef.current.play().catch(() => { });
+                } else if (attempts < 20) {
+                    attempts++;
+                    setTimeout(waitForVideo, 100);
+                    return;
+                }
+                // Start barcode detection once video is ready
+                if ('BarcodeDetector' in window) {
+                    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                    const interval = setInterval(async () => {
+                        if (!videoRef.current || videoRef.current.readyState < 2) return;
+                        try {
+                            const barcodes = await detector.detect(videoRef.current);
+                            if (barcodes.length > 0) {
+                                stopDealerCamera();
+                                handleDealerScan(barcodes[0].rawValue);
+                            }
+                        } catch { }
+                    }, 300);
+                    scanIntervalRef.current = interval;
+                }
+            };
+            waitForVideo();
         } catch {
+            setScanCameraActive(false);
             setScanError('Camera access denied. Please check permissions.');
         }
     };
@@ -794,41 +810,56 @@ export default function TableTabletsPage() {
         } catch { setToast({ type: 'error', text: 'Network error' }); }
     };
 
+    const seatScanIntervalRef = useRef(null);
+
     const openSeatScanner = (tableNumber, seatNumber) => {
         setSeatScanner({ tableNumber, seatNumber });
         setShowPlayerMenu(null);
+        // Wait for the modal + video element to mount before acquiring camera
         setTimeout(async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 seatScannerStreamRef.current = stream;
-                if (seatScannerVideoRef.current) {
-                    seatScannerVideoRef.current.srcObject = stream;
-                    seatScannerVideoRef.current.play();
-                }
-                if ('BarcodeDetector' in window) {
-                    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                    const scanLoop = async () => {
-                        if (!seatScannerStreamRef.current || !seatScannerVideoRef.current) return;
-                        try {
-                            const barcodes = await detector.detect(seatScannerVideoRef.current);
-                            if (barcodes.length > 0) {
-                                handleSeatScan(barcodes[0].rawValue, tableNumber, seatNumber);
-                                return;
-                            }
-                        } catch { }
-                        if (seatScannerStreamRef.current) requestAnimationFrame(scanLoop);
-                    };
-                    setTimeout(scanLoop, 500);
-                }
+                // Poll for video element mount (up to 2s)
+                let attempts = 0;
+                const waitForVideo = () => {
+                    if (seatScannerVideoRef.current) {
+                        seatScannerVideoRef.current.srcObject = stream;
+                        seatScannerVideoRef.current.play().catch(() => { });
+                    } else if (attempts < 20) {
+                        attempts++;
+                        setTimeout(waitForVideo, 100);
+                        return;
+                    }
+                    // Use setInterval instead of requestAnimationFrame for lower CPU on tablets
+                    if ('BarcodeDetector' in window) {
+                        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                        seatScanIntervalRef.current = setInterval(async () => {
+                            if (!seatScannerStreamRef.current || !seatScannerVideoRef.current) return;
+                            if (seatScannerVideoRef.current.readyState < 2) return;
+                            try {
+                                const barcodes = await detector.detect(seatScannerVideoRef.current);
+                                if (barcodes.length > 0) {
+                                    handleSeatScan(barcodes[0].rawValue, tableNumber, seatNumber);
+                                }
+                            } catch { }
+                        }, 300);
+                    }
+                };
+                waitForVideo();
             } catch {
                 setToast({ type: 'error', text: 'Camera access denied — check permissions' });
             }
-        }, 200);
+        }, 300);
     };
 
     const closeSeatScanner = () => {
+        if (seatScanIntervalRef.current) {
+            clearInterval(seatScanIntervalRef.current);
+            seatScanIntervalRef.current = null;
+        }
         if (seatScannerStreamRef.current) {
             seatScannerStreamRef.current.getTracks().forEach(t => t.stop());
             seatScannerStreamRef.current = null;

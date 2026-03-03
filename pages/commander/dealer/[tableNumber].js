@@ -452,8 +452,8 @@ export default function DealerTablet() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: vid, table_number: parseInt(tableNumber), reason: 'floor_assistance', description: `Floor requested at Table ${tableNumber}`, priority: 'normal', called_by: 'dealer' })
       });
+      broadcastChange('floor_calls');
     } catch (err) { console.error(err); }
-    broadcastChange('floor_calls');
     setTimeout(() => setFloorRequested(false), 30000);
   };
 

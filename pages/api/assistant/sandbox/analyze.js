@@ -599,8 +599,19 @@ export default async function handler(req, res) {
   }
 
   try {
+    // JWT Authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
+    const userId = authUser.id;
+
     const {
-      userId,
       heroHand,
       heroPosition,
       heroStack,

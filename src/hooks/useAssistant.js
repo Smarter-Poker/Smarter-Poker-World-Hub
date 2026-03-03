@@ -7,6 +7,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 
+// Helper to get auth token from localStorage
+function getAuthToken() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const authData = localStorage.getItem('smarter-poker-auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed?.access_token || null;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // useAssistantStats — Fetch user's assistant statistics
 // ═══════════════════════════════════════════════════════════════════════════
@@ -27,9 +42,11 @@ export function useAssistantStats() {
       try {
         // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
         const user = getAuthUser();
-        const userId = user?.id;
+        const token = getAuthToken();
 
-        const response = await fetch(`/api/assistant/stats?userId=${userId || ''}`);
+        const response = await fetch('/api/assistant/stats', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
         const data = await response.json();
 
         if (data.success) {
@@ -63,14 +80,16 @@ export function useLeaks(statusFilter = null) {
       setIsLoading(true);
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const user = getAuthUser();
-      const userId = user?.id;
+      const token = getAuthToken();
 
-      let url = `/api/assistant/leaks?userId=${userId || 'demo'}`;
+      let url = '/api/assistant/leaks';
       if (statusFilter) {
-        url += `&status=${statusFilter}`;
+        url += `?status=${statusFilter}`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -106,9 +125,13 @@ export function useLeaks(statusFilter = null) {
 
   const updateLeakStatus = async (leakId, newStatus) => {
     try {
+      const token = getAuthToken();
       const response = await fetch('/api/assistant/leaks', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ id: leakId, status: newStatus })
       });
       const data = await response.json();
@@ -190,15 +213,15 @@ export function useSandboxAnalysis() {
       setError(null);
 
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const user = getAuthUser();
+      const token = getAuthToken();
 
       const response = await fetch('/api/assistant/sandbox/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id,
-          ...params
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(params)
       });
 
       const data = await response.json();
@@ -321,16 +344,19 @@ export function useLeakDetection() {
       setError(null);
 
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const user = getAuthUser();
-      if (!user) {
+      const token = getAuthToken();
+      if (!token) {
         setError('Must be logged in to run leak detection');
         return { success: false, error: 'Not logged in' };
       }
 
       const response = await fetch('/api/assistant/leaks/detect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
       });
 
       const data = await response.json();

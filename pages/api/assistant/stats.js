@@ -15,15 +15,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userId } = req.query;
-
-  if (!userId) {
-    return res.status(200).json({
-      success: true,
-      stats: getDefaultStats(),
-      isDemo: true
-    });
+  // JWT Authentication
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(200).json({ success: true, stats: getDefaultStats(), isDemo: true });
   }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authUser) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const userId = authUser.id;
 
   try {
     // Try to get real stats
