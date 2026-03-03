@@ -306,7 +306,7 @@ export default async function handler(req, res) {
             to_user_id: user.id,
             amount: totalClaim,
             transaction_type: 'rakeback',
-            note: `Rakeback claim: ${pending.length} period(s)`,
+            notes: `Rakeback claim: ${pending.length} period(s)`,
             balance_after: newBalance,
           });
 
