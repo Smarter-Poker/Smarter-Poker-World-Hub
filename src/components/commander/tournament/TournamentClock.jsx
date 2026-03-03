@@ -150,7 +150,7 @@ export default function TournamentClock({
             </p>
             {currentBlind.ante > 0 && (
               <p className="text-[#22D3EE] text-xl mt-2">
-                Ante: {formatChips(currentBlind.ante)}
+                BB Ante: {formatChips(currentBlind.ante)}
               </p>
             )}
           </div>

@@ -65,7 +65,7 @@ export default function ClockDisplay() {
   const { id } = router.query;
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+
   const [showControls, setShowControls] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [preset, setPreset] = useState(null);
@@ -106,11 +106,7 @@ export default function ClockDisplay() {
     return () => { wakeLockRef.current?.release().catch(() => { }); document.removeEventListener('visibilitychange', h); };
   }, []);
 
-  // Wall clock
-  useEffect(() => {
-    const i = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(i);
-  }, []);
+
 
   // Burn-in prevention
   useEffect(() => {
@@ -313,7 +309,7 @@ export default function ClockDisplay() {
   const isBreak = alerts.on_break;
   const isH4H = alerts.hand_for_hand;
   const currentLevel = (clock.current_level || 0) + 1;
-  const gameType = t.game_type || 'No Limit Texas Hold \'Em';
+
 
   const totalEntries = stats.total_entries || 0;
   const playersIn = stats.players_remaining || 0;
@@ -341,7 +337,7 @@ export default function ClockDisplay() {
       nextBreakSec = secsUntilBreak;
     }
   }
-  const elapsedDisplay = formatElapsed(t.started_at || clockState.started_at);
+
   const playerStacks = stats.player_stacks || [];
   const prizeAmounts = payouts.map(p => p.amount || (prizePool * (p.percentage || 0) / 100));
   const icmResults = playerStacks.length > 1 ? calculateICM(playerStacks.map(p => p.chips), prizeAmounts) : [];
@@ -354,6 +350,20 @@ export default function ClockDisplay() {
   return (
     <>
       <SEOHead title="Commander — Clock Display" description="Club Commander Poker Room Management Tool." noindex={true} />
+
+      {/* Ticker animation keyframes */}
+      <style>{`
+        @keyframes tickerScrollUp {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        .ticker-scroll-up {
+          animation: tickerScrollUp 20s linear infinite;
+        }
+        .ticker-scroll-up:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
 
       <div style={{
         ...S.container, ...bgStyle,
@@ -439,15 +449,33 @@ export default function ClockDisplay() {
         {activeScreen === SCREENS.CLOCK && (
           <>
             <div style={S.main}>
-              {/* LEFT — Stats */}
+              {/* LEFT — Stats + Chip Leaders Ticker */}
               <div style={S.leftPanel}>
                 <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
                 <StatCell label="Entries" value={totalEntries} />
                 <StatCell label="Players In" value={playersIn} />
-                <StatCell label="Rebuys" value={totalRebuys} />
+                {t.rebuy_allowed && <StatCell label="Rebuys" value={totalRebuys} />}
                 <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
                 <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
                 <StatCell label="Total Pot" value={formatMoney(prizePool)} />
+
+                {/* Chip Leaders — Auto-scrolling Ticker */}
+                {chipLeaders.length > 0 && (
+                  <div style={S.tickerSection}>
+                    <div style={S.tickerHeader}>Chip Leaders</div>
+                    <div style={S.tickerViewport}>
+                      <div style={S.tickerTrack} className="ticker-scroll-up">
+                        {[...chipLeaders, ...chipLeaders].map((player, i) => (
+                          <div key={i} style={S.tickerItem}>
+                            <span style={S.tickerRank}>{(i % chipLeaders.length) + 1}</span>
+                            <span style={S.tickerName}>{player.name || 'Player'}</span>
+                            <span style={S.tickerChips}>{formatChipCount(player.chips)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* CENTER — Clock + Blinds + Chip Leaders */}
@@ -462,7 +490,6 @@ export default function ClockDisplay() {
                 {data?.clock?.clock_state?.status === 'paused' && <div style={S.pausedBanner}>PAUSED</div>}
 
                 <div style={S.blindsBlock}>
-                  <div style={{ ...S.blindsGame, color: '#FFFFFF' }}>{gameType}</div>
                   <div style={{ ...S.blindsLabel, color: '#FFFFFF' }}>Blinds</div>
                   <div style={{ ...S.blindsValue, color: '#FFFFFF' }}>
                     {(blinds.small_blind || 0).toLocaleString()} / {(blinds.big_blind || 0).toLocaleString()}
@@ -472,7 +499,7 @@ export default function ClockDisplay() {
 
                 {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
                   <div style={S.nextRound}>
-                    <strong>Next Round:</strong> {gameType}<br />
+                    <strong>Next Round:</strong><br />
                     Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
                     {(nextBlinds.ante || 0) > 0 && <><br />BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
                   </div>
@@ -481,62 +508,38 @@ export default function ClockDisplay() {
 
               </div>
 
-              {/* RIGHT — Time + Remaining Payouts (scrollable) */}
+              {/* RIGHT — Next Break + Remaining Payouts Ticker */}
               <div style={S.rightPanel}>
-                <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
-                <StatCell label="Elapsed Time" value={elapsedDisplay} />
-                <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+                <div style={S.nextBreakBox}>
+                  <div style={S.nextBreakLabel}>Next Break</div>
+                  <div style={S.nextBreakValue}>{nextBreakSec ? formatClock(nextBreakSec) : '--:--'}</div>
+                </div>
 
-                {/* Dynamic Payouts — only remaining positions for remaining players */}
+                {/* Dynamic Payouts — Auto-scrolling Ticker */}
                 {remainingPayouts.length > 0 && (
-                  <div style={S.rightSection}>
-                    <div style={S.rightSectionHeader}>Remaining Payouts</div>
-                    <div style={S.payoutScroll}>
-                      {remainingPayouts.map((p, i) => {
-                        const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
-                        const place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                        const color = i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#E4E6EB';
-                        return (
-                          <div key={i} style={S.payoutRow}>
-                            <span style={{ opacity: 0.6, minWidth: 30, fontSize: 13 }}>{place}</span>
-                            <span style={{ color, fontWeight: 700, fontSize: 15 }}>{formatMoney(amount)}</span>
-                          </div>
-                        );
-                      })}
+                  <div style={S.tickerSection}>
+                    <div style={S.tickerHeader}>Remaining Payouts</div>
+                    <div style={S.tickerViewport}>
+                      <div style={S.tickerTrack} className="ticker-scroll-up">
+                        {[...remainingPayouts, ...remainingPayouts].map((p, i) => {
+                          const idx = i % remainingPayouts.length;
+                          const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
+                          const place = idx === 0 ? '1st' : idx === 1 ? '2nd' : idx === 2 ? '3rd' : `${idx + 1}th`;
+                          const color = idx === 0 ? '#FFD700' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : '#E4E6EB';
+                          return (
+                            <div key={i} style={S.tickerItem}>
+                              <span style={{ opacity: 0.6, minWidth: 30, fontSize: 14, fontWeight: 600 }}>{place}</span>
+                              <span style={{ color, fontWeight: 700, fontSize: 16 }}>{formatMoney(amount)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* CHIP LEADERS — bottom of page, full-width, top 20, 5 visible with scroll */}
-              {chipLeaders.length > 0 && (
-                <div style={{
-                  width: '100%', background: 'rgba(0,0,0,0.3)',
-                  borderTop: '2px solid rgba(255,255,255,0.12)',
-                  display: 'flex', flexDirection: 'column', flexShrink: 0,
-                }}>
-                  <div style={{
-                    fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
-                    textAlign: 'center', padding: '6px 8px', opacity: 0.5,
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
-                  }}>Chip Leaders</div>
-                  <div style={{
-                    overflowY: 'auto', maxHeight: 240, padding: '4px 16px',
-                    display: 'flex', flexDirection: 'column', gap: 2,
-                  }}>
-                    {chipLeaders.map((player, i) => (
-                      <div key={i} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      }}>
-                        <span style={{ fontSize: 16, fontWeight: 800, opacity: 0.5, minWidth: 28, textAlign: 'center' }}>{i + 1}</span>
-                        <span style={{ flex: 1, fontSize: 18, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name || 'Player'}</span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: '#31A24C', whiteSpace: 'nowrap' }}>{formatChipCount(player.chips)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Chip leaders moved to left sidebar ticker */}
             </div>
           </>
         )}
@@ -797,13 +800,52 @@ const S = {
     background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
     width: '100%', textAlign: 'center', padding: '8px 16px'
   },
-  blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500 },
   blindsLabel: { fontSize: 28, fontWeight: 600, opacity: 0.5 },
   blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15 },
   blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
+  },
+  // Next Break box — prominent top-right
+  nextBreakBox: {
+    background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    padding: '12px 8px', textAlign: 'center', flexShrink: 0,
+  },
+  nextBreakLabel: { fontSize: 14, opacity: 0.65, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' },
+  nextBreakValue: { fontSize: 36, fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontFamily: "'Inter', monospace", marginTop: 2 },
+  // Ticker section — used for both chip leaders and payouts
+  tickerSection: {
+    flex: 1, display: 'flex', flexDirection: 'column',
+    background: 'rgba(255,255,255,0.04)',
+    border: '2px solid rgba(255,255,255,0.12)',
+    overflow: 'hidden', minHeight: 0,
+  },
+  tickerHeader: {
+    fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+    textAlign: 'center', padding: '6px 8px', opacity: 0.6,
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(0,0,0,0.2)', flexShrink: 0,
+  },
+  tickerViewport: {
+    flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0,
+  },
+  tickerTrack: {
+    display: 'flex', flexDirection: 'column',
+  },
+  tickerItem: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '5px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+  },
+  tickerRank: {
+    fontSize: 14, fontWeight: 800, opacity: 0.5, minWidth: 20, textAlign: 'center',
+  },
+  tickerName: {
+    flex: 1, fontSize: 14, fontWeight: 600,
+  },
+  tickerChips: {
+    fontSize: 14, fontWeight: 700, color: '#31A24C', whiteSpace: 'nowrap',
   },
   // Right panel sections — Prizes + Chip Leaders
   rightSection: {
