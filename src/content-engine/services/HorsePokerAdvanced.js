@@ -75,22 +75,27 @@ export function getOpponentRead(horseId, opponentId) {
     const history = getHandHistory(horseId, opponentId);
     if (history.length < 3) return null;
 
-    let bluffs = 0, value = 0, folds = 0;
+    let bluffs = 0, value = 0, folds = 0, totalWeight = 0;
 
-    for (const hand of history) {
-        if (hand.wasBluff) bluffs++;
-        if (hand.wasValue) value++;
-        if (hand.folded) folds++;
+    // Time-weighted decay (#20): recent hands weigh more
+    for (let i = 0; i < history.length; i++) {
+        const hand = history[i];
+        // Most recent hands (last 20) get 2x weight, older get 1x
+        const weight = i >= (history.length - 20) ? 2.0 : 1.0;
+
+        if (hand.wasBluff) bluffs += weight;
+        if (hand.wasValue) value += weight;
+        if (hand.folded) folds += weight;
+        totalWeight += weight;
     }
 
-    const total = history.length;
-
     return {
-        bluffFrequency: bluffs / total,
-        valueFrequency: value / total,
-        foldFrequency: folds / total,
-        handsObserved: total,
-        tendency: bluffs > value ? 'bluffy' : folds > total * 0.5 ? 'weak-tight' : 'balanced'
+        bluffFrequency: bluffs / totalWeight,
+        valueFrequency: value / totalWeight,
+        foldFrequency: folds / totalWeight,
+        callFrequency: 1 - (folds / totalWeight), // For opponent-aware sizing (#7)
+        handsObserved: history.length,
+        tendency: bluffs > value ? 'bluffy' : folds > totalWeight * 0.5 ? 'weak-tight' : 'balanced'
     };
 }
 

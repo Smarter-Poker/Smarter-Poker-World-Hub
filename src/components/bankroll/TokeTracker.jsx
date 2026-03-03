@@ -722,7 +722,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 setNewGig(prev => ({
                                     ...prev,
                                     venue_name: name,
-                                    location_id: match ? match.id : (name ? '__new__' : null),
+                                    location_id: match ? match.id : null,
                                     venue_type: venueType,
                                     poker_venue_id: pokerVenueId,
                                     latitude: lat,

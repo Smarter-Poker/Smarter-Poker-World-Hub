@@ -137,13 +137,17 @@ export async function createGig(
         throw new Error('You already have an active gig. Complete or delete it first.');
     }
 
+    // Validate location_id is a real UUID — reject sentinel strings like '__new__'
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
+
     const { data, error } = await supabase
         .from('toke_gigs')
         .insert({
             user_id: userId,
             venue_name: gig.venue_name,
             venue_address: gig.venue_address || null,
-            location_id: gig.location_id || null,
+            location_id: safeLocationId,
             start_date: gig.start_date || new Date().toISOString().split('T')[0],
             hourly_rate: gig.hourly_rate || 0,
             notes: gig.notes || null,

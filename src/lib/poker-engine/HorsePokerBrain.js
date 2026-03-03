@@ -1245,6 +1245,82 @@ async function evaluateSessions(gameController, tableManager) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MULTI-TABLE LIMITS (#5)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if a horse can sit at another table (based on skill-based table limits)
+ * Fish = 1 table, Calling_station = 1, Rec = 2, Grinder = 3, Reg/Crusher = 4
+ * @param {string} playerId
+ * @returns {Promise<boolean>}
+ */
+async function canSitAtTable(playerId) {
+    const currentTables = multiTableTracker.get(playerId)?.size || 0;
+
+    const personality = await getPersonalityModule();
+    if (!personality?.getSkillTier) return true;
+
+    const skill = personality.getSkillTier(playerId);
+    const tableLimits = { fish: 1, recreational: 2, grinder: 3, reg: 4, crusher: 4 };
+    const maxTables = tableLimits[skill.key] || 2;
+
+    if (currentTables >= maxTables) {
+        console.log(`[HorseBrain] 🚫 Multi-table limit: ${playerId.substring(0, 8)} at ${currentTables}/${maxTables} tables`);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Get pending AI chat messages for the table (drained after read)
+ * @returns {Array}
+ */
+function getChatMessages() {
+    return chatMessages.splice(0);
+}
+
+/**
+ * Clean up multi-table tracking when a player leaves a table
+ * @param {string} tableId
+ * @param {string} playerId
+ */
+function cleanupMultiTable(tableId, playerId) {
+    const tables = multiTableTracker.get(playerId);
+    if (tables) {
+        tables.delete(tableId);
+        if (tables.size === 0) multiTableTracker.delete(playerId);
+    }
+}
+
+/**
+ * Warm the GTO cache on startup with common preflop charts (#19)
+ */
+async function warmGTOCache() {
+    try {
+        const gto = await getGTOModule();
+        if (!gto?.getPreflopRange) return;
+
+        const positions = ['BTN', 'CO', 'HJ', 'SB', 'BB', 'UTG', 'MP'];
+        const topologies = ['6-Max'];
+        const depths = ['100bb'];
+
+        let loaded = 0;
+        for (const pos of positions) {
+            for (const topo of topologies) {
+                for (const depth of depths) {
+                    const chartName = `${pos}_Open_${depth}_${topo}`;
+                    await gto.getPreflopRange(chartName);
+                    loaded++;
+                }
+            }
+        }
+        console.log(`[HorseBrain] 🔥 GTO cache warmed: ${loaded} charts pre-loaded`);
+    } catch (err) {
+        console.warn('[HorseBrain] GTO cache warming failed:', err.message);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1262,6 +1338,16 @@ module.exports = {
     canRebuy,
     processHandResult,
 
+    // Multi-table (#5)
+    canSitAtTable,
+    cleanupMultiTable,
+
+    // Table Chat (#10)
+    getChatMessages,
+
+    // Infrastructure (#19)
+    warmGTOCache,
+
     // Helpers (exposed for testing)
     cardIntToString,
     cardsToStrings,
@@ -1271,4 +1357,6 @@ module.exports = {
     getActionDelay,
     validateAndClamp,
     makeFallbackDecision,
+    evaluatePostflopHand,
+    evaluateBoardWetness,
 };
