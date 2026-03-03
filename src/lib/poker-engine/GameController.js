@@ -234,6 +234,18 @@ class GameController {
       const now = Date.now();
       const horseIds = await HorsePokerBrain.loadHorseIds();
 
+      // ─── GAP 8: 9:00 AM CST Daily Reload ───
+      const cstDateStr = new Date(now).toLocaleString('en-US', { timeZone: 'America/Chicago' });
+      const cstDate = new Date(cstDateStr);
+      const todayStr = cstDateStr.split(',')[0];
+
+      if (cstDate.getHours() >= 9) {
+        if (this._lastReloadDate !== todayStr) {
+          this._lastReloadDate = todayStr;
+          await this._processDailyHorseReload(horseIds);
+        }
+      }
+
       // 1. Auto-fill cash tables & Watchdog Sweep
       for (const [tableId, entry] of this.lobby.tables.entries()) {
         const table = entry.table;
@@ -309,6 +321,56 @@ class GameController {
       }
     } catch (err) {
       console.error(`[HorseAI] Pipeline Heartbeat failed:`, err.message);
+    }
+  }
+
+  /**
+   * Bankrolls all horses with 50k chips each morning at 9am.
+   * Runs exactly once per day via the heartbeat.
+   * @private
+   */
+  async _processDailyHorseReload(horseIds) {
+    if (!this.supabase || !horseIds || horseIds.size === 0) return;
+    console.log(`[HorseAI] 🏦 Executing 9:00 AM Daily Bankroll Reload for ${horseIds.size} horses`);
+    try {
+      // ─── AUDIT 13 Fix: UPSERT into all active clubs ───
+      // Horses aren't always explicitly invited to clubs, so their ledger rows might not exist.
+      // We find all clubs currently running tables, and ensure every horse has a 50k ledger.
+      const activeClubIds = new Set();
+      for (const entry of this.lobby.tables.values()) {
+        if (entry.config?.clubId) activeClubIds.add(entry.config.clubId);
+      }
+
+      if (activeClubIds.size === 0) {
+        console.log('[HorseAI] 🏦 No active clubs found to reload horses into.');
+        return;
+      }
+
+      let reloaded = 0;
+      for (const clubId of activeClubIds) {
+        const updates = Array.from(horseIds).map(horseId => ({
+          club_id: clubId,
+          user_id: horseId, // SCHEMA: club_members uses user_id, not profile_id
+          role: 'member',
+          status: 'approved',
+          chip_balance: 50000,
+          updated_at: new Date().toISOString()
+        }));
+
+        // Bulk upsert for performance
+        const { error } = await this.supabase
+          .from('club_members')
+          .upsert(updates, { onConflict: 'club_id,user_id' });
+
+        if (!error) {
+          reloaded += updates.length;
+        } else {
+          console.error(`[HorseAI] Failed to upsert ledgers for club ${clubId}:`, error.message);
+        }
+      }
+      console.log(`[HorseAI] 🏦 Daily reload complete. Successfully refreshed ${reloaded} horse ledgers across ${activeClubIds.size} clubs.`);
+    } catch (err) {
+      console.error('[HorseAI] Daily reload failed:', err.message);
     }
   }
 
@@ -993,26 +1055,42 @@ class GameController {
       return { success: false, error: 'No horse profiles found', seated: 0 };
     }
 
-    // Get horse profiles with names for display
+    // Get table stakes for personality filtering & min buyin validation
+    const bigBlind = entry.config?.bigBlind || 2;
+    const clubId = entry.config?.clubId;
+    const minBuyIn = bigBlind * 20;
+
+    // ─── GAP 7: Enforce True Bankrolls  ───
+    // Horses MUST have at least the minimum buy-in inside their physical club_members account.
     const sb = this.supabase;
     let horseProfiles = [];
-    if (sb) {
+    if (sb && clubId) {
       const { data } = await sb
-        .from('profiles')
-        .select('id, alias, avatar_url')
-        .eq('is_horse', true)
+        .from('club_members')
+        .select(`
+          chip_balance,
+          profile_id,
+          profiles!inner ( id, alias, avatar_url )
+        `)
+        .eq('club_id', clubId)
+        .gt('chip_balance', minBuyIn)
         .limit(100);
-      horseProfiles = data || [];
+
+      horseProfiles = (data || [])
+        .filter(row => row.profiles && horseIds.has(row.profile_id))
+        .map(row => ({
+          id: row.profile_id,
+          alias: row.profiles.alias || null,
+          avatar_url: row.profiles.avatar_url || null,
+          balance: row.chip_balance
+        }));
     } else {
-      // Fallback: use IDs without names
-      horseProfiles = [...horseIds].map(id => ({ id, alias: `Horse ${id.substring(0, 6)}`, avatar_url: null }));
+      // Fallback: use IDs without names (only if entirely disconnected, very rare)
+      horseProfiles = [...horseIds].map(id => ({ id, alias: `Horse ${id.substring(0, 6)}`, avatar_url: null, balance: Infinity }));
     }
 
     // Shuffle to randomize which horses sit
     const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
-
-    // Get table stakes for personality filtering
-    const bigBlind = entry.config?.bigBlind || 2;
 
     // Filter by personality preferences and seat them
     let seated = 0;
@@ -1035,8 +1113,21 @@ class GameController {
       const seatSlot = emptySeats.shift();
       if (!seatSlot) break;
 
-      // Calculate buy-in (100bb standard)
-      const buyIn = bigBlind * 100;
+      // Calculate buy-in (100bb standard, or max they have if < 100bb)
+      const idealBuyIn = bigBlind * 100;
+      const buyIn = Math.min(idealBuyIn, horse.balance);
+
+      // ─── AUDIT 13: Wire into Physical Economy (Lock Chips) ───
+      // The API layer normally does this, but autonomous seating bypasses the API.
+      // We MUST lock chips so the LobbyManager cashOut failsafe recognizes the session.
+      if (clubId) {
+        const ChipBridge = require('./ChipBridge');
+        const lockResult = await ChipBridge.lockChips(clubId, horse.id, tableId, buyIn);
+        if (!lockResult.success) {
+          console.warn(`[HorseAI] Failed to physically lock chips for ${horse.id} at ${tableId}:`, lockResult.error);
+          continue; // Skip this horse if they can't lock chips
+        }
+      }
 
       const result = entry.table.sitDown(horse.id, seatSlot.index, buyIn, {
         displayName: horse.alias || `Horse ${horse.id.substring(0, 6)}`,
@@ -1046,7 +1137,11 @@ class GameController {
       if (result.success) {
         seated++;
         HorsePokerBrain.recordSitDown(tableId, horse.id, buyIn);
-        console.log(`[HorseAI] 🐴 ${horse.alias || horse.id.substring(0, 8)} seated at ${tableId} (seat ${seatSlot.index})`);
+        console.log(`[HorseAI] 🐴 ${horse.alias || horse.id.substring(0, 8)} seated at ${tableId} (seat ${seatSlot.index}) physically locking ${buyIn} chips!`);
+      } else if (clubId) {
+        // Rollback physical lock if memory table rejects them
+        const ChipBridge = require('./ChipBridge');
+        await ChipBridge.unlockChips(clubId, horse.id, tableId, buyIn);
       }
     }
 

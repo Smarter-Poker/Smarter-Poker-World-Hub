@@ -194,17 +194,24 @@ export default function DealerTicker({
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
                 position: 'relative',
+                height: `${fontSize + 32}px`, // Fixed height based on font size + padding
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
             }}>
                 <div style={{
-                    display: 'inline-flex',
+                    display: 'flex',
+                    flexDirection: 'column',
                     animation: `dealerTickerScroll ${speed}s linear infinite`,
+                    position: 'absolute',
+                    top: 0,
                 }}>
                     <span style={{
                         fontSize: `${fontSize}px`,
                         color: accentColor,
                         fontWeight: 700,
                         letterSpacing: '0.5px',
-                        paddingRight: '120px',
+                        paddingBottom: '120px',
                         whiteSpace: 'nowrap',
                     }}>{message}</span>
                     <span style={{
@@ -212,15 +219,15 @@ export default function DealerTicker({
                         color: accentColor,
                         fontWeight: 700,
                         letterSpacing: '0.5px',
-                        paddingRight: '120px',
+                        paddingBottom: '120px',
                         whiteSpace: 'nowrap',
                     }}>{message}</span>
                 </div>
             </div>
             <style jsx>{`
         @keyframes dealerTickerScroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          0% { transform: translateY(-50%); }
+          100% { transform: translateY(0); }
         }
       `}</style>
         </>

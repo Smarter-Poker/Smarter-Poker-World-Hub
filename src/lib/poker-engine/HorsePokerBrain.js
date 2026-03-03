@@ -1711,9 +1711,10 @@ async function processHandResult(handData, bb = 2) {
  * @param {string} tableId 
  * @param {string} playerId 
  * @param {number} minBuyIn - the minimum cost to buy back in
+ * @param {string} clubId - the club ID for chip balance lookups
  * @returns {Promise<boolean>}
  */
-async function canRebuy(tableId, playerId, minBuyIn = 0) {
+async function canRebuy(tableId, playerId, minBuyIn = 0, clubId = null) {
     const tableSessions = sessionTracker.get(tableId);
     if (!tableSessions) return true; // Not tracking, allow
 
@@ -1734,12 +1735,12 @@ async function canRebuy(tableId, playerId, minBuyIn = 0) {
     // ─── GAP 7: Enforce True Bankrolls  ───
     // Query physical chip balance from the club ledger
     const sb = getSupabase();
-    if (sb && tableSessions.clubId) {
+    if (sb && clubId) {
         try {
             const { data, error } = await sb
                 .from('club_members')
                 .select('chip_balance')
-                .eq('club_id', tableSessions.clubId)
+                .eq('club_id', clubId)
                 .eq('profile_id', playerId)
                 .single();
 
@@ -1747,7 +1748,7 @@ async function canRebuy(tableId, playerId, minBuyIn = 0) {
 
             const realBalance = data?.chip_balance || 0;
             if (realBalance <= 0 || realBalance < minBuyIn) {
-                console.log(`[HorseBrain] 💸 BANKRUPT: ${playerId.substring(0, 8)} has 0 chips in club. Rebuy DENIED until 9AM reload.`);
+                console.log(`[HorseBrain] 💸 BANKRUPT: ${playerId.substring(0, 8)} has only ${realBalance} chips in club. Rebuy DENIED until 9AM reload.`);
                 return false;
             }
         } catch (err) {
@@ -1853,10 +1854,22 @@ async function evaluateSessions(gameController, tableManager) {
                     .filter(s => s.player && s.status !== 'empty')
                     .reduce((sum, s) => sum + (s.stack || 0), 0) / Math.max(1, tableManager.seats.filter(s => s.player).length);
                 const bb = tableManager.bigBlind || 2;
+                const minBuyIn = bb * 20; // Default minimum buy-in factor 20bbs
                 const rebuyInfo = getDynamicRebuyStrategy(playerId, currentStack, bb, session.buyinsUsed, avgStack);
 
-                if (rebuyInfo.shouldRebuy && await canRebuy(tableId, playerId)) {
+                if (rebuyInfo.shouldRebuy && await canRebuy(tableId, playerId, minBuyIn, tableManager.clubId)) {
                     console.log(`[HorseBrain] 🔄 Dynamic rebuy for ${playerId.substring(0, 8)}: ${rebuyInfo.reason}, amount: ${rebuyInfo.amount}`);
+
+                    // ─── AUDIT 13: Wire into Physical Economy (Rebuy Chips) ───
+                    if (tableManager.clubId) {
+                        const ChipBridge = require('./ChipBridge');
+                        const lockResult = await ChipBridge.rebuyChips(tableManager.clubId, playerId, tableId, rebuyInfo.amount);
+                        if (!lockResult.success) {
+                            console.warn(`[HorseBrain] Failed to physically lock rebuy chips for ${playerId}:`, lockResult.error);
+                            continue; // Skip the RAM top-up if the database lock fails
+                        }
+                    }
+
                     recordRebuy(tableId, playerId, rebuyInfo.amount);
                     // Top up the player's stack
                     if (seat.player) seat.player.stack = (seat.player.stack || 0) + rebuyInfo.amount;

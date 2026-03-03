@@ -169,8 +169,7 @@ export default function PayoutModal({
               <DollarSign className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Tournament Payouts</h2>
-              <p className="text-sm text-[#64748B]">{tournament.name}</p>
+              <h2 className="text-2xl font-bold text-white uppercase tracking-wider">{tournament.name || 'Tournament Payouts'}</h2>
             </div>
           </div>
           <button
