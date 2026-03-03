@@ -511,10 +511,12 @@ export default function ClockDisplay() {
                 )}
               </div>
 
-              {/* RIGHT — Next Break + Payouts Ticker */}
+              {/* RIGHT — Next Break (compact) + Payouts Ticker */}
               <div style={S.rightPanel}>
-                <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
-                <StatCell label="Elapsed Time" value={elapsedDisplay} />
+                <div style={S.nextBreakCompact}>
+                  <div style={S.statLabel}>Next Break</div>
+                  <div style={S.statValue}>{nextBreakSec ? formatClock(nextBreakSec) : '--:--'}</div>
+                </div>
 
                 {/* Payouts — all white, auto-scrolling ticker */}
                 {remainingPayouts.length > 0 && (
@@ -841,6 +843,12 @@ const S = {
   top3Row: {
     display: 'flex', alignItems: 'center', gap: 8,
     padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
+  },
+  // Next Break — compact fixed-height box in right panel
+  nextBreakCompact: {
+    background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    padding: '8px', textAlign: 'center', flexShrink: 0,
   },
   // Payout auto-scroll ticker viewport
   payoutTickerViewport: {
