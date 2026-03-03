@@ -14,9 +14,9 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, Users, DollarSign,
-  Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
-  LayoutGrid, UserCheck, UserPlus, Monitor,
-  Hand, Star, Coffee, Volume2, X
+  AlertTriangle, ChevronRight, RefreshCw, Loader2,
+  LayoutGrid, UserPlus, Monitor,
+  Star, Volume2, X
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -79,11 +79,6 @@ export default function TDControlCenter() {
       const json = await res.json();
       if (json.success) {
         setFloor(json.data);
-        // Sync clock seconds from server
-        const cs = json.data.clock?.clock_state;
-        if (cs?.remaining_seconds !== undefined) {
-          setClockSeconds(cs.remaining_seconds);
-        }
         setError(null);
       } else {
         setError(json.error);
