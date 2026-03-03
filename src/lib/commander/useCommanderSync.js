@@ -63,6 +63,7 @@ const TABLE_TO_ENTITY = {
     commander_settings: 'settings',
     commander_staff: 'staff',
     commander_staff_shifts: 'staff', // Shift schedule changes affect staff views
+    commander_time_clock: 'staff',   // Time clock changes affect staff views
     commander_members: 'members',
     commander_dealers: 'dealers',
     commander_dealer_rotations: 'dealers',     // Rotation changes affect dealer views
@@ -79,7 +80,7 @@ const ENTITY_TO_TABLES = {
     waitlist: ['commander_waitlist'],
     floor_calls: ['commander_floor_calls'],
     settings: ['commander_settings'],
-    staff: ['commander_staff', 'commander_staff_shifts'],
+    staff: ['commander_staff', 'commander_staff_shifts', 'commander_time_clock'],
     members: ['commander_members'],
     dealers: ['commander_dealers', 'commander_dealer_rotations'],
     tournaments: ['commander_tournaments', 'commander_tournament_entries'],

@@ -29,7 +29,10 @@ export default function JarvisDashboard() {
             setUser(authUser);
 
             if (authUser) {
-                const response = await fetch(`/api/jarvis/user-insights?userId=${authUser.id}`);
+                const token = (JSON.parse(localStorage.getItem('sb-' + (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', '').split('.')[0] + '-auth-token') || '{}'))?.access_token || '';
+                const response = await fetch(`/api/jarvis/user-insights`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = await response.json();
 
                 if (data.success) {

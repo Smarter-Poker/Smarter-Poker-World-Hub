@@ -17,6 +17,7 @@ import {
   Loader2, Settings, Calculator, FileText, RotateCcw, Check, ArrowLeft
 } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 // ===== PRESET TEMPLATES =====
 // All templates use BB Ante (ante = big blind) and 10-min breaks every ~2 hours
@@ -299,7 +300,7 @@ export default function TournamentSettings() {
         })
       });
       const json = await res.json();
-      if (json.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+      if (json.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); broadcastChange('tournaments'); }
     } catch (err) { console.error(err); }
     finally { setSaving(false); }
   };

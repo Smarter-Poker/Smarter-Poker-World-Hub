@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
-import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -207,6 +207,7 @@ export default function AnnouncementsDisplay() {
       setShowForm(false);
       setEditingAnnouncement(null);
       fetchData(); fetchAllAnnouncements();
+      broadcastChange('settings');
     } catch (err) { console.error(err); alert(err.message || 'Failed to save'); }
     finally { setSaving(false); }
   };
@@ -218,6 +219,7 @@ export default function AnnouncementsDisplay() {
         method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
       fetchData(); fetchAllAnnouncements();
+      broadcastChange('settings');
     } catch (err) { console.error(err); }
   };
 

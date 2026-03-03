@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Loader2, RefreshCw, AlertTriangle, CheckCircle2, ArrowRight,
@@ -86,6 +87,7 @@ export default function TDBalance() {
       setResult(json);
       setSuggestion(null);
       await fetchFloor();
+      broadcastChange('tournaments');
     } catch (err) { console.error(err); setResult({ success: false, error: 'Failed to execute' }); }
     finally { setExecuting(false); }
   };

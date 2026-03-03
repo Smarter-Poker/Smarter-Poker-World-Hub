@@ -15,13 +15,15 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { userId } = req.query;
-
-    if (!userId) {
-        return res.status(400).json({ error: 'userId required' });
-    }
+    // ── Auth: JWT required — userId derived from token, not query ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
+    const userId = authUser.id; // Trust JWT, not query string
 
     try {
         // Get user's training profile

@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw,
@@ -129,6 +130,7 @@ export default function TDClock() {
         body: JSON.stringify({ action })
       });
       await fetchFloor();
+      broadcastChange('tournaments');
     } catch (err) { console.error(err); }
     finally { setActionLoading(null); }
   };
@@ -141,6 +143,7 @@ export default function TDClock() {
       body: JSON.stringify({ active: !isActive })
     });
     await fetchFloor();
+    broadcastChange('tournaments');
   };
 
   const triggerFinalTable = async () => {
@@ -152,6 +155,7 @@ export default function TDClock() {
         body: JSON.stringify({ final_table_number: 1 })
       });
       await fetchFloor();
+      broadcastChange('tournaments');
     } catch (err) { console.error(err); }
     finally { setActionLoading(null); }
   };

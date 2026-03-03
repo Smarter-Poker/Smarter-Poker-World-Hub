@@ -14,7 +14,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
-import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
+import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -332,6 +332,7 @@ export default function TablesDisplay() {
           const dealerName = json.data?.dealer?.name || json.data?.dealer_name || 'Dealer';
           setToast({ type: 'success', text: `✅ ${dealerName} scanned in as dealer` });
           fetchData(); fetchDealers();
+          broadcastChange('dealers');
         } else {
           setToast({ type: 'error', text: json.error || 'Dealer not found' });
         }
@@ -347,6 +348,7 @@ export default function TablesDisplay() {
         if (seatJson.success) {
           setToast({ type: 'success', text: `✅ ${seatJson.data.player_name} seated at S${seatNumber}` });
           fetchData();
+          broadcastChange('tables');
         } else {
           setToast({ type: 'error', text: seatJson.error || 'Could not seat player' });
         }
@@ -386,6 +388,7 @@ export default function TablesDisplay() {
         setToast({ type: 'success', text: `${json.data.player_name} removed · ${json.data.unused_minutes_returned}m returned` });
         setShowPlayerMenu(null);
         fetchData();
+        broadcastChange('tables');
       } else {
         setToast({ type: 'error', text: json.error || 'Failed to remove player' });
       }

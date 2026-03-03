@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Loader2, RefreshCw, Search, CheckCircle2, AlertTriangle,
@@ -133,6 +134,7 @@ export default function TDRegister() {
         setManualTable('');
         setManualSeat('');
         await fetchFloor();
+        broadcastChange('tournaments');
       } else {
         setLastResult({ success: false, error: json.error || 'Registration failed' });
       }
@@ -329,6 +331,7 @@ export default function TDRegister() {
                     setPlayerName('');
                     setPlayerPhone('');
                     await fetchFloor();
+                    broadcastChange('tournaments');
                   } else {
                     setLastResult({ success: false, error: json.error || 'Failed to add alternate' });
                   }

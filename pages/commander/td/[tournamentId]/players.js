@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Search, X, Loader2, RefreshCw, ChevronDown,
@@ -150,6 +151,7 @@ export default function TDPlayers() {
     setSelectedPlayer(null);
     setActionLoading(null);
     fetchFloor();
+    broadcastChange('tournaments');
   };
 
   const handleEliminate = (player) => confirmEliminate(player);
@@ -177,6 +179,7 @@ export default function TDPlayers() {
     setSelectedPlayer(null);
     setActionLoading(null);
     fetchFloor();
+    broadcastChange('tournaments');
   };
 
   const handleMove = async () => {
@@ -191,6 +194,7 @@ export default function TDPlayers() {
     setSelectedPlayer(null);
     setActionLoading(null);
     fetchFloor();
+    broadcastChange('tournaments');
   };
 
   const navigateTo = (path) => router.push(`/commander/td/${tournamentId}${path}`);

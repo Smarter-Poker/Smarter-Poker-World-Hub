@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   X, ChevronRight, AlertTriangle, Loader2, RefreshCw,
@@ -109,6 +110,7 @@ export default function TDTablesMap() {
             body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
           });
           await fetchFloor();
+          broadcastChange('tournaments');
           if (selectedTable) {
             const updated = floor?.tables?.find(t => t.table_number === selectedTable.table_number);
             if (updated) setSelectedTable(updated);
@@ -212,6 +214,7 @@ export default function TDTablesMap() {
                   }
                   setAutoBreak(null);
                   await fetchFloor();
+                  broadcastChange('tournaments');
                 } catch (err) { console.error(err); }
                 finally { setBreakExecuting(false); }
               }}
@@ -407,6 +410,7 @@ export default function TDTablesMap() {
                           }).catch(() => { });
                           setSelectedTable(null);
                           await fetchFloor();
+                          broadcastChange('tournaments');
                         } catch (err) { console.error(err); }
                         finally { setActionLoading(null); }
                       }}

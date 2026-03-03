@@ -11,6 +11,7 @@ import {
     Clock, ScanLine, UserCheck, LogIn, LogOut, Camera, X,
     AlertCircle, CheckCircle, Timer, Users, ChevronDown
 } from 'lucide-react';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function TimeClock() {
     const router = useRouter();
@@ -55,6 +56,9 @@ export default function TimeClock() {
     }, [venueId]);
 
     useEffect(() => { fetchEntries(); }, [fetchEntries]);
+
+    // Real-time sync — listen for staff entity changes (clock in/out from other tabs/devices)
+    useCommanderSync(venueId, fetchEntries, { entities: ['staff'] });
 
     // Camera QR scanning
     const startCamera = useCallback(async () => {
@@ -112,6 +116,7 @@ export default function TimeClock() {
             const data = await res.json();
             if (data.success) {
                 setScanResult(data.data);
+                broadcastChange('staff');
                 fetchEntries();
                 // Auto-dismiss after 5 seconds
                 setTimeout(() => setScanResult(null), 5000);

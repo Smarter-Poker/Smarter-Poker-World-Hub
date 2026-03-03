@@ -16,7 +16,10 @@ export function JarvisDashboard({ userId, compact = false }) {
 
     const fetchInsights = async () => {
         try {
-            const res = await fetch(`/api/jarvis/user-insights?userId=${userId}`);
+            const token = (JSON.parse(localStorage.getItem('sb-' + (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', '').split('.')[0] + '-auth-token') || '{}'))?.access_token || '';
+            const res = await fetch(`/api/jarvis/user-insights`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             const data = await res.json();
             if (data.success) {
                 setInsights(data.insights);

@@ -73,6 +73,8 @@ const ROLE_FILTERS = [
   { value: 'security', label: 'Security', color: '#EF4444' },
   { value: 'manager', label: 'Managers', color: '#2563EB' },
   { value: 'brush', label: 'Brush', color: '#8B5CF6' },
+  { value: 'owner', label: 'Owner', color: '#7C3AED' },
+  { value: 'dualrate', label: 'Dual Rate', color: '#0EA5E9' },
 ];
 
 // Title Case helper — capitalize first letter of every word
@@ -84,7 +86,7 @@ function titleCase(str) {
 const ROLE_COLORS = {
   owner: '#7C3AED', manager: '#2563EB', floor: '#059669',
   cashier: '#D97706', brush: '#8B5CF6', dealer: '#6B7280',
-  security: '#EF4444', staff: '#6B7280'
+  security: '#EF4444', dualrate: '#0EA5E9', staff: '#6B7280'
 };
 
 // ═══════════════════════════════════════════════════════════════

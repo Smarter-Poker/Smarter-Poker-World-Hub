@@ -23,6 +23,7 @@ import {
   Users, ArrowRight, Check, X, ChevronRight, Table2, Zap
 } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 export default function BreakManager() {
   const router = useRouter();
@@ -71,6 +72,7 @@ export default function BreakManager() {
       if (json.success) {
         setExecuted(json.data);
         setReceipts(json.data.receipts);
+        broadcastChange('tournaments');
       }
     } catch (err) { console.error(err); }
     finally { setExecuting(false); }

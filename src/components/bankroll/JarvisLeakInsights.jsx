@@ -28,7 +28,10 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
         try {
             const res = await fetch('/api/jarvis/bankroll-analysis', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('sb-' + (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', '').split('.')[0] + '-auth-token') || '{}'))?.access_token || ''}`
+                },
                 body: JSON.stringify({ userId })
             });
             const data = await res.json();
