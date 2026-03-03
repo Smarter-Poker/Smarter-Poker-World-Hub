@@ -711,9 +711,13 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
+                    const { data: { session: _uploadSess } } = await supabase.auth.getSession();
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(_uploadSess?.access_token ? { Authorization: `Bearer ${_uploadSess.access_token}` } : {}),
+                        },
                         body: JSON.stringify({
                             fileName: file.name,
                             fileSize: file.size,
@@ -744,7 +748,12 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     formData.append('file', file);
                     formData.append('folder', folder);
                     formData.append('prefix', user.id);
-                    const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+                    const { data: { session: _imgSess } } = await supabase.auth.getSession();
+                    const res = await fetch('/api/social/upload', {
+                        method: 'POST',
+                        headers: _imgSess?.access_token ? { Authorization: `Bearer ${_imgSess.access_token}` } : {},
+                        body: formData,
+                    });
                     const json = await res.json();
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
@@ -1922,7 +1931,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('file', file);
             formData.append('folder', 'covers');
             formData.append('prefix', page.id);
-            const uploadRes = await fetch('/api/social/upload', { method: 'POST', body: formData });
+            const { data: { session: _coverSess } } = await supabase.auth.getSession();
+            const uploadRes = await fetch('/api/social/upload', {
+                method: 'POST',
+                headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
+                body: formData,
+            });
             const uploadJson = await uploadRes.json();
             if (uploadJson.success && uploadJson.url) {
                 const url = uploadJson.url;
@@ -1959,7 +1973,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('file', file);
             formData.append('folder', 'logos');
             formData.append('prefix', page.id);
-            const uploadRes = await fetch('/api/social/upload', { method: 'POST', body: formData });
+            const { data: { session: _logoSess } } = await supabase.auth.getSession();
+            const uploadRes = await fetch('/api/social/upload', {
+                method: 'POST',
+                headers: _logoSess?.access_token ? { Authorization: `Bearer ${_logoSess.access_token}` } : {},
+                body: formData,
+            });
             const uploadJson = await uploadRes.json();
             if (uploadJson.success && uploadJson.url) {
                 const url = uploadJson.url;
@@ -2001,9 +2020,13 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
+                    const { data: { session: _clubVidSess } } = await supabase.auth.getSession();
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {}),
+                        },
                         body: JSON.stringify({
                             fileName: file.name,
                             fileSize: file.size,
@@ -2033,7 +2056,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     formData.append('file', file);
                     formData.append('folder', 'club-posts');
                     formData.append('prefix', page.id);
-                    const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+                    const { data: { session: _clubImgSess } } = await supabase.auth.getSession();
+                    const res = await fetch('/api/social/upload', {
+                        method: 'POST',
+                        headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
+                        body: formData,
+                    });
                     const json = await res.json();
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });

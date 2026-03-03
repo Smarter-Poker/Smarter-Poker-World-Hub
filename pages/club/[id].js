@@ -564,9 +564,13 @@ export default function ClubPage() {
       try {
         if (isVideo) {
           // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
+          const { data: { session: _clubVidSess } } = await supabase.auth.getSession();
           const metaRes = await fetch('/api/social/upload-url', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {}),
+            },
             body: JSON.stringify({
               fileName: file.name,
               fileSize: file.size,
@@ -596,7 +600,12 @@ export default function ClubPage() {
           formData.append('file', file);
           formData.append('folder', 'club-posts');
           formData.append('prefix', venue?.social_page_id || id);
-          const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+          const { data: { session: _clubImgSess } } = await supabase.auth.getSession();
+          const res = await fetch('/api/social/upload', {
+            method: 'POST',
+            headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
+            body: formData,
+          });
           const json = await res.json();
           if (json.success && json.url) {
             uploaded.push({ type: json.type || 'photo', url: json.url });

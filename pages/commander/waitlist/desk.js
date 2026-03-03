@@ -1341,7 +1341,12 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
       formData.append('file', file);
       formData.append('folder', 'logos');
       formData.append('prefix', 'waitlist-desk');
-      const res = await fetch('/api/social/upload', { method: 'POST', body: formData });
+      const { data: { session: _deskSess } } = await supabase.auth.getSession();
+      const res = await fetch('/api/social/upload', {
+        method: 'POST',
+        headers: _deskSess?.access_token ? { Authorization: `Bearer ${_deskSess.access_token}` } : {},
+        body: formData,
+      });
       const json = await res.json();
       if (json.success && json.url) {
         update('logoUrl', json.url);

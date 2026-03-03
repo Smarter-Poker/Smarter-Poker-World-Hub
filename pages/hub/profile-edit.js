@@ -551,7 +551,12 @@ export default function ProfilePage() {
             formData.append('folder', 'covers');
             formData.append('prefix', user.id);
 
-            const uploadRes = await fetch('/api/social/upload', { method: 'POST', body: formData });
+            const { data: { session: _coverSess } } = await supabase.auth.getSession();
+            const uploadRes = await fetch('/api/social/upload', {
+                method: 'POST',
+                headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
+                body: formData,
+            });
             const uploadJson = await uploadRes.json();
 
             if (!uploadJson.success || !uploadJson.url) {
