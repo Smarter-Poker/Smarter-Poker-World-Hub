@@ -47,3 +47,38 @@ DO $$ BEGIN
   REVOKE ALL ON FUNCTION close_table_session FROM authenticated;
 EXCEPTION WHEN undefined_function THEN NULL;
 END $$;
+
+-- ============================================================================
+-- BUG #162 (CRITICAL): fn_credit_diamonds not locked down
+-- Any authenticated user can mint unlimited diamonds via PostgREST
+-- ============================================================================
+DO $$ BEGIN
+  REVOKE ALL ON FUNCTION fn_credit_diamonds(UUID, NUMERIC) FROM PUBLIC;
+  REVOKE ALL ON FUNCTION fn_credit_diamonds(UUID, NUMERIC) FROM anon;
+  REVOKE ALL ON FUNCTION fn_credit_diamonds(UUID, NUMERIC) FROM authenticated;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
+
+-- Also check fn_credit_chips if not already locked
+-- (it was in the original lockdown but let's be safe with the new 3-arg signature)
+DO $$ BEGIN
+  REVOKE ALL ON FUNCTION fn_credit_chips(UUID, UUID, NUMERIC) FROM PUBLIC;
+  REVOKE ALL ON FUNCTION fn_credit_chips(UUID, UUID, NUMERIC) FROM anon;
+  REVOKE ALL ON FUNCTION fn_credit_chips(UUID, UUID, NUMERIC) FROM authenticated;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
+
+-- fn_credit_treasury and fn_debit_treasury
+DO $$ BEGIN
+  REVOKE ALL ON FUNCTION fn_credit_treasury(UUID, NUMERIC) FROM PUBLIC;
+  REVOKE ALL ON FUNCTION fn_credit_treasury(UUID, NUMERIC) FROM anon;
+  REVOKE ALL ON FUNCTION fn_credit_treasury(UUID, NUMERIC) FROM authenticated;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  REVOKE ALL ON FUNCTION fn_debit_treasury(UUID, NUMERIC) FROM PUBLIC;
+  REVOKE ALL ON FUNCTION fn_debit_treasury(UUID, NUMERIC) FROM anon;
+  REVOKE ALL ON FUNCTION fn_debit_treasury(UUID, NUMERIC) FROM authenticated;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;

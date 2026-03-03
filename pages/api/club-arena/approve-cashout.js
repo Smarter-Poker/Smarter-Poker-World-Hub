@@ -120,6 +120,21 @@ export default async function handler(req, res) {
         throw creditErr;
       }
 
+      // BUG #161 FIX: Return cashed-out chips to club treasury.
+      // The chips were debited from player during request-cashout (fn_debit_chips).
+      // On approval, those chips need to go back to the club's chip_treasury,
+      // otherwise total chip supply permanently shrinks on every cashout.
+      const { error: treasuryErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
+        p_club_id: cashout.club_id,
+        p_amount: cashout.amount,
+      });
+
+      if (treasuryErr) {
+        console.error('[approve-cashout] Treasury credit failed (non-fatal):', treasuryErr.message);
+        // Non-fatal: the cashout still completes. Treasury will be corrected
+        // during next settlement reconciliation.
+      }
+
       // Mark cashout completed (from 'completing' → 'completed')
       await supabaseAdmin
         .from('cashout_requests')
