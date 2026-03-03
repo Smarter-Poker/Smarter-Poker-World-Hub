@@ -428,15 +428,28 @@ export default function SettingsPage() {
 
     const handleDeleteAccount = async () => {
         try {
-            // TODO: Implement account deletion API endpoint
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert('Session expired. Please log in again.');
+                return;
+            }
 
-            // Redirect to homepage
-            window.location.href = '/';
+            const response = await fetch('/api/auth/delete-account', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+
+            if (response.ok) {
+                await supabase.auth.signOut();
+                alert('Your account has been permanently deleted.');
+                window.location.href = '/';
+            } else {
+                const err = await response.json().catch(() => ({}));
+                alert(err.error || err.details || 'Failed to delete account. Please contact support.');
+            }
         } catch (error) {
             console.error('Error deleting account:', error);
-            alert('Failed to delete account. Please contact support.');
+            alert('An error occurred. Please try again or contact support.');
         }
     };
 
