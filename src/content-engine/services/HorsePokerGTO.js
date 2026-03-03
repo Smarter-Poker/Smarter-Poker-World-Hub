@@ -88,6 +88,9 @@ const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUITS = ['s', 'h', 'd', 'c'];
 
 function parseCard(card) {
+    if (!card || typeof card !== 'string' || card.length < 2) {
+        return { rank: '2', suit: 'c', value: 0 }; // Safe fallback
+    }
     const rank = card[0];
     const suit = card[1].toLowerCase();
     return { rank, suit, value: RANKS.indexOf(rank) };
@@ -900,7 +903,11 @@ export async function makeGTODecision(profileId, gameState) {
     }
 
     // 9. Apply all adjustments
-    let finalAction = solverAction || 'Call';
+    // CRITICAL: If no solver data exists, return null so the fallback heuristic engine handles it
+    if (!solverAction) {
+        return { action: null, sizing: 0, hand, reasoning: { solverBased: false, noData: true } };
+    }
+    let finalAction = solverAction;
     let sizing = 0.66;
 
     // ICM adjustment
