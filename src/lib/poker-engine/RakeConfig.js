@@ -254,12 +254,12 @@ function getRakeConfig(bigBlind, variant = 'nlh', smallBlind = null) {
     bbjFeeBB: bbjEligible ? bbjFeeBB : 0,
     // BBJ pool allocation
     bbjPoolAllocation: BBJ_POOL_ALLOCATION,
-    // Legacy payout fields — kept for backward compat but
-    // the pool allocation model is now Main/BackUp/Promotional
-    bbjPayoutTotal: 100,
-    bbjPayoutLoser: 0,
-    bbjPayoutWinner: 0,
-    bbjPayoutTable: 0,
+    // BBJ payout distribution when hit (% of pool paid out)
+    // These are separate from BBJ_POOL_ALLOCATION (which is how rake flows into pools)
+    bbjPayoutTotal: 100,       // Pay out 100% of main pool when hit
+    bbjPayoutLoser: 50,        // Loser (bad beat hand holder) gets 50%
+    bbjPayoutWinner: 25,       // Winner (hand that beat them) gets 25%
+    bbjPayoutTable: 25,        // Table share (split among other players) gets 25%
     // Qualifying hand info
     qualifyingHand: qualifying,
     // Rules
