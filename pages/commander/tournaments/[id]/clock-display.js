@@ -295,11 +295,16 @@ export default function ClockDisplay() {
     show_schedule_preview: false, show_seating: false,
   };
 
-  // Chip leaders — top 10 sorted by stack
-  const chipLeaders = (stats.player_stacks || [])
-    .filter(p => p.chips > 0)
-    .sort((a, b) => b.chips - a.chips)
-    .slice(0, 20);
+  // Chip leaders — unique by name, top 20 sorted by stack
+  const uniqueLeaders = [];
+  const seenNames = new Set();
+  for (const p of (stats.player_stacks || []).sort((a, b) => b.chips - a.chips)) {
+    if (p.chips > 0 && !seenNames.has(p.name)) {
+      seenNames.add(p.name);
+      uniqueLeaders.push(p);
+    }
+  }
+  const chipLeaders = uniqueLeaders.slice(0, 20);
 
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
@@ -498,6 +503,7 @@ export default function ClockDisplay() {
                 {/* Top 3 Chip Leaders — fixed under Next Round */}
                 {top3Leaders.length > 0 && (
                   <div style={S.top3Container}>
+                    <div style={S.top3Header}>CURRENT CHIP LEADERS</div>
                     {top3Leaders.map((player, i) => (
                       <div key={i} style={S.top3Row}>
                         <span style={{ fontSize: 35, fontWeight: 800, opacity: 0.5, minWidth: 30 }}>{i + 1}</span>
@@ -867,10 +873,16 @@ const S = {
     display: 'inline-flex', gap: 6, alignItems: 'center',
   },
   rightSectionHeader: {
-    fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
-    textAlign: 'center', padding: '6px 8px', opacity: 0.6,
+    fontSize: 22, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+    textAlign: 'center', padding: '10px 8px', color: '#FFFFFF',
     borderBottom: '1px solid rgba(255,255,255,0.1)',
     background: 'rgba(0,0,0,0.2)', flexShrink: 0,
+  },
+  top3Header: {
+    fontSize: 22, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+    textAlign: 'center', padding: '10px 8px', color: '#FFFFFF',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    marginBottom: 8,
   },
   payoutScroll: {
     flex: 1, overflowY: 'auto', padding: '4px 10px',
