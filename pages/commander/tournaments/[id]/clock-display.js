@@ -65,7 +65,6 @@ export default function ClockDisplay() {
   const { id } = router.query;
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [preset, setPreset] = useState(null);
@@ -106,11 +105,7 @@ export default function ClockDisplay() {
     return () => { wakeLockRef.current?.release().catch(() => { }); document.removeEventListener('visibilitychange', h); };
   }, []);
 
-  // Wall clock
-  useEffect(() => {
-    const i = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(i);
-  }, []);
+  // (Current Time display removed — wall clock no longer needed)
 
   // Burn-in prevention
   useEffect(() => {
@@ -304,7 +299,7 @@ export default function ClockDisplay() {
   const chipLeaders = (stats.player_stacks || [])
     .filter(p => p.chips > 0)
     .sort((a, b) => b.chips - a.chips)
-    .slice(0, 10);
+    .slice(0, 20);
 
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
@@ -468,7 +463,7 @@ export default function ClockDisplay() {
                 <StatCell label="Round" value={isBreak ? 'Break' : currentLevel} />
                 <StatCell label="Entries" value={totalEntries} />
                 <StatCell label="Players In" value={playersIn} />
-                <StatCell label="Rebuys" value={totalRebuys} />
+                {t.rebuy_allowed && <StatCell label="Rebuys" value={totalRebuys} />}
                 <StatCell label="Chip Count" value={formatChipCount(totalChips)} />
                 <StatCell label="Avg Stack" value={formatChipCount(avgStack)} />
                 <StatCell label="Total Pot" value={formatMoney(prizePool)} />
