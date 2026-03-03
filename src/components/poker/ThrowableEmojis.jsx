@@ -416,15 +416,15 @@ const THROWABLES = {
         <ellipse cx="38" cy="68" rx="18" ry="6" fill="#f57f17"/>
         <rect x="20" y="60" width="36" height="8" fill="#f9a825"/>
         <ellipse cx="38" cy="60" rx="18" ry="6" fill="#fdd835"/>
-        <text x="38" y="64" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">$</text>
+        <text x="38" y="64" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">C</text>
         <ellipse cx="58" cy="55" rx="18" ry="6" fill="#f57f17"/>
         <rect x="40" y="47" width="36" height="8" fill="#f9a825"/>
         <ellipse cx="58" cy="47" rx="18" ry="6" fill="#fdd835"/>
-        <text x="58" y="51" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">$</text>
+        <text x="58" y="51" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">C</text>
         <ellipse cx="45" cy="40" rx="18" ry="6" fill="#f57f17"/>
         <rect x="27" y="32" width="36" height="8" fill="#f9a825"/>
         <ellipse cx="45" cy="32" rx="18" ry="6" fill="#fdd835"/>
-        <text x="45" y="36" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">$</text>
+        <text x="45" y="36" textAnchor="middle" fontSize="10" fill="#f57f17" fontWeight="800">C</text>
       </svg>
     ),
     impactType: 'scatter',

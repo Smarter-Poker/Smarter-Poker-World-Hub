@@ -62,7 +62,7 @@ async function runTests() {
   // ═══════════════════════════════════════════════════════
 
   const createResult = await gc.createTable({
-    name: 'Test NLH $1/$2',
+    name: 'Test NLH 1/2',
     variant: 'holdem',
     maxSeats: 6,
     smallBlind: 1,

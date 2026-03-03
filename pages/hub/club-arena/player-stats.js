@@ -40,7 +40,7 @@ export default function PlayerStats() {
         bestHand: null,
         sessionsPlayed: 0,
         hoursPlayed: 0,
-        vpip: 0, // Voluntarily Put $ In Pot %
+        vpip: 0, // Voluntarily Put In Pot %
         pfr: 0, // Pre-Flop Raise %
         avgPot: 0,
     });

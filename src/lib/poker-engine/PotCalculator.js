@@ -11,12 +11,12 @@
  * contributed to.
  * 
  * Example:
- *   Player A: all-in $50
- *   Player B: all-in $150
- *   Player C: calls $150
+ *   Player A: all-in 50
+ *   Player B: all-in 150
+ *   Player C: calls 150
  *   
- *   Main Pot: $150 (3 x $50) - A, B, C eligible
- *   Side Pot 1: $200 (2 x $100) - B, C eligible
+ *   Main Pot: 150 (3 x 50) - A, B, C eligible
+ *   Side Pot 1: 200 (2 x 100) - B, C eligible
  */
 
 // ============ POT CLASS ============
