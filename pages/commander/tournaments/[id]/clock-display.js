@@ -481,13 +481,12 @@ export default function ClockDisplay() {
 
               </div>
 
-              {/* RIGHT — Time + Remaining Payouts (scrollable) */}
+              {/* RIGHT — Next Break + Remaining Payouts */}
               <div style={S.rightPanel}>
-                <StatCell label="Current Time" value={currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })} />
-                <StatCell label="Elapsed Time" value={elapsedDisplay} />
                 <StatCell label="Next Break" value={nextBreakSec ? formatClock(nextBreakSec) : '--:--'} />
+                <StatCell label="Elapsed Time" value={elapsedDisplay} />
 
-                {/* Dynamic Payouts — only remaining positions for remaining players */}
+                {/* Remaining Payouts — fills remaining space */}
                 {remainingPayouts.length > 0 && (
                   <div style={S.rightSection}>
                     <div style={S.rightSectionHeader}>Remaining Payouts</div>
@@ -763,9 +762,10 @@ function StatCell({ label, value }) {
 const S = {
   loading: { minHeight: '100vh', background: '#0D192E', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   container: {
-    minHeight: '100vh', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff',
-    display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative', overflow: 'hidden',
-    transition: 'transform 0.5s ease', fontFeatureSettings: "'zero' 0",
+    height: '100vh', maxHeight: '100vh', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff',
+    display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative',
+    overflow: 'hidden', transition: 'transform 0.5s ease', fontFeatureSettings: "'zero' 0",
+    overscrollBehavior: 'none',
   },
   header: {
     background: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '10px 16px 8px',
@@ -773,8 +773,11 @@ const S = {
   },
   headerTitle: { fontSize: 28, fontWeight: 700 },
   headerSub: { fontSize: 13, opacity: 0.65, marginTop: 2 },
-  main: { flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 260px', minHeight: 0 },
-  leftPanel: { display: 'flex', flexDirection: 'column' },
+  main: {
+    flex: 1, display: 'grid', gridTemplateColumns: '160px 1fr 260px', minHeight: 0,
+    overflow: 'hidden', borderBottom: '2px solid rgba(255,255,255,0.15)',
+  },
+  leftPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   rightPanel: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   centerPanel: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
