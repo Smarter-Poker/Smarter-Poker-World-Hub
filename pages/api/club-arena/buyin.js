@@ -12,6 +12,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -33,6 +34,9 @@ export default async function handler(req, res) {
   }
 
   const amount = Math.floor(chipAmount);
+
+  // Rate limit
+  if (!applyRateLimit(req, res, 'club-arena/buyin')) return;
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
   const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);

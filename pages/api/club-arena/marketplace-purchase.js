@@ -5,6 +5,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
