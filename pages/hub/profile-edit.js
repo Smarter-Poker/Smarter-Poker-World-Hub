@@ -532,6 +532,13 @@ export default function ProfilePage() {
 
         setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
 
+        // ── CRITICAL: Dispatch bus event so header updates in real-time ──
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('profile-updated', {
+                detail: { avatar_url: publicUrl }
+            }));
+        }
+
         // Award profile pic diamonds (fire-and-forget, 10💎 one-time)
         claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
         setMessage('✅ Avatar saved!');
@@ -682,6 +689,17 @@ export default function ProfilePage() {
             // Profile completion reward (50💎, one-time — avatar + bio + username)
             if (profile.avatar_url && profile.bio && profile.username) {
                 claimReward('/api/rewards/profile-complete', { userId: user.id }, 'Profile Completed');
+            }
+
+            // ── CRITICAL: Dispatch bus event so header updates in real-time ──
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('profile-updated', {
+                    detail: {
+                        full_name: profile.full_name,
+                        username: profile.username,
+                        avatar_url: profile.avatar_url,
+                    }
+                }));
             }
 
             // Redirect to profile view
