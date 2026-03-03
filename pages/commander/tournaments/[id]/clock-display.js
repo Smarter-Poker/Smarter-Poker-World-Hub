@@ -824,7 +824,8 @@ const S = {
   blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
-    width: '100%', textAlign: 'center', padding: '16px 16px', fontSize: 24, lineHeight: 1.5, flexShrink: 0,
+    width: '100%', textAlign: 'center', padding: '16px 8px', fontSize: 22, lineHeight: 1.5, flexShrink: 0,
+    whiteSpace: 'nowrap', overflow: 'hidden',
   },
   // Right panel sections — Prizes + Chip Leaders
   rightSection: {
