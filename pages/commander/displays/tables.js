@@ -368,6 +368,7 @@ export default function TablesDisplay() {
       });
       const json = await res.json();
       setPlayerActionLoading(false);
+      if (json.success) broadcastChange('tables');
       return json;
     } catch {
       setPlayerActionLoading(false);

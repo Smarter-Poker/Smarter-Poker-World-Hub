@@ -57,9 +57,15 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
         setIsLoading(true);
 
         try {
+            const authData = localStorage.getItem('smarter-poker-auth');
+            const token = authData ? JSON.parse(authData)?.access_token : '';
+
             const response = await fetch('/api/geeves/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     message: content,
                     context: 'messenger-widget',

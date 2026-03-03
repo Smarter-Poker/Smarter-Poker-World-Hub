@@ -17,7 +17,7 @@ import {
   Save, AlertTriangle, Activity, X, Clock, Maximize2, ZoomIn, ZoomOut, RotateCw
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const STATUS_CONFIG = {
   in_use: { color: '#31A24C', glow: '0 0 12px rgba(49,162,76,0.5)', label: 'Active' },
@@ -178,6 +178,7 @@ export default function FloorMap() {
       setHasChanges(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      broadcastChange('tables');
     } catch (err) { console.error('Save error:', err); }
     finally { setSaving(false); }
   };

@@ -22,6 +22,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { calculateICM, calculateChipChop, formatPrize } from '../../../../src/lib/commander/icm-utils';
+import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -272,6 +273,7 @@ export default function ClockDisplay() {
           if (cs?.remaining_seconds !== undefined) setSeconds(cs.remaining_seconds);
           isRunningRef.current = cs?.status === 'running';
         }
+        broadcastChange('tournaments');
       }
     } catch (err) { console.error('Clock action error:', err); }
     setActionLoading(false);
