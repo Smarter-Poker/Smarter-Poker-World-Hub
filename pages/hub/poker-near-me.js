@@ -27,7 +27,7 @@ const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
 const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
-const GPS_SEARCH_RADIUS_KM = 500;
+const DEFAULT_RADIUS_MILES = 50;
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 const TOTAL_VENUES = 483;
 
@@ -544,6 +544,7 @@ export default function PokerNearMePage() {
 
     // Filter states
     const [filters, setFilters] = useState({
+        radius: 50,
         venueType: 'all',
         hasNLH: false,
         hasPLO: false,
@@ -890,7 +891,8 @@ export default function PokerNearMePage() {
             if (userLocation) {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
-                params.set('radius', String(GPS_SEARCH_RADIUS_KM));
+                const kmRadius = filters.radius === 'Any' ? 5000 : Math.round(filters.radius * 1.60934);
+                params.set('radius', String(kmRadius));
             }
             if (searchQuery) {
                 params.set('search', searchQuery);
@@ -1398,7 +1400,7 @@ export default function PokerNearMePage() {
                             <option value="default">Default</option>
                             <option value="trust-desc">Trust (High To Low)</option>
                             <option value="trust-asc">Trust (Low To High)</option>
-                            {userLocation && <option value="distance">Nearest First</option>}
+                            <option value="distance">Distance (Nearest First)</option>
                             <option value="name-az">Name (A-Z)</option>
                             <option value="name-za">Name (Z-A)</option>
                         </select>
@@ -1882,6 +1884,22 @@ export default function PokerNearMePage() {
                             {activeTab === 'venues' && (
                                 <>
                                     <div className="filter-group">
+                                        <label>Search Radius (Miles)</label>
+                                        <div className="filter-chips">
+                                            {[25, 50, 100, 250, 'Any'].map(dist => (
+                                                <button key={dist} type="button" className={'chip' + (filters.radius === dist ? ' active' : '')}
+                                                    onClick={() => {
+                                                        const newFilters = { ...filters, radius: dist };
+                                                        setFilters(newFilters);
+                                                        // Automatically trigger a refresh of venue data when radius changes
+                                                        setHasSearched(true);
+                                                    }}>
+                                                    {dist === 'Any' ? 'Anywhere' : `${dist} mi`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="filter-group">
                                         <label>Venue Type</label>
                                         <div className="filter-chips">
                                             {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
@@ -2042,7 +2060,7 @@ export default function PokerNearMePage() {
                     .pnm-hud-panel {
                         position: relative;
                         width: 100%;
-                        max-width: 100%;
+                        max-width: 1400px; /* Constrain ultra-wide stretching */
                         margin: 0 auto 0;
                         padding: 0;
                         overflow: hidden;
@@ -2082,7 +2100,7 @@ export default function PokerNearMePage() {
                         box-shadow: none !important;
                         color: #fff;
                         font-size: clamp(14px, 2.5vw, 20px);
-                        padding: 0 16px 0 3%;
+                        padding: 0 16px 0 12%; /* Added padding to clear magnifying glass */
                         font-family: inherit;
                         caret-color: #d4a853;
                         pointer-events: auto;
