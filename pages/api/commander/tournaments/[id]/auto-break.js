@@ -202,6 +202,15 @@ async function handleExecute(req, res, tournament, user) {
   const errors = [];
   const moved = [];
 
+  // Fetch venue name
+  const { data: venue, error: venueError } = await supabase
+    .from('venues')
+    .select('name')
+    .eq('id', tournament.venue_id)
+    .single();
+
+  const venueName = venue?.name || 'Smarter Poker';
+
   // Validate no seat conflicts
   const seatKeys = new Set();
   for (const a of assignments) {
@@ -258,6 +267,8 @@ async function handleExecute(req, res, tournament, user) {
   // Build receipt data for printing
   const receipts = moved.map(a => ({
     tournament_name: tournament.name,
+    venue_name: venueName,
+    buyin_amount: tournament.buyin_amount,
     player_name: a.player_name,
     from_table: a.from_table,
     from_seat: a.from_seat,

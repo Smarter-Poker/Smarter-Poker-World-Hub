@@ -1,8 +1,9 @@
 /**
  * Break Table API
  * POST /api/commander/tournaments/[id]/break-table
- * Dissolves a tournament table and moves all players to other tables
- * Used by TD Tablet when collapsing tables as players are eliminated
+ * Dissolves a tournament table and moves all players to other tables.
+ * Used by TD Tablet Table Map when a floor manager manually breaks a table.
+ * Returns receipt data (Potawatomi TOURNAMENT SEAT CHANGE CARD format).
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
@@ -26,8 +27,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Auth
-
     const { table_number, assignments } = req.body;
     if (table_number === undefined || !Array.isArray(assignments)) {
       return res.status(400).json({
@@ -35,6 +34,27 @@ export default async function handler(req, res) {
         error: 'table_number and assignments array required'
       });
     }
+
+    // Fetch tournament for name, buyin_amount, and venue_id
+    const { data: tournament, error: tErr } = await supabase
+      .from('commander_tournaments')
+      .select('id, name, buyin_amount, venue_id')
+      .eq('id', tournamentId)
+      .single();
+    if (tErr || !tournament) {
+      return res.status(404).json({ success: false, error: 'Tournament not found' });
+    }
+
+    // Fetch venue name for receipts
+    let venueName = 'Smarter Poker';
+    try {
+      const { data: venue } = await supabase
+        .from('venues')
+        .select('name')
+        .eq('id', tournament.venue_id)
+        .single();
+      if (venue?.name) venueName = venue.name;
+    } catch (_) { }
 
     // Validate all assignments have required fields
     for (const a of assignments) {
@@ -85,7 +105,7 @@ export default async function handler(req, res) {
     for (const a of assignments) {
       const { data: entry } = await supabase
         .from('commander_tournament_entries')
-        .select('table_number, seat_number, player_name, metadata')
+        .select('table_number, seat_number, player_name, current_chips, metadata')
         .eq('id', a.entry_id)
         .single();
 
@@ -112,10 +132,38 @@ export default async function handler(req, res) {
           from_table: entry?.table_number,
           from_seat: entry?.seat_number,
           to_table: a.to_table,
-          to_seat: a.to_seat
+          to_seat: a.to_seat,
+          chips: entry?.current_chips || null
         });
       }
     }
+
+    // Release the broken table back to inactive
+    await supabase
+      .from('commander_tables')
+      .update({
+        mode: 'inactive',
+        tournament_id: null,
+        status: 'available',
+        assigned_at: null
+      })
+      .eq('venue_id', tournament.venue_id)
+      .eq('table_number', table_number);
+
+    // Build receipt data (Potawatomi TOURNAMENT SEAT CHANGE CARD format)
+    const now = new Date().toISOString();
+    const receipts = results.map(r => ({
+      venue_name: venueName,
+      tournament_name: tournament.name,
+      buyin_amount: tournament.buyin_amount || null,
+      player_name: r.player_name,
+      from_table: r.from_table,
+      from_seat: r.from_seat,
+      to_table: r.to_table,
+      to_seat: r.to_seat,
+      chips: r.chips,
+      timestamp: now
+    }));
 
     return res.status(200).json({
       success: errors.length === 0,
@@ -123,6 +171,7 @@ export default async function handler(req, res) {
         table_broken: table_number,
         players_moved: results.length,
         moves: results,
+        receipts,
         errors: errors.length > 0 ? errors : undefined
       }
     });

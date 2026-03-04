@@ -14,7 +14,7 @@ import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync'
 import {
   Trophy, LayoutGrid, Users, Monitor,
   Loader2, RefreshCw, X, ChevronRight,
-  ArrowRightLeft, AlertTriangle, Printer,
+  ArrowRightLeft, AlertTriangle, Printer, UserX,
   DollarSign, FileText
 } from 'lucide-react';
 
@@ -443,7 +443,7 @@ ${receipts.map(r => `<div class="card">
 
                           const assignments = breakSuggestJson.data.assignments;
 
-                          // Step 2: Execute the break with proper assignments via break-table API
+                          // Step 2: Execute the break via break-table API
                           const res = await fetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
@@ -454,33 +454,9 @@ ${receipts.map(r => `<div class="card">
                           });
                           const json = await res.json();
 
-                          // Step 3: Print seat receipts for each moved player
-                          if (json.success && json.data?.moves?.length) {
-                            const moves = json.data.moves;
-                            const tournamentName = floor?.tournament?.name || 'Tournament';
-                            const pw = window.open('', '_blank', 'width=400,height=600');
-                            if (pw) {
-                              pw.document.write(`<!DOCTYPE html><html><head><title>Seat Receipts</title>
-                                <style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0}
-                                .r{width:72mm;padding:4mm;margin:0 auto;page-break-after:always;border-bottom:1px dashed #000}
-                                .r:last-child{page-break-after:avoid}.c{text-align:center}.b{font-weight:bold}
-                                .lg{font-size:20px}.md{font-size:14px}.sm{font-size:11px}
-                                .d{border-top:1px dashed #000;margin:3mm 0}.rw{display:flex;justify-content:space-between}
-                                .ar{font-size:24px;text-align:center;margin:2mm 0}</style></head><body>
-                                ${moves.map(r => `<div class="r">
-                                  <div class="c b md">${tournamentName}</div>
-                                  <div class="c sm">TABLE BREAK</div><div class="d"></div>
-                                  <div class="c b md">${r.player_name}</div><div class="d"></div>
-                                  <div class="rw sm"><span>FROM:</span><span class="b">Table ${r.from_table}, Seat ${r.from_seat}</span></div>
-                                  <div class="ar">&#x2193;</div>
-                                  <div class="rw"><span class="md">NEW SEAT:</span><span class="b lg">T${r.to_table} - S${r.to_seat}</span></div>
-                                  <div class="d"></div>
-                                  <div class="sm c" style="margin-top:2mm;opacity:.6">${new Date().toLocaleTimeString()}</div>
-                                  <div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker</div>
-                                </div>`).join('')}</body></html>`);
-                              pw.document.close();
-                              setTimeout(() => { pw.print(); pw.close(); }, 500);
-                            }
+                          // Step 3: Print Potawatomi SEAT CHANGE CARDs
+                          if (json.success && json.data?.receipts?.length) {
+                            printAutoBreakReceipts({ receipts: json.data.receipts });
                           } else if (!json.success) {
                             alert(`Break failed: ${json.error || 'Unknown error'}`);
                           }
