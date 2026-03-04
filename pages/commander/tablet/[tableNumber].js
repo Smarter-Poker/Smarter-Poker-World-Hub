@@ -205,7 +205,16 @@ export default function TabletDisplay() {
                 schema: 'public',
                 table: 'commander_games',
             }, () => fetchData())
+            .on('postgres_changes', {
+                // Tournament players moved by auto-break: new entrant has to_table = this table.
+                // Filter on table_number so only changes relevant to THIS seat appear.
+                event: '*',
+                schema: 'public',
+                table: 'commander_tournament_entries',
+                filter: `table_number=eq.${tableNumber}`,
+            }, () => fetchData())
             .subscribe();
+
 
         return () => { supabase.removeChannel(channel); };
     }, [tableNumber, venueId, fetchData]);

@@ -67,7 +67,18 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
             return null;
         }
 
-        // ── Fetch active tables ──
+        // ── Look up venue name for receipt header ──
+        let venueName = tournament.venue_name || '';
+        if (!venueName && tournament.venue_id) {
+            const { data: venueRow } = await supabase
+                .from('poker_venues')
+                .select('name')
+                .eq('id', tournament.venue_id)
+                .single();
+            venueName = venueRow?.name || '';
+        }
+
+
         const { data: tables } = await supabase
             .from('commander_tables')
             .select('id, table_number, max_seats')
@@ -218,7 +229,9 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
 
         // ── Build receipt data for Bluetooth printer ──
         const receipts = moved.map(a => ({
+            venue_name: venueName,
             tournament_name: tournament.name,
+            buyin_amount: tournament.buyin_amount || null,
             player_name: a.player_name,
             from_table: a.from_table,
             from_seat: a.from_seat,

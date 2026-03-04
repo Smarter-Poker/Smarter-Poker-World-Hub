@@ -102,7 +102,7 @@ export default function TDClock() {
   }, [floor?.clock?.clock_state?.status]);
 
 
-  // ── Seat Change Card printer — prints one slip per player moved ──
+  // ── Seat Change Card — matches tournament buy-in receipt format ──
   const printAutoBreakReceipts = (autoBreak) => {
     if (!autoBreak?.receipts?.length) return;
     const pw = window.open('', '_blank', 'width=420,height=700');
@@ -112,62 +112,74 @@ export default function TDClock() {
 <style>
 @page { margin: 0; size: 80mm auto; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Courier New', Courier, monospace; background: #fff; }
+body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000; font-size: 12px; }
 .card {
-  width: 72mm; margin: 0 auto; padding: 5mm 4mm;
+  width: 72mm; margin: 0 auto; padding: 5mm 4mm 6mm;
   border-bottom: 2px dashed #000;
   page-break-after: always;
 }
 .card:last-child { page-break-after: avoid; border-bottom: none; }
-.header { text-align: center; margin-bottom: 3mm; }
-.tournament { font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
-.label-sc { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #555; margin-top: 1mm; }
-.divider { border-top: 1px solid #000; margin: 3mm 0; }
-.dashed { border-top: 1px dashed #aaa; margin: 2.5mm 0; }
-.player { text-align: center; font-size: 15px; font-weight: bold; margin: 2mm 0; }
-.from-row { display: flex; justify-content: space-between; align-items: center; margin: 1.5mm 0; }
-.from-label { font-size: 9px; text-transform: uppercase; color: #666; }
-.from-val { font-size: 11px; font-weight: bold; }
-.arrow { text-align: center; font-size: 20px; margin: 1mm 0; }
-.new-seat-box {
-  border: 2px solid #000; border-radius: 3mm;
-  padding: 3mm; text-align: center; margin: 2mm 0;
-  background: #f9f9f9;
+/* HEADER ── Venue name large at top like POTAWATOMI */
+.venue-name {
+  text-align: center; font-size: 20px; font-weight: 900;
+  letter-spacing: 1px; text-transform: uppercase;
+  line-height: 1.1; margin-bottom: 1mm;
 }
-.new-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #444; }
-.new-table { font-size: 28px; font-weight: bold; letter-spacing: -1px; }
-.new-seat  { font-size: 16px; font-weight: bold; }
-.chips-row { display: flex; justify-content: space-between; font-size: 10px; margin-top: 2mm; }
-.footer { text-align: center; margin-top: 3mm; font-size: 8px; color: #888; }
-.present { font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2mm; text-align: center; }
+.venue-sub { text-align: center; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #444; margin-bottom: 2mm; }
+.receipt-type { text-align: center; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1mm; }
+.tourn-name { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 3mm; }
+.divider { border-top: 1px solid #000; margin: 2.5mm 0; }
+/* PLAYER ROW */
+.field-row { display: flex; align-items: baseline; margin: 2mm 0; font-size: 11px; }
+.field-label { font-weight: bold; min-width: 18mm; }
+.field-val { font-size: 11px; text-transform: uppercase; }
+/* TWO BOXES ── Table | Seat — exactly like the reference photo */
+.boxes { display: flex; gap: 4mm; justify-content: center; margin: 4mm 0 2mm; }
+.box-wrap { text-align: center; flex: 1; }
+.box-title { font-size: 11px; font-weight: bold; margin-bottom: 1mm; }
+.box-num {
+  border: 2px solid #000;
+  font-size: 30px; font-weight: 900;
+  padding: 2mm 0; min-width: 22mm;
+  display: block; text-align: center;
+  line-height: 1.1;
+}
+/* Previous seat + chips */
+.moved-from { font-size: 9px; text-align: center; color: #555; margin-top: 1mm; }
+.chips-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
+/* FOOTER */
+.footer-line { font-size: 9px; margin: 1mm 0; }
+.customer-copy { text-align: center; font-size: 9px; font-weight: bold; letter-spacing: 1px; margin-top: 3mm; }
 </style></head><body>
 ${receipts.map(r => `<div class="card">
-  <div class="header">
-    <div class="tournament">${r.tournament_name}</div>
-    <div class="label-sc">-- SEAT CHANGE CARD --</div>
-  </div>
+  <div class="venue-name">${r.venue_name || 'Smarter Poker'}</div>
+  <div class="venue-sub">Poker Room</div>
+  <div class="receipt-type">Tournament Seat Change Card</div>
+  <div class="tourn-name">${r.tournament_name}${r.buyin_amount ? ` — $${Number(r.buyin_amount).toLocaleString()}` : ''}</div>
   <div class="divider"></div>
-  <div class="player">${r.player_name}</div>
-  <div class="dashed"></div>
-  <div class="from-row">
-    <span class="from-label">Previous Table</span>
-    <span class="from-val">Table ${r.from_table}, Seat ${r.from_seat}</span>
-  </div>
-  <div class="arrow">&#x2193;</div>
-  <div class="new-seat-box">
-    <div class="new-label">Report To</div>
-    <div class="new-table">TABLE ${r.to_table}</div>
-    <div class="new-seat">SEAT ${r.to_seat}</div>
-  </div>
-  ${r.chips ? `<div class="chips-row"><span>Chip Count:</span><span><b>${Number(r.chips).toLocaleString()}</b></span></div>` : ''}
+  <div class="field-row"><span class="field-label">Name:</span><span class="field-val">&nbsp;${r.player_name}</span></div>
   <div class="divider"></div>
-  <div class="present">Present this card to floor staff</div>
-  <div class="footer">${new Date(r.timestamp).toLocaleTimeString()} &nbsp;|&nbsp; Smarter.Poker Commander</div>
+  <div class="boxes">
+    <div class="box-wrap">
+      <div class="box-title">Table</div>
+      <span class="box-num">${r.to_table}</span>
+    </div>
+    <div class="box-wrap">
+      <div class="box-title">Seat</div>
+      <span class="box-num">${r.to_seat}</span>
+    </div>
+  </div>
+  <div class="moved-from">Moved from Table ${r.from_table}, Seat ${r.from_seat}</div>
+  ${r.chips ? `<div class="divider"></div><div class="chips-row"><span>Chip Count:</span><span><b>${Number(r.chips).toLocaleString()}</b></span></div>` : ''}
+  <div class="divider"></div>
+  <div class="footer-line">${new Date(r.timestamp).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}&nbsp;&nbsp;${new Date(r.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+  <div class="customer-copy">Customer Copy</div>
 </div>`).join('')}
 </body></html>`);
     pw.document.close();
     setTimeout(() => { pw.print(); pw.close(); }, 500);
   };
+
 
 
   const clockAction = async (action) => {

@@ -248,7 +248,47 @@ export default async function handler(req, res) {
             } catch { /* heartbeat is best-effort */ }
         }
 
+        // 2b. If table is in tournament mode, also fetch tournament player seats
+        // This is how dealers see moved players after an auto table break.
+        let tournamentPlayers = [];
+        if (tableData?.mode === 'tournament' && tableData?.tournament_id) {
+            try {
+                const { data: tEntries } = await supabase
+                    .from('commander_tournament_entries')
+                    .select('id, player_name, player_id, table_number, seat_number, current_chips, status')
+                    .eq('tournament_id', tableData.tournament_id)
+                    .eq('table_number', tableNum)
+                    .in('status', ['active', 'seated'])
+                    .order('seat_number', { ascending: true });
+
+                tournamentPlayers = (tEntries || []).map(e => ({
+                    session_id: `tournament-${e.id}`,
+                    member_id: e.player_id,
+                    player_name: e.player_name,
+                    table_number: e.table_number,
+                    seat_number: e.seat_number,
+                    membership_tier: null,
+                    member_number: null,
+                    current_chips: e.current_chips,
+                    time_remaining: null,
+                    is_low: false,
+                    is_critical: false,
+                    is_expired: false,
+                    is_tournament_player: true,
+                }));
+            } catch (e) {
+                console.warn('[tablet-data] Tournament entries lookup failed:', e.message);
+            }
+        }
+
+        // Merge: tournament players override sessions for tournament tables.
+        // For cash tables, tournamentPlayers is [] so playersWithTime stands alone.
+        const allPlayers = tournamentPlayers.length > 0
+            ? tournamentPlayers
+            : playersWithTime;
+
         return res.status(200).json({
+
             success: true,
             data: {
                 table: tableData || {
@@ -258,13 +298,14 @@ export default async function handler(req, res) {
                     stakes: '',
                     venue_id: resolvedVenueId
                 },
-                players: playersWithTime,
+                players: allPlayers,
                 dealer: dealer,
                 venue_type: venueType,
                 venue_name,
                 promotions,
                 announcements,
             }
+
         });
     } catch (err) {
         console.error('Tablet data error:', err);

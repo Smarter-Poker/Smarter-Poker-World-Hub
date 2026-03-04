@@ -713,6 +713,71 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         return `$${(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
+    // ── Export helpers ──
+    const handleCopyReport = () => {
+        if (!selectedReport) return;
+        const { gig, stats } = selectedReport;
+        const lines = [
+            `TOKE REPORT — ${gig.venue_name}`,
+            `Date: ${new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}${gig.end_date ? ` – ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}` : ''}`,
+            ``,
+            `Total Tokes:   ${formatCurrency(stats.totalTokes)}`,
+            `Hourly Pay:    ${formatCurrency(stats.hourlyPay)}`,
+            `Expenses:      -${formatCurrency(stats.totalExpenses)}`,
+            `Net Earnings:  ${formatCurrency(stats.totalEarnings)}`,
+            `Hours Worked:  ${stats.totalHoursWorked.toFixed(1)}h`,
+            `Avg Toke/Down: ${formatCurrency(stats.avgTokePerDown)}`,
+            `Downs: ${stats.totalDowns}  (Cash: ${stats.cashDownCount} | Tourn: ${stats.tournamentDownCount} | Brush: ${stats.brushDownCount} | Break: ${stats.breakCount})`,
+            `Mileage: ${gig.mileage || 0} mi`,
+        ];
+        if (selectedReport.days?.length > 0) {
+            lines.push(``, `Daily Breakdown:`);
+            for (const day of selectedReport.days) {
+                lines.push(`  Day ${day.day_number}: ${formatCurrency(day.totalTokes || 0)} tokes | ${day.totalDowns || 0} downs | ${(day.totalHoursWorked || 0).toFixed(1)}h${day.notes ? ` | ${day.notes}` : ''}`);
+            }
+        }
+        navigator.clipboard.writeText(lines.join('\n'))
+            .then(() => toast.success('Report copied to clipboard!'))
+            .catch(() => toast.error('Copy failed'));
+    };
+
+    const handleDownloadCSV = () => {
+        if (!selectedReport) return;
+        const { gig, downs, expenses } = selectedReport;
+        const rows = [
+            ['Type', 'Date', 'Game', 'Table', 'Started', 'Ended', 'Toke', 'Double', 'Multiplier', 'Notes'],
+            ...(downs || []).map(d => [
+                d.down_type,
+                new Date(d.started_at).toLocaleDateString(),
+                d.game_type || '',
+                d.table_number || '',
+                new Date(d.started_at).toLocaleTimeString(),
+                d.ended_at ? new Date(d.ended_at).toLocaleTimeString() : '',
+                d.toke_amount || 0,
+                d.is_double_down ? 'Yes' : 'No',
+                d.down_multiplier || 1,
+                d.notes || '',
+            ]),
+            [],
+            ['Expense Type', 'Amount', 'Description', 'Date'],
+            ...(expenses || []).map(e => [
+                e.category,
+                e.amount || 0,
+                e.description || '',
+                new Date(e.created_at).toLocaleDateString(),
+            ]),
+        ];
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `toke-report-${gig.venue_name.replace(/\s+/g, '-')}-${gig.start_date}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('CSV downloaded!');
+    };
+
     // ── Report Subview ──
     if (selectedReport) {
         const { gig, stats } = selectedReport;
@@ -813,6 +878,21 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             </div>
                         </div>
                     )}
+                    {/* Export buttons */}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                        <button
+                            onClick={handleCopyReport}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#E4E6EB' }}
+                        >
+                            📋 Copy Summary
+                        </button>
+                        <button
+                            onClick={handleDownloadCSV}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
+                        >
+                            📄 Download CSV
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -844,6 +924,37 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Celebration Day-Close Flash */}
+            {showCelebration && (
+                <div style={{
+                    position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(16,185,129,0.08)',
+                    animation: 'celebrationFade 1.8s ease-out forwards',
+                }}>
+                    <div style={{
+                        fontSize: 64, lineHeight: 1,
+                        animation: 'celebrationBounce 0.6s ease-out',
+                    }}>🎉</div>
+                </div>
+            )}
+            <style>{`
+                @keyframes celebrationFade {
+                    0%   { opacity: 0; background: rgba(16,185,129,0.15); }
+                    20%  { opacity: 1; }
+                    80%  { opacity: 1; }
+                    100% { opacity: 0; background: rgba(16,185,129,0); }
+                }
+                @keyframes celebrationBounce {
+                    0%   { transform: scale(0.5); opacity: 0; }
+                    60%  { transform: scale(1.2); opacity: 1; }
+                    100% { transform: scale(1); }
+                }
+            `}</style>
+
+            {/* TokeDashboard — Dealer Analytics */}
+            <TokeDashboard userId={userId} refreshTrigger={completedGigs.length} />
 
             {/* ── ACTIVE GIG VIEW ── */}
             {activeGig && (
@@ -1230,6 +1341,63 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
                     </motion.form>
+                )}
+            </AnimatePresence>
+
+            {/* ── TOKE-ON-END MODAL ── */}
+            <AnimatePresence>
+                {endingDown && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={styles.modalOverlay}
+                        onClick={() => { setEndingDown(null); setEndTokeValue(''); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            style={{ ...styles.modalCard, maxWidth: 340, padding: '24px 20px' }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+                                How much did you toke?
+                            </h3>
+                            <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 16px' }}>
+                                {endingDown.game_type || endingDown.down_type}
+                                {endingDown.table_number ? ` · Table ${endingDown.table_number}` : ''}
+                            </p>
+                            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                <span style={{ fontSize: 22, color: '#f59e0b', fontWeight: 800 }}>$</span>
+                                <input
+                                    type="number"
+                                    value={endTokeValue}
+                                    onChange={e => setEndTokeValue(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') handleEndDownConfirm(); }}
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0"
+                                    autoFocus
+                                    style={{
+                                        flex: 1, padding: '12px 14px', background: 'rgba(0,0,0,0.4)',
+                                        border: '2px solid rgba(245,158,11,0.4)', borderRadius: 10,
+                                        color: '#fff', fontSize: 22, fontWeight: 700, outline: 'none',
+                                    }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                                <button
+                                    onClick={handleEndDownConfirm}
+                                    style={{ ...styles.confirmYes, flex: 1, padding: '12px', fontSize: 15, fontWeight: 800 }}
+                                >
+                                    ✓ End Down
+                                </button>
+                                <button
+                                    onClick={() => { setEndingDown(null); setEndTokeValue(''); }}
+                                    style={styles.confirmNo}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 

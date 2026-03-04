@@ -650,6 +650,10 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Notifications', '/hub/notifications'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
+            createMenuItem.section('Work'),
+            createMenuItem.navigation('Work Schedule & Dealer Downs', '/hub/my-venues'),
+            createMenuItem.navigation('Link to a Venue', '/hub/my-venues'),
+            createMenuItem.divider(),
             { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
