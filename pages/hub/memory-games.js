@@ -1393,7 +1393,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 OUT OF DIAMONDS MODAL
 // ═══════════════════════════════════════════════════════════════════════════
-function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5 }) {
+function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
     if (!isOpen) return null;
 
     return (
@@ -1436,29 +1436,31 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5 }) {
                     You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this game.
                 </p>
 
-                <div style={{
-                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
-                    borderRadius: 16,
-                    padding: 20,
-                    marginBottom: 24,
-                    border: '1px solid rgba(138, 43, 226, 0.3)',
-                }}>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
-                        GET VIP FOR
-                    </div>
+                {!isVIP && (
                     <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 32,
-                        fontWeight: 900,
-                        color: '#fff',
-                        marginBottom: 4,
+                        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
+                        borderRadius: 16,
+                        padding: 20,
+                        marginBottom: 24,
+                        border: '1px solid rgba(138, 43, 226, 0.3)',
                     }}>
-                        $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                            GET VIP FOR
+                        </div>
+                        <div style={{
+                            fontFamily: 'Orbitron, sans-serif',
+                            fontSize: 32,
+                            fontWeight: 900,
+                            color: '#fff',
+                            marginBottom: 4,
+                        }}>
+                            $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                        </div>
+                        <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
+                            UNLIMITED ACCESS • No diamonds needed
+                        </div>
                     </div>
-                    <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
-                        UNLIMITED ACCESS • No diamonds needed
-                    </div>
-                </div>
+                )}
 
                 <div style={{ display: 'flex', gap: 12 }}>
                     <button
@@ -2747,7 +2749,7 @@ export default function MemoryGamesPage() {
                                     Master GTO ranges through high-pressure video game training
                                 </p>
                                 <div style={styles.costInfo}>
-                                    {isVIP ? ' VIP: Unlimited Access' : `Diamonds ${GAME_COST} Diamonds per game`}
+                                    {isVIP ? 'VIP: Unlimited Access' : `💎 ${GAME_COST} Diamonds per game`}
                                 </div>
                             </div>
 
@@ -3872,6 +3874,7 @@ export default function MemoryGamesPage() {
                         isOpen={showOutOfDiamondsModal}
                         onClose={() => setShowOutOfDiamondsModal(false)}
                         gameCost={GAME_COST}
+                        isVIP={isVIP}
                     />
 
                     {/* AI Generation Loading Overlay */}
