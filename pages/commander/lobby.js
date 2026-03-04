@@ -12,7 +12,7 @@
  * 
  * Auto-refreshes, wake lock, fullscreen on tap.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -34,7 +34,7 @@ export default function LobbyDisplay() {
     const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
-  }, []);
+  }, [fetchData]);
 
   // Cross-tab + cross-device real-time sync
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
@@ -47,7 +47,7 @@ export default function LobbyDisplay() {
     return () => { wakeLockRef.current?.release(); };
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -79,7 +79,7 @@ export default function LobbyDisplay() {
       ).slice(0, 4));
     } catch (err) { console.error(err); }
     setNow(new Date());
-  };
+  }, [venueId]);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

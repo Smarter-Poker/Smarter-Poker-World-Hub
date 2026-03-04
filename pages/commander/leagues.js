@@ -14,6 +14,7 @@ import {
   Clock, Gift, Target, UserPlus, Trash2, Check, X, Edit2, RefreshCw
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 /* ───────── Status colors ───────── */
 const STATUS_COLORS = {
@@ -175,6 +176,7 @@ export default function LeaguesAndFreerollsManagement() {
         setShowCreateLeague(false);
         setLeagueForm({ name: '', description: '', scoring_system: 'points', season_start: '', season_end: '', prize_pool: '' });
         fetchLeagues();
+        broadcastChange('settings'); // notify other tabs
       } else {
         showToast('error', json.error?.message || 'Failed to create');
       }
@@ -235,6 +237,7 @@ export default function LeaguesAndFreerollsManagement() {
           scheduled_date: '', prize_pool: '', prize_description: '', max_qualifiers: ''
         });
         fetchFreerolls();
+        broadcastChange('settings'); // notify other tabs
       } else {
         showToast('error', json.error?.message || 'Failed to create');
       }
@@ -265,6 +268,7 @@ export default function LeaguesAndFreerollsManagement() {
         setShowAddPlayer(null);
         setAddPlayerForm({ player_name: '', hours_logged: '', points_earned: '', custom_value: '', manually_added: true });
         fetchQualifications(freerollId);
+        broadcastChange('settings'); // notify other tabs
       } else {
         showToast('error', json.error?.message || 'Failed');
       }
@@ -308,6 +312,7 @@ export default function LeaguesAndFreerollsManagement() {
       if (json.success) {
         showToast('success', `${playerName || 'Player'} removed`);
         fetchQualifications(freerollId);
+        broadcastChange('settings'); // notify other tabs
       } else {
         showToast('error', json.error?.message || 'Failed to remove');
       }
