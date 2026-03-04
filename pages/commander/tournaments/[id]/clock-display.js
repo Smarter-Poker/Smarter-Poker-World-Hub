@@ -554,10 +554,10 @@ export default function ClockDisplay() {
                   {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                 </div>
 
-                {nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                {nextBlinds && (
                   <div style={S.nextRound}>
-                    <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
-                    {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                    <strong>Next Round</strong> — {nextBlinds.is_break ? `BREAK (${nextBlinds.duration || 0} min)` : `Blinds: ${(nextBlinds.small_blind || 0).toLocaleString()} / ${(nextBlinds.big_blind || 0).toLocaleString()}`}
+                    {!nextBlinds.is_break && (nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
                   </div>
                 )}
 
