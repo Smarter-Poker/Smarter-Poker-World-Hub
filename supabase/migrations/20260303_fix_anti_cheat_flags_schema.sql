@@ -114,3 +114,20 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ════════════════════════════════════════════════════════════════
+-- Fix cashout_requests: status CHECK missing 'completing'/'cancelling'
+-- approve-cashout.js uses these as atomic claim states to prevent
+-- double-processing. Without them, the UPDATE always fails the CHECK
+-- constraint and NO cashouts can ever be approved or cancelled.
+-- ════════════════════════════════════════════════════════════════
+ALTER TABLE cashout_requests DROP CONSTRAINT IF EXISTS cashout_requests_status_check;
+ALTER TABLE cashout_requests ADD CONSTRAINT cashout_requests_status_check
+  CHECK (status IN ('pending', 'completing', 'cancelling', 'completed', 'cancelled', 'approved'));
+
+-- Add missing timestamp columns used by approve-cashout.js
+ALTER TABLE cashout_requests ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+ALTER TABLE cashout_requests ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+
+-- Add player_note column used by request-cashout.js
+ALTER TABLE cashout_requests ADD COLUMN IF NOT EXISTS player_note TEXT;
