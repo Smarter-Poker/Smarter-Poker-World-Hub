@@ -98,9 +98,9 @@ export default function PersonalAssistantPage() {
             FULL-PAGE METAL FRAME — Image fills entire viewport
            ═══════════════════════════════════════════════════════════ */}
         <div style={S.frameContainer}>
-          {/* The metal frame image — covers the full page */}
+          {/* The metal frame image — strictly controls container height/width */}
           <img
-            src="/images/personal-assistant-frame-dark.jpg"
+            src="/images/personal-assistant-frame.png"
             alt="Strategy Hub"
             style={S.frameImage}
             draggable={false}
@@ -321,17 +321,16 @@ const S = {
   // ── Image-based frame container ─────────────────────────────────────────
   frameContainer: {
     position: 'relative',
+    margin: '20px auto',
+    // Mathematical constraint: never exceed the structural proportion of the viewport height. 
+    // This flawlessly pins the div container to the exact pixel footprint of the image.
     width: '100%',
-    maxWidth: 961, // Natural width
-    aspectRatio: '961 / 1024',
-    maxHeight: 'calc(100vh - 60px)',
-    margin: '0 auto',
+    maxWidth: 'min(961px, calc((100vh - 100px) * (961 / 1024)))',
     userSelect: 'none',
   },
   frameImage: {
     width: '100%',
-    height: '100%',
-    objectFit: 'contain',
+    height: 'auto',
     display: 'block',
   },
 
