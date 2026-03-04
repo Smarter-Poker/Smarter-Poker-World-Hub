@@ -1839,25 +1839,8 @@ export default function PokerNearMePage() {
                                     placeholder=""
                                     value={searchQuery}
                                     onChange={handleSearchInputChange}
-                                    onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
-                                    onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
                                     autoComplete="off"
                                 />
-                                {showSearchHistory && searchHistory.length > 0 && (
-                                    <div className="search-history-dropdown hud-abs-search-dropdown">
-                                        <div className="search-history-header">
-                                            <span>Recent Searches</span>
-                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
-                                        </div>
-                                        {searchHistory.map((item, i) => (
-                                            <button key={i} type="button" className="search-history-item"
-                                                onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setHasSearched(true); setTimeout(() => fetchAllData({ includeVenues: true }), 0); }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                                                {item}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                                 <button type="submit" className="hud-abs-search-btn" aria-label="Search"></button>
                             </form>
 
@@ -2081,9 +2064,9 @@ export default function PokerNearMePage() {
                     /* Interactive overlays via absolute positioning */
                     .hud-abs-search-form {
                         position: absolute;
-                        top: 38.5%;
-                        left: 12.5%;
-                        width: 73.5%;
+                        top: 38%;
+                        left: 18.5%;
+                        width: 63%;
                         height: 12%;
                         pointer-events: none;
                     }
@@ -2091,50 +2074,48 @@ export default function PokerNearMePage() {
                         position: absolute;
                         top: 0;
                         left: 0;
-                        width: 79%;
+                        width: 84%;
                         height: 100%;
                         background: transparent;
-                        border: none;
-                        outline: none;
+                        border: none !important;
+                        outline: none !important;
+                        box-shadow: none !important;
                         color: #fff;
                         font-size: clamp(14px, 2.5vw, 20px);
-                        padding: 0 16px 0 44px;
+                        padding: 0 16px 0 3%;
                         font-family: inherit;
                         caret-color: #d4a853;
                         pointer-events: auto;
                         cursor: text;
+                    }
+                    .hud-abs-search-input:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
                     }
                     .hud-abs-search-input::placeholder { color: transparent; }
                     .hud-abs-search-btn {
                         position: absolute;
                         top: 0;
                         right: 0;
-                        width: 19%;
+                        width: 14%;
                         height: 100%;
                         background: transparent;
                         border: none;
                         cursor: pointer;
                         pointer-events: auto;
-                    }
-                    .hud-abs-search-dropdown {
-                        position: absolute;
-                        top: 105%;
-                        left: 0;
-                        width: 79%;
-                        z-index: 50;
-                        pointer-events: auto;
+                        outline: none !important;
                     }
 
-                    .hud-abs-gps-btn { position: absolute; top: 54.5%; left: 29.5%; width: 10.5%; height: 9.5%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-                    .hud-abs-filter-btn { position: absolute; top: 54.5%; left: 60%; width: 10.5%; height: 9.5%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    .hud-abs-gps-btn { position: absolute; top: 54%; left: 29%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    .hud-abs-filter-btn { position: absolute; top: 54%; left: 60%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
 
                     .hud-abs-tab { position: absolute; top: 68%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-                    .hud-abs-tab-venues { left: 16.5%; width: 11%; }
-                    .hud-abs-tab-tours { left: 29.5%; width: 10%; }
-                    .hud-abs-tab-series { left: 40.5%; width: 10%; }
-                    .hud-abs-tab-daily { left: 51.5%; width: 9%; }
-                    .hud-abs-tab-live { left: 61.5%; width: 9%; }
-                    .hud-abs-tab-map { left: 71.5%; width: 9%; }
+                    .hud-abs-tab-venues { left: 23%; width: 9%; }
+                    .hud-abs-tab-tours { left: 33%; width: 8%; }
+                    .hud-abs-tab-series { left: 42%; width: 8.5%; }
+                    .hud-abs-tab-daily { left: 51.5%; width: 7.5%; }
+                    .hud-abs-tab-live { left: 60%; width: 8%; }
+                    .hud-abs-tab-map { left: 69%; width: 8%; }
 
 
                     /* Main Content */

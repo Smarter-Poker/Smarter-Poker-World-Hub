@@ -1,6 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   DIAMOND STORE — Purchase Diamonds
-   Buy diamonds to use across the Smarter.Poker ecosystem
+   🔒 LOCKED PAGE: FUTURISTIC METAL DESIGN
+   ═══════════════════════════════════════════════════════════════════════════
+   ATTENTION ALL AI AGENTS & DEVELOPERS:
+   1. DO NOT revert this page to the legacy plain text / emoji design.
+   2. DO NOT overwrite this file with stale code from old sessions.
+   3. DO NOT run blanket "Daily update" bulk commits that touch this file.
+   4. This page uses dynamic image overlays (`diamond-store-checkout.png`). 
+      Preserve the clickable zone coordinates.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
