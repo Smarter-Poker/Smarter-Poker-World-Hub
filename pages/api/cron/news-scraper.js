@@ -31,7 +31,7 @@ const rssParser = new Parser({
 const CONFIG = {
     MAX_ARTICLES_PER_SOURCE: 5,
     RETENTION_DAYS: 3,
-    REQUEST_TIMEOUT: 8000,
+    REQUEST_TIMEOUT: 12000,  // Increased from 8s — MSPT ASP.NET needs extra time on Vercel
     IMAGE_PROXY_TIMEOUT: 5000
 };
 
@@ -360,12 +360,33 @@ async function fastFailImageProxy(url) {
 async function extractCardPlayerImage(articleUrl) {
     if (!articleUrl) return null;
 
-    // Step 1: Extract article ID from URL pattern
-    // Format: https://www.cardplayer.com/poker-news/1639047-title-here
+    // Step 1: Try microlink proxy FIRST — CardPlayer blocks all direct access (403)
+    // but microlink.io can extract og:image from their pages
+    console.log(`   Trying microlink proxy for CardPlayer: ${articleUrl.substring(0, 50)}...`);
+    const proxyImage = await fetchOgImageViaProxy(articleUrl);
+    if (proxyImage) {
+        console.log(`   ✓ CardPlayer image via microlink: ${proxyImage.substring(0, 60)}...`);
+        return proxyImage;
+    }
+
+    // Step 2: Try noembed proxy as secondary
+    const noembedImage = await fetchOgImageViaNoEmbed(articleUrl);
+    if (noembedImage) {
+        console.log(`   ✓ CardPlayer image via noembed: ${noembedImage.substring(0, 60)}...`);
+        return noembedImage;
+    }
+
+    // Step 3: Try Google cache as tertiary
+    const cacheImage = await fetchOgImageViaGoogleCache(articleUrl);
+    if (cacheImage) {
+        console.log(`   ✓ CardPlayer image via cache: ${cacheImage.substring(0, 60)}...`);
+        return cacheImage;
+    }
+
+    // Step 4: Extract article ID and try CDN patterns as last resort
     const idMatch = articleUrl.match(/poker-news\/(\d+)/);
     if (idMatch) {
         const articleId = idMatch[1];
-        // CardPlayer uses predictable image paths — try common patterns
         const candidateUrls = [
             `https://www.cardplayer.com/assets/poker-news/${articleId}/main_image.jpg`,
             `https://www.cardplayer.com/assets/poker-news/${articleId}/main.jpg`,
@@ -395,22 +416,7 @@ async function extractCardPlayerImage(articleUrl) {
         }
     }
 
-    // Step 2: Try fetching article page with mobile UA (less likely to be blocked)
-    console.log(`   Trying mobile UA for CardPlayer: ${articleUrl.substring(0, 50)}...`);
-    const mobileHtml = await fetchWithMobileUA(articleUrl);
-    if (mobileHtml) {
-        const ogImage = extractArticleImage(mobileHtml, articleUrl);
-        if (ogImage) {
-            console.log(`   ✓ CardPlayer image via mobile UA: ${ogImage.substring(0, 60)}...`);
-            return ogImage;
-        }
-    }
-
-    // Step 3: Fast-fail proxy chain with extended timeout for CardPlayer
-    console.log(`   Trying proxy chain for CardPlayer...`);
-    const proxyImage = await fastFailImageProxy(articleUrl);
-    if (proxyImage) return proxyImage;
-
+    console.log(`   ✗ All CardPlayer image methods failed for: ${articleUrl.substring(0, 50)}...`);
     return null;
 }
 
@@ -1169,14 +1175,25 @@ async function scrapeSource(source) {
             }
         }
     } else {
-        // Multi-UA resilient fetch: try standard → Googlebot → mobile Safari
-        let html = await fetchPage(source.url);
-        if (!html) {
-            console.log(`   ⚠ Initial fetch failed for ${source.name}, trying Googlebot UA...`);
-            html = await fetchArticlePage(source.url);
+        // Multi-UA resilient fetch
+        // MSPT (ASP.NET) responds better to mobile Safari UA — try it first
+        let html;
+        if (source.name === 'MSPT') {
+            console.log(`   Trying mobile Safari UA first for MSPT (ASP.NET)...`);
+            html = await fetchWithMobileUA(source.url);
+            if (!html) {
+                console.log(`   ⚠ Mobile UA failed for MSPT, trying standard UA...`);
+                html = await fetchPage(source.url);
+            }
+        } else {
+            html = await fetchPage(source.url);
+            if (!html) {
+                console.log(`   ⚠ Initial fetch failed for ${source.name}, trying Googlebot UA...`);
+                html = await fetchArticlePage(source.url);
+            }
         }
         if (!html) {
-            console.log(`   ⚠ Googlebot failed for ${source.name}, trying mobile Safari UA...`);
+            console.log(`   ⚠ Previous methods failed for ${source.name}, trying mobile Safari UA...`);
             html = await fetchWithMobileUA(source.url);
         }
         if (!html) {
