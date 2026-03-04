@@ -107,11 +107,9 @@ body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000;
 .field-label { font-weight: bold; min-width: 18mm; }
 .field-val { font-size: 11px; text-transform: uppercase; }
 .boxes { display: flex; gap: 4mm; justify-content: center; margin: 4mm 0 2mm; }
-.box-wrap { text-align: center; flex: 1; }
+.box-wrap { text-align: center; width: 90px; }
 .box-title { font-size: 11px; font-weight: bold; margin-bottom: 1mm; }
-.box-num { border: 2px solid #000; font-size: 30px; font-weight: 900; padding: 2mm 0; min-width: 22mm; display: block; text-align: center; line-height: 1.1; }
-.moved-from { font-size: 9px; text-align: center; color: #555; margin-top: 1mm; }
-.chips-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
+.box-num { border: 2px solid #000; font-size: 30px; font-weight: 900; padding: 2mm 0; width: 90px; display: block; text-align: center; line-height: 1.1; }
 .footer-line { font-size: 9px; margin: 1mm 0; }
 .customer-copy { text-align: center; font-size: 9px; font-weight: bold; letter-spacing: 1px; margin-top: 3mm; }
 </style></head><body>
@@ -128,11 +126,9 @@ ${receipts.map(r => `<div class="card">
     <div class="box-wrap"><div class="box-title">Table</div><span class="box-num">${r.to_table}</span></div>
     <div class="box-wrap"><div class="box-title">Seat</div><span class="box-num">${r.to_seat}</span></div>
   </div>
-  <div class="moved-from">Moved from Table ${r.from_table}, Seat ${r.from_seat}</div>
-  ${r.chips ? `<div class="divider"></div><div class="chips-row"><span>Chip Count:</span><span><b>${Number(r.chips).toLocaleString()}</b></span></div>` : ''}
   <div class="divider"></div>
   <div class="footer-line">${new Date(r.timestamp).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}&nbsp;&nbsp;${new Date(r.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-  <div class="customer-copy">Customer Copy</div>
+  <div class="customer-copy">&mdash; Dealer's Copy &mdash;</div>
 </div>`).join('')}
 </body></html>`);
     pw.document.close();
