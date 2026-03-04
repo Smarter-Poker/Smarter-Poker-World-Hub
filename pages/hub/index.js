@@ -12,25 +12,41 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { claimReward } from '../../src/lib/claimReward';
 import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
+import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
-const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
-    ssr: false,
-    loading: () => (
-        <div style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#0a0a0f',
-            color: '#00d4ff',
-            fontFamily: 'Orbitron, sans-serif',
-            fontSize: 18,
-        }}>
-            Loading World Hub...
-        </div>
-    ),
-});
+// Error handling on the dynamic import itself catches module-level init failures
+const WorldHub = dynamic(
+    () => import('../../src/world/WorldHub').catch(err => {
+        console.error('[HubPage] WorldHub module failed to load:', err);
+        // Return a safe fallback module when the import itself throws
+        return {
+            default: () => (
+                <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 18 }}>World Hub — Reloading...</div>
+                    <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit' }}>Refresh</button>
+                </div>
+            )
+        };
+    }),
+    {
+        ssr: false,
+        loading: () => (
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0a0a0f',
+                color: '#00d4ff',
+                fontFamily: 'Orbitron, sans-serif',
+                fontSize: 18,
+            }}>
+                Loading World Hub...
+            </div>
+        ),
+    }
+);
 
 export default function HubPage() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -108,13 +124,19 @@ export default function HubPage() {
                 menuItems={menuConfig.menuItems}
                 bottomLinks={menuConfig.bottomLinks}
             />
-            {/* Card Visibility Customizer Panel — triggered from hamburger menu or profile dropdown */}
-            <CardCustomizerPanel
-                isOpen={cardCustomizerOpen}
-                onClose={() => setCardCustomizerOpen(false)}
-                unlockedSpecialIds={unlockedSpecialIds}
-            />
-            <WorldHub onOpenCardCustomizer={() => setCardCustomizerOpen(true)} />
+            {/* Card Visibility Customizer Panel — isolated in its own error boundary */}
+            <HubErrorBoundary name="Card Customizer" fallback={<></>}>
+                <CardCustomizerPanel
+                    isOpen={cardCustomizerOpen}
+                    onClose={() => setCardCustomizerOpen(false)}
+                    unlockedSpecialIds={unlockedSpecialIds}
+                />
+            </HubErrorBoundary>
+
+            {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
+            <HubErrorBoundary name="World Hub">
+                <WorldHub onOpenCardCustomizer={() => setCardCustomizerOpen(true)} />
+            </HubErrorBoundary>
         </>
     );
 }

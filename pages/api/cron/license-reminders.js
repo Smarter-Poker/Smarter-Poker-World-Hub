@@ -40,7 +40,13 @@ function urgencyLabel(days) {
 
 function isAuthorized(req) {
     const secret = CRON_SECRET;
-    if (!secret) return false; // misconfigured — reject all
+
+    // Allow unauthenticated access in development when no secret is configured
+    if (!secret) {
+        if (process.env.NODE_ENV !== 'production') return true;
+        console.error('[LicenseReminders] ⚠️ CRON_SECRET not set in production — all requests rejected. Add it to Vercel env vars.');
+        return false;
+    }
 
     // Vercel cron sends: Authorization: Bearer <CRON_SECRET>
     const authHeader = req.headers['authorization'] || '';

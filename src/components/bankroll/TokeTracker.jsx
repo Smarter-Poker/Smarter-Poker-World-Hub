@@ -236,6 +236,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         if (!userId) return;
         const channel = supabase
             .channel(`toke-realtime-${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, () => loadData())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gig_days', filter: `user_id=eq.${userId}` }, () => loadData())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_downs', filter: `user_id=eq.${userId}` }, () => loadData())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_expenses', filter: `user_id=eq.${userId}` }, () => loadData())
@@ -424,6 +425,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             if (timerTickRef.current) clearInterval(timerTickRef.current);
             setTimerActive(false);
             await loadData();
+            // Bus event: notify TokeDashboard + other hub cards that a gig was completed
+            window.dispatchEvent(new CustomEvent('toke-gig-completed', {
+                detail: { userId, gigId: activeGig.id }
+            }));
         } catch (err) {
             toast.error(err.message || 'Failed to complete gig');
         }
@@ -1237,6 +1242,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                     {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                 </span>
                                                 {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
+                                                {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
+                                                    <span style={{ ...styles.downDetail, color: '#a78bfa', fontWeight: 600 }}>
+                                                        ${parseFloat(down.tournament_buyin).toLocaleString()} buy-in
+                                                    </span>
+                                                )}
                                                 {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
                                                 {down.table_number && <span style={styles.downDetail}>T{down.table_number}</span>}
                                                 <span style={styles.downTime}>

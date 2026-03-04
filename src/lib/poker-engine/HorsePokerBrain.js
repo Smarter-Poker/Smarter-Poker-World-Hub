@@ -4326,6 +4326,34 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── Phase 5: ICM avoidFlips override — avoid coin-flip all-ins at bubble/FT ──
     const icmCommitThreshold = icmPressure.avoidFlips ? 62 : 52;
 
+    // ─── MODULE 29 & 31: ADJUSTED COMMIT THRESHOLDS ───
+    const bombPotBoost = state.bombPotBoost || 0;
+    const adjustedCommitThreshold = icmCommitThreshold + bombPotBoost;
+    if (bombPotBoost > 0) console.log(`[HorseBrain] 💣 MODULE 29: commit threshold raised to ${adjustedCommitThreshold} (bomb-pot/straddle boost +${bombPotBoost})`);
+
+    const ritRefuserBoost = (state.isRITRefuser) ? 5 : 0;
+    const finalCommitThreshold = adjustedCommitThreshold + ritRefuserBoost;
+
+    // ─── MODULE 28: COLD-CALL TRAP DETECTOR ───
+    const coldCallPenalty = (state.isColdCallTrap) ? -10 : 0;
+
+    // ─── MODULE 32: CHIP-LEAK FORENSICS ───
+    const { oopBoost = 0, multiwayBoost = 0, drawBoost = 0, donkBoost = 0 } = state.chipLeakBoosts || {};
+
+    // ─── MODULE 27: REVERSE IMPLIED ODDS GUARD ───
+    const rioGuard = detectReverseImplied(
+        totalOuts,
+        toCall > 0 ? toCall / (potSize + toCall) : 0,
+        stackBB,
+        numPlayers,
+        boardTexture.isWet || false
+    );
+    if (rioGuard.shouldBlock) console.log(`[HorseBrain] 🔄 MODULE 27 RIO BLOCK: ${rioGuard.reason}`);
+
+    // ─── MODULE 32: OOP EQUITY LEAK — tighten equityFinal for OOP patterns ───
+    const chipLeakFoldAdjust = (!isIP ? oopBoost : 0) + (numPlayers >= 4 ? multiwayBoost : 0);
+
+
     // ─── RIVER ───
     if (street === 'river') {
         const riverEquity = (madeHand.strength + nutBonus + lo8Bonus
@@ -4450,7 +4478,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // Phase 3+5: All-in equity check with ICM awareness
     if (sprZone.shouldCommit || allInInfo.shouldCommitAllIn) {
-        if (allInInfo.allInEquity >= icmCommitThreshold) {
+        if (allInInfo.allInEquity >= finalCommitThreshold) {
             if (gifInfo.shouldThrowGif) return { type: 'all_in', gifCategory: gifInfo.gifCategory };
             return { type: 'all_in' };
         }
@@ -4564,12 +4592,24 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     if (exactOuts >= 9 && impliedOddsInfo.isProfitableCall && canCall)
         return { type: 'call' };
 
-    // Phase 6: Flop continuance score
-    if (!flopContinuance.shouldContinue) return { type: 'fold' };
+    // Phase 6: Flop/Turn continuance score
+    // ─── MODULE 27: RIO GUARD — veto draw calls when RIO > forward implied odds ───
+    if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade) {
+        console.log(`[HorseBrain] 🚫 MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+    // ─── MODULE 28: COLD-CALL TRAP — reduce continuance on boards vs trapping opponent ───
+    const continuanceScore = flopContinuance.continuanceScore + coldCallPenalty + drawBoost;
+    if (!flopContinuance.shouldContinue || continuanceScore < 0) return { type: 'fold' };
 
-    // Worth raising if above raise threshold
-    if (flopContinuance.continuanceScore >= flopContinuance.raiseThreshold && canRaise)
+    if (continuanceScore >= flopContinuance.raiseThreshold && canRaise) {
+        // Module 32: Donk-overcall penalty
+        if (!isIP && toCall > 0 && donkBoost > 0 && continuanceScore < flopContinuance.raiseThreshold + donkBoost) {
+            console.log(`[HorseBrain] 📉 MODULE 32 DONK LEAK: passing on marginal raise OOP due to leak pattern.`);
+            return { type: 'call' };
+        }
         return { type: raiseAction?.type || 'call', amount: clamp(Math.round(potSize * 0.75)) };
+    }
 
     // Call if continuance says so
     if (canCall) return { type: 'call' };
@@ -5518,6 +5558,31 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         console.log(`[HorseBrain] 🪤 MODULE 21 LIMP TRAP: ${numLimpers} limpers, SPR=${ploSPR.toFixed(1)} — reducing raise freq.`);
     }
 
+    // ─── MODULE 25: MIN-RAISE HARASSMENT DETECTOR ───
+    const minRaiseTell = primaryOppId ? isMinRaiser(primaryOppId) : { isMinRaiser: false, rate: 0 };
+    if (minRaiseTell.isMinRaiser) {
+        console.log(`[HorseBrain] 🔩 MODULE 25 MIN-RAISE: ${primaryOppId?.substring(0, 8)} min-raises ${(minRaiseTell.rate * 100).toFixed(0)}% — 3-betting wider, not folding to min-raises.`);
+    }
+
+    // ─── MODULE 26: SQUEEZE OVERKILL DETECTOR ───
+    const squeezeTell = primaryOppId ? isSqueezeOverkill(primaryOppId) : { isOverkill: false, avgMult: 0 };
+    if (squeezeTell.isOverkill) {
+        console.log(`[HorseBrain] 💥 MODULE 26 SQUEEZE: ${primaryOppId?.substring(0, 8)} over-squeezes (avg ${squeezeTell.avgMult.toFixed(1)}×pot) — folding wider vs 3rd-player squeeze.`);
+    }
+
+    // ─── MODULE 29: STRADDLE / BOMB-POT EQUITY ADJUSTER ───
+    const hasStraddle = engineState.hasStraddle || false;
+    const bombPotInfo = detectBombPotOrStraddle(potTotal, bb, hasStraddle);
+    if (bombPotInfo.equityThresholdBoost > 0) {
+        console.log(`[HorseBrain] 💣 MODULE 29 ${bombPotInfo.label.toUpperCase()}: equity threshold +${bombPotInfo.equityThresholdBoost}% — tightening commit threshold.`);
+    }
+
+    // ─── MODULE 30: ANGLE-SHOOT TIMING DETECTOR ───
+    const angleTell = primaryOppId ? detectAngleShoot(primaryOppId) : { isAngleShooting: false, extraEntropyMs: 0 };
+    if (angleTell.isAngleShooting) {
+        console.log(`[HorseBrain] 🎭 MODULE 30 ANGLE-SHOOT: ${primaryOppId?.substring(0, 8)} pre-selecting actions — adding ${angleTell.extraEntropyMs}ms entropy to this decision.`);
+    }
+
     if (isPLO) {
         const ploDecision = makePLOFallbackDecision(profileId, {
             holeCards: holeCardStrings,
@@ -5530,14 +5595,20 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             bb,
             numPlayers,
             isHiLo,
-            // ─── Phase 3 signals ───
+            // ─── Phase 3 & 4 signals ───
             imageExposed,          // Module 20
             isLimpTrap: limpTrap.isLimpTrap, // Module 21
             isoTellActive: isoTell.isMechanical, // Module 22
             probeFarmScore: primaryOppId ? getProbeFarmScore(primaryOppId) : 0, // Module 19
+            isMinRaiser: minRaiseTell.isMinRaiser, // Module 25
+            isSqueezeOverkill: squeezeTell.isOverkill, // Module 26
+            bombPotBoost: bombPotInfo.equityThresholdBoost, // Module 29
+            isColdCallTrap: primaryOppId ? isColdCallTrap(primaryOppId).isTrap : false, // Module 28
+            isRITRefuser: primaryOppId ? isRITRefuser(primaryOppId).isRITRefuser : false, // Module 31
+            chipLeakBoosts: getChipLeakBoosts(profileId, tableId || 'default'), // Module 32
         }, legalActions);
         const validPLO = validateAndClamp(ploDecision.type, ploDecision.amount, legalActions);
-        const delayPLO = getActionDelay(profileId, validPLO.type, street === 'preflop');
+        const delayPLO = getActionDelay(profileId, validPLO.type, street === 'preflop') + angleTell.extraEntropyMs;
         recordPerformanceAction(profileId, street, validPLO.type, validPLO.type !== 'fold' && validPLO.type !== 'check');
         return { action: validPLO, delayMs: delayPLO };
     }
@@ -6321,8 +6392,177 @@ const imageExposureMap = new Map();
 // Map<opponentId, number[]>
 const isoSizingMap = new Map();
 
+// --- PHASE 4: DEEP-SESSION FINANCIAL EXPLOITATION DEFENSE ---
+// Mod 25: Map<oppId, { count, total, rate }>
+const minRaiseMap = new Map();
+// Mod 26: Map<oppId, { squeezes, avgMult }>
+const squeezeMap = new Map();
+// Mod 28: Map<oppId, { coldCalls, barrels, folds, winRate }>
+const coldCallMap = new Map();
+// Mod 30: Map<oppId, { instantActions, totalActions, consecutive }>
+const angleShootMap = new Map();
+// Mod 31: Map<oppId, { refused, offered, rate }>
+const ritRefusalMap = new Map();
+// Mod 32: Map<horseId+tableId, { leaks: Map<pattern, bbLost> }>
+const chipLeakMap = new Map();
+
 // ─────────────────────────────────────────────────────────────────────────────
-// MODULE 17: PLO RUNOUT EQUITY RE-EVALUATOR
+// MODULE 25: MIN-RAISE HARASSMENT DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+function recordRaiseSize(oppId, raiseAmt, prevBet, oppWon) {
+    if (!oppId) return;
+    const isMin = raiseAmt <= prevBet * 2.2 && raiseAmt > 0;
+    if (!minRaiseMap.has(oppId)) minRaiseMap.set(oppId, { count: 0, total: 0, rate: 0 });
+    const m = minRaiseMap.get(oppId);
+    m.total++;
+    if (isMin) m.count++;
+    m.rate = m.count / m.total;
+}
+function isMinRaiser(oppId) {
+    const m = minRaiseMap.get(oppId);
+    if (!m || m.total < 4) return { isMinRaiser: false, rate: 0 };
+    return { isMinRaiser: m.rate > 0.40, rate: m.rate };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 26: SQUEEZE OVERKILL DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+function recordSqueeze(oppId, raiseAmt, potSize) {
+    if (!oppId || potSize <= 0) return;
+    const mult = raiseAmt / potSize;
+    if (!squeezeMap.has(oppId)) squeezeMap.set(oppId, { squeezes: 0, avgMult: 0 });
+    const m = squeezeMap.get(oppId);
+    m.squeezes++;
+    m.avgMult = m.avgMult === 0 ? mult : (m.avgMult * 0.7) + (mult * 0.3);
+}
+function isSqueezeOverkill(oppId) {
+    const m = squeezeMap.get(oppId);
+    if (!m || m.squeezes < 3) return { isOverkill: false, avgMult: 0 };
+    return { isOverkill: m.avgMult >= 4.0, avgMult: m.avgMult };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 27: REVERSE IMPLIED ODDS GUARD
+// ─────────────────────────────────────────────────────────────────────────────
+function detectReverseImplied(outs, potOdds, effectiveStack, numOpponents, boardIsWet) {
+    if (outs <= 0) return { shouldBlock: false, rioFactor: 0, reason: 'no draw outs — made hand' };
+    const drawEquity = Math.min(outs * 2.0, 45) / 100;
+    const forwardImplied = drawEquity * effectiveStack * 0.6;
+    const rioMultiplier = boardIsWet ? (1 + numOpponents * 0.3) : (1 + numOpponents * 0.15);
+    const reverseImplied = potOdds * effectiveStack * rioMultiplier;
+    const rioFactor = reverseImplied / Math.max(forwardImplied, 0.01);
+    const shouldBlock = rioFactor > 1.5 && drawEquity < potOdds;
+    return {
+        shouldBlock,
+        rioFactor: Math.round(rioFactor * 100) / 100,
+        reason: shouldBlock ? `RIO×${rioFactor.toFixed(1)} — draw equity ${(drawEquity * 100).toFixed(0)}% < pot odds ${(potOdds * 100).toFixed(0)}%` : 'draw call acceptable'
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 28: COLD-CALL TRAP DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+function recordColdCall(oppId) {
+    if (!oppId) return;
+    if (!coldCallMap.has(oppId)) coldCallMap.set(oppId, { coldCalls: 0, barrels: 0, folds: 0, winRate: 0 });
+    coldCallMap.get(oppId).coldCalls++;
+}
+function recordBarrelVsColdCall(oppId, oppFolded) {
+    if (!oppId || !coldCallMap.has(oppId)) return;
+    const m = coldCallMap.get(oppId);
+    m.barrels++;
+    if (oppFolded) m.folds++;
+    m.winRate = m.folds / m.barrels;
+}
+function isColdCallTrap(oppId) {
+    const m = coldCallMap.get(oppId);
+    if (!m || m.barrels < 4) return { isTrap: false, winRate: 0 };
+    return { isTrap: m.winRate < 0.35, winRate: m.winRate };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 29: STRADDLE & BOMB-POT EQUITY ADJUSTER
+// ─────────────────────────────────────────────────────────────────────────────
+function detectBombPotOrStraddle(potTotal, bb, hasStraddle) {
+    const isBombPot = !hasStraddle && (potTotal >= bb * 8);
+    const isStraddle = !!hasStraddle;
+    return {
+        isBombPot,
+        isStraddle,
+        label: isBombPot ? 'bomb-pot' : (isStraddle ? 'straddle' : 'standard'),
+        equityThresholdBoost: isBombPot ? 15 : (isStraddle ? 10 : 0)
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 30: ANGLE-SHOOT TIMING DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+function recordActionTiming(oppId, actionMs) {
+    if (!oppId) return;
+    if (!angleShootMap.has(oppId)) angleShootMap.set(oppId, { instantActions: 0, totalActions: 0, consecutive: 0 });
+    const m = angleShootMap.get(oppId);
+    m.totalActions++;
+    if (actionMs < 700) {
+        m.instantActions++;
+        m.consecutive++;
+    } else {
+        m.consecutive = 0;
+    }
+}
+function detectAngleShoot(oppId) {
+    const m = angleShootMap.get(oppId);
+    if (!m) return { isAngleShooting: false, extraEntropyMs: 0 };
+    const rate = m.totalActions > 4 ? m.instantActions / m.totalActions : 0;
+    const isAngleShooting = rate > 0.60 || m.consecutive >= 4;
+    return {
+        isAngleShooting,
+        extraEntropyMs: isAngleShooting ? (2000 + Math.random() * 3000) : 0
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 31: RUN-IT-TWICE REFUSAL TRACKER
+// ─────────────────────────────────────────────────────────────────────────────
+function recordRITResponse(oppId, accepted) {
+    if (!oppId) return;
+    if (!ritRefusalMap.has(oppId)) ritRefusalMap.set(oppId, { refused: 0, offered: 0, rate: 0 });
+    const m = ritRefusalMap.get(oppId);
+    m.offered++;
+    if (!accepted) m.refused++;
+    m.rate = m.refused / m.offered;
+}
+function isRITRefuser(oppId) {
+    const m = ritRefusalMap.get(oppId);
+    if (!m || m.offered < 2) return { isRITRefuser: false, refusalRate: 0 };
+    return { isRITRefuser: m.rate >= 0.8, refusalRate: m.rate };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 32: PER-SESSION CHIP-LEAK FORENSICS
+// ─────────────────────────────────────────────────────────────────────────────
+function recordChipLeak(horseId, tableId, pattern, absLossBB) {
+    if (!horseId || !tableId || absLossBB <= 0) return;
+    const key = `${horseId}:${tableId}`;
+    if (!chipLeakMap.has(key)) chipLeakMap.set(key, { leaks: new Map() });
+    const m = chipLeakMap.get(key).leaks;
+    const cur = m.get(pattern) || 0;
+    m.set(pattern, cur + absLossBB);
+}
+function getChipLeakBoosts(horseId, tableId) {
+    const key = `${horseId}:${tableId}`;
+    const m = chipLeakMap.get(key);
+    const leaks = m?.leaks;
+    if (!leaks) return { oopBoost: 0, multiwayBoost: 0, drawBoost: 0, donkBoost: 0 };
+    return {
+        oopBoost: (leaks.get('oop_check_call') || 0) > 20 ? 8 : 0,
+        multiwayBoost: (leaks.get('multiway_topset') || 0) > 20 ? 8 : 0,
+        drawBoost: (leaks.get('missed_draw_overbet') || 0) > 20 ? 8 : 0,
+        donkBoost: (leaks.get('donk_overcall') || 0) > 20 ? 8 : 0,
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─────────────────────────────────────────────────────────────────────────────
 /**
  * Re-evaluate how a runout card changed the horse's equity.

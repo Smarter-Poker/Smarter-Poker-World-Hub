@@ -21,6 +21,7 @@ import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
 import { useReturnBurst } from './components/ReturnBurst';
 import { CardCustomizerPanel } from './components/CardCustomizerPanel';
+import { HubErrorBoundary } from '../components/ui/HubErrorBoundary';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📱 MOBILE DETECTION HOOK
@@ -857,54 +858,56 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 3D SPATIAL LAYER — Camera for massive main card
                 z-index: 5 puts cards ABOVE background but BELOW HUD (z-index: 10)
                 ═══════════════════════════════════════════════════════════════ */}
-                <Canvas
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
-                    dpr={[1, 2]}
-                    camera={{ position: [0, 0, 24], fov: 60 }}
-                    gl={{
-                        antialias: true,
-                        powerPreference: 'high-performance',
-                        outputColorSpace: THREE.SRGBColorSpace,
-                        toneMapping: THREE.ACESFilmicToneMapping,
-                        toneMappingExposure: 1.1,
-                        alpha: true,
-                    }}
-                >
-                    <Suspense fallback={<LoadingFallback />}>
-                        {/* Premium Lighting — Cyan/Blue/Green palette only */}
-                        <ambientLight intensity={0.4} />
-                        <pointLight position={[0, 12, 15]} intensity={2.5} color="#ffffff" />
-                        <pointLight position={[-15, 5, 8]} intensity={0.6} color="#00d4ff" />
-                        <pointLight position={[15, 5, 8]} intensity={0.6} color="#00ff88" />
-                        <pointLight position={[0, -10, 10]} intensity={0.3} color="#0088ff" />
-                        <spotLight
-                            position={[0, 20, 12]}
-                            angle={0.5}
-                            penumbra={0.6}
-                            intensity={1.5}
-                            color="#ffffff"
-                        />
-                        {/* Rim light from behind */}
-                        <directionalLight
-                            position={[0, 5, -15]}
-                            intensity={0.4}
-                            color="#00d4ff"
-                        />
+                <HubErrorBoundary name="3D Canvas Engine" fallback={<div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'Orbitron, sans-serif' }}>[3D Engine Offline]</div>}>
+                    <Canvas
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
+                        dpr={[1, 2]}
+                        camera={{ position: [0, 0, 24], fov: 60 }}
+                        gl={{
+                            antialias: true,
+                            powerPreference: 'high-performance',
+                            outputColorSpace: THREE.SRGBColorSpace,
+                            toneMapping: THREE.ACESFilmicToneMapping,
+                            toneMappingExposure: 1.1,
+                            alpha: true,
+                        }}
+                    >
+                        <Suspense fallback={<LoadingFallback />}>
+                            {/* Premium Lighting — Cyan/Blue/Green palette only */}
+                            <ambientLight intensity={0.4} />
+                            <pointLight position={[0, 12, 15]} intensity={2.5} color="#ffffff" />
+                            <pointLight position={[-15, 5, 8]} intensity={0.6} color="#00d4ff" />
+                            <pointLight position={[15, 5, 8]} intensity={0.6} color="#00ff88" />
+                            <pointLight position={[0, -10, 10]} intensity={0.3} color="#0088ff" />
+                            <spotLight
+                                position={[0, 20, 12]}
+                                angle={0.5}
+                                penumbra={0.6}
+                                intensity={1.5}
+                                color="#ffffff"
+                            />
+                            {/* Rim light from behind */}
+                            <directionalLight
+                                position={[0, 5, -15]}
+                                intensity={0.4}
+                                color="#00d4ff"
+                            />
 
-                        {/* Launch Pad Animation */}
-                        {/* LaunchPad disabled - no cinematic intro except on login */}
-                        {/* <LaunchPad isActive={isLaunching} onBurst={onBurst} /> */}
+                            {/* Launch Pad Animation */}
+                            {/* LaunchPad disabled - no cinematic intro except on login */}
+                            {/* <LaunchPad isActive={isLaunching} onBurst={onBurst} /> */}
 
-                        {/* Card Carousel with Snap */}
-                        <CarouselEngine
-                            onOrbSelect={handleOrbSelect}
-                            initialIndex={getLastCarouselIndex()}
-                            onIndexChange={setLastCarouselIndex}
-                            isIntroComplete={isIntroComplete}
-                            orbs={carouselOrbs}
-                        />
-                    </Suspense>
-                </Canvas>
+                            {/* Card Carousel with Snap */}
+                            <CarouselEngine
+                                onOrbSelect={handleOrbSelect}
+                                initialIndex={getLastCarouselIndex()}
+                                onIndexChange={setLastCarouselIndex}
+                                isIntroComplete={isIntroComplete}
+                                orbs={carouselOrbs}
+                            />
+                        </Suspense>
+                    </Canvas>
+                </HubErrorBoundary>
 
 
                 {/* Keyframe animations for shine, pedestal, and holographic inner effects */}
@@ -1038,14 +1041,16 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                 paddingBottom: 40,
                             }}
                         >
+                            {/* Desktop footer cards — each isolated so one bad card never crashes the row */}
                             {footerCards.map((orb, index) => (
-                                <FooterCard
-                                    key={orb.id}
-                                    orb={orb}
-                                    index={index}
-                                    onSelect={handleCardSelect}
-                                    isIntroComplete={isIntroComplete}
-                                />
+                                <HubErrorBoundary key={orb.id} name={`FooterCard-${orb.id}`} fallback={<div style={{ width: 80, height: 120 }} />}>
+                                    <FooterCard
+                                        orb={orb}
+                                        index={index}
+                                        onSelect={handleCardSelect}
+                                        isIntroComplete={isIntroComplete}
+                                    />
+                                </HubErrorBoundary>
                             ))}
                         </div>
                     )}
@@ -1068,48 +1073,47 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                 msOverflowStyle: 'none',
                             }}
                         >
+                            {/* Mobile footer cards — each isolated */}
                             {footerCards.map((orb, index) => (
-                                <div
-                                    key={orb.id}
-                                    onClick={() => handleCardSelect(orb.id)}
-                                    style={{
-                                        flex: '0 0 auto',
-                                        width: `clamp(100px, 18vw, 115px)`,  // Viewport-scaled mobile card
-                                        cursor: 'pointer',
-                                    }}
-                                >
+                                <HubErrorBoundary key={orb.id} name={`MobileCard-${orb.id}`} fallback={<div style={{ flex: '0 0 auto', width: 100, height: 150 }} />}>
                                     <div
+                                        onClick={() => handleCardSelect(orb.id)}
                                         style={{
-                                            width: '100%',
-                                            aspectRatio: '2 / 3',
-                                            borderRadius: 8,
-                                            background: orb.imageUrl
-                                                ? `url('${orb.imageUrl}') center/cover`
-                                                : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                            border: 'none',
-                                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
-                                            position: 'relative',
+                                            flex: '0 0 auto',
+                                            width: `clamp(100px, 18vw, 115px)`,  // Viewport-scaled mobile card
+                                            cursor: 'pointer',
                                         }}
                                     >
-
-
+                                        <div
+                                            style={{
+                                                width: '100%',
+                                                aspectRatio: '2 / 3',
+                                                borderRadius: 8,
+                                                background: orb.imageUrl
+                                                    ? `url('${orb.imageUrl}') center/cover`
+                                                    : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
+                                                border: 'none',
+                                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+                                                position: 'relative',
+                                            }}
+                                        />
+                                        <div
+                                            style={{
+                                                marginTop: 6,
+                                                fontSize: `clamp(9px, 1.2vh, 10px)`,  // Viewport-scaled label
+                                                fontWeight: 600,
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                textAlign: 'center',
+                                                textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                            }}
+                                        >
+                                            {orb.label}
+                                        </div>
                                     </div>
-                                    <div
-                                        style={{
-                                            marginTop: 6,
-                                            fontSize: `clamp(9px, 1.2vh, 10px)`,  // Viewport-scaled label
-                                            fontWeight: 600,
-                                            color: 'rgba(255, 255, 255, 0.9)',
-                                            textAlign: 'center',
-                                            textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                        }}
-                                    >
-                                        {orb.label}
-                                    </div>
-                                </div>
+                                </HubErrorBoundary>
                             ))}
                         </div>
                     )}

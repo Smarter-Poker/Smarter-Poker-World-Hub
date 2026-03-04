@@ -38,7 +38,9 @@ function computeGigStats(gig) {
     let totalHours = 0;
     for (const down of downs) {
         totalTokes += down.toke_amount || 0;
-        if (down.started_at && down.ended_at) {
+        // Only count dealing downs for hours (not breaks — they inflate the denominator unfairly)
+        const isDealing = down.down_type === 'cash' || down.down_type === 'tournament' || down.down_type === 'brush';
+        if (isDealing && down.started_at && down.ended_at) {
             totalHours += (new Date(down.ended_at) - new Date(down.started_at)) / (1000 * 60 * 60);
         }
     }
