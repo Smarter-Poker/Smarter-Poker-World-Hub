@@ -267,8 +267,8 @@ export default async function handler(req, res) {
         alerts: {
           imbalanced,
           can_break_table: canBreakTable,
-          hand_for_hand: tournament.clock_state?.hand_for_hand || false,
-          on_break: tournament.clock_state?.on_break || false
+          hand_for_hand: clockState?.hand_for_hand || false,
+          on_break: clockState?.on_break || false
         },
         tables,
         // Full entries list for Players tab — includes ALL statuses

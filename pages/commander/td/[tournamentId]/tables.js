@@ -429,16 +429,16 @@ ${receipts.map(r => `<div class="card">
                         if (!confirm(`Break Table ${selectedTable.table_number}? All ${selectedTable.players.length} players will be auto-assigned to available seats.`)) return;
                         setActionLoading('break');
                         try {
-                          // Step 1: Fetch auto-break suggestions — no ?table= param, the API picks the best candidate
-                          // We check that the system agrees this specific table should be broken
+                          // Step 1: Fetch auto-break assignments for THIS specific table
+                          // Use ?force_table= so the API generates assignments for the TD's chosen table,
+                          // not the system's automatically-detected smallest table.
                           const breakSuggestRes = await fetch(
-                            `/api/commander/tournaments/${tournamentId}/auto-break`,
+                            `/api/commander/tournaments/${tournamentId}/auto-break?force_table=${selectedTable.table_number}`,
                             { headers: { 'x-staff-session': getToken() } }
                           );
                           const breakSuggestJson = await breakSuggestRes.json();
 
-                          // Use assignments if available — regardless of which table the system picked,
-                          // we override with the TD's selected table for manual breaks
+                          // Use assignments if available — these are now specifically for selectedTable.table_number
                           let assignments = breakSuggestJson.data?.assignments || [];
 
                           if (!breakSuggestJson.success || assignments.length === 0) {

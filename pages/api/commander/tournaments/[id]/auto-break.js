@@ -118,7 +118,13 @@ async function handleCheck(req, res, tournament) {
     });
   }
 
-  const breakCandidate = tableStats[0]; // smallest table
+  // If the TD explicitly requests to break a specific table (manual break),
+  // use THAT table as the break candidate — not the auto-detected smallest table.
+  const forceTableNum = req.query.force_table ? parseInt(req.query.force_table) : null;
+  const breakCandidate = forceTableNum
+    ? tableStats.find(t => t.table_number === forceTableNum) || tableStats[0]
+    : tableStats[0]; // default: smallest table (auto-break)
+
   const otherTables = tableStats.filter(t => t.table_number !== breakCandidate.table_number);
 
   // Count total open seats on OTHER tables

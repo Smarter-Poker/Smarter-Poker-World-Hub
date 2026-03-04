@@ -221,7 +221,8 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
                 mode: 'inactive',
                 tournament_id: null,
                 status: 'available',
-                assigned_at: null
+                assigned_at: null,
+                updated_at: new Date().toISOString()
             })
             .eq('venue_id', tournament.venue_id)
             .eq('tournament_id', tournamentId)
