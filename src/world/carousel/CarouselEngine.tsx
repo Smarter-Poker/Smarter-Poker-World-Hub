@@ -59,6 +59,18 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
         }
     }, [isIntroComplete, introProgress]);
 
+    // Normalize scrollPosition when the orbs array length changes (card hidden/shown)
+    // Keeps the position within [0, TOTAL_ORBS) so modulo arithmetic stays predictable
+    useEffect(() => {
+        if (TOTAL_ORBS === 0) return;
+        const normalised = ((scrollPosition % TOTAL_ORBS) + TOTAL_ORBS) % TOTAL_ORBS;
+        if (Math.abs(normalised - scrollPosition) > 0.01) {
+            setScrollPosition(normalised);
+            setTargetPosition(Math.round(normalised));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [TOTAL_ORBS]);
+
     const { size, gl, viewport } = useThree();
 
     // Attach native touch/mouse handlers to canvas for reliable mobile swipe
