@@ -2854,6 +2854,44 @@ export default function PokerNearMePage() {
                         width: 100%;
                     }
 
+                    /* Filter Panel Controls */
+                    .filter-group {
+                        margin-bottom: 20px;
+                    }
+                    .filter-group label {
+                        display: block;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.6);
+                        margin-bottom: 10px;
+                        font-weight: 500;
+                    }
+                    .filter-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .chip {
+                        padding: 8px 16px;
+                        background: rgba(0,0,0,0.4);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 20px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .chip:hover {
+                        background: rgba(255,255,255,0.1);
+                        border-color: rgba(255,255,255,0.2);
+                        color: #fff;
+                    }
+                    .chip.active {
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
+                    }
+
                     /* Mobile Filter Drawer */
                     @media (max-width: 768px) {
                         .filter-panel {
