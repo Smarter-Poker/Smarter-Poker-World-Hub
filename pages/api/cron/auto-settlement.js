@@ -683,7 +683,7 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
       type: 'settlement',
       title: `💰 Commission Received — Period #${periodNum}`,
       message: `You earned ${commission.toLocaleString()} chips commission (${(agent.commission_rate * 100).toFixed(1)}% of ${grossRake.toLocaleString()} rake generated). Chips have been added to your balance.`,
-      metadata: {
+      data: {
         club_id: club.id,
         period_id: period.id,
         period_number: periodNum,
@@ -700,7 +700,7 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
     type: 'settlement',
     title: `📊 Settlement Complete — ${club.name} Period #${periodNum}`,
     message: `Period #${periodNum} auto-settled. Rake: ${totalRake.toLocaleString()}, Commissions: ${totalCommissions.toLocaleString()}, Club retained: ${clubRetained.toLocaleString()} chips.`,
-    metadata: {
+    data: {
       club_id: club.id,
       period_id: period.id,
       total_rake: totalRake,

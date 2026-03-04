@@ -226,7 +226,7 @@ export default async function handler(req, res) {
                   type: 'rakeback',
                   title: '💰 Rakeback Received!',
                   message: `You received ${dist.rakeback_amount.toLocaleString()} chips rakeback (${(dist.rakeback_percentage * 100).toFixed(1)}% of your ${dist.player_rake_contributed.toLocaleString()} rake). Chips added to your balance!`,
-                  metadata: {
+                  data: {
                     club_id: clubId,
                     period_id: dist.period_id,
                     rakeback_amount: dist.rakeback_amount,
@@ -259,7 +259,7 @@ export default async function handler(req, res) {
                 type: 'rakeback_sent',
                 title: '📤 Rakeback Distributed to Players',
                 message: `Auto-rakeback complete: ${agentTotalDeducted.toLocaleString()} chips distributed to ${playersDistributed} player${playersDistributed !== 1 ? 's' : ''}.`,
-                metadata: {
+                data: {
                   club_id: clubId,
                   total_distributed: agentTotalDeducted,
                   player_count: playersDistributed,

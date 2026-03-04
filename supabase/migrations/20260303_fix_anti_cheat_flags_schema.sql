@@ -75,4 +75,42 @@ BEGIN
 END;
 $$;
 
--- Fix commission_history: add period_id for reliable matching
+-- ════════════════════════════════════════════════════════════════
+-- Fix rakeback_distributions: club_id declared as INTEGER but clubs.id is UUID
+-- Original in 20260228_auto_settlement_invoicing.sql has wrong type
+-- CREATE TABLE IF NOT EXISTS won't fix it if table was created with INTEGER
+-- Must DROP and recreate (table should be empty since FK would have failed)
+-- ════════════════════════════════════════════════════════════════
+DROP TABLE IF EXISTS rakeback_distributions CASCADE;
+CREATE TABLE IF NOT EXISTS rakeback_distributions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  period_id UUID NOT NULL REFERENCES settlement_periods(id) ON DELETE CASCADE,
+  agent_id UUID NOT NULL,
+  agent_user_id UUID NOT NULL,
+  player_user_id UUID NOT NULL,
+  player_rake_contributed NUMERIC(14,2) NOT NULL DEFAULT 0,
+  rakeback_percentage NUMERIC(5,4) NOT NULL DEFAULT 0,
+  rakeback_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'transferred', 'failed')),
+  transferred_at TIMESTAMPTZ,
+  chip_transfer_id UUID,
+  error_message TEXT,
+  invoice_id UUID REFERENCES settlement_invoices(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_rakeback_dist_period ON rakeback_distributions(club_id, period_id);
+CREATE INDEX IF NOT EXISTS idx_rakeback_dist_status ON rakeback_distributions(status);
+
+-- Fix is_club_settlement_locked: param was INTEGER, should be UUID
+CREATE OR REPLACE FUNCTION is_club_settlement_locked(p_club_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM settlement_locks
+    WHERE club_id = p_club_id
+      AND is_active = true
+      AND unlock_at > NOW()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

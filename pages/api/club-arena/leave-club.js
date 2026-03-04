@@ -243,7 +243,7 @@ export default async function handler(req, res) {
       type: 'club_member_left',
       title: notifTitle,
       message: notifMessage,
-      metadata: notifMetadata,
+      data: notifMetadata,
       read: false,
     }).catch(e => console.error('[leave-club] Owner notification error:', e.message));
 
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
         type: 'club_member_left',
         title: notifTitle,
         message: notifMessage,
-        metadata: notifMetadata,
+        data: notifMetadata,
         read: false,
       }).catch(e => console.error('[leave-club] Agent notification error:', e.message));
     }
