@@ -38,9 +38,10 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Create an access token
+        // BUG #263 FIX: Always use authenticated user's ID as the participant identity.
+        // Previously accepted client-supplied participantId, allowing impersonation.
         const token = new AccessToken(apiKey, apiSecret, {
-            identity: participantId || participantName,
+            identity: _authUser.id,
             name: participantName,
             // Token expires in 1 hour
             ttl: '1h',

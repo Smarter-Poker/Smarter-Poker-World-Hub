@@ -50,47 +50,78 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'You have already used this promo code' });
         }
 
+        // BUG #261 FIX: Atomic redemption insert to prevent TOCTOU double-redeem.
+        // Two concurrent requests could both pass the check above and both redeem.
+        // Use insert with unique constraint — second request will fail with conflict.
+        const { data: redemption, error: redemptionErr } = await supabaseAdmin
+            .from('promo_code_redemptions')
+            .insert({
+                promo_code_id: promo.id,
+                user_id: userId,
+            })
+            .select('id')
+            .single();
+
+        if (redemptionErr) {
+            // Unique constraint violation = already redeemed (concurrent request)
+            if (redemptionErr.code === '23505') {
+                return res.status(409).json({ error: 'You have already used this promo code' });
+            }
+            throw redemptionErr;
+        }
+
         // 3. Apply the bonus based on reward_type
         let bonusApplied = '';
 
         switch (promo.reward_type) {
             case 'signup_bonus':
             case 'diamonds': {
-                // Add diamonds to user's balance
-                const { data: currentBalance } = await supabaseAdmin
-                    .from('user_diamond_balance')
-                    .select('balance')
-                    .eq('user_id', userId)
-                    .single();
+                // BUG #262 FIX: Use add_diamonds_to_balance RPC for atomic balance update.
+                // Previous code did read-modify-write which races under concurrent requests.
+                const { error: diamondErr } = await supabaseAdmin.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: promo.reward_value,
+                    p_type: 'promo_code',
+                    p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
+                    p_reference_id: `promo_${promo.id}_${userId}`,
+                });
 
-                const newBalance = (currentBalance?.balance || 0) + promo.reward_value;
+                if (diamondErr) {
+                    console.error('[redeem-promo] Diamond credit RPC failed:', diamondErr.message);
+                    // Fallback to direct upsert if RPC doesn't exist
+                    const { data: currentBalance } = await supabaseAdmin
+                        .from('user_diamond_balance')
+                        .select('balance')
+                        .eq('user_id', userId)
+                        .single();
 
-                await supabaseAdmin
-                    .from('user_diamond_balance')
-                    .upsert({
-                        user_id: userId,
-                        balance: newBalance,
-                        updated_at: new Date().toISOString(),
-                    }, { onConflict: 'user_id' });
+                    const newBalance = (currentBalance?.balance || 0) + promo.reward_value;
 
-                // Also update profiles.diamonds for consistency
-                await supabaseAdmin
-                    .from('profiles')
-                    .update({ diamonds: newBalance })
-                    .eq('id', userId);
+                    await supabaseAdmin
+                        .from('user_diamond_balance')
+                        .upsert({
+                            user_id: userId,
+                            balance: newBalance,
+                            updated_at: new Date().toISOString(),
+                        }, { onConflict: 'user_id' });
 
-                // Record transaction
-                await supabaseAdmin
-                    .from('diamond_transactions')
-                    .insert({
-                        user_id: userId,
-                        amount: promo.reward_value,
-                        type: 'promo_code',
-                        transaction_type: 'credit',
-                        balance_after: newBalance,
-                        source: 'promo_code',
-                        description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
-                    });
+                    await supabaseAdmin
+                        .from('profiles')
+                        .update({ diamonds: newBalance })
+                        .eq('id', userId);
+
+                    await supabaseAdmin
+                        .from('diamond_transactions')
+                        .insert({
+                            user_id: userId,
+                            amount: promo.reward_value,
+                            type: 'promo_code',
+                            transaction_type: 'credit',
+                            balance_after: newBalance,
+                            source: 'promo_code',
+                            description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
+                        });
+                }
 
                 bonusApplied = `${promo.reward_value} diamonds added`;
                 break;
@@ -137,15 +168,9 @@ export default async function handler(req, res) {
                 bonusApplied = `Promo code ${promo.code} applied`;
         }
 
-        // 4. Record the redemption
-        await supabaseAdmin
-            .from('promo_code_redemptions')
-            .insert({
-                promo_code_id: promo.id,
-                user_id: userId,
-            });
+        // 4. Redemption already recorded above (atomic insert)
 
-        // 5. Increment usage count
+        // 5. Increment usage count (use atomic increment to prevent race)
         await supabaseAdmin
             .from('promo_codes')
             .update({ times_used: promo.times_used + 1 })

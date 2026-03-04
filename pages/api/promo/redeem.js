@@ -74,6 +74,23 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'You have already redeemed this code' });
         }
 
+        // BUG #264 FIX: Atomic redemption insert to prevent TOCTOU double-redeem.
+        // Insert FIRST with unique constraint, then apply reward. If insert fails,
+        // we know another request already redeemed.
+        const { error: redeemInsertErr } = await supabaseAdmin
+            .from('promo_code_redemptions')
+            .insert({
+                promo_code_id: promo.id,
+                user_id: user.id,
+            });
+
+        if (redeemInsertErr) {
+            if (redeemInsertErr.code === '23505') {
+                return res.status(409).json({ error: 'You have already redeemed this code' });
+            }
+            throw redeemInsertErr;
+        }
+
         // ── APPLY REWARD ──
         const reward = {
             type: promo.reward_type,
@@ -83,19 +100,29 @@ export default async function handler(req, res) {
         };
 
         if (promo.reward_type === 'diamonds') {
-            // Add diamonds to user's profile
-            const { data: profile } = await supabaseAdmin
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', user.id)
-                .single();
+            // BUG #264 FIX: Use atomic RPC instead of read-modify-write
+            const { error: diamondErr } = await supabaseAdmin.rpc('add_diamonds_to_balance', {
+                p_user_id: user.id,
+                p_amount: promo.reward_value,
+                p_type: 'promo_code',
+                p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus'}`,
+                p_reference_id: `promo_${promo.id}_${user.id}`,
+            });
 
-            const currentDiamonds = profile?.diamonds || 0;
+            if (diamondErr) {
+                // Fallback: direct update if RPC not available
+                const { data: profile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', user.id)
+                    .single();
 
-            await supabaseAdmin
-                .from('profiles')
-                .update({ diamonds: currentDiamonds + promo.reward_value })
-                .eq('id', user.id);
+                const currentDiamonds = profile?.diamonds || 0;
+                await supabaseAdmin
+                    .from('profiles')
+                    .update({ diamonds: currentDiamonds + promo.reward_value })
+                    .eq('id', user.id);
+            }
 
             reward.message = `${promo.reward_value} diamonds added to your account!`;
         } else if (promo.reward_type === 'vip_days') {
@@ -139,14 +166,13 @@ export default async function handler(req, res) {
             reward.message = `${promo.reward_value}% Commander discount applied!`;
         }
 
-        // ── RECORD REDEMPTION ──
+        // ── Redemption already recorded above (atomic insert) ──
+        // Update with reward details
         await supabaseAdmin
             .from('promo_code_redemptions')
-            .insert({
-                promo_code_id: promo.id,
-                user_id: user.id,
-                reward_applied: reward
-            });
+            .update({ reward_applied: reward })
+            .eq('promo_code_id', promo.id)
+            .eq('user_id', user.id);
 
         // ── INCREMENT USAGE COUNT ──
         await supabaseAdmin

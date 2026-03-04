@@ -14,10 +14,20 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { userId } = req.body;
-    if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
+    // BUG #260 FIX: Require JWT auth — previously accepted arbitrary userId from body,
+    // allowing anyone to look up any user's subscription details and venue info.
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+        return res.status(401).json({ error: 'Authentication required' });
     }
+
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Always use the authenticated user's ID, ignore body.userId
+    const userId = user.id;
 
     try {
         const { data: subs, error } = await supabase

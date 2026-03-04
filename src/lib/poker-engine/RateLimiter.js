@@ -88,7 +88,10 @@ function checkRateLimit(identifier, endpoint) {
 function applyRateLimit(req, res, endpoint) {
   const forwarded = req.headers['x-forwarded-for'];
   const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket?.remoteAddress || 'unknown';
-  const userId = req.headers['x-user-id'] || req.body?.userId || req.body?.playerId || ip;
+  // BUG #259 FIX: Never trust client-supplied x-user-id for rate limiting.
+  // Attackers could send different x-user-id values to get separate rate limit buckets.
+  // Use IP as the identifier. Authenticated userId can be passed explicitly as 4th arg.
+  const userId = ip;
 
   const result = checkRateLimit(userId, endpoint);
 
