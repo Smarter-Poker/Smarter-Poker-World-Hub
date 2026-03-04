@@ -1370,13 +1370,7 @@ export default function PokerNearMePage() {
 
     const renderVenues = () => {
         if (!hasSearched) {
-            return (
-                <div className="search-landing">
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-                        Enter a city or venue name, select a popular city, or use GPS to find poker rooms near you.
-                    </p>
-                </div>
-            );
+            return null;
         }
 
         if (venues.length === 0) {
