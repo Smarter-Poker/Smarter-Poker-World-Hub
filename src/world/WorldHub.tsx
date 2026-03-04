@@ -546,13 +546,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                     const empData = await empRes.json();
                                     if (empData.success && empData.data?.venues?.length > 0) {
                                         setHasLinkedVenues(true);
-                                        // 🔴 WRITE-THROUGH: persist to localStorage so hub/index.js
-                                        // CardCustomizerPanel can detect employee-portal as unlocked
-                                        try {
-                                            localStorage.setItem('emp_venues', JSON.stringify(empData.data.venues));
-                                        } catch { }
-                                        // 🔴 BUS: notify hub/index.js in real-time (async API may complete after mount)
-                                        window.dispatchEvent(new CustomEvent('hub-employee-portal-detected'));
                                         console.log('[WorldHub] 📋 Employee venues detected —', empData.data.venues.length, 'linked');
                                     }
                                 }
