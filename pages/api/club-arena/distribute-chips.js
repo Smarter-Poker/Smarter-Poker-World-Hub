@@ -49,11 +49,24 @@ export default async function handler(req, res) {
       .single();
 
     if (!member || !['owner', 'admin', 'agent', 'sub_agent', 'super_agent'].includes(member.role)) {
-      return res.status(403).json({ error: 'Only owners, admins, or agents can distribute chips' });
+      // Fallback: check if caller is a union admin for this club's union
+      const { data: club } = await supabaseAdmin
+        .from('clubs').select('union_id').eq('id', clubId).single();
+      let unionAuthorized = false;
+      if (club?.union_id) {
+        const { data: ua } = await supabaseAdmin
+          .from('union_admins').select('role')
+          .eq('union_id', club.union_id).eq('user_id', user.id).single();
+        unionAuthorized = !!ua;
+      }
+      if (!unionAuthorized) {
+        return res.status(403).json({ error: 'Only owners, admins, agents, or union admins can distribute chips' });
+      }
     }
 
     // If agent, use agent-to-player transfer instead of treasury
-    const isAgentRole = ['agent', 'sub_agent', 'super_agent'].includes(member.role);
+    // Union admins (member is null) go through the treasury path like owners
+    const isAgentRole = ['agent', 'sub_agent', 'super_agent'].includes(member?.role);
     if (isAgentRole) {
       // ═══════════════════════════════════════════════════════════
       // PROMO DISTRIBUTION — uses promo_balance, NOT credit/chips

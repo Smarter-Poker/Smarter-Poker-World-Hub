@@ -82,7 +82,16 @@ export default async function handler(req, res) {
     const isAgent = cashout.agent_id === user.id;
     const isAdmin = ['owner', 'admin'].includes(callerMember?.role);
     if (!isAgent && !isAdmin) {
-      return res.status(403).json({ error: 'Not authorized to act on this cashout' });
+      // Union admin fallback
+      const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', cashout.club_id).single();
+      let unionAuth = false;
+      if (clubInfo?.union_id) {
+        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+        unionAuth = !!ua;
+      }
+      if (!unionAuth) {
+        return res.status(403).json({ error: 'Not authorized to act on this cashout' });
+      }
     }
 
     // Get player & agent names for notifications

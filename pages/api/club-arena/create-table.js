@@ -37,7 +37,16 @@ export default async function handler(req, res) {
             .single();
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
-            return res.status(403).json({ error: 'Only owners and admins can create tables' });
+            // Union admin fallback
+            const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).single();
+            let unionAuth = false;
+            if (clubInfo?.union_id) {
+                const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+                unionAuth = !!ua;
+            }
+            if (!unionAuth) {
+                return res.status(403).json({ error: 'Only owners, admins, or union admins can create tables' });
+            }
         }
 
         // Validate inputs

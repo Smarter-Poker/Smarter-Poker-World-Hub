@@ -274,6 +274,12 @@ export default function ClubLobby() {
                                     <div style={styles.clubMeta}>
                                         <span style={styles.clubId}>ID: {club.club_id}</span>
                                         <span style={styles.memberCount}>{club.member_count || 0} Members</span>
+                                        {club.union_id && (
+                                            <span
+                                                onClick={(e) => { e.stopPropagation(); router.push(`/hub/club-arena/union-dashboard?union=${club.union_id}`); }}
+                                                style={{ fontSize: 11, color: '#2374E1', cursor: 'pointer', fontWeight: 600 }}
+                                            >🏛️ Union</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div style={styles.clubBalance}>

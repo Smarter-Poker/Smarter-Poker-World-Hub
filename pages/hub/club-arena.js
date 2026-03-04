@@ -250,6 +250,9 @@ export default function ClubArenaPage() {
     const [showFindPlayer, setShowFindPlayer] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Unions the user owns or administers
+    const [myUnions, setMyUnions] = useState([]);
+
     // Live Supabase stats for Shark Club card
     const [sharkClubStats, setSharkClubStats] = useState({ totalMembers: 0, clubLevel: 1, activePlayers: 0 });
 
@@ -329,6 +332,7 @@ export default function ClubArenaPage() {
             if (authUser) {
                 setUser(authUser);
                 await loadClubs(authUser.id);
+                await loadUnions(authUser.id);
             }
         } catch (e) {
             console.error('[ClubArena] Load error:', e);
@@ -355,6 +359,28 @@ export default function ClubArenaPage() {
             }
         } catch (err) {
             console.error('[ClubArena] Failed to load clubs:', err);
+        }
+    }
+
+    async function loadUnions(userId) {
+        try {
+            // Find unions where user is an admin/owner
+            const { data: adminRecords } = await supabase
+                .from('union_admins')
+                .select('union_id, role, unions(id, name, union_code, owner_id, settings, main_bbj_balance, created_at)')
+                .eq('user_id', userId);
+
+            if (adminRecords && adminRecords.length > 0) {
+                const unions = adminRecords
+                    .filter(r => r.unions)
+                    .map(r => ({
+                        ...r.unions,
+                        adminRole: r.role,
+                    }));
+                setMyUnions(unions);
+            }
+        } catch (err) {
+            console.error('[ClubArena] Failed to load unions:', err);
         }
     }
 
@@ -469,6 +495,54 @@ export default function ClubArenaPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* ═══════════════════════════════════════════════════════════════════
+                        MY UNIONS — Union Owner/Admin Cards
+                    ═══════════════════════════════════════════════════════════════════ */}
+                    {myUnions.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>
+                                ⚡ My Unions
+                            </div>
+                            {myUnions.map(union => (
+                                <div
+                                    key={union.id}
+                                    onClick={() => router.push(`/hub/club-arena/union-dashboard?union=${union.id}`)}
+                                    style={{
+                                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                                        borderRadius: 14,
+                                        padding: '18px 20px',
+                                        marginBottom: 10,
+                                        cursor: 'pointer',
+                                        border: '1px solid #2374E1',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        transition: 'transform 0.15s',
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ fontSize: 18, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>
+                                            🏛️ {union.name}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#B0B3B8' }}>
+                                            {union.adminRole === 'owner' ? '👑 Union Owner' : '🛡️ Union Admin'}
+                                            {union.union_code ? ` • Code: ${union.union_code}` : ''}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 10, color: '#B0B3B8', marginBottom: 2 }}>BBJ POOL</div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: '#F7C52A' }}>
+                                                {(union.main_bbj_balance || 0).toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: 22, color: '#2374E1' }}>→</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* ═══════════════════════════════════════════════════════════════════
                         BOTTOM TILES — BAKED IMAGES from Club Arena
