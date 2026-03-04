@@ -302,15 +302,14 @@ export default function ClockDisplay() {
       isRunningRef.current = false;
 
       if (isLastLevel) {
-        // We are on the final level — reset the local timer to keep the clock running
-        // The API will also be called to reset the level start time server-side
+        // On the final level — reset local timer to the full level duration immediately
+        // so the display never hits 0:00 for more than one tick, then call API to persist.
         const lastLevelDuration = blindStructure[currentLevelIdx]?.duration || 20;
         setSeconds(lastLevelDuration * 60);
-        // Still call next_level — the API will gracefully extend the final level
-        clockAction('next_level');
-      } else {
-        clockAction('next_level');
       }
+
+      // Always call next_level — the API handles both normal and final-level extension
+      clockAction('next_level', isLastLevel);
     }
   }, [seconds, actionLoading, data?.clock?.clock_state?.status]);
 
@@ -329,7 +328,8 @@ export default function ClockDisplay() {
   }, [handTimerActive, handTimerSeconds]);
 
   // Clock action handler
-  const clockAction = async (action) => {
+  // skipSecondsOverride: true when we've already set seconds locally (final level reset)
+  const clockAction = async (action, skipSecondsOverride = false) => {
     if (!id || actionLoading) return;
     setActionLoading(true);
     try {
@@ -348,7 +348,11 @@ export default function ClockDisplay() {
         if (json2.success) {
           setData(json2.data);
           const cs = json2.data.clock?.clock_state;
-          if (cs?.remaining_seconds !== undefined) setSeconds(cs.remaining_seconds);
+          // Don't override seconds if the caller already set a fresh local value
+          // (e.g. final-level reset) — the server re-read might return 0 briefly
+          if (!skipSecondsOverride && cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
+            setSeconds(cs.remaining_seconds);
+          }
           isRunningRef.current = cs?.status === 'running';
         }
         broadcastChange('tournaments');
