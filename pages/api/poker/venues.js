@@ -204,6 +204,9 @@ export default async function handler(req, res) {
             radius = 100,
             limit = 500,
             featured,
+            hasNLH,
+            hasPLO,
+            hasMixed,
         } = req.query;
 
         const maxResults = parseInt(limit, 10) || 500;
@@ -578,6 +581,17 @@ export default async function handler(req, res) {
                 total: 1,
                 hasGpsData: hasGps,
             });
+        }
+
+        // --- Filter by games (NLH, PLO, Mixed) ---
+        if (hasNLH === 'true') {
+            venues = venues.filter(v => v.games_offered && v.games_offered.includes('NLH'));
+        }
+        if (hasPLO === 'true') {
+            venues = venues.filter(v => v.games_offered && v.games_offered.includes('PLO'));
+        }
+        if (hasMixed === 'true') {
+            venues = venues.filter(v => v.games_offered && v.games_offered.includes('Mixed'));
         }
 
         // --- Apply limit and return ---

@@ -904,24 +904,17 @@ export default function PokerNearMePage() {
             if (searchQuery) {
                 params.set('search', searchQuery);
             }
+            if (filters.venueType !== 'all') {
+                params.set('type', filters.venueType);
+            }
+            if (filters.hasNLH) params.set('hasNLH', 'true');
+            if (filters.hasPLO) params.set('hasPLO', 'true');
+            if (filters.hasMixed) params.set('hasMixed', 'true');
 
             const res = await fetch('/api/poker/venues?' + params);
             const json = await res.json();
             const data = json.data;
             let filteredData = data || [];
-
-            if (filters.venueType !== 'all') {
-                filteredData = filteredData.filter(v => v.venue_type === filters.venueType);
-            }
-            if (filters.hasNLH) {
-                filteredData = filteredData.filter(v => v.games_offered && v.games_offered.includes('NLH'));
-            }
-            if (filters.hasPLO) {
-                filteredData = filteredData.filter(v => v.games_offered && v.games_offered.includes('PLO'));
-            }
-            if (filters.hasMixed) {
-                filteredData = filteredData.filter(v => v.games_offered && v.games_offered.includes('Mixed'));
-            }
 
             setVenues(filteredData);
             if (filteredData.length > 0 && filteredData[0].distance_mi) {
@@ -1775,7 +1768,7 @@ export default function PokerNearMePage() {
                         style={{
                             width: '100%',
                             height: '100%',
-                            objectFit: 'cover'
+                            objectFit: 'contain'
                         }}
                     />
                     <button
@@ -1983,7 +1976,11 @@ export default function PokerNearMePage() {
                                     </div>
                                 </div>
                             )}
-                            <button onClick={() => { fetchAllData({ includeVenues: hasSearched }); setShowFilters(false); }}
+                            <button onClick={() => {
+                                setHasSearched(true);
+                                fetchAllData({ includeVenues: true });
+                                setShowFilters(false);
+                            }}
                                 style={{ width: '100%', padding: 12, background: 'linear-gradient(135deg, #d4a853, #b8860b)', border: 'none', borderRadius: 10, color: '#000', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                                 Apply Filters
                             </button>
