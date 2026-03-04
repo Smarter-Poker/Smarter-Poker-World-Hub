@@ -261,7 +261,7 @@ export default function PayoutModal({
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">
+                        <span className="font-semibold text-[#10B981] text-lg">
                           {payout.position}{payout.position === 1 ? 'st' : payout.position === 2 ? 'nd' : payout.position === 3 ? 'rd' : 'th'}
                         </span>
                         {finisher && (
@@ -283,8 +283,8 @@ export default function PayoutModal({
                     />
                     <span className="text-sm text-[#64748B] w-6">%</span>
 
-                    <div className="w-20 text-right">
-                      <span className="font-semibold text-[#10B981]">
+                    <div className="w-24 text-right">
+                      <span className="font-semibold text-[#10B981] text-lg">
                         ${payout.amount.toLocaleString()}
                       </span>
                     </div>

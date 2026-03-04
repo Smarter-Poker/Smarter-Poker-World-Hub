@@ -831,8 +831,8 @@ const S = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '4px 8px', textAlign: 'center'
   },
-  statLabel: { fontSize: 18, opacity: 0.65, fontWeight: 500, lineHeight: 1.2 },
-  statValue: { fontSize: 28, fontWeight: 700, lineHeight: 1.3 },
+  statLabel: { fontSize: 18, color: '#FFFFFF', fontWeight: 600, lineHeight: 1.2 },
+  statValue: { fontSize: 28, color: '#FFFFFF', fontWeight: 800, lineHeight: 1.3 },
   timer: {
     fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
