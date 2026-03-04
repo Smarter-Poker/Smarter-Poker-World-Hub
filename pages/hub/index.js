@@ -85,6 +85,19 @@ export default function HubPage() {
         return () => window.removeEventListener('hub-open-customizer', handleOpenCustomizer);
     }, []);
 
+    // 🔴 BUS LISTENER — 'hub-employee-portal-detected' fires when WorldHub confirms
+    // the user has linked venues via the async /api/employee/venues call.
+    // Updates unlockedSpecialIds so CardCustomizerPanel shows the Work Schedule toggle.
+    useEffect(() => {
+        const handlePortalDetected = () => {
+            setUnlockedSpecialIds(prev =>
+                prev.includes('employee-portal') ? prev : [...prev, 'employee-portal']
+            );
+        };
+        window.addEventListener('hub-employee-portal-detected', handlePortalDetected);
+        return () => window.removeEventListener('hub-employee-portal-detected', handlePortalDetected);
+    }, []);
+
     const menuConfig = getMenuConfig('hub-home', user, {}, handlers);
 
     return (
