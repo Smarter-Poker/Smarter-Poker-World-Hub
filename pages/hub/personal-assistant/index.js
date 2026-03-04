@@ -112,11 +112,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '13.7%', left: '14.0%', width: '35.4%', height: '33.7%',
-              ...(hoveredZone === 'sandbox' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/sandbox')}
-            onMouseEnter={() => setHoveredZone('sandbox')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Virtual Sandbox — Explore Theoretical Hands"
           />
 
@@ -126,11 +123,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '40.0%', left: '17.5%', width: '28.5%', height: '4.9%',
-              ...(hoveredZone === 'enterSandbox' ? S.hotspotBtnHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/sandbox')}
-            onMouseEnter={() => setHoveredZone('enterSandbox')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Enter Sandbox"
           />
 
@@ -140,11 +134,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '13.7%', left: '50.5%', width: '35.4%', height: '33.7%',
-              ...(hoveredZone === 'leaks' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/leaks')}
-            onMouseEnter={() => setHoveredZone('leaks')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Leak Finder — Track and Improve Your Game"
           />
 
@@ -154,11 +145,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '40.0%', left: '53.9%', width: '28.5%', height: '4.9%',
-              ...(hoveredZone === 'viewLeaks' ? S.hotspotBtnHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/leaks')}
-            onMouseEnter={() => setHoveredZone('viewLeaks')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="View Leaks"
           />
 
@@ -168,11 +156,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '55.7%', left: '15.1%', width: '22.9%', height: '11.7%',
-              ...(hoveredZone === 'gto' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/sandbox')}
-            onMouseEnter={() => setHoveredZone('gto')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="GTO Anchored — Tied To Solver Analysis"
           />
 
@@ -182,10 +167,7 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '55.7%', left: '38.5%', width: '22.9%', height: '11.7%',
-              ...(hoveredZone === 'safe' ? S.hotspotHover : {}),
             }}
-            onMouseEnter={() => setHoveredZone('safe')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Safe and Fair — No Exploit Hunting"
           />
 
@@ -195,11 +177,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '55.7%', left: '61.9%', width: '22.9%', height: '11.7%',
-              ...(hoveredZone === 'results' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/leaks')}
-            onMouseEnter={() => setHoveredZone('results')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Results-Driven — Identify Leaks, Track Improvement"
           />
 
@@ -255,11 +234,8 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.hotspot,
               top: '70.3%', left: '72.3%', width: '14.6%', height: '4.4%',
-              ...(hoveredZone === 'filterBtn' ? S.hotspotBtnHover : {}),
             }}
             onClick={() => setSessionFilter(f => f === 'mine' ? 'all' : 'mine')}
-            onMouseEnter={() => setHoveredZone('filterBtn')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Toggle Session Filter"
           />
 
@@ -269,15 +245,12 @@ export default function PersonalAssistantPage() {
             style={{
               ...S.jarvisHotspot,
               top: '72.8%', left: '79.1%', width: '15.6%', height: '14.6%',
-              ...(hoveredZone === 'jarvis' ? S.jarvisHover : {}),
             }}
             onClick={() => {
               if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
               }
             }}
-            onMouseEnter={() => setHoveredZone('jarvis')}
-            onMouseLeave={() => setHoveredZone(null)}
             title="Chat with Jarvis"
           >
             <img
@@ -289,8 +262,7 @@ export default function PersonalAssistantPage() {
           </div>
         </div>
 
-        {/* Jarvis Chat Widget */}
-        <JarvisChatWidget user={user} />
+        {/* Global Jarvis widget is removed to avoid duplicate avatars; functionality is inside the frame */}
       </div>
     </PageTransition>
   );
@@ -368,19 +340,7 @@ const S = {
     position: 'absolute',
     cursor: 'pointer',
     borderRadius: 8,
-    transition: 'all 0.25s ease',
     zIndex: 2,
-    // Debug: uncomment to see hotspot zones
-    // background: 'rgba(255,0,0,0.15)', border: '1px solid red',
-  },
-  hotspotHover: {
-    background: 'rgba(0,180,255,0.08)',
-    boxShadow: '0 0 20px rgba(0,180,255,0.15)',
-  },
-  hotspotBtnHover: {
-    background: 'rgba(0,180,255,0.15)',
-    boxShadow: '0 0 15px rgba(0,180,255,0.25)',
-    transform: 'scale(1.02)',
   },
 
   // ── Jarvis circular frame hotspot ───────────────────────────────────────
@@ -390,20 +350,13 @@ const S = {
     cursor: 'pointer',
     overflow: 'hidden',
     zIndex: 3,
-    transition: 'all 0.3s ease',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    // Glow ring effect
-    boxShadow: '0 0 12px rgba(0,212,255,0.4), inset 0 0 8px rgba(0,0,0,0.3)',
-  },
-  jarvisHover: {
-    boxShadow: '0 0 25px rgba(0,212,255,0.7), 0 0 50px rgba(0,212,255,0.3), inset 0 0 10px rgba(0,212,255,0.15)',
-    transform: 'scale(1.08)',
   },
   jarvisImg: {
-    width: '85%',
-    height: '85%',
+    width: '100%',
+    height: '100%',
     objectFit: 'cover',
     borderRadius: '50%',
   },
@@ -414,46 +367,42 @@ const S = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'flex-start',
-    padding: '4% 2% 0 2%',
+    justifyContent: 'center',
+    padding: '0 4% 3% 4%',
     overflow: 'hidden',
   },
   sessionOverlayText: {
     color: 'rgba(255,255,255,0.5)',
-    fontSize: 11,
+    fontSize: 14,
     textAlign: 'center',
     fontFamily: 'Inter, sans-serif',
   },
   sessionOverlayList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 4,
     overflow: 'hidden',
   },
   sessionOverlayRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '3px 8px',
+    padding: '4px 8px',
     borderRadius: 4,
     cursor: 'pointer',
-    transition: 'background 0.15s',
-  },
-  sessionRowHover: {
-    background: 'rgba(100,181,246,0.12)',
   },
   sessionRowName: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 500,
     color: '#e2e8f0',
     fontFamily: 'Inter, sans-serif',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '60%',
+    maxWidth: '65%',
   },
   sessionRowEv: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 700,
     fontFamily: 'Inter, sans-serif',
   },
