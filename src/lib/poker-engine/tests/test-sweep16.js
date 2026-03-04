@@ -94,7 +94,10 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     console.log('  🔬 SWEEP 16: DEEP BEHAVIORAL SIMULATION — FULL WIRING AUDIT');
     console.log('═══════════════════════════════════════════════════════════════\n');
 
-    await Brain.loadHorseIds();
+    const horses = await Brain.loadHorseIds();
+    // Inject mock horses into the internal memory Set so processHandResult's local isHorse check passes
+    horses.add(HR);
+    horses.add(HR2);
 
     // ══════════════════════════════════════════════════════════════
     // SECTION A: PHASE 4 MODULE BEHAVIORAL VERIFICATION
@@ -355,7 +358,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
             ]
         },
         opponents: [
-            { id: HU1, betAmount: 4, lastAction: 'raise', chipDelta: -5, actionTimeMs: 200, ritResponse: false }
+            { id: HU1, betAmount: 4, lastAction: 'raise', chipDelta: -5, actionTimeMs: 200, ritResponse: false, folded: false }
         ]
     }, 2);
     assert(true, 'C2: processHandResult consumes all Phase 4 fields without crash');

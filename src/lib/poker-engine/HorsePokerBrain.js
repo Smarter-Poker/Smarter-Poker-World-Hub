@@ -2389,12 +2389,13 @@ function getPLOFlopContinuance(equityFinal, exactOuts, madeHand, potOdds, rioInf
 
     // Compare to calling price
     const breakEven = potOdds * 100; // Equity needed to break even
-    const shouldContinue = score >= breakEven - 5; // Allow 5pt buffer
+    const callThreshold = breakEven - 5; // Allow 5pt buffer
+    const shouldContinue = score >= callThreshold;
 
     // Raise threshold: need significantly more equity to raise vs call
     const raiseThreshold = Math.max(60, breakEven + 20);
 
-    return { continuanceScore: Math.max(0, Math.min(100, score)), shouldContinue, raiseThreshold };
+    return { continuanceScore: Math.max(0, Math.min(100, score)), shouldContinue, callThreshold, raiseThreshold };
 }
 
 // ── 6f. CHECK-BEHIND CALIBRATOR ──
@@ -4488,6 +4489,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     }
 
     if (toCall === 0) {
+        // ─── MODULE 28: COLD-CALL TRAP GUARD ───
+        // Passively check draws and marginal hands vs opponents who flat preflop to trap
+        if (state.isColdCallTrap && !madeHand.isMade) {
+            console.log("[HorseBrain] 🧊 MODULE 28 COLD-CALL TRAP: suppressing barrel with draw/air.");
+            return { type: 'check' };
+        }
+
         // Phase 2: OOP check-raise trigger (will raise on next action)
         const cr = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
         if (cr.shouldCheckRaise) return { type: 'check' };
@@ -4602,7 +4610,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── MODULE 32 / 29 / 28: GLOBAL EQUITY & THRESHOLD REDUCTIONS ───
     // drawBoost penalty, bombPotBoost penalty tighten requirements
     const continuanceScore = flopContinuance.continuanceScore - drawBoost - bombPotBoost;
-    if (!flopContinuance.shouldContinue || continuanceScore < 0) return { type: 'fold' };
+    if (continuanceScore < flopContinuance.callThreshold) return { type: 'fold' };
 
     if (continuanceScore >= flopContinuance.raiseThreshold && canRaise) {
         // Module 32: Donk-overcall penalty
@@ -7082,24 +7090,24 @@ async function processHandResult(handData, bb = 2) {
             }
         }
 
-        if (!adv) continue;
+        if (adv) {
+            // --- Record wins for consecutive loss reset (#6) ---
+            if (won && adv.recordWin) {
+                adv.recordWin(pid);
+            }
 
-        // --- Record wins for consecutive loss reset (#6) ---
-        if (won && adv.recordWin) {
-            adv.recordWin(pid);
-        }
+            // --- Record bad beats for tilt system ---
+            if (!won && chipDelta < 0 && adv.recordBadBeat) {
+                const bbLost = Math.abs(chipDelta) / bb;
+                const wasBadBeat = bbLost >= 20;
+                adv.recordBadBeat(pid, bbLost, wasBadBeat);
+            }
 
-        // --- Record bad beats for tilt system ---
-        if (!won && chipDelta < 0 && adv.recordBadBeat) {
-            const bbLost = Math.abs(chipDelta) / bb;
-            const wasBadBeat = bbLost >= 20;
-            adv.recordBadBeat(pid, bbLost, wasBadBeat);
-        }
-
-        // --- Record showdowns for table image tracking ---
-        if (player.showedCards && adv.recordShowdown) {
-            const wasBetting = player.lastAction === 'raise' || player.lastAction === 'bet';
-            adv.recordShowdown(pid, won, wasBetting);
+            // --- Record showdowns for table image tracking ---
+            if (player.showedCards && adv.recordShowdown) {
+                const wasBetting = player.lastAction === 'raise' || player.lastAction === 'bet';
+                adv.recordShowdown(pid, won, wasBetting);
+            }
         }
 
         // --- Record performance result (#34) ---
@@ -7117,7 +7125,7 @@ async function processHandResult(handData, bb = 2) {
         }
 
         // --- Save opponent reads (#40) ---
-        if (adv.getOpponentRead) {
+        if (adv && adv.getOpponentRead) {
             const opponents = (handData.players || []).filter(op => String(op.id) !== pid && !op.folded);
             for (const opp of opponents.slice(0, 2)) {
                 const read = adv.getOpponentRead(pid, String(opp.id));

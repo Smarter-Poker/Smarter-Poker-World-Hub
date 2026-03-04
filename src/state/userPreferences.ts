@@ -5,6 +5,7 @@
 
 import { POKER_IQ_ORBS, COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, TOKE_TRACKER_ORB } from '../orbs/manifest/registry';
 import type { OrbConfig } from '../orbs/manifest/registry';
+import { supabase } from '../lib/supabase';
 
 // Resolve an orb ID to its config — checks standard orbs, Commander, Employee Portal, and Toke Tracker
 function resolveOrb(id: string): OrbConfig | undefined {
@@ -180,9 +181,58 @@ export function getHiddenCardIds(): string[] {
 }
 
 // Set (overwrite) the list of hidden card IDs
-export function setHiddenCardIds(ids: string[]): void {
+export function setHiddenCardIds(ids: string[], userId?: string): void {
     if (typeof window === 'undefined') return;
+
+    // 1. Instant optimistic LocalStorage update
     const prefs = loadPreferences();
     prefs.hiddenCardIds = ids;
     savePreferences(prefs);
+
+    // 2. Background Cloud Persistence via RPC
+    if (userId) {
+        supabase.rpc('update_hub_preferences', {
+            p_user_id: userId,
+            p_preferences: { hiddenCardIds: ids }
+        }).then(({ error }) => {
+            if (error) console.error('[UserPreferences] Failed to sync hidden cards to cloud:', error);
+        });
+    }
+}
+
+// Hydrate local layout preferences from the cloud (called on Hub mount)
+export async function hydrateHiddenCardIds(userId: string): Promise<void> {
+    if (typeof window === 'undefined' || !userId) return;
+
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('hub_preferences')
+            .eq('id', userId)
+            .single();
+
+        if (error) throw error;
+
+        const cloudHidden = data?.hub_preferences?.hiddenCardIds;
+        if (Array.isArray(cloudHidden)) {
+            const currentLocal = getHiddenCardIds();
+            const set1 = new Set(cloudHidden);
+            const set2 = new Set(currentLocal);
+            const isDifferent = set1.size !== set2.size || Array.from(set1).some(id => !set2.has(id));
+
+            if (isDifferent) {
+                // Cloud dictates truth for cross-device sync
+                const prefs = loadPreferences();
+                prefs.hiddenCardIds = cloudHidden;
+                savePreferences(prefs);
+
+                // Fire bus listener so any mounted components (like WorldHub or panels) update instantly
+                window.dispatchEvent(new CustomEvent('hub-cards-hidden-changed', {
+                    detail: { hiddenIds: cloudHidden }
+                }));
+            }
+        }
+    } catch (err) {
+        console.error('[UserPreferences] Failed to hydrate cloud preferences:', err);
+    }
 }

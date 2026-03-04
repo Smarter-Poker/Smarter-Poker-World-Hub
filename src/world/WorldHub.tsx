@@ -12,7 +12,8 @@ import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
-import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex, getHiddenCardIds } from '../state/userPreferences';
+import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
+import { getAuthUser } from '../lib/authUtils';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
 import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
@@ -372,6 +373,14 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     // Mobile detection
     const isMobile = useIsMobile();
+
+    // Real-time Cloud Hydration for Hub Preferences
+    useEffect(() => {
+        const user = getAuthUser();
+        if (user?.id) {
+            hydrateHiddenCardIds(user.id);
+        }
+    }, []);
 
     const [hiddenCardIds, setHiddenCardIdsState] = useState<string[]>(
         // Lazy init: reads localStorage on first render (client-side only, no SSR flash)

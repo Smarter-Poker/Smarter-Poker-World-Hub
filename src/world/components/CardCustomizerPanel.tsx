@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { POKER_IQ_ORBS, COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
 import type { OrbConfig } from '../../orbs/manifest/registry';
 import { getHiddenCardIds, setHiddenCardIds } from '../../state/userPreferences';
+import { getAuthUser } from '../../lib/authUtils';
 
 // ── Card emoji map for display ───────────────────────────────────────────────
 const CARD_EMOJI: Record<string, string> = {
@@ -84,7 +85,11 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
             ? hidden.filter(h => h !== id)
             : [...hidden, id];
         setHidden(next);
-        setHiddenCardIds(next);
+
+        // Cloud-Sync Pipeline
+        const user = getAuthUser();
+        setHiddenCardIds(next, user?.id);
+
         // 🔴 BUS: broadcast hidden card change so WorldHub carousel/footer update instantly
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('hub-cards-hidden-changed', { detail: { hiddenIds: next } }));
