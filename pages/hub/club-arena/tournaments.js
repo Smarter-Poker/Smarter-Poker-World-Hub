@@ -245,12 +245,12 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
       // Get all clubs in same union
       const { data: allUc } = await supabase
         .from('union_clubs')
-        .select('club_id, clubs(id, name, logo_url)')
+        .select('club_id, clubs(id, name, avatar_url)')
         .eq('union_id', uc[0].union_id);
 
       const sisters = (allUc || [])
         .filter(u => u.club_id !== clubId && u.clubs)
-        .map(u => ({ id: u.clubs.id, name: u.clubs.name, logo: u.clubs.logo_url }));
+        .map(u => ({ id: u.clubs.id, name: u.clubs.name, logo: u.clubs.avatar_url }));
       setSisterClubs(sisters);
       // Auto-select all sister clubs
       setForm(p => ({ ...p, xmttClubIds: sisters.map(s => s.id) }));

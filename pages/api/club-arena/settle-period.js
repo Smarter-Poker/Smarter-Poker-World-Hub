@@ -74,20 +74,24 @@ export default async function handler(req, res) {
         .limit(5);
 
       const openPeriod = periods?.find(p => p.status === 'open');
+      // Also find most recent closed period (commissions are created on close)
+      const closedPeriod = periods?.find(p => p.status === 'closed');
 
       let pendingCommissions = [];
-      if (openPeriod) {
+      // Check the most relevant period for pending commissions
+      const commissionPeriod = openPeriod || closedPeriod;
+      if (commissionPeriod) {
         const { data: comms } = await supabaseAdmin
           .from('commission_records')
           .select('*, agents!inner(user_id)')
-          .eq('period_id', openPeriod.id)
+          .eq('period_id', commissionPeriod.id)
           .eq('status', 'pending');
         pendingCommissions = comms || [];
       }
 
       return res.status(200).json({
         success: true,
-        currentPeriod: openPeriod || null,
+        currentPeriod: openPeriod || closedPeriod || null,
         recentPeriods: periods || [],
         pendingCommissions,
       });
@@ -250,6 +254,7 @@ export default async function handler(req, res) {
         commissionHistory.push({
           club_id: clubId,
           agent_id: agent.id,
+          period_id: pid,
           period_start: period.start_at,
           period_end: new Date().toISOString(),
           player_rake_generated: grossRake,
@@ -272,6 +277,71 @@ export default async function handler(req, res) {
       // Calculate union hold
       const totalRake = period.total_rake_collected || 0;
       const unionHold = Math.round(totalRake * unionRakeHold * 100) / 100;
+
+      // Debit union hold from club treasury
+      if (club.union_id && unionHold > 0) {
+        await supabaseAdmin.rpc('fn_debit_treasury', {
+          p_club_id: clubId,
+          p_amount: unionHold,
+        });
+
+        await supabaseAdmin.from('chip_transactions').insert({
+          club_id: clubId,
+          amount: unionHold,
+          transaction_type: 'union_hold',
+          notes: `Union rake hold: ${unionHold.toLocaleString()} chips (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake) — Period #${period.period_number}`,
+          metadata: {
+            period_id: pid,
+            period_number: period.period_number,
+            union_id: club.union_id,
+            hold_rate: unionRakeHold,
+          },
+        });
+
+        // Generate union_to_club invoice
+        await supabaseAdmin.from('settlement_invoices').insert({
+          club_id: clubId,
+          period_id: pid,
+          invoice_type: 'union_to_club',
+          from_entity_type: 'union',
+          from_entity_id: String(club.union_id),
+          to_entity_type: 'club',
+          to_entity_id: String(clubId),
+          gross_amount: totalRake,
+          net_amount: unionHold,
+          breakdown: {
+            total_rake: totalRake,
+            rake_hold_pct: unionRakeHold,
+            union_hold_amount: unionHold,
+            club_retained: totalRake - unionHold,
+            period_number: period.period_number,
+          },
+          status: 'generated',
+        }).catch(e => console.error('[settle-period] Invoice insert error:', e.message));
+      }
+
+      // Generate club_to_agent invoices
+      for (const cr of commissionRecords) {
+        const agentInfo = (agents || []).find(a => a.id === cr.agent_id);
+        if (!agentInfo) continue;
+        await supabaseAdmin.from('settlement_invoices').insert({
+          club_id: clubId,
+          period_id: pid,
+          invoice_type: 'club_to_agent',
+          from_entity_type: 'club',
+          from_entity_id: String(clubId),
+          to_entity_type: 'agent',
+          to_entity_id: String(agentInfo.user_id),
+          gross_amount: cr.gross_rake,
+          net_amount: cr.commission_amount,
+          breakdown: {
+            gross_rake: cr.gross_rake,
+            commission_rate: cr.commission_rate,
+            commission_amount: cr.commission_amount,
+          },
+          status: 'generated',
+        }).catch(e => console.error('[settle-period] Agent invoice error:', e.message));
+      }
 
       // Close the period
       await supabaseAdmin
@@ -305,7 +375,7 @@ export default async function handler(req, res) {
       // Verify commission belongs to this club (via its settlement period)
       const { data: cr } = await supabaseAdmin
         .from('commission_records')
-        .select('id, agent_id, period_id, status, period:settlement_periods!inner(club_id)')
+        .select('id, agent_id, commission_amount, period_id, status, period:settlement_periods!inner(club_id)')
         .eq('id', commissionId)
         .single();
 
@@ -325,6 +395,42 @@ export default async function handler(req, res) {
         .eq('status', 'pending'); // Guard against double-pay race
 
       if (payErr) throw payErr;
+
+      // Distribute chips: debit treasury, credit agent
+      if (cr.commission_amount > 0) {
+        const { data: agentData } = await supabaseAdmin
+          .from('agents')
+          .select('user_id')
+          .eq('id', cr.agent_id)
+          .single();
+
+        if (agentData) {
+          await supabaseAdmin.rpc('fn_debit_treasury', {
+            p_club_id: clubId,
+            p_amount: cr.commission_amount,
+          });
+
+          await supabaseAdmin.rpc('fn_credit_chips', {
+            p_club_id: clubId,
+            p_user_id: agentData.user_id,
+            p_amount: cr.commission_amount,
+          });
+
+          await supabaseAdmin.from('chip_transactions').insert({
+            club_id: clubId,
+            from_user_id: null,
+            to_user_id: agentData.user_id,
+            amount: cr.commission_amount,
+            transaction_type: 'commission',
+            notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Manual settlement`,
+            metadata: {
+              period_id: cr.period_id,
+              commission_record_id: cr.id,
+              settlement_type: 'manual',
+            },
+          });
+        }
+      }
 
       // Get the period's start_at to scope the history update correctly
       const { data: periodData } = await supabaseAdmin
@@ -382,8 +488,48 @@ export default async function handler(req, res) {
         .eq('period_id', periodId)
         .eq('status', 'pending');
 
-      // Update commission_history — scoped to THIS period only
+      // Distribute chips to each agent and update commission_history
       for (const cr of pending) {
+        // Get agent's user_id for chip transfer
+        const { data: agentData } = await supabaseAdmin
+          .from('agents')
+          .select('user_id')
+          .eq('id', cr.agent_id)
+          .single();
+
+        if (agentData && cr.commission_amount > 0) {
+          // Debit club treasury FIRST
+          const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
+            p_club_id: clubId,
+            p_amount: cr.commission_amount,
+          });
+
+          if (!debitErr) {
+            // Credit agent's chip balance
+            await supabaseAdmin.rpc('fn_credit_chips', {
+              p_club_id: clubId,
+              p_user_id: agentData.user_id,
+              p_amount: cr.commission_amount,
+            });
+
+            // Record chip transaction
+            await supabaseAdmin.from('chip_transactions').insert({
+              club_id: clubId,
+              from_user_id: null,
+              to_user_id: agentData.user_id,
+              amount: cr.commission_amount,
+              transaction_type: 'commission',
+              notes: `Agent commission paid: ${cr.commission_amount.toLocaleString()} chips — Period settlement`,
+              metadata: {
+                period_id: periodId,
+                commission_record_id: cr.id,
+                settlement_type: 'manual',
+              },
+            });
+          }
+        }
+
+        // Update commission_history
         await supabaseAdmin
           .from('commission_history')
           .update({ status: 'paid', paid_at: now })

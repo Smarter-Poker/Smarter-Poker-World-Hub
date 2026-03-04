@@ -56,6 +56,12 @@ export default async function handler(req, res) {
       'cashout_requests',
       'commission_records',
       'commission_history',
+      'settlement_invoices',
+      'settlement_locks',
+      'rakeback_distributions',
+      'rakeback_payments',
+      'rakeback_periods',
+      'anti_cheat_flags',
       'rake_records',
       'settlement_periods',
       'club_announcements',
@@ -70,9 +76,7 @@ export default async function handler(req, res) {
     ];
 
     for (const table of tables) {
-      // Rate limit
-
-  try {
+      try {
         await supabaseAdmin.from(table).delete().eq('club_id', clubId);
       } catch (e) {
         // Table may not exist or have no matching rows — continue

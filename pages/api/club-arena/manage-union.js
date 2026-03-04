@@ -153,7 +153,7 @@ export default async function handler(req, res) {
 
       await supabaseAdmin
         .from('clubs')
-        .update({ union_id: null })
+        .update({ union_id: null, auto_settlement_enabled: false, club_commission_rate: 0 })
         .eq('id', clubId);
 
       return res.status(200).json({ success: true });

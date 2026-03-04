@@ -171,10 +171,26 @@ export default function UnionDashboard() {
         }
         setSettleProcessing(true);
         try {
-            await apiCall('/api/club-arena/settle-period', {
+            const body = {
                 clubId: settleClubId,
                 action: settleAction,
-            });
+            };
+
+            // pay_all requires a periodId — fetch the most recent closed period
+            if (settleAction === 'pay_all') {
+                const statusData = await apiCall('/api/club-arena/settle-period', {
+                    clubId: settleClubId,
+                    action: 'status',
+                });
+                const closedPeriod = (statusData.recentPeriods || []).find(p => p.status === 'closed');
+                if (!closedPeriod) {
+                    showToast('No closed period found to pay. Close a period first.', 'error');
+                    return;
+                }
+                body.periodId = closedPeriod.id;
+            }
+
+            await apiCall('/api/club-arena/settle-period', body);
             showToast(`Settlement: ${settleAction} successful`);
             loadDashboard();
         } catch (err) {
@@ -724,14 +740,7 @@ export default function UnionDashboard() {
                             <button onClick={async () => {
                                 setBbjLoading(true);
                                 try {
-                                    const token = await getAuthToken();
-                                    // Call via direct Supabase RPC
-                                    const { createClient } = await import('@supabase/supabase-js');
-                                    const sb = createClient(
-                                        process.env.NEXT_PUBLIC_SUPABASE_URL,
-                                        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                                    );
-                                    const { data, error } = await sb.rpc('get_union_bbj_status', { p_union_id: unionIdParam });
+                                    const { data, error } = await supabase.rpc('get_union_bbj_status', { p_union_id: unionIdParam });
                                     if (error) throw error;
                                     setBbjData(data);
                                 } catch (e) {

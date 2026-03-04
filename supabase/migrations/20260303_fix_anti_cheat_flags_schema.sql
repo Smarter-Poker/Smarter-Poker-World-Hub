@@ -31,3 +31,23 @@ ALTER TABLE rakeback_periods ADD CONSTRAINT rakeback_periods_status_check
 
 -- Add balance_after to chip_transactions (rakeback.js writes it)
 ALTER TABLE chip_transactions ADD COLUMN IF NOT EXISTS balance_after NUMERIC(14,2);
+
+-- Fix commission_records.agent_id: missing FK to agents table
+-- settle-period.js status action does .select('*, agents!inner(user_id)')
+-- PostgREST !inner joins require a FK relationship to work
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'commission_records_agent_id_fkey'
+      AND table_name = 'commission_records'
+  ) THEN
+    ALTER TABLE commission_records
+      ADD CONSTRAINT commission_records_agent_id_fkey
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- Fix commission_history: add period_id for reliable matching
+-- Currently uses period_start TIMESTAMP which is fragile
+ALTER TABLE commission_history ADD COLUMN IF NOT EXISTS period_id UUID REFERENCES settlement_periods(id) ON DELETE CASCADE;

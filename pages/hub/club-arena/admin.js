@@ -472,7 +472,7 @@ export default function Admin() {
 
     // Navigation tiles (open pages, not modals)
     const navTiles = [];
-    if (['owner', 'admin', 'agent'].includes(currentMemberForUI?.role)) {
+    if (['owner', 'admin', 'agent', 'sub_agent', 'super_agent'].includes(currentMemberForUI?.role)) {
         navTiles.push({ title: 'Agent Dashboard', desc: 'Manage players, cashouts & commissions', color: '#FF9500', href: `/hub/club-arena/agent-dashboard?club=${clubIdParam}` });
     }
     if (club?.union_id && ['owner', 'admin'].includes(currentMemberForUI?.role)) {

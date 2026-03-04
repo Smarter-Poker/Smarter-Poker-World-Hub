@@ -223,6 +223,31 @@ export default async function handler(req, res) {
             status: 'generated',
           });
           results.invoices_generated++;
+
+          // ─── DEBIT CLUB TREASURY for union hold ───
+          // Without this, the club keeps 100% of rake and the union hold is paper-only.
+          // The union hold amount is deducted from the club's chip_treasury.
+          await supabaseAdmin.rpc('fn_debit_treasury', {
+            p_club_id: club.id,
+            p_amount: unionHoldAmount,
+          });
+
+          // Record the union hold as a chip transaction for audit trail
+          await supabaseAdmin.from('chip_transactions').insert({
+            club_id: club.id,
+            from_user_id: null,
+            to_user_id: null,
+            amount: unionHoldAmount,
+            transaction_type: 'union_hold',
+            notes: `Union rake hold: ${unionHoldAmount.toLocaleString()} chips (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake) — Period #${openPeriod.period_number}`,
+            metadata: {
+              period_id: openPeriod.id,
+              period_number: openPeriod.period_number,
+              union_id: unionId,
+              hold_rate: unionRakeHold,
+              settlement_type: 'auto',
+            },
+          });
         }
 
         // ─── Process each agent ───
@@ -318,6 +343,7 @@ export default async function handler(req, res) {
           commissionHistory.push({
             club_id: club.id,
             agent_id: agent.id,
+            period_id: openPeriod.id,
             period_start: openPeriod.start_at,
             period_end: now.toISOString(),
             player_rake_generated: grossRake,
