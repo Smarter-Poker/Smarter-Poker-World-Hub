@@ -106,47 +106,54 @@ export function AvatarProvider({ children }) {
 
             // INITIAL_SESSION fires when Supabase restores session from localStorage
             if (event === 'INITIAL_SESSION') {
-                // If we have a session, FORCE REFRESH to renew potentially expired tokens
                 if (session?.user) {
-                    console.log('[AvatarContext] Session found, forcing refresh to renew tokens...');
+                    console.log('[AvatarContext] Session found, attempting background refresh...');
                     try {
-                        // 🛡️ CRITICAL: Use timeout to prevent infinite hang on corrupted tokens
+                        // 🛡️ CRITICAL FIX: Use the EXISTING session first, then try refreshing.
+                        // NEVER nuke localStorage on timeout — a stale token is infinitely
+                        // better than no token. Supabase auto-refreshes on the next API call.
                         const refreshPromise = supabase.auth.refreshSession();
                         const timeoutPromise = new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error('Session refresh timeout - clearing corrupted auth')), 3000)
+                            setTimeout(() => reject(new Error('Session refresh timeout')), 8000)
                         );
                         const { data: refreshData, error: refreshError } = await Promise.race([refreshPromise, timeoutPromise]);
 
                         if (refreshError) {
-                            console.error('[AvatarContext] Session refresh failed:', refreshError.message);
-                            // Session is invalid, clear it AND remove corrupted localStorage key
-                            // This breaks the infinite SIGNED_OUT loop that causes 0/0/LV1 bug
-                            setUser(null);
-                            try {
-                                localStorage.removeItem('smarter-poker-auth');
-                                console.log('[AvatarContext] Cleared corrupted auth key to break loop');
-                            } catch (e) {
-                                console.warn('[AvatarContext] Failed to clear auth key:', e);
+                            // Check if this is a PERMANENT auth failure (invalid_grant = token is truly dead)
+                            const isPermanentFailure =
+                                refreshError.message?.includes('invalid_grant') ||
+                                refreshError.message?.includes('Invalid Refresh Token') ||
+                                refreshError.status === 400;
+
+                            if (isPermanentFailure) {
+                                console.error('[AvatarContext] Permanent auth failure — clearing session:', refreshError.message);
+                                setUser(null);
+                                try {
+                                    localStorage.removeItem('smarter-poker-auth');
+                                } catch (e) { /* ignore */ }
+                            } else {
+                                // Transient error (network, timeout, 5xx) — KEEP the existing session
+                                console.warn('[AvatarContext] Transient refresh error — keeping existing session:', refreshError.message);
+                                setUser(session.user);
+                                await ensureUserProfile(session.user);
+                                await fetchVipStatus(session.user.id);
                             }
                         } else if (refreshData?.session?.user) {
                             console.log('[AvatarContext] Session refreshed successfully');
                             setUser(refreshData.session.user);
-                            // 🛡️ ANTIGRAVITY: Ensure profile exists
                             await ensureUserProfile(refreshData.session.user);
                             await fetchVipStatus(refreshData.session.user.id);
                         } else {
-                            setUser(null);
+                            // Refresh returned no user but no error — use existing session
+                            console.warn('[AvatarContext] Refresh returned empty — keeping existing session');
+                            setUser(session.user);
                         }
                     } catch (err) {
-                        console.error('[AvatarContext] Refresh exception (likely timeout):', err.message);
-                        setUser(null);
-                        // Clear corrupted auth key on exception/timeout
-                        try {
-                            localStorage.removeItem('smarter-poker-auth');
-                            // Also clear any sb-* legacy keys
-                            Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.includes('auth')).forEach(k => localStorage.removeItem(k));
-                            console.log('[AvatarContext] Cleared corrupted auth keys after timeout');
-                        } catch (e) { /* ignore */ }
+                        // Timeout or network exception — KEEP the existing session, DO NOT nuke localStorage
+                        console.warn('[AvatarContext] Refresh timeout/exception — keeping existing session:', err.message);
+                        setUser(session.user);
+                        await ensureUserProfile(session.user);
+                        await fetchVipStatus(session.user.id);
                     }
                 } else {
                     // No session at all
