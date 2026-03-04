@@ -14,7 +14,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
+import { useRecentSessions } from '../../../src/hooks/useAssistant';
 import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 
@@ -51,9 +51,8 @@ export default function PersonalAssistantPage() {
   }, []);
 
   // Real data hooks
-  const { stats, isLoading: statsLoading } = useAssistantStats();
   const { sessions: recentSessions, isLoading: sessionsLoading } = useRecentSessions(5);
-  const isLoading = statsLoading || sessionsLoading;
+  const isLoading = sessionsLoading;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -248,7 +247,7 @@ export default function PersonalAssistantPage() {
             }}
             onClick={() => {
               if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
+                router.push('/hub/messenger?chat=jarvis');
               }
             }}
             title="Chat with Jarvis"

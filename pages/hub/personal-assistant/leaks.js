@@ -545,12 +545,12 @@ export default function LeakFinderPage() {
   const activeLeaks = fetchedLeaks.filter(l => l.status !== 'resolved');
   const pastLeaks = fetchedLeaks.filter(l => l.status === 'resolved');
 
-  // Use fetched stats or defaults
+  // Use fetched stats or defaults (using ?? to allow 0 instead of falling back on falsy check)
   const stats = {
-    sessionsReviewed: fetchedStats.sessionsReviewed || 0,
-    handsAnalyzed: fetchedStats.handsAnalyzed || 0,
+    sessionsReviewed: fetchedStats.sessionsReviewed ?? 0,
+    handsAnalyzed: fetchedStats.handsAnalyzed ?? 0,
     leaksFound: activeLeaks.length,
-    avgEvLoss: fetchedStats.avgEvLoss || -0.07,
+    avgEvLoss: fetchedStats.avgEvLoss ?? -0.07,
   };
 
   useEffect(() => {
@@ -583,12 +583,12 @@ export default function LeakFinderPage() {
   return (
     <PageTransition>
       <SEOHead
-                title="Leak Finder — Fix Your Game"
-                description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
-                canonical="/hub/personal-assistant/leaks"
-            >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-            </SEOHead>
+        title="Leak Finder — Fix Your Game"
+        description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
+        canonical="/hub/personal-assistant/leaks"
+      >
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </SEOHead>
 
       <div className="leaks-page" style={styles.container}>
         <div style={styles.bgGrid} />
@@ -665,7 +665,7 @@ export default function LeakFinderPage() {
                       <LeakStatusBadge status={leak.status} />
                       <span style={styles.leakCardConfidence}>
                         {'*'.repeat(leak.confidence === 'high' ? 3 : leak.confidence === 'medium' ? 2 : 1)}
-                        {leak.confidence === 'high' ? 'HiConfide' : leak.confidence === 'medium' ? 'VxMedium' : 'Low'}
+                        {leak.confidence === 'high' ? ' High' : leak.confidence === 'medium' ? ' Medium' : ' Low'}
                       </span>
                     </div>
                     <div style={styles.leakCardSituation}>
@@ -678,7 +678,7 @@ export default function LeakFinderPage() {
 
               {/* Past Leaks */}
               <div style={styles.pastLeaksSection}>
-                <h4 style={styles.pastLeaksTitle}>Leak Past Poit</h4>
+                <h4 style={styles.pastLeaksTitle}>Past Leaks</h4>
                 {pastLeaks.map((leak) => (
                   <div key={leak.id} style={styles.pastLeakCard}>
                     <div style={styles.pastLeakHeader}>

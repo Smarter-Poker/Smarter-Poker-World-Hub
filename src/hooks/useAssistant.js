@@ -286,66 +286,71 @@ export function useRecentSessions(limit = 10) {
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchSessions() {
-      try {
-        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-        const user = getAuthUser();
-        if (!user) {
-          // Return demo sessions for non-logged-in users
-          setSessions([
-            { id: 1, title: 'MP vs BTN Single Raised Pot', stack: '100BB', evLoss: -0.14, type: 'sandbox' },
-            { id: 2, title: 'Post-Session Leak Analysis', date: 'Yesterday', evLoss: -0.11, type: 'leak' },
-          ]);
-          setIsLoading(false);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('sandbox_sessions')
-          .select(`
-            id,
-            hero_hand,
-            hero_position,
-            hero_stack_bb,
-            game_type,
-            created_at,
-            sandbox_results (
-              primary_action,
-              primary_frequency
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        if (error) {
-          console.error('Error fetching sessions:', error);
-          setSessions([]);
-        } else {
-          const formatted = (data || []).map(s => ({
-            id: s.id,
-            title: `${s.hero_position} with ${s.hero_hand}`,
-            stack: `${s.hero_stack_bb}BB`,
-            evLoss: 0, // Would need actual EV data
-            type: 'sandbox',
-            date: s.created_at,
-            result: s.sandbox_results?.[0]?.primary_action,
-          }));
-          setSessions(formatted);
-        }
-      } catch (err) {
-        console.error('Fetch sessions error:', err);
-        setSessions([]);
-      } finally {
+  const fetchSessions = useCallback(async () => {
+    try {
+      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+      const user = getAuthUser();
+      if (!user) {
+        // Return demo sessions for non-logged-in users
+        setSessions([
+          { id: 1, title: 'MP vs BTN Single Raised Pot', stack: '100BB', evLoss: -0.14, type: 'sandbox' },
+          { id: 2, title: 'Post-Session Leak Analysis', date: 'Yesterday', evLoss: -0.11, type: 'leak' },
+        ]);
         setIsLoading(false);
+        return;
       }
-    }
 
-    fetchSessions();
+      const { data, error } = await supabase
+        .from('sandbox_sessions')
+        .select(`
+          id,
+          hero_hand,
+          hero_position,
+          hero_stack_bb,
+          game_type,
+          created_at,
+          sandbox_results (
+            primary_action,
+            primary_frequency
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching sessions:', error);
+        setSessions([]);
+      } else {
+        const formatted = (data || []).map(s => ({
+          id: s.id,
+          title: `${s.hero_position} with ${s.hero_hand}`,
+          stack: `${s.hero_stack_bb}BB`,
+          evLoss: 0, // Would need actual EV data
+          type: 'sandbox',
+          date: s.created_at,
+          result: s.sandbox_results?.[0]?.primary_action,
+        }));
+        setSessions(formatted);
+      }
+    } catch (err) {
+      console.error('Fetch sessions error:', err);
+      setSessions([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [limit]);
 
-  return { sessions, isLoading };
+  useEffect(() => {
+    fetchSessions();
+
+    // 🔄 BUS LISTENER for real-time Session updates
+    const handleUpdate = () => fetchSessions();
+    window.addEventListener('pa-data-updated', handleUpdate);
+    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+  }, [fetchSessions]);
+
+  return { sessions, isLoading, refetch: fetchSessions };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
