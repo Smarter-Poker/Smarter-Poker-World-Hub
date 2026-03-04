@@ -1,14 +1,16 @@
 /**
- * TOKE SELECTORS — Dealer Income & Expense Tracking
- * ═══════════════════════════════════════════════════════════════
- * CRUD for toke_gigs and toke_downs tables.
- * Mirrors the bankrollSelectors pattern for trips.
- * ═══════════════════════════════════════════════════════════════
+ * TOKE SELECTORS — Dealer Income & Expense Tracking (Multi-Day v2)
+ * ═══════════════════════════════════════════════════════════════════
+ * CRUD for toke_gigs, toke_gig_days, toke_downs, toke_expenses.
+ * Each gig now contains multiple "days". Downs and expenses belong
+ * to a specific day (via day_id). The event stays active across all
+ * days until the user explicitly clicks "Complete Event".
+ * ═══════════════════════════════════════════════════════════════════
  */
 
 import { supabase } from '../supabase';
 
-// ─── Types ──────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────
 
 export interface TokeGig {
     id: string;
@@ -16,25 +18,49 @@ export interface TokeGig {
     venue_name: string;
     venue_address?: string | null;
     location_id?: string | null;
+    venue_type?: string | null;
+    poker_venue_id?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     start_date: string;
     end_date?: string | null;
     hourly_rate: number;
+    mileage?: number | null;
     status: 'active' | 'completed' | 'deleted';
     notes?: string | null;
     created_at: string;
     updated_at: string;
-    // Computed (client-side)
+    // Computed
     totalTokes?: number;
     totalDowns?: number;
     totalHoursWorked?: number;
     totalExpenses?: number;
+    days?: TokeGigDay[];
+}
+
+export interface TokeGigDay {
+    id: string;
+    gig_id: string;
+    user_id: string;
+    day_number: number;        // 1, 2, 3 …
+    date: string;              // YYYY-MM-DD
+    started_at: string;
+    ended_at?: string | null;  // null = day is still open
+    notes?: string | null;
+    created_at: string;
+    // Computed
     downs?: TokeDown[];
     expenses?: TokeExpense[];
+    totalTokes?: number;
+    totalDowns?: number;
+    totalHoursWorked?: number;
+    totalExpenses?: number;
 }
 
 export interface TokeDown {
     id: string;
     gig_id: string;
+    day_id: string;            // FK → toke_gig_days.id
     user_id: string;
     down_type: 'cash' | 'tournament' | 'break' | 'brush';
     game_type?: string | null;
@@ -53,6 +79,7 @@ export interface TokeExpense {
     id: string;
     user_id: string;
     gig_id: string;
+    day_id: string;            // FK → toke_gig_days.id
     category: 'food' | 'ride_share' | 'gas' | 'mileage' | 'air_fare' | 'lodging' | 'supplies' | 'other' | 'tip_out';
     amount: number;
     description?: string | null;
@@ -60,7 +87,36 @@ export interface TokeExpense {
     created_at: string;
 }
 
-// ─── GIG CRUD ───────────────────────────────────────────────
+// ─── Helper: compute total hours from a list of downs ───────────────
+
+function computeTotalHours(downs: TokeDown[]): number {
+    let ms = 0;
+    for (const d of downs) {
+        const start = new Date(d.started_at).getTime();
+        const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
+        ms += end - start;
+    }
+    return ms / (1000 * 60 * 60);
+}
+
+// ─── Helper: decorate a day with computed fields ─────────────────────
+
+function decorateDay(day: TokeGigDay, downs: TokeDown[], expenses: TokeExpense[]): TokeGigDay {
+    const dayDowns = downs.filter(d => d.day_id === day.id);
+    const dayExpenses = expenses.filter(e => e.day_id === day.id);
+    const dealingDowns = dayDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
+    return {
+        ...day,
+        downs: dayDowns,
+        expenses: dayExpenses,
+        totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
+        totalDowns: dealingDowns.length,
+        totalHoursWorked: computeTotalHours(dayDowns),
+        totalExpenses: dayExpenses.reduce((s, e) => s + (e.amount || 0), 0),
+    };
+}
+
+// ─── GIG CRUD ────────────────────────────────────────────────────────
 
 /**
  * Fetch all non-deleted gigs for a user (most recent first)
@@ -75,34 +131,28 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
 
     if (error) throw error;
 
-    // Compute totals for each gig
     const gigs: TokeGig[] = [];
     for (const gig of data || []) {
         const { data: downs } = await supabase
             .from('toke_downs')
             .select('*')
-            .eq('gig_id', gig.id)
-            .order('started_at', { ascending: true });
+            .eq('gig_id', gig.id);
 
-        const dealingDowns = (downs || []).filter((d: TokeDown) =>
-            d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'
-        );
-        const totalTokes = dealingDowns.reduce((sum: number, d: TokeDown) => sum + (d.toke_amount || 0), 0);
-        const totalHoursWorked = computeTotalHours(downs || []);
+        const allDowns = (downs || []) as TokeDown[];
+        const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
 
         gigs.push({
             ...gig,
-            totalTokes,
+            totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
             totalDowns: dealingDowns.length,
-            totalHoursWorked,
+            totalHoursWorked: computeTotalHours(allDowns),
         });
     }
-
     return gigs;
 }
 
 /**
- * Get the active gig (only one allowed at a time)
+ * Get the active gig with its full day/down/expense tree
  */
 export async function getActiveGig(userId: string): Promise<TokeGig | null> {
     const { data, error } = await supabase
@@ -116,53 +166,54 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
     if (error) throw error;
     if (!data) return null;
 
-    // Load all downs for active gig
+    // Load all days
+    const { data: daysRaw } = await supabase
+        .from('toke_gig_days')
+        .select('*')
+        .eq('gig_id', data.id)
+        .order('day_number', { ascending: true });
+
+    // Load all downs for the whole gig
     const { data: downs } = await supabase
         .from('toke_downs')
         .select('*')
         .eq('gig_id', data.id)
         .order('started_at', { ascending: true });
 
-    // Load expenses for active gig
+    // Load all expenses for the whole gig
     const { data: expenses } = await supabase
         .from('toke_expenses')
         .select('*')
         .eq('gig_id', data.id)
         .order('created_at', { ascending: false });
 
-    const allDowns = downs || [];
-    const allExpenses = expenses || [];
-    const dealingDowns = allDowns.filter((d: TokeDown) =>
-        d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'
+    const allDowns = (downs || []) as TokeDown[];
+    const allExpenses = (expenses || []) as TokeExpense[];
+
+    // Decorate each day
+    const days: TokeGigDay[] = (daysRaw || []).map(day =>
+        decorateDay(day as TokeGigDay, allDowns, allExpenses)
     );
-    const totalTokes = dealingDowns.reduce((sum: number, d: TokeDown) => sum + (d.toke_amount || 0), 0);
-    const totalHoursWorked = computeTotalHours(allDowns);
-    const totalExpenses = allExpenses.reduce((sum: number, e: TokeExpense) => sum + (e.amount || 0), 0);
+
+    const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
 
     return {
         ...data,
-        totalTokes,
+        days,
+        totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
         totalDowns: dealingDowns.length,
-        totalHoursWorked,
-        totalExpenses,
-        downs: allDowns,
-        expenses: allExpenses,
+        totalHoursWorked: computeTotalHours(allDowns),
+        totalExpenses: allExpenses.reduce((s, e) => s + (e.amount || 0), 0),
     };
 }
 
 /**
- * Create a new gig (enforces single-active rule)
+ * Create a new gig AND auto-create Day 1
  */
-export async function createGig(
-    userId: string,
-    gig: Partial<TokeGig>
-): Promise<TokeGig> {
+export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<TokeGig> {
     const existing = await getActiveGig(userId);
-    if (existing) {
-        throw new Error('You already have an active gig. Complete or delete it first.');
-    }
+    if (existing) throw new Error('You already have an active event. Complete or delete it first.');
 
-    // Validate location_id is a real UUID — reject sentinel strings like '__new__'
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
 
@@ -173,6 +224,10 @@ export async function createGig(
             venue_name: gig.venue_name,
             venue_address: gig.venue_address || null,
             location_id: safeLocationId,
+            venue_type: gig.venue_type || 'casino',
+            poker_venue_id: gig.poker_venue_id || null,
+            latitude: gig.latitude || null,
+            longitude: gig.longitude || null,
             start_date: gig.start_date || new Date().toISOString().split('T')[0],
             hourly_rate: gig.hourly_rate || 0,
             notes: gig.notes || null,
@@ -182,17 +237,17 @@ export async function createGig(
         .single();
 
     if (error) throw error;
+
+    // Auto-create Day 1
+    await createDay(userId, data.id, 1);
+
     return data;
 }
 
 /**
- * Update an existing gig's editable fields
+ * Update editable gig fields
  */
-export async function updateGig(
-    userId: string,
-    gigId: string,
-    updates: Partial<TokeGig>
-): Promise<TokeGig> {
+export async function updateGig(userId: string, gigId: string, updates: Partial<TokeGig>): Promise<TokeGig> {
     const { data, error } = await supabase
         .from('toke_gigs')
         .update({
@@ -212,20 +267,34 @@ export async function updateGig(
 }
 
 /**
- * Complete an active gig — sets status to 'completed' and end_date
+ * Complete an entire event — closes any open day + sets status to completed
  */
-export async function completeGig(userId: string, gigId: string): Promise<TokeGig> {
-    // End any open down first
+export async function completeGig(userId: string, gigId: string, mileage = 0): Promise<TokeGig> {
+    // Auto-close any open downs
     const { data: openDowns } = await supabase
         .from('toke_downs')
         .select('id')
         .eq('gig_id', gigId)
         .is('ended_at', null);
 
-    if (openDowns && openDowns.length > 0) {
+    if (openDowns?.length) {
         const now = new Date().toISOString();
         for (const d of openDowns) {
             await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+        }
+    }
+
+    // Auto-close any open days
+    const { data: openDays } = await supabase
+        .from('toke_gig_days')
+        .select('id')
+        .eq('gig_id', gigId)
+        .is('ended_at', null);
+
+    if (openDays?.length) {
+        const now = new Date().toISOString();
+        for (const d of openDays) {
+            await supabase.from('toke_gig_days').update({ ended_at: now }).eq('id', d.id);
         }
     }
 
@@ -234,11 +303,11 @@ export async function completeGig(userId: string, gigId: string): Promise<TokeGi
         .update({
             status: 'completed',
             end_date: new Date().toISOString().split('T')[0],
+            mileage: mileage || 0,
             updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
         .eq('id', gigId)
-        .eq('status', 'active')
         .select()
         .single();
 
@@ -247,7 +316,7 @@ export async function completeGig(userId: string, gigId: string): Promise<TokeGi
 }
 
 /**
- * Delete a gig (soft delete — sets status to 'deleted')
+ * Soft-delete a gig
  */
 export async function deleteGig(userId: string, gigId: string): Promise<void> {
     const { error } = await supabase
@@ -259,38 +328,76 @@ export async function deleteGig(userId: string, gigId: string): Promise<void> {
     if (error) throw error;
 }
 
-// ─── DOWN CRUD ──────────────────────────────────────────────
+// ─── DAY CRUD ────────────────────────────────────────────────────────
 
 /**
- * Fetch all downs for a gig
+ * Create a new day for a gig
  */
-export async function fetchDowns(gigId: string): Promise<TokeDown[]> {
+export async function createDay(userId: string, gigId: string, dayNumber: number): Promise<TokeGigDay> {
     const { data, error } = await supabase
-        .from('toke_downs')
-        .select('*')
-        .eq('gig_id', gigId)
-        .order('started_at', { ascending: false });
+        .from('toke_gig_days')
+        .insert({
+            gig_id: gigId,
+            user_id: userId,
+            day_number: dayNumber,
+            date: new Date().toISOString().split('T')[0],
+            started_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
     if (error) throw error;
-    return data || [];
+    return data;
 }
 
 /**
- * Create a new down (also ends any currently-open down)
+ * Close out the current day (set ended_at)
+ */
+export async function closeDay(dayId: string): Promise<TokeGigDay> {
+    // Auto-close any open downs belonging to this day
+    const { data: openDowns } = await supabase
+        .from('toke_downs')
+        .select('id')
+        .eq('day_id', dayId)
+        .is('ended_at', null);
+
+    if (openDowns?.length) {
+        const now = new Date().toISOString();
+        for (const d of openDowns) {
+            await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('toke_gig_days')
+        .update({ ended_at: new Date().toISOString() })
+        .eq('id', dayId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+// ─── DOWN CRUD ───────────────────────────────────────────────────────
+
+/**
+ * Create a down inside a specific day
  */
 export async function createDown(
     userId: string,
     gigId: string,
+    dayId: string,
     down: Partial<TokeDown>
 ): Promise<TokeDown> {
-    // End any open down first
+    // End any open down for this day
     const { data: openDowns } = await supabase
         .from('toke_downs')
         .select('id')
-        .eq('gig_id', gigId)
+        .eq('day_id', dayId)
         .is('ended_at', null);
 
-    if (openDowns && openDowns.length > 0) {
+    if (openDowns?.length) {
         const now = new Date().toISOString();
         for (const d of openDowns) {
             await supabase.from('toke_downs').update({ ended_at: now }).eq('id', d.id);
@@ -301,6 +408,7 @@ export async function createDown(
         .from('toke_downs')
         .insert({
             gig_id: gigId,
+            day_id: dayId,
             user_id: userId,
             down_type: down.down_type || 'cash',
             game_type: down.game_type || null,
@@ -338,14 +446,15 @@ export async function endDown(downId: string, tokeAmount?: number): Promise<Toke
 }
 
 /**
- * Create a double-down — clones the last down as a continuation
+ * Double-down — clone the last down into the same day
  */
 export async function createDoubleDown(
     userId: string,
     gigId: string,
+    dayId: string,
     lastDown: TokeDown
 ): Promise<TokeDown> {
-    return createDown(userId, gigId, {
+    return createDown(userId, gigId, dayId, {
         down_type: lastDown.down_type,
         game_type: lastDown.game_type,
         tournament_name: lastDown.tournament_name,
@@ -354,21 +463,11 @@ export async function createDoubleDown(
     });
 }
 
-/**
- * Delete a down
- */
 export async function deleteDown(downId: string): Promise<void> {
-    const { error } = await supabase
-        .from('toke_downs')
-        .delete()
-        .eq('id', downId);
-
+    const { error } = await supabase.from('toke_downs').delete().eq('id', downId);
     if (error) throw error;
 }
 
-/**
- * Update a down's toke amount
- */
 export async function updateDownToke(downId: string, tokeAmount: number): Promise<TokeDown> {
     const { data, error } = await supabase
         .from('toke_downs')
@@ -376,14 +475,10 @@ export async function updateDownToke(downId: string, tokeAmount: number): Promis
         .eq('id', downId)
         .select()
         .single();
-
     if (error) throw error;
     return data;
 }
 
-/**
- * Update a down's multiplier (for tournament mixed games)
- */
 export async function updateDownMultiplier(downId: string, multiplier: number): Promise<TokeDown> {
     const { data, error } = await supabase
         .from('toke_downs')
@@ -391,13 +486,11 @@ export async function updateDownMultiplier(downId: string, multiplier: number): 
         .eq('id', downId)
         .select()
         .single();
-
     if (error) throw error;
     return data;
 }
 
-
-// ─── EXPENSE CRUD ───────────────────────────────────────────
+// ─── EXPENSE CRUD ────────────────────────────────────────────────────
 
 export async function fetchExpenses(gigId: string): Promise<TokeExpense[]> {
     const { data, error } = await supabase
@@ -405,7 +498,6 @@ export async function fetchExpenses(gigId: string): Promise<TokeExpense[]> {
         .select('*')
         .eq('gig_id', gigId)
         .order('created_at', { ascending: false });
-
     if (error) throw error;
     return data || [];
 }
@@ -413,6 +505,7 @@ export async function fetchExpenses(gigId: string): Promise<TokeExpense[]> {
 export async function createExpense(
     userId: string,
     gigId: string,
+    dayId: string,
     expense: Partial<TokeExpense>
 ): Promise<TokeExpense> {
     const { data, error } = await supabase
@@ -420,6 +513,7 @@ export async function createExpense(
         .insert({
             user_id: userId,
             gig_id: gigId,
+            day_id: dayId,
             category: expense.category || 'other',
             amount: expense.amount || 0,
             description: expense.description || null,
@@ -427,25 +521,17 @@ export async function createExpense(
         })
         .select()
         .single();
-
     if (error) throw error;
     return data;
 }
 
 export async function deleteExpense(expenseId: string): Promise<void> {
-    const { error } = await supabase
-        .from('toke_expenses')
-        .delete()
-        .eq('id', expenseId);
-
+    const { error } = await supabase.from('toke_expenses').delete().eq('id', expenseId);
     if (error) throw error;
 }
 
-// ─── GIG REPORT ─────────────────────────────────────────────
+// ─── GIG REPORT ──────────────────────────────────────────────────────
 
-/**
- * Get detailed report for a completed gig
- */
 export async function getGigReport(userId: string, gigId: string) {
     const { data: gig, error: gigError } = await supabase
         .from('toke_gigs')
@@ -456,35 +542,42 @@ export async function getGigReport(userId: string, gigId: string) {
 
     if (gigError) throw gigError;
 
-    const { data: downs, error: downsError } = await supabase
+    const { data: daysRaw } = await supabase
+        .from('toke_gig_days')
+        .select('*')
+        .eq('gig_id', gigId)
+        .order('day_number', { ascending: true });
+
+    const { data: downsRaw } = await supabase
         .from('toke_downs')
         .select('*')
         .eq('gig_id', gigId)
         .order('started_at', { ascending: true });
 
-    if (downsError) throw downsError;
-
-    // Load expenses
-    const { data: expenses } = await supabase
+    const { data: expensesRaw } = await supabase
         .from('toke_expenses')
         .select('*')
         .eq('gig_id', gigId)
         .order('created_at', { ascending: false });
 
-    const allDowns = downs || [];
-    const allExpenses = expenses || [];
-    const dealingDowns = allDowns.filter((d: TokeDown) =>
-        d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'
-    );
-    const breakDowns = allDowns.filter((d: TokeDown) => d.down_type === 'break');
-    const totalTokes = dealingDowns.reduce((sum: number, d: TokeDown) => sum + (d.toke_amount || 0), 0);
-    const totalHoursWorked = computeTotalHours(allDowns);
-    const cashDowns = allDowns.filter((d: TokeDown) => d.down_type === 'cash');
-    const tournamentDowns = allDowns.filter((d: TokeDown) => d.down_type === 'tournament');
-    const brushDowns = allDowns.filter((d: TokeDown) => d.down_type === 'brush');
-    const doubleDowns = allDowns.filter((d: TokeDown) => d.is_double_down);
-    const totalExpenses = allExpenses.reduce((sum: number, e: TokeExpense) => sum + (e.amount || 0), 0);
+    const allDowns = (downsRaw || []) as TokeDown[];
+    const allExpenses = (expensesRaw || []) as TokeExpense[];
 
+    // Decorate each day with its own stats
+    const days: TokeGigDay[] = (daysRaw || []).map(day =>
+        decorateDay(day as TokeGigDay, allDowns, allExpenses)
+    );
+
+    const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
+    const cashDowns = allDowns.filter(d => d.down_type === 'cash');
+    const tournamentDowns = allDowns.filter(d => d.down_type === 'tournament');
+    const brushDowns = allDowns.filter(d => d.down_type === 'brush');
+    const breakDowns = allDowns.filter(d => d.down_type === 'break');
+    const doubleDowns = allDowns.filter(d => d.is_double_down);
+
+    const totalTokes = dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0);
+    const totalHoursWorked = computeTotalHours(allDowns);
+    const totalExpenses = allExpenses.reduce((s, e) => s + (e.amount || 0), 0);
     const hourlyRate = gig.hourly_rate || 0;
     const hourlyPay = totalHoursWorked * hourlyRate;
     const totalEarnings = hourlyPay + totalTokes - totalExpenses;
@@ -495,6 +588,7 @@ export async function getGigReport(userId: string, gigId: string) {
 
     return {
         gig,
+        days,
         downs: allDowns,
         expenses: allExpenses,
         stats: {
@@ -517,17 +611,6 @@ export async function getGigReport(userId: string, gigId: string) {
     };
 }
 
-// ─── HELPERS ────────────────────────────────────────────────
-
-/**
- * Compute total hours worked from a list of downs
- */
-function computeTotalHours(downs: TokeDown[]): number {
-    let totalMs = 0;
-    for (const d of downs) {
-        const start = new Date(d.started_at).getTime();
-        const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
-        totalMs += end - start;
-    }
-    return totalMs / (1000 * 60 * 60);
-}
+// ─── LEGACY COMPAT — mileage field on completeGig ────────────────────
+// (kept for the existing completeGig call signature in TokeTracker.jsx)
+export { completeGig as completeGigWithMileage };

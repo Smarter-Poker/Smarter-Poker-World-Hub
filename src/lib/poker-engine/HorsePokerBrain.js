@@ -336,72 +336,578 @@ async function getAdvancedModule() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PLO FALLBACK DECISION ENGINE
+// PLO DECISION ENGINE — WORLD CLASS UPGRADE
 // Handles Omaha variants (PLO4, PLO5, PLO6, PLO8 Hi-Lo)
-// PioSolver only has Holdem data - this engine handles non-Holdem variants
+// PioSolver only has Holdem data — this engine handles non-Holdem variants.
+//
+// Architecture:
+//   1. Card parsing utilities (rank, suit, hand parsing)
+//   2. Preflop PLO hand classifier (rundowns, pairs, suitedness)
+//   3. Draw counter (exact outs: flush, straight, wraps, combo draws)
+//   4. Made hand evaluator (nut flush, nut straight, set, two-pair, etc.)
+//   5. PLO8 Hi-Lo low evaluator (A-5 low qualifier)
+//   6. Decision engine (preflop / flop-turn / river)
 // ═══════════════════════════════════════════════════════════════════════════
 
+const RANK_ORDER = '23456789TJQKA'; // Index = rank value (0=2, 12=A)
+const RANK_NAMES = { T: 10, J: 11, Q: 12, K: 13, A: 14 };
+
+/** Parse a card string like 'Ah', 'Ks', '9d' into { rank: number, suit: char } */
+function parseCard(c) {
+    if (!c || c.length < 2) return null;
+    const rStr = c[0].toUpperCase();
+    const suit = c[1].toLowerCase();
+    const rank = RANK_ORDER.indexOf(rStr);
+    return rank === -1 ? null : { rank, suit, str: c };
+}
+
+/** Parse an array of card strings, filtering invalid */
+function parseCards(cards) {
+    return (cards || []).map(parseCard).filter(Boolean);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. PLO PREFLOP HAND CLASSIFIER
+// Based on hand type tiers used in professional PLO cash game theory.
+// References: PLO Quick Pro hand ranking tables, Jeff Hwang methodology.
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Evaluate PLO preflop hand strength.
- * PLO hands derive strength from: connectivity, pairs, suits (double-suited), and rundown quality.
- * @param {string[]} holeCards - Array of 4, 5, or 6 card string descriptors (e.g. "Ah", "Ks")
- * @returns {number} Strength score 0-100
+ * Classify a PLO starting hand and return a strength score 0-100.
+ *
+ * Criteria (in order of importance):
+ *   a) Rundown quality: J-T-9-8 > T-9-8-7 > 9-8-7-5 (gaps penalized)
+ *   b) Suitedness: Double-suited > Single-suited > Rainbow
+ *   c) Pair quality: AA / KK paired rundown > dangling pairs
+ *   d) High card bonus: Ace involvement elevates marginal hands
+ *   e) Dangling card penalty: disconnected cards reduce overall value
+ *
+ * @param {Array<{rank:number,suit:string}>} cards - Parsed hole cards (4-6)
+ * @returns {number} 0-100 strength score
  */
-function getPLOPreflopStrength(holeCards) {
-    if (!holeCards || holeCards.length < 4) return 30;
+function classifyPLOPreflop(cards) {
+    if (!cards || cards.length < 4) return 20;
 
-    const ranks = holeCards.map(c => '23456789TJQKA'.indexOf(c[0]));
-    const suits = holeCards.map(c => c[1]);
+    const n = cards.length; // 4, 5, or 6
+    const ranks = cards.map(c => c.rank).sort((a, b) => b - a); // descending
+    const suits = cards.map(c => c.suit);
 
-    // Connectivity score: reward consecutive ranks (rundowns like 7-8-9-T are elite)
-    const sortedRanks = [...ranks].sort((a, b) => b - a);
-    let connectivity = 0;
-    for (let i = 0; i < sortedRanks.length - 1; i++) {
-        const gap = sortedRanks[i] - sortedRanks[i + 1];
-        if (gap === 1) connectivity += 20; // Direct connector
-        else if (gap === 2) connectivity += 10; // One-gap
-        else if (gap === 3) connectivity += 4; // Two-gap
-    }
-
-    // Suit score: double-suited = premium, single-suited = ok, rainbow = minor penalty
-    const suitCounts = {};
-    for (const s of suits) suitCounts[s] = (suitCounts[s] || 0) + 1;
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    // ── Suitedness ──
+    const suitFreq = {};
+    for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
+    const suitCounts = Object.values(suitFreq).sort((a, b) => b - a);
     let suitScore = 0;
-    if (maxSuit >= 3) suitScore = 30; // Flush draw potential (3+ to a suit)
-    else if (maxSuit === 2 && Object.values(suitCounts).filter(v => v === 2).length >= 2) suitScore = 20; // Double-suited
-    else if (maxSuit === 2) suitScore = 10; // Single-suited
-    else suitScore = -5; // Rainbow — below average
+    if (suitCounts[0] >= 3) suitScore = 30;               // Triple/quad-suited (rare, very strong)
+    else if (suitCounts[0] === 2 && (suitCounts[1] >= 2)) suitScore = 22; // Double-suited
+    else if (suitCounts[0] === 2) suitScore = 12;          // Single-suited
+    else suitScore = 0;                                      // Rainbow (no flush backup)
 
-    // High card score: AAKK / AAQQ pairs are top tier
-    const pairs = [];
-    const rankFreq = {};
-    for (const r of sortedRanks) rankFreq[r] = (rankFreq[r] || 0) + 1;
-    let pairScore = 0;
-    for (const [rank, count] of Object.entries(rankFreq)) {
-        if (count >= 2) pairScore += ((parseInt(rank) + 2) * 2); // Higher pairs score more
+    // ── Connectivity / Rundown quality ──
+    // Score the best 4-card window among our hole cards
+    let bestRundownScore = 0;
+    const uniqueRanks = [...new Set(ranks)].sort((a, b) => b - a);
+    for (let start = 0; start < uniqueRanks.length - 1; start++) {
+        let windowScore = 0;
+        let gaps = 0;
+        for (let i = start; i < Math.min(start + 4, uniqueRanks.length) - 1; i++) {
+            const gap = uniqueRanks[i] - uniqueRanks[i + 1];
+            if (gap === 1) windowScore += 18;  // Direct connector — best
+            else if (gap === 2) windowScore += 10; // One-gap (still a good draw)
+            else if (gap === 3) windowScore += 4;  // Two-gap
+            else { gaps++; windowScore -= 5; }    // Dangler — damages hand
+        }
+        // Penalize more than 1 gap in a 4-card window
+        if (gaps > 1) windowScore -= gaps * 5;
+        bestRundownScore = Math.max(bestRundownScore, windowScore);
     }
+    bestRundownScore = Math.min(bestRundownScore, 54); // Cap at max
 
-    // Top-card bonus (having A, K, Q elevates)
+    // ── Pair / High Card quality ──
+    const rankFreq = {};
+    for (const r of ranks) rankFreq[r] = (rankFreq[r] || 0) + 1;
+    const pairs = Object.entries(rankFreq).filter(([, c]) => c >= 2);
+    const hasAA = rankFreq[12] >= 2;
+    const hasKK = rankFreq[11] >= 2;
+    const hasQQ = rankFreq[10] >= 2;
     const hasAce = ranks.includes(12);
     const hasKing = ranks.includes(11);
-    const topCardBonus = (hasAce ? 20 : 0) + (hasKing ? 10 : 0);
 
-    // Normalize to 0-100
-    const raw = 20 + Math.min(connectivity, 60) + suitScore + Math.min(pairScore, 20) + topCardBonus;
+    let highCardScore = 0;
+    if (hasAA) highCardScore += 24; // AA is a massive multiplier in PLO
+    else if (hasKK) highCardScore += 14;
+    else if (hasQQ) highCardScore += 8;
+    if (hasAce && !hasAA) highCardScore += 10; // Solitary Ace w/o pair
+    if (hasKing && !hasKK) highCardScore += 5;
+
+    // ── Dangling card penalty ──
+    // A card that doesn't connect to the best 3-card window is a dangler
+    const sortedU = uniqueRanks;
+    let danglerPenalty = 0;
+    if (sortedU.length >= 4) {
+        // Check if the 4th card (lowest) is within 3 of the 3rd card
+        const gap34 = sortedU[2] - sortedU[3];
+        if (gap34 >= 4) danglerPenalty += 8;
+        if (gap34 >= 6) danglerPenalty += 6; // Terrible dangler (e.g., K-Q-J-3)
+    }
+
+    // ── Raw score → normalize 0-100 ──
+    const raw = 15 + bestRundownScore + suitScore + highCardScore - danglerPenalty;
     return Math.min(100, Math.max(0, raw));
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. PLO DRAW COUNTER — EXACT OUTS
+// Counts exact outs for flush draws, straight draws, wraps, combo draws.
+// PLO wraps are categorized: 20-out, 17-out, 13-out, 9-out wraps.
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Dedicated PLO heuristic decision engine.
- * Uses PLO-specific logic: nut-dominated boards, wrap draws, redraws.
+ * Count exact straight outs using hole cards + board.
+ * Returns the max number of outs to a made straight, and type.
+ * @param {number[]} holeRanks - Hole card rank values
+ * @param {number[]} boardRanks - Board card rank values
+ * @returns {{ outs: number, type: string, hasNutStraightDraw: boolean }}
+ */
+function countStraightOuts(holeRanks, boardRanks) {
+    const allRanks = [...holeRanks, ...boardRanks];
+    const maxBoardRank = Math.max(...boardRanks, 0);
+    let bestOuts = 0;
+    let bestType = 'none';
+    let hasNutDraw = false;
+
+    // Try each possible straight endpoint (A-high = 12 down to 5-high = 4)
+    for (let high = 12; high >= 4; high--) {
+        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+        const have = new Set(allRanks);
+        const missing = needed.filter(r => r >= 0 && !have.has(r));
+
+        if (missing.length === 0) continue; // Already have the straight (made hand)
+        if (missing.length > 2) continue;   // Need at least 3 of 5 cards
+
+        // Count how many of the needed cards are in our HOLE cards (not board)
+        const holeHave = needed.filter(r => holeRanks.includes(r));
+        if (holeHave.length < 2) continue; // PLO rule: must use exactly 2 hole cards
+
+        // Open-ended: missing middle or ends
+        const outs = missing.length === 1 ? 4 : 8; // 1 missing = gutshot(4), would need more context
+        if (missing.length === 1) {
+            // Gutshot — 4 outs
+            if (outs > bestOuts) { bestOuts = outs; bestType = 'gutshot'; }
+        } else {
+            // Open-ended draw — could be up to 20 outs in PLO (wrap)
+            // Count actual outs based on how many hole cards contribute
+            let wrapOuts = 0;
+            for (const m of missing) {
+                if (m >= 0 && m <= 12) wrapOuts += 4; // 4 cards of each rank
+            }
+            if (wrapOuts > bestOuts) {
+                bestOuts = wrapOuts;
+                bestType = wrapOuts >= 16 ? 'big_wrap' : wrapOuts >= 12 ? 'wrap' : 'oesd';
+                // Nut draw if highest straight uses our high hole card
+                hasNutDraw = hasNutDraw || (high > maxBoardRank + 1);
+            }
+        }
+    }
+
+    // PLO WRAP detection — special to PLO where you use 2+ consecutive hole cards
+    // E.g., J-T-9-8 on a 7-6-x board = 20-out wrap
+    const sortedHole = [...holeRanks].sort((a, b) => b - a);
+    const sortedBoard = [...boardRanks].sort((a, b) => b - a);
+    // Check for big wraps (20-out, 17-out, 13-out)
+    if (boardRanks.length >= 3) {
+        // Count consecutive sequences spanning hole + board
+        const combined = [...new Set(allRanks)].sort((a, b) => a - b);
+        for (let i = 0; i < combined.length - 3; i++) {
+            const window5 = combined.slice(i, i + 5);
+            const window6 = combined.slice(i, i + 6);
+            const w5span = window5[4] - window5[0];
+            const holesInW5 = window5.filter(r => holeRanks.includes(r)).length;
+            if (w5span <= 5 && holesInW5 >= 2) {
+                // This is a real nut wrap scenario
+                // 20-outs: 4 surrounding cards all make straight
+                const w5Outs = (5 - window5.length + 4) * 4;
+                if (w5Outs > bestOuts) {
+                    bestOuts = Math.min(20, w5Outs);
+                    bestType = bestOuts >= 17 ? 'wrap_20' : bestOuts >= 13 ? 'wrap_17' : 'wrap_13';
+                }
+            }
+        }
+    }
+
+    return { outs: bestOuts, type: bestType, hasNutStraightDraw: hasNutDraw };
+}
+
+/**
+ * Count exact flush draw outs.
+ * PLO rule: must use exactly 2 hole cards of same suit.
+ * @param {Array<{rank:number,suit:string}>} holeCards
+ * @param {Array<{rank:number,suit:string}>} boardCards
+ * @returns {{ outs: number, isNutFlushDraw: boolean, suit: string|null }}
+ */
+function countFlushOuts(holeCards, boardCards) {
+    const holeSuits = holeCards.map(c => c.suit);
+    const boardSuits = boardCards.map(c => c.suit);
+    const holeRanks = holeCards.map(c => c.rank);
+
+    let bestOuts = 0;
+    let isNutFlushDraw = false;
+    let bestSuit = null;
+
+    // Check each suit
+    const suitSet = new Set([...holeSuits, ...boardSuits]);
+    for (const suit of suitSet) {
+        const holeOfSuit = holeCards.filter(c => c.suit === suit);
+        const boardOfSuit = boardCards.filter(c => c.suit === suit);
+
+        // Need exactly 2+ hole cards of this suit + 2+ board cards (or 3+ board for backdoor)
+        if (holeOfSuit.length < 2) continue;
+        if (boardOfSuit.length < 2) continue; // Not yet a real flush draw
+
+        const totalOfSuit = holeOfSuit.length + boardOfSuit.length;
+        if (totalOfSuit >= 5) continue; // Already have a flush (made hand, handled elsewhere)
+
+        const outs = 13 - totalOfSuit; // Cards left in deck of that suit
+        if (outs > bestOuts) {
+            bestOuts = outs;
+            bestSuit = suit;
+            // Nut flush draw: if our highest hole card of this suit is the Ace (rank 12)
+            const maxHoleRankOfSuit = Math.max(...holeOfSuit.map(c => c.rank));
+            const maxBoardRankOfSuit = Math.max(...boardOfSuit.map(c => c.rank), 0);
+            isNutFlushDraw = maxHoleRankOfSuit === 12; // Ace of that suit in hand
+        }
+    }
+
+    return { outs: bestOuts, isNutFlushDraw, suit: bestSuit };
+}
+
+/**
+ * Detect backdoor draws (2 to a flush with 3 board cards, or 3 to a straight).
+ * Backdoor draws add approximately 1-2 pseudo outs.
+ */
+function countBackdoorOuts(holeCards, boardCards) {
+    const holeSuits = holeCards.map(c => c.suit);
+    const boardSuits = boardCards.map(c => c.suit);
+    let backdoor = 0;
+
+    // Backdoor flush = 2 hole cards of same suit + 1 board card of same suit (flop only)
+    if (boardCards.length === 3) {
+        for (const suit of new Set(holeSuits)) {
+            const h = holeSuits.filter(s => s === suit).length;
+            const b = boardSuits.filter(s => s === suit).length;
+            if (h >= 2 && b === 1) { backdoor += 2; break; }
+        }
+    }
+    return backdoor;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. MADE HAND EVALUATOR (PLO-SPECIFIC)
+// Evaluates made hand strength relative to board + PLO nutedness.
+// PLO Rule: MUST use exactly 2 hole cards + exactly 3 board cards.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Evaluate the made hand strength of a PLO hand.
+ * Returns a strength value (0=garbage, 100=nut hand) and hand category.
+ * @param {Array<{rank,suit}>} holeCards
+ * @param {Array<{rank,suit}>} boardCards
+ * @returns {{ strength: number, category: string, isNut: boolean, hasRedraw: boolean }}
+ */
+function evaluatePLOMadeHand(holeCards, boardCards) {
+    if (!boardCards || boardCards.length === 0) {
+        return { strength: 0, category: 'no_board', isNut: false, hasRedraw: false };
+    }
+
+    const hRanks = holeCards.map(c => c.rank);
+    const bRanks = boardCards.map(c => c.rank).sort((a, b) => b - a);
+    const hSuits = holeCards.map(c => c.suit);
+    const bSuits = boardCards.map(c => c.suit);
+
+    const boardTop = bRanks[0]; // Highest board rank
+
+    // ── Check for Flush (must have 2+ hole cards of same suit matching 3+ board) ──
+    let flushStrength = 0;
+    let hasNutFlush = false;
+    let hasFlush = false;
+    for (const suit of new Set(hSuits)) {
+        const hOfSuit = holeCards.filter(c => c.suit === suit);
+        const bOfSuit = boardCards.filter(c => c.suit === suit);
+        if (hOfSuit.length >= 2 && bOfSuit.length >= 3) {
+            hasFlush = true;
+            const maxHoleRank = Math.max(...hOfSuit.map(c => c.rank));
+            hasNutFlush = maxHoleRank === 12; // Ace-high flush
+            flushStrength = hasNutFlush ? 95 : 75 + maxHoleRank * 1.5;
+        }
+    }
+    if (hasFlush) {
+        return { strength: flushStrength, category: hasNutFlush ? 'nut_flush' : 'flush', isNut: hasNutFlush, hasRedraw: false };
+    }
+
+    // ── Check for Straight (must use exactly 2 hole cards) ──
+    let bestStraight = 0;
+    let isNutStraight = false;
+    for (let high = 12; high >= 4; high--) {
+        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+        const boardPart = needed.filter(r => bRanks.includes(r));
+        const holePart = needed.filter(r => hRanks.includes(r));
+        if (boardPart.length === 3 && holePart.length === 2 && boardPart.length + holePart.length === 5) {
+            const straightStrength = 60 + high * 2;
+            if (straightStrength > bestStraight) {
+                bestStraight = straightStrength;
+                isNutStraight = high > boardTop + 1; // Top straight using high hole cards
+            }
+        }
+    }
+    if (bestStraight > 0) {
+        return { strength: Math.min(bestStraight, 90), category: isNutStraight ? 'nut_straight' : 'straight', isNut: isNutStraight, hasRedraw: false };
+    }
+
+    // ── Trips on board (one pair board + our pair = full house) ──
+    const bRankFreq = {};
+    for (const r of bRanks) bRankFreq[r] = (bRankFreq[r] || 0) + 1;
+    const boardPairs = Object.entries(bRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+    const boardTrips = Object.entries(bRankFreq).filter(([, c]) => c >= 3).map(([r]) => parseInt(r));
+
+    const hRankFreq = {};
+    for (const r of hRanks) hRankFreq[r] = (hRankFreq[r] || 0) + 1;
+    const holePairs = Object.entries(hRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+
+    // ── Full House ──
+    // Set in hole + board pair = full house
+    // Two hole pairs + board pair = full house
+    for (const hp of holePairs) {
+        if (boardPairs.length > 0 || boardTrips.length > 0) {
+            const isTopSet = hp === boardTop;
+            return {
+                strength: isTopSet ? 88 : 78,
+                category: 'full_house',
+                isNut: isTopSet,
+                hasRedraw: isTopSet
+            };
+        }
+    }
+
+    // ── Set (Pocket pair in hole hits board rank = trips in PLO = set only if 1 on board) ──
+    for (const hp of holePairs) {
+        if (bRanks.includes(hp) && bRankFreq[hp] === 1) {
+            // We have a set (trip w/ pair in hole, 1 on board)
+            const isTopSet = hp === boardTop;
+            return {
+                strength: isTopSet ? 76 : 65,
+                category: isTopSet ? 'top_set' : 'set',
+                isNut: false, // Sets aren't nuts in PLO if flushes/straights possible
+                hasRedraw: true // Sets often have full house redraws
+            };
+        }
+    }
+
+    // ── Two Pair (must use 2 hole cards) ──
+    // Hole pair + board pair, or 2 hole cards pairing 2 different board cards
+    const holeRanksThatHitBoard = hRanks.filter(r => bRanks.includes(r));
+    if (holeRanksThatHitBoard.length >= 2) {
+        const topHit = Math.max(...holeRanksThatHitBoard);
+        const isTopTwoPair = topHit === boardTop;
+        return {
+            strength: isTopTwoPair ? 55 : 40,
+            category: isTopTwoPair ? 'top_two_pair' : 'two_pair',
+            isNut: false,
+            hasRedraw: true
+        };
+    }
+
+    // ── One Pair (top pair or over-pair or under-pair) ──
+    for (const r of hRanks) {
+        if (bRanks.includes(r)) {
+            const isTopPair = r === boardTop;
+            return {
+                strength: isTopPair ? 38 : 25,
+                category: isTopPair ? 'top_pair' : 'low_pair',
+                isNut: false,
+                hasRedraw: false
+            };
+        }
+    }
+
+    // ── High card / No pair ──
+    const maxHole = Math.max(...hRanks);
+    return {
+        strength: maxHole > boardTop ? 20 : 10,
+        category: maxHole > boardTop ? 'overcards' : 'air',
+        isNut: false,
+        hasRedraw: false
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. PLO8 HI-LO LOW EVALUATOR
+// A qualifying low must be 5 cards of rank 8 or below (A=1 for low),
+// using exactly 2 hole cards + 3 board cards.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Evaluate low potential and nut-low possibility for PLO Hi-Lo (PLO8).
+ * @param {Array<{rank}>} holeCards
+ * @param {Array<{rank}>} boardCards
+ * @returns {{ hasNutLow: boolean, hasLow: boolean, lowOuts: number, scoopable: boolean }}
+ */
+function evaluatePLO8Low(holeCards, boardCards) {
+    const hRanks = holeCards.map(c => c.rank);
+    const bRanks = boardCards.map(c => c.rank);
+
+    // Translate rank 12 (A) → 0 for low eval (Ace is low in PLO8)
+    const toLowRank = r => r === 12 ? 0 : r;
+    const hLow = hRanks.map(toLowRank);
+    const bLow = bRanks.map(toLowRank);
+
+    // Qualifying low ranks: 0(A),1(2),2(3),3(4),4(5),5(6),6(7) → ranks ≤ 6 for 8-low
+    // (In standard PLO8, we need 5 unpaired cards 8 or below. 8 = rank index 6)
+    const hLowQualify = hLow.filter(r => r <= 6); // ≤ 8 in real (0=A, 6=8)
+    const bLowQualify = bLow.filter(r => r <= 6);
+
+    // Need 3 low cards on board to have a chance at qualifying low
+    if (bLowQualify.length < 3 && boardCards.length >= 3) {
+        // Count potential low outs (how many board cards can still come low)
+        const lowOuts = boardCards.length < 5 ? 4 * Math.max(0, 3 - bLowQualify.length) : 0;
+        return { hasNutLow: false, hasLow: false, lowOuts: Math.min(lowOuts, 16), scoopable: false };
+    }
+
+    // Check if we can make a qualifying low using 2 hole cards
+    let bestLow = null; // Lower is better (A-2-3-4-5 = best)
+    for (let i = 0; i < holeCards.length - 1; i++) {
+        for (let j = i + 1; j < holeCards.length; j++) {
+            const h1 = hLow[i], h2 = hLow[j];
+            if (h1 === h2) continue; // Can't use duplicate for low
+            if (h1 > 6 || h2 > 6) continue; // Both need to be low
+
+            // Find 3 board low cards that complete the low hand (all different!)
+            const needed = [h1, h2];
+            const boardLows = bLowQualify.filter(r => !needed.includes(r)).slice(0, 3);
+            if (boardLows.length < 3) continue;
+
+            // Valid low! Rank it (lower = better; [0,1,2,3,4] = wheel = nut low)
+            const lowHand = [...needed, ...boardLows.slice(0, 3)].sort((a, b) => a - b).slice(0, 5);
+            if (!bestLow || lowHand[4] < bestLow[4] ||
+                (lowHand[4] === bestLow[4] && lowHand[3] < bestLow[3])) {
+                bestLow = lowHand;
+            }
+        }
+    }
+
+    const hasLow = bestLow !== null;
+    // Nut low: A-2-3-4-5 (all lowest possible) = [0,1,2,3,4]
+    const hasNutLow = hasLow && bestLow && bestLow[4] <= 3; // Top card is 4 or below
+    // Scoopable: if we have the nut low AND a strong high hand
+    const scoopable = hasNutLow;
+
+    return { hasNutLow, hasLow, lowOuts: 0, scoopable };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. SPR ZONE CALCULATOR for PLO
+// Stack-to-Pot Ratio determines commitment thresholds in PLO.
+// PLO is a "big hand" game — don't commit without the right SPR.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get PLO SPR commitment recommendation.
+ * @param {number} effectiveStack - Remaining stack after toCall
+ * @param {number} potSize - Current pot
+ * @returns {{ zone: string, shouldCommit: boolean, note: string }}
+ */
+function getPLOSPRZone(effectiveStack, potSize) {
+    if (potSize <= 0) return { zone: 'deep', shouldCommit: false, note: 'no_pot' };
+    const spr = effectiveStack / potSize;
+    if (spr <= 1) return { zone: 'committed', shouldCommit: true, note: 'all_in_or_fold' };
+    if (spr <= 3) return { zone: 'shallow', shouldCommit: true, note: 'commit_sets_and_wraps' };
+    if (spr <= 6) return { zone: 'medium', shouldCommit: false, note: 'commit_only_nuts' };
+    if (spr <= 13) return { zone: 'deep', shouldCommit: false, note: 'pot_control_draws' };
+    return { zone: 'very_deep', shouldCommit: false, note: 'value_oriented_plays' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. PREFLOP PLO BETTING STRATEGY
+// Proper raise sizing in PLO, position awareness, 3-bet/4-bet ranges.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get PLO preflop action recommendation.
+ */
+function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction, toCall, bb, stackBB, position, numPlayers) {
+    const isBTN = position === 'BTN';
+    const isSB = position === 'SB';
+    const isBB = position === 'BB';
+    const ipPositions = new Set(['BTN', 'CO', 'HJ']);
+    const isIP = ipPositions.has(position);
+
+    // Position bonus: IP gets to play more hands
+    const posBonus = isIP ? 8 : isBB ? 5 : 0;
+    const adjStrength = strength + posBonus;
+
+    // PLO push/fold: ≤12bb
+    if (stackBB <= 12) {
+        return adjStrength >= 50 ? { type: 'all_in' } : (canCheck ? { type: 'check' } : { type: 'fold' });
+    }
+
+    // Facing a re-raise (4-bet spot) — need top 5% hands
+    const isFacing3Bet = toCall > bb * 8;
+    if (isFacing3Bet) {
+        if (adjStrength >= 88 && canRaise) {
+            const size = Math.round(toCall * 2.5);
+            return { type: raiseAction?.type || 'raise', amount: Math.min(size, raiseAction?.maxAmount || size) };
+        }
+        if (adjStrength >= 70 && canCall) return { type: 'call' }; // Flat with premium
+        return { type: 'fold' };
+    }
+
+    // Facing a raise (3-bet spot)
+    const isFacingRaise = toCall > bb * 2.5;
+    if (isFacingRaise) {
+        if (adjStrength >= 78 && canRaise) {
+            const size3b = Math.round(toCall * 3);
+            return { type: raiseAction?.type || 'raise', amount: Math.min(size3b, raiseAction?.maxAmount || size3b) };
+        }
+        if (adjStrength >= 62 && canCall) return { type: 'call' };
+        if (adjStrength >= 45 && isIP && canCall) return { type: 'call' }; // IP flat with speculative
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // Facing an open
+    if (toCall > bb) {
+        if (adjStrength >= 65 && canRaise) {
+            const size = Math.round(toCall * 3.5);
+            return { type: raiseAction?.type || 'raise', amount: Math.min(size, raiseAction?.maxAmount || size) };
+        }
+        if (adjStrength >= 48 && canCall) return { type: 'call' };
+        if (adjStrength >= 35 && isIP && canCall) return { type: 'call' };
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // Open raise (no action yet, toCall ≤ BB = only limp in front or we're first)
+    if (adjStrength >= 62 && canRaise) {
+        // Standard PLO open: 3x-4x BB
+        const openSize = Math.round(bb * (isIP ? 3 : 3.5));
+        return { type: raiseAction?.type || 'raise', amount: Math.min(openSize, raiseAction?.maxAmount || openSize) };
+    }
+    if (adjStrength >= 45 && canCall && toCall <= bb) return { type: 'call' }; // Complete/limp
+    if (adjStrength >= 38 && isBB && canCheck) return { type: 'check' }; // BB defense
+    return canCheck ? { type: 'check' } : { type: 'fold' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. MAIN PLO DECISION FUNCTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Master PLO heuristic decision engine — world-class upgrade.
+ * Handles PLO4, PLO5, PLO6, PLO8 Hi-Lo with proper PLO logic.
  * @param {string} profileId
- * @param {Object} state - { holeCards, board, street, position, stackBB, potSize, toCall, bb, numPlayers, isHiLo }
+ * @param {Object} state
  * @param {Array} legalActions
  * @returns {{ type: string, amount?: number }}
  */
 function makePLOFallbackDecision(profileId, state, legalActions) {
-    const { holeCards, board, street, position, stackBB, potSize, toCall, bb, numPlayers, isHiLo } = state;
+    const { holeCards: holeCardStrings, board: boardStrings, street, position, stackBB,
+        potSize, toCall, bb, numPlayers, isHiLo, numHoleCards } = state;
     const hash = getHash(profileId);
 
     const canCheck = legalActions.some(a => a.type === 'check');
@@ -410,126 +916,172 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
     const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
 
-    // ─── PREFLOP ───
-    if (street === 'preflop') {
-        const strength = getPLOPreflopStrength(holeCards);
-
-        // PLO short stack = 12bb or less push/fold
-        if (stackBB <= 12 && canRaise) {
-            return strength >= 50 ? { type: 'all_in' } : { type: 'fold' };
-        }
-
-        // High connectivity + suited = premium open
-        if (strength >= 80 && canRaise) {
-            const min = raiseAction?.minAmount || (toCall * 2.5);
-            const size = Math.min(min * 2.5, raiseAction?.maxAmount || min * 3);
-            return { type: raiseAction.type, amount: Math.round(size) };
-        }
-        // Decent PLO hand: call opens, consider re-raise with top 30%
-        if (strength >= 60) {
-            if (toCall > 0 && canRaise && Math.random() < 0.25) {
-                const rr = Math.round((raiseAction?.minAmount || toCall * 3) * 1.5);
-                return { type: raiseAction.type, amount: Math.min(rr, raiseAction?.maxAmount || rr) };
-            }
-            if (canCall) return { type: 'call' };
-            return { type: 'check' };
-        }
-        // Marginal: limp or fold
-        if (strength >= 40 && toCall <= bb && canCall) {
-            return { type: 'call' };
-        }
+    const holeCards = parseCards(holeCardStrings);
+    const boardCards = parseCards(boardStrings);
+    if (holeCards.length < 4) {
+        // Fallback if we can't parse cards
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
-    // ─── POSTFLOP (PLO-SPECIFIC) ───
-    // In PLO, nutedness is critical. We approximate "nut potential" by
-    // checking the board's top rank relative to our hole cards.
-    const boardRanks = (board || []).map(c => '23456789TJQKA'.indexOf(c[0]));
-    const holeRanks = (holeCards || []).map(c => '23456789TJQKA'.indexOf(c[0]));
-    const holeSuits = (holeCards || []).map(c => c[1]);
-    const boardSuits = (board || []).map(c => c[1]);
+    const ipPositions = new Set(['BTN', 'CO', 'HJ']);
+    const isIP = ipPositions.has(position);
+    const loosenessBias = (hash % 10) - 5; // -5 to +4 personality variance
 
-    // Check for flush draw potential (2 hole cards of same suit match board suit)
-    const suitFlushCount = (suit) => holeSuits.filter(s => s === suit).length;
-    const boardSuitCount = (suit) => boardSuits.filter(s => s === suit).length;
-    const hasFlushDraw = holeSuits.some(s => suitFlushCount(s) >= 2 && boardSuitCount(s) >= 2);
-
-    // Check for wrap draw (4+ cards to a straight using hole cards + board)
-    const allRanks = [...holeRanks, ...boardRanks].sort((a, b) => a - b);
-    let maxWindow = 0;
-    for (let i = 0; i < allRanks.length - 1; i++) {
-        const windowEnd = allRanks[i] + 4;
-        const inWindow = allRanks.filter(r => r >= allRanks[i] && r <= windowEnd).length;
-        maxWindow = Math.max(maxWindow, inWindow);
+    // ─── PREFLOP ───
+    if (street === 'preflop') {
+        const strength = classifyPLOPreflop(holeCards) + loosenessBias;
+        return getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
+            toCall, bb, stackBB, position, numPlayers);
     }
-    const hasWrapDraw = maxWindow >= 5;
 
-    // Approximate nutedness: do we have any of the top 3 board cards in our hand?
-    const topBoardRanks = [...boardRanks].sort((a, b) => b - a).slice(0, 2);
-    const hasTopConnection = topBoardRanks.some(r => holeRanks.includes(r));
+    // ─── POSTFLOP ───
+    const holeRanks = holeCards.map(c => c.rank);
+    const boardRanks = boardCards.map(c => c.rank);
+    const effectiveStack = stackBB * bb - toCall;
 
-    // In PLO Hi-Lo, prioritize low cards (A234 = scoop potential)
-    const hasLowPotential = isHiLo && holeRanks.filter(r => r <= 4).length >= 3; // A,2,3,4,5
+    // Evaluate made hand
+    const madeHand = evaluatePLOMadeHand(holeCards, boardCards);
 
-    // Derive PLO postflop strength (0-100)
-    let postflopStrength = 30; // Start below average (PLO is nut-dependent)
-    if (hasTopConnection) postflopStrength += 25;
-    if (hasFlushDraw) postflopStrength += 20;
-    if (hasWrapDraw) postflopStrength += 25;
-    if (hasLowPotential) postflopStrength += 15;
-    // Pair bonus from our hole cards matching board top ranks
-    const matchCount = holeRanks.filter(r => boardRanks.includes(r)).length;
-    postflopStrength += matchCount * 8; // Each hitting card = 8 points
+    // Count draws
+    const flushDraw = countFlushOuts(holeCards, boardCards);
+    const straightDraw = countStraightOuts(holeRanks, boardRanks);
+    const backdoorOuts = countBackdoorOuts(holeCards, boardCards);
 
-    // Personality modifier (tight/loose)
-    const loosenessBias = (hash % 20) - 10;
-    postflopStrength += loosenessBias;
-    postflopStrength = Math.max(0, Math.min(100, postflopStrength));
+    // PLO8 Hi-Lo evaluation
+    const lo8 = isHiLo ? evaluatePLO8Low(holeCards, boardCards) : null;
 
-    const multiplayerPenalty = numPlayers > 3 ? 10 : 0; // PLO multiway = dangerous
+    // SPR zone
+    const sprZone = getPLOSPRZone(effectiveStack, potSize + toCall);
 
-    // Bet size helper (PLO uses pot-sized bets predominantly)
-    const potBet = () => {
-        const size = Math.round(potSize * 0.75);
-        return Math.min(size, raiseAction?.maxAmount || size);
-    };
+    // Total equity (outs to a better hand)
+    const totalOuts = flushDraw.outs + straightDraw.outs + backdoorOuts;
+    const outEquity = Math.min(totalOuts * 2.2, 46); // Rough rule of 2
+
+    // Commitment thresholds adjusted for multiway (PLO multiway = tighter)
+    const multiwayPenalty = Math.max(0, (numPlayers - 2) * 5); // 5 per extra player
+    const nutBonus = madeHand.isNut ? 15 : 0;
+    const lo8Bonus = lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0;
+
+    // Composite score (0-100)
+    let equity = madeHand.strength + outEquity + nutBonus + lo8Bonus - multiwayPenalty + loosenessBias;
+    equity = Math.max(0, Math.min(100, equity));
+
+    // Bet sizing helper: PLO uses pot-size bets
+    const potBetSize = Math.round(potSize * 0.9); // ~pot
+    const halfPotBetSize = Math.round(potSize * 0.5);
+    const clamp = (size) => Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
 
     // ─── RIVER ───
     if (street === 'river') {
+        // No more draw equity on river — only made hand matters
+        const riverEquity = madeHand.strength + nutBonus + lo8Bonus - multiwayPenalty + loosenessBias;
+
         if (toCall === 0) {
-            if (postflopStrength >= 75 - multiplayerPenalty && canRaise) {
-                return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || 1, potBet()) };
+            // Unopened: bet for value or check
+            if (riverEquity >= 72 && canRaise) {
+                // Value bet: size based on hand strength (nuts = big, medium = smaller)
+                const size = riverEquity >= 88 ? potBetSize : halfPotBetSize;
+                return { type: raiseAction.type, amount: clamp(size) };
+            }
+            // Trap with monsters in position
+            if (riverEquity >= 85 && isIP && Math.random() < 0.25) {
+                return { type: 'check' }; // Slow-play for check-raise
             }
             return { type: 'check' };
         }
-        // Facing bet: call with nuts or near-nuts only
-        if (postflopStrength >= 65 - multiplayerPenalty || (hasFlushDraw && potOdds < 0.35)) {
+
+        // Facing a bet on river
+        if (riverEquity >= 68 - multiwayPenalty) {
+            // Strong enough to call; raise with nuts
+            if (riverEquity >= 82 && canRaise && Math.random() < 0.55) {
+                return { type: raiseAction?.type || 'call', amount: clamp(potBetSize) };
+            }
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+        // Call if pot odds justify it and we have a decent hand
+        if (potOdds < 0.30 && riverEquity >= 48) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
         return { type: 'fold' };
     }
 
     // ─── FLOP / TURN ───
-    if (toCall === 0) {
-        if (postflopStrength >= 70 && canRaise) {
-            return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || 1, potBet()) };
+
+    // All-in situations: commit with equity over ~50%
+    if (sprZone.shouldCommit) {
+        if (equity >= 52) {
+            return { type: 'all_in' };
         }
-        if ((hasFlushDraw || hasWrapDraw) && canRaise && Math.random() < 0.45) {
-            const semiBluff = Math.round(potSize * 0.6);
-            return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || 1, Math.min(semiBluff, raiseAction?.maxAmount || semiBluff)) };
+        if (equity >= 40 && canCall) return { type: 'call' };
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    if (toCall === 0) {
+        // Checking around / leading
+
+        // Monsters and nuts: build the pot
+        if (equity >= 80 && canRaise) {
+            const size = madeHand.isNut && !madeHand.hasRedraw ? halfPotBetSize : potBetSize;
+            return { type: raiseAction.type, amount: clamp(size) };
+        }
+
+        // Strong draws: semi-bluff (wrap draws, combo draws with flush draw)
+        if (totalOuts >= 15 && canRaise) { // 15+ outs = committed draw territory
+            if (Math.random() < 0.65) { // Bet with strong draws most of the time
+                return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
+            }
+        }
+        if (totalOuts >= 9 && canRaise && Math.random() < 0.40) { // 9-14 outs
+            return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
+        }
+
+        // Medium made hands + flush draw combo
+        if (equity >= 55 && madeHand.hasRedraw && canRaise) {
+            return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
+        }
+
+        // Position: check back in position with medium made hands
+        if (equity >= 45 && isIP) return { type: 'check' };
+        if (equity >= 55 && canRaise && Math.random() < 0.35) {
+            return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
         }
         return { type: 'check' };
     }
 
-    // Facing a bet in PLO: only continue with strong draws or made nutty hands
-    if (postflopStrength >= 55 || (hasFlushDraw && potOdds < 0.38) || (hasWrapDraw && potOdds < 0.35)) {
-        if (postflopStrength >= 75 && canRaise && Math.random() < 0.4) {
-            return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || toCall * 2, potBet()) };
-        }
-        return canCall ? { type: 'call' } : { type: 'fold' };
+    // ─── FACING A BET (Flop / Turn) ───
+
+    // Monster or nut draw facing a bet: raise for value + protection
+    if (equity >= 78 && canRaise) {
+        const size = Math.round(potSize * 1.0); // Pot-size raise
+        return { type: raiseAction?.type || 'call', amount: clamp(size) };
     }
+
+    // Big wrap or combo draw with flush draw: raise/call
+    if (totalOuts >= 15 && canRaise && Math.random() < 0.50) {
+        return { type: raiseAction?.type || 'call', amount: clamp(potBetSize) };
+    }
+
+    // Strong hand or draw: call
+    if (equity >= 52 - multiwayPenalty) {
+        // Pot odds: must be getting at least 33% (outEquity / 100 vs potOdds)
+        const requiredEquity = potOdds;
+        const ourEquityFraction = equity / 100;
+        if (ourEquityFraction >= requiredEquity - 0.05 && canCall) {
+            return { type: 'call' };
+        }
+    }
+
+    // Backdoor combo + medium made hand: call only with good odds
+    if (equity >= 38 && potOdds < 0.25 && canCall) {
+        return { type: 'call' };
+    }
+
+    // PLO Hi-Lo: Don't fold when scooping is possible
+    if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
+
     return { type: 'fold' };
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FALLBACK DECISION ENGINE

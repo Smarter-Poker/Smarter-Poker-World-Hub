@@ -213,6 +213,19 @@ class LobbyManager {
       if (config.clubSettings?.auto_create_table) {
         this._checkAutoCreateTable(config);
       }
+      // Lifetime VIP Timebank for AI Horses (#NEW)
+      // Horses carry Lifetime VIP status — initialize them with a large VIP timebank
+      // (600s = 10 minutes) so they use the same VIP timebank system as human VIP members.
+      // No artificial extra time is granted — the ActionTimer manages when to auto-activate.
+      if (timer && HorsePokerBrain.isHorse) {
+        HorsePokerBrain.isHorse(String(data.playerId)).then(isAI => {
+          if (isAI) {
+            const VIP_LIFETIME_TIMEBANK_SECONDS = 600; // 10 min Lifetime VIP bank
+            timer.initPlayer(data.playerId, VIP_LIFETIME_TIMEBANK_SECONDS);
+            console.log(`[LobbyManager] 👑 Lifetime VIP Timebank granted to Horse ${String(data.playerId).substring(0, 8)}: ${VIP_LIFETIME_TIMEBANK_SECONDS}s`);
+          }
+        }).catch(() => { });
+      }
     });
     table.on('player_left', (data) => {
       this._trackPlayerLeave(data.playerId, config.tableId);

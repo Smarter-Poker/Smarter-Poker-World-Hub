@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Image as ImageIcon } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
+import TokeCalendar from './TokeCalendar';
 import {
     getActiveGig,
     fetchGigs,
@@ -110,6 +111,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const [expenseForm, setExpenseForm] = useState({ category: 'food', amount: '', description: '', receipt_url: null });
     const [showScanner, setShowScanner] = useState(false);
     const [viewingReceiptUrl, setViewingReceiptUrl] = useState(null);
+
+    // Jarvis Reference Panel state
+    const [jarvisQuery, setJarvisQuery] = useState('');
+    const [jarvisAnswer, setJarvisAnswer] = useState(null);
+    const [jarvisLoading, setJarvisLoading] = useState(false);
+    const [jarvisHistory, setJarvisHistory] = useState([]);
+    const [jarvisExpanded, setJarvisExpanded] = useState(true);
 
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
@@ -458,6 +466,44 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         }
     };
 
+    // ── Jarvis Dealer Reference ──
+    const handleAskJarvis = async (query) => {
+        const q = (query || jarvisQuery).trim();
+        if (!q) return;
+        setJarvisLoading(true);
+        setJarvisAnswer(null);
+        try {
+            const res = await fetch('/api/jarvis/dealer-reference', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: q, history: jarvisHistory }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Jarvis error');
+            setJarvisAnswer(data.answer);
+            setJarvisHistory(prev => [
+                ...prev.slice(-4),
+                { question: q, answer: data.answer },
+            ]);
+            setJarvisQuery('');
+        } catch (err) {
+            toast.error(err.message || 'Jarvis unavailable — try again');
+        } finally {
+            setJarvisLoading(false);
+        }
+    };
+
+    const JARVIS_CHIPS = [
+        'TDA Rules Summary',
+        'How to deal 2-7 Triple Draw',
+        'Omaha Hi-Lo rules',
+        'Razz dealing rules',
+        'Button rules for a new game',
+        'Running it twice rules',
+        'Stud 8 dealing order',
+        'Badugi hand rankings',
+    ];
+
     // ── Report View ──
     const handleViewReport = async (gigId) => {
         try {
@@ -757,7 +803,6 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                             style={{
                                                                 ...styles.tokeDisplay,
                                                                 color: (down.down_multiplier || 1) > 1 ? '#8b5cf6' : '#64748b',
-                                                                fontSize: 11,
                                                             }}
                                                             title="Down Multiplier"
                                                         >
@@ -1214,6 +1259,96 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     </div>
                 )}
             </div>
+
+            {/* ── JARVIS DEALER REFERENCE PANEL ── */}
+            <div style={styles.jarvisPanel}>
+                <button style={styles.jarvisPanelHeader} onClick={() => setJarvisExpanded(e => !e)}>
+                    <span style={styles.jarvisHeaderLeft}>
+                        <span style={styles.jarvisIcon}>🤖</span>
+                        <div>
+                            <div style={styles.jarvisTitle}>Jarvis — Dealer Reference</div>
+                            <div style={styles.jarvisSub}>Ask for rules, TDA lookups & game refreshers</div>
+                        </div>
+                    </span>
+                    <span style={{ ...styles.jarvisChevron, transform: jarvisExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                </button>
+
+                <AnimatePresence>
+                    {jarvisExpanded && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            style={{ overflow: 'hidden' }}
+                        >
+                            {/* Quick-pick chips */}
+                            <div style={styles.jarvisChips}>
+                                {JARVIS_CHIPS.map(chip => (
+                                    <button
+                                        key={chip}
+                                        onClick={() => handleAskJarvis(chip)}
+                                        style={styles.jarvisChip}
+                                        disabled={jarvisLoading}
+                                    >
+                                        {chip}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Input row */}
+                            <div style={styles.jarvisInputRow}>
+                                <input
+                                    type="text"
+                                    value={jarvisQuery}
+                                    onChange={e => setJarvisQuery(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') handleAskJarvis(); }}
+                                    placeholder="Ask Jarvis anything about dealing..."
+                                    style={styles.jarvisInput}
+                                    disabled={jarvisLoading}
+                                />
+                                <button
+                                    onClick={() => handleAskJarvis()}
+                                    style={styles.jarvisAskBtn}
+                                    disabled={jarvisLoading || !jarvisQuery.trim()}
+                                >
+                                    {jarvisLoading ? '...' : 'Ask'}
+                                </button>
+                            </div>
+
+                            {/* Answer area */}
+                            {jarvisLoading && (
+                                <div style={styles.jarvisLoading}>
+                                    <span style={styles.jarvisLoadingDot} />
+                                    Jarvis is thinking...
+                                </div>
+                            )}
+                            {jarvisAnswer && !jarvisLoading && (
+                                <div style={styles.jarvisAnswer}>
+                                    <div style={styles.jarvisAnswerLabel}>🤖 Jarvis</div>
+                                    <div style={styles.jarvisAnswerText}>{jarvisAnswer}</div>
+                                </div>
+                            )}
+
+                            {/* History (last 3 previous Q&As) */}
+                            {jarvisHistory.length > 0 && !jarvisAnswer && (
+                                <div style={styles.jarvisHistory}>
+                                    {jarvisHistory.slice(-3).reverse().map((item, i) => (
+                                        <div key={i} style={styles.jarvisHistoryItem}>
+                                            <div style={styles.jarvisHistoryQ}>Q: {item.question}</div>
+                                            <div style={styles.jarvisHistoryA}>{item.answer}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* ── YEARLY CALENDAR ── */}
+            <div style={styles.calendarWrapper}>
+                <TokeCalendar userId={userId} />
+            </div>
         </div>
     );
 }
@@ -1274,7 +1409,12 @@ const styles = {
     downDetail: { fontSize: 12, color: '#B0B3B8' },
     downTime: { fontSize: 11, color: '#B0B3B8' },
     downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
-    tokeDisplay: { background: 'none', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '2px 4px' },
+    tokeDisplay: {
+        background: 'none', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13,
+        fontWeight: 700, cursor: 'pointer', padding: '0 6px',
+        minWidth: 54, height: 26, display: 'inline-flex', alignItems: 'center',
+        justifyContent: 'center', borderRadius: 4, boxSizing: 'border-box',
+    },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
     tokeInput: {
         width: 70, padding: '4px 6px', background: '#242526', border: '1px solid #3A3B3C',
@@ -1330,7 +1470,7 @@ const styles = {
     deleteX: {
         position: 'absolute', top: 10, right: 10, width: 28, height: 28,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 6, color: '#8a8d91', fontSize: 14, cursor: 'pointer',
     },
     deleteOverlay: {
@@ -1506,4 +1646,66 @@ const styles = {
     reportBreakdownTitle: { fontSize: 14, fontWeight: 600, color: '#E4E6EB', margin: '0 0 10px' },
     reportBreakdownGrid: { display: 'flex', flexWrap: 'wrap', gap: 8 },
     breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
+
+    // Jarvis Panel
+    jarvisPanel: {
+        background: '#242526', border: '1px solid rgba(245,158,11,0.2)',
+        borderRadius: 12, padding: '14px 16px', marginTop: 8,
+    },
+    jarvisPanelHeader: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%',
+    },
+    jarvisHeaderLeft: { display: 'flex', alignItems: 'center', gap: 10 },
+    jarvisIcon: { fontSize: 26 },
+    jarvisTitle: { fontSize: 16, fontWeight: 700, color: '#E4E6EB', textAlign: 'left' },
+    jarvisSub: { fontSize: 12, color: '#64748b', marginTop: 1, textAlign: 'left' },
+    jarvisChevron: { fontSize: 14, color: '#64748b', transition: 'transform 0.2s', flexShrink: 0 },
+    jarvisChips: {
+        display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12,
+    },
+    jarvisChip: {
+        fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
+        background: 'rgba(245,158,11,0.08)', color: '#f59e0b',
+        border: '1px solid rgba(245,158,11,0.25)', transition: 'all 0.15s',
+    },
+    jarvisInputRow: { display: 'flex', gap: 8, marginBottom: 12 },
+    jarvisInput: {
+        flex: 1, padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
+        border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+        color: '#fff', fontSize: 14, outline: 'none',
+    },
+    jarvisAskBtn: {
+        background: '#f59e0b', color: '#000', border: 'none',
+        borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 700,
+        cursor: 'pointer', flexShrink: 0,
+        opacity: 1, transition: 'opacity 0.15s',
+    },
+    jarvisLoading: {
+        display: 'flex', alignItems: 'center', gap: 8,
+        color: '#f59e0b', fontSize: 13, fontWeight: 600, padding: '10px 0',
+    },
+    jarvisLoadingDot: {
+        width: 8, height: 8, borderRadius: '50%', background: '#f59e0b',
+        animation: 'pulse 1s infinite',
+    },
+    jarvisAnswer: {
+        background: 'rgba(0,0,0,0.25)', borderRadius: 10,
+        padding: 14, border: '1px solid rgba(245,158,11,0.15)',
+    },
+    jarvisAnswerLabel: { fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
+    jarvisAnswerText: { fontSize: 13, color: '#E4E6EB', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
+    jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
+    jarvisHistoryItem: {
+        background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: '10px 12px',
+        border: '1px solid rgba(255,255,255,0.05)',
+    },
+    jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
+    jarvisHistoryA: { fontSize: 12, color: '#B0B3B8', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
+
+    // Calendar wrapper
+    calendarWrapper: {
+        background: '#242526', border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 12, padding: '14px 12px', marginTop: 8,
+    },
 };

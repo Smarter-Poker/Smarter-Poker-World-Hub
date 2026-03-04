@@ -388,31 +388,71 @@ export default function TDTablesMap() {
                   <div className="px-5 pb-5">
                     <button
                       onClick={async () => {
-                        if (!confirm(`Break Table ${selectedTable.table_number}? All ${selectedTable.players.length} players will need to be moved to other tables.`)) return;
+                        if (!confirm(`Break Table ${selectedTable.table_number}? All ${selectedTable.players.length} players will be auto-assigned to available seats.`)) return;
                         setActionLoading('break');
                         try {
-                          // Eliminate/remove all players from this table
-                          for (const player of selectedTable.players) {
-                            await fetch(`/api/commander/tournaments/${tournamentId}/move-player`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
-                              body: JSON.stringify({
-                                entry_id: player.entry_id,
-                                from_table: selectedTable.table_number,
-                                status: 'needs_seat'
-                              })
-                            }).catch(() => { });
+                          // Step 1: Fetch auto-break suggestions for this specific table
+                          const breakSuggestRes = await fetch(
+                            `/api/commander/tournaments/${tournamentId}/auto-break?table=${selectedTable.table_number}`,
+                            { headers: { 'x-staff-session': getToken() } }
+                          );
+                          const breakSuggestJson = await breakSuggestRes.json();
+
+                          if (!breakSuggestJson.success || !breakSuggestJson.data?.assignments?.length) {
+                            // No auto assignments available — alert the TD
+                            alert(`Cannot auto-break Table ${selectedTable.table_number}: not enough available seats at other tables. Manually move players first.`);
+                            setActionLoading(null);
+                            return;
                           }
-                          // Mark table as broken
-                          await fetch(`/api/commander/tables/${selectedTable.table_number || selectedTable.id}`, {
-                            method: 'PUT',
+
+                          const assignments = breakSuggestJson.data.assignments;
+
+                          // Step 2: Execute the break with proper assignments via break-table API
+                          const res = await fetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
+                            method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
-                            body: JSON.stringify({ status: 'closed' })
-                          }).catch(() => { });
+                            body: JSON.stringify({
+                              table_number: selectedTable.table_number,
+                              assignments
+                            })
+                          });
+                          const json = await res.json();
+
+                          // Step 3: Print seat receipts for each moved player
+                          if (json.success && json.data?.moves?.length) {
+                            const moves = json.data.moves;
+                            const tournamentName = floor?.tournament?.name || 'Tournament';
+                            const pw = window.open('', '_blank', 'width=400,height=600');
+                            if (pw) {
+                              pw.document.write(`<!DOCTYPE html><html><head><title>Seat Receipts</title>
+                                <style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0}
+                                .r{width:72mm;padding:4mm;margin:0 auto;page-break-after:always;border-bottom:1px dashed #000}
+                                .r:last-child{page-break-after:avoid}.c{text-align:center}.b{font-weight:bold}
+                                .lg{font-size:20px}.md{font-size:14px}.sm{font-size:11px}
+                                .d{border-top:1px dashed #000;margin:3mm 0}.rw{display:flex;justify-content:space-between}
+                                .ar{font-size:24px;text-align:center;margin:2mm 0}</style></head><body>
+                                ${moves.map(r => `<div class="r">
+                                  <div class="c b md">${tournamentName}</div>
+                                  <div class="c sm">TABLE BREAK</div><div class="d"></div>
+                                  <div class="c b md">${r.player_name}</div><div class="d"></div>
+                                  <div class="rw sm"><span>FROM:</span><span class="b">Table ${r.from_table}, Seat ${r.from_seat}</span></div>
+                                  <div class="ar">⬇</div>
+                                  <div class="rw"><span class="md">NEW SEAT:</span><span class="b lg">T${r.to_table} - S${r.to_seat}</span></div>
+                                  <div class="d"></div>
+                                  <div class="sm c" style="margin-top:2mm;opacity:.6">${new Date().toLocaleTimeString()}</div>
+                                  <div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker</div>
+                                </div>`).join('')}</body></html>`);
+                              pw.document.close();
+                              setTimeout(() => { pw.print(); pw.close(); }, 500);
+                            }
+                          } else if (!json.success) {
+                            alert(`Break failed: ${json.error || 'Unknown error'}`);
+                          }
+
                           setSelectedTable(null);
                           await fetchFloor();
                           broadcastChange('tournaments');
-                        } catch (err) { console.error(err); }
+                        } catch (err) { console.error(err); alert('Break failed. Check console.'); }
                         finally { setActionLoading(null); }
                       }}
                       disabled={actionLoading === 'break'}
@@ -420,7 +460,7 @@ export default function TDTablesMap() {
                     >
                       {actionLoading === 'break'
                         ? <><Loader2 className="w-5 h-5 animate-spin" /> Breaking Table...</>
-                        : <><UserX className="w-5 h-5" /> Break Table ({selectedTable.players.length} players)</>
+                        : <><Printer className="w-5 h-5" /> Break Table &amp; Print {selectedTable.players.length} Receipts</>
                       }
                     </button>
                   </div>
