@@ -18,6 +18,8 @@ import {
     updateGig,
     completeGig,
     deleteGig,
+    createDay,
+    closeDay,
     createDown,
     endDown,
     createDoubleDown,
@@ -82,9 +84,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAddDown, setShowAddDown] = useState(false);
     const [confirmComplete, setConfirmComplete] = useState(false);
+    const [confirmCloseDay, setConfirmCloseDay] = useState(false);
     const [mileageInput, setMileageInput] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [editMode, setEditMode] = useState(false);
+    const [collapsedDays, setCollapsedDays] = useState({});
     const [selectedReport, setSelectedReport] = useState(null);
     const [editForm, setEditForm] = useState({ venue_name: '', venue_address: '', hourly_rate: '', notes: '' });
 
@@ -253,8 +257,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
     const handleDoubleDownYes = async () => {
         if (!promptDown || !activeGig) return;
+        const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
+        if (!currentDay) { toast.error('No open day — start a new day first.'); return; }
         try {
-            await createDoubleDown(userId, activeGig.id, promptDown);
+            await createDoubleDown(userId, activeGig.id, currentDay.id, promptDown);
             toast.success('Double down created!');
             setShowDoubleDownPrompt(false);
             setPromptDown(null);
@@ -362,11 +368,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     // ── DOWN Handlers ──
     const handleAddDown = async () => {
         if (!activeGig) return;
+        const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
+        if (!currentDay) { toast.error('Close the current day first, then start a new day.'); return; }
         try {
             const gameType = downForm.down_type === 'cash'
                 ? downForm.cash_variant
                 : downForm.game_type || null;
-            const down = await createDown(userId, activeGig.id, {
+            const down = await createDown(userId, activeGig.id, currentDay.id, {
                 down_type: downForm.down_type,
                 tournament_name: downForm.down_type === 'tournament' ? downForm.tournament_name : null,
                 table_number: downForm.table_number || null,
@@ -375,10 +383,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             toast.success(`${DOWN_TYPE_LABELS[downForm.down_type]} down started!`);
             setShowAddDown(false);
             setDownForm({ down_type: 'cash', tournament_name: '', table_number: '', game_type: '', cash_variant: 'Holdem', cash_stakes: '1/3' });
-
-            // Start 35-min timer
             startDownTimer(DOWN_TIMER_MS, down);
-
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to add down');
@@ -432,6 +437,37 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         }
     };
 
+    // ── Day Handlers ──
+    const handleCloseDay = async () => {
+        const currentDay = activeGig?.days?.find(d => !d.ended_at) || null;
+        if (!currentDay) return;
+        try {
+            await closeDay(currentDay.id);
+            toast.success(`Day ${currentDay.day_number} closed!`);
+            setConfirmCloseDay(false);
+            if (downTimerRef.current) clearTimeout(downTimerRef.current);
+            if (timerTickRef.current) clearInterval(timerTickRef.current);
+            setTimerActive(false);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to close day');
+        }
+    };
+
+    const handleStartNewDay = async () => {
+        if (!activeGig) return;
+        const openDay = activeGig.days?.find(d => !d.ended_at);
+        if (openDay) { toast.error('Close the current day first.'); return; }
+        try {
+            const nextNum = (activeGig.days?.length || 0) + 1;
+            await createDay(userId, activeGig.id, nextNum);
+            toast.success(`Day ${nextNum} started!`);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to start new day');
+        }
+    };
+
     // ── Expense Handlers ──
     const handleAddExpense = async (e) => {
         e.preventDefault();
@@ -439,8 +475,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             toast.error('Please enter an amount');
             return;
         }
+        const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
+        if (!currentDay) { toast.error('Start a new day before adding expenses.'); return; }
         try {
-            await createExpense(userId, activeGig.id, {
+            await createExpense(userId, activeGig.id, currentDay.id, {
                 category: expenseForm.category,
                 amount: parseFloat(expenseForm.amount) || 0,
                 description: expenseForm.description || null,
@@ -616,12 +654,14 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         );
     }
 
-    const daysSinceStart = activeGig
-        ? Math.max(1, Math.ceil((Date.now() - new Date(activeGig.start_date).getTime()) / (1000 * 60 * 60 * 24)))
-        : 0;
-
-    const currentDown = activeGig?.downs?.length
-        ? activeGig.downs[activeGig.downs.length - 1]
+    // ── Day-aware computed values ──
+    const currentDay = activeGig?.days?.find(d => !d.ended_at) || null;
+    const isDayOpen = !!currentDay;
+    const currentDayNumber = currentDay?.day_number || activeGig?.days?.length || 1;
+    const totalDays = activeGig?.days?.length || 0;
+    const closedDays = activeGig?.days?.filter(d => d.ended_at) || [];
+    const currentDown = currentDay?.downs?.length
+        ? currentDay.downs[currentDay.downs.length - 1]
         : null;
     const isDownActive = currentDown && !currentDown.ended_at;
 
@@ -652,6 +692,15 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                     <div style={styles.activeHeader}>
                         <div style={styles.activeLed} />
                         <span style={styles.activeLabel}>LIVE EVENT</span>
+                        <span style={{
+                            marginLeft: 'auto', fontSize: 12, fontWeight: 700,
+                            background: isDayOpen ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
+                            color: isDayOpen ? '#f59e0b' : '#94a3b8',
+                            border: `1px solid ${isDayOpen ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: 20, padding: '3px 10px',
+                        }}>
+                            {isDayOpen ? `📅 Day ${currentDayNumber} — In Progress` : `✅ Day ${currentDayNumber} Closed`}
+                        </span>
                     </div>
 
                     {/* Gig Info (view vs edit) */}
@@ -662,7 +711,8 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <p style={styles.activeGigAddress}>{activeGig.venue_address}</p>
                             )}
                             <p style={styles.activeGigMeta}>
-                                Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()} · Day {daysSinceStart}
+                                Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
+                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} total
                                 {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
                             </p>
                         </>
@@ -723,29 +773,67 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         </div>
                     )}
 
-                    {/* Timer runs internally — no visible UI */}
+                    {/* ── CLOSED DAYS SUMMARY ── */}
+                    {!editMode && closedDays.length > 0 && closedDays.map(day => (
+                        <div key={day.id} style={styles.closedDayCard}>
+                            <button
+                                style={styles.closedDayHeader}
+                                onClick={() => setCollapsedDays(prev => ({ ...prev, [day.id]: !prev[day.id] }))}
+                            >
+                                <span style={styles.closedDayLabel}>✅ Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                <span style={styles.closedDayStats}>
+                                    <span style={{ color: '#f59e0b' }}>{formatCurrency(day.totalTokes || 0)}</span>
+                                    <span style={{ color: '#94a3b8' }}>·</span>
+                                    <span>{day.totalDowns || 0} downs</span>
+                                    <span style={{ color: '#94a3b8' }}>·</span>
+                                    <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
+                                </span>
+                                <span style={{ color: '#64748b', fontSize: 12 }}>{collapsedDays[day.id] ? '▸' : '▾'}</span>
+                            </button>
+                            {!collapsedDays[day.id] && day.downs && day.downs.length > 0 && (
+                                <div style={styles.closedDayDowns}>
+                                    {day.downs.map(down => {
+                                        const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#64748b';
+                                        const duration = down.ended_at
+                                            ? new Date(down.ended_at).getTime() - new Date(down.started_at).getTime()
+                                            : 0;
+                                        return (
+                                            <div key={down.id} style={{ ...styles.downRow, borderLeft: `2px solid ${typeColor}`, opacity: 0.8 }}>
+                                                <div style={styles.downInfo}>
+                                                    <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` }}>
+                                                        {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
+                                                    </span>
+                                                    {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
+                                                    {down.table_number && <span style={styles.downDetail}>T{down.table_number}</span>}
+                                                    <span style={styles.downTime}>{formatDuration(duration)}</span>
+                                                </div>
+                                                <div style={styles.downRight}>
+                                                    {(down.toke_amount || 0) > 0 && <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12 }}>{formatCurrency(down.toke_amount)}</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    ))}
 
-                    {/* Down List */}
-                    {!editMode && activeGig.downs && activeGig.downs.length > 0 && (
+                    {/* ── CURRENT DAY DOWNS ── */}
+                    {!editMode && isDayOpen && currentDay && currentDay.downs && currentDay.downs.length > 0 && (
                         <div style={styles.downsSection}>
-                            <h4 style={styles.downsSectionTitle}>Downs ({activeGig.downs.length})</h4>
+                            <h4 style={styles.downsSectionTitle}>Day {currentDayNumber} Downs ({currentDay.downs.length})</h4>
                             <div style={styles.downsScroll} data-scrollable>
-                                {[...activeGig.downs].reverse().map(down => {
+                                {[...currentDay.downs].reverse().map(down => {
                                     const isOpen = !down.ended_at;
                                     const duration = isOpen
                                         ? Date.now() - new Date(down.started_at).getTime()
                                         : new Date(down.ended_at).getTime() - new Date(down.started_at).getTime();
                                     const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#64748b';
-
                                     return (
-                                        <div key={down.id} style={{
-                                            ...styles.downRow,
-                                            borderLeft: `3px solid ${typeColor}`,
-                                        }}>
+                                        <div key={down.id} style={{ ...styles.downRow, borderLeft: `3px solid ${typeColor}` }}>
                                             <div style={styles.downInfo}>
                                                 <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` }}>
-                                                    {DOWN_TYPE_LABELS[down.down_type]}
-                                                    {down.is_double_down && ' (x2)'}
+                                                    {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                 </span>
                                                 {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
                                                 {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
@@ -756,37 +844,22 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                 </span>
                                             </div>
                                             <div style={styles.downRight}>
-                                                {/* Toke amount (editable) — cash and brush only */}
                                                 {(down.down_type === 'cash' || down.down_type === 'brush') && (
                                                     editingTokeId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
-                                                            <input
-                                                                type="number" value={tokeEditValue}
-                                                                onChange={e => setTokeEditValue(e.target.value)}
-                                                                placeholder="$0" style={styles.tokeInput}
-                                                                autoFocus step="0.01"
-                                                            />
+                                                            <input type="number" value={tokeEditValue} onChange={e => setTokeEditValue(e.target.value)} placeholder="$0" style={styles.tokeInput} autoFocus step="0.01" />
                                                             <button onClick={() => handleSaveToke(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button
-                                                            onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }}
-                                                            style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#f59e0b' : '#64748b' }}
-                                                            title="Edit Toke"
-                                                        >
+                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#f59e0b' : '#64748b' }} title="Edit Toke">
                                                             {(down.toke_amount || 0) > 0 ? formatCurrency(down.toke_amount) : '+ Toke'}
                                                         </button>
                                                     )
                                                 )}
-                                                {/* Down Multiplier — tournament only */}
                                                 {down.down_type === 'tournament' && (
                                                     editingMultiplierId === down.id ? (
                                                         <div style={styles.tokeEditRow}>
-                                                            <select
-                                                                value={multiplierEditValue}
-                                                                onChange={e => setMultiplierEditValue(e.target.value)}
-                                                                style={{ ...styles.tokeInput, width: 70 }}
-                                                            >
+                                                            <select value={multiplierEditValue} onChange={e => setMultiplierEditValue(e.target.value)} style={{ ...styles.tokeInput, width: 70 }}>
                                                                 <option value="1">1.0x</option>
                                                                 <option value="1.2">1.2x</option>
                                                                 <option value="1.5">1.5x</option>
@@ -795,28 +868,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                                             <button onClick={() => handleSaveMultiplier(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingMultiplierId(down.id);
-                                                                setMultiplierEditValue(down.down_multiplier || 1);
-                                                            }}
-                                                            style={{
-                                                                ...styles.tokeDisplay,
-                                                                color: (down.down_multiplier || 1) > 1 ? '#8b5cf6' : '#64748b',
-                                                            }}
-                                                            title="Down Multiplier"
-                                                        >
+                                                        <button onClick={() => { setEditingMultiplierId(down.id); setMultiplierEditValue(down.down_multiplier || 1); }} style={{ ...styles.tokeDisplay, color: (down.down_multiplier || 1) > 1 ? '#8b5cf6' : '#64748b' }} title="Down Multiplier">
                                                             {(down.down_multiplier || 1).toFixed(1)}x
                                                         </button>
                                                     )
                                                 )}
-                                                {isOpen && (
-                                                    <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>
-                                                )}
-                                                <button
-                                                    onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }}
-                                                    style={styles.downDeleteBtn}
-                                                >✕</button>
+                                                {isOpen && <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>}
+                                                <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={styles.downDeleteBtn}>✕</button>
                                             </div>
                                         </div>
                                     );
@@ -825,26 +883,18 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         </div>
                     )}
 
-                    {/* Expense List */}
-                    {!editMode && activeGig.expenses && activeGig.expenses.length > 0 && (
+                    {/* ── CURRENT DAY EXPENSES ── */}
+                    {!editMode && isDayOpen && currentDay && currentDay.expenses && currentDay.expenses.length > 0 && (
                         <div style={{ ...styles.downsSection, marginTop: 8 }}>
-                            <h4 style={styles.downsSectionTitle}>Expenses ({activeGig.expenses.length})</h4>
+                            <h4 style={styles.downsSectionTitle}>Day {currentDayNumber} Expenses ({currentDay.expenses.length})</h4>
                             <div style={styles.downsScroll}>
-                                {activeGig.expenses.map(exp => (
+                                {currentDay.expenses.map(exp => (
                                     <div key={exp.id} style={{ ...styles.downRow, borderLeft: '3px solid #ef4444' }}>
                                         <div style={styles.downInfo}>
                                             <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
                                                 {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             </span>
-                                            {exp.receipt_url && (
-                                                <button
-                                                    style={styles.receiptIconBtn}
-                                                    onClick={() => setViewingReceiptUrl(exp.receipt_url)}
-                                                    title="View Receipt"
-                                                >
-                                                    <Camera size={14} color="#ef4444" />
-                                                </button>
-                                            )}
+                                            {exp.receipt_url && <button style={styles.receiptIconBtn} onClick={() => setViewingReceiptUrl(exp.receipt_url)} title="View Receipt"><Camera size={14} color="#ef4444" /></button>}
                                             {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                         </div>
                                         <div style={styles.downRight}>
@@ -864,12 +914,20 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <button onClick={handleSaveEdit} style={styles.completeBtn}>Save Changes</button>
                                 <button onClick={() => setEditMode(false)} style={styles.cancelEditBtn}>Cancel</button>
                             </>
+                        ) : confirmCloseDay ? (
+                            <div style={styles.confirmRow}>
+                                <span style={styles.confirmText}>Close out Day {currentDayNumber}?</span>
+                                <button onClick={handleCloseDay} style={styles.confirmYes}>Yes, Close Day</button>
+                                <button onClick={() => setConfirmCloseDay(false)} style={styles.confirmNo}>Cancel</button>
+                            </div>
                         ) : !confirmComplete ? (
                             <>
                                 <button onClick={startEditing} style={styles.editBtn}>Edit</button>
-                                <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>+ Add Down</button>
-                                <button onClick={() => setShowAddExpense(true)} style={styles.addExpenseBtn}>+ Expense</button>
-                                <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>
+                                {isDayOpen && <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>+ Add Down</button>}
+                                {isDayOpen && <button onClick={() => setShowAddExpense(true)} style={styles.addExpenseBtn}>+ Expense</button>}
+                                {isDayOpen && <button onClick={() => setConfirmCloseDay(true)} style={styles.closeDayBtn}>✓ Close Day {currentDayNumber}</button>}
+                                {!isDayOpen && <button onClick={handleStartNewDay} style={styles.startDayBtn}>▶ Start Day {(activeGig?.days?.length || 0) + 1}</button>}
+                                {!isDayOpen && <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>}
                             </>
                         ) : (
                             <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -1707,5 +1765,37 @@ const styles = {
     calendarWrapper: {
         background: '#242526', border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 12, padding: '14px 12px', marginTop: 8,
+    },
+
+    // Multi-day styles
+    closedDayCard: {
+        background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 8, marginBottom: 6, overflow: 'hidden',
+    },
+    closedDayHeader: {
+        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+        background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+    },
+    closedDayLabel: { fontSize: 13, fontWeight: 700, color: '#B0B3B8', flex: 1, textAlign: 'left' },
+    closedDayStats: { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#64748b' },
+    closedDayDowns: { padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 4 },
+    closeDayBtn: {
+        background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.35)',
+        color: '#10b981', borderRadius: 8, padding: '8px 14px', fontSize: 13,
+        fontWeight: 700, cursor: 'pointer',
+    },
+    startDayBtn: {
+        background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.35)',
+        color: '#3b82f6', borderRadius: 8, padding: '8px 14px', fontSize: 13,
+        fontWeight: 700, cursor: 'pointer',
+    },
+    confirmYes: {
+        background: '#10b981', color: '#fff', border: 'none',
+        borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    },
+    confirmNo: {
+        background: 'transparent', color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8,
+        padding: '8px 16px', fontSize: 13, cursor: 'pointer',
     },
 };
