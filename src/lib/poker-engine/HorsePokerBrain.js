@@ -5325,6 +5325,55 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     const toCall = Math.max(0, (engineState.currentBet || 0) - (heroPlayer.invested || 0));
     const numPlayers = engineState.players?.filter(p => !p.folded).length || 2;
 
+    // ─── MODULE 8: COUNTER-EXPLOIT PROFILER ───
+    // Determine strategic posture for this hand based on all threat signals.
+    const tableId = engineState.tableId || 'unknown';
+    const opponents = engineState.players?.filter(p => String(p.id) !== String(profileId) && !p.folded) || [];
+    const primaryOppId = opponents.length > 0 ? String(opponents[0].id) : null;
+    const counterStrategy = selectCounterStrategy(profileId, primaryOppId, tableId);
+
+    // Increment hand counter for this horse (used by chaos suppression)
+    const chaosState = chaosSuppressionMap.get(profileId) || { lastChaosHand: -99, handCounter: 0 };
+    chaosState.handCounter++;
+    chaosSuppressionMap.set(profileId, chaosState);
+
+    // Track showdown exposure (Module 3) — increment hands seen
+    if (!showdownExposureMap.has(profileId)) showdownExposureMap.set(profileId, new Map());
+    const horseExposure = showdownExposureMap.get(profileId);
+    if (!horseExposure.has(tableId)) horseExposure.set(tableId, { showdowns: 0, handsPlayed: 0 });
+    horseExposure.get(tableId).handsPlayed++;
+
+    // ─── MODULE 5: STACK SANDWICH DETECTOR ───
+    // Detect: 3+ players, horse is not the raiser, players on both sides = sandwich.
+    let sandwichedFoldMod = 0;
+    let sandwichedDrawThreshold = 0;
+    if (numPlayers >= 3 && toCall > 0) {
+        const heroPosition = heroPlayer.position || 'mp';
+        const isRaiser = engineState.lastRaiser === profileId;
+        // Count how many active opponents are behind (will act after us)
+        const heroSeatIdx = engineState.players?.findIndex(p => String(p.id) === String(profileId)) ?? -1;
+        const activePlayers = (engineState.players || []).filter(p => !p.folded && String(p.id) !== String(profileId));
+        const behind = activePlayers.filter((p, idx) => {
+            const theirIdx = engineState.players?.findIndex(pp => String(pp.id) === String(p.id)) ?? -1;
+            return theirIdx > heroSeatIdx;
+        }).length;
+        const inFront = activePlayers.length - behind;
+
+        // Sandwich = players on both sides AND we are not the aggressor
+        if (behind >= 1 && inFront >= 1 && !isRaiser) {
+            sandwichedFoldMod = 10;        // Raise fold threshold significantly
+            sandwichedDrawThreshold = 15;  // Draws below 15 outs auto-fold
+            if (counterStrategy.mode === 'standard') counterStrategy.mode = 'sandwich_survival';
+            console.log(`[HorseBrain] 🥊 SANDWICH DETECTED: ${profileId.substring(0, 8)} — tightening ranges (+10 fold threshold)`);
+        }
+    }
+
+    // Log counter-strategy mode if non-standard
+    if (counterStrategy.mode !== 'standard') {
+        console.log(`[HorseBrain] 🛡️  Counter-mode: ${counterStrategy.mode} vs ${primaryOppId?.substring(0, 8) || 'N/A'}`);
+    }
+
+
     // ─── PLO / VARIANT-AWARE ROUTING ───
     // PioSolver only has Holdem solved spots. For Omaha variants (PLO4, PLO5, PLO6, PLO8),
     // we route to a dedicated heuristic engine that understands 4-6 card hand strength
@@ -5723,12 +5772,24 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             }
         } catch (_) { }
 
-        // ─── AUDIT 14: GTO CHAOS (ANTI-TRACKING DETERMINISM PATCH) ───
-        // Mathematical solvers expect identical play against identical sizing.
-        // We inject 4% pure entropy where the horse ignores GTO and plays wildly aggressive.
-        // This breaks human HUD tracking data over massive sample sizes.
-        if (legalActions.length > 0 && Math.random() < 0.04) {
-            console.log(`[HorseBrain] 🌪️ GTO CHAOS TRIGGERED! Hand: ${handStr}, Street: ${street}`);
+        // ─── MODULE 6: ENHANCED GTO CHAOS INJECTOR ───
+        // Upgrades the flat 4% chaos to a multi-layered, street-aware, cooldown-suppressed system.
+        // Street weights: higher on later streets (where exploiters focus).
+        // Cooldown: 3-hand gap between chaos events prevents detectable chaos clustering.
+        const chaosRateByStreet = { preflop: 0.02, flop: 0.04, turn: 0.05, river: 0.06 };
+        const streetChaosRate = chaosRateByStreet[street] || 0.04;
+        const handsSchaosState = chaosSuppressionMap.get(profileId) || { lastChaosHand: -99, handCounter: 0 };
+        const handsSinceLastChaos = handsSchaosState.handCounter - handsSchaosState.lastChaosHand;
+        const chaosOnCooldown = handsSinceLastChaos < 3; // Suppress for 3 hands after firing
+
+        // Anti-bot mode fires chaos MORE (18%) to be completely unpredictable vs solvers
+        const effectiveChaosRate = counterStrategy.mode === 'anti_bot' ? 0.18 : streetChaosRate;
+
+        if (legalActions.length > 0 && !chaosOnCooldown && Math.random() < effectiveChaosRate) {
+            console.log(`[HorseBrain] 🌪️ MODULE 6 CHAOS TRIGGERED! Street: ${street}, Mode: ${counterStrategy.mode}, Rate: ${(effectiveChaosRate * 100).toFixed(0)}%`);
+            handsSchaosState.lastChaosHand = handsSchaosState.handCounter;
+            chaosSuppressionMap.set(profileId, handsSchaosState);
+
             const aggroActions = legalActions.filter(a => a.type === 'raise' || a.type === 'bet' || a.type === 'all_in');
 
             if (aggroActions.length > 0) {
@@ -5736,14 +5797,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 finalAction = chaoticAction.type;
 
                 if (finalAction === 'raise' || finalAction === 'bet') {
-                    // Random wild sizing between min and max (or pot)
+                    // Bounded chaotic sizing: 33% to 150% of pot (more human-readable than min/max random)
+                    const minFrac = 0.33;
+                    const maxFrac = 1.50;
+                    const chaosFrac = minFrac + Math.random() * (maxFrac - minFrac);
+                    const chaosSize = Math.round(potSize * chaosFrac);
                     const min = chaoticAction.minAmount || bb * 2;
-                    let max = chaoticAction.maxAmount || potSize * 2;
-                    if (max < min) max = min;
-                    finalAmount = min + Math.floor(Math.random() * (max - min));
+                    const max = chaoticAction.maxAmount || heroPlayer.stack;
+                    finalAmount = Math.max(min, Math.min(max, chaosSize));
                 }
             } else if (legalActions.some(a => a.type === 'call')) {
-                // If can't raise, just spite call
                 finalAction = 'call';
             }
         }
@@ -5752,8 +5815,67 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // --- 6. VALIDATE AGAINST LEGAL ACTIONS ---
     const validAction = validateAndClamp(finalAction, finalAmount, legalActions);
 
+    // ─── MODULE 1: FREQUENCY OBFUSCATOR ───
+    // Tracks each horse's action type frequencies per table. When over-exposed,
+    // randomly tier-shifts 6-11% of the time so HUD tracking cannot lock down exact ranges.
+    {
+        if (!frequencyObfuscatorMap.has(tableId)) frequencyObfuscatorMap.set(tableId, new Map());
+        const tableFreqMap = frequencyObfuscatorMap.get(tableId);
+        if (!tableFreqMap.has(profileId)) tableFreqMap.set(profileId, { fold: 0, call: 0, raise: 0, lastObfuscatedHand: -99, handCount: 0 });
+        const freq = tableFreqMap.get(profileId);
+        freq.handCount++;
+        const aType = validAction.type;
+        if (aType === 'fold') freq.fold++;
+        else if (aType === 'call' || aType === 'check') freq.call++;
+        else if (aType === 'raise' || aType === 'bet' || aType === 'all_in') freq.raise++;
+
+        // Obfuscation rate: 6% normally, 11% in stealth/anti_bot_stealth modes
+        const obfStealth = counterStrategy.mode === 'stealth' || counterStrategy.mode === 'anti_bot_stealth';
+        const obfRate = obfStealth ? 0.11 : 0.06;
+        const handsSinceObf = freq.handCount - freq.lastObfuscatedHand;
+
+        if (freq.handCount >= 5 && handsSinceObf >= 4 && Math.random() < obfRate) {
+            const totalActions = Math.max(1, freq.fold + freq.call + freq.raise);
+            const callFreqPct = freq.call / totalActions;
+            const raiseFreqPct = freq.raise / totalActions;
+
+            let obfType = validAction.type;
+            if (callFreqPct > 0.55 && validAction.type === 'call') {
+                if (legalActions.some(a => a.type === 'fold') && Math.random() < 0.5) obfType = 'fold';
+                else if (legalActions.some(a => a.type === 'raise' || a.type === 'bet') && Math.random() < 0.5) obfType = 'raise';
+            } else if (raiseFreqPct > 0.55 && (validAction.type === 'raise' || validAction.type === 'bet')) {
+                if (legalActions.some(a => a.type === 'call') && Math.random() < 0.5) obfType = 'call';
+            }
+
+            if (obfType !== validAction.type) {
+                console.log(`[HorseBrain] 🎠 MODULE 1 OBFUSCATE: ${validAction.type}→${obfType} (mode=${counterStrategy.mode}, callFreq=${(callFreqPct * 100).toFixed(0)}%)`);
+                const newValid = validateAndClamp(obfType, null, legalActions);
+                validAction.type = newValid.type;
+                if (newValid.amount != null) validAction.amount = newValid.amount;
+                else delete validAction.amount;
+                freq.lastObfuscatedHand = freq.handCount;
+            }
+        }
+    }
+
+    // ─── MODULE 2: BET SIZE NOISE INJECTOR ───
+    // ±10% (standard) or ±15% (stealth/anti_bot) jitter on all bet/raise amounts
+    // so opponents cannot reverse-engineer hand equity from recurring GTO sizing patterns.
+    if ((validAction.type === 'raise' || validAction.type === 'bet') && validAction.amount != null) {
+        const noiseLA = legalActions.find(a => a.type === validAction.type);
+        if (noiseLA) {
+            const maxJitter = (counterStrategy.mode === 'stealth' || counterStrategy.mode === 'anti_bot' || counterStrategy.mode === 'anti_bot_stealth') ? 0.15 : 0.10;
+            const jitter = 1 + (Math.random() * 2 - 1) * maxJitter;
+            const noisedAmt = Math.round(validAction.amount * jitter);
+            const noiseMin = noiseLA.minAmount || 0;
+            const noiseMax = noiseLA.maxAmount || noisedAmt;
+            validAction.amount = Math.max(noiseMin, Math.min(noiseMax, noisedAmt));
+        }
+    }
+
     // --- 6. COMPUTE TIMING DELAY (Phase 3A #8 - Personality Timing Tells) ---
     let delayMs;
+
     let usedAdvancedTiming = false;
     try {
         const adv = await getAdvancedModule();
@@ -5959,6 +6081,83 @@ function clearTableSessions(tableId) {
 // Tracks if a horse loses massive pots to the same human repeatedly.
 const collusionTracker = new Map(); // horseId -> Map<opponentId, count>
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 7: 8 ADVANCED ANTI-EXPLOIT COUNTERMEASURE MODULES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// --- Module 1: Frequency Obfuscator ---
+// Tracks per-horse action type counts per table to detect/randomize frequency patterns
+// Map<tableId, Map<horseId, { fold:n, call:n, raise:n, lastObfuscatedHand:n }>>
+const frequencyObfuscatorMap = new Map();
+
+// --- Module 3: Showdown Exposure Tracker ---
+// Counts how many times a horse has shown cards at this table this session
+// More showdowns = harder for opponents to read us = intensify obfuscation
+// Map<horseId, Map<tableId, { showdowns:n, handsPlayed:n }>>
+const showdownExposureMap = new Map();
+
+// --- Module 4: Pattern Exploitation Detector ---
+// Tracks which human opponents are profiting from which patterns against us
+// Map<horseId, Map<opponentId, { cbet:n, check_raise:n, float:n, bluff:n, totalProfit:n, lastPattern:str }>>
+const patternProfitMap = new Map();
+
+// --- Module 6: Enhanced GTO Chaos Injector ---
+// Tracks chaos suppression cooldown to prevent detectable chaos clusters
+// Map<horseId, { lastChaosHand:n, handCounter:n }>
+const chaosSuppressionMap = new Map();
+
+// --- Module 7: Bot/Solver Opponent Detector ---
+// Tracks suspicious play patterns per opponent (perfect GTO folding, exact pot-fraction sizing)
+// Map<opponentId, { perfectFolds:n, gtoSizes:n, humanErrors:n, handsObserved:n, suspectScore:n }>
+const suspectBotMap = new Map();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 8: COUNTER-EXPLOIT PROFILER
+// Reads all tracking modules and returns a unified counter-strategy mode.
+// Called at the top of getDecision to set the strategic posture for the hand.
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Returns a unified counter-strategy mode based on all available threat signals.
+ * @param {string} horseId - Horse profile UUID
+ * @param {string|null} primaryOpponentId - Main opponent's ID (or null)
+ * @param {string} tableId - Table UUID
+ * @returns {{ mode: string, details: Object }}
+ *   mode: 'standard' | 'stealth' | 'pattern_counter' | 'anti_bot' | 'sandwich_survival' | 'anti_bot_stealth'
+ */
+function selectCounterStrategy(horseId, primaryOpponentId, tableId) {
+    const signals = {};
+
+    // Signal A: Showdown exposure
+    const exposure = showdownExposureMap.get(horseId)?.get(tableId);
+    signals.exposureScore = exposure ? (exposure.showdowns / Math.max(1, exposure.handsPlayed)) * 100 : 0;
+    signals.highExposure = signals.exposureScore > 20 || (exposure?.showdowns || 0) >= 8;
+
+    // Signal B: Pattern exploitation by a specific human
+    signals.exploitedPattern = null;
+    if (primaryOpponentId) {
+        const oppPatterns = patternProfitMap.get(horseId)?.get(primaryOpponentId);
+        if (oppPatterns && oppPatterns.totalProfit > 3) { // Human won 3+ BB via a pattern
+            // Find the most profitable pattern
+            const patterns = { cbet: oppPatterns.cbet, check_raise: oppPatterns.check_raise, float: oppPatterns.float, bluff: oppPatterns.bluff };
+            const best = Object.entries(patterns).sort((a, b) => b[1] - a[1])[0];
+            if (best && best[1] > 0) signals.exploitedPattern = best[0];
+        }
+    }
+
+    // Signal C: Bot/solver suspicion
+    signals.botSuspectScore = primaryOpponentId ? (suspectBotMap.get(primaryOpponentId)?.suspectScore || 0) : 0;
+    signals.isSuspectedBot = signals.botSuspectScore >= 65;
+
+    // Determine final mode (priority: anti_bot_stealth > anti_bot > pattern_counter > stealth > standard)
+    let mode = 'standard';
+    if (signals.isSuspectedBot && signals.highExposure) mode = 'anti_bot_stealth';
+    else if (signals.isSuspectedBot) mode = 'anti_bot';
+    else if (signals.exploitedPattern) mode = 'pattern_counter';
+    else if (signals.highExposure) mode = 'stealth';
+
+    return { mode, details: signals };
+}
+
 /**
  * Process hand result for a horse — feeds tilt tracking and showdown recording.
  * Called from `hand_complete` event in GameController.
@@ -6053,11 +6252,100 @@ async function processHandResult(handData, bb = 2) {
         }
 
         // ─── AUDIT 14: CHAT STEALTH MODE ───
-        // Horses must never type in chat to prevent prompt injections, 
+        // Horses must never type in chat to prevent prompt injections,
         // harassment, and breaking the illusion.
         // Disabled `personality.getTableChat` entirely.
+
+        // ─── MODULE 3: SHOWDOWN EXPOSURE TRACKER ───
+        // Increment the per-table showdown count so the Counter-Exploit Profiler
+        // can escalate obfuscation intensity as hand ranges become more readable.
+        if (player.showedCards) {
+            const tableIdHR = handData.tableId || 'unknown';
+            if (!showdownExposureMap.has(pid)) showdownExposureMap.set(pid, new Map());
+            const horseExp = showdownExposureMap.get(pid);
+            if (!horseExp.has(tableIdHR)) horseExp.set(tableIdHR, { showdowns: 0, handsPlayed: 0 });
+            horseExp.get(tableIdHR).showdowns++;
+            const { showdowns, handsPlayed } = horseExp.get(tableIdHR);
+            console.log(`[HorseBrain] 👁️ MODULE 3 EXPOSURE: ${pid.substring(0, 8)} has shown down ${showdowns}/${handsPlayed} hands at table ${tableIdHR.substring(0, 8)}`);
+        }
+
+        // ─── MODULE 4: PATTERN EXPLOITATION DETECTOR ───
+        // Tracks profit attributed to specific patterns each opponent uses against this horse.
+        // When a human is consistently exploiting one pattern (cbet, float, bluff), we counter.
+        const humanOpponents = (handData.players || []).filter(op => String(op.id) !== pid && !op.folded);
+        for (const opp of humanOpponents.slice(0, 2)) {
+            const oppId = String(opp.id);
+            const isOppAI = await isHorse(oppId);
+            if (isOppAI) continue; // Only track human exploiters
+
+            if (!patternProfitMap.has(pid)) patternProfitMap.set(pid, new Map());
+            const horsePatterns = patternProfitMap.get(pid);
+            if (!horsePatterns.has(oppId)) horsePatterns.set(oppId, { cbet: 0, check_raise: 0, float: 0, bluff: 0, totalProfit: 0 });
+            const pat = horsePatterns.get(oppId);
+
+            // Attribute profit to patterns based on action sequence
+            const oppLastAction = opp.lastAction || '';
+            const oppChipDelta = opp.chipDelta || 0;
+            if (oppChipDelta > 0) {
+                // Human won chips — attribute to what they did
+                const bbWon = oppChipDelta / bb;
+                if (oppLastAction === 'bet' && opp.hadInitiative === false) { pat.float += bbWon; } // Float play
+                else if (oppLastAction === 'raise' && opp.actedAfterCheck === true) { pat.check_raise += bbWon; } // Check-raise
+                else if (oppLastAction === 'raise' && !won) { pat.bluff += bbWon; } // Could be bluff
+                else if (oppLastAction === 'bet' && opp.hadInitiative === true) { pat.cbet += bbWon; } // C-bet
+                pat.totalProfit += bbWon;
+
+                // Alert when a human has found a pattern worth 5+ BB
+                if (pat.totalProfit >= 5) {
+                    const highest = Object.entries({ cbet: pat.cbet, check_raise: pat.check_raise, float: pat.float, bluff: pat.bluff }).sort((a, b) => b[1] - a[1])[0];
+                    console.warn(`[HorseBrain] ⚠️ MODULE 4 PATTERN: ${oppId.substring(0, 8)} exploiting ${pid.substring(0, 8)} via '${highest[0]}' (+${pat.totalProfit.toFixed(1)}BB total)`);
+                }
+            }
+        }
+
+        // ─── MODULE 7: BOT/SOLVER OPPONENT DETECTOR ───
+        // Scores each opponent on suspiciously perfect play. High score = likely solver user.
+        // Metrics: folding exactly at pot-odds break-even, GTO-fractional bet sizing, zero 'human' errors.
+        for (const opp of humanOpponents.slice(0, 2)) {
+            const oppId = String(opp.id);
+            const isOppAI = await isHorse(oppId);
+            if (isOppAI) continue;
+
+            if (!suspectBotMap.has(oppId)) suspectBotMap.set(oppId, { perfectFolds: 0, gtoSizes: 0, humanErrors: 0, handsObserved: 0, suspectScore: 0 });
+            const botData = suspectBotMap.get(oppId);
+            botData.handsObserved++;
+
+            // Perfect fold: opponent folded facing a bet and was getting good pot odds (solver discipline)
+            const potTotal = handData.potSize || handData.result?.potTotal || 0;
+            const facingBet = handData.result?.lastBet || 0;
+            if (opp.lastAction === 'fold' && potTotal > 0 && facingBet > 0) {
+                const impliedPotOdds = facingBet / (potTotal + facingBet);
+                // >35% pot odds and still folded = extremely disciplined / solver-like
+                if (impliedPotOdds > 0.35) botData.perfectFolds++;
+            }
+
+            // GTO sizing tell: bet amount is very close to a standard fraction (33%, 50%, 75%, pot)
+            const oppBetAmt = opp.betAmount || 0;
+            if (oppBetAmt > 0 && potTotal > 0) {
+                const fraction = oppBetAmt / potTotal;
+                const gtoFractions = [0.33, 0.5, 0.66, 0.75, 1.0];
+                const isGTOSize = gtoFractions.some(f => Math.abs(fraction - f) < 0.04); // Within 4%
+                if (isGTOSize) botData.gtoSizes++; else botData.humanErrors++;
+            }
+
+            // Recalculate suspect score
+            const obsCount = Math.max(1, botData.handsObserved);
+            const gtoFoldRate = botData.perfectFolds / obsCount;
+            const gtoSizeRate = botData.gtoSizes / Math.max(1, botData.gtoSizes + botData.humanErrors);
+            botData.suspectScore = Math.min(100, Math.round((gtoFoldRate * 50) + (gtoSizeRate * 50)));
+
+            if (botData.suspectScore >= 65 && botData.handsObserved >= 10) {
+                console.warn(`[HorseBrain] 🤖 MODULE 7 BOT DETECTED: ${oppId.substring(0, 8)} suspect score = ${botData.suspectScore}/100 (${botData.handsObserved} hands)`);
+            }
+        }
     }
 }
+
 
 /**
  * Check if a horse is allowed to rebuy based on maxBuyins stop-loss AND physical chip balance
@@ -6817,4 +7105,12 @@ module.exports = {
     evolveHorseSkill,
     getSkillDrift,
     getSessionReview,
+
+    // Phase 7: Anti-Exploit Countermeasure Modules
+    selectCounterStrategy,        // Module 8: Counter-Exploit Profiler
+    frequencyObfuscatorMap,       // Module 1: Frequency Obfuscator (exposed for testing)
+    showdownExposureMap,          // Module 3: Showdown Exposure Tracker
+    patternProfitMap,             // Module 4: Pattern Exploitation Detector
+    chaosSuppressionMap,          // Module 6: Enhanced Chaos Cooldown
+    suspectBotMap,                // Module 7: Bot/Solver Opponent Detector
 };

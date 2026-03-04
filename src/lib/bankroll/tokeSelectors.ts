@@ -66,6 +66,7 @@ export interface TokeDown {
     game_type?: string | null;
     tournament_name?: string | null;
     table_number?: string | null;
+    tournament_buyin?: number | null;  // optional buy-in amount for tournament downs
     started_at: string;
     ended_at?: string | null;
     toke_amount: number;
@@ -427,6 +428,7 @@ export async function createDown(
             game_type: down.game_type || null,
             tournament_name: down.tournament_name || null,
             table_number: down.table_number || null,
+            tournament_buyin: down.tournament_buyin || null,
             started_at: new Date().toISOString(),
             toke_amount: down.toke_amount || 0,
             is_double_down: down.is_double_down || false,
