@@ -294,9 +294,23 @@ export default function ClockDisplay() {
   // Auto-advance level when timer hits 0
   useEffect(() => {
     if (seconds === 0 && isRunningRef.current && !actionLoading && data?.clock?.clock_state?.status === 'running') {
+      const blindStructure = data?.tournament?.blind_structure || [];
+      const currentLevelIdx = data?.clock?.current_level ?? 0;
+      const isLastLevel = currentLevelIdx >= blindStructure.length - 1;
+
       // Prevent multiple fires
       isRunningRef.current = false;
-      clockAction('next_level');
+
+      if (isLastLevel) {
+        // We are on the final level — reset the local timer to keep the clock running
+        // The API will also be called to reset the level start time server-side
+        const lastLevelDuration = blindStructure[currentLevelIdx]?.duration || 20;
+        setSeconds(lastLevelDuration * 60);
+        // Still call next_level — the API will gracefully extend the final level
+        clockAction('next_level');
+      } else {
+        clockAction('next_level');
+      }
     }
   }, [seconds, actionLoading, data?.clock?.clock_state?.status]);
 

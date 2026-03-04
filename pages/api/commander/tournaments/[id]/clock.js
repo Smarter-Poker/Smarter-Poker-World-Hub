@@ -255,10 +255,18 @@ async function handleClockAction(req, res, tournamentId) {
         const nextLevel = (tournament.current_level || 0) + 1;
 
         if (nextLevel >= blindStructure.length) {
-          return res.status(400).json({
-            success: false,
-            error: { code: 'VALIDATION_ERROR', message: 'No more levels in structure' }
-          });
+          // At end of structure — extend the final level rather than hard-stopping.
+          // Reset the level timer on the same (last) level so clock keeps running.
+          console.warn(`[clock.js] Tournament ${tournamentId} hit last level (${tournament.current_level}). Extending final level clock.`);
+          updates = {}; // stay on current level
+          clockState = {
+            isRunning: tournament.status === 'running',
+            levelStartedAt: new Date().toISOString(),
+            pausedAt: tournament.status === 'paused' ? new Date().toISOString() : null,
+            pausedDuration: 0,
+            extended: true // flag that we are in extension mode
+          };
+          break;
         }
 
         updates = { current_level: nextLevel };
