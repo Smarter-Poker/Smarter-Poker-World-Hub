@@ -3,7 +3,6 @@
  * Reference: IMPLEMENTATION_PHASES.md - Phase 3
  * GET /api/commander/tournaments/[id]/entries - List entries
  * POST /api/commander/tournaments/[id]/entries - Register player
- * PUT /api/commander/tournaments/[id]/entries - Update entry (rebuy, addon, seat)
  * DELETE /api/commander/tournaments/[id]/entries - Unregister player
  */
 import { createClient } from '@supabase/supabase-js';
@@ -31,15 +30,11 @@ export default async function handler(req, res) {
     return registerPlayer(req, res, tournamentId);
   }
 
-  if (req.method === 'PUT') {
-    return updateEntry(req, res, tournamentId);
-  }
-
   if (req.method === 'DELETE') {
     return unregisterPlayer(req, res, tournamentId);
   }
 
-  res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+  res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
@@ -187,143 +182,6 @@ async function registerPlayer(req, res, tournamentId) {
     return res.status(201).json({ success: true, data: { entry } });
   } catch (error) {
     console.error('Register player error:', error);
-    return res.status(500).json({ error: error.message });
-  }
-}
-
-async function updateEntry(req, res, tournamentId) {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    const {
-      entry_id,
-      action,
-      table_number,
-      seat_number,
-      current_chips
-    } = req.body;
-
-    if (!entry_id) {
-      return res.status(400).json({ error: 'Entry ID required' });
-    }
-
-    // Get entry and tournament
-    const { data: entry, error: entryError } = await supabase
-      .from('commander_tournament_entries')
-      .select('*, commander_tournaments(*)')
-      .eq('id', entry_id)
-      .eq('tournament_id', tournamentId)
-      .single();
-
-    if (entryError || !entry) {
-      return res.status(404).json({ error: 'Entry not found' });
-    }
-
-    const tournament = entry.commander_tournaments;
-
-    // Check if user is staff or the player themselves
-    const isOwnEntry = entry.player_id === user.id;
-    let isStaff = false;
-
-    if (!isOwnEntry) {
-      const { data: staff } = await supabase
-        .from('commander_staff')
-        .select('id')
-        .eq('venue_id', tournament.venue_id)
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
-
-      isStaff = !!staff;
-    }
-
-    if (!isOwnEntry && !isStaff) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    let updates = {};
-
-    switch (action) {
-      case 'rebuy':
-        if (!tournament.allows_rebuys) {
-          return res.status(400).json({ error: 'Rebuys not allowed in this tournament' });
-        }
-        if (tournament.rebuy_end_level && tournament.current_level > tournament.rebuy_end_level) {
-          return res.status(400).json({ error: 'Rebuy period has ended' });
-        }
-        if (tournament.max_rebuys && entry.rebuy_count >= tournament.max_rebuys) {
-          return res.status(400).json({ error: 'Maximum rebuys reached' });
-        }
-        updates = {
-          rebuy_count: entry.rebuy_count + 1,
-          current_chips: (entry.current_chips || 0) + tournament.rebuy_chips
-        };
-        break;
-
-      case 'addon':
-        if (!tournament.allows_addon) {
-          return res.status(400).json({ error: 'Add-ons not allowed in this tournament' });
-        }
-        if (entry.addon_taken) {
-          return res.status(400).json({ error: 'Add-on already taken' });
-        }
-        updates = {
-          addon_taken: true,
-          current_chips: (entry.current_chips || 0) + tournament.addon_chips
-        };
-        break;
-
-      case 'seat':
-        updates = {
-          table_number,
-          seat_number,
-          status: 'seated'
-        };
-        break;
-
-      case 'update_chips':
-        if (!isStaff) {
-          return res.status(403).json({ error: 'Only staff can update chip counts' });
-        }
-        updates = {
-          current_chips,
-          last_chip_count_at: new Date().toISOString()
-        };
-        break;
-
-      case 'activate':
-        updates = { status: 'active' };
-        break;
-
-      default:
-        return res.status(400).json({ error: 'Invalid action' });
-    }
-
-    const { data: updated, error } = await supabase
-      .from('commander_tournament_entries')
-      .update(updates)
-      .eq('id', entry_id)
-      .select(`
-        *,
-        profiles (id, display_name, avatar_url)
-      `)
-      .single();
-
-    if (error) throw error;
-
-    return res.status(200).json({ success: true, data: { entry: updated } });
-  } catch (error) {
-    console.error('Update entry error:', error);
     return res.status(500).json({ error: error.message });
   }
 }

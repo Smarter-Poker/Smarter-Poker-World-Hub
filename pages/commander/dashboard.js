@@ -9,9 +9,10 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown, StopCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { supabase } from '../../src/lib/supabase';
-// Dashboard is a static navigation menu — no live data to sync
+// Dashboard uses real-time sync primarily to instantly reflect hard stop or setting changes
 import { canAccessRoute, getUpgradeTier, getTierConfig, hasFeature } from '../../src/lib/commander/tierConfig';
 import { canRoleAccessRoute } from '../../src/lib/commander/auth';
+import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -209,46 +210,50 @@ export default function CommanderDashboard() {
     validateSession();
   }, [router]);
 
-  // Hard Stop countdown
-  useEffect(() => {
+  // Hard Stop countdown logic
+  const fetchHardStop = useCallback(() => {
     if (!staff) return;
-    const fetchHardStop = () => {
-      try {
-        const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-        const token = stored.token || stored.access_token;
-        if (!token) return;
-        fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.json())
-          .then(data => {
-            if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {
-              const [h, m] = data.data.hard_stop_time.split(':').map(Number);
-              const now = new Date();
-              const stopDate = new Date(now);
-              stopDate.setHours(h, m, 0, 0);
-              // If stop time already passed today, it's for tomorrow
-              if (stopDate <= now) stopDate.setDate(stopDate.getDate() + 1);
-              const diff = Math.round((stopDate - now) / 60000);
-              setHardStop({
-                enabled: true,
-                time: data.data.hard_stop_time,
-                minutesLeft: diff,
-                timeFormatted: stopDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-              });
-            } else {
-              setHardStop(null);
-            }
-            // Bootstrap security gate state for CommanderLayout
-            if (data?.data?.security_gate_enabled !== undefined) {
-              localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
-            }
-          })
-          .catch(() => { });
-      } catch { }
-    };
-    fetchHardStop();
-    const interval = setInterval(fetchHardStop, 60000); // refresh every minute
-    return () => clearInterval(interval);
+    try {
+      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const token = stored.token || stored.access_token;
+      if (!token) return;
+      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {
+            const [h, m] = data.data.hard_stop_time.split(':').map(Number);
+            const now = new Date();
+            const stopDate = new Date(now);
+            stopDate.setHours(h, m, 0, 0);
+            // If stop time already passed today, it's for tomorrow
+            if (stopDate <= now) stopDate.setDate(stopDate.getDate() + 1);
+            const diff = Math.round((stopDate - now) / 60000);
+            setHardStop({
+              enabled: true,
+              time: data.data.hard_stop_time,
+              minutesLeft: diff,
+              timeFormatted: stopDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            });
+          } else {
+            setHardStop(null);
+          }
+          // Bootstrap security gate state for CommanderLayout
+          if (data?.data?.security_gate_enabled !== undefined) {
+            localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
+          }
+        })
+        .catch(() => { });
+    } catch { }
   }, [staff]);
+
+  useEffect(() => {
+    fetchHardStop();
+    const interval = setInterval(fetchHardStop, 60000); // refresh every minute (fallback)
+    return () => clearInterval(interval);
+  }, [fetchHardStop]);
+
+  // Unified Real-Time Sync via Singleton WebSocket
+  useCommanderSync(staff?.venue_id || null, fetchHardStop, { entities: ['settings'] });
 
   const handleLogout = () => {
     localStorage.removeItem('commander_staff');

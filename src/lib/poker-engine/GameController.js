@@ -1017,6 +1017,21 @@ class GameController {
       if (result.success) {
         this._stats.totalActions++;
         console.log(`[HorseAI] ${playerId.substring(0, 8)}... \u2192 ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
+
+        // Check for AI Emotes/Chat (#10) - Emote when all-in or throwing good luck
+        const messages = HorsePokerBrain.getChatMessages();
+        if (messages.length > 0 && entry.sync) {
+          for (const msg of messages) {
+            // Only broadcast if the message is for this player's exact action timing
+            if (String(msg.playerId) === String(playerId)) {
+              entry.sync._broadcast('chat_message', {
+                playerId: msg.playerId,
+                message: msg.message,
+                timestamp: Date.now()
+              });
+            }
+          }
+        }
       } else {
         console.warn(`[HorseAI] Action rejected for ${playerId.substring(0, 8)}...: ${result.error}`);
       }

@@ -104,6 +104,7 @@ async function getClockState(req, res, tournamentId) {
       data: {
         tournament: {
           id: tournament.id,
+          venue_id: tournament.venue_id,
           name: tournament.name,
           status: tournament.status,
           current_level: currentLevel,

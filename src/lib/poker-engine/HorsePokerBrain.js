@@ -1553,6 +1553,31 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // Clamp to human-realistic range
     delayMs = Math.round(Math.max(800, Math.min(7000, delayMs)));
 
+    // --- TIMEBANK TANKING & EMOJIS (NEW) ---
+    // Identify if the action represents an all-in or massive commitment
+    const actionAmount = validAction.amount || finalAmount || 0;
+    const isAllIn = validAction.type === 'all_in' || actionAmount >= bb * 50;
+
+    // 1. Timebank usage for tough spots (River calls/raises, or any All-In)
+    if ((street === 'river' && validAction.type !== 'fold' && validAction.type !== 'check') || isAllIn) {
+        if (Math.random() < 0.15) { // 15% chance to deep tank into the timebank
+            delayMs = 12000 + Math.floor(Math.random() * 20000); // 12s to 32s
+            console.log(`[HorseBrain] \u23f1\ufe0f Deep Tank! ${profileId.substring(0, 8)} using timebank for ${delayMs}ms`);
+        }
+    }
+
+    // 2. Emotes for All-In
+    if (isAllIn && Math.random() < 0.3) { // 30% chance to emote when all-in
+        const emotes = ['\ud83c\udf40', 'GL GL', '\ud83d\ude4f', "Let's go", '\ud83d\udcaa', 'GL', 'Run good', '\ud83c\udfb2'];
+        const emote = emotes[Math.floor(Math.random() * emotes.length)];
+        chatMessages.push({
+            playerId: profileId,
+            message: emote,
+            tableId: null // Handled implicitly by GameController looping
+        });
+        console.log(`[HorseBrain] \ud83d\udcac Emote Triggered! ${profileId.substring(0, 8)} says: ${emote}`);
+    }
+
     // --- Record performance stats (#34) ---
     recordPerformanceAction(profileId, street, validAction.type, validAction.type !== 'fold' && validAction.type !== 'check');
 

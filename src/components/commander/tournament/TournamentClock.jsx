@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Users, Trophy, Coins } from 'lucide-react';
 import toast from '../../../stores/toastStore';
+import { useCommanderSync } from '../../../lib/commander/useCommanderSync';
 
 export default function TournamentClock({
   tournamentId,
@@ -17,6 +18,7 @@ export default function TournamentClock({
   const [clockData, setClockData] = useState(initialData);
   const [timeRemaining, setTimeRemaining] = useState(initialData?.clock?.timeRemaining || 0);
   const [isLoading, setIsLoading] = useState(false);
+  const [venueId, setVenueId] = useState(initialData?.tournament?.venue_id || null);
 
   // Fetch clock state
   const fetchClockState = useCallback(async () => {
@@ -28,6 +30,7 @@ export default function TournamentClock({
       const json = await res.json();
       if (res.ok && json.success) {
         setClockData(json.data);
+        if (json.data.tournament?.venue_id) setVenueId(json.data.tournament.venue_id);
         setTimeRemaining(json.data?.clock?.timeRemaining || 0);
       }
     } catch (error) {
@@ -35,12 +38,15 @@ export default function TournamentClock({
     }
   }, [tournamentId]);
 
-  // Poll for updates every 10 seconds
+  // Poll for updates every 10 seconds (fallback)
   useEffect(() => {
     fetchClockState();
     const interval = setInterval(fetchClockState, 10000);
     return () => clearInterval(interval);
   }, [fetchClockState]);
+
+  // Unified Real-Time Sync via Singleton WebSocket
+  useCommanderSync(venueId, fetchClockState, { entities: ['tournaments'] });
 
   // Countdown timer
   useEffect(() => {

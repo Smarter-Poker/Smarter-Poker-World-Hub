@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { X } from 'lucide-react';
+import { useCommanderSync } from '../../../lib/commander/useCommanderSync';
 
 export default function FloorCallAlert({ venueId }) {
     const [activeCall, setActiveCall] = useState(null);
@@ -44,67 +45,48 @@ export default function FloorCallAlert({ venueId }) {
         }, 30000);
     }, []);
 
-    useEffect(() => {
+    const poll = useCallback(async () => {
         if (!venueId || isExcluded) return;
         const client = supabase;
         if (!client) return;
 
-        // ── Realtime subscription ──
-        const channelName = `floor-calls-${venueId}-${Date.now()}`;
-        const channel = client.channel(channelName);
-        channel.on(
-            'postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'commander_floor_calls',
-                filter: `venue_id=eq.${venueId}`,
-            },
-            (payload) => handleNewCall(payload.new)
-        );
-        channel.subscribe((status) => {
-            console.log('[FloorCallAlert] Realtime status:', status);
-        });
-
-        // ── Polling fallback (every 5 seconds) ──
-        const poll = async () => {
-            try {
-                const { data } = await client
-                    .from('commander_floor_calls')
-                    .select('*')
-                    .eq('venue_id', venueId)
-                    .eq('status', 'active')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-                if (data && data.length > 0) {
-                    const call = data[0];
-                    // Only show if created within the last 60 seconds
-                    const age = (Date.now() - new Date(call.created_at).getTime()) / 1000;
-                    if (age < 60) {
-                        handleNewCall(call);
-                    }
-                } else {
-                    // No active calls — if we're showing an alert, the call was cancelled/resolved
-                    setActiveCall(prev => {
-                        if (prev) {
-                            lastSeenId.current = null;
-                            if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
-                        }
-                        return null;
-                    });
+        try {
+            const { data } = await client
+                .from('commander_floor_calls')
+                .select('*')
+                .eq('venue_id', venueId)
+                .eq('status', 'active')
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (data && data.length > 0) {
+                const call = data[0];
+                // Only show if created within the last 60 seconds
+                const age = (Date.now() - new Date(call.created_at).getTime()) / 1000;
+                if (age < 60) {
+                    handleNewCall(call);
                 }
-            } catch { /* ignore polling errors */ }
-        };
-        // Initial check
-        poll();
-        pollInterval.current = setInterval(poll, 5000);
-
-        return () => {
-            try { client.removeChannel(channel); } catch { /* ignore */ }
-            if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
-            if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = null; }
-        };
+            } else {
+                // No active calls — if we're showing an alert, the call was cancelled/resolved
+                setActiveCall(prev => {
+                    if (prev) {
+                        lastSeenId.current = null;
+                        if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
+                    }
+                    return null;
+                });
+            }
+        } catch { /* ignore polling errors */ }
     }, [venueId, isExcluded, handleNewCall]);
+
+    useEffect(() => {
+        poll();
+        return () => {
+            if (dismissTimer.current) { clearTimeout(dismissTimer.current); dismissTimer.current = null; }
+        };
+    }, [poll]);
+
+    // Unified Real-Time Sync via Singleton WebSocket
+    useCommanderSync(venueId, poll, { entities: ['floor_calls'] });
 
     if (!activeCall || isExcluded) return null;
 
