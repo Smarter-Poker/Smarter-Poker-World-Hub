@@ -17,44 +17,43 @@
  * Usage in _app.js:
  *   <GlobalErrorCatcher />
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 // Errors to silently suppress (these are noise, not real crashes)
 const SUPPRESSED_PATTERNS = [
-    'ResizeObserver loop',           // Browser layout optimization, not a real error
-    'AbortError',                    // User navigated away mid-fetch
-    'Failed to fetch',               // Transient network blip (retried by other systems)
-    'Load failed',                   // Same as above, Safari variant
-    'Network request failed',        // Same pattern, React Native bridge
+    'resizeobserver loop',           // Browser layout optimization, not a real error
+    'aborterror',                    // User navigated away mid-fetch
+    'failed to fetch',               // Transient network blip (retried by other systems)
+    'load failed',                   // Same as above, Safari variant
+    'network request failed',        // Same pattern, React Native bridge
     'cancelled',                     // User-cancelled operations
-    'Script error.',                 // Cross-origin errors (no useful info)
-    'Non-Error promise rejection',   // Libraries rejecting with non-Error objects
-    'Loading chunk',                 // Handled by ChunkLoadRecovery separately
-    'ChunkLoadError',                // Handled by ChunkLoadRecovery separately
-    'NEXT_NOT_FOUND',                // Next.js 404 — not a crash
-    'NEXT_REDIRECT',                 // Next.js redirect — not a crash
+    'script error.',                 // Cross-origin errors (no useful info)
+    'non-error promise rejection',   // Libraries rejecting with non-Error objects
+    'loading chunk',                 // Handled by ChunkLoadRecovery separately
+    'chunkloaderror',                // Handled by ChunkLoadRecovery separately
+    'next_not_found',                // Next.js 404 — not a crash
+    'next_redirect',                 // Next.js redirect — not a crash
 ];
 
 function shouldSuppress(message) {
     if (!message) return true;
     const msg = String(message).toLowerCase();
-    return SUPPRESSED_PATTERNS.some(p => msg.toLowerCase().includes(p.toLowerCase()));
+    return SUPPRESSED_PATTERNS.some(p => msg.includes(p));
 }
 
 export default function GlobalErrorCatcher() {
     const [toast, setToast] = useState(null);
-    const [toastTimeout, setToastTimeout] = useState(null);
+    const timeoutRef = useRef(null);
 
     const showToast = useCallback((message, severity = 'warning') => {
         // Clear existing toast timeout
-        if (toastTimeout) clearTimeout(toastTimeout);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
         setToast({ message, severity, id: Date.now() });
 
         // Auto-dismiss after 6 seconds
-        const timeout = setTimeout(() => setToast(null), 6000);
-        setToastTimeout(timeout);
-    }, [toastTimeout]);
+        timeoutRef.current = setTimeout(() => setToast(null), 6000);
+    }, []); // No dependencies — stable reference for the lifetime of the component
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -123,8 +122,8 @@ export default function GlobalErrorCatcher() {
 
     // Cleanup timeout on unmount
     useEffect(() => {
-        return () => { if (toastTimeout) clearTimeout(toastTimeout); };
-    }, [toastTimeout]);
+        return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+    }, []);
 
     if (!toast) return null;
 
