@@ -514,15 +514,7 @@ export default function ClockDisplay() {
         <div style={{ ...S.header, background: theme.headerBg, borderBottomColor: theme.accent + '26' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             {displayOpts.logo_url && <img src={displayOpts.logo_url} alt="" style={{ height: 32 }} />}
-            <div style={S.headerTitle}>{t.name || 'Tournament'}</div>
-          </div>
-          <div style={S.headerSub}>
-            {t.scheduled_start && (
-              <span>{new Date(t.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} — </span>
-            )}
-            {formatMoney(t.buyin_amount || 0)} Buy-in
-            {t.rebuy_allowed ? `, ${formatMoney(t.rebuy_cost || t.buyin_amount || 0)} to rebuy` : ''}
-            , {t.addon_allowed ? 'Add-ons allowed' : 'No add-ons'}
+            <div style={{ ...S.headerTitle, fontSize: 44, textTransform: 'uppercase' }}>{t.name || 'Tournament'}</div>
           </div>
         </div>
 
@@ -562,7 +554,7 @@ export default function ClockDisplay() {
                   {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                 </div>
 
-                {displayOpts.show_next_round && nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
+                {nextBlinds && (nextBlinds.small_blind || nextBlinds.big_blind) && (
                   <div style={S.nextRound}>
                     <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
                     {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
