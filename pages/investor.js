@@ -34,8 +34,7 @@ const MockArcade = () => <img src="/images/pitch/arcade_hologram.png" style={{ w
 // =========================================================================
 
 const SLIDES = [
-    {
-        type: 'title',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'title',
         title: "SMARTER.POKER",
         subtitle: "The World's First Poker Super-Platform",
         stats: [
@@ -44,8 +43,7 @@ const SLIDES = [
             { value: '$1.2M', label: 'Seed Raise' }
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_data.png', type: 'table',
         title: "The Problem",
         subtitle: "Poker players need 7+ separate apps just to exist in the ecosystem.",
         columns: ['What Players Need', 'Current Solution', 'The Problem'],
@@ -59,8 +57,7 @@ const SLIDES = [
             ['News & content', 'Twitter / YouTube', 'Scattered across platforms']
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_network.png', type: 'split',
         title: "The Solution",
         subtitle: "One Unified Super-Platform.",
         visualType: 'hologram',
@@ -78,8 +75,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_table.png', type: 'grid',
         title: "Platform Architecture",
         subtitle: "The Hub-and-Spoke Virality Model",
         items: [
@@ -91,8 +87,7 @@ const SLIDES = [
             { title: 'Poker Near Me', desc: 'Top-of-funnel acquisition mapping the entire world.' }
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'split',
         title: "The Poker Hub",
         subtitle: "The Command Center. 14+ integrated features.",
         visualType: 'phone',
@@ -112,8 +107,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'split',
         title: "Poker Near Me",
         subtitle: "483+ Venues. 12+ Tours. $2B Home Game TAM.",
         visualType: 'tablet',
@@ -134,8 +128,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_data.png', type: 'table',
         title: "Poker Near Me vs PokerAtlas",
         subtitle: "Dominating the Current Standard",
         columns: ['Feature', 'Smarter.Poker', 'PokerAtlas'],
@@ -150,8 +143,7 @@ const SLIDES = [
             ['Diamond Economy', 'YES', 'NO']
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_network.png', type: 'split',
         title: "Club Commander",
         subtitle: "The B2B SaaS Engine Powering Poker Rooms.",
         visualType: 'monitor',
@@ -165,8 +157,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_table.png', type: 'split',
         title: "Club Arena — Live Online Poker",
         subtitle: "Running 24/7. 58 Cash Tables Live Now.",
         visualType: 'monitor',
@@ -181,8 +172,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'split',
         title: "Diamond Arena",
         subtitle: "Gamble Virtual Currency. Win Real World Prizes.",
         visualType: 'hologram',
@@ -195,8 +185,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'split',
         title: "AI Training — 100+ GTO Games",
         subtitle: "$50-100/mo equivalent subscription value.",
         visualType: 'phone',
@@ -209,8 +198,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_data.png', type: 'split',
         title: "PioSolver Data Farm",
         subtitle: "Our Unfair Advantage & The Defensive Moat.",
         visualType: 'monitor',
@@ -225,8 +213,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_network.png', type: 'grid',
         title: "Jarvis AI & Trivia Engine",
         subtitle: "Daily engagement systems that bring users back every 24 hours.",
         items: [
@@ -238,8 +225,7 @@ const SLIDES = [
             { title: 'Head-to-Head', desc: '1v1 real-time battles against another player.' }
         ]
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_table.png', type: 'grid',
         title: "Social Media & Messenger",
         subtitle: "1:1 Clones of Facebook and WhatsApp. Don't leave the app to talk about the app.",
         items: [
@@ -251,8 +237,7 @@ const SLIDES = [
             { title: 'Groups', desc: 'Dedicated spaces for study groups and club members.' }
         ]
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'grid',
         title: "Essential Tools",
         subtitle: "Professional Utilities Locked Behind Our Ecosystem",
         items: [
@@ -261,8 +246,7 @@ const SLIDES = [
             { title: 'Toke Tracker', desc: 'Worlds ONLY dealer tracking platform. Tips, hourly rates, tax reports. 100k+ dealers. ZERO competition.' }
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'split',
         title: "News Aggregator & Video Library",
         subtitle: "The Epicenter of Poker Content",
         visualType: 'tablet',
@@ -275,8 +259,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_data.png', type: 'table',
         title: "The Diamond Economy",
         subtitle: "1 Diamond = $0.01. The Universal Currency.",
         columns: ['Feature', 'Diamond Cost'],
@@ -288,8 +271,7 @@ const SLIDES = [
             ['Cosmetics', '100-500 per item']
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_network.png', type: 'split',
         title: "The Diamond Store",
         subtitle: "Stripe integration live. 8 packages. Frictionless purchasing.",
         visualType: 'tablet',
@@ -302,8 +284,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_table.png', type: 'split',
         title: "Memory Games & Diamond Arcade",
         subtitle: "Expanding the funnel to casual demographic.",
         visualType: 'hologram',
@@ -316,8 +297,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'split',
         title: "Phase 2: Micro Tasks",
         subtitle: "Infinite Margin Revenue Generation.",
         visualType: 'monitor',
@@ -330,8 +310,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'table',
         title: "Market Opportunity",
         subtitle: "TAM / SAM / SOM ($Billions)",
         columns: ['Metric', 'Value', 'Description'],
@@ -341,8 +320,7 @@ const SLIDES = [
             ['SOM', '$200M', 'Year 5 target (clubs + training + home games)']
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_data.png', type: 'table',
         title: "Revenue Model",
         subtitle: "7 Diversified Streams. 80%+ Gross Margins.",
         columns: ['Revenue Stream', 'Year 3 Projection'],
@@ -357,8 +335,7 @@ const SLIDES = [
             ['TOTAL YEAR 3 ARR', '$12M+']
         ]
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_network.png', type: 'grid',
         title: "Traction — IT IS LIVE",
         subtitle: "This is NOT an idea. It is built.",
         items: [
@@ -370,8 +347,7 @@ const SLIDES = [
             { title: 'Payments Live', desc: 'Stripe integration processing diamond purchases today.' }
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_table.png', type: 'table',
         title: "Competitive Landscape",
         subtitle: "Every competitor does ONE thing. We do EVERYTHING.",
         columns: ['Feature', 'Smarter.Poker', 'PokerAtlas', 'GTO Wizard', 'ClubGG'],
@@ -384,8 +360,7 @@ const SLIDES = [
             ['Diamond Economy & Tools', 'YES', 'NO', 'NO', 'NO']
         ]
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'grid',
         title: "Network Effects & Moats",
         subtitle: "Designed to be Uncatchable",
         items: [
@@ -397,8 +372,7 @@ const SLIDES = [
             { title: 'Demand Moat', desc: 'Growing player base creates network gravity (more players = more tables).' }
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'split',
         title: "Engagement & Retention Loops",
         subtitle: "Multi-loop system designed for DAILY activity.",
         visualType: 'phone',
@@ -413,8 +387,7 @@ const SLIDES = [
             </ul>
         )
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_data.png', type: 'grid',
         title: "Mobile-First Architecture",
         subtitle: "Engineered for speed, stability, and scale.",
         items: [
@@ -426,8 +399,7 @@ const SLIDES = [
             { title: 'Quick Actions', desc: 'Home screen widgets for daily activities.' }
         ]
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_network.png', type: 'grid',
         title: "Security & Compliance",
         subtitle: "Enterprise-grade infrastructure.",
         items: [
@@ -439,8 +411,7 @@ const SLIDES = [
             { title: 'GDPR Privacy', desc: 'Full compliance + regular penetration testing.' }
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_table.png', type: 'table',
         title: "Platform Valuation",
         subtitle: "Buying in BELOW Replacement Cost",
         columns: ['Component', 'Estimated Dev Cost'],
@@ -452,8 +423,7 @@ const SLIDES = [
             ['Total Equivalent Build Cost', '$4 - $8M+']
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'table',
         title: "Use of Funds ($1.2M Seed)",
         subtitle: "Capital efficiency driven by completed product.",
         columns: ['Category', 'Amount', 'Allocation', 'Details'],
@@ -464,8 +434,7 @@ const SLIDES = [
             ['Operations', '$180K', '15%', 'Legal, compliance, HR, admin']
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'table',
         title: "Year 1-3 Roadmap",
         subtitle: "The Path to $12M+ ARR",
         columns: ['Year', 'Targets'],
@@ -475,8 +444,7 @@ const SLIDES = [
             ['Year 3', '1M+ DAU • $12M+ ARR • International expansion • Strategic partnerships']
         ]
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_data.png', type: 'grid',
         title: "Unit Economics",
         subtitle: "Highly favorable ratios.",
         items: [
@@ -488,8 +456,7 @@ const SLIDES = [
             { title: 'Payback <6 Months', desc: 'For VIP and Diamond acquisition costs.' }
         ]
     },
-    {
-        type: 'split',
+    { bgImage: '/images/pitch/bg_network.png', type: 'split',
         title: "Founding Team",
         subtitle: "Built by Poker. For Poker.",
         visualType: 'none',
@@ -504,8 +471,7 @@ const SLIDES = [
             </div>
         )
     },
-    {
-        type: 'grid',
+    { bgImage: '/images/pitch/bg_table.png', type: 'grid',
         title: "Why Now?",
         subtitle: "The Perfect Storm",
         items: [
@@ -517,8 +483,7 @@ const SLIDES = [
             { title: 'Deregulation', desc: 'State-level poker legalization expanding rapidly across the US.' }
         ]
     },
-    {
-        type: 'table',
+    { bgImage: '/images/pitch/bg_diamond.png', type: 'table',
         title: "Risk Mitigation",
         subtitle: "Anticipating the hurdles.",
         columns: ['Risk', 'Mitigation'],
@@ -530,8 +495,7 @@ const SLIDES = [
             ['Tech Debt', '676+ automated tests and modular architecture ensure stability.']
         ]
     },
-    {
-        type: 'title',
+    { bgImage: '/images/pitch/bg_cards.png', type: 'title',
         title: "THE ASK",
         subtitle: "$1.2M Seed Round • $6M Pre-Money SAFE",
         stats: [

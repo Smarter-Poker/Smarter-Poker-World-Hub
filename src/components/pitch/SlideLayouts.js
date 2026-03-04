@@ -124,7 +124,7 @@ export const DesktopMonitor = ({ children, width = 700, height = 400 }) => (
 // 2. SLIDE LAYOUT COMPONENTS
 // =========================================================================
 
-export const SlideContainer = ({ children }) => (
+export const SlideContainer = ({ children, bgImage }) => (
     <div className="pitch-slide-container" style={{
         width: '100%',
         height: '100vh',
@@ -137,6 +137,9 @@ export const SlideContainer = ({ children }) => (
         overflow: 'hidden',
         fontFamily: "'Inter', sans-serif"
     }}>
+        {bgImage && (
+            <img src={bgImage} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25, zIndex: 0 }} alt="Background" />
+        )}
         {/* Background ambient glow */}
         <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(0,180,216,0.1) 0%, transparent 70%)', zIndex: 0 }} />
         <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
@@ -160,8 +163,8 @@ export const SlideHeader = ({ title, subtitle }) => (
 );
 
 // Layout: Split Screen (Text Left, Visual Right)
-export const SplitSlide = ({ title, subtitle, content, visual, visualType = 'phone' }) => (
-    <SlideContainer>
+export const SplitSlide = ({ title, subtitle, content, visual, visualType = 'phone', bgImage }) => (
+    <SlideContainer bgImage={bgImage}>
         <SlideHeader title={title} subtitle={subtitle} />
         <div style={{ display: 'flex', gap: 60, flex: 1, alignItems: 'center' }}>
             <motion.div
@@ -184,8 +187,8 @@ export const SplitSlide = ({ title, subtitle, content, visual, visualType = 'pho
 );
 
 // Layout: Title / Hero Slide
-export const TitleSlide = ({ title, subtitle, stats }) => (
-    <SlideContainer>
+export const TitleSlide = ({ title, subtitle, stats, bgImage }) => (
+    <SlideContainer bgImage={bgImage}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', alignItems: 'center', textAlign: 'center' }}>
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -215,8 +218,8 @@ export const TitleSlide = ({ title, subtitle, stats }) => (
 );
 
 // Layout: Data Table Slide
-export const TableSlide = ({ title, subtitle, columns, rows }) => (
-    <SlideContainer>
+export const TableSlide = ({ title, subtitle, columns, rows, bgImage }) => (
+    <SlideContainer bgImage={bgImage}>
         <SlideHeader title={title} subtitle={subtitle} />
         <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -249,8 +252,8 @@ export const TableSlide = ({ title, subtitle, columns, rows }) => (
 );
 
 // Layout: Full Visual Grid Slide
-export const GridSlide = ({ title, subtitle, items }) => (
-    <SlideContainer>
+export const GridSlide = ({ title, subtitle, items, bgImage }) => (
+    <SlideContainer bgImage={bgImage}>
         <SlideHeader title={title} subtitle={subtitle} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 30 }}>
             {items.map((item, i) => (
