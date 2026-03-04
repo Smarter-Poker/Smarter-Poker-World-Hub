@@ -108,7 +108,7 @@ export default function PersonalAssistantPage() {
             <div style={S.frameContainer}>
               {/* The metal frame image */}
               <img
-                src="/images/personal-assistant-frame.jpg"
+                src="/images/personal-assistant-frame.png"
                 alt="Strategy Hub"
                 style={S.frameImage}
                 draggable={false}
@@ -336,8 +336,8 @@ const S = {
   loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 16 },
   main: {
     position: 'relative', zIndex: 1,
-    padding: '8px 12px 40px',
-    maxWidth: 720,
+    padding: '0',
+    maxWidth: '100%',
     margin: '0 auto',
   },
 
@@ -360,17 +360,18 @@ const S = {
   frameContainer: {
     position: 'relative',
     width: '100%',
-    maxWidth: 680,
-    margin: '0 auto',
+    minHeight: 'calc(100vh - 60px)',
     userSelect: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   frameImage: {
     width: '100%',
-    height: 'auto',
+    height: '100%',
+    objectFit: 'contain',
     display: 'block',
-    borderRadius: 4,
-    // Remove the white background from the image edges
-    filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6))',
+    maxHeight: 'calc(100vh - 60px)',
   },
 
   // ── Generic hotspot (invisible interactive zone) ────────────────────────
