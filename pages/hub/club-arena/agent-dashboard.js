@@ -128,6 +128,41 @@ export default function AgentDashboard() {
 
     useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
+    // BUG #234 FIX: Realtime — new cashout requests and chip changes auto-refresh
+    useEffect(() => {
+        if (!clubIdParam || !user?.id) return;
+
+        const cashoutChannel = supabase
+            .channel(`agent-cashouts-${clubIdParam}-${user.id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'cashout_requests',
+                filter: `club_id=eq.${clubIdParam}`,
+            }, () => {
+                loadDashboard(); // Refresh full dashboard on any cashout change
+            })
+            .subscribe();
+
+        // Also listen for chip_transactions (distribute/clawback events)
+        const txnChannel = supabase
+            .channel(`agent-txns-${clubIdParam}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'chip_transactions',
+                filter: `club_id=eq.${clubIdParam}`,
+            }, () => {
+                loadDashboard();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(cashoutChannel);
+            supabase.removeChannel(txnChannel);
+        };
+    }, [clubIdParam, user?.id]);
+
     // ─── Auto-load sub-agents when tab selected ────────────────
     useEffect(() => {
         if (activeTab !== 'subagents' || subAgentsLoaded || !dashboard?.clubId) return;
@@ -167,9 +202,9 @@ export default function AgentDashboard() {
         setProcessing(true);
         try {
             await apiCall('/api/club-arena/approve-cashout', {
-                cashoutRequestId: cashoutModal.id,
+                cashoutId: cashoutModal.id,
                 action: 'approve',
-                agentNote: cashoutNote || undefined,
+                note: cashoutNote || undefined,
             });
             showToast(`Approved cashout of ${cashoutModal.amount.toLocaleString()} chips`);
             setCashoutModal(null);
@@ -188,9 +223,9 @@ export default function AgentDashboard() {
         setProcessing(true);
         try {
             await apiCall('/api/club-arena/approve-cashout', {
-                cashoutRequestId: cashoutModal.id,
+                cashoutId: cashoutModal.id,
                 action: 'cancel',
-                agentNote: cashoutNote || 'Cancelled by agent',
+                note: cashoutNote || 'Cancelled by agent',
             });
             showToast('Cashout cancelled — chips returned to player');
             setCashoutModal(null);

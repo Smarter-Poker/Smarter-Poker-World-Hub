@@ -409,15 +409,15 @@ export default async function handler(req, res) {
 
       if (payErr) throw payErr;
 
-      // Distribute chips: debit treasury, credit agent
-      if (cr.commission_amount > 0) {
-        const { data: agentData } = await supabaseAdmin
-          .from('agents')
-          .select('user_id')
-          .eq('id', cr.agent_id)
-          .single();
+      // Look up agent user_id (needed for chip transfer AND invoice update)
+      const { data: agentData } = await supabaseAdmin
+        .from('agents')
+        .select('user_id')
+        .eq('id', cr.agent_id)
+        .single();
 
-        if (agentData) {
+      // Distribute chips: debit treasury, credit agent
+      if (cr.commission_amount > 0 && agentData) {
           await supabaseAdmin.rpc('fn_debit_treasury', {
             p_club_id: clubId,
             p_amount: cr.commission_amount,
@@ -442,7 +442,6 @@ export default async function handler(req, res) {
               settlement_type: 'manual',
             },
           });
-        }
       }
 
       // Get the period's start_at to scope the history update correctly

@@ -167,8 +167,9 @@ export default function Cashier() {
 
                 // Load rakeback info
                 try {
+                    const rbToken = await getAuthToken();
                     const rbRes = await fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
-                        headers: { Authorization: `Bearer ${token}` },
+                        headers: { Authorization: `Bearer ${rbToken}` },
                     });
                     if (rbRes.ok) {
                         const rbData = await rbRes.json();
@@ -184,6 +185,46 @@ export default function Cashier() {
     }, [clubIdParam]);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    // BUG #233 FIX: Realtime subscriptions — chip balance and cashout changes auto-refresh
+    useEffect(() => {
+        if (!club?.id || !user?.id) return;
+
+        // Subscribe to club_members changes (chip_balance updates from distribute/cashout)
+        const memberChannel = supabase
+            .channel(`cashier-member-${club.id}-${user.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'club_members',
+                filter: `club_id=eq.${club.id}`,
+            }, (payload) => {
+                if (payload.new?.user_id === user.id) {
+                    setChipBalance(payload.new.chip_balance || 0);
+                }
+            })
+            .subscribe();
+
+        // Subscribe to cashout_requests changes (status updates from agent)
+        const cashoutChannel = supabase
+            .channel(`cashier-cashouts-${club.id}-${user.id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'cashout_requests',
+                filter: `club_id=eq.${club.id}`,
+            }, (payload) => {
+                if (payload.new?.player_id === user.id || payload.old?.player_id === user.id) {
+                    loadData(); // Full refresh on cashout status change
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(memberChannel);
+            supabase.removeChannel(cashoutChannel);
+        };
+    }, [club?.id, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BUY-IN: Diamonds → Club Chips
