@@ -244,7 +244,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-jarvis"
             style={{
               ...S.jarvisHotspot,
-              top: '72.8%', left: '79.1%', width: '15.6%', height: '14.6%',
+              top: '74.02%', left: '78.88%', width: '11.86%', height: '11.13%',
             }}
             onClick={() => {
               if (typeof window !== 'undefined') {
