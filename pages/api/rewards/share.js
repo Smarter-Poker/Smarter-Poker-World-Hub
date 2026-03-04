@@ -79,13 +79,21 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: false, dailyCapReached: true });
         }
 
-        await supabase.from('diamond_reward_claims').insert({
+        // BUG #271 FIX: Check insert result before awarding diamonds
+        const { error: claimErr } = await supabase.from('diamond_reward_claims').insert({
             user_id: userId,
             reward_type: 'share',
             diamonds_awarded: SHARE_REWARD,
             claim_date: today,
             metadata: { share_type: shareType || 'score_card', content_id: contentId || null }
         });
+
+        if (claimErr) {
+            if (claimErr.code === '23505') {
+                return res.status(200).json({ success: true, alreadyClaimed: true });
+            }
+            throw claimErr;
+        }
 
         await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: userId,
