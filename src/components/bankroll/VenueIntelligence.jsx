@@ -32,16 +32,14 @@ const BUYIN_BRACKETS = [
 // ── Helpers ──────────────────────────────────────────────────────
 
 function computeGigStats(gig) {
+    // Use gig.downs[] directly (attached by fetchGigs for analytics)
+    const downs = gig.downs || [];
     let totalTokes = 0;
     let totalHours = 0;
-    const downs = [];
-    for (const day of gig.days || []) {
-        for (const down of day.downs || []) {
-            totalTokes += down.toke_amount || 0;
-            downs.push(down);
-            if (down.started_at && down.ended_at) {
-                totalHours += (new Date(down.ended_at) - new Date(down.started_at)) / (1000 * 60 * 60);
-            }
+    for (const down of downs) {
+        totalTokes += down.toke_amount || 0;
+        if (down.started_at && down.ended_at) {
+            totalHours += (new Date(down.ended_at) - new Date(down.started_at)) / (1000 * 60 * 60);
         }
     }
     return { totalTokes, totalHours, downs };
@@ -81,15 +79,13 @@ export default function VenueIntelligence({ gigs = [] }) {
     const gameTypeStats = useMemo(() => {
         const map = {};
         for (const gig of gigs) {
-            for (const day of gig.days || []) {
-                for (const down of day.downs || []) {
-                    const gt = down.down_type === 'cash'
-                        ? (down.game_type || 'Holdem')
-                        : (down.down_type === 'tournament' ? 'tournament' : down.down_type);
-                    if (!map[gt]) map[gt] = { gameType: gt, totalTokes: 0, totalDowns: 0 };
-                    map[gt].totalTokes += down.toke_amount || 0;
-                    map[gt].totalDowns += 1;
-                }
+            for (const down of gig.downs || []) {
+                const gt = down.down_type === 'cash'
+                    ? (down.game_type || 'Holdem')
+                    : (down.down_type === 'tournament' ? 'tournament' : down.down_type);
+                if (!map[gt]) map[gt] = { gameType: gt, totalTokes: 0, totalDowns: 0 };
+                map[gt].totalTokes += down.toke_amount || 0;
+                map[gt].totalDowns += 1;
             }
         }
         return Object.values(map)
@@ -100,23 +96,19 @@ export default function VenueIntelligence({ gigs = [] }) {
     // ── Tournament Buy-In Bracket Analysis ────────────────────
     const tournamentBrackets = useMemo(() => {
         const bracketMap = {};
-        // Initialize all brackets
-        for (const b of BUYIN_BRACKETS) bracketMap[b.label] = { label: b.label, totalTokes: 0, totalDowns: 0, withBuyin: 0 };
+        for (const b of BUYIN_BRACKETS) bracketMap[b.label] = { label: b.label, totalTokes: 0, totalDowns: 0 };
 
         let hasTourneyData = false;
         for (const gig of gigs) {
-            for (const day of gig.days || []) {
-                for (const down of day.downs || []) {
-                    if (down.down_type !== 'tournament') continue;
-                    hasTourneyData = true;
-                    const buyin = down.tournament_buyin;
-                    if (!buyin) continue; // skip downs without buy-in logged
-                    const bracket = BUYIN_BRACKETS.find(b => buyin >= b.min && buyin <= b.max);
-                    if (!bracket) continue;
-                    bracketMap[bracket.label].totalTokes += down.toke_amount || 0;
-                    bracketMap[bracket.label].totalDowns += 1;
-                    bracketMap[bracket.label].withBuyin += 1;
-                }
+            for (const down of gig.downs || []) {  // use gig.downs directly
+                if (down.down_type !== 'tournament') continue;
+                hasTourneyData = true;
+                const buyin = down.tournament_buyin;
+                if (!buyin) continue;
+                const bracket = BUYIN_BRACKETS.find(b => buyin >= b.min && buyin <= b.max);
+                if (!bracket) continue;
+                bracketMap[bracket.label].totalTokes += down.toke_amount || 0;
+                bracketMap[bracket.label].totalDowns += 1;
             }
         }
         if (!hasTourneyData) return null;

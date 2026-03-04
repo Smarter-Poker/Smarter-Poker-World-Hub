@@ -4,7 +4,7 @@
    Lives in WorldHub — triggered from hamburger menu OR profile dropdown
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { POKER_IQ_ORBS, COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
 import type { OrbConfig } from '../../orbs/manifest/registry';
 import { getHiddenCardIds, setHiddenCardIds } from '../../state/userPreferences';
@@ -85,6 +85,10 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
             : [...hidden, id];
         setHidden(next);
         setHiddenCardIds(next);
+        // 🔴 BUS: broadcast hidden card change so WorldHub carousel/footer update instantly
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('hub-cards-hidden-changed', { detail: { hiddenIds: next } }));
+        }
     };
 
     if (!isOpen) return null;
@@ -208,7 +212,14 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                 {/* Footer */}
                 <div style={s.footer}>
                     <button
-                        onClick={() => { setHidden([]); setHiddenCardIds([]); }}
+                        onClick={() => {
+                            setHidden([]);
+                            setHiddenCardIds([]);
+                            // 🔴 BUS: broadcast reset so WorldHub updates instantly
+                            if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('hub-cards-hidden-changed', { detail: { hiddenIds: [] } }));
+                            }
+                        }}
                         style={s.resetBtn}
                     >
                         Reset to Default

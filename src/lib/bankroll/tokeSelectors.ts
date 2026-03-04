@@ -36,6 +36,9 @@ export interface TokeGig {
     totalHoursWorked?: number;
     totalExpenses?: number;
     days?: TokeGigDay[];
+    // Analytics convenience — attached by fetchGigs for client-side analytics
+    downs?: TokeDown[];
+    expenses?: TokeExpense[];
 }
 
 export interface TokeGigDay {
@@ -139,28 +142,32 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
     // Two bulk queries instead of 2×N per-gig queries
     const [{ data: allDownsRaw }, { data: allExpsRaw }] = await Promise.all([
         supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-        supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
+        supabase.from('toke_expenses').select('*').in('gig_id', gigIds), // full row needed for category breakdown
     ]);
 
     const downsByGig = new Map<string, TokeDown[]>();
-    const expsByGig = new Map<string, number>();
+    const expsByGig = new Map<string, TokeExpense[]>();
     for (const d of (allDownsRaw || []) as TokeDown[]) {
         if (!downsByGig.has(d.gig_id)) downsByGig.set(d.gig_id, []);
         downsByGig.get(d.gig_id)!.push(d);
     }
-    for (const e of (allExpsRaw || []) as { gig_id: string; amount: number }[]) {
-        expsByGig.set(e.gig_id, (expsByGig.get(e.gig_id) || 0) + (e.amount || 0));
+    for (const e of (allExpsRaw || []) as TokeExpense[]) {
+        if (!expsByGig.has(e.gig_id)) expsByGig.set(e.gig_id, []);
+        expsByGig.get(e.gig_id)!.push(e);
     }
 
     return data.map(gig => {
         const allDowns = downsByGig.get(gig.id) || [];
+        const allExps = expsByGig.get(gig.id) || [];
         const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
         return {
             ...gig,
             totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
             totalDowns: dealingDowns.length,
             totalHoursWorked: computeTotalHours(allDowns),
-            totalExpenses: expsByGig.get(gig.id) || 0,
+            totalExpenses: allExps.reduce((s, e) => s + (e.amount || 0), 0),
+            downs: allDowns,       // ← attached for client-side analytics
+            expenses: allExps,     // ← attached for client-side analytics
         };
     });
 }

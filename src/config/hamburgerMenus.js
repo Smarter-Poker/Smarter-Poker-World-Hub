@@ -194,7 +194,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
-            createMenuItem.action('🎴 Customize My Hub', handlers.openCardCustomizer),
+            createMenuItem.action('🎴 Customize My Hub', () => handlers?.openCardCustomizer?.()),
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [

@@ -35,6 +35,7 @@ function assert(condition, label) {
 
     const HORSE = '00000000-0000-0000-0000-000000000029';
     const HUMAN = '99999999-9999-9999-9999-999999999902';
+    const CLEAN_HUMAN = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; // No threat data injected
     const TABLE_A = 'sweep13-table-A';
     const TABLE_B = 'sweep13-table-B';
     const TABLE_C = 'sweep13-table-C';
@@ -81,25 +82,22 @@ function assert(condition, label) {
     assert(typeof gear1.foldMod === 'number', `foldMod is number: ${gear1.foldMod}`);
     assert(typeof gear1.raiseMod === 'number', `raiseMod is number: ${gear1.raiseMod}`);
 
-    // After 29 more calls it should be on the same gear (total 30 trips to trigger rotation)
+    // After 29 more calls it should rotate on the 30th
     for (let i = 0; i < 29; i++) Brain.getRangeRotationGear(HORSE, TABLE_A);
     const gear30 = Brain.getRangeRotationGear(HORSE, TABLE_A); // 30th call — should rotate
-    // At call 31, gear should have advanced
     assert(typeof gear30.gear === 'string', 'Gear still valid after 31 calls');
 
     // Verify two different horses start at different gears (stagger)
     const HORSE2 = '00000000-0000-0000-0000-000000000030';
-    const gear_h1 = Brain.getRangeRotationGear(HORSE, TABLE_B);
+    Brain.getRangeRotationGear(HORSE, TABLE_B);
     const gear_h2 = Brain.getRangeRotationGear(HORSE2, TABLE_B);
-    // Both valid gears even if same (just testing no crash)
     assert(['A', 'B', 'C', 'D'].includes(gear_h2.gear), `Horse 2 has valid gear: ${gear_h2.gear}`);
 
     // ═══════════════════════════════════════════════════════════════
     // TEST 4: MODULE 10 — Cross-Table Collusion Radar
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 4: Module 10 — crossTableRadar ---');
-    const radar = Brain.crossTableRadar;
-    assert(radar instanceof Map, 'crossTableRadar is a Map');
+    assert(Brain.crossTableRadar instanceof Map, 'crossTableRadar is a Map');
 
     // Simulate human at 3 tables via processHandResult
     for (const table of [TABLE_A, TABLE_B, TABLE_C]) {
@@ -121,16 +119,12 @@ function assert(condition, label) {
     // TEST 5: MODULE 15 — Anti-Timebank Abuse
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 5: Module 15 — timeAbuseSuspicion ---');
-    // Inject stalling action times (30 seconds each) via processHandResult
     for (let i = 0; i < 5; i++) {
         await Brain.processHandResult({
             tableId: TABLE_A,
             players: [
                 { id: HORSE, chipDelta: -5, lastAction: 'fold', showedCards: false, folded: false },
-                {
-                    id: HUMAN, chipDelta: 5, lastAction: 'bet', hadInitiative: true, folded: false,
-                    betAmount: 10, lastActionDurationMs: 30000
-                } // 30s per action
+                { id: HUMAN, chipDelta: 5, lastAction: 'bet', hadInitiative: true, folded: false, betAmount: 10, lastActionDurationMs: 30000 }
             ],
             result: { winners: [{ playerId: HUMAN }], players: [{ id: HORSE, chipDelta: -5 }, { id: HUMAN, chipDelta: 5 }] }
         }, 2);
@@ -143,7 +137,6 @@ function assert(condition, label) {
     // TEST 6: MODULE 14 — Dynamic Blacklist Enforcer (getThreatScore)
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 6: Module 14 — getThreatScore ---');
-    // Manually inject high signals
     const botMap = Brain.suspectBotMap;
     botMap.set(HUMAN, { perfectFolds: 20, gtoSizes: 25, humanErrors: 2, handsObserved: 30, suspectScore: 90 });
 
@@ -157,20 +150,17 @@ function assert(condition, label) {
     assert(score > 30, `High-signal human has elevated score: ${score}`);
 
     // ═══════════════════════════════════════════════════════════════
-    // TEST 7: MODULE 14 — isBlacklisted (no blacklist yet)
+    // TEST 7: MODULE 14 — isBlacklisted
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 7: Module 14 — isBlacklisted ---');
     assert(Brain.isBlacklisted(HUMAN) === false, 'No blacklist in cache yet (clean state)');
 
-    // Inject a future blacklist into cache
     Brain.threatIntelCache.set(HUMAN, {
-        suspectBotScore: 90,
-        totalScore: 90,
-        blacklistedUntil: Date.now() + 24 * 60 * 60 * 1000 // 24h from now
+        suspectBotScore: 90, totalScore: 90,
+        blacklistedUntil: Date.now() + 24 * 60 * 60 * 1000
     });
     assert(Brain.isBlacklisted(HUMAN) === true, 'isBlacklisted returns true for cached future blacklist');
 
-    // Inject expired blacklist
     Brain.threatIntelCache.set(HUMAN + '_exp', {
         totalScore: 90,
         blacklistedUntil: Date.now() - 1000 // Already expired
@@ -178,7 +168,7 @@ function assert(condition, label) {
     assert(Brain.isBlacklisted(HUMAN + '_exp') === false, 'Expired blacklist returns false');
 
     // ═══════════════════════════════════════════════════════════════
-    // TEST 8: MODULE 9 — Threat Intel Cache Exists
+    // TEST 8: MODULE 9 — Threat Intel Cache
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 8: Module 9 — Threat Intel Cache ---');
     assert(Brain.threatIntelCache instanceof Map, 'threatIntelCache is a Map');
@@ -195,7 +185,43 @@ function assert(condition, label) {
     // TEST 10: MODULE 11 — Range Rotation State Map
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 10: Module 11 — rangeRotationMap ---');
-    '_loadThreatIntel', '_persistThreatIntel', 'getThreatScore', 'isBlacklisted',
+    assert(Brain.rangeRotationMap instanceof Map, 'rangeRotationMap is a Map');
+    assert(Brain.rangeRotationMap.has(`${HORSE}:${TABLE_A}`), `rangeRotationMap has entry for HORSE:TABLE_A`);
+
+    // ═══════════════════════════════════════════════════════════════
+    // TEST 11: MODULE 12 — Multiway Discount wired into PLO pipeline
+    // ═══════════════════════════════════════════════════════════════
+    console.log('\n--- TEST 11: Module 12 — Multiway Discount Wiring ---');
+    // Verify discount produces different values for 2 vs 5 players (function correctness)
+    const disc2p = Brain.applyMultiwayEquityDiscount(60, 2);
+    const disc5p = Brain.applyMultiwayEquityDiscount(60, 5);
+    assert(disc5p < disc2p, `5-player discount (${disc5p}) < 2-player (${disc2p}) — discount active`);
+
+    // Verify PLO routing works without crashing (uses CLEAN_HUMAN who has no threat data)
+    let ploDecisions = 0;
+    for (let i = 0; i < 5; i++) {
+        const r = await Brain.getDecision(HORSE, {
+            tableId: TABLE_A,
+            players: [
+                { id: HORSE, holeCards: [{ rank: 5, suit: 0 }, { rank: 6, suit: 1 }, { rank: 8, suit: 2 }, { rank: 9, suit: 3 }], stack: 200, position: 'mp', folded: false, invested: 0 },
+                { id: CLEAN_HUMAN, stack: 200, position: 'btn', folded: false, invested: 8 },
+                { id: 'player_x', stack: 200, position: 'bb', folded: false, invested: 8 }
+            ],
+            communityCards: [{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }, { rank: 12, suit: 2 }],
+            phase: 'flop', potTotal: 24, currentBet: 8, variant: 'plo4'
+        },
+            [{ type: 'fold' }, { type: 'call', amount: 8 }, { type: 'raise', minAmount: 16, maxAmount: 200 }],
+            { bigBlind: 2, variant: 'plo4' });
+        if (r.action?.type) ploDecisions++;
+    }
+    assert(ploDecisions === 5, `PLO multiway routing produces valid actions in 3-way pot (${ploDecisions}/5)`);
+
+    // ═══════════════════════════════════════════════════════════════
+    // TEST 12: ALL PHASE 2 EXPORTS PRESENT
+    // ═══════════════════════════════════════════════════════════════
+    console.log('\n--- TEST 12: Phase 2 Exports ---');
+    const p2exports = [
+        '_loadThreatIntel', '_persistThreatIntel', 'getThreatScore', 'isBlacklisted',
         'crossTableRadar', 'getRangeRotationGear', 'rangeRotationMap',
         'applyMultiwayEquityDiscount', 'detectNutBiasExploitBoard',
         'timeAbuseSuspicion', 'tableTimebankBlacklist', 'threatIntelCache',
@@ -235,7 +261,7 @@ function assert(condition, label) {
             tableId: TABLE_A,
             players: [
                 { id: HORSE, holeCards: [{ rank: 14, suit: 0 }, { rank: 14, suit: 1 }], stack: 200, position: 'btn', folded: false, invested: 4 },
-                { id: HUMAN, stack: 200, position: 'bb', folded: false, invested: 4 }
+                { id: CLEAN_HUMAN, stack: 200, position: 'bb', folded: false, invested: 4 }
             ],
             communityCards: [],
             phase: 'preflop', potTotal: 8, currentBet: 4, variant: 'holdem'

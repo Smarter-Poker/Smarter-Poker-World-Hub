@@ -372,8 +372,18 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // Mobile detection
     const isMobile = useIsMobile();
 
-    // Get the 6 footer cards (most visited or defaults)
-    const footerCards = useMemo(() => getFooterCards(), []);
+    // Get the 6 footer cards (most visited or defaults) — reactive to hiddenCardIds
+    // Also ensures TOKE_TRACKER_ORB is always available for quick-launch
+    const footerCards = useMemo(() => {
+        const cards = getFooterCards();
+        // Inject TOKE_TRACKER_ORB at front if not already in the personalized list
+        const hasInList = cards.some(c => c.id === 'toke-tracker');
+        const base = hasInList ? cards : [TOKE_TRACKER_ORB, ...cards.slice(0, 5)];
+        // Filter any cards the user has hidden
+        return hiddenCardIds.length > 0
+            ? base.filter(c => !hiddenCardIds.includes(c.id))
+            : base;
+    }, [hiddenCardIds]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // UI STATE
@@ -434,6 +444,23 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         } catch { }
         // Load hidden card preferences
         setHiddenCardIdsState(getHiddenCardIds());
+    }, []);
+
+    // 🔴 BUS LISTENER — Real-time card visibility sync from CardCustomizerPanel
+    // Fires whenever user toggles or resets cards in the customizer panel
+    // Updates carousel + footer cards instantly without page reload
+    useEffect(() => {
+        const handleCardsHiddenChanged = (e: Event) => {
+            const detail = (e as CustomEvent<{ hiddenIds: string[] }>).detail;
+            if (detail && Array.isArray(detail.hiddenIds)) {
+                setHiddenCardIdsState(detail.hiddenIds);
+            } else {
+                // Fallback: re-read from localStorage
+                setHiddenCardIdsState(getHiddenCardIds());
+            }
+        };
+        window.addEventListener('hub-cards-hidden-changed', handleCardsHiddenChanged);
+        return () => window.removeEventListener('hub-cards-hidden-changed', handleCardsHiddenChanged);
     }, []);
 
     // Build carousel orbs — inject Toke Tracker (always), Commander and/or Employee Portal cards
@@ -1099,6 +1126,19 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 OVERLAYS — Search, Live Help (highest z-index)
                 ═══════════════════════════════════════════════════════════════ */}
                 <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+                {/* PROFILE DROPDOWN — slide-down from profile orb click */}
+                <ProfileDropdown
+                    isOpen={isProfileDropdownOpen}
+                    onClose={() => setIsProfileDropdownOpen(false)}
+                    anchorRef={profileOrbRef}
+                    onCustomizeCards={() => {
+                        setIsProfileDropdownOpen(false);
+                        if (onOpenCardCustomizer) {
+                            setTimeout(onOpenCardCustomizer, 150);
+                        }
+                    }}
+                />
 
                 {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
                 <LiveHelpPanel

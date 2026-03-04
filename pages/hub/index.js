@@ -52,10 +52,20 @@ export default function HubPage() {
         }
 
         // Detect which special cards are unlocked for this user
-        const unlocked = ['toke-tracker']; // Always unlocked
+        const unlocked = ['toke-tracker']; // Always unlocked for all authenticated users
         try {
-            const stored = localStorage.getItem('commander_staff');
-            if (stored && JSON.parse(stored)?.id) unlocked.push('club-commander');
+            // Commander account detection via localStorage cache (set by WorldHub on load)
+            const commStored = localStorage.getItem('commander_staff');
+            if (commStored) {
+                const parsed = JSON.parse(commStored);
+                if (parsed?.id || parsed?.venue_id || parsed?.role) unlocked.push('club-commander');
+            }
+            // Employee portal (venue-linked dealer) detection — check all possible cache keys
+            const venueCache = localStorage.getItem('emp_venues') || localStorage.getItem('hub_linked_venues');
+            if (venueCache) {
+                const parsed = JSON.parse(venueCache);
+                if (Array.isArray(parsed) && parsed.length > 0) unlocked.push('employee-portal');
+            }
         } catch { }
         setUnlockedSpecialIds(unlocked);
     }, []);
