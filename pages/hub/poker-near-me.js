@@ -1826,30 +1826,31 @@ export default function PokerNearMePage() {
                     description="Access 483+ Live Poker Venues, Tournament Schedules, And Daily Events Worldwide."
                 >
 
-                    {/* Page Header */}
-                    <div className="pnm-header">
-                        <h1><span className="white">POKER</span> <span className="gold">NEAR</span> <span className="white">ME</span></h1>
-                        <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS | LIVE GAMES | MAP</span>
-                    </div>
+                    {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
+                    <div className="pnm-hud-panel">
+                        <img src="/images/poker-near-me-hud-frame.png" alt="" className="hud-bg-frame" aria-hidden="true" />
+                        <div className="hud-content-overlay">
+                            {/* Title */}
+                            <h1 className="hud-title">POKER NEAR ME</h1>
+                            <div className="hud-subtitle">VENUES | TOUR | SERIES | DAILY EVENTS | LIVE GAMES | MAP</div>
 
-                    {/* Search Section */}
-                    <div className="pnm-search-section">
-                        <div className="search-container">
-                            <form className="search-form" onSubmit={handleSearch}>
-                                <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                                </svg>
-                                <div className="search-input-wrapper">
+                            {/* Search Bar */}
+                            <form className="hud-search-row" onSubmit={handleSearch}>
+                                <div className="hud-search-bar">
+                                    <svg className="hud-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
+                                        <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                                    </svg>
                                     <input
                                         type="text"
-                                        placeholder="Search Venues, Tours, Series, Or Events..."
+                                        className="hud-search-input"
+                                        placeholder=""
                                         value={searchQuery}
                                         onChange={handleSearchInputChange}
                                         onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
                                         onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
                                     />
                                     {showSearchHistory && searchHistory.length > 0 && (
-                                        <div className="search-history-dropdown">
+                                        <div className="search-history-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50 }}>
                                             <div className="search-history-header">
                                                 <span>Recent Searches</span>
                                                 <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
@@ -1864,208 +1865,63 @@ export default function PokerNearMePage() {
                                         </div>
                                     )}
                                 </div>
-                                <button type="submit" className="search-btn">Search</button>
+                                <button type="submit" className="hud-search-btn">Search</button>
                             </form>
 
-                            <div className="search-controls">
-                                <div className="search-buttons">
-                                    <button className={'btn-gps' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                        </svg>
-                                        {gpsLoading ? 'Locating...' : 'Use GPS'}
+                            {/* GPS + Filters Buttons */}
+                            <div className="hud-controls-row">
+                                <button className={'hud-ctrl-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
+                                    {gpsLoading ? 'Locating...' : 'Use GPS'}
+                                </button>
+                                <button className={'hud-ctrl-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                                    </svg>
+                                    Filters
+                                </button>
+                            </div>
+
+                            {/* Tab Buttons */}
+                            <div className="hud-tab-row">
+                                {[
+                                    { key: 'venues', icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', icon2: '9 22 9 12 15 12 15 22', label: 'Venues' },
+                                    { key: 'tours', label: 'Tours' },
+                                    { key: 'series', label: 'Series' },
+                                    { key: 'daily', label: 'Daily' },
+                                    { key: 'live', label: 'Live' },
+                                    { key: 'map', label: 'Map' }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.key}
+                                        className={'hud-tab-btn' + (activeTab === tab.key ? ' active' : '')}
+                                        onClick={() => setActiveTab(tab.key)}
+                                    >
+                                        {tab.label}
                                     </button>
-                                    <button className={'btn-filters' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                                            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                                            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                                        </svg>
-                                        Filters
-                                    </button>
-                                </div>
-
-
-
-                                {(userLocation || nearestDistance) && (
-                                    <div className="distance-display">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                        </svg>
-                                        <span>Nearest: ~{nearestDistance || '0'} miles</span>
-                                    </div>
-                                )}
-                                {geofenceStatus === 'denied' && (
-                                    <div className="geofence-notice denied">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-                                        </svg>
-                                        <span>Notifications Blocked - Venue Alerts Will Show In-app Only</span>
-                                    </div>
-                                )}
-                                {geofenceStatus === 'error' && (
-                                    <div className="geofence-notice error">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-                                        </svg>
-                                        <span>Geofence Service Unavailable</span>
-                                    </div>
-                                )}
+                                ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Filter Panel */}
-                    {showFilters && (
-                        <div className="filter-panel">
-                            {activeTab === 'venues' && (
-                                <>
-                                    <div className="filter-group">
-                                        <label>Venue Type</label>
-                                        <div className="filter-chips">
-                                            {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
-                                                <button key={type} className={'chip' + (filters.venueType === type ? ' active' : '')}
-                                                    onClick={() => setFilters({ ...filters, venueType: type })}>
-                                                    {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="filter-group">
-                                        <label>Games</label>
-                                        <div className="filter-chips">
-                                            <button className={'chip' + (filters.hasNLH ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
-                                            <button className={'chip' + (filters.hasPLO ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
-                                            <button className={'chip' + (filters.hasMixed ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'tours' && (
-                                <div className="filter-group">
-                                    <label>Tour Type</label>
-                                    <div className="filter-chips">
-                                        {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
-                                            <button key={type} className={'chip' + (filters.tourType === type ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, tourType: type })}>
-                                                {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'series' && (
-                                <>
-                                    <div className="filter-group">
-                                        <label>Timeframe</label>
-                                        <div className="filter-chips">
-                                            {[30, 60, 90, 180].map(days => (
-                                                <button key={days} className={'chip' + (filters.seriesTimeframe === days ? ' active' : '')}
-                                                    onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
-                                                    {days} Days
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="filter-group">
-                                        <label>Series Type</label>
-                                        <div className="filter-chips">
-                                            {['all', 'major', 'circuit', 'regional'].map(type => (
-                                                <button key={type} className={'chip' + (filters.seriesType === type ? ' active' : '')}
-                                                    onClick={() => setFilters({ ...filters, seriesType: type })}>
-                                                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'daily' && (
-                                <div className="filter-group">
-                                    <label>Buy-In Range</label>
-                                    <div className="filter-inputs">
-                                        <input
-                                            type="number"
-                                            placeholder="Min $"
-                                            value={filters.minBuyin}
-                                            onChange={(e) => setFilters({ ...filters, minBuyin: e.target.value })}
-                                        />
-                                        <span>To</span>
-                                        <input
-                                            type="number"
-                                            placeholder="Max $"
-                                            value={filters.maxBuyin}
-                                            onChange={(e) => setFilters({ ...filters, maxBuyin: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <button className="btn-apply" onClick={() => { fetchAllData({ includeVenues: hasSearched }); setShowFilters(false); }}>
-                                Apply Filters
-                            </button>
+                    {/* Distance / Geofence notices (below HUD) */}
+                    {(userLocation || nearestDistance) && (
+                        <div className="distance-display" style={{ textAlign: 'center', padding: '6px 0', color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}>
+                                <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                            </svg>
+                            <span>Nearest: ~{nearestDistance || '0'} miles</span>
                         </div>
                     )}
-
-                    {/* Tab Navigation */}
-                    <div className="tab-navigation">
-                        <button className={'tab' + (activeTab === 'venues' ? ' active' : '')} onClick={() => setActiveTab('venues')}>
-                            <span className="tab-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-                                </svg>
-                            </span>
-                            Venues
-                        </button>
-                        <button className={'tab' + (activeTab === 'tours' ? ' active' : '')} onClick={() => setActiveTab('tours')}>
-                            <span className="tab-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                                </svg>
-                            </span>
-                            Tours
-                        </button>
-                        <button className={'tab' + (activeTab === 'series' ? ' active' : '')} onClick={() => setActiveTab('series')}>
-                            <span className="tab-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                            </span>
-                            Series
-                        </button>
-                        <button className={'tab' + (activeTab === 'daily' ? ' active' : '')} onClick={() => setActiveTab('daily')}>
-                            <span className="tab-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                                </svg>
-                            </span>
-                            Daily
-                        </button>
-                        <button className={'tab' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
-                            <span className="tab-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
-                                </svg>
-                            </span>
-                            Live
-                        </button>
-                        <button className={'tab' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
-                            <span className="tab-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                                    <line x1="8" y1="2" x2="8" y2="18" />
-                                    <line x1="16" y1="6" x2="16" y2="22" />
-                                </svg>
-                            </span>
-                            Map
-                        </button>
-                    </div>
+                    {geofenceStatus === 'denied' && (
+                        <div className="geofence-notice denied">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                            <span>Notifications Blocked - Venue Alerts Will Show In-app Only</span>
+                        </div>
+                    )}
 
                     {/* Main Content */}
                     <main className="pnm-content">
@@ -2140,273 +1996,183 @@ export default function PokerNearMePage() {
                         z-index: -1;
                     }
 
-                    /* Header */
-                    .pnm-header {
-                        padding: 24px 20px;
-                        text-align: center;
-                    }
-                    .pnm-header h1 {
-                        font-size: 32px;
-                        font-weight: 700;
-                        margin: 0;
-                        letter-spacing: 2px;
-                    }
-                    .pnm-header .white { color: #fff; }
-                    .pnm-header .gold { color: #d4a853; }
-                    .pnm-header .subtitle {
-                        display: block;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.5);
-                        margin-top: 8px;
-                        letter-spacing: 3px;
-                    }
-
-                    /* Search Section */
-                    .pnm-search-section {
-                        padding: 0 20px 20px;
-                        max-width: 900px;
-                        margin: 0 auto;
-                    }
-                    .search-container {
-                        background: rgba(15, 23, 42, 0.6);
-                        backdrop-filter: blur(12px);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 16px;
-                        padding: 16px;
-                    }
-                    .search-form {
+                    /* ═══ HUD PANEL ═══ */
+                    .pnm-hud-panel {
                         position: relative;
-                        display: flex;
-                        gap: 10px;
-                        margin-bottom: 12px;
+                        max-width: 720px;
+                        margin: 0 auto 12px;
+                        padding: 0 12px;
                     }
-                    .search-icon {
+                    .hud-bg-frame {
+                        width: 100%;
+                        height: auto;
+                        display: block;
+                        pointer-events: none;
+                        user-select: none;
+                        filter: brightness(0.85);
+                    }
+                    .hud-content-overlay {
                         position: absolute;
-                        left: 16px;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        color: rgba(255,255,255,0.4);
-                    }
-                    /* search-form input styles moved to .search-input-wrapper */
-                    .search-btn {
-                        padding: 14px 24px;
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
-                        border: none;
-                        border-radius: 12px;
-                        color: #000;
-                        font-weight: 600;
-                        cursor: pointer;
-                    }
-
-                    .search-controls {
+                        inset: 0;
                         display: flex;
                         flex-direction: column;
-                        gap: 12px;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 14% 16% 12%;
+                        z-index: 2;
                     }
-                    .search-buttons {
+
+                    /* HUD Title */
+                    .hud-title {
+                        font-family: 'Inter', 'Arial Black', sans-serif;
+                        font-size: clamp(16px, 4vw, 32px);
+                        font-weight: 800;
+                        letter-spacing: 4px;
+                        margin: 0 0 2px;
+                        background: linear-gradient(180deg, #ffffff 0%, #c0c0c0 40%, #d4a853 80%, #b8860b 100%);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        text-shadow: none;
+                        text-transform: uppercase;
+                    }
+                    .hud-subtitle {
+                        font-size: clamp(7px, 1.6vw, 12px);
+                        color: rgba(255,255,255,0.55);
+                        letter-spacing: 2px;
+                        margin-bottom: clamp(6px, 2vw, 14px);
+                        text-transform: uppercase;
+                        font-weight: 500;
+                    }
+
+                    /* HUD Search Row */
+                    .hud-search-row {
                         display: flex;
-                        gap: 10px;
+                        gap: 6px;
+                        width: 100%;
+                        margin-bottom: clamp(4px, 1.2vw, 10px);
                     }
-                    .btn-gps, .btn-filters {
+                    .hud-search-bar {
+                        position: relative;
                         flex: 1;
                         display: flex;
                         align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        padding: 12px 16px;
-                        background: rgba(0,0,0,0.3);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 10px;
-                        color: rgba(255,255,255,0.8);
-                        font-size: 14px;
-                        font-weight: 500;
+                        background: linear-gradient(180deg, rgba(10,15,25,0.9) 0%, rgba(20,28,42,0.85) 100%);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 6px;
+                        overflow: hidden;
+                        box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04);
+                    }
+                    .hud-search-icon {
+                        position: absolute;
+                        left: 10px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        pointer-events: none;
+                    }
+                    .hud-search-input {
+                        flex: 1;
+                        background: transparent;
+                        border: none;
+                        outline: none;
+                        color: #fff;
+                        font-size: clamp(12px, 2vw, 15px);
+                        padding: clamp(8px, 1.5vw, 14px) 12px clamp(8px, 1.5vw, 14px) 34px;
+                        font-family: inherit;
+                        caret-color: #d4a853;
+                    }
+                    .hud-search-input::placeholder {
+                        color: rgba(255,255,255,0.3);
+                    }
+                    .hud-search-btn {
+                        padding: clamp(8px, 1.5vw, 14px) clamp(14px, 3vw, 26px);
+                        background: linear-gradient(180deg, #d4a853 0%, #a07730 100%);
+                        border: 1px solid rgba(212,168,83,0.6);
+                        border-radius: 6px;
+                        color: #000;
+                        font-weight: 700;
+                        font-size: clamp(11px, 1.8vw, 14px);
                         cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .btn-gps:hover, .btn-filters:hover {
-                        background: rgba(255,255,255,0.1);
-                    }
-                    .btn-gps.active {
-                        background: rgba(34,197,94,0.2);
-                        border-color: rgba(34,197,94,0.5);
-                        color: #22c55e;
-                    }
-                    .btn-filters.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
-                    }
-
-                    .city-chips {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 8px;
-                    }
-                    .city-chip {
-                        padding: 8px 14px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 20px;
-                        color: rgba(255,255,255,0.7);
-                        font-size: 13px;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .city-chip:hover {
-                        background: rgba(255,255,255,0.1);
-                    }
-                    .city-chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
-                    }
-                    .city-chip.clear {
-                        background: rgba(239,68,68,0.2);
-                        border-color: rgba(239,68,68,0.4);
-                        color: #ef4444;
-                    }
-
-                    .distance-display {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 8px 12px;
-                        background: rgba(34,197,94,0.1);
-                        border-radius: 8px;
-                        color: #4ade80;
-                        font-size: 13px;
-                    }
-                    .geofence-notice {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 8px 12px;
-                        border-radius: 8px;
-                        font-size: 12px;
-                    }
-                    .geofence-notice.denied {
-                        background: rgba(245,158,11,0.1);
-                        color: #fbbf24;
-                    }
-                    .geofence-notice.error {
-                        background: rgba(239,68,68,0.1);
-                        color: #f87171;
-                    }
-
-                    /* Filter Panel */
-                    .filter-panel {
-                        max-width: 900px;
-                        margin: 0 auto 20px;
-                        padding: 16px;
-                        background: rgba(15, 23, 42, 0.8);
-                        backdrop-filter: blur(12px);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 12px;
-                        margin-left: 20px;
-                        margin-right: 20px;
-                    }
-                    .filter-group {
-                        margin-bottom: 16px;
-                    }
-                    .filter-group label {
-                        display: block;
-                        font-size: 11px;
-                        color: rgba(255,255,255,0.5);
-                        margin-bottom: 8px;
                         text-transform: uppercase;
                         letter-spacing: 1px;
+                        transition: all 0.15s;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
                     }
-                    .filter-chips {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 8px;
+                    .hud-search-btn:hover {
+                        background: linear-gradient(180deg, #e0b965 0%, #b8860b 100%);
                     }
-                    .chip {
-                        padding: 8px 14px;
-                        background: rgba(0,0,0,0.3);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 20px;
-                        color: rgba(255,255,255,0.7);
-                        font-size: 13px;
-                        cursor: pointer;
-                    }
-                    .chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
-                    }
-                    .filter-inputs {
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                    }
-                    .filter-inputs input {
-                        width: 100px;
-                        padding: 10px 12px;
-                        background: rgba(0,0,0,0.3);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 8px;
-                        color: #fff;
-                        font-size: 14px;
-                    }
-                    .filter-inputs span {
-                        color: rgba(255,255,255,0.5);
-                    }
-                    .btn-apply {
-                        width: 100%;
-                        padding: 12px;
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
-                        border: none;
-                        border-radius: 10px;
-                        color: #000;
-                        font-size: 14px;
-                        font-weight: 600;
-                        cursor: pointer;
+                    .hud-search-btn:active {
+                        transform: scale(0.97);
                     }
 
-                    /* Tab Navigation */
-                    .tab-navigation {
+                    /* HUD Controls Row (GPS + Filters) */
+                    .hud-controls-row {
                         display: flex;
-                        justify-content: center;
                         gap: 8px;
-                        padding: 0 20px;
-                        margin-bottom: 20px;
-                        flex-wrap: wrap;
+                        width: 100%;
+                        justify-content: center;
+                        margin-bottom: clamp(4px, 1.2vw, 10px);
                     }
-                    .tab {
+                    .hud-ctrl-btn {
                         display: flex;
                         align-items: center;
-                        gap: 8px;
-                        padding: 12px 20px;
-                        background: rgba(15, 23, 42, 0.6);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 10px;
-                        color: rgba(255,255,255,0.7);
-                        font-size: 14px;
-                        font-weight: 500;
+                        justify-content: center;
+                        gap: 6px;
+                        padding: clamp(6px, 1vw, 10px) clamp(16px, 3vw, 32px);
+                        background: linear-gradient(180deg, rgba(50,55,65,0.9) 0%, rgba(35,38,48,0.95) 100%);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 5px;
+                        color: rgba(255,255,255,0.75);
+                        font-size: clamp(10px, 1.6vw, 13px);
+                        font-weight: 600;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        transition: all 0.15s;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
                     }
-                    .tab:hover {
-                        background: rgba(255,255,255,0.1);
+                    .hud-ctrl-btn:hover {
+                        background: linear-gradient(180deg, rgba(65,70,80,0.95) 0%, rgba(45,48,58,1) 100%);
+                        border-color: rgba(255,255,255,0.25);
                     }
-                    .tab.active {
-                        background: rgba(212,168,83,0.2);
+                    .hud-ctrl-btn.active {
+                        background: linear-gradient(180deg, rgba(212,168,83,0.3) 0%, rgba(140,110,50,0.3) 100%);
                         border-color: rgba(212,168,83,0.5);
                         color: #d4a853;
                     }
-                    .tab-icon {
+
+                    /* HUD Tab Row */
+                    .hud-tab-row {
                         display: flex;
-                        align-items: center;
+                        gap: clamp(4px, 0.8vw, 8px);
+                        width: 100%;
+                        justify-content: center;
+                        flex-wrap: wrap;
                     }
-                    .tab-count {
-                        background: rgba(255,255,255,0.1);
-                        padding: 2px 8px;
-                        border-radius: 10px;
-                        font-size: 12px;
+                    .hud-tab-btn {
+                        padding: clamp(5px, 1vw, 9px) clamp(10px, 2vw, 18px);
+                        background: linear-gradient(180deg, rgba(55,60,72,0.9) 0%, rgba(38,42,52,0.95) 100%);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 5px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: clamp(9px, 1.5vw, 13px);
+                        font-weight: 600;
+                        cursor: pointer;
+                        text-transform: capitalize;
+                        letter-spacing: 0.5px;
+                        transition: all 0.15s;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
                     }
-                    .tab.active .tab-count {
-                        background: rgba(212,168,83,0.3);
+                    .hud-tab-btn:hover {
+                        background: linear-gradient(180deg, rgba(70,75,88,0.95) 0%, rgba(50,54,65,1) 100%);
+                        border-color: rgba(255,255,255,0.22);
+                        color: #fff;
+                    }
+                    .hud-tab-btn.active {
+                        background: linear-gradient(180deg, rgba(212,168,83,0.35) 0%, rgba(160,120,48,0.3) 100%);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
+                        box-shadow: 0 0 8px rgba(212,168,83,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
                     }
 
                     /* Main Content */
@@ -3156,21 +2922,11 @@ export default function PokerNearMePage() {
 
                     /* Mobile */
                     @media (max-width: 640px) {
-                        .pnm-header h1 {
-                            font-size: 24px;
+                        .pnm-hud-panel {
+                            padding: 0 4px;
                         }
-                        .search-form {
-                            flex-direction: column;
-                        }
-                        .search-btn {
-                            width: 100%;
-                        }
-                        .tab {
-                            padding: 10px 14px;
-                            font-size: 12px;
-                        }
-                        .tab-icon {
-                            display: none;
+                        .hud-content-overlay {
+                            padding: 16% 12% 10%;
                         }
                         .results-bar {
                             flex-direction: column;

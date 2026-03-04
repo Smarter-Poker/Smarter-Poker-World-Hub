@@ -942,7 +942,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             onClick={handleCopyReport}
                             style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#E4E6EB' }}
                         >
-                            📋 Copy Summary
+                            Copy Summary
                         </button>
                         <button
                             onClick={handleDownloadCSV}
@@ -1028,7 +1028,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             {(monthlyGoal > 0 || showGoalEdit) && (
                 <div style={styles.goalCard}>
                     <div style={styles.goalHeader}>
-                        <span style={styles.goalTitle}>🎯 Monthly Goal</span>
+                        <span style={styles.goalTitle}>Monthly Goal</span>
                         <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
                     </div>
                     {showGoalEdit ? (
@@ -1064,7 +1064,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 </div>
             )}
             {!monthlyGoal && !showGoalEdit && (
-                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>🎯 Set Monthly Income Goal</button>
+                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>Set Monthly Income Goal</button>
             )}
 
             {/* ── ACTIVE GIG VIEW ── */}
@@ -1087,7 +1087,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             border: `1px solid ${isDayOpen ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: 20, padding: '3px 10px',
                         }}>
-                            {isDayOpen ? `📅 Day ${currentDayNumber} — In Progress` : `✅ Day ${currentDayNumber} Closed`}
+                            {isDayOpen ? `Day ${currentDayNumber} — In Progress` : `Day ${currentDayNumber} — Closed`}
                         </span>
                     </div>
 
@@ -1168,7 +1168,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 style={styles.closedDayHeader}
                                 onClick={() => setCollapsedDays(prev => ({ ...prev, [day.id]: !prev[day.id] }))}
                             >
-                                <span style={styles.closedDayLabel}>✅ Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                <span style={styles.closedDayLabel}>Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 <span style={styles.closedDayStats}>
                                     <span style={{ color: '#f59e0b' }}>{formatCurrency(day.totalTokes || 0)}</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
@@ -1667,7 +1667,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                     />
                                     {downForm.tournament_buyin && parseFloat(downForm.tournament_buyin) > 0 && (
                                         <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                            📊 Tracked for analysis
+                                            Tracked for analysis
                                         </span>
                                     )}
                                 </div>

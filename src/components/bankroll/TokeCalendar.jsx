@@ -128,7 +128,7 @@ export default function TokeCalendar({ userId }) {
     };
 
     const handleShare = async (ev) => {
-        const text = `📅 ${ev.title}${ev.venue_name ? ` @ ${ev.venue_name}` : ''}\n📆 ${new Date(ev.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${ev.notes ? `\n📝 ${ev.notes}` : ''}`;
+        const text = `${ev.title}${ev.venue_name ? ` @ ${ev.venue_name}` : ''}\n${new Date(ev.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${ev.notes ? `\n${ev.notes}` : ''}`;
         try {
             if (navigator.share) {
                 await navigator.share({ title: ev.title, text });
@@ -148,7 +148,7 @@ export default function TokeCalendar({ userId }) {
             {/* Header */}
             <div style={calStyles.header}>
                 <div style={calStyles.headerLeft}>
-                    <span style={calStyles.calIcon}>📅</span>
+                    <span style={calStyles.calIcon}></span>
                     <div>
                         <div style={calStyles.title}>Event Calendar</div>
                         <div style={calStyles.subtitle}>Schedule Future Gigs & Get Alerts</div>
@@ -265,7 +265,7 @@ export default function TokeCalendar({ userId }) {
                                                                 <div key={ev.id} style={calStyles.eventPill}
                                                                     onClick={e => { e.stopPropagation(); setShowEventDetail(ev); }}
                                                                 >
-                                                                    {ev.alert_enabled ? '🔔 ' : ''}{ev.title}
+                                                                    {ev.alert_enabled ? '' : ''}{ev.title}
                                                                 </div>
                                                             ))}
                                                             {!isPast && dayEvs.length === 0 && (
@@ -302,7 +302,7 @@ export default function TokeCalendar({ userId }) {
                         >
                             <h3 style={calStyles.modalTitle}>New Calendar Event</h3>
                             <div style={calStyles.modalDate}>
-                                📅 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
 
                             <label style={calStyles.label}>Event Title *</label>
@@ -334,7 +334,7 @@ export default function TokeCalendar({ userId }) {
 
                             {/* Alert Toggle */}
                             <div style={calStyles.alertRow}>
-                                <span style={calStyles.alertLabel}>🔔 Day-Of Alert</span>
+                                <span style={calStyles.alertLabel}>Day-Of Alert</span>
                                 <button
                                     type="button"
                                     onClick={() => setAddForm(f => ({ ...f, alert_enabled: !f.alert_enabled }))}
@@ -372,11 +372,11 @@ export default function TokeCalendar({ userId }) {
                         >
                             <h3 style={calStyles.modalTitle}>{showEventDetail.title}</h3>
                             <div style={calStyles.modalDate}>
-                                📅 {new Date(showEventDetail.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                {new Date(showEventDetail.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
                             {showEventDetail.venue_name && (
                                 <div style={{ color: '#B0B3B8', fontSize: 14, marginTop: 4 }}>
-                                    📍 {showEventDetail.venue_name}
+                                    {showEventDetail.venue_name}
                                 </div>
                             )}
                             {showEventDetail.notes && (
@@ -385,14 +385,14 @@ export default function TokeCalendar({ userId }) {
                                 </div>
                             )}
                             <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
-                                {showEventDetail.alert_enabled ? '🔔 Alert enabled' : '🔕 No alert'}
+                                {showEventDetail.alert_enabled ? 'Alert enabled' : 'No alert'}
                             </div>
                             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                                 <button onClick={() => handleShare(showEventDetail)} style={calStyles.shareBtn}>
-                                    📤 Share
+                                    Share
                                 </button>
                                 <button onClick={() => handleDeleteEvent(showEventDetail.id)} style={calStyles.deleteBtn}>
-                                    🗑 Delete
+                                    Delete
                                 </button>
                                 <button onClick={() => setShowEventDetail(null)} style={calStyles.cancelBtn}>Close</button>
                             </div>

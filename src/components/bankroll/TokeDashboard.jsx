@@ -26,24 +26,24 @@ const ReferenceLine = dynamic(() => import('recharts').then(m => m.ReferenceLine
 
 // ── Chart tab definitions ──────────────────────────────────────
 const CHART_TABS = [
-    { id: 'trend', label: '📈 Trend' },
-    { id: 'events', label: '📊 Per Event' },
-    { id: 'monthly', label: '🗓 Monthly' },
-    { id: 'types', label: '🎯 Down Types' },
+    { id: 'trend', label: 'Trend' },
+    { id: 'events', label: 'Per Event' },
+    { id: 'monthly', label: 'Monthly' },
+    { id: 'types', label: 'Down Types' },
 ];
 
 // ── Tooltip wrapper ────────────────────────────────────────────
 function TT({ children }) {
     return (
         <div style={{
-            background: 'linear-gradient(135deg,rgba(8,16,36,0.97),rgba(12,24,52,0.95))',
+            background: 'linear-gradient(135deg, rgba(28,30,33,0.97), rgba(36,37,38,0.95))',
             backdropFilter: 'blur(16px)',
-            border: '2px solid rgba(245,158,11,0.25)',
+            border: '1px solid rgba(255,255,255,0.12)',
             borderRadius: 12,
             padding: '12px 16px',
             fontSize: 13,
-            color: '#e5e7eb',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6),0 0 20px rgba(245,158,11,0.08)',
+            color: '#E4E6EB',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             minWidth: 130,
         }}>
             {children}
@@ -320,7 +320,7 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
             {/* Collapsible header */}
             <button style={S.header} onClick={() => setExpanded(e => !e)}>
                 <div style={S.headerLeft}>
-                    <span style={S.headerIcon}>📊</span>
+                    <span style={S.headerIcon}></span>
                     <div>
                         <div style={S.headerTitle}>Analytics Dashboard</div>
                         <div style={S.headerSub}>
@@ -346,31 +346,31 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
                             {/* ── KPI Strip ── */}
                             <div style={S.kpiGrid}>
                                 <KpiTile
-                                    icon="💰"
+                                    icon=""
                                     label="Career Tokes"
                                     value={fmt(analytics?.careerTokes || 0)}
                                     color="#f59e0b"
                                 />
                                 <KpiTile
-                                    icon="📅"
+                                    icon=""
                                     label="Total Events"
                                     value={analytics?.totalEvents || 0}
                                     color="#e5e7eb"
                                 />
                                 <KpiTile
-                                    icon="⏱"
+                                    icon=""
                                     label="Hours Worked"
                                     value={`${analytics?.totalHours || 0}h`}
                                     color="#60a5fa"
                                 />
                                 <KpiTile
-                                    icon="📊"
+                                    icon=""
                                     label="Avg / Down"
                                     value={fmt(analytics?.avgTokePerDown || 0)}
                                     color="#34d399"
                                 />
                                 <KpiTile
-                                    icon="🏆"
+                                    icon=""
                                     label="Best Event"
                                     value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '—'}
                                     sub={analytics?.bestEvent?.venueName || null}
@@ -409,7 +409,7 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
 function EmptyChart({ msg }) {
     return (
         <div style={{ height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontSize: 28, opacity: 0.25 }}>📈</span>
+            <span style={{ fontSize: 28, opacity: 0.25 }}></span>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{msg}</span>
         </div>
     );

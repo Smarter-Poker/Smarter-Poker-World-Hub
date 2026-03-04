@@ -16,10 +16,10 @@ import DocumentCropper from './DocumentCropper';
 // ── Constants ────────────────────────────────────────────────────
 
 const TABS = [
-    { id: 'gaming_license', label: 'Gaming Licenses', icon: '🎰' },
-    { id: 'tax', label: 'Tax Documents', icon: '🧾' },
-    { id: 'employment', label: 'Employment', icon: '💼' },
-    { id: 'paystub', label: 'Pay Stubs', icon: '💵' },
+    { id: 'gaming_license', label: 'Gaming Licenses', icon: '' },
+    { id: 'tax', label: 'Tax Documents', icon: '' },
+    { id: 'employment', label: 'Employment', icon: '' },
+    { id: 'paystub', label: 'Pay Stubs', icon: '' },
 ];
 
 const TAX_SUB_TYPES = [
@@ -64,9 +64,9 @@ function expiryBadge(expiry_date) {
     const now = new Date();
     const exp = new Date(expiry_date + 'T12:00:00');
     const diffDays = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return { label: '🔴 Expired', color: METAL.danger, dot: METAL.danger };
-    if (diffDays <= 30) return { label: `🟡 Expires in ${diffDays}d`, color: METAL.warn, dot: METAL.warn };
-    return { label: '🟢 Active', color: METAL.success, dot: METAL.success };
+    if (diffDays < 0) return { label: 'Expired', color: METAL.danger, dot: METAL.danger };
+    if (diffDays <= 30) return { label: `Expires in ${diffDays}d`, color: METAL.warn, dot: METAL.warn };
+    return { label: 'Active', color: METAL.success, dot: METAL.success };
 }
 
 // ── Main Component ───────────────────────────────────────────────
@@ -357,7 +357,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
             {/* Header */}
             <button style={s.header} onClick={() => setExpanded(v => !v)}>
                 <div style={s.headerLeft}>
-                    <span style={s.headerIcon}>🗄️</span>
+                    <span style={s.headerIcon}></span>
                     <div>
                         <div style={s.headerTitle}>Dealer Vault</div>
                         <div style={s.headerSub}>{docs.length} document{docs.length !== 1 ? 's' : ''} stored</div>
@@ -373,7 +373,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                         <div style={s.alertBox}>
                             {thresholdAlerts.map(({ venue, total }) => (
                                 <div key={venue} style={s.alertRow}>
-                                    ⚠️ You've earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> at <strong>{venue}</strong> this year — you may receive a 1099-NEC
+                                    You've earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> at <strong>{venue}</strong> this year — you may receive a 1099-NEC
                                 </div>
                             ))}
                         </div>
@@ -445,7 +445,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                                 onDrop={handleDrop}
                                 onClick={() => fileInputRef.current?.click()}
                             >
-                                <div style={s.dropIcon}>📎</div>
+                                <div style={s.dropIcon}></div>
                                 <div style={s.dropText}>Drop a document here or tap to upload</div>
                                 <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
                                 <input
@@ -595,7 +595,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                                     onClick={handleUpload}
                                     disabled={isUploading}
                                 >
-                                    {isUploading ? '⏳ Uploading...' : '⬆️ Upload'}
+                                    {isUploading ? 'Uploading...' : 'Upload'}
                                 </button>
                                 <button
                                     style={{ ...s.btn, background: METAL.elevated }}
@@ -677,11 +677,11 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                                             <button
                                                 style={s.viewBtn}
                                                 onClick={() => window.open(doc.file_url, '_blank')}
-                                            >👁️ View</button>
+                                            >View</button>
                                             <button
                                                 style={s.deleteBtn}
                                                 onClick={() => handleDelete(doc)}
-                                            >🗑️</button>
+                                            ></button>
                                         </div>
                                     </div>
                                 );

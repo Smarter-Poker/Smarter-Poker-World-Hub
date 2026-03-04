@@ -137,7 +137,7 @@ export default function VenueIntelligence({ gigs = [] }) {
             {/* Header */}
             <button style={s.header} onClick={() => setExpanded(v => !v)}>
                 <div style={s.headerLeft}>
-                    <span style={s.headerIcon}>📊</span>
+                    <span style={s.headerIcon}></span>
                     <div>
                         <div style={s.headerTitle}>Career Intelligence</div>
                         <div style={s.headerSub}>{totalEvents} events · ${totalTokesAllTime.toFixed(0)} total tokes</div>
@@ -152,7 +152,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     {/* ── Venue Performance Ranking ── */}
                     <div style={s.panel}>
                         <button style={s.panelHeader} onClick={() => setVenueOpen(v => !v)}>
-                            <span style={s.panelTitle}>🏆 Venue Performance</span>
+                            <span style={s.panelTitle}>Venue Performance</span>
                             <span style={s.panelChevron}>{venueOpen ? '▲' : '▼'}</span>
                         </button>
                         {venueOpen && (
@@ -232,7 +232,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     {tournamentBrackets && tournamentBrackets.length > 0 && (
                         <div style={s.panel}>
                             <button style={s.panelHeader} onClick={() => setTourneyOpen(v => !v)}>
-                                <span style={s.panelTitle}>🏆 Tournament Buy-In Analysis</span>
+                                <span style={s.panelTitle}>Tournament Buy-In Analysis</span>
                                 <span style={s.panelChevron}>{tourneyOpen ? '▲' : '▼'}</span>
                             </button>
                             {tourneyOpen && (
@@ -260,7 +260,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                         </tbody>
                                     </table>
                                     <div style={s.tourneyNote}>
-                                        💡 Log buy-in amounts when starting tournament downs to populate this table
+                                        Log buy-in amounts when starting tournament downs to populate this table
                                     </div>
                                 </div>
                             )}

@@ -145,7 +145,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             style={s.printBtn}
                             onClick={() => window.print()}
                             className="no-print"
-                        >🖨️ Print / PDF</button>
+                        >Print / PDF</button>
                         <button style={s.closeBtn} onClick={onClose} className="no-print">✕</button>
                     </div>
                 </div>
@@ -172,7 +172,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
 
                         {/* ── Venue Breakdown ── */}
                         <div style={s.section} className="print-section">
-                            <div style={s.sectionTitle}>🏛️ Income by Venue</div>
+                            <div style={s.sectionTitle}>Income by Venue</div>
                             <table style={s.table}>
                                 <thead>
                                     <tr style={s.thead}>
@@ -190,7 +190,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                                             <td style={{ ...s.td, textAlign: 'right', color: METAL.success }}>{fmt(v.tokes)}</td>
                                             <td style={{ ...s.td, textAlign: 'right' }}>
                                                 {v.tokes >= 600
-                                                    ? <span style={{ color: METAL.warn, fontWeight: 700 }}>⚠️ Yes</span>
+                                                    ? <span style={{ color: METAL.warn, fontWeight: 700 }}>Yes</span>
                                                     : <span style={{ color: METAL.textSecondary }}>No</span>
                                                 }
                                             </td>
@@ -203,7 +203,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                         {/* ── Expense Breakdown ── */}
                         {expenseBreakdown.length > 0 && (
                             <div style={s.section} className="print-section">
-                                <div style={s.sectionTitle}>📋 Deductible Expenses</div>
+                                <div style={s.sectionTitle}>Deductible Expenses</div>
                                 <table style={s.table}>
                                     <thead>
                                         <tr style={s.thead}>
@@ -239,7 +239,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
 
                         {/* ── IRS Notice ── */}
                         <div style={s.notice}>
-                            <strong>⚠️ IRS Note:</strong> Tips received from casino players are generally taxable income. Venues that paid you ≥$600/year may issue a 1099-NEC. Keep this report and your supporting records. Consult a tax professional.
+                            <strong>IRS Note:</strong> Tips received from casino players are generally taxable income. Venues that paid you ≥$600/year may issue a 1099-NEC. Keep this report and your supporting records. Consult a tax professional.
                         </div>
 
                         {/* ── Print footer (only visible when printing — controlled by CSS .print-footer-row class) ── */}
