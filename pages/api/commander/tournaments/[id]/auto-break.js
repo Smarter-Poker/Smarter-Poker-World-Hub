@@ -202,14 +202,15 @@ async function handleExecute(req, res, tournament, user) {
   const errors = [];
   const moved = [];
 
-  // Fetch venue name
-  const { data: venue, error: venueError } = await supabase
-    .from('venues')
-    .select('name')
-    .eq('id', tournament.venue_id)
-    .single();
-
-  const venueName = venue?.name || 'Smarter Poker';
+  // Fetch real venue data from both tables in parallel
+  const [venueRes, settingsRes] = await Promise.all([
+    supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).single(),
+    supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).single()
+  ]);
+  const venueName = venueRes.data?.name || 'Smarter Poker';
+  const venueCity = venueRes.data?.city || null;
+  const venueState = venueRes.data?.state || null;
+  const venueLogoUrl = settingsRes.data?.club_logo_url || null;
 
   // Validate no seat conflicts
   const seatKeys = new Set();
@@ -264,10 +265,13 @@ async function handleExecute(req, res, tournament, user) {
     .eq('venue_id', tournament.venue_id)
     .eq('table_number', break_table);
 
-  // Build receipt data for printing
+  // Build receipt data for printing (full venue-level identity)
   const receipts = moved.map(a => ({
     tournament_name: tournament.name,
     venue_name: venueName,
+    venue_city: venueCity,
+    venue_state: venueState,
+    venue_logo_url: venueLogoUrl,
     buyin_amount: tournament.buyin_amount,
     player_name: a.player_name,
     from_table: a.from_table,

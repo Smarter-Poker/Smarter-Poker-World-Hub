@@ -45,16 +45,15 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
 
-    // Fetch venue name for receipts
-    let venueName = 'Smarter Poker';
-    try {
-      const { data: venue } = await supabase
-        .from('venues')
-        .select('name')
-        .eq('id', tournament.venue_id)
-        .single();
-      if (venue?.name) venueName = venue.name;
-    } catch (_) { }
+    // Fetch real venue data from both tables in parallel
+    const [venueRes, settingsRes] = await Promise.all([
+      supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).single(),
+      supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).single()
+    ]);
+    const venueName = venueRes.data?.name || 'Smarter Poker';
+    const venueCity = venueRes.data?.city || null;
+    const venueState = venueRes.data?.state || null;
+    const venueLogoUrl = settingsRes.data?.club_logo_url || null;
 
     // Validate all assignments have required fields
     for (const a of assignments) {
@@ -150,10 +149,13 @@ export default async function handler(req, res) {
       .eq('venue_id', tournament.venue_id)
       .eq('table_number', table_number);
 
-    // Build receipt data (Potawatomi TOURNAMENT SEAT CHANGE CARD format)
+    // Build receipt data — full venue-level identity
     const now = new Date().toISOString();
     const receipts = results.map(r => ({
       venue_name: venueName,
+      venue_city: venueCity,
+      venue_state: venueState,
+      venue_logo_url: venueLogoUrl,
       tournament_name: tournament.name,
       buyin_amount: tournament.buyin_amount || null,
       player_name: r.player_name,

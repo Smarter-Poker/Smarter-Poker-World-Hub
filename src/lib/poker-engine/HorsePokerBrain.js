@@ -4079,6 +4079,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const tourneyData = state.tourneyData || null;
     const chipAccumulation = getPLOChipAccumulationMode(tourneyData, 0);
 
+    // ── Phase 5: Exploitation profile — declared early (used by calibratePLOProbeBet below) ──
+    const exploitProfile = buildPLOExploitationProfile(state.opponentRead || null);
+
     // ── Phase 7: Position ranges (used as gate for preflop and as reference) ──
     const positionRanges = getPLOPositionRanges(position, numPlayers, stackBB);
 
@@ -4121,6 +4124,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // Opt B: Blind vs blind strategy
     const isSBvsBB = state.isSBvsBB || (numPlayers === 2 && (position === 'SB' || position === 'BB'));
+    // wasPFRaiser hoisted: used by blindBattle and donkOpportunity below
+    const wasPFRaiser = state.wasPFRaiser || false;
     const blindBattle = getPLOBlindBattleStrategy(position, 0, isSBvsBB, wasPFRaiser, potOdds);
 
     // Opt C: Donk bet opportunity (evaluated after board texture + madeHand are known)
@@ -4179,7 +4184,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const rangeBalance = getPLORangeBalance(profileId, situation, equity);
 
     // ── Phase 3: C-bet strategy (fires only if horse was PFR) ──
-    const wasPFRaiser = state.wasPFRaiser || false;
+    // wasPFRaiser declared above (hoisted to avoid TDZ)
     const cBetStrategy = getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity);
 
     // ── Phase 3: Turn barrel decision ──
@@ -4233,9 +4238,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 4: GIF trigger pre-calculation ──
     const gifInfo = getPLOGifTrigger(madeHand, equityP4, allInInfo.allInEquity, profileId);
-
-    // ── Phase 5: Exploitation profile (opponent-type counter-strategy) ──
-    const exploitProfile = buildPLOExploitationProfile(state.opponentRead || null);
 
     // ── Phase 5: Pot manipulation ──
     const potManip = getPLOPotManipulation(numPlayers, exploitProfile, equityP4, isIP, madeHand, totalOuts, potSize, raiseAction);

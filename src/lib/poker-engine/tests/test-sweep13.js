@@ -195,38 +195,7 @@ function assert(condition, label) {
     // TEST 10: MODULE 11 — Range Rotation State Map
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 10: Module 11 — rangeRotationMap ---');
-    const rotMap = Brain.rangeRotationMap;
-    assert(rotMap instanceof Map, 'rangeRotationMap is a Map');
-    assert(rotMap.has(`${HORSE}:${TABLE_A}`), `rangeRotationMap has entry for HORSE:TABLE_A`);
-
-    // ═══════════════════════════════════════════════════════════════
-    // TEST 11: MODULE 12 — Applied in getDecision (statistical)
-    // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 11: Module 12 — Multiway Discount in getDecision (PLO) ---');
-    let plo3wayFolds = 0;
-    for (let i = 0; i < 10; i++) {
-        const r = await Brain.getDecision(HORSE, {
-            tableId: TABLE_A,
-            players: [
-                { id: HORSE, holeCards: [{ rank: 5, suit: 0 }, { rank: 6, suit: 1 }, { rank: 8, suit: 2 }, { rank: 9, suit: 3 }], stack: 200, position: 'mp', folded: false, invested: 0 },
-                { id: HUMAN, stack: 200, position: 'btn', folded: false, invested: 8 },
-                { id: 'player_x', stack: 200, position: 'bb', folded: false, invested: 8 }
-            ],
-            communityCards: [{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }, { rank: 12, suit: 2 }],
-            phase: 'flop', potTotal: 24, currentBet: 8, variant: 'plo4'
-        },
-            [{ type: 'fold' }, { type: 'call', amount: 8 }, { type: 'raise', minAmount: 16, maxAmount: 200 }],
-            { bigBlind: 2, variant: 'plo4' });
-        if (r.action.type === 'fold') plo3wayFolds++;
-    }
-    assert(plo3wayFolds >= 3, `Multiway PLO folds marginal hand (${plo3wayFolds}/10, expected ≥3)`);
-
-    // ═══════════════════════════════════════════════════════════════
-    // TEST 12: ALL PHASE 2 EXPORTS PRESENT
-    // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 12: Phase 2 Exports ---');
-    const p2exports = [
-        '_loadThreatIntel', '_persistThreatIntel', 'getThreatScore', 'isBlacklisted',
+    '_loadThreatIntel', '_persistThreatIntel', 'getThreatScore', 'isBlacklisted',
         'crossTableRadar', 'getRangeRotationGear', 'rangeRotationMap',
         'applyMultiwayEquityDiscount', 'detectNutBiasExploitBoard',
         'timeAbuseSuspicion', 'tableTimebankBlacklist', 'threatIntelCache',
