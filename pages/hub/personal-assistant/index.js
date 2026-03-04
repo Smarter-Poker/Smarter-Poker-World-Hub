@@ -111,7 +111,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-sandbox"
             style={{
               ...S.hotspot,
-              top: '4%', left: '5%', width: '45%', height: '43%',
+              top: '13.7%', left: '14.0%', width: '35.4%', height: '33.7%',
               ...(hoveredZone === 'sandbox' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/sandbox')}
@@ -125,7 +125,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-enter-sandbox"
             style={{
               ...S.hotspot,
-              top: '38%', left: '7%', width: '40%', height: '6%',
+              top: '40.0%', left: '17.5%', width: '28.5%', height: '4.9%',
               ...(hoveredZone === 'enterSandbox' ? S.hotspotBtnHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/sandbox')}
@@ -139,7 +139,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-leaks"
             style={{
               ...S.hotspot,
-              top: '4%', left: '52%', width: '44%', height: '43%',
+              top: '13.7%', left: '50.5%', width: '35.4%', height: '33.7%',
               ...(hoveredZone === 'leaks' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/leaks')}
@@ -153,7 +153,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-view-leaks"
             style={{
               ...S.hotspot,
-              top: '38%', left: '55%', width: '40%', height: '6%',
+              top: '40.0%', left: '53.9%', width: '28.5%', height: '4.9%',
               ...(hoveredZone === 'viewLeaks' ? S.hotspotBtnHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/leaks')}
@@ -167,7 +167,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-gto"
             style={{
               ...S.hotspot,
-              top: '62%', left: '5%', width: '28%', height: '11%',
+              top: '55.7%', left: '15.1%', width: '22.9%', height: '11.7%',
               ...(hoveredZone === 'gto' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/sandbox')}
@@ -181,7 +181,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-safe"
             style={{
               ...S.hotspot,
-              top: '62%', left: '36%', width: '28%', height: '11%',
+              top: '55.7%', left: '38.5%', width: '22.9%', height: '11.7%',
               ...(hoveredZone === 'safe' ? S.hotspotHover : {}),
             }}
             onMouseEnter={() => setHoveredZone('safe')}
@@ -194,7 +194,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-results"
             style={{
               ...S.hotspot,
-              top: '62%', left: '67%', width: '28%', height: '11%',
+              top: '55.7%', left: '61.9%', width: '22.9%', height: '11.7%',
               ...(hoveredZone === 'results' ? S.hotspotHover : {}),
             }}
             onClick={() => router.push('/hub/personal-assistant/leaks')}
@@ -208,7 +208,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-sessions"
             style={{
               ...S.hotspot,
-              top: '77%', left: '5%', width: '67%', height: '15%',
+              top: '69.8%', left: '12.0%', width: '76.0%', height: '16.6%',
             }}
             title="Recent Sessions"
           >
@@ -254,7 +254,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-my-sessions"
             style={{
               ...S.hotspot,
-              top: '79%', left: '74%', width: '22%', height: '5%',
+              top: '70.3%', left: '72.3%', width: '14.6%', height: '4.4%',
               ...(hoveredZone === 'filterBtn' ? S.hotspotBtnHover : {}),
             }}
             onClick={() => setSessionFilter(f => f === 'mine' ? 'all' : 'mine')}
@@ -268,6 +268,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-jarvis"
             style={{
               ...S.jarvisHotspot,
+              top: '72.8%', left: '79.1%', width: '15.6%', height: '14.6%',
               ...(hoveredZone === 'jarvis' ? S.jarvisHover : {}),
             }}
             onClick={() => {
@@ -349,18 +350,17 @@ const S = {
   frameContainer: {
     position: 'relative',
     width: '100%',
-    minHeight: 'calc(100vh - 60px)',
+    maxWidth: 961, // Natural width
+    aspectRatio: '961 / 1024',
+    maxHeight: 'calc(100vh - 60px)',
+    margin: '0 auto',
     userSelect: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   frameImage: {
     width: '100%',
     height: '100%',
     objectFit: 'contain',
     display: 'block',
-    maxHeight: 'calc(100vh - 60px)',
   },
 
   // ── Generic hotspot (invisible interactive zone) ────────────────────────
@@ -386,10 +386,6 @@ const S = {
   // ── Jarvis circular frame hotspot ───────────────────────────────────────
   jarvisHotspot: {
     position: 'absolute',
-    bottom: '6%',
-    right: '4%',
-    width: '12%',
-    height: '12%',
     borderRadius: '50%',
     cursor: 'pointer',
     overflow: 'hidden',
@@ -418,8 +414,8 @@ const S = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
-    padding: '4% 6%',
+    justifyContent: 'flex-start',
+    padding: '4% 2% 0 2%',
     overflow: 'hidden',
   },
   sessionOverlayText: {
