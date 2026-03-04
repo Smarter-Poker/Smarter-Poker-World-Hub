@@ -259,8 +259,8 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                     license_number: data.license_number || prev.license_number,
                     issued_date: data.issued_date || prev.issued_date,
                     expiry_date: data.expiry_date || prev.expiry_date,
-                    tax_year: data.tax_year || prev.tax_year,
-                    amount: data.amount || prev.amount,
+                    tax_year: data.tax_year ?? prev.tax_year,
+                    amount: data.amount ?? prev.amount,
                 }));
 
                 if (data.category && ['gaming_license', 'tax', 'employment', 'paystub'].includes(data.category)) {

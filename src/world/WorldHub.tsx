@@ -390,7 +390,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // Get the 6 footer cards (most visited or defaults) — reactive to hiddenCardIds
     // Also ensures TOKE_TRACKER_ORB is always available for quick-launch
     const footerCards = useMemo(() => {
-        const cards = getFooterCards();
+        const cards = getFooterCards(hiddenCardIds);
         // Inject TOKE_TRACKER_ORB at front if not already in the personalized list
         const hasInList = cards.some(c => c.id === 'toke-tracker');
         const base = hasInList ? cards : [TOKE_TRACKER_ORB, ...cards.slice(0, 5)];

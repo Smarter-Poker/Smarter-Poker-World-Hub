@@ -88,25 +88,26 @@ export function recordCardVisit(cardId: string): void {
 }
 
 // Get the 6 footer cards based on user preferences
-export function getFooterCards(): OrbConfig[] {
+// excludeIds: card IDs to skip (e.g. user-hidden cards) so all 6 slots are filled with visible cards
+export function getFooterCards(excludeIds: string[] = []): OrbConfig[] {
     const prefs = loadPreferences();
     const cardIds: string[] = [];
 
-    // First card: last visited (if exists)
-    if (prefs.lastVisitedCardId) {
+    // First card: last visited (if exists and not excluded)
+    if (prefs.lastVisitedCardId && !excludeIds.includes(prefs.lastVisitedCardId)) {
         cardIds.push(prefs.lastVisitedCardId);
     }
 
-    // Fill remaining with most visited
+    // Fill remaining with most visited (skip excluded)
     for (const id of prefs.mostVisitedCardIds) {
-        if (!cardIds.includes(id) && cardIds.length < 6) {
+        if (!cardIds.includes(id) && !excludeIds.includes(id) && cardIds.length < 6) {
             cardIds.push(id);
         }
     }
 
-    // Fill remaining with defaults
+    // Fill remaining with defaults (skip excluded)
     for (const id of DEFAULT_FOOTER_CARDS) {
-        if (!cardIds.includes(id) && cardIds.length < 6) {
+        if (!cardIds.includes(id) && !excludeIds.includes(id) && cardIds.length < 6) {
             cardIds.push(id);
         }
     }

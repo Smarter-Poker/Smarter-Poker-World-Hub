@@ -38,6 +38,7 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
+import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
 import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
@@ -373,7 +374,9 @@ export default function App({ Component, pageProps }) {
                     <NavigationGuard>
                       <ActiveIdentityProvider>
                         <WorldThemeProvider>
-                          <Component {...pageProps} />
+                          <PageErrorBoundary key={router.asPath}>
+                            <Component {...pageProps} />
+                          </PageErrorBoundary>
                           <CelebrationManager />
                           <DiamondToast />
                           <ToastContainer />

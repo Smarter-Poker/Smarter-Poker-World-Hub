@@ -87,8 +87,10 @@ export default function BreakManager() {
         setExecuted(json.data);
         setReceipts(json.data.receipts);
         broadcastChange('tournaments');
+      } else {
+        alert(json.error || 'Break failed — please try again.');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Break failed. Check console.'); }
     finally { setExecuting(false); }
   };
 

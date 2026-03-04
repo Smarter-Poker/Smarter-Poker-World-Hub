@@ -265,7 +265,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                             {extractedData.amount != null && (
                                 <div style={styles.dataRow}>
                                     <span style={styles.dataLabel}>AMOUNT</span>
-                                    <span style={{ ...styles.dataValue, color: '#4ade80' }}>${extractedData.amount.toFixed(2)}</span>
+                                    <span style={{ ...styles.dataValue, color: '#4ade80' }}>${parseFloat(extractedData.amount).toFixed(2)}</span>
                                 </div>
                             )}
                         </div>

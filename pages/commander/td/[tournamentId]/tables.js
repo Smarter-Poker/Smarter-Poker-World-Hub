@@ -170,13 +170,8 @@ ${receipts.map(r => `<div class="card">
           }
           await fetchFloor();
           broadcastChange('tournaments');
-          // Re-sync selectedTable from freshly fetched floor data (avoid stale ref)
-          if (selectedTable) {
-            setSelectedTable(prev => {
-              const updated = floor?.tables?.find(t => t.table_number === prev?.table_number);
-              return updated || prev;
-            });
-          }
+          // Close modal after elimination — fresh data shown on next open
+          setSelectedTable(null);
         } catch (err) { console.error(err); }
         finally { setActionLoading(null); }
       }
@@ -250,11 +245,13 @@ ${receipts.map(r => `<div class="card">
                   if (json.success && json.data.receipts) {
                     // Print SEAT CHANGE CARDs via shared helper
                     printAutoBreakReceipts({ receipts: json.data.receipts });
+                    setAutoBreak(null);
+                    await fetchFloor();
+                    broadcastChange('tournaments');
+                  } else {
+                    alert(json.error || 'Break failed — please try again.');
                   }
-                  setAutoBreak(null);
-                  await fetchFloor();
-                  broadcastChange('tournaments');
-                } catch (err) { console.error(err); }
+                } catch (err) { console.error(err); alert('Break failed. Check console.'); }
                 finally { setBreakExecuting(false); }
               }}
               disabled={breakExecuting}

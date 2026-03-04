@@ -806,7 +806,7 @@ export default function UnionDashboard() {
                             </div>
                             {(parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)) !== 100 && (
                                 <div style={{ fontSize: 11, color: FB.danger, marginTop: 4 }}>
-                                     Must total 100% (currently {parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)}%)
+                                    Must total 100% (currently {parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)}%)
                                 </div>
                             )}
                         </div>
@@ -920,19 +920,20 @@ export default function UnionDashboard() {
                         )}
                     </div>
                 )}
-            {toast && (
-                <div style={{
-                    position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
-                    background: toast.type === 'error' ? FB.danger : FB.success,
-                    color: '#fff', padding: '10px 24px', borderRadius: 10,
-                    fontSize: 13, fontWeight: 600, zIndex: 999,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                }}>
-                    {toast.msg}
-                </div>
-            )}
+                {toast && (
+                    <div style={{
+                        position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+                        background: toast.type === 'error' ? FB.danger : FB.success,
+                        color: '#fff', padding: '10px 24px', borderRadius: 10,
+                        fontSize: 13, fontWeight: 600, zIndex: 999,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                    }}>
+                        {toast.msg}
+                    </div>
+                )}
 
-            <ClubArenaBottomNav active="admin" />
+                <ClubArenaBottomNav active="admin" />
+            </div>
         </div>
     );
 }

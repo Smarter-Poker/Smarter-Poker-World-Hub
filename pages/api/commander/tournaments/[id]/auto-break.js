@@ -259,18 +259,22 @@ async function handleExecute(req, res, tournament) {
     }
   }
 
-  // Release the broken table back to inactive
-  await supabase
-    .from('commander_tables')
-    .update({
-      mode: 'inactive',
-      tournament_id: null,
-      status: 'available',
-      assigned_at: null,
-      updated_at: new Date().toISOString()
-    })
-    .eq('venue_id', tournament.venue_id)
-    .eq('table_number', break_table);
+  // Release the broken table back to inactive (ONLY if all players successfully moved)
+  if (errors.length === 0) {
+    await supabase
+      .from('commander_tables')
+      .update({
+        mode: 'inactive',
+        tournament_id: null,
+        status: 'available',
+        assigned_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('venue_id', tournament.venue_id)
+      .eq('table_number', break_table);
+  } else {
+    console.warn(`[auto-break] Table ${break_table} not released because ${errors.length} player moves failed.`);
+  }
 
   // Build receipt data for printing (full venue-level identity)
   const receipts = moved.map(a => ({

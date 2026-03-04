@@ -223,22 +223,30 @@ ${receipts.map(r => `<div class="card">
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/eliminate`, {
           entry_id: player.entry_id, finish_position: floor?.stats?.players_remaining || 0
         });
-        // Auto-print receipts if the elimination triggered an auto table break
-        if (res.success && res.data?.auto_break?.executed) {
-          printAutoBreakReceipts(res.data.auto_break);
+        if (res.success) {
+          // Auto-print receipts if the elimination triggered an auto table break
+          if (res.data?.auto_break?.executed) {
+            printAutoBreakReceipts(res.data.auto_break);
+          }
+        } else {
+          alert(res.error || 'Elimination failed.');
         }
       } else if (type === 'rebuy') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
         if (res.success) {
           printBluetoothReceipt(player, 'Rebuy', floor?.tournament?.rebuy_cost, floor?.tournament?.rebuy_chips || floor?.tournament?.starting_chips);
+        } else {
+          alert(res.error || 'Rebuy failed.');
         }
       } else if (type === 'addon') {
         const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
         if (res.success) {
           printBluetoothReceipt(player, 'Add-on', floor?.tournament?.addon_cost, floor?.tournament?.addon_chips || floor?.tournament?.starting_chips);
+        } else {
+          alert(res.error || 'Add-on failed.');
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Action failed. Check console.'); }
     setSelectedPlayer(null);
     setActionLoading(null);
     fetchFloor();
@@ -261,32 +269,45 @@ ${receipts.map(r => `<div class="card">
   const handleUpdateChips = async () => {
     if (!chipModal || !chipValue) return;
     setActionLoading('chips');
-    await fetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
-      body: JSON.stringify({ chips: parseInt(chipValue) })
-    });
-    setChipModal(null);
-    setChipValue('');
-    setSelectedPlayer(null);
-    setActionLoading(null);
-    fetchFloor();
-    broadcastChange('tournaments');
+    try {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+        body: JSON.stringify({ chips: parseInt(chipValue) })
+      });
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        alert(json.error || 'Failed to update chips.');
+        return;
+      }
+      setChipModal(null);
+      setChipValue('');
+      setSelectedPlayer(null);
+      fetchFloor();
+      broadcastChange('tournaments');
+    } catch (err) { console.error(err); alert('Failed to update chips. Check console.'); }
+    finally { setActionLoading(null); }
   };
 
   const handleMove = async () => {
     if (!moveModal || !moveTable || !moveSeat) return;
     setActionLoading('move');
-    await apiCall(`/api/commander/tournaments/${tournamentId}/move-player`, {
-      entry_id: moveModal.entry_id, to_table: parseInt(moveTable), to_seat: parseInt(moveSeat)
-    });
-    setMoveModal(null);
-    setMoveTable('');
-    setMoveSeat('');
-    setSelectedPlayer(null);
-    setActionLoading(null);
-    fetchFloor();
-    broadcastChange('tournaments');
+    try {
+      const res = await apiCall(`/api/commander/tournaments/${tournamentId}/move-player`, {
+        entry_id: moveModal.entry_id, to_table: parseInt(moveTable), to_seat: parseInt(moveSeat)
+      });
+      if (res.success) {
+        setMoveModal(null);
+        setMoveTable('');
+        setMoveSeat('');
+        setSelectedPlayer(null);
+        fetchFloor();
+        broadcastChange('tournaments');
+      } else {
+        alert(res.error || 'Move failed — seat may be occupied.');
+      }
+    } catch (err) { console.error(err); alert('Move failed. Check console.'); }
+    finally { setActionLoading(null); }
   };
 
   const navigateTo = (path) => router.push(`/commander/td/${tournamentId}${path}`);

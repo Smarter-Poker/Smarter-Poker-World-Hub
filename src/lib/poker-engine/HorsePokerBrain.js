@@ -4102,35 +4102,16 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Opt E: Memoization cache (reduces redundant sub-computations)
     const _memo = createPLODecisionCache();
 
-    // Gap A: Limped pot strategy
+    // Gap A-F + Opt A-C: Variable declarations (functions called after equityFinal is computed below)
     const isLimpedPot = state.isLimpedPot || false;
-    const limpedPotStrategy = getPLOLimpedPotStrategy(isLimpedPot, madeHand, 0, numPlayers);
-
-    // Gap B: Multi-way aggression governor
-    const multiWayGov = governPLOMultiWayAggression(numPlayers, 0, madeHand, true);
-
-    // Gap E: Side-pot awareness
     const allInPlayers = state.allInPlayers || [];
     const numActivePlayers = state.numActivePlayers || Math.max(numPlayers - allInPlayers.length, 1);
-    const sidePot = getPLOSidePotAwareness(allInPlayers, stackBB, numActivePlayers, 0);
-
-    // Gap F: Late-session opponent fatigue
     const sessionMinutes = state.sessionMinutes || 0;
     const opponentLosses = state.opponentLossBB || 0;
     const lateSession = getPLOLateSessionAdjustment(sessionMinutes, opponentLosses);
-
-    // Opt A: Cold-call decision (for when we face a single raise)
     const raiseSize = toCall > 0 ? (toCall / bb) : 0;
-    const coldCallDecision = getPLOColdCallDecision(0, isIP, potOdds, state.numCallers || 0, raiseSize); // strength wired in at preflop
-
-    // Opt B: Blind vs blind strategy
     const isSBvsBB = state.isSBvsBB || (numPlayers === 2 && (position === 'SB' || position === 'BB'));
-    // wasPFRaiser hoisted: used by blindBattle and donkOpportunity below
     const wasPFRaiser = state.wasPFRaiser || false;
-    const blindBattle = getPLOBlindBattleStrategy(position, 0, isSBvsBB, wasPFRaiser, potOdds);
-
-    // Opt C: Donk bet opportunity (evaluated after board texture + madeHand are known)
-    const donkOpportunity = getPLODonkBetOpportunity(isIP, wasPFRaiser, madeHand, boardTexture, 0, potSize);
 
     // ── Phase 8: Explicit wrap draw detector (20/17/13/9-out wraps) ──
     const wrapInfo = detectPLOWrapDraw(holeRanks, boardRanks);
@@ -4317,6 +4298,14 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (coldCallPenalty > 0) console.log(`[HorseBrain] 🧊 MODULE 28 COLD-CALL TRAP: applying -${coldCallPenalty} global equity penalty to reduce barrel freq.`);
         if (chipLeakFoldAdjust > 0) console.log(`[HorseBrain] 📉 MODULE 32 CHIP LEAK: applying -${chipLeakFoldAdjust} equity penalty for OOP/multiway leaks.`);
     }
+
+    // ── BUG-FIX: Deferred utility calls now use computed equityFinal instead of hardcoded 0 ──
+    const limpedPotStrategy = getPLOLimpedPotStrategy(isLimpedPot, madeHand, equityFinal, numPlayers);
+    const multiWayGov = governPLOMultiWayAggression(numPlayers, equityFinal, madeHand, true);
+    const sidePot = getPLOSidePotAwareness(allInPlayers, stackBB, numActivePlayers, equityFinal);
+    const coldCallDecision = getPLOColdCallDecision(equityFinal, isIP, potOdds, state.numCallers || 0, raiseSize);
+    const blindBattle = getPLOBlindBattleStrategy(position, equityFinal, isSBvsBB, wasPFRaiser, potOdds);
+    const donkOpportunity = getPLODonkBetOpportunity(isIP, wasPFRaiser, madeHand, boardTexture, equityFinal, potSize);
 
     // ── Phase 8: Equity confidence meter ──
     const equityConfidence = getPLOEquityConfidence({

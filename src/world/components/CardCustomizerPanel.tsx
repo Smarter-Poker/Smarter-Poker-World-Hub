@@ -218,7 +218,9 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                     <button
                         onClick={() => {
                             setHidden([]);
-                            setHiddenCardIds([]);
+                            // Cloud-Sync: pass userId so the RPC fires on reset too
+                            const user = getAuthUser();
+                            setHiddenCardIds([], user?.id);
                             // 🔴 BUS: broadcast reset so WorldHub updates instantly
                             if (typeof window !== 'undefined') {
                                 window.dispatchEvent(new CustomEvent('hub-cards-hidden-changed', { detail: { hiddenIds: [] } }));
