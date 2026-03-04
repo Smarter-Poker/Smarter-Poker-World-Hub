@@ -143,6 +143,35 @@ async function handleGet(req, res) {
 // POST handler
 // ---------------------------------------------------------------------------
 async function handlePost(req, res) {
+    // BUG #241 FIX: Require admin auth for writing tournament results
+    // POST is used by scrapers/cron — require cron secret or admin token
+    const cronSecret = req.headers.authorization?.replace('Bearer ', '');
+    const adminSecret = req.headers['x-admin-secret'];
+    const envCronSecret = process.env.CRON_SECRET;
+    const envAdminSecret = process.env.ADMIN_ROUTE_SECRET;
+
+    const isCron = envCronSecret && cronSecret === envCronSecret;
+    const isAdmin = envAdminSecret && adminSecret === envAdminSecret;
+
+    if (!isCron && !isAdmin) {
+        // Fall back to JWT + platform admin role check
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (token) {
+            const { data: { user } } = await supabase.auth.getUser(token);
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles').select('role').eq('id', user.id).single();
+                if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
+                    return res.status(403).json({ success: false, error: 'Admin access required' });
+                }
+            } else {
+                return res.status(401).json({ success: false, error: 'Invalid token' });
+            }
+        } else {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
+        }
+    }
+
     const {
         series_id,
         tour_code,
