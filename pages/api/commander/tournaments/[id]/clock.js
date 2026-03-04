@@ -412,6 +412,32 @@ async function handleClockAction(req, res, tournamentId) {
       });
     }
 
+    // --- Push blinds to active tables if level changed ---
+    if (updates.current_level !== undefined && updates.current_level !== tournament.current_level) {
+      const blindStructure = tournament.blind_structure || [];
+      const newLevel = blindStructure[updates.current_level];
+      if (newLevel) {
+        const sb = newLevel.small_blind || 0;
+        const bb = newLevel.big_blind || 0;
+        const stakesStr = `${sb}/${bb}` + (newLevel.ante ? ` (${newLevel.ante}a)` : '');
+
+        // Push the new blinds to all active tables for this tournament
+        await supabase
+          .from('commander_tables')
+          .update({
+            small_blind: sb,
+            big_blind: bb,
+            stakes: stakesStr
+          })
+          .eq('tournament_id', tournamentId)
+          .neq('status', 'closed');
+
+        console.log(`[clock.js] Automatically pushed new blinds (${stakesStr}) to tables for tournament ${tournamentId}`);
+      }
+    }
+
+
+
     // Re-fetch the updated tournament
     const { data: updated } = await supabase
       .from('commander_tournaments')
