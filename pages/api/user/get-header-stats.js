@@ -15,13 +15,14 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Service key not configured' });
     }
 
-    const { userId } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: 'Missing userId' });
-    }
-
     const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+
+    // BUG #243 FIX: Require JWT and derive userId from token (not body)
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    const userId = user.id;
 
     try {
         // Fetch profile data for header

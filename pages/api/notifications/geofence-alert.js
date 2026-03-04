@@ -26,6 +26,20 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Missing required fields: userId, venueId, venueName' });
     }
 
+    // BUG #241 FIX: Require JWT auth and verify caller is the target user
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (user.id !== userId) {
+        return res.status(403).json({ success: false, error: 'Cannot send geofence alerts for other users' });
+    }
+
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
         console.warn('[GeofenceAlert] OneSignal not configured');
         return res.status(503).json({ success: false, error: 'Push notifications not configured' });

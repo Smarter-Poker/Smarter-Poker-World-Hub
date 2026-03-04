@@ -25,6 +25,20 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'playerId and userId are required' });
         }
 
+        // BUG #242 FIX: Require JWT auth and verify caller is linking their OWN user ID
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Auth required' });
+        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+        if (user.id !== userId) {
+            return res.status(403).json({ error: 'Cannot link notifications for another user' });
+        }
+
         console.log('[OneSignal] Linking player', playerId, 'to user', userId);
 
         // Update the player's external_user_id via REST API

@@ -28,6 +28,12 @@ const TRAINING_GAMES = [
 ];
 
 export default async function handler(req, res) {
+  // BUG #246 FIX: Require JWT auth
+  const _token = req.headers.authorization?.replace('Bearer ', '');
+  if (!_token) return res.status(401).json({ error: 'Auth required' });
+  const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+  if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

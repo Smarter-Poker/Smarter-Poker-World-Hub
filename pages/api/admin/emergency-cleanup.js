@@ -12,8 +12,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // BUG #239 FIX: Require real env var — no hardcoded fallback
     const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CLEANUP_SECRET || 'emergency-cleanup-2026'}`) {
+    if (!process.env.CLEANUP_SECRET || authHeader !== `Bearer ${process.env.CLEANUP_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 

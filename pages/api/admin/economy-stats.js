@@ -25,6 +25,13 @@ export default async function handler(req, res) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
+    // BUG #240 FIX: Require admin/superadmin role — economy data is sensitive
+    const { data: profile } = await supabase
+        .from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+
     try {
         // ── Parallel data fetching for speed ──
         const [
