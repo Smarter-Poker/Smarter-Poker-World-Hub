@@ -3919,6 +3919,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const canCall = legalActions.some(a => a.type === 'call');
     const canRaise = legalActions.some(a => a.type === 'raise' || a.type === 'bet');
     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+    const clamp = (size) => Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
     const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
 
     const holeCards = parseCards(holeCardStrings);
@@ -4176,7 +4177,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 3: Proper PLO pot geometry (correct raise sizing) ──
     const ploProperPotRaise = _calcPLOPotRaiseSimple(toCall, potSize);
-    const clamp = (size) => Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
+    // clamp already declared at top of function (before preflop section)
     const clampedPotRaise = clamp(ploProperPotRaise);
     const potBetSize = Math.round(potSize * 0.90);
     const halfPotBetSize = Math.round(potSize * 0.50);

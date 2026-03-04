@@ -1372,10 +1372,6 @@ export default function PokerNearMePage() {
         if (!hasSearched) {
             return (
                 <div className="search-landing">
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.4)" strokeWidth="1.5">
-                        <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                    </svg>
-                    <h3 style={{ color: '#fff', fontSize: 20, fontWeight: 600, margin: '16px 0 8px' }}>Search {TOTAL_VENUES} Poker Venues</h3>
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
                         Enter a city or venue name, select a popular city, or use GPS to find poker rooms near you.
                     </p>
