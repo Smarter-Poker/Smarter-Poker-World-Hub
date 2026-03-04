@@ -336,6 +336,202 @@ async function getAdvancedModule() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PLO FALLBACK DECISION ENGINE
+// Handles Omaha variants (PLO4, PLO5, PLO6, PLO8 Hi-Lo)
+// PioSolver only has Holdem data - this engine handles non-Holdem variants
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Evaluate PLO preflop hand strength.
+ * PLO hands derive strength from: connectivity, pairs, suits (double-suited), and rundown quality.
+ * @param {string[]} holeCards - Array of 4, 5, or 6 card string descriptors (e.g. "Ah", "Ks")
+ * @returns {number} Strength score 0-100
+ */
+function getPLOPreflopStrength(holeCards) {
+    if (!holeCards || holeCards.length < 4) return 30;
+
+    const ranks = holeCards.map(c => '23456789TJQKA'.indexOf(c[0]));
+    const suits = holeCards.map(c => c[1]);
+
+    // Connectivity score: reward consecutive ranks (rundowns like 7-8-9-T are elite)
+    const sortedRanks = [...ranks].sort((a, b) => b - a);
+    let connectivity = 0;
+    for (let i = 0; i < sortedRanks.length - 1; i++) {
+        const gap = sortedRanks[i] - sortedRanks[i + 1];
+        if (gap === 1) connectivity += 20; // Direct connector
+        else if (gap === 2) connectivity += 10; // One-gap
+        else if (gap === 3) connectivity += 4; // Two-gap
+    }
+
+    // Suit score: double-suited = premium, single-suited = ok, rainbow = minor penalty
+    const suitCounts = {};
+    for (const s of suits) suitCounts[s] = (suitCounts[s] || 0) + 1;
+    const maxSuit = Math.max(...Object.values(suitCounts));
+    let suitScore = 0;
+    if (maxSuit >= 3) suitScore = 30; // Flush draw potential (3+ to a suit)
+    else if (maxSuit === 2 && Object.values(suitCounts).filter(v => v === 2).length >= 2) suitScore = 20; // Double-suited
+    else if (maxSuit === 2) suitScore = 10; // Single-suited
+    else suitScore = -5; // Rainbow — below average
+
+    // High card score: AAKK / AAQQ pairs are top tier
+    const pairs = [];
+    const rankFreq = {};
+    for (const r of sortedRanks) rankFreq[r] = (rankFreq[r] || 0) + 1;
+    let pairScore = 0;
+    for (const [rank, count] of Object.entries(rankFreq)) {
+        if (count >= 2) pairScore += ((parseInt(rank) + 2) * 2); // Higher pairs score more
+    }
+
+    // Top-card bonus (having A, K, Q elevates)
+    const hasAce = ranks.includes(12);
+    const hasKing = ranks.includes(11);
+    const topCardBonus = (hasAce ? 20 : 0) + (hasKing ? 10 : 0);
+
+    // Normalize to 0-100
+    const raw = 20 + Math.min(connectivity, 60) + suitScore + Math.min(pairScore, 20) + topCardBonus;
+    return Math.min(100, Math.max(0, raw));
+}
+
+/**
+ * Dedicated PLO heuristic decision engine.
+ * Uses PLO-specific logic: nut-dominated boards, wrap draws, redraws.
+ * @param {string} profileId
+ * @param {Object} state - { holeCards, board, street, position, stackBB, potSize, toCall, bb, numPlayers, isHiLo }
+ * @param {Array} legalActions
+ * @returns {{ type: string, amount?: number }}
+ */
+function makePLOFallbackDecision(profileId, state, legalActions) {
+    const { holeCards, board, street, position, stackBB, potSize, toCall, bb, numPlayers, isHiLo } = state;
+    const hash = getHash(profileId);
+
+    const canCheck = legalActions.some(a => a.type === 'check');
+    const canCall = legalActions.some(a => a.type === 'call');
+    const canRaise = legalActions.some(a => a.type === 'raise' || a.type === 'bet');
+    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+    const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
+
+    // ─── PREFLOP ───
+    if (street === 'preflop') {
+        const strength = getPLOPreflopStrength(holeCards);
+
+        // PLO short stack = 12bb or less push/fold
+        if (stackBB <= 12 && canRaise) {
+            return strength >= 50 ? { type: 'all_in' } : { type: 'fold' };
+        }
+
+        // High connectivity + suited = premium open
+        if (strength >= 80 && canRaise) {
+            const min = raiseAction?.minAmount || (toCall * 2.5);
+            const size = Math.min(min * 2.5, raiseAction?.maxAmount || min * 3);
+            return { type: raiseAction.type, amount: Math.round(size) };
+        }
+        // Decent PLO hand: call opens, consider re-raise with top 30%
+        if (strength >= 60) {
+            if (toCall > 0 && canRaise && Math.random() < 0.25) {
+                const rr = Math.round((raiseAction?.minAmount || toCall * 3) * 1.5);
+                return { type: raiseAction.type, amount: Math.min(rr, raiseAction?.maxAmount || rr) };
+            }
+            if (canCall) return { type: 'call' };
+            return { type: 'check' };
+        }
+        // Marginal: limp or fold
+        if (strength >= 40 && toCall <= bb && canCall) {
+            return { type: 'call' };
+        }
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // ─── POSTFLOP (PLO-SPECIFIC) ───
+    // In PLO, nutedness is critical. We approximate "nut potential" by
+    // checking the board's top rank relative to our hole cards.
+    const boardRanks = (board || []).map(c => '23456789TJQKA'.indexOf(c[0]));
+    const holeRanks = (holeCards || []).map(c => '23456789TJQKA'.indexOf(c[0]));
+    const holeSuits = (holeCards || []).map(c => c[1]);
+    const boardSuits = (board || []).map(c => c[1]);
+
+    // Check for flush draw potential (2 hole cards of same suit match board suit)
+    const suitFlushCount = (suit) => holeSuits.filter(s => s === suit).length;
+    const boardSuitCount = (suit) => boardSuits.filter(s => s === suit).length;
+    const hasFlushDraw = holeSuits.some(s => suitFlushCount(s) >= 2 && boardSuitCount(s) >= 2);
+
+    // Check for wrap draw (4+ cards to a straight using hole cards + board)
+    const allRanks = [...holeRanks, ...boardRanks].sort((a, b) => a - b);
+    let maxWindow = 0;
+    for (let i = 0; i < allRanks.length - 1; i++) {
+        const windowEnd = allRanks[i] + 4;
+        const inWindow = allRanks.filter(r => r >= allRanks[i] && r <= windowEnd).length;
+        maxWindow = Math.max(maxWindow, inWindow);
+    }
+    const hasWrapDraw = maxWindow >= 5;
+
+    // Approximate nutedness: do we have any of the top 3 board cards in our hand?
+    const topBoardRanks = [...boardRanks].sort((a, b) => b - a).slice(0, 2);
+    const hasTopConnection = topBoardRanks.some(r => holeRanks.includes(r));
+
+    // In PLO Hi-Lo, prioritize low cards (A234 = scoop potential)
+    const hasLowPotential = isHiLo && holeRanks.filter(r => r <= 4).length >= 3; // A,2,3,4,5
+
+    // Derive PLO postflop strength (0-100)
+    let postflopStrength = 30; // Start below average (PLO is nut-dependent)
+    if (hasTopConnection) postflopStrength += 25;
+    if (hasFlushDraw) postflopStrength += 20;
+    if (hasWrapDraw) postflopStrength += 25;
+    if (hasLowPotential) postflopStrength += 15;
+    // Pair bonus from our hole cards matching board top ranks
+    const matchCount = holeRanks.filter(r => boardRanks.includes(r)).length;
+    postflopStrength += matchCount * 8; // Each hitting card = 8 points
+
+    // Personality modifier (tight/loose)
+    const loosenessBias = (hash % 20) - 10;
+    postflopStrength += loosenessBias;
+    postflopStrength = Math.max(0, Math.min(100, postflopStrength));
+
+    const multiplayerPenalty = numPlayers > 3 ? 10 : 0; // PLO multiway = dangerous
+
+    // Bet size helper (PLO uses pot-sized bets predominantly)
+    const potBet = () => {
+        const size = Math.round(potSize * 0.75);
+        return Math.min(size, raiseAction?.maxAmount || size);
+    };
+
+    // ─── RIVER ───
+    if (street === 'river') {
+        if (toCall === 0) {
+            if (postflopStrength >= 75 - multiplayerPenalty && canRaise) {
+                return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || 1, potBet()) };
+            }
+            return { type: 'check' };
+        }
+        // Facing bet: call with nuts or near-nuts only
+        if (postflopStrength >= 65 - multiplayerPenalty || (hasFlushDraw && potOdds < 0.35)) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+        return { type: 'fold' };
+    }
+
+    // ─── FLOP / TURN ───
+    if (toCall === 0) {
+        if (postflopStrength >= 70 && canRaise) {
+            return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || 1, potBet()) };
+        }
+        if ((hasFlushDraw || hasWrapDraw) && canRaise && Math.random() < 0.45) {
+            const semiBluff = Math.round(potSize * 0.6);
+            return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || 1, Math.min(semiBluff, raiseAction?.maxAmount || semiBluff)) };
+        }
+        return { type: 'check' };
+    }
+
+    // Facing a bet in PLO: only continue with strong draws or made nutty hands
+    if (postflopStrength >= 55 || (hasFlushDraw && potOdds < 0.38) || (hasWrapDraw && potOdds < 0.35)) {
+        if (postflopStrength >= 75 && canRaise && Math.random() < 0.4) {
+            return { type: raiseAction.type, amount: Math.max(raiseAction?.minAmount || toCall * 2, potBet()) };
+        }
+        return canCall ? { type: 'call' } : { type: 'fold' };
+    }
+    return { type: 'fold' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // FALLBACK DECISION ENGINE
 // Used when GTO solver data is unavailable
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1131,6 +1327,33 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     const toCall = Math.max(0, (engineState.currentBet || 0) - (heroPlayer.invested || 0));
     const numPlayers = engineState.players?.filter(p => !p.folded).length || 2;
 
+    // ─── PLO / VARIANT-AWARE ROUTING ───
+    // PioSolver only has Holdem solved spots. For Omaha variants (PLO4, PLO5, PLO6, PLO8),
+    // we route to a dedicated heuristic engine that understands 4-6 card hand strength
+    // instead of blindly trying to use 2-card Holdem rankings on a 4-card hand.
+    const variant = engineState.variant || tableConfig.variant || 'holdem';
+    const isPLO = ['omaha4', 'omaha5', 'omaha6', 'omaha_hilo', 'plo', 'plo4', 'plo5', 'plo6', 'plo8'].includes(variant.toLowerCase());
+    const isHiLo = variant.toLowerCase().includes('hilo') || variant.toLowerCase().includes('hi_lo') || variant.toLowerCase().includes('hi-lo');
+
+    if (isPLO) {
+        const ploDecision = makePLOFallbackDecision(profileId, {
+            holeCards: holeCardStrings,
+            board: boardStrings,
+            street,
+            position: mapPosition(heroPlayer.position || 'mp'),
+            stackBB,
+            potSize,
+            toCall,
+            bb,
+            numPlayers,
+            isHiLo,
+        }, legalActions);
+        const validPLO = validateAndClamp(ploDecision.type, ploDecision.amount, legalActions);
+        const delayPLO = getActionDelay(profileId, validPLO.type, street === 'preflop');
+        recordPerformanceAction(profileId, street, validPLO.type, validPLO.type !== 'fold' && validPLO.type !== 'check');
+        return { action: validPLO, delayMs: delayPLO };
+    }
+
     const adaptedState = {
         holeCards: holeCardStrings,
         board: boardStrings,
@@ -1553,29 +1776,40 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // Clamp to human-realistic range
     delayMs = Math.round(Math.max(800, Math.min(7000, delayMs)));
 
-    // --- TIMEBANK TANKING & EMOJIS (NEW) ---
-    // Identify if the action represents an all-in or massive commitment
+    // --- TIMEBANK: Horses use the VIP Timebank system like all VIP members ---
+    // Horses are Lifetime VIP - they have a real timebank balance in ActionTimer.
+    // The ActionTimer itself manages when to auto-activate timebank (when main time expires).
+    // We do NOT inject artificial extra time here. The engine's VIP timebank does this
+    // automatically when the horse legitimately runs low on its main turn clock.
+    // Note: Horse VIP timebank balance is set to VIP_LIFETIME seconds at seat-in time.
+
+    // --- GIF EMOTE for All-In moments (words only in chat) ---
     const actionAmount = validAction.amount || finalAmount || 0;
     const isAllIn = validAction.type === 'all_in' || actionAmount >= bb * 50;
 
-    // 1. Timebank usage for tough spots (River calls/raises, or any All-In)
-    if ((street === 'river' && validAction.type !== 'fold' && validAction.type !== 'check') || isAllIn) {
-        if (Math.random() < 0.15) { // 15% chance to deep tank into the timebank
-            delayMs = 12000 + Math.floor(Math.random() * 20000); // 12s to 32s
-            console.log(`[HorseBrain] \u23f1\ufe0f Deep Tank! ${profileId.substring(0, 8)} using timebank for ${delayMs}ms`);
-        }
-    }
-
-    // 2. Emotes for All-In
-    if (isAllIn && Math.random() < 0.3) { // 30% chance to emote when all-in
-        const emotes = ['\ud83c\udf40', 'GL GL', '\ud83d\ude4f', "Let's go", '\ud83d\udcaa', 'GL', 'Run good', '\ud83c\udfb2'];
-        const emote = emotes[Math.floor(Math.random() * emotes.length)];
+    if (isAllIn && Math.random() < 0.35) { // 35% chance to react when all-in
+        // Two separate channels:
+        // 1. Chat: words-only encouragement/trash talk
+        // 2. GIF: a table_gif event for a visual reaction
+        const chatPhrases = ['GL GL', 'Good luck everyone', 'Let\'s go', 'All day baby', 'Run good', 'Praying for a good run', 'Here we go'];
+        const chatMsg = chatPhrases[Math.floor(Math.random() * chatPhrases.length)];
         chatMessages.push({
             playerId: profileId,
-            message: emote,
-            tableId: null // Handled implicitly by GameController looping
+            message: chatMsg,
+            type: 'chat'
         });
-        console.log(`[HorseBrain] \ud83d\udcac Emote Triggered! ${profileId.substring(0, 8)} says: ${emote}`);
+
+        // Also queue a GIF event (50% chance when already emoting)
+        if (Math.random() < 0.5) {
+            const gifTags = ['poker', 'good luck', 'all in', 'nervous', 'lets go', 'chips'];
+            const gifTag = gifTags[Math.floor(Math.random() * gifTags.length)];
+            chatMessages.push({
+                playerId: profileId,
+                message: gifTag,
+                type: 'gif' // GameController will broadcast this as a `table_gif` event
+            });
+        }
+        console.log(`[HorseBrain] 💬 All-In emote triggered for ${profileId.substring(0, 8)}: "${chatMsg}"`);
     }
 
     // --- Record performance stats (#34) ---

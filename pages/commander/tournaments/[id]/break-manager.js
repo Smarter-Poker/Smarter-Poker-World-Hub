@@ -23,7 +23,7 @@ import {
   Users, ArrowRight, Check, X, ChevronRight, Table2, Zap
 } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
-import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
+import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 
 export default function BreakManager() {
   const router = useRouter();
@@ -53,6 +53,13 @@ export default function BreakManager() {
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
+
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
+  // Real-time sync — instantly reacts to tournament changes from other TD pages
+  useCommanderSync(venueId, checkBreak, { entities: ['tournaments'] });
 
   useEffect(() => { checkBreak(); const i = setInterval(checkBreak, 30000); return () => clearInterval(i); }, [checkBreak]);
 

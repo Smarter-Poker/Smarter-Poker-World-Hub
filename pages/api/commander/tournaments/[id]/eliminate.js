@@ -112,17 +112,21 @@ export default async function handler(req, res) {
     // Handle bounty if applicable
     let bountiesCollected = 0;
     if (tournament.bounty_amount && eliminated_by_id) {
-      // Award bounty to eliminator (read current + increment)
+      // Award bounty to eliminator (read current + increment, preserving metadata)
       const { data: eliminator } = await supabase
         .from('commander_tournament_entries')
-        .select('bounties_collected')
+        .select('bounties_collected, metadata')
         .eq('id', eliminated_by_id)
         .single();
 
       await supabase
         .from('commander_tournament_entries')
         .update({
-          bounties_collected: (eliminator?.bounties_collected || 0) + 1
+          bounties_collected: (eliminator?.bounties_collected || 0) + 1,
+          metadata: {
+            ...(eliminator?.metadata || {}),
+            last_bounty_at: new Date().toISOString()
+          }
         })
         .eq('id', eliminated_by_id);
 
@@ -210,7 +214,12 @@ export default async function handler(req, res) {
             status: 'winner',
             finish_position: 1,
             payout_amount: winnerAmount,
-            payout_position: 1
+            payout_position: 1,
+            metadata: {
+              ...(winner.metadata || {}),
+              won_at: new Date().toISOString(),
+              prize_amount: winnerAmount
+            }
           })
           .eq('id', winner.id);
 

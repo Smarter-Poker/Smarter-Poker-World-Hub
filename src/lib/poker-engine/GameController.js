@@ -1022,8 +1022,17 @@ class GameController {
         const messages = HorsePokerBrain.getChatMessages();
         if (messages.length > 0 && entry.sync) {
           for (const msg of messages) {
-            // Only broadcast if the message is for this player's exact action timing
-            if (String(msg.playerId) === String(playerId)) {
+            if (String(msg.playerId) !== String(playerId)) continue;
+
+            if (msg.type === 'gif') {
+              // Broadcast as a GIF event — frontend picks a GIF via the tag keyword
+              entry.sync._broadcast('table_gif', {
+                playerId: msg.playerId,
+                tag: msg.message,   // e.g. 'good luck', 'all in', 'lets go'
+                timestamp: Date.now()
+              });
+            } else {
+              // Words-only chat message
               entry.sync._broadcast('chat_message', {
                 playerId: msg.playerId,
                 message: msg.message,
