@@ -27,6 +27,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // BUG #248 FIX: Require JWT auth — this route uses paid OpenAI API
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+
     const { query, history = [] } = req.body;
 
     if (!query || typeof query !== 'string' || query.trim().length === 0) {

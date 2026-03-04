@@ -15,6 +15,12 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+    // BUG #251 FIX: Require JWT auth and verify caller matches userId
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+
 
     const { userId, hendonUrl } = req.body;
 

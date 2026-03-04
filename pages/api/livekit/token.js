@@ -11,6 +11,14 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // BUG #247 FIX: Require JWT auth — token generation must be authenticated
+    const { createClient } = await import('@supabase/supabase-js');
+    const _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await _supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+
     const { roomName, participantName, participantId } = req.body;
 
     if (!roomName || !participantName) {
