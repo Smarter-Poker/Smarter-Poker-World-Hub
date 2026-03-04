@@ -78,23 +78,23 @@ export default async function handler(req, res) {
       seatKeys.add(key);
     }
 
-    // Check destination seats are not already occupied
-    for (const a of assignments) {
-      const { data: existing } = await supabase
-        .from('commander_tournament_entries')
-        .select('id, player_name')
-        .eq('tournament_id', tournamentId)
-        .eq('table_number', a.to_table)
-        .eq('seat_number', a.to_seat)
-        .in('status', ['active', 'seated'])
-        .maybeSingle();
+    // Check destination seats are not already occupied (batch query — avoids N+1)
+    const destPairs = assignments.map(a => `(${a.to_table},${a.to_seat})`);
+    const { data: conflictingSeats } = await supabase
+      .from('commander_tournament_entries')
+      .select('table_number, seat_number, player_name')
+      .eq('tournament_id', tournamentId)
+      .in('status', ['active', 'seated']);
 
-      if (existing) {
-        return res.status(409).json({
-          success: false,
-          error: `Seat ${a.to_seat} at Table ${a.to_table} occupied by ${existing.player_name}`
-        });
-      }
+    const occupiedSet = new Set(
+      (conflictingSeats || [])
+        .filter(e => assignments.some(a => a.to_table === e.table_number && a.to_seat === e.seat_number))
+    );
+    for (const e of occupiedSet) {
+      return res.status(409).json({
+        success: false,
+        error: `Seat ${e.seat_number} at Table ${e.table_number} already occupied by ${e.player_name}`
+      });
     }
 
     // Execute all moves
@@ -144,7 +144,8 @@ export default async function handler(req, res) {
         mode: 'inactive',
         tournament_id: null,
         status: 'available',
-        assigned_at: null
+        assigned_at: null,
+        updated_at: new Date().toISOString()
       })
       .eq('venue_id', tournament.venue_id)
       .eq('table_number', table_number);

@@ -39,8 +39,11 @@ export default function BreakManager() {
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
 
+  const checkingRef = useRef(false);
+
   const checkBreak = useCallback(async () => {
-    if (!tournamentId) return;
+    if (!tournamentId || checkingRef.current) return;
+    checkingRef.current = true;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
         headers: { 'x-staff-session': getStaffSession() }
@@ -51,7 +54,10 @@ export default function BreakManager() {
         if (json.data.assignments) setAssignments(json.data.assignments);
       }
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    finally {
+      setLoading(false);
+      checkingRef.current = false;
+    }
   }, [tournamentId]);
 
   const [venueId] = useState(() => {
@@ -61,6 +67,7 @@ export default function BreakManager() {
   // Real-time sync — instantly reacts to tournament changes from other TD pages
   useCommanderSync(venueId, checkBreak, { entities: ['tournaments'] });
 
+  // 30s safety poll (debounce ref prevents conflicts with RT pushes)
   useEffect(() => { checkBreak(); const i = setInterval(checkBreak, 30000); return () => clearInterval(i); }, [checkBreak]);
 
   const executeBreak = async () => {

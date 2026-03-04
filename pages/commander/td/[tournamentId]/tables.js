@@ -92,7 +92,7 @@ export default function TDTablesMap() {
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
     fetchFloor();
-    const interval = setInterval(fetchFloor, 300000); // 5-min fallback
+    const interval = setInterval(fetchFloor, 30000); // 30s fallback safety poll
     return () => clearInterval(interval);
   }, [fetchFloor]);
 
@@ -170,9 +170,12 @@ ${receipts.map(r => `<div class="card">
           }
           await fetchFloor();
           broadcastChange('tournaments');
+          // Re-sync selectedTable from freshly fetched floor data (avoid stale ref)
           if (selectedTable) {
-            const updated = floor?.tables?.find(t => t.table_number === selectedTable.table_number);
-            if (updated) setSelectedTable(updated);
+            setSelectedTable(prev => {
+              const updated = floor?.tables?.find(t => t.table_number === prev?.table_number);
+              return updated || prev;
+            });
           }
         } catch (err) { console.error(err); }
         finally { setActionLoading(null); }
@@ -426,21 +429,24 @@ ${receipts.map(r => `<div class="card">
                         if (!confirm(`Break Table ${selectedTable.table_number}? All ${selectedTable.players.length} players will be auto-assigned to available seats.`)) return;
                         setActionLoading('break');
                         try {
-                          // Step 1: Fetch auto-break suggestions for this specific table
+                          // Step 1: Fetch auto-break suggestions — no ?table= param, the API picks the best candidate
+                          // We check that the system agrees this specific table should be broken
                           const breakSuggestRes = await fetch(
-                            `/api/commander/tournaments/${tournamentId}/auto-break?table=${selectedTable.table_number}`,
+                            `/api/commander/tournaments/${tournamentId}/auto-break`,
                             { headers: { 'x-staff-session': getToken() } }
                           );
                           const breakSuggestJson = await breakSuggestRes.json();
 
-                          if (!breakSuggestJson.success || !breakSuggestJson.data?.assignments?.length) {
+                          // Use assignments if available — regardless of which table the system picked,
+                          // we override with the TD's selected table for manual breaks
+                          let assignments = breakSuggestJson.data?.assignments || [];
+
+                          if (!breakSuggestJson.success || assignments.length === 0) {
                             // No auto assignments available — alert the TD
                             alert(`Cannot auto-break Table ${selectedTable.table_number}: not enough available seats at other tables. Manually move players first.`);
                             setActionLoading(null);
                             return;
                           }
-
-                          const assignments = breakSuggestJson.data.assignments;
 
                           // Step 2: Execute the break via break-table API
                           const res = await fetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
