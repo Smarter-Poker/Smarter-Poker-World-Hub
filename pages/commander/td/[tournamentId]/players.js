@@ -163,35 +163,70 @@ export default function TDPlayers() {
 
   const printAutoBreakReceipts = (autoBreak) => {
     if (!autoBreak?.receipts?.length) return;
-    const pw = window.open('', '_blank', 'width=400,height=600');
+    const pw = window.open('', '_blank', 'width=420,height=700');
     if (!pw) return;
     const receipts = autoBreak.receipts;
-    pw.document.write(`<!DOCTYPE html><html><head><title>Auto Break Receipts</title>
-      <style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0}
-      .r{width:72mm;padding:4mm;margin:0 auto;page-break-after:always;border-bottom:1px dashed #000}
-      .r:last-child{page-break-after:avoid}.c{text-align:center}.b{font-weight:bold}
-      .lg{font-size:20px}.md{font-size:14px}.sm{font-size:11px}
-      .d{border-top:1px dashed #000;margin:3mm 0}.rw{display:flex;justify-content:space-between}
-      .ar{font-size:24px;text-align:center;margin:2mm 0}
-      .auto{font-size:10px;text-align:center;background:#000;color:#fff;padding:1mm 3mm;border-radius:2mm;margin:2mm auto;display:inline-block}
-      </style></head><body>
-      ${receipts.map(r => `<div class="r">
-        <div class="c b md">${r.tournament_name}</div>
-        <div class="c sm">TABLE BREAK</div>
-        <div class="c"><span class="auto">AUTO-BREAK</span></div>
-        <div class="d"></div>
-        <div class="c b md">${r.player_name}</div><div class="d"></div>
-        <div class="rw sm"><span>FROM:</span><span class="b">Table ${r.from_table}, Seat ${r.from_seat}</span></div>
-        <div class="ar">⬇</div>
-        <div class="rw"><span class="md">NEW SEAT:</span><span class="b lg">T${r.to_table} - S${r.to_seat}</span></div>
-        ${r.chips ? `<div class="rw sm" style="margin-top:2mm"><span>Chips:</span><span class="b">${Number(r.chips).toLocaleString()}</span></div>` : ''}
-        <div class="d"></div>
-        <div class="sm c" style="margin-top:2mm;opacity:.6">${new Date(r.timestamp).toLocaleTimeString()}</div>
-        <div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker — Auto Break</div>
-      </div>`).join('')}</body></html>`);
+    pw.document.write(`<!DOCTYPE html><html><head><title>Seat Change Cards</title>
+<style>
+@page { margin: 0; size: 80mm auto; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Courier New', Courier, monospace; background: #fff; }
+.card {
+  width: 72mm; margin: 0 auto; padding: 5mm 4mm;
+  border-bottom: 2px dashed #000;
+  page-break-after: always;
+}
+.card:last-child { page-break-after: avoid; border-bottom: none; }
+.header { text-align: center; margin-bottom: 3mm; }
+.tournament { font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+.label-sc { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #555; margin-top: 1mm; }
+.divider { border-top: 1px solid #000; margin: 3mm 0; }
+.dashed { border-top: 1px dashed #aaa; margin: 2.5mm 0; }
+.player { text-align: center; font-size: 15px; font-weight: bold; margin: 2mm 0; }
+.from-row { display: flex; justify-content: space-between; align-items: center; margin: 1.5mm 0; }
+.from-label { font-size: 9px; text-transform: uppercase; color: #666; }
+.from-val { font-size: 11px; font-weight: bold; }
+.arrow { text-align: center; font-size: 20px; margin: 1mm 0; }
+.new-seat-box {
+  border: 2px solid #000; border-radius: 3mm;
+  padding: 3mm; text-align: center; margin: 2mm 0;
+  background: #f9f9f9;
+}
+.new-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #444; }
+.new-table { font-size: 28px; font-weight: bold; letter-spacing: -1px; }
+.new-seat  { font-size: 16px; font-weight: bold; }
+.chips-row { display: flex; justify-content: space-between; font-size: 10px; margin-top: 2mm; }
+.footer { text-align: center; margin-top: 3mm; font-size: 8px; color: #888; }
+.present { font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2mm; text-align: center; }
+</style></head><body>
+${receipts.map(r => `<div class="card">
+  <div class="header">
+    <div class="tournament">${r.tournament_name}</div>
+    <div class="label-sc">⬛ Seat Change Card ⬛</div>
+  </div>
+  <div class="divider"></div>
+  <div class="player">${r.player_name}</div>
+  <div class="dashed"></div>
+  <div class="from-row">
+    <span class="from-label">Previous Table</span>
+    <span class="from-val">Table ${r.from_table}, Seat ${r.from_seat}</span>
+  </div>
+  <div class="arrow">⬇</div>
+  <div class="new-seat-box">
+    <div class="new-label">Report To</div>
+    <div class="new-table">TABLE ${r.to_table}</div>
+    <div class="new-seat">SEAT ${r.to_seat}</div>
+  </div>
+  ${r.chips ? `<div class="chips-row"><span>Chip Count:</span><span><b>${Number(r.chips).toLocaleString()}</b></span></div>` : ''}
+  <div class="divider"></div>
+  <div class="present">Present this card to floor staff</div>
+  <div class="footer">${new Date(r.timestamp).toLocaleTimeString()} &nbsp;|&nbsp; Smarter.Poker Commander</div>
+</div>`).join('')}
+</body></html>`);
     pw.document.close();
     setTimeout(() => { pw.print(); pw.close(); }, 500);
   };
+
 
   const executeConfirmedAction = async () => {
     if (!confirmAction) return;

@@ -112,7 +112,21 @@ export default function useTournamentRealtime(tournamentId, onUpdate) {
                     },
                     () => debouncedUpdate()
                 )
+                .on(
+                    'postgres_changes',
+                    {
+                        // When a table is released or assigned, all connected pages
+                        // (tables map, floor view) need to rebuild immediately.
+                        // Filter by tournament_id so we only react to tables for THIS tournament.
+                        event: '*',
+                        schema: 'public',
+                        table: 'commander_tables',
+                        filter: `tournament_id=eq.${tournamentId}`
+                    },
+                    () => debouncedUpdate()
+                )
                 .subscribe((status) => {
+
                     if (status === 'SUBSCRIBED') {
                         reconnectCountRef.current = 0;
                         console.log(`[Realtime] ✅ Connected: td-${tournamentId.slice(0, 8)}`);

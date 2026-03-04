@@ -2311,6 +2311,322 @@ function getPLOGifStateMachine(handPhase, gifInfo, profileId) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PHASE 7 — LIVE READS, SIZING TELLS & STACK PRESERVATION
+// Bet-sizing tells, stack preservation, dynamic probe calibration,
+// position-exact ranges, chat responses, timing reads, chip accumulation,
+// per-street bluff freq calibration.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 7a. BET SIZING TELL DETECTOR ──
+/**
+ * Opponents often reveal hand strength through bet sizing patterns.
+ * Large bets tend to be value, very small bets tend to be blocks or bluffs.
+ * Detect these patterns and adjust our call/fold thresholds accordingly.
+ * @param {number} opponentBetFraction - Their bet as fraction of pot (0-3.0+)
+ * @param {Object} opponentRead - { largeBetValueRate, smallBetBluffRate }
+ * @param {string} street
+ * @returns {{ telledStrength: string, callAdjustment: number, isTell: boolean }}
+ */
+function detectPLOBetSizingTell(opponentBetFraction, opponentRead, street) {
+    if (!opponentBetFraction || opponentBetFraction <= 0) {
+        return { telledStrength: 'unknown', callAdjustment: 0, isTell: false };
+    }
+
+    const largeBetValueRate = opponentRead?.largeBetValueRate || 0.50; // Default: 50% of large bets are value
+    const smallBetBluffRate = opponentRead?.smallBetBluffRate || 0.40; // Default: 40% of small bets are bluffs
+
+    // Very large overbet (>1.5x pot): usually polarized — nut or air
+    if (opponentBetFraction >= 1.50) {
+        return { telledStrength: 'polarized', callAdjustment: -5, isTell: true };
+    }
+
+    // Large bet (0.75-1.5x pot): usually value-heavy
+    if (opponentBetFraction >= 0.75) {
+        // If this opponent historically large-bets with value: tighten defense range
+        const adj = largeBetValueRate >= 0.65 ? -10 : -5;
+        return { telledStrength: 'likely_value', callAdjustment: adj, isTell: largeBetValueRate >= 0.60 };
+    }
+
+    // Small bet (< 0.33x pot): block bet or bluff common
+    if (opponentBetFraction <= 0.33) {
+        // If they small-bet as a bluff pattern: loosen up to call
+        const adj = smallBetBluffRate >= 0.50 ? 8 : 4;
+        return { telledStrength: 'likely_bluff_or_block', callAdjustment: adj, isTell: smallBetBluffRate >= 0.45 };
+    }
+
+    // Medium bet (0.33-0.75x pot): usually medium value or draw
+    return { telledStrength: 'medium', callAdjustment: 0, isTell: false };
+}
+
+// ── 7b. STACK PRESERVATION PROTOCOL ──
+/**
+ * When the horse's stack drops dangerously short, activate ultra-tight mode.
+ * Avoid marginal all-ins, prefer fold equity plays, and don't gamble with
+ * medium-equity spots that are near coin flips.
+ * @param {number} stackBB - Current stack in big blinds
+ * @param {number} startingStackBB - Starting stack at session start
+ * @returns {{ isShort: boolean, isCritical: boolean, reshoveRange: number, preservationFactor: number }}
+ */
+function getPLOStackPreservation(stackBB, startingStackBB) {
+    const stackRatio = stackBB / Math.max(startingStackBB, 1);
+
+    // Critical: under 10bb — must shove or fold, no more post-flop play
+    if (stackBB <= 10) {
+        return { isShort: true, isCritical: true, reshoveRange: 60, preservationFactor: 1.60 };
+    }
+
+    // Short: 10-20bb — tight is right, only strong hands
+    if (stackBB <= 20) {
+        return { isShort: true, isCritical: false, reshoveRange: 72, preservationFactor: 1.35 };
+    }
+
+    // Moderate: 20-35bb — cautious play, avoid marginal flips
+    if (stackBB <= 35) {
+        return { isShort: false, isCritical: false, reshoveRange: 80, preservationFactor: 1.15 };
+    }
+
+    // Healthy stack: no preservation needed
+    return { isShort: false, isCritical: false, reshoveRange: 100, preservationFactor: 1.0 };
+}
+
+// ── 7c. DYNAMIC PROBE FREQUENCY CALIBRATOR ──
+/**
+ * Calibrate how often the horse should probe-bet on a given street,
+ * incorporating all known info: board texture, position, opponent profile,
+ * table image, and runout quality.
+ * @param {boolean} isIP
+ * @param {string} opponentProfile - 'maniac' | 'nit' | 'station' | 'balanced'
+ * @param {Object} boardTexture
+ * @param {string} runoutQuality - 'excellent' | 'good' | 'neutral' | 'poor' | 'dangerous'
+ * @param {string} tableImageType - 'tight' | 'loose' | 'balanced' | 'neutral'
+ * @param {number} numPlayers
+ * @returns {{ probeFrequency: number, probeSizing: number, shouldProbe: boolean }}
+ */
+function calibratePLOProbeBet(isIP, opponentProfile, boardTexture, runoutQuality, tableImageType, numPlayers) {
+    if (!isIP) return { probeFrequency: 0, probeSizing: 0, shouldProbe: false }; // IP only
+
+    let frequency = 0.35; // Base probe frequency IP
+
+    // Against nits: probe more (they fold too much)
+    if (opponentProfile === 'nit') frequency += 0.20;
+    // Against maniacs: probe less (they'll raise)
+    if (opponentProfile === 'maniac') frequency -= 0.15;
+    // Against stations: probe only with value (they call everything)
+    if (opponentProfile === 'station') frequency -= 0.10;
+
+    // Dry boards: probe more (opponent likely missed)
+    if (boardTexture.texture === 'rainbow') frequency += 0.10;
+    // Wet boards: probe less (opponent likely connected)
+    if (boardTexture.isMonotone) frequency -= 0.15;
+
+    // Good runout for us: probe more aggressively
+    if (runoutQuality === 'excellent') frequency += 0.08;
+    if (runoutQuality === 'poor') frequency -= 0.12;
+
+    // Tight table image: more probe bluffs (opponents respect bets)
+    if (tableImageType === 'tight') frequency += 0.10;
+    if (tableImageType === 'loose') frequency -= 0.10;
+
+    // Multi-way: probe much less (one of N players has something)
+    if (numPlayers >= 3) frequency -= 0.15 * (numPlayers - 2);
+
+    frequency = Math.max(0.05, Math.min(0.70, frequency));
+    const shouldProbe = Math.random() < frequency;
+
+    // Sizing: nits = larger probe (scare them), stations = smaller (they call regardless)
+    const probeSizing = opponentProfile === 'nit' ? 0.60
+        : opponentProfile === 'station' ? 0.35
+            : 0.45;
+
+    return { probeFrequency: frequency, probeSizing, shouldProbe };
+}
+
+// ── 7d. POSITION-AWARE RANGE CONSTRUCTOR ──
+/**
+ * Build position-exact preflop opening ranges for PLO.
+ * Returns the minimum strength required to open from each position.
+ * Based on standard PLO theory hand categorization.
+ * @param {string} position
+ * @param {number} numPlayers - Players at table
+ * @param {number} stackBB
+ * @returns {{ openThreshold: number, threeB etThreshold: number, fourBetThreshold: number }}
+ */
+function getPLOPositionRanges(position, numPlayers, stackBB) {
+    // Tighter at full ring (9-max), looser at 6-max, very wide at HU/3-max
+    const tableSizeFactor = numPlayers >= 8 ? 1.15 : numPlayers <= 4 ? 0.90 : 1.0;
+
+    const ranges = {
+        'UTG': { open: 72, threebet: 85, fourbet: 92 },
+        'UTG1': { open: 70, threebet: 83, fourbet: 90 },
+        'UTG2': { open: 68, threebet: 82, fourbet: 88 },
+        'MP': { open: 65, threebet: 80, fourbet: 87 },
+        'HJ': { open: 60, threebet: 77, fourbet: 86 },
+        'CO': { open: 55, threebet: 73, fourbet: 84 },
+        'BTN': { open: 48, threebet: 68, fourbet: 82 },
+        'SB': { open: 52, threebet: 70, fourbet: 83 },
+        'BB': { open: 38, threebet: 65, fourbet: 80 }, // BB: defend more
+    };
+
+    const base = ranges[position] || ranges['MP'];
+
+    // Adjust for table size
+    return {
+        openThreshold: Math.round(base.open * tableSizeFactor),
+        threeBetThreshold: Math.round(base.threebet * tableSizeFactor),
+        fourBetThreshold: Math.round(base.fourbet * tableSizeFactor),
+    };
+}
+
+// ── 7e. CHAT RESPONSE INTEGRATION ──
+/**
+ * Generate contextually-appropriate chat messages for notable poker situations.
+ * RULES: words only, NO emojis, keep it short, feel authentic.
+ * Messages are triggered by game events passed in state.chatTrigger.
+ * @param {string} trigger - 'bust_opponent' | 'bad_beat' | 'big_pot_won' | 'all_in_ahead' | 'all_in_behind'
+ * @param {string} profileId - For deterministic message selection per horse
+ * @returns {{ shouldChat: boolean, message: string|null }}
+ */
+function getPLOChatResponse(trigger, profileId) {
+    if (!trigger) return { shouldChat: false, message: null };
+
+    const hash = getHash(profileId);
+    const rand = Math.random();
+
+    // Only chat 40-60% of the time to feel natural
+    if (rand > 0.55) return { shouldChat: false, message: null };
+
+    const messages = {
+        bust_opponent: [
+            'gg', 'well played', 'nice game', 'good run', 'tough spot',
+        ],
+        bad_beat: [
+            'wow', 'that one hurt', 'poker is a crazy game', 'nice hand',
+            'well played', 'that is variance for you',
+        ],
+        big_pot_won: [
+            'nice pot', 'great game everyone', 'what a hand',
+        ],
+        all_in_ahead: [
+            'good luck everyone', 'let us see what happens',
+            'hold em up', 'come on',
+        ],
+        all_in_behind: [
+            'let us go', 'still have outs',
+            'anything can happen', 'good luck to all',
+        ],
+        welcome: [
+            'hello everyone', 'good luck at the tables',
+            'lets have a great game',
+        ],
+    };
+
+    const pool = messages[trigger] || messages.welcome;
+    const idx = Math.abs(hash % pool.length);
+    return { shouldChat: true, message: pool[idx] };
+}
+
+// ── 7f. TIMING TELL READER ──
+/**
+ * Read opponent timing patterns as tells.
+ * Fast action usually = weak hand or draw (auto-click).
+ * Very long tank = strong hand or difficult decision.
+ * @param {number} opponentActionTimeMs - How long opponent took in ms
+ * @param {string} street
+ * @returns {{ timingTell: string, equityAdjustment: number }}
+ */
+function readPLOTimingTell(opponentActionTimeMs, street) {
+    if (!opponentActionTimeMs || opponentActionTimeMs <= 0) {
+        return { timingTell: 'unknown', equityAdjustment: 0 };
+    }
+
+    // Instant action (<1s): instacall/bet usually = strong draw or auto-play
+    if (opponentActionTimeMs < 1000) {
+        // Instabet on river = often value or monster
+        if (street === 'river') return { timingTell: 'insta_value_or_bluff', equityAdjustment: -5 };
+        // Instacall pre/flop = usually drawing hand
+        return { timingTell: 'fast_draw_or_weak', equityAdjustment: 3 }; // Actually good for us
+    }
+
+    // Normal action (1-5s): no significant tell
+    if (opponentActionTimeMs <= 5000) {
+        return { timingTell: 'normal', equityAdjustment: 0 };
+    }
+
+    // Long tank (5-15s): genuine decision, usually medium strength
+    if (opponentActionTimeMs <= 15000) {
+        return { timingTell: 'medium_tank', equityAdjustment: -3 }; // Tends toward value
+    }
+
+    // Extended tank (>15s): very strong hand OR time bank used = significant spot
+    return { timingTell: 'deep_tank_likely_strong', equityAdjustment: -8 };
+}
+
+// ── 7g. TOURNAMENT CHIP ACCUMULATION MODE ──
+/**
+ * Early in a tournament, chip accumulation is the priority.
+ * Double up at reasonable equity. Avoid ultra-tight play that wastes antes.
+ * This mode is active when we're in the early blind levels (< 20% of starting stack spent).
+ * @param {Object} tourneyData - { blindLevel, blindsTotal, startingChips, currentChips, isChipLeader }
+ * @param {number} equityFinal
+ * @returns {{ isAccumulationMode: boolean, accumulationBonus: number, anteStealing: boolean }}
+ */
+function getPLOChipAccumulationMode(tourneyData, equityFinal) {
+    if (!tourneyData) return { isAccumulationMode: false, accumulationBonus: 0, anteStealing: false };
+
+    const { blindLevel = 0, startingChips = 10000, currentChips = 10000, isChipLeader = false } = tourneyData;
+
+    // Early levels (1-6): accumulation mode active
+    const isEarlyLevel = blindLevel <= 6;
+    const isHealthyStack = currentChips >= startingChips * 0.70;
+
+    if (!isEarlyLevel || !isHealthyStack) {
+        return { isAccumulationMode: false, accumulationBonus: 0, anteStealing: false };
+    }
+
+    // In early levels with a healthy stack: play slightly wider and more aggressively
+    const accumulationBonus = isChipLeader ? -5 : 8; // Chip leader is careful, others accumulate
+
+    // Ante stealing: fire steals more often when antes are in play
+    const anteStealing = blindLevel >= 3; // Antes typically kick in around level 3-4
+
+    return { isAccumulationMode: true, accumulationBonus, anteStealing };
+}
+
+// ── 7h. PER-STREET BLUFF FREQUENCY CALIBRATION ──
+/**
+ * Some opponents bluff more on specific streets. Calibrate call-down thresholds
+ * based on opponent's per-street bluff patterns.
+ * @param {string} street
+ * @param {Object} opponentRead - { flopBluffRate, turnBluffRate, riverBluffRate }
+ * @returns {{ calldownThreshold: number, shouldLoosen: boolean, streetBluffRate: number }}
+ */
+function getPLOPerStreetBluffCalibration(street, opponentRead) {
+    if (!opponentRead) {
+        // Default: call down on flop/turn more than river (give credit on river)
+        const defaults = { flop: 0.35, turn: 0.30, river: 0.20 };
+        return { calldownThreshold: 45, shouldLoosen: false, streetBluffRate: defaults[street] || 0.25 };
+    }
+
+    const bluffRates = {
+        flop: opponentRead.flopBluffRate || 0.35,
+        turn: opponentRead.turnBluffRate || 0.25,
+        river: opponentRead.riverBluffRate || 0.18,
+    };
+
+    const streetBluffRate = bluffRates[street] || 0.25;
+
+    // High bluff rate on this street: call down looser
+    let calldownThreshold = 45; // Default equity needed to call
+    if (streetBluffRate >= 0.45) calldownThreshold = 32; // Very aggressive: call with 32+ equity
+    else if (streetBluffRate >= 0.35) calldownThreshold = 38;
+    else if (streetBluffRate <= 0.15) calldownThreshold = 58; // Very honest: fold more
+
+    const shouldLoosen = streetBluffRate >= 0.35;
+
+    return { calldownThreshold, shouldLoosen, streetBluffRate };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 6. PREFLOP PLO BETTING STRATEGY
 // Proper raise sizing in PLO, position awareness, 3-bet/4-bet ranges.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2513,6 +2829,39 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const opponentActions = state.opponentActionHistory || [];
     const hvrInfo = approximatePLOHvR(madeHand, exactOuts, opponentActions, boardTexture, street, potOdds);
 
+    // ── Phase 7: Bet-sizing tell detector ──
+    const opponentBetFraction = toCall > 0 ? toCall / Math.max(potSize, 1) : 0;
+    const betSizingTell = detectPLOBetSizingTell(opponentBetFraction, state.opponentRead || null, street);
+
+    // ── Phase 7: Timing tell reader ──
+    const opponentActionTimeMs = state.opponentActionTimeMs || 0;
+    const timingTell = readPLOTimingTell(opponentActionTimeMs, street);
+
+    // ── Phase 7: Per-street bluff frequency calibration ──
+    const perStreetBluff = getPLOPerStreetBluffCalibration(street, state.opponentRead || null);
+
+    // ── Phase 7: Stack preservation protocol ──
+    const startingStackBB = state.startingStackBB || stackBB;
+    const stackPreservation = getPLOStackPreservation(stackBB, startingStackBB);
+
+    // ── Phase 7: Tournament chip accumulation mode ──
+    const tourneyData = state.tourneyData || null;
+    const chipAccumulation = getPLOChipAccumulationMode(tourneyData, 0);
+
+    // ── Phase 7: Position ranges (used as gate for preflop and as reference) ──
+    const positionRanges = getPLOPositionRanges(position, numPlayers, stackBB);
+
+    // ── Phase 7: Dynamic probe calibrator ──
+    const calibratedProbe = calibratePLOProbeBet(
+        isIP, exploitProfile?.profile || 'balanced',
+        boardTexture, runout?.runoutQuality || 'neutral',
+        tableImage?.tableImage || 'neutral', numPlayers
+    );
+
+    // ── Phase 7: Chat trigger (fires contextual message if game engine supports it) ──
+    const chatTrigger = state.chatTrigger || null;
+    const chatResponse = getPLOChatResponse(chatTrigger, profileId);
+
     // ── Total equity (raw → realized), using exact combo outs ──
     const totalOuts = exactOuts + backdoorOuts; // exact outs already de-duped
     const outEquityRaw = Math.min(exactOuts * 2.2, 46) * rioInfo.rioMultiplier; // RIO-adjusted
@@ -2572,11 +2921,16 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const sessionMetrics = state.sessionMetrics || null;
     const varianceProt = getPLOVarianceProtection(sessionMetrics);
     // Apply variance factor on top of tightness (compound: both can be active)
-    const combinedTightnessOp = tightnessOp / varianceProt.tightenFactor;
-    // Re-derive equity with combined operator
+    // Phase 7: stack preservation factor also applies here
+    const combinedTightnessOp = tightnessOp / (varianceProt.tightenFactor * Math.max(1.0, stackPreservation.preservationFactor - 0.35));
+    // Re-derive equity with combined operator + Phase 7 live-read adjustments
     const equityP4 = Math.max(0, Math.min(100,
         (madeHand.strength + outEquity + nutBonus + lo8Bonus
-            - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias) * combinedTightnessOp
+            - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias
+            + chipAccumulation.accumulationBonus
+            + betSizingTell.callAdjustment
+            + timingTell.equityAdjustment
+        ) * combinedTightnessOp
     ));
 
     // ── Phase 4: Nut range advantage ──
@@ -2825,11 +3179,18 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Call if continuance says so
     if (canCall) return { type: 'call' };
 
-    // Phase 5 opponent-adjusted threshold (fallback)
-    if (equityFinal >= exploitFoldThreshold - 5 && canCall) {
+    // Phase 5+7: opponent-adjusted threshold using per-street bluff calibration
+    const callThreshold = perStreetBluff.shouldLoosen
+        ? perStreetBluff.calldownThreshold      // Phase 7: call with less equity vs aggressive opponents
+        : exploitFoldThreshold - 5;             // Phase 5: default exploit threshold
+    if (equityFinal >= callThreshold && canCall) {
         const ourEquityFraction = equityFinal / 100;
         if (ourEquityFraction >= potOdds - 0.05) return { type: 'call' };
     }
+
+    // Phase 7: Ante stealing mode — call preflop continuation bets wider with antes in play
+    if (chipAccumulation.anteStealing && equityFinal >= 32 && potOdds < 0.20 && canCall)
+        return { type: 'call' };
 
     // Backdoor + medium equity with good immediate odds
     if (equityFinal >= 38 && potOdds < 0.25 && canCall) return { type: 'call' };

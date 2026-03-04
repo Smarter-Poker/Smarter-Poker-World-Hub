@@ -1,28 +1,31 @@
 /**
  * Commander Tournament Management Page
  * List, create, and manage tournaments
- * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
+ * Facebook Dark theme • Club Commander standard
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Plus, Trophy, Clock, Users, DollarSign,
-  Calendar, Play, ChevronRight, Filter, Loader2, RefreshCw, Sliders
+  Calendar, Play, ChevronRight, Filter, Loader2, RefreshCw,
+  Sliders, CheckCircle2
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
+import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 
+/* ─── Status Config ─────────────────────────────────────────── */
 const STATUS_CONFIG = {
-  scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Scheduled' },
-  registration: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
-  registering: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
-  running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
-  paused: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'Paused' },
-  break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
-  final_table: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Final Table' },
-  completed: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Completed' },
-  cancelled: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', label: 'Cancelled' }
+  scheduled: { color: '#B0B3B8', bg: 'rgba(176,179,184,0.12)', label: 'Scheduled' },
+  registration: { color: '#1877F2', bg: 'rgba(24,119,242,0.12)', label: 'Registration' },
+  registering: { color: '#1877F2', bg: 'rgba(24,119,242,0.12)', label: 'Registration' },
+  running: { color: '#31A24C', bg: 'rgba(49,162,76,0.12)', label: 'Running' },
+  paused: { color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', label: 'Paused' },
+  break: { color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', label: 'On Break' },
+  final_table: { color: '#1877F2', bg: 'rgba(24,119,242,0.12)', label: 'Final Table' },
+  completed: { color: '#B0B3B8', bg: 'rgba(176,179,184,0.10)', label: 'Completed' },
+  cancelled: { color: '#EF4444', bg: 'rgba(239,68,68,0.10)', label: 'Cancelled' },
 };
 
 const FILTER_OPTIONS = [
@@ -31,33 +34,34 @@ const FILTER_OPTIONS = [
   { value: 'upcoming', label: 'Upcoming' },
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'cancelled', label: 'Cancelled' },
 ];
 
+/* ─── Helpers ───────────────────────────────────────────────── */
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
-
 function formatTime(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
-
 function isToday(dateStr) {
   if (!dateStr) return false;
-  const d = new Date(dateStr);
-  const now = new Date();
-  return d.toDateString() === now.toDateString();
+  return new Date(dateStr).toDateString() === new Date().toDateString();
 }
 
-function isFuture(dateStr) {
-  if (!dateStr) return false;
-  return new Date(dateStr) > new Date();
-}
+/* ─── Inline styles ─────────────────────────────────────────── */
+const S = {
+  page: { minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', sans-serif" },
+  panel: {
+    background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
+    transition: 'border-color 0.18s',
+  },
+  label: { fontSize: 11, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 1 },
+};
 
+/* ─── Page ──────────────────────────────────────────────────── */
 export default function CommanderTournamentsPage() {
   const router = useRouter();
 
@@ -68,345 +72,305 @@ export default function CommanderTournamentsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('current_future');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreate] = useState(false);
   const [page, setPage] = useState(1);
 
-  // Check staff session
+  /* ─── Init staff session ─── */
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
-    if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
-      return;
-    }
-
+    const raw = localStorage.getItem('commander_staff');
+    if (!raw) { router.push('/commander/login'); return; }
     try {
-      const staffData = JSON.parse(storedStaff);
-      if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => { });
-        return;
-      }
-      setStaff(staffData);
-      setVenueId(staffData.venue_id);
-      if (staffData.venue_name) {
-        setVenue({ id: staffData.venue_id, name: staffData.venue_name });
-      }
-    } catch (err) {
-      router.push('/commander/login').catch(() => { });
-    }
+      const s = JSON.parse(raw);
+      if (!s.venue_id) { router.push('/commander/login'); return; }
+      setStaff(s);
+      setVenueId(s.venue_id);
+      if (s.venue_name) setVenue({ id: s.venue_id, name: s.venue_name });
+    } catch { router.push('/commander/login'); }
   }, [router]);
 
-  // Fetch tournaments — pass status filter to API for server-side filtering
+  /* ─── Fetch tournaments ─── */
   const fetchTournaments = useCallback(async (showRefreshing = false) => {
     if (!venueId) return;
     if (showRefreshing) setRefreshing(true);
-
     try {
       const params = new URLSearchParams({ venue_id: venueId, limit: '200' });
-
-      // Server-side status filtering for current_future, active, upcoming, completed, cancelled
-      if (filter === 'current_future') {
-        params.set('status', 'current_future');
-      } else if (filter === 'active') {
-        params.set('status', 'active');
-      } else if (filter === 'upcoming') {
-        params.set('status', 'upcoming');
-      } else if (filter === 'completed') {
-        params.set('status', 'completed');
-      } else if (filter === 'cancelled') {
-        params.set('status', 'cancelled');
-      }
-      // 'all' = no status param
-
+      if (filter !== 'all') params.set('status', filter);
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/tournaments?${params}`, {
-        headers: { 'x-staff-session': staffSession },
-      });
+      const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { 'x-staff-session': staffSession } });
       const data = await res.json();
-
-      if (data.success) {
-        setTournaments(data.data.tournaments || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tournaments:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+      if (data.success) setTournaments(data.data.tournaments || []);
+    } catch (err) { console.error('Fetch tournaments:', err); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [venueId, filter]);
 
-  useEffect(() => {
-    if (venueId) fetchTournaments();
-  }, [venueId, fetchTournaments]);
+  useEffect(() => { if (venueId) fetchTournaments(); }, [venueId, fetchTournaments]);
 
-  // Handle tournament created
-  function handleTournamentCreated(tournament) {
-    fetchTournaments();
-  }
+  /* ─── Real-time sync ─── */
+  useCommanderSync(venueId, fetchTournaments, { entities: ['tournaments'] });
 
-  // Navigate to tournament detail
-  function openTournament(tournament) {
-    router.push(`/commander/tournaments/${tournament.id}`);
-  }
+  /* ─── Computed groups ─── */
+  const activeTournaments = useMemo(() => tournaments.filter(t => ['running', 'paused', 'break', 'final_table'].includes(t.status)), [tournaments]);
+  const upcomingTournaments = useMemo(() => tournaments.filter(t => ['scheduled', 'registration', 'registering'].includes(t.status)), [tournaments]);
+  const completedTournaments = useMemo(() => tournaments.filter(t => ['completed', 'cancelled'].includes(t.status)), [tournaments]);
+  const paginated = useMemo(() => tournaments.slice(0, page * 25), [tournaments, page]);
 
-  // Memoized tournament groups for stats display
-  const activeTournaments = useMemo(() => tournaments.filter(t =>
-    ['running', 'paused', 'break', 'final_table'].includes(t.status)
-  ), [tournaments]);
-  const upcomingTournaments = useMemo(() => tournaments.filter(t =>
-    ['scheduled', 'registration', 'registering'].includes(t.status)
-  ), [tournaments]);
-  const completedTournaments = useMemo(() => tournaments.filter(t =>
-    ['completed', 'cancelled'].includes(t.status)
-  ), [tournaments]);
-
-  // Server-side filtering means tournaments are already the correct set
-  const paginatedTournaments = useMemo(() => tournaments.slice(0, page * 25), [tournaments, page]);
-
+  /* ─── Loading state ─── */
   if (!staff || loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 size={36} style={{ color: '#1877F2', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
 
   return (
     <CommanderLayout title={`Tournaments | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=tournaments">
-      <div className="cmd-page">
-        {/* Action Bar */}
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-end gap-2">
-          <button
-            onClick={() => fetchTournaments(true)}
-            disabled={refreshing}
-            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className={`w-5 h-5 text-[#B0B3B8] ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Create
-          </button>
+      <SEOHead title="Commander — Tournaments" description="Club Commander Tournament Management" noindex={true} />
+      <div style={S.page}>
+
+        {/* ── Top Action Bar ── */}
+        <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Trophy size={18} style={{ color: '#F59E0B' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 17, fontWeight: 800, color: '#E4E6EB', margin: 0 }}>Tournaments</h1>
+              <p style={{ fontSize: 11, color: '#6A6B6D', margin: 0 }}>{venue?.name || 'Club Commander'}</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => fetchTournaments(true)}
+              disabled={refreshing}
+              style={{ width: 36, height: 36, borderRadius: 10, background: '#3A3B3C', border: 'none', color: '#B0B3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Refresh"
+            >
+              <RefreshCw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              style={{ padding: '8px 18px', borderRadius: 10, background: '#1877F2', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={15} /> Create
+            </button>
+          </div>
         </div>
 
-        {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* ── Tournament Director Shortcut Card ── */}
+          {/* ── Tournament Director Shortcut ── */}
           <button
             onClick={() => router.push('/commander/tournament-controls')}
-            className="w-full cmd-panel p-4 text-left flex items-center gap-4 hover:border-[#F59E0B]/50 transition-all active:scale-[0.99]"
-            style={{ borderColor: 'rgba(245,158,11,0.25)', background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(36,37,38,0.95) 100%)' }}
+            style={{
+              ...S.panel,
+              width: '100%', padding: '14px 18px', cursor: 'pointer', textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: 14,
+              borderColor: 'rgba(245,158,11,0.3)',
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.07) 0%, #242526 60%)',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.55)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.3)'; }}
           >
+            {/* Icon */}
             <div style={{
-              width: 56, height: 56, borderRadius: 14, flexShrink: 0,
+              width: 52, height: 52, borderRadius: 14, flexShrink: 0,
               background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.35)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
             }}>
               <img
                 src="/images/commander/icons/tn-controls.png"
-                alt="Tournament Director"
-                style={{ width: 36, height: 36, objectFit: 'contain' }}
-                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                alt="TD"
+                style={{ width: 34, height: 34, objectFit: 'contain' }}
+                onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
               />
               <div style={{ display: 'none', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-                <Sliders size={26} style={{ color: '#F59E0B' }} />
+                <Sliders size={24} style={{ color: '#F59E0B' }} />
               </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white">Tournament Director</p>
-              <p className="text-xs text-[#B0B3B8] mt-0.5">Clock · Structure · Payouts · Players · Tables</p>
+
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 15, fontWeight: 800, color: '#E4E6EB', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Tournament Director</p>
+              <p style={{ fontSize: 12, color: '#8A8D91', margin: 0 }}>Clock · Structure · Payouts · Players · Tables</p>
             </div>
+
+            {/* CTA chip */}
             <div style={{
-              padding: '7px 16px', borderRadius: 10, background: '#F59E0B',
-              color: '#000', fontSize: 13, fontWeight: 700, flexShrink: 0,
-              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 10, background: '#F59E0B',
+              color: '#000', fontSize: 12, fontWeight: 800, flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 5, letterSpacing: 0.3,
             }}>
-              <Sliders size={14} />
-              Launch
+              <Sliders size={13} /> Launch TD
             </div>
           </button>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4">
-            <button onClick={() => { setFilter(filter === 'active' ? 'current_future' : 'active'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#31A24C]/40 ${filter === 'active' ? 'border-[#31A24C]/60 ring-1 ring-[#31A24C]/30' : ''}`}>
-              <Play className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
-              <p className="text-2xl font-bold text-white">{activeTournaments.length}</p>
-              <p className="text-xs text-[#B0B3B8]">Active</p>
-            </button>
-            <button onClick={() => { setFilter(filter === 'upcoming' ? 'current_future' : 'upcoming'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#1877F2]/40 ${filter === 'upcoming' ? 'border-[#1877F2]/60 ring-1 ring-[#1877F2]/30' : ''}`}>
-              <Calendar className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
-              <p className="text-2xl font-bold text-white">{upcomingTournaments.length}</p>
-              <p className="text-xs text-[#B0B3B8]">Upcoming</p>
-            </button>
-            <button onClick={() => { setFilter(filter === 'completed' ? 'current_future' : 'completed'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#F59E0B]/40 ${filter === 'completed' ? 'border-[#F59E0B]/60 ring-1 ring-[#F59E0B]/30' : ''}`}>
-              <Trophy className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
-              <p className="text-2xl font-bold text-white">{completedTournaments.length}</p>
-              <p className="text-xs text-[#B0B3B8]">Completed</p>
-            </button>
+          {/* ── Stats Row ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+            {[
+              { label: 'Active', count: activeTournaments.length, color: '#31A24C', icon: Play, filterKey: 'active' },
+              { label: 'Upcoming', count: upcomingTournaments.length, color: '#1877F2', icon: Calendar, filterKey: 'upcoming' },
+              { label: 'Completed', count: completedTournaments.length, color: '#F59E0B', icon: Trophy, filterKey: 'completed' },
+            ].map(({ label, count, color, icon: Icon, filterKey }) => (
+              <button
+                key={filterKey}
+                onClick={() => { setFilter(filter === filterKey ? 'current_future' : filterKey); setPage(1); }}
+                style={{
+                  ...S.panel,
+                  padding: '14px 10px', textAlign: 'center', cursor: 'pointer', border: 'none',
+                  borderLeft: filter === filterKey ? `3px solid ${color}` : '1px solid #3A3B3C',
+                  background: filter === filterKey ? `rgba(${color === '#31A24C' ? '49,162,76' : color === '#1877F2' ? '24,119,242' : '245,158,11'},0.08)` : '#242526',
+                }}
+              >
+                <Icon size={20} style={{ color, marginBottom: 4, display: 'block', margin: '0 auto 6px' }} />
+                <p style={{ fontSize: 24, fontWeight: 800, color: '#E4E6EB', margin: '0 0 2px' }}>{count}</p>
+                <p style={{ fontSize: 11, color: '#8A8D91', margin: 0 }}>{label}</p>
+              </button>
+            ))}
           </div>
 
-          {/* Filter Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <Filter className="w-4 h-4 text-[#B0B3B8] flex-shrink-0" />
-            {FILTER_OPTIONS.map((opt) => (
+          {/* ── Filter Pills ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+            <Filter size={14} style={{ color: '#6A6B6D', flexShrink: 0 }} />
+            {FILTER_OPTIONS.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => { setFilter(opt.value); setPage(1); }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === opt.value
-                  ? 'bg-[#1877F2] text-white'
-                  : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
-                  }`}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+                  background: filter === opt.value ? '#1877F2' : '#3A3B3C',
+                  color: filter === opt.value ? '#fff' : '#B0B3B8',
+                  transition: 'background 0.15s',
+                }}
               >
                 {opt.label}
               </button>
             ))}
           </div>
 
-          {/* Tournament List */}
+          {/* ── Tournament List ── */}
           {tournaments.length === 0 ? (
-            <div className="cmd-panel p-8 text-center">
-              <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-white mb-2">
+            <div style={{ ...S.panel, padding: '48px 24px', textAlign: 'center' }}>
+              <Trophy size={48} style={{ color: '#3A3B3C', margin: '0 auto 16px', display: 'block' }} />
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: '#E4E6EB', margin: '0 0 8px' }}>
                 {filter === 'all' || filter === 'current_future' ? 'No Tournaments Yet' : `No ${filter} tournaments`}
               </h2>
-              <p className="text-[#B0B3B8] mb-4">
+              <p style={{ fontSize: 13, color: '#8A8D91', margin: '0 0 20px' }}>
                 {filter === 'all' || filter === 'current_future'
                   ? 'Create your first tournament to get started'
-                  : 'Try a different filter or create a new tournament'
-                }
+                  : 'Try a different filter or create a new tournament'}
               </p>
               <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+                onClick={() => setShowCreate(true)}
+                style={{ padding: '10px 24px', borderRadius: 10, background: '#1877F2', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                Create Tournament
+                <Plus size={15} /> Create Tournament
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {paginatedTournaments.map((tournament) => {
-                const status = STATUS_CONFIG[tournament.status] || STATUS_CONFIG.scheduled;
-                const isActive = ['running', 'paused', 'break', 'final_table'].includes(tournament.status);
-                const totalPrizePool = tournament.actual_prizepool ||
-                  (tournament.entries_count || 0) * (tournament.buyin_amount || 0);
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {paginated.map(t => {
+                const st = STATUS_CONFIG[t.status] || STATUS_CONFIG.scheduled;
+                const isActive = ['running', 'paused', 'break', 'final_table'].includes(t.status);
+                const prize = t.actual_prizepool || (t.entries_count || 0) * (t.buyin_amount || 0);
 
                 return (
                   <button
-                    key={tournament.id}
-                    onClick={() => openTournament(tournament)}
-                    className={`w-full cmd-panel p-4 text-left transition-all hover:border-[#1877F2]/30 ${isActive ? 'border-l-4 border-l-[#31A24C]' : ''
-                      }`}
+                    key={t.id}
+                    onClick={() => router.push(`/commander/tournaments/${t.id}`)}
+                    style={{
+                      ...S.panel,
+                      width: '100%', padding: '16px 18px', textAlign: 'left', cursor: 'pointer',
+                      borderLeft: isActive ? '3px solid #31A24C' : '1px solid #3A3B3C',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#1877F2'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = isActive ? '#31A24C' : '#3A3B3C'; }}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-white truncate">
-                            {tournament.name}
-                          </h3>
-                          <span className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium ${status.bg} ${status.text}`}>
-                            {status.label}
+                    {/* Header row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {t.name}
+                          </span>
+                          <span style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, background: st.bg, color: st.color }}>
+                            {st.label}
                           </span>
                         </div>
-                        <p className="text-sm text-[#B0B3B8]">
-                          {tournament.tournament_type ? tournament.tournament_type.charAt(0).toUpperCase() + tournament.tournament_type.slice(1) : 'NLH'}
-                          {tournament.buyin_amount ? ` | $${tournament.buyin_amount}` : ''}
-                          {tournament.buyin_fee ? `+$${tournament.buyin_fee}` : ''}
+                        <p style={{ fontSize: 12, color: '#8A8D91', margin: 0 }}>
+                          {t.tournament_type ? t.tournament_type.charAt(0).toUpperCase() + t.tournament_type.slice(1) : 'NLH'}
+                          {t.buyin_amount ? ` · $${t.buyin_amount}` : ''}
+                          {t.buyin_fee ? `+$${t.buyin_fee}` : ''}
                         </p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[#3A3B3C] flex-shrink-0 mt-1" />
+                      <ChevronRight size={18} style={{ color: '#3A3B3C', flexShrink: 0, marginTop: 2 }} />
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#B0B3B8]" />
-                        <div>
-                          <p className="text-xs text-white">
-                            {isToday(tournament.scheduled_start) ? 'Today' : formatDate(tournament.scheduled_start)}
-                          </p>
-                          <p className="text-xs text-[#B0B3B8]">
-                            {formatTime(tournament.scheduled_start)}
-                          </p>
+                    {/* Stats grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+                      {[
+                        { icon: Calendar, label: isToday(t.scheduled_start) ? 'Today' : formatDate(t.scheduled_start), sub: formatTime(t.scheduled_start), color: '#B0B3B8' },
+                        { icon: Users, label: `${t.entries_count || 0}${t.max_entries ? `/${t.max_entries}` : ''}`, sub: 'Entries', color: '#1877F2' },
+                        { icon: DollarSign, label: `$${(prize || 0).toLocaleString()}`, sub: 'Prize Pool', color: '#31A24C' },
+                        { icon: Clock, label: t.starting_chips ? `${(t.starting_chips / 1000).toFixed(0)}K` : '--', sub: 'Chips', color: '#B0B3B8' },
+                      ].map(({ icon: Icon, label, sub, color }, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Icon size={14} style={{ color: '#6A6B6D', flexShrink: 0 }} />
+                          <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color, margin: 0 }}>{label}</p>
+                            <p style={{ fontSize: 10, color: '#6A6B6D', margin: 0 }}>{sub}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-[#B0B3B8]" />
-                        <div>
-                          <p className="text-xs text-white">
-                            {tournament.entries_count || 0}
-                            {tournament.max_entries ? `/${tournament.max_entries}` : ''}
-                          </p>
-                          <p className="text-xs text-[#B0B3B8]">Entries</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-[#B0B3B8]" />
-                        <div>
-                          <p className="text-xs text-[#31A24C]">
-                            ${totalPrizePool.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-[#B0B3B8]">Prize Pool</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-[#B0B3B8]" />
-                        <div>
-                          <p className="text-xs text-white">
-                            {tournament.starting_chips ? `${(tournament.starting_chips / 1000)}K` : '--'}
-                          </p>
-                          <p className="text-xs text-[#B0B3B8]">Chips</p>
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
-                    {/* Active tournament extra info */}
+                    {/* Active live bar */}
                     {isActive && (
-                      <div className="mt-3 pt-3 border-t border-[#3A3B3C] flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-xs">
-                          <span className="text-[#B0B3B8]">
-                            Level {tournament.current_level || 1}
-                          </span>
-                          <span className="text-[#B0B3B8]">
-                            {tournament.players_remaining || tournament.entries_count || 0} remaining
-                          </span>
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #3A3B3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                          <span style={{ fontSize: 12, color: '#8A8D91' }}>Level {t.current_level || 1}</span>
+                          <span style={{ fontSize: 12, color: '#8A8D91' }}>{t.players_remaining || t.entries_count || 0} remaining</span>
                         </div>
-                        <span className="text-xs font-medium text-[#31A24C] flex items-center gap-1">
-                          <span className="w-2 h-2 bg-[#31A24C] rounded-full animate-pulse" />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#31A24C', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#31A24C', display: 'inline-block', boxShadow: '0 0 6px #31A24C', animation: 'pulse 1.5s infinite' }} />
                           LIVE
                         </span>
                       </div>
                     )}
 
                     {/* Guaranteed overlay */}
-                    {tournament.guaranteed_pool > 0 && totalPrizePool < tournament.guaranteed_pool && (
-                      <div className="mt-2 px-2 py-1 bg-[#F59E0B]/10 rounded text-xs text-[#F59E0B]">
-                        ${tournament.guaranteed_pool.toLocaleString()} GTD
+                    {(t.guaranteed_pool > 0 && prize < t.guaranteed_pool) && (
+                      <div style={{ marginTop: 8, padding: '4px 10px', background: 'rgba(245,158,11,0.1)', borderRadius: 6, display: 'inline-block' }}>
+                        <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 700 }}>${t.guaranteed_pool.toLocaleString()} GTD</span>
                       </div>
                     )}
                   </button>
                 );
               })}
 
-              {tournaments.length > paginatedTournaments.length && (
+              {tournaments.length > paginated.length && (
                 <button
                   onClick={() => setPage(p => p + 1)}
-                  className="w-full py-3 mt-4 cmd-panel text-center text-[#B0B3B8] font-medium hover:text-white transition-colors"
+                  style={{ ...S.panel, width: '100%', padding: '14px', textAlign: 'center', color: '#B0B3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none' }}
                 >
                   Load More Tournaments
                 </button>
               )}
             </div>
           )}
-        </main>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes spin  { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+      `}</style>
 
       <CreateTournamentModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSubmit={handleTournamentCreated}
+        onClose={() => setShowCreate(false)}
+        onSubmit={() => fetchTournaments(true)}
         venueId={venueId}
       />
     </CommanderLayout>
