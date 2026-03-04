@@ -288,8 +288,8 @@ async function fetchOgImageViaNoEmbed(url) {
         if (!response.ok) return null;
 
         const data = await response.json();
-        const imageUrl = data?.thumbnail_url || data?.url;
-        if (imageUrl && (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg') || imageUrl.endsWith('.png') || imageUrl.endsWith('.webp') || imageUrl.includes('cardplayer.com'))) {
+        const imageUrl = data?.thumbnail_url;
+        if (imageUrl && (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg') || imageUrl.endsWith('.png') || imageUrl.endsWith('.webp') || imageUrl.includes('images'))) {
             console.log(`   ✓ Got image via noembed: ${imageUrl.substring(0, 60)}...`);
             return imageUrl;
         }
@@ -341,12 +341,19 @@ async function fastFailImageProxy(url) {
         setTimeout(() => resolve(null), CONFIG.IMAGE_PROXY_TIMEOUT)
     );
 
-    // Run all three proxies concurrently; first non-null result wins
+    // Run all three proxies concurrently.
+    // We MUST throw if a proxy returns null, so Promise.any ignores it and waits for a successful image.
+    const runProxy = async (proxyFn) => {
+        const res = await proxyFn(url);
+        if (!res) throw new Error('Proxy returned null');
+        return res;
+    };
+
     const proxyRace = Promise.any([
-        fetchOgImageViaProxy(url),
-        fetchOgImageViaNoEmbed(url),
-        fetchOgImageViaGoogleCache(url)
-    ]).catch(() => null); // If ALL reject, return null
+        runProxy(fetchOgImageViaProxy),
+        runProxy(fetchOgImageViaNoEmbed),
+        runProxy(fetchOgImageViaGoogleCache)
+    ]).catch(() => null); // If ALL reject (or timeout), return null
 
     return Promise.race([proxyRace, timeoutPromise]);
 }
