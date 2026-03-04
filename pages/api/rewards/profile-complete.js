@@ -79,13 +79,24 @@ export default async function handler(req, res) {
         const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
         const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
 
-        await supabase.from('diamond_reward_claims').insert({
+        // BUG #265 FIX: Check insert result before awarding diamonds.
+        // Without this, concurrent requests both pass the 'existing' check,
+        // both insert (if no unique constraint), and both award diamonds.
+        const { error: claimInsertErr } = await supabase.from('diamond_reward_claims').insert({
             user_id: userId,
             reward_type: 'profile_complete',
             diamonds_awarded: COMPLETION_REWARD,
             claim_date: today,
             metadata: { username: profile.username, has_avatar: true, bio_length: profile.bio.trim().length }
         });
+
+        if (claimInsertErr) {
+            if (claimInsertErr.code === '23505') {
+                return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Profile completion reward already claimed' });
+            }
+            console.error('[ProfileComplete] Insert error:', claimInsertErr);
+            throw claimInsertErr;
+        }
 
         await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: userId,

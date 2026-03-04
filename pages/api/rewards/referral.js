@@ -61,14 +61,21 @@ export default async function handler(req, res) {
         const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
         const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
 
-        // Record claim (bypasses cap, no cap check needed)
-        await supabase.from('diamond_reward_claims').insert({
+        // BUG #265 FIX: Check insert result before awarding diamonds
+        const { error: claimInsertErr } = await supabase.from('diamond_reward_claims').insert({
             user_id: referrerId,
             reward_type: 'referral',
             diamonds_awarded: REFERRAL_REWARD,
             claim_date: today,
             metadata: { referred_user_id: referredUserId, bypasses_cap: true }
         });
+
+        if (claimInsertErr) {
+            if (claimInsertErr.code === '23505') {
+                return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Referral reward already claimed for this user' });
+            }
+            throw claimInsertErr;
+        }
 
         // Award diamonds
         await supabase.rpc('add_diamonds_to_balance', {

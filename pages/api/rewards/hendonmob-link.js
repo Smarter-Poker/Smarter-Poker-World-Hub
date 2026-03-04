@@ -78,13 +78,21 @@ export default async function handler(req, res) {
         const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
         const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
 
-        await supabase.from('diamond_reward_claims').insert({
+        // BUG #265 FIX: Check insert result before awarding diamonds
+        const { error: claimInsertErr } = await supabase.from('diamond_reward_claims').insert({
             user_id: userId,
             reward_type: 'hendonmob_link',
             diamonds_awarded: HENDONMOB_REWARD,
             claim_date: today,
             metadata: { hendonmob: String(hendonmobValue).substring(0, 100) }
         });
+
+        if (claimInsertErr) {
+            if (claimInsertErr.code === '23505') {
+                return res.status(200).json({ success: true, alreadyClaimed: true, message: 'HendonMob link reward already claimed' });
+            }
+            throw claimInsertErr;
+        }
 
         await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: userId,
