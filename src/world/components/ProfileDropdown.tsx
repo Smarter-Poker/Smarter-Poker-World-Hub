@@ -90,8 +90,8 @@ export function ProfileDropdown({ isOpen, onClose, anchorRef, onCustomizeCards }
         if (item.id === 'logout') {
             onClose();
             try {
-                // Sovereign Logout: clear auth + Supabase session
-                clearAuth();
+                // Sovereign Logout: force=true clears auth AND destroys backup
+                clearAuth(true);
                 const { supabase } = await import('../../lib/supabase');
                 await supabase.auth.signOut();
             } catch { }

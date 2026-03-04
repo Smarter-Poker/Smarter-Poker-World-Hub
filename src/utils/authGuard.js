@@ -354,8 +354,20 @@ export function createMultiDeviceAuthListener(supabase, onAuthReady, debounceMs 
                 clearTimeout(debounceTimer);
             }
 
-            // Handle sign out immediately
+            // Handle sign out — but verify it's genuine first
             if (event === 'SIGNED_OUT') {
+                // 🛡️ HARDENED: Check if localStorage still has a valid token
+                // Supabase fires spurious SIGNED_OUT during token refresh cycles
+                try {
+                    const authData = localStorage.getItem('smarter-poker-auth');
+                    if (authData) {
+                        const parsed = JSON.parse(authData);
+                        if (parsed?.user?.id) {
+                            console.warn('[AUTH_GUARD] 🛡️ Ignoring spurious SIGNED_OUT — localStorage still has valid session');
+                            return; // Don't process this event
+                        }
+                    }
+                } catch (e) { /* proceed with normal flow if check fails */ }
                 processAuthEvent(null, event);
                 return;
             }

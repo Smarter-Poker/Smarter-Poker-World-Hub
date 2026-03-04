@@ -8,6 +8,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import supabase from '../lib/supabase.ts';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
 import { getAuthUser } from '../lib/authUtils';
+import { backupSession, restoreSessionBackup, hasSessionBackup } from '../lib/authUtils';
 
 const AvatarContext = createContext();
 
@@ -108,6 +109,8 @@ export function AvatarProvider({ children }) {
             if (event === 'INITIAL_SESSION') {
                 if (session?.user) {
                     console.log('[AvatarContext] Session found, attempting background refresh...');
+                    // 🛡️ HARDENED: Backup session BEFORE attempting refresh
+                    backupSession();
                     try {
                         // 🛡️ CRITICAL FIX: Use the EXISTING session first, then try refreshing.
                         // NEVER nuke localStorage on timeout — a stale token is infinitely
@@ -156,7 +159,18 @@ export function AvatarProvider({ children }) {
                         await fetchVipStatus(session.user.id);
                     }
                 } else {
-                    // No session at all
+                    // 🛡️ HARDENED: No active session — try to restore from backup before giving up
+                    if (hasSessionBackup()) {
+                        console.log('[AvatarContext] 🛡️ No session found, attempting backup restoration...');
+                        const restored = restoreSessionBackup();
+                        if (restored) {
+                            // Backup restored — reload the page so Supabase picks up the restored token
+                            console.log('[AvatarContext] 🛡️ Session restored from backup! Reloading...');
+                            window.location.reload();
+                            return; // Don't continue, page will reload
+                        }
+                    }
+                    // No session and no backup — user is genuinely not logged in
                     setUser(null);
                 }
                 setInitializing(false);
@@ -164,17 +178,29 @@ export function AvatarProvider({ children }) {
             }
 
             // For other events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.)
+            if (event === 'SIGNED_OUT') {
+                // 🛡️ HARDENED: Only accept SIGNED_OUT if there's genuinely no session
+                // Supabase sometimes fires spurious SIGNED_OUT events during token refresh
+                const localUser = getAuthUser();
+                if (localUser) {
+                    console.warn('[AvatarContext] 🛡️ Ignoring spurious SIGNED_OUT — localStorage still has valid session');
+                    return; // Ignore this event
+                }
+            }
+
             setUser(session?.user ?? null);
             if (session?.user) {
                 // 🛡️ ANTIGRAVITY: Ensure profile exists on EVERY sign-in event
                 if (event === 'SIGNED_IN') {
                     await ensureUserProfile(session.user);
                 }
+                // 🛡️ Backup session on every successful auth state change
+                backupSession();
                 await fetchVipStatus(session.user.id);
             }
         });
 
-        // Fallback timeout: if INITIAL_SESSION never fires (edge case), mark as initialized after 3s
+        // Fallback timeout: if INITIAL_SESSION never fires (edge case), mark as initialized after 5s
         const fallbackTimeout = setTimeout(() => {
             setInitializing(prev => {
                 if (prev) {
@@ -183,7 +209,7 @@ export function AvatarProvider({ children }) {
                 }
                 return prev;
             });
-        }, 3000);
+        }, 5000);
 
         return () => {
             subscription.unsubscribe();

@@ -101,6 +101,18 @@ const PhoneVerifyVIPModal = dynamic(
   { ssr: false }
 );
 
+// Dynamic import for Global Error Catcher (catches async/event handler errors)
+const GlobalErrorCatcher = dynamic(
+  () => import('../src/components/ui/GlobalErrorCatcher'),
+  { ssr: false }
+);
+
+// Dynamic import for Chunk Load Recovery (auto-reloads on stale chunks after deploy)
+const ChunkLoadRecovery = dynamic(
+  () => import('../src/components/ui/ChunkLoadRecovery'),
+  { ssr: false }
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION GUARD — Prevents loading freeze when pressing back button
 // Uses SYNCHRONOUS DOM manipulation for instant hiding (no React state delay)
@@ -408,6 +420,12 @@ export default function App({ Component, pageProps }) {
                           </HubErrorBoundary>
                           <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
                             <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>
+                            <GlobalErrorCatcher />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
+                            <ChunkLoadRecovery />
                           </HubErrorBoundary>
                         </WorldThemeProvider>
                       </ActiveIdentityProvider>
