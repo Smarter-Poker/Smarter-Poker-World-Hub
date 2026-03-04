@@ -542,20 +542,51 @@ export default function PokerNearMePage() {
         }
     }, []);
 
-    // Filter states
-    const [filters, setFilters] = useState({
-        radius: 50,
-        venueType: 'all',
-        hasNLH: false,
-        hasPLO: false,
-        hasMixed: false,
-        tourType: 'all',
-        seriesTimeframe: 90,
-        seriesType: 'all',
-        selectedDay: getCurrentDay(),
-        minBuyin: '',
-        maxBuyin: ''
+    const [filters, setFilters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('poker-near-me-search-filters');
+                if (saved) return JSON.parse(saved);
+            } catch (e) { console.error(e); }
+        }
+        return {
+            radius: 50,
+            venueType: 'all',
+            hasNLH: false,
+            hasPLO: false,
+            hasMixed: false,
+            tourType: 'all',
+            seriesTimeframe: 90,
+            seriesType: 'all',
+            selectedDay: getCurrentDay(),
+            minBuyin: '',
+            maxBuyin: '',
+            stakes: 'all',
+            gameType: 'all'
+        };
     });
+
+    // Real-time Master Saving & Bus Synchronization
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('poker-near-me-search-filters', JSON.stringify(filters));
+            window.dispatchEvent(new CustomEvent('poker-near-me-filters-sync', { detail: filters }));
+        }
+    }, [filters]);
+
+    useEffect(() => {
+        const handleSync = (e) => {
+            if (e.detail && typeof window !== 'undefined') {
+                const currentStr = JSON.stringify(filters);
+                const newStr = JSON.stringify(e.detail);
+                if (currentStr !== newStr) {
+                    setFilters(e.detail);
+                }
+            }
+        };
+        window.addEventListener('poker-near-me-filters-sync', handleSync);
+        return () => window.removeEventListener('poker-near-me-filters-sync', handleSync);
+    }, [filters]);
 
     // --- NEW: Live games, favorites, sorting, pagination, search history ---
     const [liveGames, setLiveGames] = useState([]);
@@ -581,25 +612,42 @@ export default function PokerNearMePage() {
     const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
 
     // Map view filters (for enhanced map-first experience)
-    const [mapFilters, setMapFilters] = useState({
-        cashGames: false,
-        tournaments: false,
-        openNow: false,
-        lowStakes: false,
-        topRated: false
+    const [mapFilters, setMapFilters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('poker-near-me-map-filters');
+                if (saved) return JSON.parse(saved);
+            } catch (e) { console.error(e); }
+        }
+        return {
+            cashGames: false,
+            tournaments: false,
+            is24Hours: false,
+            lowStakes: false,
+            topRated: false
+        };
     });
 
-    // Sidebar filters (for right panel)
-    const [sidebarFilters, setSidebarFilters] = useState({
-        gameType: 'all',
-        stakes: 'all',
-        minBuyin: '',
-        maxBuyin: '',
-        hasFood: false,
-        hasHotel: false,
-        hasParking: false,
-        is24Hours: false
-    });
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('poker-near-me-map-filters', JSON.stringify(mapFilters));
+            window.dispatchEvent(new CustomEvent('poker-near-me-map-filters-sync', { detail: mapFilters }));
+        }
+    }, [mapFilters]);
+
+    useEffect(() => {
+        const handleSync = (e) => {
+            if (e.detail && typeof window !== 'undefined') {
+                const currentStr = JSON.stringify(mapFilters);
+                const newStr = JSON.stringify(e.detail);
+                if (currentStr !== newStr) {
+                    setMapFilters(e.detail);
+                }
+            }
+        };
+        window.addEventListener('poker-near-me-map-filters-sync', handleSync);
+        return () => window.removeEventListener('poker-near-me-map-filters-sync', handleSync);
+    }, [mapFilters]);
 
     // Selected room for detail panel
     const [selectedRoom, setSelectedRoom] = useState(null);
@@ -1124,6 +1172,9 @@ export default function PokerNearMePage() {
         if (mapFilters.tournaments) {
             filteredVenues = filteredVenues.filter(v => v.has_tournaments);
         }
+        if (mapFilters.is24Hours) {
+            filteredVenues = filteredVenues.filter(v => v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24')));
+        }
         if (mapFilters.lowStakes) {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
                 const match = s.match(/\$?(\d+)/);
@@ -1135,17 +1186,17 @@ export default function PokerNearMePage() {
         }
 
         // Apply sidebar filters
-        if (sidebarFilters.gameType === 'cash') {
+        if (filters.gameType === 'cash') {
             filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
-        } else if (sidebarFilters.gameType === 'mtt') {
+        } else if (filters.gameType === 'mtt') {
             filteredVenues = filteredVenues.filter(v => v.has_tournaments);
         }
 
-        if (sidebarFilters.stakes === '$1/25') {
+        if (filters.stakes === '$1/25') {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3')));
-        } else if (sidebarFilters.stakes === '$2/5') {
+        } else if (filters.stakes === '$2/5') {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
-        } else if (sidebarFilters.stakes === '$5/10+') {
+        } else if (filters.stakes === '$5/10+') {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50')));
         }
 
@@ -1171,8 +1222,8 @@ export default function PokerNearMePage() {
                         <button className={'filter-chip' + (mapFilters.tournaments ? ' active' : '')} onClick={() => toggleMapFilter('tournaments')}>
                             <span className="chip-dot mtt"></span> Tournaments
                         </button>
-                        <button className={'filter-chip' + (mapFilters.openNow ? ' active' : '')} onClick={() => toggleMapFilter('openNow')}>
-                            <span className="chip-dot live"></span> Open Now
+                        <button className={'filter-chip' + (mapFilters.is24Hours ? ' active' : '')} onClick={() => toggleMapFilter('is24Hours')}>
+                            <span className="chip-dot live"></span> 24/7 Open
                         </button>
                         <button className={'filter-chip' + (mapFilters.lowStakes ? ' active' : '')} onClick={() => toggleMapFilter('lowStakes')}>
                             <span className="chip-dot stakes"></span> Low Stakes
@@ -1221,8 +1272,8 @@ export default function PokerNearMePage() {
                                 {['all', 'Cash', 'MTT', 'Mixed'].map(type => (
                                     <button
                                         key={type}
-                                        className={'sidebar-chip' + (sidebarFilters.gameType === type.toLowerCase() ? ' active' : '')}
-                                        onClick={() => setSidebarFilters(p => ({ ...p, gameType: type.toLowerCase() }))}
+                                        className={'sidebar-chip' + (filters.gameType === type.toLowerCase() ? ' active' : '')}
+                                        onClick={() => setFilters(p => ({ ...p, gameType: type.toLowerCase() }))}
                                     >{type === 'all' ? 'All' : type}</button>
                                 ))}
                             </div>
@@ -1235,8 +1286,8 @@ export default function PokerNearMePage() {
                                 {['all', '$1/25', '$2/5', '$5/10+'].map(stake => (
                                     <button
                                         key={stake}
-                                        className={'sidebar-chip' + (sidebarFilters.stakes === stake ? ' active' : '')}
-                                        onClick={() => setSidebarFilters(p => ({ ...p, stakes: stake }))}
+                                        className={'sidebar-chip' + (filters.stakes === stake ? ' active' : '')}
+                                        onClick={() => setFilters(p => ({ ...p, stakes: stake }))}
                                     >{stake === 'all' ? 'All' : stake}</button>
                                 ))}
                             </div>
@@ -1250,108 +1301,28 @@ export default function PokerNearMePage() {
                                     type="number"
                                     placeholder="Min"
                                     className="sidebar-input"
-                                    value={sidebarFilters.minBuyin}
-                                    onChange={e => setSidebarFilters(p => ({ ...p, minBuyin: e.target.value }))}
+                                    value={filters.minBuyin}
+                                    onChange={e => setFilters(p => ({ ...p, minBuyin: e.target.value }))}
                                 />
                                 <span className="range-divider">—</span>
                                 <input
                                     type="number"
                                     placeholder="Max"
                                     className="sidebar-input"
-                                    value={sidebarFilters.maxBuyin}
-                                    onChange={e => setSidebarFilters(p => ({ ...p, maxBuyin: e.target.value }))}
+                                    value={filters.maxBuyin}
+                                    onChange={e => setFilters(p => ({ ...p, maxBuyin: e.target.value }))}
                                 />
                             </div>
                         </div>
 
-                        {/* Amenities */}
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Amenities</label>
-                            <div className="sidebar-checkboxes">
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasFood}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, hasFood: e.target.checked }))}
-                                    />
-                                    <span>Food Tableside</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasHotel}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, hasHotel: e.target.checked }))}
-                                    />
-                                    <span>Hotel</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasParking}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, hasParking: e.target.checked }))}
-                                    />
-                                    <span>Free Parking</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.is24Hours}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, is24Hours: e.target.checked }))}
-                                    />
-                                    <span>24/7</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasWifi}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, hasWifi: e.target.checked }))}
-                                    />
-                                    <span>WiFi</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasMassage}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, hasMassage: e.target.checked }))}
-                                    />
-                                    <span>Massage</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.nonSmoking}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, nonSmoking: e.target.checked }))}
-                                    />
-                                    <span>Non-Smoking</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.autoShufflers}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, autoShufflers: e.target.checked }))}
-                                    />
-                                    <span>Auto Shufflers</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.usbChargers}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, usbChargers: e.target.checked }))}
-                                    />
-                                    <span>USB Chargers</span>
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.phoneInList}
-                                        onChange={e => setSidebarFilters(p => ({ ...p, phoneInList: e.target.checked }))}
-                                    />
-                                    <span>Phone-in Waitlist</span>
-                                </label>
-                            </div>
-                        </div>
+                        {/* Amenities group completely removed per Real Filters mandate */}
 
-                        <button className="sidebar-apply-btn">Apply Filters</button>
+                        <button className="sidebar-apply-btn" onClick={() => {
+                            setHasSearched(true);
+                            fetchAllData({ includeVenues: true });
+                        }}>
+                            Apply Filters
+                        </button>
                     </div>
 
                     {/* Room Detail Panel */}
