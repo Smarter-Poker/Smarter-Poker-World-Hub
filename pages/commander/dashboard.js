@@ -3,7 +3,7 @@
  * Industrial metal card interface with sub-feature navigation
  * NO EMOJIS - Lucide icons only
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown, StopCircle } from 'lucide-react';
