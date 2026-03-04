@@ -588,7 +588,9 @@ export default function BankrollManagerPage() {
     } else if (sectionId === 'staking') {
       setActiveSection('staking');
     } else if (sectionId === 'toke-tracker') {
-      setActiveSection('toke-tracker');
+      // Navigate to dedicated Toke Tracker landing page
+      router.push('/hub/toke-tracker');
+      return;
     } else if (sectionId === 'tax') {
       setActiveSection('tax');
     } else if (sectionId === 'receipts') {

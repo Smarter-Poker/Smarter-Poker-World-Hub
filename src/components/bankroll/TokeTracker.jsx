@@ -81,7 +81,7 @@ const EXPENSE_CATEGORIES = [
     { id: 'tip_out', label: 'Tip Out' },
 ];
 
-export default function TokeTracker({ userId, refreshTrigger }) {
+export default function TokeTracker({ userId, refreshTrigger, standalone = false }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
@@ -1011,11 +1011,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 }
             `}</style>
 
-            {/* TokeDashboard — Dealer Analytics */}
-            <TokeDashboard userId={userId} refreshTrigger={completedGigs.length} />
+            {/* TokeDashboard — Dealer Analytics (hidden in standalone mode) */}
+            {!standalone && <TokeDashboard userId={userId} refreshTrigger={completedGigs.length} />}
 
-            {/* ── VENUE INTELLIGENCE ── */}
-            <VenueIntelligence gigs={completedGigs} />
+            {/* ── VENUE INTELLIGENCE (hidden in standalone mode) ── */}
+            {!standalone && <VenueIntelligence gigs={completedGigs} />}
 
             {/* ── TAX SUMMARY BUTTON ── */}
             {completedGigs.length > 0 && (
@@ -1921,13 +1921,15 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 </AnimatePresence>
             </div>
 
-            {/* ── DEALER VAULT ── */}
-            <DealerVault userId={userId} completedGigs={completedGigs} />
+            {/* ── DEALER VAULT (hidden in standalone mode) ── */}
+            {!standalone && <DealerVault userId={userId} completedGigs={completedGigs} />}
 
-            {/* ── YEARLY CALENDAR ── */}
-            <div style={styles.calendarWrapper}>
-                <TokeCalendar userId={userId} />
-            </div>
+            {/* ── YEARLY CALENDAR (hidden in standalone mode) ── */}
+            {!standalone && (
+                <div style={styles.calendarWrapper}>
+                    <TokeCalendar userId={userId} />
+                </div>
+            )}
             {/* ── TAX SUMMARY MODAL ── */}
             {showTaxSummary && (
                 <TaxSummaryModal

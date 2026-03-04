@@ -16,12 +16,16 @@ export const BANKROLL_PRO_DAY_COST = 25;
 export async function checkBankrollProAccess(userId) {
     if (!userId) return { hasAccess: false, isVip: false, expiresAt: null };
 
-    // Check VIP status first
-    const { data: profile } = await supabase
+    // Check VIP status first — with error handling
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('is_vip, diamonds')
         .eq('id', userId)
         .single();
+
+    if (profileError) {
+        console.warn('[BankrollProGate] Profile fetch error:', profileError.message);
+    }
 
     if (profile?.is_vip) {
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds };
@@ -62,19 +66,24 @@ export async function checkBankrollProAccess(userId) {
 export async function purchaseBankrollProAccess(userId) {
     const cost = BANKROLL_PRO_DAY_COST;
 
-    // Get current balance
-    const { data: profile } = await supabase
+    // Get current balance — with error handling
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('diamonds, is_vip')
         .eq('id', userId)
         .single();
 
+    if (profileError || !profile) {
+        console.error('[BankrollProGate] Purchase: profile fetch failed:', profileError?.message);
+        return { success: false, error: 'Could not verify your diamond balance. Please try again.' };
+    }
+
     // VIP users don't need to purchase
-    if (profile?.is_vip) {
+    if (profile.is_vip) {
         return { success: true, isVip: true };
     }
 
-    const currentBalance = profile?.diamonds || 0;
+    const currentBalance = profile.diamonds || 0;
     if (currentBalance < cost) {
         return {
             success: false,

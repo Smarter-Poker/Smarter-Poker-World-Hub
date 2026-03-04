@@ -32,17 +32,44 @@ export default function BankrollProGate({ userId, children }) {
     }, [userId]);
 
     const loadAccess = async () => {
-        const result = await checkBankrollProAccess(userId);
-        setAccess({ ...result, loading: false });
+        try {
+            const result = await checkBankrollProAccess(userId);
+            setAccess({ ...result, loading: false });
+        } catch (err) {
+            console.error('[BankrollProGate] loadAccess crashed:', err);
+            setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: false });
+        }
     };
 
     const loadDiamonds = async () => {
-        const { data } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .single();
-        setDiamonds(data?.diamonds || 0);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .single();
+            if (error) {
+                console.warn('[BankrollProGate] Diamond fetch error:', error.message);
+                // Retry once after 1s delay
+                await new Promise(r => setTimeout(r, 1000));
+                const { data: retryData, error: retryError } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .single();
+                if (retryError) {
+                    console.error('[BankrollProGate] Diamond fetch retry failed:', retryError.message);
+                    return;
+                }
+                setDiamonds(retryData?.diamonds || 0);
+                console.log('[BankrollProGate] Diamonds loaded (retry):', retryData?.diamonds);
+                return;
+            }
+            setDiamonds(data?.diamonds || 0);
+            console.log('[BankrollProGate] Diamonds loaded:', data?.diamonds);
+        } catch (err) {
+            console.error('[BankrollProGate] loadDiamonds crashed:', err);
+        }
     };
 
     const handleUnlock = async () => {
@@ -145,7 +172,7 @@ export default function BankrollProGate({ userId, children }) {
                         <span style={styles.priceUnit}>/ 24 HRS</span>
                     </div>
 
-                    <button onClick={() => setShowUnlockModal(true)} style={styles.unlockBtn}>
+                    <button onClick={() => { loadDiamonds(); setShowUnlockModal(true); }} style={styles.unlockBtn}>
                         <Zap size={18} />
                         UNLOCK PRO ACCESS
                     </button>

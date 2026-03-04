@@ -1828,7 +1828,7 @@ export default function PokerNearMePage() {
 
                     {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
                     <div className="pnm-hud-panel">
-                        <img src="/images/poker-near-me-hud-frame.png" alt="" className="hud-bg-frame" aria-hidden="true" />
+                        <img src="/images/poker-near-me-hud-frame.jpg" alt="" className="hud-bg-frame" aria-hidden="true" />
                         <div className="hud-content-overlay">
                             {/* Title */}
                             <h1 className="hud-title">POKER NEAR ME</h1>

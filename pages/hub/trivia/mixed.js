@@ -741,10 +741,7 @@ export default function MixedModePage() {
                     color: #fff;
                 }
 
-                .option:hover:not(:disabled) {
-                    background: rgba(30, 41, 59, 0.9);
-                    border-color: rgba(0, 212, 255, 0.5);
-                }
+                /* hover removed per user request */
 
                 .option.selected {
                     border-color: #00D4FF;

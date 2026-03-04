@@ -92,212 +92,201 @@ export default function PersonalAssistantPage() {
       </SEOHead>
 
       <div style={S.page}>
-        {/* Background */}
-        <div style={S.bgGrid} />
-        <div style={S.bgGlow} />
-
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
 
-        {/* Gated Content */}
-        <FeatureGate featureKey="personal_assistant" userId={user?.id} cost={100} duration={24} featureName="Strategy Hub" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
-          <main style={S.main}>
+        {/* ═══════════════════════════════════════════════════════════
+            FULL-PAGE METAL FRAME — Image fills entire viewport
+           ═══════════════════════════════════════════════════════════ */}
+        <div style={S.frameContainer}>
+          {/* The metal frame image — covers the full page */}
+          <img
+            src="/images/personal-assistant-frame.png"
+            alt="Strategy Hub"
+            style={S.frameImage}
+            draggable={false}
+          />
 
-            {/* ═══════════════════════════════════════════════════════════
-                IMAGE-BASED METAL FRAME with Dynamic Overlay Hotspots
-               ═══════════════════════════════════════════════════════════ */}
-            <div style={S.frameContainer}>
-              {/* The metal frame image */}
-              <img
-                src="/images/personal-assistant-frame.png"
-                alt="Strategy Hub"
-                style={S.frameImage}
-                draggable={false}
-              />
+          {/* ── HOTSPOT: Virtual Sandbox Card (entire left panel) ──── */}
+          <div
+            id="hotspot-sandbox"
+            style={{
+              ...S.hotspot,
+              top: '4%', left: '5%', width: '45%', height: '43%',
+              ...(hoveredZone === 'sandbox' ? S.hotspotHover : {}),
+            }}
+            onClick={() => router.push('/hub/personal-assistant/sandbox')}
+            onMouseEnter={() => setHoveredZone('sandbox')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Virtual Sandbox — Explore Theoretical Hands"
+          />
 
-              {/* ── HOTSPOT: Virtual Sandbox Card (entire left panel) ──── */}
-              <div
-                id="hotspot-sandbox"
-                style={{
-                  ...S.hotspot,
-                  top: '5%', left: '5%', width: '45%', height: '45%',
-                  ...(hoveredZone === 'sandbox' ? S.hotspotHover : {}),
-                }}
-                onClick={() => router.push('/hub/personal-assistant/sandbox')}
-                onMouseEnter={() => setHoveredZone('sandbox')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Virtual Sandbox — Explore Theoretical Hands"
-              />
+          {/* ── HOTSPOT: Enter Sandbox Button ──────────────────────── */}
+          <div
+            id="hotspot-enter-sandbox"
+            style={{
+              ...S.hotspot,
+              top: '38%', left: '7%', width: '40%', height: '6%',
+              ...(hoveredZone === 'enterSandbox' ? S.hotspotBtnHover : {}),
+            }}
+            onClick={() => router.push('/hub/personal-assistant/sandbox')}
+            onMouseEnter={() => setHoveredZone('enterSandbox')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Enter Sandbox"
+          />
 
-              {/* ── HOTSPOT: Enter Sandbox Button ──────────────────────── */}
-              <div
-                id="hotspot-enter-sandbox"
-                style={{
-                  ...S.hotspot,
-                  top: '39%', left: '7%', width: '38%', height: '6.5%',
-                  ...(hoveredZone === 'enterSandbox' ? S.hotspotBtnHover : {}),
-                }}
-                onClick={() => router.push('/hub/personal-assistant/sandbox')}
-                onMouseEnter={() => setHoveredZone('enterSandbox')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Enter Sandbox"
-              />
+          {/* ── HOTSPOT: Leak Finder Card (entire right panel) ────── */}
+          <div
+            id="hotspot-leaks"
+            style={{
+              ...S.hotspot,
+              top: '4%', left: '52%', width: '44%', height: '43%',
+              ...(hoveredZone === 'leaks' ? S.hotspotHover : {}),
+            }}
+            onClick={() => router.push('/hub/personal-assistant/leaks')}
+            onMouseEnter={() => setHoveredZone('leaks')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Leak Finder — Track and Improve Your Game"
+          />
 
-              {/* ── HOTSPOT: Leak Finder Card (entire right panel) ────── */}
-              <div
-                id="hotspot-leaks"
-                style={{
-                  ...S.hotspot,
-                  top: '5%', left: '52%', width: '44%', height: '45%',
-                  ...(hoveredZone === 'leaks' ? S.hotspotHover : {}),
-                }}
-                onClick={() => router.push('/hub/personal-assistant/leaks')}
-                onMouseEnter={() => setHoveredZone('leaks')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Leak Finder — Track and Improve Your Game"
-              />
+          {/* ── HOTSPOT: View Leaks Button ─────────────────────────── */}
+          <div
+            id="hotspot-view-leaks"
+            style={{
+              ...S.hotspot,
+              top: '38%', left: '55%', width: '40%', height: '6%',
+              ...(hoveredZone === 'viewLeaks' ? S.hotspotBtnHover : {}),
+            }}
+            onClick={() => router.push('/hub/personal-assistant/leaks')}
+            onMouseEnter={() => setHoveredZone('viewLeaks')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="View Leaks"
+          />
 
-              {/* ── HOTSPOT: View Leaks Button ─────────────────────────── */}
-              <div
-                id="hotspot-view-leaks"
-                style={{
-                  ...S.hotspot,
-                  top: '39%', left: '55%', width: '38%', height: '6.5%',
-                  ...(hoveredZone === 'viewLeaks' ? S.hotspotBtnHover : {}),
-                }}
-                onClick={() => router.push('/hub/personal-assistant/leaks')}
-                onMouseEnter={() => setHoveredZone('viewLeaks')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="View Leaks"
-              />
+          {/* ── HOTSPOT: GTO Anchored Pillar ───────────────────────── */}
+          <div
+            id="hotspot-gto"
+            style={{
+              ...S.hotspot,
+              top: '62%', left: '5%', width: '28%', height: '11%',
+              ...(hoveredZone === 'gto' ? S.hotspotHover : {}),
+            }}
+            onClick={() => router.push('/hub/personal-assistant/sandbox')}
+            onMouseEnter={() => setHoveredZone('gto')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="GTO Anchored — Tied To Solver Analysis"
+          />
 
-              {/* ── HOTSPOT: GTO Anchored Pillar ───────────────────────── */}
-              <div
-                id="hotspot-gto"
-                style={{
-                  ...S.hotspot,
-                  top: '63%', left: '5%', width: '28%', height: '12%',
-                  ...(hoveredZone === 'gto' ? S.hotspotHover : {}),
-                }}
-                onClick={() => router.push('/hub/personal-assistant/sandbox')}
-                onMouseEnter={() => setHoveredZone('gto')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="GTO Anchored — Tied To Solver Analysis"
-              />
+          {/* ── HOTSPOT: Safe & Fair Pillar ─────────────────────────── */}
+          <div
+            id="hotspot-safe"
+            style={{
+              ...S.hotspot,
+              top: '62%', left: '36%', width: '28%', height: '11%',
+              ...(hoveredZone === 'safe' ? S.hotspotHover : {}),
+            }}
+            onMouseEnter={() => setHoveredZone('safe')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Safe and Fair — No Exploit Hunting"
+          />
 
-              {/* ── HOTSPOT: Safe & Fair Pillar ─────────────────────────── */}
-              <div
-                id="hotspot-safe"
-                style={{
-                  ...S.hotspot,
-                  top: '63%', left: '36%', width: '28%', height: '12%',
-                  ...(hoveredZone === 'safe' ? S.hotspotHover : {}),
-                }}
-                onMouseEnter={() => setHoveredZone('safe')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Safe and Fair — No Exploit Hunting"
-              />
+          {/* ── HOTSPOT: Results-Driven Pillar ──────────────────────── */}
+          <div
+            id="hotspot-results"
+            style={{
+              ...S.hotspot,
+              top: '62%', left: '67%', width: '28%', height: '11%',
+              ...(hoveredZone === 'results' ? S.hotspotHover : {}),
+            }}
+            onClick={() => router.push('/hub/personal-assistant/leaks')}
+            onMouseEnter={() => setHoveredZone('results')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Results-Driven — Identify Leaks, Track Improvement"
+          />
 
-              {/* ── HOTSPOT: Results-Driven Pillar ──────────────────────── */}
-              <div
-                id="hotspot-results"
-                style={{
-                  ...S.hotspot,
-                  top: '63%', left: '67%', width: '28%', height: '12%',
-                  ...(hoveredZone === 'results' ? S.hotspotHover : {}),
-                }}
-                onClick={() => router.push('/hub/personal-assistant/leaks')}
-                onMouseEnter={() => setHoveredZone('results')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Results-Driven — Identify Leaks, Track Improvement"
-              />
-
-              {/* ── HOTSPOT: Recent Sessions Area ──────────────────────── */}
-              <div
-                id="hotspot-sessions"
-                style={{
-                  ...S.hotspot,
-                  top: '78%', left: '5%', width: '67%', height: '14%',
-                }}
-                title="Recent Sessions"
-              >
-                {/* Dynamic session list overlay */}
-                <div style={S.sessionOverlay}>
-                  {isLoading ? (
-                    <div style={S.sessionOverlayText}>Loading...</div>
-                  ) : recentSessions.length === 0 ? (
-                    <div style={S.sessionOverlayText}>No Sessions Yet</div>
-                  ) : (
-                    <div style={S.sessionOverlayList}>
-                      {recentSessions.slice(0, 3).map((session) => (
-                        <div
-                          key={session.id}
-                          style={{
-                            ...S.sessionOverlayRow,
-                            ...(hoveredZone === `session-${session.id}` ? S.sessionRowHover : {}),
-                          }}
-                          onClick={() => router.push(
-                            session.type === 'sandbox'
-                              ? '/hub/personal-assistant/sandbox'
-                              : '/hub/personal-assistant/leaks'
-                          )}
-                          onMouseEnter={() => setHoveredZone(`session-${session.id}`)}
-                          onMouseLeave={() => setHoveredZone(null)}
-                        >
-                          <span style={S.sessionRowName}>{session.title}</span>
-                          <span style={{
-                            ...S.sessionRowEv,
-                            color: session.evLoss < 0 ? '#ef4444' : '#22c55e',
-                          }}>
-                            {session.evLoss < 0 ? '' : '+'}{session.evLoss?.toFixed(2) || '0.00'} BB
-                          </span>
-                        </div>
-                      ))}
+          {/* ── HOTSPOT: Recent Sessions Area ──────────────────────── */}
+          <div
+            id="hotspot-sessions"
+            style={{
+              ...S.hotspot,
+              top: '77%', left: '5%', width: '67%', height: '15%',
+            }}
+            title="Recent Sessions"
+          >
+            {/* Dynamic session list overlay */}
+            <div style={S.sessionOverlay}>
+              {isLoading ? (
+                <div style={S.sessionOverlayText}>Loading...</div>
+              ) : recentSessions.length === 0 ? (
+                <div style={S.sessionOverlayText}>No Sessions Yet</div>
+              ) : (
+                <div style={S.sessionOverlayList}>
+                  {recentSessions.slice(0, 3).map((session) => (
+                    <div
+                      key={session.id}
+                      style={{
+                        ...S.sessionOverlayRow,
+                        ...(hoveredZone === `session-${session.id}` ? S.sessionRowHover : {}),
+                      }}
+                      onClick={() => router.push(
+                        session.type === 'sandbox'
+                          ? '/hub/personal-assistant/sandbox'
+                          : '/hub/personal-assistant/leaks'
+                      )}
+                      onMouseEnter={() => setHoveredZone(`session-${session.id}`)}
+                      onMouseLeave={() => setHoveredZone(null)}
+                    >
+                      <span style={S.sessionRowName}>{session.title}</span>
+                      <span style={{
+                        ...S.sessionRowEv,
+                        color: session.evLoss < 0 ? '#ef4444' : '#22c55e',
+                      }}>
+                        {session.evLoss < 0 ? '' : '+'}{session.evLoss?.toFixed(2) || '0.00'} BB
+                      </span>
                     </div>
-                  )}
+                  ))}
                 </div>
-              </div>
-
-              {/* ── HOTSPOT: My Sessions Dropdown ──────────────────────── */}
-              <div
-                id="hotspot-my-sessions"
-                style={{
-                  ...S.hotspot,
-                  top: '80%', left: '74%', width: '22%', height: '6%',
-                  ...(hoveredZone === 'filterBtn' ? S.hotspotBtnHover : {}),
-                }}
-                onClick={() => setSessionFilter(f => f === 'mine' ? 'all' : 'mine')}
-                onMouseEnter={() => setHoveredZone('filterBtn')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Toggle Session Filter"
-              />
-
-              {/* ── JARVIS AVATAR in Circular Frame (bottom-right) ─────── */}
-              <div
-                id="hotspot-jarvis"
-                style={{
-                  ...S.jarvisHotspot,
-                  ...(hoveredZone === 'jarvis' ? S.jarvisHover : {}),
-                }}
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
-                  }
-                }}
-                onMouseEnter={() => setHoveredZone('jarvis')}
-                onMouseLeave={() => setHoveredZone(null)}
-                title="Chat with Jarvis"
-              >
-                <img
-                  src="/images/jarvis-avatar.png"
-                  alt="Jarvis AI"
-                  style={S.jarvisImg}
-                  draggable={false}
-                />
-              </div>
+              )}
             </div>
+          </div>
 
-          </main>
-        </FeatureGate>
+          {/* ── HOTSPOT: My Sessions Dropdown ──────────────────────── */}
+          <div
+            id="hotspot-my-sessions"
+            style={{
+              ...S.hotspot,
+              top: '79%', left: '74%', width: '22%', height: '5%',
+              ...(hoveredZone === 'filterBtn' ? S.hotspotBtnHover : {}),
+            }}
+            onClick={() => setSessionFilter(f => f === 'mine' ? 'all' : 'mine')}
+            onMouseEnter={() => setHoveredZone('filterBtn')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Toggle Session Filter"
+          />
+
+          {/* ── JARVIS AVATAR in Circular Frame (bottom-right) ─────── */}
+          <div
+            id="hotspot-jarvis"
+            style={{
+              ...S.jarvisHotspot,
+              ...(hoveredZone === 'jarvis' ? S.jarvisHover : {}),
+            }}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
+              }
+            }}
+            onMouseEnter={() => setHoveredZone('jarvis')}
+            onMouseLeave={() => setHoveredZone(null)}
+            title="Chat with Jarvis"
+          >
+            <img
+              src="/images/jarvis-avatar.png"
+              alt="Jarvis AI"
+              style={S.jarvisImg}
+              draggable={false}
+            />
+          </div>
+        </div>
 
         {/* Jarvis Chat Widget */}
         <JarvisChatWidget user={user} />
