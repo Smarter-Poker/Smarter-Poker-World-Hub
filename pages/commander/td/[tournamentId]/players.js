@@ -173,9 +173,11 @@ export default function TDPlayers() {
 body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000; font-size: 12px; }
 .card { width: 72mm; margin: 0 auto; padding: 5mm 4mm 6mm; border-bottom: 2px dashed #000; page-break-after: always; }
 .card:last-child { page-break-after: avoid; border-bottom: none; }
-.venue-name { text-align: center; font-size: 20px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; margin-bottom: 1mm; }
-.venue-sub { text-align: center; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #444; margin-bottom: 2mm; }
-.receipt-type { text-align: center; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1mm; }
+.logo-wrap { text-align: center; margin-bottom: 2mm; }
+.logo-wrap img { max-width: 28mm; max-height: 14mm; object-fit: contain; }
+.venue-name { text-align: center; font-size: 18px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; margin-bottom: 0.5mm; }
+.venue-location { text-align: center; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: #444; margin-bottom: 1mm; }
+.receipt-type { text-align: center; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1mm; }
 .tourn-name { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 3mm; }
 .divider { border-top: 1px solid #000; margin: 2.5mm 0; }
 .field-row { display: flex; align-items: baseline; margin: 2mm 0; font-size: 11px; }
@@ -191,8 +193,9 @@ body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000;
 .customer-copy { text-align: center; font-size: 9px; font-weight: bold; letter-spacing: 1px; margin-top: 3mm; }
 </style></head><body>
 ${receipts.map(r => `<div class="card">
-  <div class="venue-name">${r.venue_name || 'Smarter Poker'}</div>
-  <div class="venue-sub">Poker Room</div>
+  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" /></div>` : ''}
+  <div class="venue-name">${r.venue_name || 'Club'}</div>
+  ${(r.venue_city || r.venue_state) ? `<div class="venue-location">${[r.venue_city, r.venue_state].filter(Boolean).join(', ')}</div>` : ''}
   <div class="receipt-type">Tournament Seat Change Card</div>
   <div class="tourn-name">${r.tournament_name}${r.buyin_amount ? ` — $${Number(r.buyin_amount).toLocaleString()}` : ''}</div>
   <div class="divider"></div>
