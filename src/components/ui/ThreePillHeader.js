@@ -13,10 +13,11 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useLiveHelp } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
+import { useAvatar } from '../../contexts/AvatarContext';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -34,11 +35,16 @@ export default function ThreePillHeader({
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ diamonds: 0 });
     const [notificationCount, setNotificationCount] = useState(0);
-    const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
+
+    // Global Avatar State (instant caching)
+    const { user: contextUser, avatar: contextAvatar } = useAvatar();
+
+    // Derived values to prevent "flash of missing data" on mount
+    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
 
     const liveHelp = useLiveHelp();
 
@@ -98,9 +104,6 @@ export default function ThreePillHeader({
                         }));
                         if (typeof result.notificationCount === 'number') {
                             setNotificationCount(result.notificationCount);
-                        }
-                        if (typeof result.unreadMessages === 'number') {
-                            setUnreadMessages(result.unreadMessages);
                         }
                     }
                 }
@@ -282,11 +285,11 @@ export default function ThreePillHeader({
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 cursor: 'pointer',
-                                background: user?.avatar
-                                    ? `url(${user.avatar}) center/cover`
+                                background: displayAvatar
+                                    ? `url(${displayAvatar}) center/cover`
                                     : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
                             }}>
-                                {!user?.avatar && '👤'}
+                                {!displayAvatar && '👤'}
                             </div>
                         </Link>
 
@@ -295,7 +298,7 @@ export default function ThreePillHeader({
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
                                 <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.07.36-.09.53-.05.86.23 1.81.36 2.9.36 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6.07 7.56l-2.96 4.69c-.47.75-1.48.93-2.18.38l-2.35-1.76a.75.75 0 00-.9 0l-3.17 2.41c-.42.32-.98-.18-.7-.63l2.96-4.69c.47-.75 1.48-.93 2.18-.38l2.35 1.76c.27.2.65.2.9 0l3.17-2.41c.42-.32.98.18.7.63z" />
                             </svg>
-                            {unreadMessages > 0 && (
+                            {unreadCount > 0 && (
                                 <span style={{
                                     position: 'absolute',
                                     top: 2,
@@ -308,7 +311,7 @@ export default function ThreePillHeader({
                                     fontWeight: 700,
                                     minWidth: 16,
                                     textAlign: 'center',
-                                }}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+                                }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
                             )}
                         </Link>
 

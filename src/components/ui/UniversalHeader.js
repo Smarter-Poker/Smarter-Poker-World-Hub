@@ -22,6 +22,8 @@ import { supabase } from '../../lib/supabase';
 
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
+import { useAvatar } from '../../contexts/AvatarContext';
+import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 // Dark theme colors matching hub
 const C = {
@@ -93,10 +95,19 @@ export default function UniversalHeader({
     const [stats, setStats] = useState({ diamonds: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
-    const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [isVip, setIsVip] = useState(false);
+
+    // Global Avatar State (instant caching)
+    const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
+
+    // Global Unread Messages State (instant caching)
+    const { unreadCount } = useUnreadCount();
+
+    // Derived values to prevent "flash of missing data" on mount
+    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
+    const isVipDisplay = isVip || contextVip;
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -163,12 +174,8 @@ export default function UniversalHeader({
                                     name: full_name || username
                                 }));
                                 setIsVip(!!is_vip);
-                                // Set notification and message counts from API
                                 if (typeof result.notificationCount === 'number') {
                                     setNotificationCount(result.notificationCount);
-                                }
-                                if (typeof result.unreadMessages === 'number') {
-                                    setUnreadMessages(result.unreadMessages);
                                 }
                                 return true; // Success
                             }
@@ -264,20 +271,7 @@ export default function UniversalHeader({
                         })
                         .subscribe();
 
-                    // REAL-TIME: Subscribe to new messages (using social_messages table)
-                    messageChannel = supabase
-                        .channel('header-messages')
-                        .on('postgres_changes', {
-                            event: 'INSERT',
-                            schema: 'public',
-                            table: 'social_messages'
-                        }, (payload) => {
-                            // Only increment if message is not from current user
-                            if (payload.new.sender_id !== authUser.id) {
-                                setUnreadMessages(prev => prev + 1);
-                            }
-                        })
-                        .subscribe();
+                    // Global useUnreadCount handles social_messages naturally
                 }
             } catch (e) {
                 console.error('[UniversalHeader] Data fetch error:', e);
@@ -287,11 +281,9 @@ export default function UniversalHeader({
         };
         loadUser();
 
-        // Cleanup subscriptions
         return () => {
             mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
-            if (messageChannel) supabase.removeChannel(messageChannel);
         };
     }, []);
 
@@ -722,7 +714,7 @@ export default function UniversalHeader({
                     </button>
 
                     {/* VIP Card Icon — only for VIP members */}
-                    {isVip && (
+                    {isVipDisplay && (
                         <Link href="/hub/diamond-store" style={{ textDecoration: 'none' }}>
                             <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.8)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.4)' }}>
                                 <img
@@ -748,16 +740,16 @@ export default function UniversalHeader({
                         <div
                             className="profile-orb"
                             style={{
-                                background: user?.avatar
-                                    ? `url(${user.avatar}) center/cover`
+                                background: displayAvatar
+                                    ? `url(${displayAvatar}) center/cover`
                                     : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
-                                ...(isVip ? {
+                                ...(isVipDisplay ? {
                                     border: '2px solid #00E0FF',
                                     boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
                                 } : {})
                             }}
                         >
-                            {!user?.avatar && '👤'}
+                            {!displayAvatar && '👤'}
                         </div>
                     </Link>
 
@@ -765,8 +757,8 @@ export default function UniversalHeader({
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
                             <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                            {unreadMessages > 0 && (
-                                <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+                            {unreadCount > 0 && (
+                                <span className="orb-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
                             )}
                         </div>
                     </Link>

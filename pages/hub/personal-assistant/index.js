@@ -94,7 +94,7 @@ export default function PersonalAssistantPage() {
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
 
         {/* Page Title Header */}
-        <div style={{ textAlign: 'center', marginTop: 20, marginBottom: 10 }}>
+        <div style={{ textAlign: 'center', margin: '16px auto 0' }}>
           <h1 style={{ color: '#fff', fontSize: 'clamp(20px, 3.5vw, 32px)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', margin: 0 }}>
             MEET JARVIS YOUR PERSONAL ASSISTANT
           </h1>
@@ -250,7 +250,7 @@ export default function PersonalAssistantPage() {
             id="hotspot-jarvis"
             style={{
               ...S.jarvisHotspot,
-              top: '79.2%', left: '79.0%', width: '8.0%', height: '8.0%',
+              top: '81.2%', left: '80.8%', width: '8.2%', height: '8.2%',
             }}
           >
             <img
@@ -321,7 +321,7 @@ const S = {
   // ── Image-based frame container ─────────────────────────────────────────
   frameContainer: {
     position: 'relative',
-    margin: '20px auto',
+    margin: '0 auto',
     // Mathematical constraint: never exceed the structural proportion of the viewport height. 
     // This flawlessly pins the div container to the exact pixel footprint of the image.
     width: '100%',

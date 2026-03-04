@@ -19,139 +19,15 @@ import {
 // MOCK UI COMPONENTS (Rendered inside the 3D Device Frames)
 // =========================================================================
 
-const MockHubCarousel = () => (
-    <div style={{ height: '100%', padding: 20, display: 'flex', flexDirection: 'column', background: 'radial-gradient(circle at center, #0a1628 0%, #050d16 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 30 }}>
-            <div style={{ width: 30, height: 30, background: '#1a2332', borderRadius: '50%' }} />
-            <div style={{ color: '#fff', fontWeight: 700, letterSpacing: 1 }}>Smarter.Poker</div>
-            <div style={{ width: 30, height: 30, background: '#1a2332', borderRadius: '50%' }} />
-        </div>
-        {/* Active Carousel Card */}
-        <div style={{ flex: 1, background: 'linear-gradient(135deg, #E02840, #0A1628)', borderRadius: 20, padding: 20, boxShadow: '0 20px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '4rem', marginBottom: 20 }}>🦁</div>
-            <h2 style={{ color: '#fff', textAlign: 'center', margin: '0 0 10px 0', fontSize: '1.8rem', textShadow: '0 2px 10px rgba(255,255,255,0.3)' }}>Club Arena</h2>
-            <p style={{ color: 'rgba(255,255,255,0.8)', textAlign: 'center', fontSize: '0.9rem', lineHeight: 1.5 }}>Play against other players in clubs around the world</p>
-        </div>
-        {/* Carousel Indicators */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 30 }}>
-            <div style={{ width: 30, height: 6, background: '#00B4D8', borderRadius: 3 }} />
-            <div style={{ width: 8, height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3 }} />
-            <div style={{ width: 8, height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3 }} />
-            <div style={{ width: 8, height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3 }} />
-        </div>
-    </div>
-);
 
-const MockClubCommander = () => (
-    <div style={{ padding: 20, color: '#fff' }}>
-        <h3 style={{ margin: '0 0 20px 0', color: '#E02840' }}>CLUB COMMANDER</h3>
-        <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
-            <div style={{ flex: 1, background: '#1a2332', padding: 15, borderRadius: 10 }}>
-                <div style={{ fontSize: '0.8rem', color: '#888' }}>Tables</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>14</div>
-            </div>
-            <div style={{ flex: 1, background: '#1a2332', padding: 15, borderRadius: 10 }}>
-                <div style={{ fontSize: '0.8rem', color: '#888' }}>Waitlist</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#00C87A' }}>32</div>
-            </div>
-        </div>
-        <div style={{ background: '#1a2332', padding: 15, borderRadius: 10 }}>
-            <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 15 }}>Active Tables</div>
-            {[1, 2, 3].map(i => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 3 ? '1px solid #333' : 'none' }}>
-                    <div>Table {i} - 1/2 NLH</div>
-                    <div style={{ color: '#00B4D8' }}>9/9</div>
-                </div>
-            ))}
-        </div>
-    </div>
-);
-
-const MockLiveArena = () => (
-    <div style={{ padding: 20 }}>
-        <div style={{ background: 'linear-gradient(135deg, #0A1628, #1a2332)', padding: 20, borderRadius: 15, marginBottom: 20, border: '1px solid rgba(0,212,255,0.3)' }}>
-            <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 'bold', marginBottom: 5 }}>Midway Union</div>
-            <div style={{ color: '#00B4D8', fontSize: '0.9rem' }}>58 Tables Running</div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} style={{ background: '#1a2332', padding: 12, borderRadius: 10 }}>
-                    <div style={{ color: '#00C87A', fontSize: '0.7rem', fontWeight: 'bold', marginBottom: 4 }}>• LIVE</div>
-                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>1.00/2.00 NLH</div>
-                    <div style={{ color: '#888', fontSize: '0.8rem', marginTop: 4 }}>6/6 Players</div>
-                </div>
-            ))}
-        </div>
-    </div>
-);
-
-const MockGTO = () => (
-    <div style={{ padding: 20, height: '100%', background: '#050D16' }}>
-        <h3 style={{ color: '#8040C0', margin: '0 0 20px 0' }}>GTO MASTERY</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
-            {['MTT Scenarios', 'Cash Grind', 'Psychology', 'Spin & Go'].map((title, i) => (
-                <div key={i} style={{ height: 100, background: 'linear-gradient(135deg, #1a2332, #0A1628)', borderRadius: 12, padding: 15, borderLeft: `4px solid ${['#00B4D8', '#00C87A', '#8040C0', '#E02840'][i]}` }}>
-                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: 10 }}>{title}</div>
-                    <div style={{ width: '100%', height: 4, background: '#333', borderRadius: 2 }}>
-                        <div style={{ width: `${60 + (i * 10)}%`, height: '100%', background: ['#00B4D8', '#00C87A', '#8040C0', '#E02840'][i], borderRadius: 2 }} />
-                    </div>
-                </div>
-            ))}
-        </div>
-    </div>
-);
-
-const MockDiamondStore = () => (
-    <div style={{ padding: 20 }}>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: '3rem' }}>💎</div>
-            <div style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>Diamond Store</div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-            {[
-                { name: 'Micro', dias: 100, price: '$1.00' },
-                { name: 'Standard', dias: 2500, price: '$25.00', popular: true },
-                { name: 'Whale', dias: 52500, price: '$500.00' }
-            ].map((p, i) => (
-                <div key={i} style={{ background: p.popular ? 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(128,64,192,0.2))' : '#1a2332', padding: 20, borderRadius: 12, border: p.popular ? '2px solid #00B4D8' : '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>{p.dias} 💎</div>
-                        <div style={{ color: '#888', fontSize: '0.8rem' }}>{p.name}</div>
-                    </div>
-                    <div style={{ color: '#fff', fontWeight: 'bold' }}>{p.price}</div>
-                </div>
-            ))}
-        </div>
-    </div>
-);
-
-const MockPioSolver = () => (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: 20, background: '#1a2332', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: '#fff', fontWeight: 'bold' }}>PioSolver Execution Engine Node 14</div>
-            <div style={{ color: '#00C87A', fontSize: '0.8rem' }}>● SOLVING</div>
-        </div>
-        <div style={{ flex: 1, padding: 20, display: 'flex', gap: 20 }}>
-            {/* Range Matrix Mock */}
-            <div style={{ flex: 1, background: '#0A1628', borderRadius: 8, padding: 10 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, height: '100%' }}>
-                    {Array(64).fill(0).map((_, i) => (
-                        <div key={i} style={{ background: i % 7 === 0 ? '#E02840' : i % 5 === 0 ? '#00C87A' : i % 3 === 0 ? '#00B4D8' : '#1a2332', opacity: 0.8 }} />
-                    ))}
-                </div>
-            </div>
-            {/* Logs Mock */}
-            <div style={{ flex: 1, fontFamily: 'monospace', color: '#00C87A', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <div>{'>'} Calculating EV for Node 4892...</div>
-                <div>{'>'} Exploitative deviation: 2.4%</div>
-                <div>{'>'} Writing to Postgres block 84...</div>
-                <div style={{ color: '#8040C0' }}>{'>'} Strategy converged at 0.05% dEV</div>
-                <div>{'>'} ----------------------------</div>
-                <div>{'>'} 100M+ Hands Indexed</div>
-            </div>
-        </div>
-    </div>
-);
+const MockHubCarousel = () => <img src="/images/pitch/hub_carousel.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Hub" />;
+const MockClubCommander = () => <img src="/images/pitch/club_commander.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Club Commander" />;
+const MockLiveArena = () => <img src="/images/pitch/live_arena.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Live Arena" />;
+const MockGTO = () => <img src="/images/pitch/gto_training.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="GTO Training" />;
+const MockDiamondStore = () => <img src="/images/pitch/diamond_store.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Diamond Store" />;
+const MockPioSolver = () => <img src="/images/pitch/pio_solver.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="PioSolver" />;
+const MockSocialFeed = () => <img src="/images/pitch/social_feed.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Social Feed" />;
+const MockArcade = () => <img src="/images/pitch/arcade_hologram.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Arcade" />;
 
 // =========================================================================
 // 36-SLIDE DATA CONFIGURATION
@@ -207,12 +83,12 @@ const SLIDES = [
         title: "Platform Architecture",
         subtitle: "The Hub-and-Spoke Virality Model",
         items: [
-            { icon: '🏢', title: 'Club Commander', desc: 'Acquires venues, forcing their players natively into our ecosystem.' },
-            { icon: '🧠', title: 'Training & Trivia', desc: 'Drives massive Daily Active Usage (DAU) and habit loop.' },
-            { icon: '💰', title: 'Club Arena', desc: 'Primary monetization engine generating recurring rake revenue.' },
-            { icon: '🤝', title: 'Social & Messenger', desc: 'Creates high switching costs and total network lock-in.' },
-            { icon: '💎', title: 'Diamond Economy', desc: 'Universal currency eliminating friction across all apps.' },
-            { icon: '📍', title: 'Poker Near Me', desc: 'Top-of-funnel acquisition mapping the entire world.' }
+            { title: 'Club Commander', desc: 'Acquires venues, forcing their players natively into our ecosystem.' },
+            { title: 'Training & Trivia', desc: 'Drives massive Daily Active Usage (DAU) and habit loop.' },
+            { title: 'Club Arena', desc: 'Primary monetization engine generating recurring rake revenue.' },
+            { title: 'Social & Messenger', desc: 'Creates high switching costs and total network lock-in.' },
+            { title: 'Diamond Economy', desc: 'Universal currency eliminating friction across all apps.' },
+            { title: 'Poker Near Me', desc: 'Top-of-funnel acquisition mapping the entire world.' }
         ]
     },
     {
@@ -310,7 +186,7 @@ const SLIDES = [
         title: "Diamond Arena",
         subtitle: "Gamble Virtual Currency. Win Real World Prizes.",
         visualType: 'hologram',
-        visual: <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}><div style={{ fontSize: '5rem' }}>🏆</div><h2 style={{ color: '#00B4D8' }}>Real-World Prize Pools</h2></div>,
+        visual: <MockArcade />,
         content: (
             <div>
                 <p>Buy in with Diamonds (virtual currency). Win real-world prizes: Tournament buy-ins, Gift cards, Merchandise.</p>
@@ -354,12 +230,12 @@ const SLIDES = [
         title: "Jarvis AI & Trivia Engine",
         subtitle: "Daily engagement systems that bring users back every 24 hours.",
         items: [
-            { icon: '🤖', title: 'Jarvis Personal Assistant', desc: 'Analyzes every hand you play, finds leaks automatically, and suggests specific training games to fix weaknesses.' },
-            { icon: '🧪', title: 'Virtual Sandbox', desc: 'Explore "what if" scenarios based on your bankroll and skill level.' },
-            { icon: '🚀', title: '9+ Sci-Fi Game Modes', desc: 'MTT Scenarios, Cash Game, ICM, Survival Mode, Endless Mode.' },
-            { icon: '⏱️', title: 'Quick Stakes', desc: '10 questions in 60 seconds. Entry: 10 diamonds. Answer fast, win big.' },
-            { icon: '📅', title: 'Daily Content', desc: '100s of fresh questions DAILY. Content changes EVERY DAY at midnight PST.' },
-            { icon: '⚔️', title: 'Head-to-Head', desc: '1v1 real-time battles against another player.' }
+            { title: 'Jarvis Personal Assistant', desc: 'Analyzes every hand you play, finds leaks automatically, and suggests specific training games to fix weaknesses.' },
+            { title: 'Virtual Sandbox', desc: 'Explore "what if" scenarios based on your bankroll and skill level.' },
+            { title: '9+ Sci-Fi Game Modes', desc: 'MTT Scenarios, Cash Game, ICM, Survival Mode, Endless Mode.' },
+            { title: 'Quick Stakes', desc: '10 questions in 60 seconds. Entry: 10 diamonds. Answer fast, win big.' },
+            { title: 'Daily Content', desc: '100s of fresh questions DAILY. Content changes EVERY DAY at midnight PST.' },
+            { title: 'Head-to-Head', desc: '1v1 real-time battles against another player.' }
         ]
     },
     {
@@ -367,12 +243,12 @@ const SLIDES = [
         title: "Social Media & Messenger",
         subtitle: "1:1 Clones of Facebook and WhatsApp. Don't leave the app to talk about the app.",
         items: [
-            { icon: '📱', title: 'News Feed', desc: 'Posts, photos, Go Live streaming, Stories, and Reels.' },
-            { icon: '👤', title: 'User Profiles', desc: 'Fully integrated with your poker stats, graphs, and badges.' },
-            { icon: '💬', title: 'WhatsApp Clone', desc: '1-on-1 messaging, group chats, voice calls, video calls.' },
-            { icon: '📤', title: 'Media Sharing', desc: 'Share images, files, and deep-linked hand histories natively.' },
-            { icon: '🔔', title: 'Notifications', desc: 'Instant push alerts for game action and messages.' },
-            { icon: '👥', title: 'Groups', desc: 'Dedicated spaces for study groups and club members.' }
+            { title: 'News Feed', desc: 'Posts, photos, Go Live streaming, Stories, and Reels.' },
+            { title: 'User Profiles', desc: 'Fully integrated with your poker stats, graphs, and badges.' },
+            { title: 'WhatsApp Clone', desc: '1-on-1 messaging, group chats, voice calls, video calls.' },
+            { title: 'Media Sharing', desc: 'Share images, files, and deep-linked hand histories natively.' },
+            { title: 'Notifications', desc: 'Instant push alerts for game action and messages.' },
+            { title: 'Groups', desc: 'Dedicated spaces for study groups and club members.' }
         ]
     },
     {
@@ -380,9 +256,9 @@ const SLIDES = [
         title: "Essential Tools",
         subtitle: "Professional Utilities Locked Behind Our Ecosystem",
         items: [
-            { icon: '📊', title: 'Bankroll Manager', desc: 'Session tracking, P&L charts, AI leak detection. Diamond-gated premium insights.' },
-            { icon: '🧮', title: 'Odds Calculator', desc: 'Supports NLH, PLO4, PLO5, and PLO6. NOBODY ELSE HAS PLO5/6 SUPPORT.' },
-            { icon: '💵', title: 'Toke Tracker', desc: 'Worlds ONLY dealer tracking platform. Tips, hourly rates, tax reports. 100k+ dealers. ZERO competition.' }
+            { title: 'Bankroll Manager', desc: 'Session tracking, P&L charts, AI leak detection. Diamond-gated premium insights.' },
+            { title: 'Odds Calculator', desc: 'Supports NLH, PLO4, PLO5, and PLO6. NOBODY ELSE HAS PLO5/6 SUPPORT.' },
+            { title: 'Toke Tracker', desc: 'Worlds ONLY dealer tracking platform. Tips, hourly rates, tax reports. 100k+ dealers. ZERO competition.' }
         ]
     },
     {
@@ -390,12 +266,7 @@ const SLIDES = [
         title: "News Aggregator & Video Library",
         subtitle: "The Epicenter of Poker Content",
         visualType: 'tablet',
-        visual: (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 20 }}>
-                <div style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 'bold' }}>Trending News</div>
-                {[1, 2, 3].map(i => <div key={i} style={{ background: '#1a2332', height: 80, borderRadius: 8, display: 'flex', gap: 10, padding: 10 }}><div style={{ width: 60, height: 60, background: '#0a1628', borderRadius: 4 }}></div><div style={{ flex: 1 }}><div style={{ width: '80%', height: 10, background: '#333', marginBottom: 5 }}></div><div style={{ width: '60%', height: 10, background: '#333' }}></div></div></div>)}
-            </div>
-        ),
+        visual: <MockSocialFeed />,
         content: (
             <div>
                 <p><strong>News:</strong> Featured article cards with thumbnails, "JUST IN" breaking headlines from WSOP, WPT, MSPT, RGPS.</p>
@@ -436,7 +307,7 @@ const SLIDES = [
         title: "Memory Games & Diamond Arcade",
         subtitle: "Expanding the funnel to casual demographic.",
         visualType: 'hologram',
-        visual: <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem' }}>🎰🃏</div>,
+        visual: <MockArcade />,
         content: (
             <div>
                 <p><strong>Memory Games:</strong> Card matching with poker themes, progressive difficulty, daily challenges.</p>
@@ -491,12 +362,12 @@ const SLIDES = [
         title: "Traction — IT IS LIVE",
         subtitle: "This is NOT an idea. It is built.",
         items: [
-            { icon: '🖥️', title: '916 Pages Built', desc: 'Fully deployed Next.js architecture.' },
-            { icon: '✅', title: '676+ Passing Tests', desc: 'Enterprise-grade code quality and stability.' },
-            { icon: '🃏', title: '60+ Live Tables', desc: 'Running 24/7 with 100s of hands dealt daily.' },
-            { icon: '📍', title: '483+ Venues', desc: 'Indexed across the US with 12+ tour integrations.' },
-            { icon: '🧠', title: '100+ GTO Games', desc: 'Powered by real PioSolver data.' },
-            { icon: '💳', title: 'Payments Live', desc: 'Stripe integration processing diamond purchases today.' }
+            { title: '916 Pages Built', desc: 'Fully deployed Next.js architecture.' },
+            { title: '676+ Passing Tests', desc: 'Enterprise-grade code quality and stability.' },
+            { title: '60+ Live Tables', desc: 'Running 24/7 with 100s of hands dealt daily.' },
+            { title: '483+ Venues', desc: 'Indexed across the US with 12+ tour integrations.' },
+            { title: '100+ GTO Games', desc: 'Powered by real PioSolver data.' },
+            { title: 'Payments Live', desc: 'Stripe integration processing diamond purchases today.' }
         ]
     },
     {
@@ -518,12 +389,12 @@ const SLIDES = [
         title: "Network Effects & Moats",
         subtitle: "Designed to be Uncatchable",
         items: [
-            { icon: '💾', title: 'Data Moat', desc: 'PioSolver farm — $1M+ investment, 2+ years for anyone to replicate.' },
-            { icon: '🔗', title: 'Lock-in Moat', desc: 'Training progress + Bankroll history + Social graph = massive switching cost.' },
-            { icon: '🌐', title: 'Network Moat', desc: 'Club Commander creates cross-club network effects natively.' },
-            { icon: '🚀', title: 'Feature Moat', desc: '100+ integrated features — cannot be replicated overnight.' },
-            { icon: '🏛️', title: 'Supply Moat', desc: '483+ venues exclusive to our platform.' },
-            { icon: '🧲', title: 'Demand Moat', desc: 'Growing player base creates network gravity (more players = more tables).' }
+            { title: 'Data Moat', desc: 'PioSolver farm — $1M+ investment, 2+ years for anyone to replicate.' },
+            { title: 'Lock-in Moat', desc: 'Training progress + Bankroll history + Social graph = massive switching cost.' },
+            { title: 'Network Moat', desc: 'Club Commander creates cross-club network effects natively.' },
+            { title: 'Feature Moat', desc: '100+ integrated features — cannot be replicated overnight.' },
+            { title: 'Supply Moat', desc: '483+ venues exclusive to our platform.' },
+            { title: 'Demand Moat', desc: 'Growing player base creates network gravity (more players = more tables).' }
         ]
     },
     {
@@ -547,12 +418,12 @@ const SLIDES = [
         title: "Mobile-First Architecture",
         subtitle: "Engineered for speed, stability, and scale.",
         items: [
-            { icon: '📱', title: 'PWA + Native', desc: 'iOS & Android apps + Progressive Web App.' },
-            { icon: '⚡', title: 'Real-Time WebSockets', desc: 'Push notifications for games, chats, tournaments.' },
-            { icon: '🔋', title: 'Offline Mode', desc: 'For training and bankroll tools. Battery efficient.' },
-            { icon: '👆', title: 'One-Tap Join', desc: 'Instant access to Club Arena tables.' },
-            { icon: '🔒', title: 'Biometrics', desc: 'Fingerprint/FaceID authentication + secure session handling.' },
-            { icon: '⏱️', title: 'Quick Actions', desc: 'Home screen widgets for daily activities.' }
+            { title: 'PWA + Native', desc: 'iOS & Android apps + Progressive Web App.' },
+            { title: 'Real-Time WebSockets', desc: 'Push notifications for games, chats, tournaments.' },
+            { title: 'Offline Mode', desc: 'For training and bankroll tools. Battery efficient.' },
+            { title: 'One-Tap Join', desc: 'Instant access to Club Arena tables.' },
+            { title: 'Biometrics', desc: 'Fingerprint/FaceID authentication + secure session handling.' },
+            { title: 'Quick Actions', desc: 'Home screen widgets for daily activities.' }
         ]
     },
     {
@@ -560,12 +431,12 @@ const SLIDES = [
         title: "Security & Compliance",
         subtitle: "Enterprise-grade infrastructure.",
         items: [
-            { icon: '🔐', title: 'Data Protection', desc: 'PostgreSQL encryption at rest, TLS/HTTPS everywhere in transit.' },
-            { icon: '💳', title: 'Payments', desc: 'Stripe PCI compliance for all transactions.' },
-            { icon: '🛡️', title: 'Access Control', desc: 'Role-based access (admin, user, moderator, dealer).' },
-            { icon: '📝', title: 'Audit Logging', desc: 'Immutable tracking of all transactions.' },
-            { icon: '⚖️', title: 'Regulatory Advantage', desc: 'Diamonds as virtual currency = NO gambling licenses needed.' },
-            { icon: '🌍', title: 'GDPR Privacy', desc: 'Full compliance + regular penetration testing.' }
+            { title: 'Data Protection', desc: 'PostgreSQL encryption at rest, TLS/HTTPS everywhere in transit.' },
+            { title: 'Payments', desc: 'Stripe PCI compliance for all transactions.' },
+            { title: 'Access Control', desc: 'Role-based access (admin, user, moderator, dealer).' },
+            { title: 'Audit Logging', desc: 'Immutable tracking of all transactions.' },
+            { title: 'Regulatory Advantage', desc: 'Diamonds as virtual currency = NO gambling licenses needed.' },
+            { title: 'GDPR Privacy', desc: 'Full compliance + regular penetration testing.' }
         ]
     },
     {
@@ -609,12 +480,12 @@ const SLIDES = [
         title: "Unit Economics",
         subtitle: "Highly favorable ratios.",
         items: [
-            { icon: '📉', title: 'CAC: Near Zero', desc: 'Organic + Referrals via viral loops and B2B Club Commander acquisition.' },
-            { icon: '📈', title: 'LTV/CAC: >5:1', desc: '3-5 year average player engagement lifespan.' },
-            { icon: '🏢', title: 'B2B ARPU', desc: '$200/month average per venue client.' },
-            { icon: '💎', title: 'Consumer ARPU', desc: '$15/month average user spend on Diamonds.' },
-            { icon: '💰', title: 'Gross Margins: 80%+', desc: 'Across all digital revenue streams.' },
-            { icon: '⚡', title: 'Payback <6 Months', desc: 'For VIP and Diamond acquisition costs.' }
+            { title: 'CAC: Near Zero', desc: 'Organic + Referrals via viral loops and B2B Club Commander acquisition.' },
+            { title: 'LTV/CAC: >5:1', desc: '3-5 year average player engagement lifespan.' },
+            { title: 'B2B ARPU', desc: '$200/month average per venue client.' },
+            { title: 'Consumer ARPU', desc: '$15/month average user spend on Diamonds.' },
+            { title: 'Gross Margins: 80%+', desc: 'Across all digital revenue streams.' },
+            { title: 'Payback <6 Months', desc: 'For VIP and Diamond acquisition costs.' }
         ]
     },
     {
@@ -638,12 +509,12 @@ const SLIDES = [
         title: "Why Now?",
         subtitle: "The Perfect Storm",
         items: [
-            { icon: '📈', title: 'Market Timing', desc: 'Poker growing 25% YoY after post-pandemic boom. $2B home game TAM is completely unaddressed.' },
-            { icon: '🧠', title: 'AI Accessibility', desc: 'GTO solvers are finally accessible and affordable enough to productize at scale.' },
-            { icon: '📱', title: 'Mobile Consolidation', desc: 'Players demand a single app. Platform economics dictate winners consolidate 80%+.' },
-            { icon: '☁️', title: 'Cloud Infrastructure', desc: 'Costs now enable 60+ concurrent real-time tables flawlessly.' },
-            { icon: '💳', title: 'Stripe + Digital Currency', desc: 'Virtual diamonds solve the historic licensing nightmares of the 2000s boom.' },
-            { icon: '🇺🇸', title: 'Deregulation', desc: 'State-level poker legalization expanding rapidly across the US.' }
+            { title: 'Market Timing', desc: 'Poker growing 25% YoY after post-pandemic boom. $2B home game TAM is completely unaddressed.' },
+            { title: 'AI Accessibility', desc: 'GTO solvers are finally accessible and affordable enough to productize at scale.' },
+            { title: 'Mobile Consolidation', desc: 'Players demand a single app. Platform economics dictate winners consolidate 80%+.' },
+            { title: 'Cloud Infrastructure', desc: 'Costs now enable 60+ concurrent real-time tables flawlessly.' },
+            { title: 'Stripe + Digital Currency', desc: 'Virtual diamonds solve the historic licensing nightmares of the 2000s boom.' },
+            { title: 'Deregulation', desc: 'State-level poker legalization expanding rapidly across the US.' }
         ]
     },
     {
@@ -694,12 +565,20 @@ export default function InvestorPitchDeck() {
     const slide = SLIDES[currentSlide];
 
     return (
-        <div style={{ width: '100vw', height: '100vh', background: '#000', overflow: 'hidden', position: 'relative' }}>
+        <div className="pitch-deck-container" style={{ width: '100vw', height: '100vh', background: '#000', overflow: 'hidden', position: 'relative' }}>
             <Head>
                 <title>Smarter.Poker Investor Pitch</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
             </Head>
 
+            
+            {/* GLOBAL CAPITALIZATION STYLE */}
+            <style jsx global>{`
+                .pitch-deck-container * {
+                    text-transform: capitalize !important;
+                }
+            `}</style>
+            
             {/* TOP CONTROLS */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: 20, display: 'flex', justifyContent: 'space-between', zIndex: 100, background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}>
                 <div style={{ color: '#00B4D8', fontWeight: 'bold', letterSpacing: 2 }}>SMARTER.POKER</div>
