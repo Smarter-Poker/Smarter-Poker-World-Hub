@@ -1264,6 +1264,21 @@ class GameController {
       const result = await t.registerPlayer(horse.id, horse.alias || `Horse ${horse.id.substring(0, 6)}`, { clubId });
       if (result.success) {
         registered++;
+
+        // Deep Bug Hunt Parity Fix: the React UI queries `tournament_registrations` for the roster,
+        // so we must manually persist the AI horse here just like the human API does.
+        try {
+          await sb.from('tournament_registrations').insert({
+            tournament_id: tournamentId,
+            user_id: horse.id,
+            club_id: clubId,
+            status: 'registered',
+            registered_at: new Date().toISOString()
+          });
+        } catch (dbErr) {
+          console.warn(`[HorseAI] Failed to persist UI registration for ${horse.id}:`, dbErr.message);
+        }
+
         // We don't need ChipBridge locking here; TournamentController.registerPlayer handles `ledger.deductBuyin` natively.
         console.log(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId} for ${buyIn} chips`);
       } else {

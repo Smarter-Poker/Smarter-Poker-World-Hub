@@ -192,13 +192,21 @@ export default function ClockDisplay() {
           setData(json.data);
           const cs = json.data.clock?.clock_state;
           if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
-            setSeconds(cs.remaining_seconds);
+            // Only update local seconds if the clock is NOT running, OR if the server value is way off (manually adjusted by TD)
+            setSeconds(prev => {
+              if (cs.status !== 'running') return cs.remaining_seconds;
+              if (Math.abs(prev - cs.remaining_seconds) > 3) return cs.remaining_seconds;
+              return prev; // Trust local tick
+            });
           } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
-            const blindStructure = json.data.tournament?.blind_structure || [];
-            const currentLvl = json.data.clock?.current_level || 0;
-            const levelData = blindStructure[currentLvl];
-            if (levelData?.duration) {
-              setSeconds(levelData.duration * 60);
+            // Wait for next level to fetch
+            if (cs?.status !== 'running') {
+              const blindStructure = json.data.tournament?.blind_structure || [];
+              const currentLvl = json.data.clock?.current_level || 0;
+              const levelData = blindStructure[currentLvl];
+              if (levelData?.duration) {
+                setSeconds(levelData.duration * 60);
+              }
             }
           }
           isRunningRef.current = cs?.status === 'running';
