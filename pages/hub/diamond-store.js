@@ -897,50 +897,50 @@ export default function DiamondStorePage() {
 
                     {/* Header */}
                     <UniversalHeader pageDepth={1} />
-                    <div style={styles.header}>
-                        <div style={{ width: 100 }} />
-                        <h1 style={styles.pageTitle}>💎 Store</h1>
-                        <div style={{ width: 100 }} />
-                    </div>
 
-                    {/* Tab Navigation */}
-                    <div style={styles.tabNav}>
-                        <button
-                            onClick={() => setActiveTab('diamonds')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}),
-                            }}
-                        >
-                            💎 Diamonds
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('vip')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
-                            }}
-                        >
-                            👑 VIP Membership
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('merch')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
-                            }}
-                        >
-                            🛍️ Merch
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('rewards')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
-                            }}
-                        >
-                            🎁 Smarter Rewards
-                        </button>
+                    {/* Dynamic Metal Header Image with Clickable Tab Hotspots */}
+                    <div style={styles.metalHeaderWrapper}>
+                        <img
+                            src="/images/diamond-store-header.png"
+                            alt="Diamonds Store"
+                            style={styles.metalHeaderImage}
+                            draggable={false}
+                        />
+                        {/* Invisible clickable tab hotspots overlaid on the metal tab buttons */}
+                        <div style={styles.tabHotspotRow}>
+                            <button
+                                onClick={() => setActiveTab('diamonds')}
+                                style={{
+                                    ...styles.tabHotspot,
+                                    ...(activeTab === 'diamonds' ? styles.tabHotspotActive : {}),
+                                }}
+                                aria-label="Diamonds"
+                            />
+                            <button
+                                onClick={() => setActiveTab('vip')}
+                                style={{
+                                    ...styles.tabHotspot,
+                                    ...(activeTab === 'vip' ? styles.tabHotspotActive : {}),
+                                }}
+                                aria-label="VIP Membership"
+                            />
+                            <button
+                                onClick={() => setActiveTab('merch')}
+                                style={{
+                                    ...styles.tabHotspot,
+                                    ...(activeTab === 'merch' ? styles.tabHotspotActive : {}),
+                                }}
+                                aria-label="Merch"
+                            />
+                            <button
+                                onClick={() => setActiveTab('rewards')}
+                                style={{
+                                    ...styles.tabHotspot,
+                                    ...(activeTab === 'rewards' ? styles.tabHotspotActive : {}),
+                                }}
+                                aria-label="Smarter Rewards"
+                            />
+                        </div>
                     </div>
 
                     {/* Main Content */}
@@ -1482,6 +1482,42 @@ const styles = {
         background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.1), transparent 60%)',
         pointerEvents: 'none',
     },
+    // DYNAMIC METAL HEADER
+    metalHeaderWrapper: {
+        position: 'relative',
+        width: '100%',
+        maxWidth: 900,
+        margin: '0 auto',
+    },
+    metalHeaderImage: {
+        width: '100%',
+        height: 'auto',
+        display: 'block',
+        borderRadius: 0,
+        userSelect: 'none',
+    },
+    tabHotspotRow: {
+        position: 'absolute',
+        bottom: '8%',
+        left: '6%',
+        right: '6%',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '2%',
+        height: '24%',
+    },
+    tabHotspot: {
+        flex: 1,
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        borderRadius: 8,
+        transition: 'background 0.2s',
+    },
+    tabHotspotActive: {
+        background: 'rgba(0, 212, 255, 0.15)',
+        boxShadow: '0 0 12px rgba(0, 212, 255, 0.3), inset 0 0 8px rgba(0, 212, 255, 0.15)',
+    },
     header: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -1492,7 +1528,7 @@ const styles = {
         backdropFilter: 'blur(10px)',
         zIndex: 100,
     },
-    // TAB NAVIGATION
+    // TAB NAVIGATION (legacy, kept for reference)
     tabNav: {
         display: 'flex',
         justifyContent: 'center',

@@ -1830,16 +1830,12 @@ export default function PokerNearMePage() {
                     <div className="pnm-hud-panel">
                         <img src="/images/poker-near-me-hud-frame.jpg" alt="" className="hud-bg-frame" aria-hidden="true" />
                         <div className="hud-content-overlay">
-                            {/* Title */}
-                            <h1 className="hud-title">POKER NEAR ME</h1>
-                            <div className="hud-subtitle">VENUES | TOUR | SERIES | DAILY EVENTS | LIVE GAMES | MAP</div>
+                            {/* Invisible spacers for title + subtitle area */}
+                            <div className="hud-spacer-title" aria-hidden="true"></div>
 
-                            {/* Search Bar */}
+                            {/* Search Bar — invisible overlay, input still types white text */}
                             <form className="hud-search-row" onSubmit={handleSearch}>
                                 <div className="hud-search-bar">
-                                    <svg className="hud-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
-                                        <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                                    </svg>
                                     <input
                                         type="text"
                                         className="hud-search-input"
@@ -1865,33 +1861,28 @@ export default function PokerNearMePage() {
                                         </div>
                                     )}
                                 </div>
-                                <button type="submit" className="hud-search-btn">Search</button>
+                                <button type="submit" className="hud-search-btn">&nbsp;</button>
                             </form>
 
-                            {/* GPS + Filters Buttons */}
+                            {/* GPS + Filters — invisible clickable areas */}
                             <div className="hud-controls-row">
                                 <button className={'hud-ctrl-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                    {gpsLoading ? 'Locating...' : 'Use GPS'}
+                                    &nbsp;
                                 </button>
                                 <button className={'hud-ctrl-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                                    </svg>
-                                    Filters
+                                    &nbsp;
                                 </button>
                             </div>
 
-                            {/* Tab Buttons */}
+                            {/* Tab Buttons — invisible clickable areas */}
                             <div className="hud-tab-row">
                                 {[
-                                    { key: 'venues', icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', icon2: '9 22 9 12 15 12 15 22', label: 'Venues' },
-                                    { key: 'tours', label: 'Tours' },
-                                    { key: 'series', label: 'Series' },
-                                    { key: 'daily', label: 'Daily' },
-                                    { key: 'live', label: 'Live' },
-                                    { key: 'map', label: 'Map' }
+                                    { key: 'venues', label: '\u00A0' },
+                                    { key: 'tours', label: '\u00A0' },
+                                    { key: 'series', label: '\u00A0' },
+                                    { key: 'daily', label: '\u00A0' },
+                                    { key: 'live', label: '\u00A0' },
+                                    { key: 'map', label: '\u00A0' }
                                 ].map(tab => (
                                     <button
                                         key={tab.key}
@@ -2088,9 +2079,11 @@ export default function PokerNearMePage() {
                     /* ═══ HUD PANEL ═══ */
                     .pnm-hud-panel {
                         position: relative;
-                        max-width: 720px;
-                        margin: 0 auto 12px;
-                        padding: 0 12px;
+                        width: 100%;
+                        max-width: 100%;
+                        margin: 0 auto 0;
+                        padding: 0;
+                        overflow: hidden;
                     }
                     .hud-bg-frame {
                         width: 100%;
@@ -2098,7 +2091,6 @@ export default function PokerNearMePage() {
                         display: block;
                         pointer-events: none;
                         user-select: none;
-                        filter: brightness(0.85);
                     }
                     .hud-content-overlay {
                         position: absolute;
@@ -2106,58 +2098,32 @@ export default function PokerNearMePage() {
                         display: flex;
                         flex-direction: column;
                         align-items: center;
-                        justify-content: center;
-                        padding: 14% 16% 12%;
+                        justify-content: flex-end;
+                        padding: 0 18% 8%;
                         z-index: 2;
                     }
 
-                    /* HUD Title */
-                    .hud-title {
-                        font-family: 'Inter', 'Arial Black', sans-serif;
-                        font-size: clamp(16px, 4vw, 32px);
-                        font-weight: 800;
-                        letter-spacing: 4px;
-                        margin: 0 0 2px;
-                        background: linear-gradient(180deg, #ffffff 0%, #c0c0c0 40%, #d4a853 80%, #b8860b 100%);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-                        text-shadow: none;
-                        text-transform: uppercase;
-                    }
-                    .hud-subtitle {
-                        font-size: clamp(7px, 1.6vw, 12px);
-                        color: rgba(255,255,255,0.55);
-                        letter-spacing: 2px;
-                        margin-bottom: clamp(6px, 2vw, 14px);
-                        text-transform: uppercase;
-                        font-weight: 500;
+                    /* Spacer pushes interactive elements down past title area */
+                    .hud-spacer-title {
+                        flex: 1;
                     }
 
-                    /* HUD Search Row */
+                    /* HUD Search Row — transparent overlay */
                     .hud-search-row {
                         display: flex;
-                        gap: 6px;
+                        gap: 2%;
                         width: 100%;
-                        margin-bottom: clamp(4px, 1.2vw, 10px);
+                        margin-bottom: 3%;
                     }
                     .hud-search-bar {
                         position: relative;
                         flex: 1;
                         display: flex;
                         align-items: center;
-                        background: linear-gradient(180deg, rgba(10,15,25,0.9) 0%, rgba(20,28,42,0.85) 100%);
-                        border: 1px solid rgba(255,255,255,0.12);
-                        border-radius: 6px;
-                        overflow: hidden;
-                        box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04);
-                    }
-                    .hud-search-icon {
-                        position: absolute;
-                        left: 10px;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        pointer-events: none;
+                        background: transparent;
+                        border: none;
+                        border-radius: 0;
+                        overflow: visible;
                     }
                     .hud-search-input {
                         flex: 1;
@@ -2165,104 +2131,58 @@ export default function PokerNearMePage() {
                         border: none;
                         outline: none;
                         color: #fff;
-                        font-size: clamp(12px, 2vw, 15px);
-                        padding: clamp(8px, 1.5vw, 14px) 12px clamp(8px, 1.5vw, 14px) 34px;
+                        font-size: clamp(12px, 2vw, 16px);
+                        padding: clamp(6px, 1.5vw, 14px) 8px;
                         font-family: inherit;
                         caret-color: #d4a853;
                     }
                     .hud-search-input::placeholder {
-                        color: rgba(255,255,255,0.3);
+                        color: transparent;
                     }
                     .hud-search-btn {
-                        padding: clamp(8px, 1.5vw, 14px) clamp(14px, 3vw, 26px);
-                        background: linear-gradient(180deg, #d4a853 0%, #a07730 100%);
-                        border: 1px solid rgba(212,168,83,0.6);
-                        border-radius: 6px;
-                        color: #000;
-                        font-weight: 700;
-                        font-size: clamp(11px, 1.8vw, 14px);
+                        background: transparent;
+                        border: none;
                         cursor: pointer;
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
-                        transition: all 0.15s;
-                        box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
-                    }
-                    .hud-search-btn:hover {
-                        background: linear-gradient(180deg, #e0b965 0%, #b8860b 100%);
-                    }
-                    .hud-search-btn:active {
-                        transform: scale(0.97);
+                        padding: clamp(6px, 1.5vw, 14px) clamp(12px, 3vw, 28px);
+                        color: transparent;
+                        font-size: 0;
                     }
 
-                    /* HUD Controls Row (GPS + Filters) */
+                    /* HUD Controls Row (GPS + Filters) — transparent overlays */
                     .hud-controls-row {
                         display: flex;
-                        gap: 8px;
-                        width: 100%;
+                        gap: 6%;
+                        width: 60%;
                         justify-content: center;
-                        margin-bottom: clamp(4px, 1.2vw, 10px);
+                        margin-bottom: 3%;
                     }
                     .hud-ctrl-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 6px;
-                        padding: clamp(6px, 1vw, 10px) clamp(16px, 3vw, 32px);
-                        background: linear-gradient(180deg, rgba(50,55,65,0.9) 0%, rgba(35,38,48,0.95) 100%);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 5px;
-                        color: rgba(255,255,255,0.75);
-                        font-size: clamp(10px, 1.6vw, 13px);
-                        font-weight: 600;
+                        flex: 1;
+                        background: transparent;
+                        border: none;
                         cursor: pointer;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        transition: all 0.15s;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
-                    }
-                    .hud-ctrl-btn:hover {
-                        background: linear-gradient(180deg, rgba(65,70,80,0.95) 0%, rgba(45,48,58,1) 100%);
-                        border-color: rgba(255,255,255,0.25);
-                    }
-                    .hud-ctrl-btn.active {
-                        background: linear-gradient(180deg, rgba(212,168,83,0.3) 0%, rgba(140,110,50,0.3) 100%);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        padding: clamp(4px, 1vw, 10px) 0;
+                        color: transparent;
+                        font-size: 0;
                     }
 
-                    /* HUD Tab Row */
+                    /* HUD Tab Row — transparent overlays */
                     .hud-tab-row {
                         display: flex;
-                        gap: clamp(4px, 0.8vw, 8px);
-                        width: 100%;
+                        gap: clamp(2px, 0.6vw, 6px);
+                        width: 90%;
                         justify-content: center;
-                        flex-wrap: wrap;
                     }
                     .hud-tab-btn {
-                        padding: clamp(5px, 1vw, 9px) clamp(10px, 2vw, 18px);
-                        background: linear-gradient(180deg, rgba(55,60,72,0.9) 0%, rgba(38,42,52,0.95) 100%);
-                        border: 1px solid rgba(255,255,255,0.12);
-                        border-radius: 5px;
-                        color: rgba(255,255,255,0.7);
-                        font-size: clamp(9px, 1.5vw, 13px);
-                        font-weight: 600;
+                        flex: 1;
+                        background: transparent;
+                        border: none;
                         cursor: pointer;
-                        text-transform: capitalize;
-                        letter-spacing: 0.5px;
-                        transition: all 0.15s;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+                        padding: clamp(4px, 0.8vw, 8px) 0;
+                        color: transparent;
+                        font-size: 0;
                     }
-                    .hud-tab-btn:hover {
-                        background: linear-gradient(180deg, rgba(70,75,88,0.95) 0%, rgba(50,54,65,1) 100%);
-                        border-color: rgba(255,255,255,0.22);
-                        color: #fff;
-                    }
-                    .hud-tab-btn.active {
-                        background: linear-gradient(180deg, rgba(212,168,83,0.35) 0%, rgba(160,120,48,0.3) 100%);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
-                        box-shadow: 0 0 8px rgba(212,168,83,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
-                    }
+
 
                     /* Main Content */
                     .pnm-content {
