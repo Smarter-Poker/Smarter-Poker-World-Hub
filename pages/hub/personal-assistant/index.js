@@ -100,7 +100,7 @@ export default function PersonalAssistantPage() {
         <div style={S.frameContainer}>
           {/* The metal frame image — covers the full page */}
           <img
-            src="/images/personal-assistant-frame.png"
+            src="/images/personal-assistant-frame-dark.jpg"
             alt="Strategy Hub"
             style={S.frameImage}
             draggable={false}
