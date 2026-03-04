@@ -39,7 +39,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     if (!userId) {
-      return res.status(400).json({ error: 'userId required or invalid token' });
+      return res.status(200).json({
+        success: true,
+        leaks: getDemoLeaks('demo-account'),
+        isDemo: true
+      });
     }
 
     try {
