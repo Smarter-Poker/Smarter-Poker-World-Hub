@@ -49,15 +49,15 @@ const NUT_HAND = [
     { rank: 14, suit: 0 }, { rank: 14, suit: 1 },
     { rank: 13, suit: 0 }, { rank: 13, suit: 1 }
 ];
-// Marginal hand: 5678 one-suit
+// Marginal hand: 5678 (no spades, avoids flush on WET_FLOP)
 const DRAW_HAND = [
-    { rank: 5, suit: 0 }, { rank: 6, suit: 0 },
+    { rank: 5, suit: 1 }, { rank: 6, suit: 2 },
     { rank: 7, suit: 1 }, { rank: 8, suit: 2 }
 ];
-// Weak hand: offsuit disconnected
+// Weak hand: offsuit disconnected (avoids 9 and 2 so it doesn't 2-pair WET_FLOP)
 const WEAK_HAND = [
-    { rank: 2, suit: 0 }, { rank: 5, suit: 1 },
-    { rank: 9, suit: 2 }, { rank: 13, suit: 3 }
+    { rank: 3, suit: 1 }, { rank: 5, suit: 2 },
+    { rank: 8, suit: 3 }, { rank: 13, suit: 1 }
 ];
 
 function ploState(horse, board, hand, pot, toCall, stack = 100, position = 'btn', numPlayers = 2) {
@@ -240,9 +240,10 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
 
     // ─── MODULE 18: SPR TRAP DETECTOR ───
     console.log('\n--- B2: Module 18 — SPR pot-commitment trap ---');
-    const spr1 = Brain.detectSPRTrap(50, 50, 45, 0.75); // pot-size jam at 45% equity = trap
-    const spr2 = Brain.detectSPRTrap(50, 50, 75, 0.75); // same bet but 75% equity = no trap
-    const spr3 = Brain.detectSPRTrap(50, 50, 45, 0.30); // small bet (<50% pot) = not a trap bet
+    // detectSPRTrap(toCall, potTotal, stack, numPlayers, equity)
+    const spr1 = Brain.detectSPRTrap(50, 50, 100, 2, 45); // pot-size jam at 45% equity = trap
+    const spr2 = Brain.detectSPRTrap(50, 50, 100, 2, 75); // same bet but 75% equity = no trap
+    const spr3 = Brain.detectSPRTrap(15, 50, 100, 2, 45); // small bet (<50% pot) = not a trap bet
     assert(spr1.isTrap === true, `M18: Pot-jam at 45% equity = trap (got: ${spr1.isTrap})`);
     assert(spr2.isTrap === false, `M18: Pot-jam at 75% equity = no trap (got: ${spr2.isTrap})`);
     assert(spr3.isTrap === false, `M18: Small bet = no trap even at 45% equity (got: ${spr3.isTrap})`);
