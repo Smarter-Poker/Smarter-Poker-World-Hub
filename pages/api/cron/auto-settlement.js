@@ -382,17 +382,32 @@ export default async function handler(req, res) {
               // record_rake RPC credits full club_share to chip_treasury.
               // Without this debit, fn_credit_chips creates chips from nothing,
               // inflating total supply every settlement cycle.
-              await supabaseAdmin.rpc('fn_debit_treasury', {
+              const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
                 p_club_id: club.id,
                 p_amount: netCommission,
               });
 
-              // Add to agent's chip balance atomically
-              await supabaseAdmin.rpc('fn_credit_chips', {
-                p_club_id: club.id,
-                p_user_id: agent.user_id,
-                p_amount: netCommission,
-              });
+              if (debitErr) {
+                console.error(`[auto-settlement] Treasury debit failed for agent ${agent.user_id}:`, debitErr.message);
+                results.errors.push({ club: club.name, agent: agent.user_id, phase: 'commission_debit', error: debitErr.message });
+                // Skip this agent — don't credit chips without debiting treasury
+              } else {
+                // Add to agent's chip balance atomically
+                const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+                  p_club_id: club.id,
+                  p_user_id: agent.user_id,
+                  p_amount: netCommission,
+                });
+
+                if (creditErr) {
+                  // BUG #238 FIX: Roll back treasury debit if credit fails
+                  console.error(`[auto-settlement] Credit failed for agent ${agent.user_id}, rolling back treasury:`, creditErr.message);
+                  await supabaseAdmin.rpc('fn_credit_treasury', {
+                    p_club_id: club.id,
+                    p_amount: netCommission,
+                  }).catch(rbErr => console.error('[auto-settlement] Treasury rollback failed:', rbErr.message));
+                  results.errors.push({ club: club.name, agent: agent.user_id, phase: 'commission_credit', error: creditErr.message });
+                } else {
 
               // Update agents table
               // NOTE: lifetime_earnings is already credited correctly per-hand by
@@ -455,6 +470,8 @@ export default async function handler(req, res) {
                 chRef.status = 'paid';
                 chRef.paid_at = now.toISOString();
               }
+                } // end else (credit succeeded)
+              } // end else (debit succeeded)
             }
           }
 
