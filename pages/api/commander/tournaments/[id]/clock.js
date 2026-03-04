@@ -337,33 +337,30 @@ async function handleClockAction(req, res, tournamentId) {
       }
 
       case 'break': {
-        // Toggle on_break in the clock_state JSONB column (same column hand-for-hand uses)
-        const currentClockState = tournament.clock_state || {};
-        const isCurrentlyOnBreak = currentClockState.on_break || false;
-        const updatedBreakState = {
-          ...currentClockState,
+        // Toggle on_break in the settings JSONB (same path all other clock state uses)
+        // This keeps on_break + isRunning in one place so floor-view.js reads it correctly
+        const isCurrentlyOnBreak = clockState?.on_break || false;
+        const updatedBreakField = {
+          ...clockState,
           on_break: !isCurrentlyOnBreak,
           break_started_at: !isCurrentlyOnBreak ? new Date().toISOString() : null
         };
-        // Write to clock_state column (not settings) — matches floor-view.js read path
-        await supabase
-          .from('commander_tournaments')
-          .update({ clock_state: updatedBreakState })
-          .eq('id', tournamentId);
+        // Merge into clockState so it persists with the main settings write below
+        clockState = updatedBreakField;
         // If starting break, pause the clock; if ending break, resume it
         if (!isCurrentlyOnBreak && tournament.status === 'running') {
           updates = { status: 'paused' };
           clockState = {
+            ...clockState,
             isRunning: false,
-            levelStartedAt: clockState.levelStartedAt,
             pausedAt: new Date().toISOString(),
             pausedDuration: clockState.pausedDuration || 0
           };
         } else if (isCurrentlyOnBreak && tournament.status === 'paused') {
           updates = { status: 'running' };
           clockState = {
+            ...clockState,
             isRunning: true,
-            levelStartedAt: clockState.levelStartedAt,
             pausedAt: null,
             pausedDuration: (clockState.pausedDuration || 0) + (clockState.pausedAt ? Date.now() - new Date(clockState.pausedAt).getTime() : 0)
           };

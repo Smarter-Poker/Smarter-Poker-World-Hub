@@ -60,7 +60,7 @@ export default function TDClock() {
   }, [tournamentId]);
 
   useTournamentRealtime(tournamentId, fetchFloor);
-  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 300000); return () => clearInterval(i); }, [fetchFloor]); // 5-min fallback
+  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 30000); return () => clearInterval(i); }, [fetchFloor]); // 30s fallback
 
   // Client-side countdown — only restart interval when clock status changes (not on every tick)
   useEffect(() => {

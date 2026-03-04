@@ -67,15 +67,21 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
             return null;
         }
 
-        // ── Look up venue name for receipt header ──
+        // ── Look up venue name + logo for receipt header ──
         let venueName = tournament.venue_name || '';
-        if (!venueName && tournament.venue_id) {
+        let venueLogoUrl = null;
+        let venueCity = null;
+        let venueState = null;
+        if ((!venueName || !venueLogoUrl) && tournament.venue_id) {
             const { data: venueRow } = await supabase
-                .from('poker_venues')
-                .select('name')
+                .from('venues')
+                .select('name, logo_url, city, state')
                 .eq('id', tournament.venue_id)
                 .single();
-            venueName = venueRow?.name || '';
+            venueName = venueRow?.name || venueName || '';
+            venueLogoUrl = venueRow?.logo_url || null;
+            venueCity = venueRow?.city || null;
+            venueState = venueRow?.state || null;
         }
 
 
@@ -231,6 +237,9 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
         // ── Build receipt data for Bluetooth printer ──
         const receipts = moved.map(a => ({
             venue_name: venueName,
+            venue_logo_url: venueLogoUrl,
+            venue_city: venueCity,
+            venue_state: venueState,
             tournament_name: tournament.name,
             buyin_amount: tournament.buyin_amount || null,
             player_name: a.player_name,
