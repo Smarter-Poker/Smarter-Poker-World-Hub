@@ -21,11 +21,10 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { userId, format = 'csv', dateRange } = req.body;
+    const { format = 'csv', dateRange } = req.body;
 
-    if (!userId) {
-        return res.status(400).json({ error: 'userId required' });
-    }
+    // BUG #239 FIX: Use JWT user_id, not client-submitted userId (IDOR prevention)
+    const userId = _authUser.id;
 
     try {
         // Build query — use select('*') to match working selectors pattern

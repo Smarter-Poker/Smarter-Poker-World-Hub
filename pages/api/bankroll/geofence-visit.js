@@ -23,10 +23,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { userId, venueId, venueName, latitude, longitude } = req.body;
+    const { venueId, venueName, latitude, longitude } = req.body;
+    // BUG #240 FIX: Use JWT identity, not client-submitted userId
+    const userId = _authUser.id;
 
-    if (!userId || !venueId) {
-        return res.status(400).json({ error: 'userId and venueId required' });
+    if (!venueId) {
+        return res.status(400).json({ error: 'venueId required' });
     }
 
     try {

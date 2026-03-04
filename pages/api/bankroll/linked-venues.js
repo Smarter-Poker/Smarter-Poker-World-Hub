@@ -22,10 +22,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { userId } = req.query;
-    if (!userId) {
-        return res.status(400).json({ error: 'userId required' });
-    }
+    // BUG #240 FIX: Use JWT identity, not client-submitted userId
+    const userId = _authUser.id;
 
     try {
         // Get user's bankroll_locations that have a poker_venue_id

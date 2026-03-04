@@ -26,15 +26,12 @@ export default async function handler(req, res) {
     }
 
     const {
-        userId,
         currentBankroll = 0,
         sessionsPerWeek = 3,
         projectionDays = 90
     } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: 'userId required' });
-    }
+    // BUG #240 FIX: Use JWT identity, not client-submitted userId
+    const userId = _authUser.id;
 
     try {
         // Fetch historical data for variance calculation
