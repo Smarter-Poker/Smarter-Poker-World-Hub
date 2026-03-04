@@ -106,6 +106,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // BUG #282: No authentication — anyone could trigger external API calls
+    // (Nominatim/Google) and write to social_pages.metadata without auth.
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
     const { page_id, locations } = req.body;
 
     if (!page_id) {
@@ -120,12 +127,22 @@ export default async function handler(req, res) {
     const toGeocode = locations.slice(0, 10);
 
     try {
-        // Fetch current metadata
+        // Fetch current metadata + verify ownership
         const { data: page, error: fetchError } = await supabase
             .from('social_pages')
-            .select('metadata')
+            .select('metadata, user_id, owner_id')
             .eq('id', page_id)
             .single();
+
+        if (fetchError || !page) {
+            return res.status(404).json({ error: 'Page not found' });
+        }
+
+        // BUG #282 cont: Verify caller owns this page
+        const pageOwner = page.user_id || page.owner_id;
+        if (pageOwner && pageOwner !== user.id) {
+            return res.status(403).json({ error: 'Not authorized to modify this page' });
+        }
 
         if (fetchError || !page) {
             return res.status(404).json({ error: 'Page not found' });
