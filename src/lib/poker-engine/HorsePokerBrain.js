@@ -7270,6 +7270,37 @@ async function processHandResult(handData, bb = 2) {
                 const isoSizeBB = oppBet / handBB;
                 if (isoSizeBB > 0) recordIsoSize(oppId, isoSizeBB);
             }
+
+            // ─── MODULE 25: MIN-RAISE HARASSMENT DETECTOR ───
+            if (opp.lastAction === 'raise') {
+                const isWinner = (handData.result?.winners || []).some(w => String(w.playerId) === oppId);
+                recordRaiseSize(oppId, oppBet, handData.prevBet || 0, isWinner);
+            }
+
+            // ─── MODULE 26: SQUEEZE OVERKILL DETECTOR ───
+            if (opp.lastAction === 'raise' && (handData.actionCount || 0) >= 3) {
+                recordSqueeze(oppId, oppBet, handData.potSize || 0);
+            }
+
+            // ─── MODULE 28: COLD-CALL TRAP DETECTOR — preflop cold-calls ───
+            if (opp.lastAction === 'call' && (handData.street === 'preflop' || !handData.street)) {
+                recordColdCall(oppId);
+            }
+            // ─── MODULE 28: COLD-CALL TRAP DETECTOR — postflop barrels ───
+            if (opp.lastAction === 'bet' && handData.street && handData.street !== 'preflop') {
+                const oppFolded = opp.folded || false;
+                recordBarrelVsColdCall(oppId, oppFolded);
+            }
+
+            // ─── MODULE 30: ANGLE-SHOOT TIMING DETECTOR ───
+            if (opp.actionTimeMs) {
+                recordActionTiming(oppId, opp.actionTimeMs);
+            }
+
+            // ─── MODULE 31: RIT REFUSAL TRACKER ───
+            if (handData.ritOffered && opp.ritResponse !== undefined) {
+                recordRITResponse(oppId, opp.ritResponse);
+            }
         }
     }
 
@@ -7280,6 +7311,18 @@ async function processHandResult(handData, bb = 2) {
         if (!pid || !isHorse(pid)) continue;
         const showedCards = p.showedCards === true || p.showdown === true;
         recordTableImageHand(pid, handData.tableId, showedCards);
+
+        // ─── MODULE 32: PER-SESSION CHIP-LEAK FORENSICS ───
+        if (p.chipDelta < 0 && handData.tableId) {
+            const absLossBB = Math.abs(p.chipDelta) / (handData.bigBlind || 2);
+            // Classify leak pattern
+            let pattern = 'general_loss';
+            if (handData.street === 'river' && p.invested > 0) pattern = 'river_call_loss';
+            if (handData.street === 'flop' && !p.hasInitiative && p.invested > 0) pattern = 'oop_check_call';
+            if ((handData.numPlayers || 2) >= 4 && p.invested > 0) pattern = 'multiway_topset';
+
+            recordChipLeak(pid, handData.tableId, pattern, absLossBB);
+        }
     }
 }  // ← end processHandResult
 
@@ -8080,5 +8123,15 @@ module.exports = {
     isMechanicalIsolator,         // Module 22: Check for mechanical isolator
     getOOPPositionalGuard,        // Module 23: OOP Positional Equity Leak Guard
     evaluateDonkBet,              // Module 24: River Donk-Bet Exploitation Block
+
+    // ─── PHASE 4: DEEP-SESSION FINANCIAL EXPLOITATION DEFENSE ───
+    minRaiseMap, recordRaiseSize, isMinRaiser, // Module 25
+    squeezeMap, recordSqueeze, isSqueezeOverkill, // Module 26
+    detectReverseImplied, // Module 27
+    coldCallMap, recordColdCall, recordBarrelVsColdCall, isColdCallTrap, // Module 28
+    detectBombPotOrStraddle, // Module 29
+    angleShootMap, recordActionTiming, detectAngleShoot, // Module 30
+    ritRefusalMap, recordRITResponse, isRITRefuser, // Module 31
+    chipLeakMap, recordChipLeak, getChipLeakBoosts, // Module 32
 };
 
