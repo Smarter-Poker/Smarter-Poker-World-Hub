@@ -7016,18 +7016,18 @@ async function processHandResult(handData, bb = 2) {
             // ─── MODULE 19: PROBE-BET FREQUENCY HARVESTER ───
             // Record if opponent made a probe bet this hand (< 35% pot)
             const oppBet = opp.betAmount || 0;
-            const handPotSize = handResult.potSize || handResult.result?.totalPot || 0;
+            const handPotSize = handData.potSize || handData.result?.totalPot || 0;
             if (oppBet > 0 && handPotSize > 0) {
                 const betFrac = oppBet / handPotSize;
-                const oppWon = (handResult.result?.winners || []).some(w => String(w.playerId) === oppId);
+                const oppWon = (handData.result?.winners || []).some(w => String(w.playerId) === oppId);
                 recordProbeBet(oppId, betFrac, oppWon, opp.chipDelta || 0);
             }
 
             // ─── MODULE 22: ISO SIZING TELL TRACKER ───
             // Record isolation raise sizes if opponent raised preflop vs limpers
-            if (opp.lastAction === 'raise' && (handResult.street === 'preflop' || !handResult.street)) {
-                const bb = handResult.bigBlind || 2;
-                const isoSizeBB = oppBet / bb;
+            if (opp.lastAction === 'raise' && (handData.street === 'preflop' || !handData.street)) {
+                const handBB = handData.bigBlind || 2;
+                const isoSizeBB = oppBet / handBB;
                 if (isoSizeBB > 0) recordIsoSize(oppId, isoSizeBB);
             }
         }
@@ -7035,11 +7035,11 @@ async function processHandResult(handData, bb = 2) {
 
     // ─── MODULE 20: TABLE IMAGE EXPOSURE MONITOR ───
     // Track showdown counts for every horse at this table
-    for (const p of (handResult.players || handResult.result?.players || [])) {
+    for (const p of (handData.players || handData.result?.players || [])) {
         const pid = String(p.id || p.playerId || '');
         if (!pid || !isHorse(pid)) continue;
         const showedCards = p.showedCards === true || p.showdown === true;
-        recordTableImageHand(pid, handResult.tableId, showedCards);
+        recordTableImageHand(pid, handData.tableId, showedCards);
     }
 }  // ← end processHandResult
 

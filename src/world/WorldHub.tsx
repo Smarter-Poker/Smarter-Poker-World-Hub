@@ -15,7 +15,7 @@ import { CarouselEngine } from './carousel/CarouselEngine';
 import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex, getHiddenCardIds } from '../state/userPreferences';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
-import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB } from '../orbs/manifest/registry';
+import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
@@ -379,9 +379,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         // Inject TOKE_TRACKER_ORB at front if not already in the personalized list
         const hasInList = cards.some(c => c.id === 'toke-tracker');
         const base = hasInList ? cards : [TOKE_TRACKER_ORB, ...cards.slice(0, 5)];
-        // Filter any cards the user has hidden
+        // Filter any cards the user has hidden — PINNED cards can never be filtered out
         return hiddenCardIds.length > 0
-            ? base.filter(c => !hiddenCardIds.includes(c.id))
+            ? base.filter(c => !hiddenCardIds.includes(c.id) || PINNED_ORB_IDS.includes(c.id))
             : base;
     }, [hiddenCardIds]);
 
@@ -428,7 +428,10 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
     const [hasLinkedVenues, setHasLinkedVenues] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [hiddenCardIds, setHiddenCardIdsState] = useState<string[]>([]);
+    const [hiddenCardIds, setHiddenCardIdsState] = useState<string[]>(
+        // Lazy init: reads localStorage on first render (client-side only, no SSR flash)
+        () => getHiddenCardIds()
+    );
 
     // Check if user has a Commander account — localStorage first for instant display
     useEffect(() => {
@@ -470,9 +473,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         }
         if (hasLinkedVenues) orbs.unshift(EMPLOYEE_PORTAL_ORB);
         if (hasCommanderAccount) orbs.unshift(COMMANDER_ORB);
-        // Filter out user-hidden cards
+        // Filter out user-hidden cards — PINNED cards are immune to filtering
         return hiddenCardIds.length > 0
-            ? orbs.filter(o => !hiddenCardIds.includes(o.id))
+            ? orbs.filter(o => !hiddenCardIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
             : orbs;
     }, [hasCommanderAccount, hasLinkedVenues, hiddenCardIds]);
 

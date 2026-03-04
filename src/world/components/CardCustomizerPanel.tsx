@@ -111,7 +111,6 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                     zIndex: 8000,
                     animation: 'fadeIn 0.2s ease',
                 }}
-                onClick={onClose}
             />
 
             {/* Panel */}
