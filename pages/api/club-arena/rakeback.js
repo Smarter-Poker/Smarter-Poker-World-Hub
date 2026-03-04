@@ -279,6 +279,12 @@ export default async function handler(req, res) {
         });
 
         if (creditErr) {
+          // Rollback treasury debit — re-credit the chips we took
+          await supabaseAdmin.rpc('fn_credit_treasury', {
+            p_club_id: clubId,
+            p_amount: totalClaim,
+          }).catch(rbErr => console.error('[rakeback] Treasury rollback failed:', rbErr.message));
+
           // Rollback period status
           const ids = pending.map(p => p.id);
           await supabaseAdmin

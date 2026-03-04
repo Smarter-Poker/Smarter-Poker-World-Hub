@@ -768,7 +768,8 @@ class LobbyManager {
           try {
             await sb.rpc('increment_settlement_counters', {
               p_club_id: clubId,
-              p_rake_amount: rakeAmount,
+              p_rake: rakeAmount,
+              p_hands: 1,
             });
           } catch (settlErr) {
             console.error('[LobbyManager] Settlement counter increment failed:', settlErr.message);
