@@ -85,7 +85,47 @@ export default async function handler(req, res) {
       const updates = {};
       if (name?.trim()) updates.name = name.trim();
       if (description !== undefined) updates.description = description.trim();
-      if (settings) updates.settings = settings;
+      if (settings) {
+        // BUG #272 FIX: Validate critical financial settings to prevent abuse
+        const safeSettings = { ...settings };
+        if (safeSettings.union_rake_hold !== undefined) {
+          const hold = parseFloat(safeSettings.union_rake_hold);
+          if (isNaN(hold) || hold < 0 || hold > 0.50) {
+            return res.status(400).json({ error: 'union_rake_hold must be between 0 and 0.50 (50%)' });
+          }
+          safeSettings.union_rake_hold = hold;
+        }
+        if (safeSettings.default_agent_commission !== undefined) {
+          const comm = parseFloat(safeSettings.default_agent_commission);
+          if (isNaN(comm) || comm < 0 || comm > 1.0) {
+            return res.status(400).json({ error: 'default_agent_commission must be between 0 and 1.0' });
+          }
+          safeSettings.default_agent_commission = comm;
+        }
+        if (safeSettings.default_club_commission_rate !== undefined) {
+          const rate = parseFloat(safeSettings.default_club_commission_rate);
+          if (isNaN(rate) || rate < 0.01 || rate > 1.0) {
+            return res.status(400).json({ error: 'default_club_commission_rate must be between 0.01 and 1.0' });
+          }
+          safeSettings.default_club_commission_rate = rate;
+        }
+        // Validate BBJ split percentages
+        if (safeSettings.bbj_main_pct !== undefined || safeSettings.bbj_backup_pct !== undefined || safeSettings.bbj_promo_pct !== undefined) {
+          const main = parseInt(safeSettings.bbj_main_pct);
+          const backup = parseInt(safeSettings.bbj_backup_pct);
+          const promo = parseInt(safeSettings.bbj_promo_pct);
+          if ([main, backup, promo].some(v => isNaN(v) || v < 0 || v > 100)) {
+            return res.status(400).json({ error: 'BBJ split percentages must be between 0 and 100' });
+          }
+          if (main + backup + promo !== 100) {
+            return res.status(400).json({ error: 'BBJ split must total exactly 100%' });
+          }
+          safeSettings.bbj_main_pct = main;
+          safeSettings.bbj_backup_pct = backup;
+          safeSettings.bbj_promo_pct = promo;
+        }
+        updates.settings = safeSettings;
+      }
 
       if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Nothing to update' });
 
@@ -104,11 +144,12 @@ export default async function handler(req, res) {
     if (action === 'add_club') {
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
-      // Verify club exists
+      // Verify club exists — support both UUID and numeric club_id
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubId);
       const { data: club } = await supabaseAdmin
         .from('clubs')
-        .select('id, name, union_id')
-        .eq('id', clubId)
+        .select('id, name, union_id, owner_id')
+        .eq(isUUID ? 'id' : 'club_id', isUUID ? clubId : parseInt(clubId))
         .single();
 
       if (!club) return res.status(404).json({ error: 'Club not found' });
@@ -121,7 +162,7 @@ export default async function handler(req, res) {
       
       const { error: linkErr } = await supabaseAdmin
         .from('union_clubs')
-        .upsert({ union_id: unionId, club_id: clubId, club_commission_rate: clubCommissionRate }, { onConflict: 'union_id,club_id' });
+        .upsert({ union_id: unionId, club_id: club.id, club_commission_rate: clubCommissionRate }, { onConflict: 'union_id,club_id' });
 
       if (linkErr) throw linkErr;
 
@@ -133,7 +174,7 @@ export default async function handler(req, res) {
           club_commission_rate: clubCommissionRate,
           auto_settlement_enabled: true,
         })
-        .eq('id', clubId);
+        .eq('id', club.id);
 
       return res.status(200).json({ success: true, clubName: club.name, club_commission_rate: clubCommissionRate });
     }

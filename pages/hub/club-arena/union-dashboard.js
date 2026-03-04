@@ -141,6 +141,42 @@ export default function UnionDashboard() {
 
     useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
+    // ── Realtime subscriptions for live data ──
+    useEffect(() => {
+        if (!unionIdParam || !dashboard) return;
+
+        // Subscribe to union table changes (BBJ pools, settings)
+        const unionChannel = supabase
+            .channel(`union:${unionIdParam}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'unions',
+                filter: `id=eq.${unionIdParam}`,
+            }, (payload) => {
+                setDashboard(prev => prev ? { ...prev, union: { ...prev.union, ...payload.new } } : prev);
+            })
+            .subscribe();
+
+        // Silent poll every 30s — does NOT set isLoading to avoid loading flash
+        const poll = setInterval(async () => {
+            try {
+                const token = await getAuthToken();
+                if (!token) return;
+                const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await res.json();
+                if (data.success) setDashboard(data);
+            } catch (_) { /* silent fail */ }
+        }, 30000);
+
+        return () => {
+            supabase.removeChannel(unionChannel);
+            clearInterval(poll);
+        };
+    }, [unionIdParam, !!dashboard]);
+
     // Mint chips
     const handleMint = async () => {
         if (!mintClubId || !mintAmount || parseInt(mintAmount) <= 0) {
@@ -306,8 +342,8 @@ export default function UnionDashboard() {
                         {union?.name || 'Union Dashboard'}
                     </h1>
                     <p style={{ fontSize: 13, color: FB.textSecondary, margin: '4px 0 0' }}>
-                        Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.code || 'N/A'}</span>
-                        &nbsp; · &nbsp; Role: <span style={{ color: FB.gold }}>{dashboard.adminRole || 'admin'}</span>
+                        Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.union_code || union?.code || 'N/A'}</span>
+                        &nbsp; · &nbsp; Role: <span style={{ color: FB.gold }}>{dashboard.adminRole === 'union_lead' ? 'Union Lead' : dashboard.adminRole === 'union_admin' ? 'Union Admin' : dashboard.adminRole || 'Admin'}</span>
                     </p>
                 </div>
 
@@ -554,10 +590,10 @@ export default function UnionDashboard() {
                         {/* Add club by ID */}
                         <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}`, marginBottom: 16 }}>
                             <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Add Club to Union</h3>
-                            <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>Enter a club UUID to add it to this union.</p>
+                            <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>Enter a club code (numeric ID) or UUID to add it to this union.</p>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <input value={addClubId} onChange={e => setAddClubId(e.target.value)}
-                                    placeholder="Club UUID" style={{ flex: 1, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }} />
+                                    placeholder="Club code or UUID" style={{ flex: 1, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }} />
                                 <button onClick={async () => {
                                     if (!addClubId.trim()) { showToast('Enter a club ID', 'error'); return; }
                                     try {
@@ -666,15 +702,13 @@ export default function UnionDashboard() {
                             </div>
                         </div>
 
-                        {/* Union Hold Rate */}
+                        {/* Union Rake Hold Rate */}
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Union Rake Hold Rate (%)</label>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, display: 'block', marginBottom: 4 }}>Union Rake Hold Rate (%)</label>
+                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 6 }}>Percentage of total rake retained by the union before distributing to clubs/agents.</div>
                             <input type="number" value={unionHoldRate} onChange={e => setUnionHoldRate(e.target.value)}
-                                min="0" max="100" placeholder="10"
-                                style={{ width: 140, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
-                            <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 4 }}>
-                                Percentage of total rake retained by the union before agent commissions.
-                            </div>
+                                min="0" max="50" step="1" placeholder="10"
+                                style={{ width: 120, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
                         </div>
 
                         {/* BBJ Split Config */}
@@ -714,7 +748,7 @@ export default function UnionDashboard() {
                                     name: unionName,
                                     description: unionDesc,
                                     settings: {
-                                        ...union?.settings,
+                                        ...dashboard?.union?.settings,
                                         union_rake_hold: parseFloat(unionHoldRate || '10') / 100,
                                         bbj_main_pct: parseInt(bbjMainPct),
                                         bbj_backup_pct: parseInt(bbjBackupPct),
