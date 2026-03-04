@@ -20,7 +20,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
 import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
-import DashboardOverview from '../../../src/components/jarvis/DashboardOverview';
+// DashboardOverview removed — 4-box stat cards no longer needed
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -129,12 +129,12 @@ export default function PersonalAssistantPage() {
         </div>
       )}
       <SEOHead
-                title="Personal Poker Assistant — Jarvis AI"
-                description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
-                canonical="/hub/personal-assistant"
-            >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-            </SEOHead>
+        title="Personal Poker Assistant — Jarvis AI"
+        description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
+        canonical="/hub/personal-assistant"
+      >
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </SEOHead>
 
       <div className="strategy-hub-page" style={styles.container}>
         {/* Background */}
@@ -227,7 +227,7 @@ export default function PersonalAssistantPage() {
           </>
         )}
 
-        {/* Main Content — Gated behind 100💎 day pass */}
+        {/* Main Content — Gated behind 100 diamond day pass */}
         <FeatureGate featureKey="personal_assistant" userId={user?.id} cost={100} duration={24} featureName="Strategy Hub" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
           <main style={styles.main}>
             {/* Page Title */}
@@ -236,8 +236,6 @@ export default function PersonalAssistantPage() {
               <p style={styles.pageSubtitle}>Safe, Data-driven Tools To Refine Your Poker Game The Right Way.</p>
             </div>
 
-            {/* Dashboard Overview */}
-            <DashboardOverview stats={stats} isLoading={isLoading} />
 
             {/* Two Main Tool Cards */}
             <div style={styles.toolCardsContainer}>
@@ -500,8 +498,8 @@ const styles = {
   },
   titleSection: {
     textAlign: 'center',
-    marginBottom: 32,
-    paddingTop: 20,
+    marginBottom: 24,
+    paddingTop: 8,
   },
   pageTitle: {
     fontFamily: 'Inter, sans-serif',
