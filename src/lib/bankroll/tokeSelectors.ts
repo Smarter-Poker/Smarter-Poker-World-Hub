@@ -138,7 +138,13 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
             .select('*')
             .eq('gig_id', gig.id);
 
+        const { data: exps } = await supabase
+            .from('toke_expenses')
+            .select('amount')
+            .eq('gig_id', gig.id);
+
         const allDowns = (downs || []) as TokeDown[];
+        const allExpenses = exps || [];
         const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
 
         gigs.push({
@@ -146,6 +152,7 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
             totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
             totalDowns: dealingDowns.length,
             totalHoursWorked: computeTotalHours(allDowns),
+            totalExpenses: allExpenses.reduce((s: number, e: any) => s + (e.amount || 0), 0),
         });
     }
     return gigs;

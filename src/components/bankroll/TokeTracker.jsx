@@ -31,6 +31,7 @@ import {
     getGigReport,
 } from '../../lib/bankroll/tokeSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
+import { supabase } from '../../lib/supabase';
 import VenueSelector from './VenueSelector';
 import toast from '../../stores/toastStore';
 
@@ -157,9 +158,10 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             setCompletedGigs(gigs.filter(g => g.status === 'completed'));
             setLocations(locs || []);
 
-            // If there's an active down, restart the timer
-            if (active?.downs?.length > 0) {
-                const lastDown = active.downs[active.downs.length - 1];
+            // If there's an active down in the current open day, restart the timer
+            const openDay = active?.days?.find((d) => !d.ended_at);
+            if (openDay?.downs?.length) {
+                const lastDown = openDay.downs[openDay.downs.length - 1];
                 if (!lastDown.ended_at) {
                     const elapsed = Date.now() - new Date(lastDown.started_at).getTime();
                     const remaining = DOWN_TIMER_MS - elapsed;
@@ -176,6 +178,18 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     }, [userId]);
 
     useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
+
+    // ── Supabase Realtime — auto-refresh on any change to gig data ──
+    useEffect(() => {
+        if (!userId) return;
+        const channel = supabase
+            .channel(`toke-realtime-${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gig_days', filter: `user_id=eq.${userId}` }, () => loadData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_downs', filter: `user_id=eq.${userId}` }, () => loadData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_expenses', filter: `user_id=eq.${userId}` }, () => loadData())
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [userId, loadData]);
 
     // ── Cleanup timers on unmount ──
     useEffect(() => {
@@ -632,6 +646,28 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         </div>
                     </div>
 
+                    {/* Per-Day Breakdown */}
+                    {selectedReport.days && selectedReport.days.length > 0 && (
+                        <div style={{ ...styles.reportBreakdown, marginTop: 12 }}>
+                            <h4 style={styles.reportBreakdownTitle}>Daily Breakdown</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {selectedReport.days.map(day => (
+                                    <div key={day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8' }}>
+                                            Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                        <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
+                                            <span style={{ color: '#f59e0b', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
+                                            <span>{day.totalDowns || 0} downs</span>
+                                            <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
+                                            {(day.totalExpenses || 0) > 0 && <span style={{ color: '#ef4444' }}>-{formatCurrency(day.totalExpenses)}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Expenses Breakdown */}
                     {selectedReport.expenses && selectedReport.expenses.length > 0 && (
                         <div style={{ ...styles.reportBreakdown, marginTop: 12 }}>
@@ -657,7 +693,9 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     // ── Day-aware computed values ──
     const currentDay = activeGig?.days?.find(d => !d.ended_at) || null;
     const isDayOpen = !!currentDay;
-    const currentDayNumber = currentDay?.day_number || activeGig?.days?.length || 1;
+    // currentDayNumber: open day's number, or the highest closed day's number when all closed
+    const currentDayNumber = currentDay?.day_number
+        ?? (activeGig?.days?.length ? activeGig.days[activeGig.days.length - 1].day_number : 1);
     const totalDays = activeGig?.days?.length || 0;
     const closedDays = activeGig?.days?.filter(d => d.ended_at) || [];
     const currentDown = currentDay?.downs?.length
@@ -813,6 +851,24 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            )}
+                            {/* Closed day expenses */}
+                            {!collapsedDays[day.id] && day.expenses && day.expenses.length > 0 && (
+                                <div style={{ ...styles.closedDayDowns, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6 }}>
+                                    {day.expenses.map(exp => (
+                                        <div key={exp.id} style={{ ...styles.downRow, borderLeft: '2px solid rgba(239,68,68,0.4)', opacity: 0.8 }}>
+                                            <div style={styles.downInfo}>
+                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', fontSize: 10 }}>
+                                                    {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
+                                                </span>
+                                                {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
+                                            </div>
+                                            <div style={styles.downRight}>
+                                                <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 12 }}>-{formatCurrency(exp.amount)}</span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
