@@ -421,9 +421,20 @@ async function handleClockAction(req, res, tournamentId) {
         const bb = newLevel.big_blind || 0;
         const stakesStr = `${sb}/${bb}` + (newLevel.ante ? ` (${newLevel.ante}a)` : '');
 
-        // Push the new blinds to all active tables for this tournament
+        // Push the new blinds to all active tables for this tournament (Commander ecosystem)
         await supabase
           .from('commander_tables')
+          .update({
+            small_blind: sb,
+            big_blind: bb,
+            stakes: stakesStr
+          })
+          .eq('tournament_id', tournamentId)
+          .neq('status', 'closed');
+
+        // Push the new blinds to all active tables for this tournament (Club Arena legacy ecosystem)
+        await supabase
+          .from('tables')
           .update({
             small_blind: sb,
             big_blind: bb,
