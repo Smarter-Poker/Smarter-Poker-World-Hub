@@ -114,9 +114,17 @@ async function registerPlayer(req, res, tournamentId) {
       }
     }
 
-    // Check capacity
-    if (tournament.max_entries && tournament.current_entries >= tournament.max_entries) {
-      return res.status(400).json({ error: 'Tournament is full' });
+    // Check physical capacity (only count people taking up a chair)
+    if (tournament.max_entries) {
+      const { count } = await supabase
+        .from('commander_tournament_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+        .in('status', ['registered', 'seated', 'active']);
+
+      if (count >= tournament.max_entries) {
+        return res.status(400).json({ error: 'Tournament is full' });
+      }
     }
 
     // If registering another player, verify staff access

@@ -86,12 +86,12 @@ async function handleRegister(req, res, tournamentId) {
       });
     }
 
-    // Check capacity
+    // Check capacity (Only count players physically occupying or waiting for a seat)
     const { count } = await supabase
       .from('commander_tournament_entries')
       .select('id', { count: 'exact', head: true })
       .eq('tournament_id', tournamentId)
-      .neq('status', 'cancelled');
+      .in('status', ['registered', 'seated', 'active']);
 
     if (tournament.max_entries && count >= tournament.max_entries) {
       return res.status(400).json({

@@ -70,11 +70,15 @@ export default async function handler(req, res) {
     const fromTable = entry.table_number;
     const fromSeat = entry.seat_number;
 
+    // If the player is currently 'registered' but is given a seat, advance them to 'seated'
+    const newStatus = entry.status === 'registered' ? 'seated' : entry.status;
+
     const { error: uErr } = await supabase
       .from('commander_tournament_entries')
       .update({
         table_number,
         seat_number,
+        status: newStatus,
         metadata: {
           ...(entry.metadata || {}),
           last_moved_at: new Date().toISOString(),

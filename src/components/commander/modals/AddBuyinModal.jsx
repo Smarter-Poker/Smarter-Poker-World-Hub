@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { X, DollarSign, Loader2 } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 const COMMON_AMOUNTS = [100, 200, 300, 500, 1000];
 
@@ -51,6 +52,8 @@ export default function AddBuyinModal({
       if (data.success) {
         onSubmit?.({ session, amount: buyinAmount });
         resetAndClose();
+        broadcastChange('tables');
+        broadcastChange('games');
       } else {
         setError(data.error?.message || 'Failed to add buy-in');
       }
@@ -120,11 +123,10 @@ export default function AddBuyinModal({
                   key={amt}
                   type="button"
                   onClick={() => setAmount(amt.toString())}
-                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${
-                    amount === amt.toString()
+                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${amount === amt.toString()
                       ? 'bg-[#22D3EE] text-white'
                       : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                  }`}
+                    }`}
                 >
                   ${amt}
                 </button>

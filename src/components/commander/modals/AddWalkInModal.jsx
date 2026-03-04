@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { X, UserPlus, Phone } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 const GAME_TYPES = [
   { value: 'nlh', label: 'No Limit Hold\'em' },
@@ -57,6 +58,8 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
         onSubmit(data.data);
         resetForm();
         onClose();
+        broadcastChange('waitlist');
+        broadcastChange('games');
       } else {
         setError(data.error?.message || 'Failed to add player');
       }
@@ -159,11 +162,10 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
                       setGameType(game.gameType);
                       setStakes(game.stakes);
                     }}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      gameType === game.gameType && stakes === game.stakes
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${gameType === game.gameType && stakes === game.stakes
                         ? 'bg-[#22D3EE] text-white'
                         : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                    }`}
+                      }`}
                   >
                     {game.stakes} {game.gameType.toUpperCase()}
                   </button>
@@ -201,11 +203,10 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
                   key={s}
                   type="button"
                   onClick={() => setStakes(s)}
-                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${
-                    stakes === s
+                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${stakes === s
                       ? 'bg-[#22D3EE] text-white'
                       : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                  }`}
+                    }`}
                 >
                   {s}
                 </button>

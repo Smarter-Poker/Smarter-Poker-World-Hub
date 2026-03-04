@@ -1086,7 +1086,7 @@ class GameController {
         .from('club_members')
         .select(`
           chip_balance,
-          profile_id,
+          user_id,
           profiles!inner ( id, alias, avatar_url )
         `)
         .eq('club_id', clubId)
@@ -1094,9 +1094,9 @@ class GameController {
         .limit(100);
 
       horseProfiles = (data || [])
-        .filter(row => row.profiles && horseIds.has(row.profile_id))
+        .filter(row => row.profiles && horseIds.has(row.user_id))
         .map(row => ({
-          id: row.profile_id,
+          id: row.user_id,
           alias: row.profiles.alias || null,
           avatar_url: row.profiles.avatar_url || null,
           balance: row.chip_balance
@@ -1207,12 +1207,11 @@ class GameController {
     let horseProfiles = [];
 
     if (clubId) {
-      // Exactly like Cash Games, horses MUST have enough physical chips in the club
       const { data } = await sb
         .from('club_members')
         .select(`
         chip_balance,
-        profile_id,
+        user_id,
         profiles!inner ( id, alias, avatar_url )
       `)
         .eq('club_id', clubId)
@@ -1220,9 +1219,9 @@ class GameController {
         .limit(100);
 
       horseProfiles = (data || [])
-        .filter(row => row.profiles && horseIds.has(row.profile_id))
+        .filter(row => row.profiles && horseIds.has(row.user_id))
         .map(row => ({
-          id: row.profile_id,
+          id: row.user_id,
           alias: row.profiles.alias || null,
           avatar_url: row.profiles.avatar_url || null,
           balance: row.chip_balance
@@ -1262,11 +1261,13 @@ class GameController {
         if (!decision.shouldSit) continue;
       }
 
-      const result = t.registerPlayer(horse.id, horse.alias || `Horse ${horse.id.substring(0, 6)}`, {});
+      const result = await t.registerPlayer(horse.id, horse.alias || `Horse ${horse.id.substring(0, 6)}`, { clubId });
       if (result.success) {
         registered++;
         // We don't need ChipBridge locking here; TournamentController.registerPlayer handles `ledger.deductBuyin` natively.
         console.log(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId} for ${buyIn} chips`);
+      } else {
+        console.warn(`[HorseAI] Failed to register ${horse.id.substring(0, 8)}: ${result.error}`);
       }
     }
 

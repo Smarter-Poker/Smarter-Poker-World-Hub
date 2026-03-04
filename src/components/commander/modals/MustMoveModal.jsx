@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { X, ArrowRight, Users, Loader2, Link2, Unlink } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 export default function MustMoveModal({
   isOpen,
@@ -62,6 +63,8 @@ export default function MustMoveModal({
       if (data.success) {
         onSubmit({ game, linkedTo: selectedGameId, action: 'linked' });
         onClose();
+        broadcastChange('games');
+        broadcastChange('tables');
       } else {
         setError(data.error?.message || 'Failed to link games');
       }
@@ -86,6 +89,8 @@ export default function MustMoveModal({
       if (data.success) {
         onSubmit({ game, action: 'unlinked' });
         setLinkedGame(null);
+        broadcastChange('games');
+        broadcastChange('tables');
       } else {
         setError(data.error?.message || 'Failed to unlink games');
       }
@@ -200,11 +205,10 @@ export default function MustMoveModal({
                         <button
                           key={g.id}
                           onClick={() => setSelectedGameId(g.id)}
-                          className={`w-full p-3 rounded-lg text-left transition-colors ${
-                            selectedGameId === g.id
+                          className={`w-full p-3 rounded-lg text-left transition-colors ${selectedGameId === g.id
                               ? 'bg-[#8B5CF6] text-white'
                               : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <div>

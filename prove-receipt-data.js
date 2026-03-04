@@ -4,8 +4,8 @@ require('dotenv').config({ path: '.env.local' });
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const VENUE_ID = '1897';
-const TOURN_ID = 'e1cdd873-3cf3-4cde-9dec-86977a7a863d'; // The LIVE DATA TEST TOURNAMENT we just made
+const VENUE_ID = '1996';
+const TOURN_ID = '93feb3e1-8483-4274-9fb8-aeec078c1d35'; // The LIVE DATA TEST TOURNAMENT under Club JAQK
 const PLAYER_ID = 'dca6c345-c2ab-456f-98d9-dfbca3a43f7d';
 const PLAYER_NAME = 'Mike Johnson';
 

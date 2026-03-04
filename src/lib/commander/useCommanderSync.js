@@ -175,8 +175,8 @@ const channelManager = {
                     event: '*',
                     schema: 'public',
                     table,
-                    // commander_seats has no venue_id column
-                    filter: table === 'commander_seats' ? undefined : `venue_id=eq.${venueKey}`,
+                    // commander_seats and commander_tournament_entries do not have venue_id columns
+                    filter: ['commander_seats', 'commander_tournament_entries'].includes(table) ? undefined : `venue_id=eq.${venueKey}`,
                 },
                 () => {
                     // Map Supabase table name → entity name

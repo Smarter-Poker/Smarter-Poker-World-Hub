@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { X, UserPlus, Loader2 } from 'lucide-react';
 import { SeatPickerList } from '../staff/SeatPicker';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 export default function SeatPlayerModal({
   isOpen,
@@ -81,6 +82,9 @@ export default function SeatPlayerModal({
           seat_number: selectedSeat
         });
         resetAndClose();
+        broadcastChange('waitlist');
+        broadcastChange('tables');
+        broadcastChange('games');
       } else {
         setError(data.error?.message || 'Failed to seat player');
       }
@@ -156,11 +160,10 @@ export default function SeatPlayerModal({
                           setSelectedGame(game);
                           setSelectedSeat(null);
                         }}
-                        className={`w-full p-3 rounded-lg text-left transition-colors ${
-                          selectedGame?.id === game.id
+                        className={`w-full p-3 rounded-lg text-left transition-colors ${selectedGame?.id === game.id
                             ? 'bg-[#22D3EE] text-white'
                             : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                        }`}
+                          }`}
                       >
                         <div className="font-medium">
                           {game.table_name || `Table ${game.table_number}`}

@@ -2,8 +2,8 @@
  * OpenGameModal - Modal for opening a new game on a table
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
 import { X, Play, Users } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 const GAME_TYPES = [
   { value: 'nlh', label: 'No Limit Hold\'em' },
@@ -66,6 +66,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
         onSubmit(data.data.game);
         resetForm();
         onClose();
+        broadcastChange('games');
+        broadcastChange('tables');
       } else {
         setError(data.error?.message || 'Failed to open game');
       }
@@ -168,11 +170,10 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                   key={s}
                   type="button"
                   onClick={() => setStakes(s)}
-                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${
-                    stakes === s
+                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${stakes === s
                       ? 'bg-[#22D3EE] text-white'
                       : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                  }`}
+                    }`}
                 >
                   {s}
                 </button>
@@ -180,11 +181,10 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
               <button
                 type="button"
                 onClick={() => setStakes('custom')}
-                className={`h-10 rounded-lg text-sm font-medium transition-colors ${
-                  stakes === 'custom'
+                className={`h-10 rounded-lg text-sm font-medium transition-colors ${stakes === 'custom'
                     ? 'bg-[#22D3EE] text-white'
                     : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                }`}
+                  }`}
               >
                 Custom
               </button>
@@ -212,11 +212,10 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                   key={num}
                   type="button"
                   onClick={() => setMaxPlayers(num)}
-                  className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${
-                    maxPlayers === num
+                  className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${maxPlayers === num
                       ? 'bg-[#22D3EE] text-white'
                       : 'bg-[#0D192E] text-white hover:bg-[#132240]'
-                  }`}
+                    }`}
                 >
                   {num}
                 </button>
