@@ -240,6 +240,94 @@ export function useAuthUser() {
 // Need to import these for the hook
 import { useState, useEffect } from 'react';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛡️ SESSION BACKUP / RESTORE — Last line of defense against accidental logout
+// ═══════════════════════════════════════════════════════════════════════════
+const AUTH_STORAGE_KEY = 'smarter-poker-auth';
+const AUTH_BACKUP_KEY = 'smarter-poker-auth-backup';
+const BACKUP_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Backup the current session to a separate localStorage key.
+ */
+export function backupSession() {
+    if (typeof window === 'undefined') return;
+    try {
+        const current = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (current) {
+            localStorage.setItem(AUTH_BACKUP_KEY, JSON.stringify({
+                session: current,
+                timestamp: Date.now(),
+            }));
+        }
+    } catch (e) { /* silently fail */ }
+}
+
+/**
+ * Attempt to restore the session from backup.
+ * Returns true if restoration succeeded, false otherwise.
+ */
+export function restoreSessionBackup() {
+    if (typeof window === 'undefined') return false;
+    try {
+        const backup = localStorage.getItem(AUTH_BACKUP_KEY);
+        if (!backup) return false;
+
+        const { session, timestamp } = JSON.parse(backup);
+        if (Date.now() - timestamp > BACKUP_TTL_MS) {
+            localStorage.removeItem(AUTH_BACKUP_KEY);
+            return false;
+        }
+
+        if (session && !localStorage.getItem(AUTH_STORAGE_KEY)) {
+            localStorage.setItem(AUTH_STORAGE_KEY, session);
+            console.log('[authUtils] 🛡️ Session restored from backup');
+            return true;
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Check if a session backup exists and is still valid.
+ */
+export function hasSessionBackup() {
+    if (typeof window === 'undefined') return false;
+    try {
+        const backup = localStorage.getItem(AUTH_BACKUP_KEY);
+        if (!backup) return false;
+        const { timestamp } = JSON.parse(backup);
+        return (Date.now() - timestamp) < BACKUP_TTL_MS;
+    } catch (e) { return false; }
+}
+
+/**
+ * Clear all auth data from localStorage.
+ * HARDENED: Creates a backup before clearing so we can recover from accidental logouts.
+ * Use force=true for sovereign (user-initiated) logout to skip backup.
+ */
+export function clearAuth(force = false) {
+    if (typeof window === 'undefined') return;
+
+    try {
+        if (!force) {
+            backupSession();
+        } else {
+            localStorage.removeItem(AUTH_BACKUP_KEY);
+        }
+
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        const sbKeys = Object.keys(localStorage).filter(
+            k => k.startsWith('sb-') && k.endsWith('-auth-token')
+        );
+        sbKeys.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+        console.warn('[authUtils] Error clearing auth:', e);
+    }
+}
+
 export default {
     getAuthUser,
     getSessionToken,
@@ -252,6 +340,10 @@ export default {
     insertIntoTable,
     updateTable,
     useAuthUser,
+    backupSession,
+    restoreSessionBackup,
+    hasSessionBackup,
+    clearAuth,
     SUPABASE_URL,
     SUPABASE_ANON_KEY
 };

@@ -2,29 +2,24 @@
  * PERSONAL ASSISTANT — Strategy Hub
  * /hub/personal-assistant
  *
- * The Strategy Hub houses two primary tools:
- * 1. Virtual Sandbox — Theoretical hand exploration with GTO analysis
- * 2. Leak Finder — Post-session statistical leak detection
- *
- * Core Philosophy: This is a lab, not a cheat tool.
- * No live play advice, ever.
+ * Futuristic Metal UI — Matching the World Hub card aesthetic
+ * Two primary tools: Virtual Sandbox + Leak Finder
+ * Jarvis AI assistant in the circular frame
  */
 
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
 import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
-// DashboardOverview removed — 4-box stat cards no longer needed
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STRATEGY HUB — Main Landing Page
+// STRATEGY HUB — Main Landing Page (Futuristic Metal UI)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function PersonalAssistantPage() {
@@ -33,8 +28,7 @@ export default function PersonalAssistantPage() {
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  //  INTRO VIDEO STATE - Video plays while page loads in background
-  // Only show once per session (not on every reload)
+  // Intro video - only show once per session
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window !== 'undefined') {
       return !sessionStorage.getItem('personal-assistant-intro-seen');
@@ -43,399 +37,263 @@ export default function PersonalAssistantPage() {
   });
   const introVideoRef = useRef(null);
 
-  // Mark intro as seen when it ends
   const handleIntroEnd = useCallback(() => {
     sessionStorage.setItem('personal-assistant-intro-seen', 'true');
     setShowIntro(false);
   }, []);
 
-  // Attempt to unmute video after it starts playing
   const handleIntroPlay = useCallback(() => {
     if (introVideoRef.current) {
       introVideoRef.current.muted = false;
     }
   }, []);
 
-  // Use real hooks for data
+  // Real data hooks
   const { stats, isLoading: statsLoading } = useAssistantStats();
   const { sessions: recentSessions, isLoading: sessionsLoading } = useRecentSessions(5);
-
   const isLoading = statsLoading || sessionsLoading;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingSpinner}>Initializing...</div>
+      <div style={S.loadingWrap}>
+        <div style={S.loadingText}>Initializing...</div>
       </div>
     );
   }
 
   return (
     <PageTransition>
-      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+      {/* Intro Video Overlay */}
       {showIntro && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 99999,
-          background: '#000',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
+        <div style={S.introOverlay}>
           <video
             ref={introVideoRef}
             src="/videos/personal-assistant-intro.mp4"
-            autoPlay
-            muted
-            playsInline
+            autoPlay muted playsInline
             onPlay={handleIntroPlay}
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
+            style={S.introVideo}
           />
-          {/* Skip button */}
-          <button
-            onClick={handleIntroEnd}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              padding: '8px 20px',
-              background: 'rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: 20,
-              color: 'white',
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: 'pointer',
-              zIndex: 100000
-            }}
-          >
-            Skip
-          </button>
+          <button onClick={handleIntroEnd} style={S.skipBtn}>Skip</button>
         </div>
       )}
+
       <SEOHead
-        title="Personal Poker Assistant — Jarvis AI"
+        title="Personal Poker Assistant - Jarvis AI"
         description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
         canonical="/hub/personal-assistant"
       >
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </SEOHead>
 
-      <div className="strategy-hub-page" style={styles.container}>
+      <div style={S.page}>
         {/* Background */}
-        <div style={styles.bgGrid} />
-        <div style={styles.bgGlow} />
+        <div style={S.bgGrid} />
+        <div style={S.bgGlow} />
 
-        {/* Header */}
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
 
-        {/* Hamburger Menu Drawer */}
-        {showMenu && (
-          <>
-            {/* Overlay */}
-            <div
-              onClick={() => setShowMenu(false)}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.7)',
-                zIndex: 999,
-              }}
-            />
-            {/* Menu Drawer */}
-            <motion.div
-              initial={{ x: -300 }}
-              animate={{ x: 0 }}
-              exit={{ x: -300 }}
-              transition={{ type: 'spring', damping: 25 }}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: 280,
-                background: '#0a0e1a',
-                borderRight: '1px solid rgba(0, 136, 255, 0.2)',
-                zIndex: 1000,
-                padding: '20px',
-                overflowY: 'auto',
-              }}
-            >
-              <h3 style={{ color: '#00D4FF', marginBottom: 24, fontSize: 20 }}>Menu</h3>
-              {[
-                { label: 'Overview', href: '/hub/personal-assistant' },
-                { label: 'Virtual Sandbox', href: '/hub/personal-assistant/sandbox' },
-                { label: 'Leak Finder', href: '/hub/personal-assistant/leaks' },
-                { label: 'Goals', href: '/hub/personal-assistant?tab=goals' },
-                { label: 'Tilt Log', href: '/hub/personal-assistant?tab=tilt' },
-                { label: 'Bankroll', href: '/hub/personal-assistant?tab=bankroll' },
-                { label: 'Opponents', href: '/hub/personal-assistant?tab=opponents' },
-                { label: 'Hand History', href: '/hub/personal-assistant?tab=hands' },
-                { label: 'Chat With Jarvis', href: '/hub/messenger?chat=jarvis' },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    router.push(item.href);
-                    setShowMenu(false);
-                  }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '12px 16px',
-                    marginBottom: 8,
-                    background: 'rgba(0, 136, 255, 0.1)',
-                    border: '1px solid rgba(0, 136, 255, 0.2)',
-                    borderRadius: 8,
-                    color: '#fff',
-                    fontSize: 15,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)';
-                    e.currentTarget.style.borderColor = '#00D4FF';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 136, 255, 0.1)';
-                    e.currentTarget.style.borderColor = 'rgba(0, 136, 255, 0.2)';
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-
-        {/* Main Content — Gated behind 100 diamond day pass */}
+        {/* Gated Content */}
         <FeatureGate featureKey="personal_assistant" userId={user?.id} cost={100} duration={24} featureName="Strategy Hub" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
-          <main style={styles.main}>
-            {/* Page Title */}
-            <div style={styles.titleSection}>
-              <h1 style={styles.pageTitle}>Strategy Hub</h1>
-              <p style={styles.pageSubtitle}>Safe, Data-driven Tools To Refine Your Poker Game The Right Way.</p>
-            </div>
+          <main style={S.main}>
 
+            {/* ═══════════════════════════════════════════════════════════
+                OUTER METAL FRAME — Matches World Hub card aesthetic
+               ═══════════════════════════════════════════════════════════ */}
+            <div style={S.outerFrame}>
 
-            {/* Two Main Tool Cards */}
-            <div style={styles.toolCardsContainer}>
-              {/* Virtual Sandbox Card */}
-              <motion.div
-                style={styles.toolCard}
-                whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => router.push('/hub/personal-assistant/sandbox')}
-              >
-                <div style={styles.toolIconContainer}>
-                  <div style={styles.sandboxIcon}>
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                      <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2" />
-                      <circle cx="24" cy="24" r="4" fill="#64b5f6" />
-                    </svg>
-                  </div>
-                </div>
-                <h2 style={styles.toolTitle}>Virtual Sandbox</h2>
-                <p style={styles.toolDescription}>Explore Theoretical Hands</p>
-                <ul style={styles.toolFeatures}>
-                  <li style={styles.featureItem}>
-                    <span style={styles.checkmark}>&#10003;</span>
-                    Run any poker scenario
-                  </li>
-                  <li style={styles.featureItem}>
-                    <span style={styles.checkmark}>&#10003;</span>
-                    Test complex hands vs Villain types
-                  </li>
-                  <li style={styles.featureItem}>
-                    <span style={styles.checkmark}>&#10003;</span>
-                    See solver-verified GTO results
-                  </li>
-                </ul>
-                <button style={styles.toolButton}>
-                  Enter Sandbox
-                </button>
-                <span style={styles.toolFooter}>Not Live Play - Experiment Freely</span>
-              </motion.div>
+              {/* Corner Rivets */}
+              <div style={{ ...S.rivet, top: 8, left: 8 }} />
+              <div style={{ ...S.rivet, top: 8, right: 8 }} />
+              <div style={{ ...S.rivet, bottom: 8, left: 8 }} />
+              <div style={{ ...S.rivet, bottom: 8, right: 8 }} />
 
-              {/* Leak Finder Card */}
-              <motion.div
-                style={styles.toolCard}
-                whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => router.push('/hub/personal-assistant/leaks')}
-              >
-                <div style={styles.toolIconContainer}>
-                  <div style={styles.leakIcon}>
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none" />
-                      <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none" />
-                      <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none" />
-                      <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2" />
-                      <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2" />
-                      <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2" />
-                      <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2" />
-                    </svg>
-                  </div>
-                </div>
-                <h2 style={styles.toolTitle}>Leak Finder</h2>
-                <p style={styles.toolDescription}>Track & Improve Your Game</p>
-                <ul style={styles.toolFeatures}>
-                  <li style={styles.featureItem}>
-                    <span style={styles.checkmark}>&#10003;</span>
-                    Detect statistical leaks
-                  </li>
-                  <li style={styles.featureItem}>
-                    <span style={styles.checkmark}>&#10003;</span>
-                    Track progress over time
-                  </li>
-                  <li style={styles.featureItem}>
-                    <span style={styles.checkmark}>&#10003;</span>
-                    Get targeted training
-                  </li>
-                </ul>
-                <button style={styles.toolButton}>
-                  View Leaks
-                </button>
-                <span style={styles.toolFooter}>Post-play Review Only - Track And Improve</span>
-              </motion.div>
-            </div>
+              {/* Cyan accent bars (top) */}
+              <div style={S.accentBarTop} />
 
-            {/* Trust Pillars Section */}
-            <div style={styles.trustSection}>
-              <h3 style={styles.trustTitle}>Honest, Regulator-Ready Poker Study</h3>
-              <p style={styles.trustSubtitle}>
-                <span style={styles.trustCheck}>&#10003;</span> Non-Exploitative
-                <span style={styles.trustDot}> - </span>
-                <span style={styles.trustCheck}>&#10003;</span> No Live Advice
-                <span style={styles.trustDot}> - </span>
-                <span style={styles.trustCheck}>&#10003;</span> Regulator-Safe
-              </p>
+              {/* Inner content area */}
+              <div style={S.innerFrame}>
 
-              <div style={styles.trustPillars}>
-                <div style={styles.pillar}>
-                  <div style={styles.pillarIcon}>
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                      <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <h4 style={styles.pillarTitle}>GTO Anchored</h4>
-                  <p style={styles.pillarText}>Tied To Solver Analysis<br />AI Fill-in Clearly Labeled</p>
-                </div>
+                {/* ── Two Tool Cards ──────────────────────────────────── */}
+                <div style={S.toolRow}>
 
-                <div style={styles.pillar}>
-                  <div style={styles.pillarIcon}>
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                      <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <h4 style={styles.pillarTitle}>Safe & Fair</h4>
-                  <p style={styles.pillarText}>No Live Assist - No Exploit Hunting<br />Test In Peace</p>
-                </div>
+                  {/* Virtual Sandbox Card */}
+                  <div
+                    style={S.toolCard}
+                    onClick={() => router.push('/hub/personal-assistant/sandbox')}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(0,180,255,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(100,181,246,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    {/* Card inner rivets */}
+                    <div style={{ ...S.cardRivet, top: 6, left: 6 }} />
+                    <div style={{ ...S.cardRivet, top: 6, right: 6 }} />
+                    <div style={{ ...S.cardRivet, bottom: 6, left: 6 }} />
+                    <div style={{ ...S.cardRivet, bottom: 6, right: 6 }} />
 
-                <div style={styles.pillar}>
-                  <div style={styles.pillarIcon}>
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                      <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <h4 style={styles.pillarTitle}>Results-Driven</h4>
-                  <p style={styles.pillarText}>Identify Leaks - Track Improvement<br />Train Smarter</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Sessions */}
-            <div style={styles.recentSection}>
-              <div style={styles.recentHeader}>
-                <h3 style={styles.recentTitle}>Recent Sessions</h3>
-                <select style={styles.recentFilter}>
-                  <option>My Sessions</option>
-                  <option>All Sessions</option>
-                </select>
-              </div>
-
-              {isLoading ? (
-                <div style={styles.loadingState}>Loading Sessions...</div>
-              ) : recentSessions.length === 0 ? (
-                <div style={styles.emptyState}>
-                  <p>No Sessions Yet. Start Exploring In The Virtual Sandbox!</p>
-                </div>
-              ) : (
-                <div style={styles.sessionsList}>
-                  {recentSessions.map((session) => (
-                    <div key={session.id} style={styles.sessionCard}>
-                      <div style={styles.sessionLeft}>
-                        <div style={styles.sessionIcon}>
-                          {session.type === 'sandbox' ? (
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                              <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          ) : (
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                              <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                        </div>
-                        <div style={styles.sessionInfo}>
-                          <span style={styles.sessionTitle}>{session.title}</span>
-                          {session.stack && <span style={styles.sessionMeta}> - {session.stack}</span>}
-                        </div>
-                      </div>
-                      <div style={styles.sessionRight}>
-                        <span style={{
-                          ...styles.sessionEv,
-                          color: session.evLoss < 0 ? '#ef4444' : '#22c55e'
-                        }}>
-                          {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
-                          {session.type === 'leak' ? '/Hand Leakage' : ' of EV Loss'}
-                        </span>
-                        <span style={styles.sessionLink}>
-                          {session.type === 'sandbox' ? 'Analyze in Sandbox >' : 'View Details >'}
-                        </span>
-                      </div>
+                    <div style={S.toolIconWrap}>
+                      <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                        <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2" />
+                        <circle cx="24" cy="24" r="4" fill="#64b5f6" />
+                      </svg>
                     </div>
-                  ))}
+                    <h2 style={S.toolTitle}>Virtual Sandbox</h2>
+                    <p style={S.toolSub}>Explore Theoretical Hands</p>
+                    <ul style={S.bulletList}>
+                      <li style={S.bulletItem}><span style={S.bullet} /> Run Any Poker Scenario</li>
+                      <li style={S.bulletItem}><span style={S.bullet} /> Test Complex Hands Vs Villain Types</li>
+                      <li style={S.bulletItem}><span style={S.bullet} /> See Solver-Verified GTO Results</li>
+                    </ul>
+                    <button style={S.toolBtn} onClick={(e) => { e.stopPropagation(); router.push('/hub/personal-assistant/sandbox'); }}>
+                      Enter Sandbox
+                    </button>
+                  </div>
+
+                  {/* Leak Finder Card */}
+                  <div
+                    style={S.toolCard}
+                    onClick={() => router.push('/hub/personal-assistant/leaks')}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(0,180,255,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(100,181,246,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    <div style={{ ...S.cardRivet, top: 6, left: 6 }} />
+                    <div style={{ ...S.cardRivet, top: 6, right: 6 }} />
+                    <div style={{ ...S.cardRivet, bottom: 6, left: 6 }} />
+                    <div style={{ ...S.cardRivet, bottom: 6, right: 6 }} />
+
+                    <div style={S.toolIconWrap}>
+                      <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                        <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none" />
+                        <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none" />
+                        <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none" />
+                        <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2" />
+                        <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2" />
+                        <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2" />
+                        <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2" />
+                      </svg>
+                    </div>
+                    <h2 style={S.toolTitle}>Leak Finder</h2>
+                    <p style={S.toolSub}>Track and Improve Your Game</p>
+                    <ul style={S.bulletList}>
+                      <li style={S.bulletItem}><span style={S.bullet} /> Detect Statistical Leaks</li>
+                      <li style={S.bulletItem}><span style={S.bullet} /> Track Progress Over Time</li>
+                      <li style={S.bulletItem}><span style={S.bullet} /> Get Targeted Training</li>
+                    </ul>
+                    <button style={{ ...S.toolBtn, background: 'linear-gradient(135deg, #374151, #1f2937)' }} onClick={(e) => { e.stopPropagation(); router.push('/hub/personal-assistant/leaks'); }}>
+                      View Leaks
+                    </button>
+                  </div>
                 </div>
-              )}
+
+                {/* ── Trust Pillars Section ───────────────────────────── */}
+                <div style={S.trustSection}>
+                  <h3 style={S.trustTitle}>Honest, Regulator-Ready Poker Study</h3>
+                  <div style={S.pillarRow}>
+                    <div style={S.pillar}>
+                      <div style={S.pillarIcon}>
+                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                          <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                          <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      <h4 style={S.pillarTitle}>GTO Anchored</h4>
+                      <p style={S.pillarText}>Tied To Solver Analysis</p>
+                    </div>
+                    <div style={S.pillar}>
+                      <div style={S.pillarIcon}>
+                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                          <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                          <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      <h4 style={S.pillarTitle}>Safe and Fair</h4>
+                      <p style={S.pillarText}>No Exploit Hunting</p>
+                    </div>
+                    <div style={S.pillar}>
+                      <div style={S.pillarIcon}>
+                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                          <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                          <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <h4 style={S.pillarTitle}>Results-Driven</h4>
+                      <p style={S.pillarText}>Identify Leaks - Track Improvement</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Recent Sessions ─────────────────────────────────── */}
+                <div style={S.sessionsSection}>
+                  <div style={S.sessionsHeader}>
+                    <h3 style={S.sessionsTitle}>Recent Sessions</h3>
+                    <select style={S.sessionsFilter}>
+                      <option>My Sessions</option>
+                      <option>All Sessions</option>
+                    </select>
+                  </div>
+
+                  {isLoading ? (
+                    <div style={S.emptyState}>Loading Sessions...</div>
+                  ) : recentSessions.length === 0 ? (
+                    <div style={S.emptyState}>No Sessions Yet. Start Exploring In The Virtual Sandbox!</div>
+                  ) : (
+                    <div style={S.sessionsList}>
+                      {recentSessions.map((session) => (
+                        <div key={session.id} style={S.sessionRow}
+                          onClick={() => router.push(session.type === 'sandbox' ? '/hub/personal-assistant/sandbox' : '/hub/personal-assistant/leaks')}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(100,181,246,0.08)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                        >
+                          <div style={S.sessionLeft}>
+                            <div style={S.sessionDot}>
+                              {session.type === 'sandbox' ? (
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                  <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none" />
+                                </svg>
+                              ) : (
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                  <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
+                                </svg>
+                              )}
+                            </div>
+                            <div>
+                              <span style={S.sessionName}>{session.title}</span>
+                              {session.stack && <span style={S.sessionMeta}> - {session.stack}</span>}
+                            </div>
+                          </div>
+                          <div style={S.sessionRight}>
+                            <span style={{ ...S.sessionEv, color: session.evLoss < 0 ? '#ef4444' : '#22c55e' }}>
+                              {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Jarvis Circular Frame (bottom-right) ────────────── */}
+                <div
+                  style={S.jarvisFrame}
+                  onClick={() => {
+                    // Open Jarvis chat
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
+                    }
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 0 20px rgba(0,212,255,0.5), inset 0 0 10px rgba(0,212,255,0.15)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 0 12px rgba(0,212,255,0.3), inset 0 0 6px rgba(0,0,0,0.4)'; }}
+                  title="Chat with Jarvis"
+                >
+                  <img src="/images/jarvis-avatar.png" alt="Jarvis AI" style={S.jarvisImg} />
+                </div>
+
+              </div>
             </div>
 
-            {/* Footer */}
-            <footer style={styles.footer}>
-              <div style={styles.footerBrand}>
-                <img src="/smarter-poker-logo-transparent.png" alt="Smarter.Poker" style={styles.footerLogo} />
-              </div>
-              <div style={styles.footerLinks}>
-                <a href="/about" style={styles.footerLink}>About</a>
-                <a href="/features" style={styles.footerLink}>Features</a>
-                <a href="/security" style={styles.footerLink}>Security</a>
-                <a href="/terms" style={styles.footerLink}>Terms</a>
-                <a href="/privacy" style={styles.footerLink}>Privacy</a>
-              </div>
-              <p style={styles.footerCopyright}>2024 Smarter.Poker. All Rights Reserved.</p>
-            </footer>
           </main>
         </FeatureGate>
 
@@ -447,335 +305,238 @@ export default function PersonalAssistantPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES
+// STYLES — Futuristic Metal Frame UI
 // ═══════════════════════════════════════════════════════════════════════════
-
-const styles = {
-  container: {
+const S = {
+  // Page base
+  page: {
     minHeight: '100vh',
     background: 'linear-gradient(180deg, #0d1929 0%, #0a1628 50%, #061018 100%)',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
   bgGrid: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: `
-      linear-gradient(rgba(100, 181, 246, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(100, 181, 246, 0.03) 1px, transparent 1px)
-    `,
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundImage: 'linear-gradient(rgba(100,181,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(100,181,246,0.03) 1px, transparent 1px)',
     backgroundSize: '40px 40px',
     pointerEvents: 'none',
   },
   bgGlow: {
-    position: 'fixed',
-    top: '-20%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '120%',
-    height: '60%',
-    background: 'radial-gradient(ellipse at center, rgba(100, 181, 246, 0.08) 0%, transparent 60%)',
+    position: 'fixed', top: '-20%', left: '50%', transform: 'translateX(-50%)',
+    width: '120%', height: '60%',
+    background: 'radial-gradient(ellipse at center, rgba(100,181,246,0.08) 0%, transparent 60%)',
     pointerEvents: 'none',
   },
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+  loadingWrap: {
+    minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: '#0a1628',
   },
-  loadingSpinner: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 16,
-  },
+  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 16 },
   main: {
-    position: 'relative',
-    zIndex: 1,
-    padding: '20px 24px 40px',
-  },
-  titleSection: {
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingTop: 8,
-  },
-  pageTitle: {
-    fontFamily: 'Inter, sans-serif',
-    fontSize: 32,
-    fontWeight: 300,
-    color: '#64b5f6',
-    marginBottom: 8,
-    letterSpacing: '0.05em',
-  },
-  pageSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: 400,
+    position: 'relative', zIndex: 1,
+    padding: '8px 16px 40px',
+    maxWidth: 720,
+    margin: '0 auto',
   },
 
-  // Tool Cards
-  toolCardsContainer: {
+  // Intro video
+  introOverlay: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 99999, background: '#000',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  introVideo: { width: '100%', height: '100%', objectFit: 'cover' },
+  skipBtn: {
+    position: 'absolute', top: 20, right: 20,
+    padding: '8px 20px', background: 'rgba(255,255,255,0.2)',
+    backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)',
+    borderRadius: 20, color: 'white', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+    zIndex: 100000,
+  },
+
+  // ── Outer metal frame ──────────────────────────────────────────────────
+  outerFrame: {
+    position: 'relative',
+    background: 'linear-gradient(145deg, #2a3040 0%, #1a1f2e 30%, #151a26 70%, #1e2432 100%)',
+    border: '3px solid #3a4050',
+    borderRadius: 16,
+    padding: 6,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
+  },
+  rivet: {
+    position: 'absolute', width: 12, height: 12, borderRadius: '50%',
+    background: 'linear-gradient(145deg, #4a5060, #2a3040)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.5)',
+    zIndex: 2,
+  },
+  accentBarTop: {
+    position: 'absolute', top: 0, left: '15%', right: '15%', height: 2,
+    background: 'linear-gradient(90deg, transparent, rgba(0,180,255,0.6), transparent)',
+    borderRadius: 1, zIndex: 2,
+  },
+  innerFrame: {
+    background: 'linear-gradient(180deg, rgba(15,20,30,0.95) 0%, rgba(10,15,25,0.98) 100%)',
+    border: '1px solid rgba(100,181,246,0.12)',
+    borderRadius: 12,
+    padding: '20px 16px 16px',
+    position: 'relative',
+  },
+
+  // ── Tool cards row ─────────────────────────────────────────────────────
+  toolRow: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: 24,
-    marginBottom: 40,
+    gap: 12,
+    marginBottom: 16,
   },
   toolCard: {
-    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
-    border: '1px solid rgba(100, 181, 246, 0.2)',
-    borderRadius: 16,
-    padding: '32px 24px',
+    position: 'relative',
+    background: 'linear-gradient(145deg, rgba(30,35,50,0.9) 0%, rgba(20,25,38,0.95) 100%)',
+    border: '1px solid rgba(100,181,246,0.2)',
+    borderRadius: 10,
+    padding: '20px 14px 16px',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-  },
-  toolIconContainer: {
-    marginBottom: 20,
-  },
-  sandboxIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: '50%',
-    background: 'rgba(100, 181, 246, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leakIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: '50%',
-    background: 'rgba(144, 202, 249, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toolTitle: {
-    fontSize: 22,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 6,
-  },
-  toolDescription: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 20,
-  },
-  toolFeatures: {
-    listStyle: 'none',
-    padding: 0,
-    margin: '0 0 24px 0',
-    width: '100%',
-  },
-  featureItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 10,
-    padding: '8px 0',
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    transition: 'all 0.25s ease',
     textAlign: 'left',
   },
-  checkmark: {
-    color: '#64b5f6',
-    fontWeight: 700,
-    fontSize: 14,
+  cardRivet: {
+    position: 'absolute', width: 8, height: 8, borderRadius: '50%',
+    background: 'linear-gradient(145deg, #3a4050, #252a38)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    zIndex: 1,
   },
-  toolButton: {
-    width: '100%',
-    padding: '14px 24px',
-    background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-    border: 'none',
-    borderRadius: 10,
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
+  toolIconWrap: {
+    width: 52, height: 52, borderRadius: '50%',
+    background: 'rgba(100,181,246,0.08)',
+    border: '1px solid rgba(100,181,246,0.15)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
   },
-  toolFooter: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontStyle: 'italic',
+  toolTitle: {
+    fontSize: 17, fontWeight: 700, color: '#e2e8f0',
+    marginBottom: 4, fontFamily: 'Inter, sans-serif',
+  },
+  toolSub: {
+    fontSize: 12, color: 'rgba(255,255,255,0.5)',
+    marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px',
+    fontWeight: 600,
+  },
+  bulletList: {
+    listStyle: 'none', padding: 0, margin: '0 0 16px 0',
+  },
+  bulletItem: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '5px 0', fontSize: 13, color: 'rgba(255,255,255,0.8)',
+  },
+  bullet: {
+    width: 6, height: 6, borderRadius: '50%',
+    background: '#64b5f6', flexShrink: 0,
+  },
+  toolBtn: {
+    width: '100%', padding: '10px 16px',
+    background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+    border: '1px solid rgba(100,181,246,0.3)',
+    borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700,
+    cursor: 'pointer', transition: 'all 0.2s ease',
+    letterSpacing: '0.3px',
   },
 
-  // Trust Section
+  // ── Trust pillars ──────────────────────────────────────────────────────
   trustSection: {
-    textAlign: 'center',
-    marginBottom: 40,
-    padding: '32px 24px',
-    background: 'linear-gradient(180deg, rgba(100, 181, 246, 0.05) 0%, transparent 100%)',
-    borderRadius: 16,
+    background: 'rgba(100,181,246,0.04)',
+    border: '1px solid rgba(100,181,246,0.1)',
+    borderRadius: 10,
+    padding: '16px 14px',
+    marginBottom: 12,
   },
   trustTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 8,
+    fontSize: 16, fontWeight: 700, color: '#e2e8f0',
+    textAlign: 'center', marginBottom: 14,
+    fontFamily: 'Inter, sans-serif',
   },
-  trustSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 28,
-  },
-  trustCheck: {
-    color: '#64b5f6',
-  },
-  trustDot: {
-    color: 'rgba(255, 255, 255, 0.3)',
-    margin: '0 8px',
-  },
-  trustPillars: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 24,
+  pillarRow: {
+    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
   },
   pillar: {
-    padding: '24px 16px',
-    background: 'rgba(100, 181, 246, 0.05)',
-    borderRadius: 12,
-    border: '1px solid rgba(100, 181, 246, 0.15)',
+    background: 'rgba(100,181,246,0.05)',
+    border: '1px solid rgba(100,181,246,0.12)',
+    borderRadius: 8, padding: '14px 10px',
+    textAlign: 'center',
   },
-  pillarIcon: {
-    marginBottom: 12,
-  },
+  pillarIcon: { marginBottom: 8, display: 'flex', justifyContent: 'center' },
   pillarTitle: {
-    fontSize: 15,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 8,
+    fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 4,
   },
   pillarText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    lineHeight: 1.5,
+    fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4,
   },
 
-  // Recent Sessions
-  recentSection: {
-    marginBottom: 40,
+  // ── Recent sessions ────────────────────────────────────────────────────
+  sessionsSection: {
+    background: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(100,181,246,0.08)',
+    borderRadius: 10,
+    padding: '14px',
   },
-  recentHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+  sessionsHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 10,
   },
-  recentTitle: {
-    fontSize: 18,
-    fontWeight: 600,
-    color: '#fff',
+  sessionsTitle: {
+    fontSize: 16, fontWeight: 700, color: '#e2e8f0',
+    fontFamily: 'Inter, sans-serif',
   },
-  recentFilter: {
-    padding: '8px 16px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 13,
-    cursor: 'pointer',
-  },
-  loadingState: {
-    padding: 40,
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.5)',
+  sessionsFilter: {
+    padding: '6px 12px', background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
+    color: '#94a3b8', fontSize: 12, cursor: 'pointer',
   },
   emptyState: {
-    padding: 40,
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.5)',
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 12,
+    padding: '24px 16px', textAlign: 'center',
+    color: 'rgba(255,255,255,0.4)', fontSize: 13,
   },
-  sessionsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
+  sessionsList: { display: 'flex', flexDirection: 'column', gap: 4 },
+  sessionRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '10px 12px',
+    background: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.04)',
+    borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s',
   },
-  sessionCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 20px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
+  sessionLeft: { display: 'flex', alignItems: 'center', gap: 10 },
+  sessionDot: {
+    width: 28, height: 28, display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
   },
-  sessionLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sessionIcon: {
-    width: 32,
-    height: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sessionInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  sessionTitle: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#fff',
-  },
-  sessionMeta: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  sessionRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  sessionEv: {
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  sessionLink: {
-    fontSize: 12,
-    color: '#64b5f6',
-  },
+  sessionName: { fontSize: 13, fontWeight: 500, color: '#e2e8f0' },
+  sessionMeta: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+  sessionRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end' },
+  sessionEv: { fontSize: 13, fontWeight: 600 },
 
-  // Footer
-  footer: {
-    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-    paddingTop: 32,
-    textAlign: 'center',
-  },
-  footerBrand: {
-    marginBottom: 16,
-  },
-  footerLogo: {
-    height: 28,
-    opacity: 0.6,
-  },
-  footerLinks: {
+  // ── Jarvis circular frame ──────────────────────────────────────────────
+  jarvisFrame: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 48,
+    height: 48,
+    borderRadius: '50%',
+    background: 'linear-gradient(145deg, #2a3040, #1a1f2e)',
+    border: '2px solid rgba(100,181,246,0.25)',
+    boxShadow: '0 0 12px rgba(0,212,255,0.3), inset 0 0 6px rgba(0,0,0,0.4)',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    transition: 'box-shadow 0.3s ease',
+    zIndex: 3,
     display: 'flex',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
-    marginBottom: 16,
   },
-  footerLink: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textDecoration: 'none',
-  },
-  footerCopyright: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.3)',
+  jarvisImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    borderRadius: '50%',
   },
 };
