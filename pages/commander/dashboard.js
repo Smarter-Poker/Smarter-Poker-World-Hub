@@ -167,7 +167,8 @@ export default function CommanderDashboard() {
       }
       try {
         const data = JSON.parse(stored);
-        if (!data.venue_id) {
+        // Require at minimum an id or user_id — venue_id can be null for new owners without a venue
+        if (!data.id && !data.user_id) {
           if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
           return;
         }
