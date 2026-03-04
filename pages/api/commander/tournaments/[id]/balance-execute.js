@@ -33,6 +33,25 @@ export default async function handler(req, res) {
     const errors = [];
     const timestamp = new Date().toISOString();
 
+    // --- RACE CONDITION GUARD: Verify all destination seats are still empty ---
+    const { data: conflictingSeats } = await supabase
+      .from('commander_tournament_entries')
+      .select('table_number, seat_number, player_name')
+      .eq('tournament_id', tournamentId)
+      .in('status', ['active', 'seated']);
+
+    const occupiedList = (conflictingSeats || []).filter(e =>
+      moves.some(m => m.to_table === e.table_number && m.to_seat === e.seat_number)
+    );
+
+    if (occupiedList.length > 0) {
+      const e = occupiedList[0];
+      return res.status(409).json({
+        success: false,
+        error: `Balance aborted: Seat ${e.seat_number} at Table ${e.table_number} is now occupied by ${e.player_name}`
+      });
+    }
+
     for (const move of moves) {
       if (!move.entry_id || move.to_table === undefined || move.to_seat === undefined) {
         errors.push({ entry_id: move.entry_id, error: 'Missing to_table or to_seat' });
