@@ -48,7 +48,7 @@ const DEFAULT_ITEMS = [
     { id: 'card_back_premium', name: 'Premium Card Back', description: 'Custom Card Back Design', price: 300, category: 'cosmetic' },
     { id: 'seat_preference', name: 'Seat Preference', description: 'Always Get Your Preferred Seat', price: 750, category: 'perk' },
     { id: 'emoji_pack', name: 'Premium Emoji Pack', description: 'Unlock 50+ Exclusive Table Emojis', price: 400, category: 'cosmetic' },
-    { id: 'vip_badge', name: 'VIP Badge', description: 'Display a VIP Badge on Your Profile', price: 2000, icon: 'Owner', category: 'badge' },
+    { id: 'vip_badge', name: 'VIP Badge', description: 'Display a VIP Badge on Your Profile', price: 2000, category: 'badge' },
 ];
 
 const CATEGORIES = [
@@ -402,7 +402,6 @@ export default function Marketplace() {
                             <button style={S.modalClose} onClick={() => !processing && setSelectedItem(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            <span style={S.modalIcon}>{selectedItem.icon}</span>
                             <div style={S.modalName}>{selectedItem.name}</div>
                             <div style={S.modalDesc}>{selectedItem.description}</div>
                             <div style={S.modalPrice}>{selectedItem.price.toLocaleString()} chips</div>

@@ -545,7 +545,7 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
         { label: 'Player Chip Total', value: (stats?.totalPlayerChips || 0).toLocaleString(), color: FB.gold },
         { label: 'Pending Cashouts', value: stats?.pendingCashouts || 0, color: stats?.pendingCashouts > 0 ? FB.orange : FB.textSecondary },
         { label: 'Pending Amount', value: (stats?.pendingCashoutAmount || 0).toLocaleString(), color: FB.orange },
-        { label: 'Clawback Window', value: clawbackCount, color: clawbackCount > 0 ? FB.danger : FB.textSecondary, icon: '↩' },
+        { label: 'Clawback Window', value: clawbackCount, color: clawbackCount > 0 ? FB.danger : FB.textSecondary },
     ];
 
     return (

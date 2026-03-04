@@ -461,7 +461,7 @@ export default function Admin() {
         { id: 'shop', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
         { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
-        { id: 'settings', icon: 'Admin', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
+        { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
     // Only the club owner should see the Danger Zone

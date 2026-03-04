@@ -115,11 +115,15 @@ export default async function handler(req, res) {
     // CREATE TOURNAMENT
     // ════════════════════════════════════════════════════════════
     if (action === 'create_tournament') {
-      const { clubId, name, game_type, buy_in, starting_chips, max_players,
-              blind_levels, blind_duration, late_reg_levels, start_time,
-              guaranteed_prize, rebuy_allowed, addon_allowed } = params;
+      const { hostClubId, clubId, name, type, variant, game_type, 
+              buyIn, buy_in, startingChips, starting_chips, 
+              maxPlayers, max_players, lateRegLevels, late_reg_levels,
+              rebuyEnabled, rebuy_allowed, addonEnabled, addon_allowed,
+              guaranteedPrize, guaranteed_prize, scheduledStart, start_time,
+              blind_levels, blind_duration, participatingClubIds } = params;
 
-      if (!clubId || !clubIds.includes(clubId)) {
+      const resolvedClubId = hostClubId || clubId;
+      if (!resolvedClubId || !clubIds.includes(resolvedClubId)) {
         return res.status(400).json({ error: 'Invalid club for this union' });
       }
       if (!name?.trim()) return res.status(400).json({ error: 'Tournament name required' });
@@ -127,19 +131,19 @@ export default async function handler(req, res) {
       const { data: tournament, error } = await supabaseAdmin
         .from('club_tournaments')
         .insert({
-          club_id: clubId,
+          club_id: resolvedClubId,
           name: name.trim(),
-          game_type: game_type || 'nlhe',
-          buy_in: parseInt(buy_in) || 1000,
-          starting_chips: parseInt(starting_chips) || 5000,
-          max_players: parseInt(max_players) || 100,
+          game_type: variant || game_type || type || 'nlhe',
+          buy_in: parseInt(buyIn || buy_in) || 1000,
+          starting_chips: parseInt(startingChips || starting_chips) || 5000,
+          max_players: parseInt(maxPlayers || max_players) || 100,
           blind_levels: parseInt(blind_levels) || 15,
           blind_duration: parseInt(blind_duration) || 10,
-          late_reg_levels: parseInt(late_reg_levels) || 6,
-          start_time: start_time || new Date(Date.now() + 3600000).toISOString(),
-          guaranteed_prize: parseInt(guaranteed_prize) || 0,
-          rebuy_allowed: rebuy_allowed ?? true,
-          addon_allowed: addon_allowed ?? false,
+          late_reg_levels: parseInt(lateRegLevels || late_reg_levels) || 6,
+          start_time: scheduledStart || start_time || new Date(Date.now() + 3600000).toISOString(),
+          guaranteed_prize: parseInt(guaranteedPrize || guaranteed_prize) || 0,
+          rebuy_allowed: rebuyEnabled ?? rebuy_allowed ?? true,
+          addon_allowed: addonEnabled ?? addon_allowed ?? false,
           status: 'scheduled',
           prize_pool: 0,
           registered_count: 0,
@@ -157,22 +161,36 @@ export default async function handler(req, res) {
     // CREATE TABLE
     // ════════════════════════════════════════════════════════════
     if (action === 'create_table') {
-      const { clubId, name, game_type, stakes, max_seats, min_buyin, max_buyin } = params;
+      const { clubId, name, tableName, game_type, gameVariant, stakes,
+              smallBlind, bigBlind, ante,
+              max_seats, maxPlayers, min_buyin, minBuyIn, max_buyin, maxBuyIn,
+              actionTime, rakePercent, rakeCap } = params;
 
       if (!clubId || !clubIds.includes(clubId)) {
         return res.status(400).json({ error: 'Invalid club for this union' });
       }
 
+      const sb = parseInt(smallBlind) || 1;
+      const bb = parseInt(bigBlind) || 2;
+      const resolvedStakes = stakes || `${sb}/${bb}`;
+      const resolvedName = (name || tableName || '').trim() || `${(gameVariant || game_type || 'NLH').toUpperCase()} ${resolvedStakes}`;
+
       const { data: table, error } = await supabaseAdmin
         .from('tables')
         .insert({
           club_id: clubId,
-          name: name?.trim() || `${game_type?.toUpperCase() || 'NLHE'} ${stakes || '1/2'}`,
-          game_type: game_type || 'nlhe',
-          stakes: stakes || '1/2',
-          max_seats: parseInt(max_seats) || 9,
-          min_buyin: parseInt(min_buyin) || 100,
-          max_buyin: parseInt(max_buyin) || 500,
+          name: resolvedName,
+          game_type: gameVariant || game_type || 'nlhe',
+          stakes: resolvedStakes,
+          small_blind: sb,
+          big_blind: bb,
+          ante: parseInt(ante) || 0,
+          max_seats: parseInt(maxPlayers || max_seats) || 9,
+          min_buyin: parseInt(minBuyIn || min_buyin) || sb * 40,
+          max_buyin: parseInt(maxBuyIn || max_buyin) || bb * 200,
+          action_time: parseInt(actionTime) || 30,
+          rake_percent: parseFloat(rakePercent) || 5,
+          rake_cap: parseFloat(rakeCap) || 3,
           status: 'waiting',
           player_count: 0,
           created_by: auth.user.id,
