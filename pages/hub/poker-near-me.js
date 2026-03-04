@@ -1828,71 +1828,50 @@ export default function PokerNearMePage() {
 
                     {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
                     <div className="pnm-hud-panel">
-                        <img src="/images/poker-near-me-hud-frame.png" alt="" className="hud-bg-frame" aria-hidden="true" />
-                        <div className="hud-content-overlay">
-                            {/* Invisible spacers for title + subtitle area */}
-                            <div className="hud-spacer-title" aria-hidden="true"></div>
+                        <img src="/images/poker-near-me-hud-frame-clean.png" alt="" className="hud-bg-frame" aria-hidden="true" />
 
-                            {/* Search Bar — invisible overlay, input still types white text */}
-                            <form className="hud-search-row" onSubmit={handleSearch}>
-                                <div className="hud-search-bar">
-                                    <input
-                                        type="text"
-                                        className="hud-search-input"
-                                        placeholder=""
-                                        value={searchQuery}
-                                        onChange={handleSearchInputChange}
-                                        onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
-                                        onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
-                                    />
-                                    {showSearchHistory && searchHistory.length > 0 && (
-                                        <div className="search-history-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50 }}>
-                                            <div className="search-history-header">
-                                                <span>Recent Searches</span>
-                                                <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
-                                            </div>
-                                            {searchHistory.map((item, i) => (
-                                                <button key={i} type="button" className="search-history-item"
-                                                    onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setHasSearched(true); setTimeout(() => fetchAllData({ includeVenues: true }), 0); }}>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                                                    {item}
-                                                </button>
-                                            ))}
+                        <div className="hud-content-overlay">
+                            {/* SEARCH BAR & BUTTON */}
+                            <form className="hud-abs-search-form" onSubmit={handleSearch}>
+                                <input
+                                    type="text"
+                                    className="hud-abs-search-input"
+                                    placeholder=""
+                                    value={searchQuery}
+                                    onChange={handleSearchInputChange}
+                                    onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
+                                    onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
+                                    autoComplete="off"
+                                />
+                                {showSearchHistory && searchHistory.length > 0 && (
+                                    <div className="search-history-dropdown hud-abs-search-dropdown">
+                                        <div className="search-history-header">
+                                            <span>Recent Searches</span>
+                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
                                         </div>
-                                    )}
-                                </div>
-                                <button type="submit" className="hud-search-btn">&nbsp;</button>
+                                        {searchHistory.map((item, i) => (
+                                            <button key={i} type="button" className="search-history-item"
+                                                onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setHasSearched(true); setTimeout(() => fetchAllData({ includeVenues: true }), 0); }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <button type="submit" className="hud-abs-search-btn" aria-label="Search"></button>
                             </form>
 
-                            {/* GPS + Filters — invisible clickable areas */}
-                            <div className="hud-controls-row">
-                                <button className={'hud-ctrl-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                    &nbsp;
-                                </button>
-                                <button className={'hud-ctrl-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
-                                    &nbsp;
-                                </button>
-                            </div>
+                            {/* GPS & FILTERS */}
+                            <button className={'hud-abs-gps-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS"></button>
+                            <button className={'hud-abs-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters"></button>
 
-                            {/* Tab Buttons — invisible clickable areas */}
-                            <div className="hud-tab-row">
-                                {[
-                                    { key: 'venues', label: '\u00A0' },
-                                    { key: 'tours', label: '\u00A0' },
-                                    { key: 'series', label: '\u00A0' },
-                                    { key: 'daily', label: '\u00A0' },
-                                    { key: 'live', label: '\u00A0' },
-                                    { key: 'map', label: '\u00A0' }
-                                ].map(tab => (
-                                    <button
-                                        key={tab.key}
-                                        className={'hud-tab-btn' + (activeTab === tab.key ? ' active' : '')}
-                                        onClick={() => setActiveTab(tab.key)}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
+                            {/* TABS */}
+                            <button className="hud-abs-tab hud-abs-tab-venues" onClick={() => setActiveTab('venues')} aria-label="Venues"></button>
+                            <button className="hud-abs-tab hud-abs-tab-tours" onClick={() => setActiveTab('tours')} aria-label="Tours"></button>
+                            <button className="hud-abs-tab hud-abs-tab-series" onClick={() => setActiveTab('series')} aria-label="Series"></button>
+                            <button className="hud-abs-tab hud-abs-tab-daily" onClick={() => setActiveTab('daily')} aria-label="Daily"></button>
+                            <button className="hud-abs-tab hud-abs-tab-live" onClick={() => setActiveTab('live')} aria-label="Live"></button>
+                            <button className="hud-abs-tab hud-abs-tab-map" onClick={() => setActiveTab('map')} aria-label="Map"></button>
                         </div>
                     </div>
 
@@ -2095,102 +2074,67 @@ export default function PokerNearMePage() {
                     .hud-content-overlay {
                         position: absolute;
                         inset: 0;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: flex-end;
-                        padding: 0 18% 8%;
                         z-index: 2;
+                        pointer-events: none; /* Let clicks pass through except where defined */
+                    }
+
+                    /* Interactive overlays via absolute positioning */
+                    .hud-abs-search-form {
+                        position: absolute;
+                        top: 38.5%;
+                        left: 12.5%;
+                        width: 73.5%;
+                        height: 12%;
                         pointer-events: none;
                     }
-
-                    /* Spacer pushes interactive elements down past title area */
-                    .hud-spacer-title {
-                        flex: 1;
-                    }
-
-                    /* HUD Search Row — transparent overlay */
-                    .hud-search-row {
-                        display: flex;
-                        gap: 2%;
-                        width: 100%;
-                        margin-bottom: 3%;
-                        pointer-events: auto;
-                    }
-                    .hud-search-bar {
-                        position: relative;
-                        flex: 1;
-                        display: flex;
-                        align-items: center;
-                        background: transparent;
-                        border: none;
-                        border-radius: 0;
-                        overflow: visible;
-                    }
-                    .hud-search-input {
-                        flex: 1;
+                    .hud-abs-search-input {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 79%;
+                        height: 100%;
                         background: transparent;
                         border: none;
                         outline: none;
                         color: #fff;
-                        font-size: clamp(12px, 2vw, 16px);
-                        padding: clamp(6px, 1.5vw, 14px) 8px;
+                        font-size: clamp(14px, 2.5vw, 20px);
+                        padding: 0 16px 0 44px;
                         font-family: inherit;
                         caret-color: #d4a853;
                         pointer-events: auto;
                         cursor: text;
                     }
-                    .hud-search-input::placeholder {
-                        color: transparent;
-                    }
-                    .hud-search-btn {
+                    .hud-abs-search-input::placeholder { color: transparent; }
+                    .hud-abs-search-btn {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        width: 19%;
+                        height: 100%;
                         background: transparent;
                         border: none;
                         cursor: pointer;
-                        padding: clamp(6px, 1.5vw, 14px) clamp(12px, 3vw, 28px);
-                        color: transparent;
-                        font-size: 0;
+                        pointer-events: auto;
+                    }
+                    .hud-abs-search-dropdown {
+                        position: absolute;
+                        top: 105%;
+                        left: 0;
+                        width: 79%;
+                        z-index: 50;
                         pointer-events: auto;
                     }
 
-                    /* HUD Controls Row (GPS + Filters) — transparent overlays */
-                    .hud-controls-row {
-                        display: flex;
-                        gap: 6%;
-                        width: 60%;
-                        justify-content: center;
-                        margin-bottom: 3%;
-                        pointer-events: auto;
-                    }
-                    .hud-ctrl-btn {
-                        flex: 1;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                        padding: clamp(4px, 1vw, 10px) 0;
-                        color: transparent;
-                        font-size: 0;
-                        pointer-events: auto;
-                    }
+                    .hud-abs-gps-btn { position: absolute; top: 54.5%; left: 29.5%; width: 10.5%; height: 9.5%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    .hud-abs-filter-btn { position: absolute; top: 54.5%; left: 60%; width: 10.5%; height: 9.5%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
 
-                    /* HUD Tab Row — transparent overlays */
-                    .hud-tab-row {
-                        display: flex;
-                        gap: clamp(2px, 0.6vw, 6px);
-                        width: 90%;
-                        justify-content: center;
-                        pointer-events: auto;
-                    }
-                    .hud-tab-btn {
-                        flex: 1;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                        padding: clamp(4px, 0.8vw, 8px) 0;
-                        color: transparent;
-                        font-size: 0;
-                        pointer-events: auto;
-                    }
+                    .hud-abs-tab { position: absolute; top: 68%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    .hud-abs-tab-venues { left: 16.5%; width: 11%; }
+                    .hud-abs-tab-tours { left: 29.5%; width: 10%; }
+                    .hud-abs-tab-series { left: 40.5%; width: 10%; }
+                    .hud-abs-tab-daily { left: 51.5%; width: 9%; }
+                    .hud-abs-tab-live { left: 61.5%; width: 9%; }
+                    .hud-abs-tab-map { left: 71.5%; width: 9%; }
 
 
                     /* Main Content */
