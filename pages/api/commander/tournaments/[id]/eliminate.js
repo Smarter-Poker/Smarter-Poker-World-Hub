@@ -12,6 +12,8 @@ import {
   sendPushNotification,
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
+import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tournamentAutoBreak';
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -249,6 +251,24 @@ export default async function handler(req, res) {
       }
     }
 
+    // --- AUTO BREAK CHECK (post-elimination) ---
+    // After a bust, there may now be enough open seats to consolidate a table.
+    // This only fires if the re-entry period is already over.
+    //
+    // IMPORTANT: Re-fetch tournament here — the status may have changed to 'completed'
+    // if this was the last elimination. checkAndExecuteAutoBreak gates on status,
+    // so using a stale 'running' snapshot would incorrectly try to break the winner's table.
+    const { data: freshTournament } = await supabase
+      .from('commander_tournaments')
+      .select('*')
+      .eq('id', tournamentId)
+      .single();
+
+    const autoBreakResult = freshTournament?.status !== 'completed'
+      ? await checkAndExecuteAutoBreak(tournamentId, freshTournament || tournament)
+      : null;
+
+
     return res.status(200).json({
       success: true,
       data: {
@@ -256,7 +276,9 @@ export default async function handler(req, res) {
         finishPosition,
         payoutAmount,
         inTheMoney: payoutAmount > 0,
-        remainingPlayers: remainingCount - 1
+        remainingPlayers: remainingCount - 1,
+        // Included when a table was automatically broken — frontend uses this to print receipts
+        auto_break: autoBreakResult || undefined
       }
     });
   } catch (error) {

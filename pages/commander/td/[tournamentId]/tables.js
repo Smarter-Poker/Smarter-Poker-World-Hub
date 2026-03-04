@@ -96,6 +96,39 @@ export default function TDTablesMap() {
     return () => clearInterval(interval);
   }, [fetchFloor]);
 
+  // ── Receipt printer for auto table breaks (called from handleEliminate) ──
+  const printAutoBreakReceipts = (autoBreak) => {
+    if (!autoBreak?.receipts?.length) return;
+    const pw = window.open('', '_blank', 'width=400,height=600');
+    if (!pw) return;
+    const receipts = autoBreak.receipts;
+    pw.document.write(`<!DOCTYPE html><html><head><title>Auto Break Receipts</title>
+      <style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0}
+      .r{width:72mm;padding:4mm;margin:0 auto;page-break-after:always;border-bottom:1px dashed #000}
+      .r:last-child{page-break-after:avoid}.c{text-align:center}.b{font-weight:bold}
+      .lg{font-size:20px}.md{font-size:14px}.sm{font-size:11px}
+      .d{border-top:1px dashed #000;margin:3mm 0}.rw{display:flex;justify-content:space-between}
+      .ar{font-size:24px;text-align:center;margin:2mm 0}
+      .auto{font-size:10px;text-align:center;background:#000;color:#fff;padding:1mm 3mm;border-radius:2mm;margin:2mm auto;display:inline-block}
+      </style></head><body>
+      ${receipts.map(r => `<div class="r">
+        <div class="c b md">${r.tournament_name}</div>
+        <div class="c sm">TABLE BREAK</div>
+        <div class="c"><span class="auto">AUTO-BREAK</span></div>
+        <div class="d"></div>
+        <div class="c b md">${r.player_name}</div><div class="d"></div>
+        <div class="rw sm"><span>FROM:</span><span class="b">Table ${r.from_table}, Seat ${r.from_seat}</span></div>
+        <div class="ar">⬇</div>
+        <div class="rw"><span class="md">NEW SEAT:</span><span class="b lg">T${r.to_table} - S${r.to_seat}</span></div>
+        ${r.chips ? `<div class="rw sm" style="margin-top:2mm"><span>Chips:</span><span class="b">${Number(r.chips).toLocaleString()}</span></div>` : ''}
+        <div class="d"></div>
+        <div class="sm c" style="margin-top:2mm;opacity:.6">${new Date(r.timestamp).toLocaleTimeString()}</div>
+        <div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker — Auto Break</div>
+      </div>`).join('')}</body></html>`);
+    pw.document.close();
+    setTimeout(() => { pw.print(); pw.close(); }, 500);
+  };
+
   const handleEliminate = async (entryId, playerName) => {
     setConfirmAction({
       type: 'eliminate',
@@ -105,11 +138,16 @@ export default function TDTablesMap() {
       onConfirm: async () => {
         setActionLoading(entryId);
         try {
-          await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
+          const elimRes = await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
             body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
           });
+          const elimJson = await elimRes.json();
+          // Auto-print receipts if elimination triggered an auto table break
+          if (elimJson.success && elimJson.data?.auto_break?.executed) {
+            printAutoBreakReceipts(elimJson.data.auto_break);
+          }
           await fetchFloor();
           broadcastChange('tournaments');
           if (selectedTable) {
@@ -121,6 +159,7 @@ export default function TDTablesMap() {
       }
     });
   };
+
 
   const navigateTo = (path) => {
     const base = `/commander/td/${tournamentId}`;

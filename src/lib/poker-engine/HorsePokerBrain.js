@@ -825,6 +825,1492 @@ function getPLOSPRZone(effectiveStack, potSize) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PHASE 2 — ADVANCED PLO STRATEGY MODULES
+// Board texture, scare cards, ERC, PLO5/6 hand picker, probe bets,
+// check-raise squeeze, blocker awareness, tournament adjustments.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Analyze board texture: monotone/paired/two_tone/rainbow + danger flags */
+function analyzePLOBoardTexture(boardCards) {
+    if (!boardCards || boardCards.length === 0) return { texture: 'unknown', flushCompleted: false, monoBoardPenalty: 0, isDangerous: false, straightCompleted: false, isRunOutBoard: false, isPaired: false, isMonotone: false };
+    const suits = boardCards.map(c => c.suit), ranks = boardCards.map(c => c.rank);
+    const suitFreq = {}; for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
+    const maxSuit = Math.max(...Object.values(suitFreq));
+    const flushCompleted = maxSuit >= 4;
+    const isMonotone = maxSuit === boardCards.length && boardCards.length === 3;
+    const rankFreq = {}; for (const r of ranks) rankFreq[r] = (rankFreq[r] || 0) + 1;
+    const numPairs = Object.values(rankFreq).filter(v => v >= 2).length;
+    const isPaired = numPairs >= 1, isDoublePaired = numPairs >= 2;
+    const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
+    let cc = 1, maxC = 1;
+    for (let i = 1; i < uniqueRanks.length; i++) { if (uniqueRanks[i] === uniqueRanks[i - 1] + 1) { cc++; maxC = Math.max(maxC, cc); } else cc = 1; }
+    const straightCompleted = maxC >= 4;
+    const monoBoardPenalty = isMonotone ? 20 : flushCompleted ? 15 : 0;
+    const isRunOutBoard = boardCards.length === 4 && (flushCompleted || straightCompleted);
+    let texture = 'rainbow';
+    if (isMonotone) texture = 'monotone';
+    else if (isDoublePaired) texture = 'double_paired';
+    else if (isPaired) texture = 'paired';
+    else if (Object.values(suitFreq).some(v => v >= 2)) texture = 'two_tone';
+    return { texture, flushCompleted, monoBoardPenalty, isDangerous: isMonotone || isPaired || flushCompleted || straightCompleted, straightCompleted, isRunOutBoard, isPaired, isMonotone };
+}
+
+/** Detects scare cards on turn/river (cards completing flush, straight, or pairing the board) */
+function detectScareCard(boardCards, street) {
+    if (!boardCards || boardCards.length < 4) return { isScareTurn: false, isScareRiver: false, scareType: 'none' };
+    const prev = boardCards.slice(0, -1), last = boardCards[boardCards.length - 1];
+    const prevTexture = analyzePLOBoardTexture(prev), curTexture = analyzePLOBoardTexture(boardCards);
+    let scareType = 'none';
+    const prevSF = {}; for (const c of prev) prevSF[c.suit] = (prevSF[c.suit] || 0) + 1;
+    if ((prevSF[last.suit] || 0) + 1 >= 3) scareType = 'flush_complete';
+    const prevRF = {}; for (const c of prev) prevRF[c.rank] = (prevRF[c.rank] || 0) + 1;
+    if (prevRF[last.rank]) scareType = scareType === 'none' ? 'board_pair' : scareType + '_pair';
+    if (!prevTexture.straightCompleted && curTexture.straightCompleted) scareType = scareType === 'none' ? 'straight_complete' : scareType + '_straight';
+    return { isScareTurn: street === 'turn' && scareType !== 'none', isScareRiver: street === 'river' && scareType !== 'none', scareType };
+}
+
+/**
+ * Equity Realization Coefficient (ERC) — adjusts raw equity for position, SPR, draw type.
+ * Draws OOP realize ~20% less; nuts realize more. Range: 0.5–1.30.
+ */
+function getPLOEquityRealization(isIP, sprZone, straightOuts, flushOuts, isNutMade, numPlayers) {
+    let erc = 1.0;
+    erc += isIP ? 0.10 : -0.12;
+    if (sprZone === 'committed' || sprZone === 'shallow') erc += 0.08;
+    if (sprZone === 'very_deep') erc -= 0.10;
+    if (isNutMade) erc += 0.15;
+    const totalOut = straightOuts + flushOuts;
+    if (totalOut > 0 && !isNutMade) {
+        if (numPlayers > 3) erc -= 0.12;
+        if (flushOuts > 0 && flushOuts <= 7) erc -= 0.08;
+        if (straightOuts >= 15) erc += 0.05;
+    }
+    return Math.max(0.5, Math.min(1.30, erc));
+}
+
+/** PLO5/PLO6: enumerate all C(n,4) combos to get best 4-card preflop strength */
+function getBestPLO5or6PreflopStrength(holeCards) {
+    if (holeCards.length <= 4) return classifyPLOPreflop(holeCards);
+    let best = 0;
+    for (let i = 0; i < holeCards.length - 3; i++)
+        for (let j = i + 1; j < holeCards.length - 2; j++)
+            for (let k = j + 1; k < holeCards.length - 1; k++)
+                for (let l = k + 1; l < holeCards.length; l++) {
+                    const s = classifyPLOPreflop([holeCards[i], holeCards[j], holeCards[k], holeCards[l]]);
+                    if (s > best) best = s;
+                }
+    return best;
+}
+
+/** PLO5/PLO6 postflop: try all C(n,2) hole combos, return best made hand */
+function getBestPLO5or6MadeHand(holeCards, boardCards) {
+    if (holeCards.length <= 4) return evaluatePLOMadeHand(holeCards, boardCards);
+    let bestHand = { strength: 0, category: 'air', isNut: false, hasRedraw: false };
+    for (let i = 0; i < holeCards.length - 1; i++)
+        for (let j = i + 1; j < holeCards.length; j++) {
+            const r = evaluatePLOMadeHand([holeCards[i], holeCards[j]], boardCards);
+            if (r.strength > bestHand.strength) bestHand = r;
+        }
+    return bestHand;
+}
+
+/** Probe bet: small IP bet with medium hands for information + equity denial */
+function getPLOProbeBet(isIP, equity, boardTexture, numPlayers) {
+    if (!isIP || numPlayers > 3) return { shouldProbe: false, probeSize: 0 };
+    if (boardTexture.texture === 'rainbow' && equity >= 40 && equity < 65) return { shouldProbe: true, probeSize: 0.35 };
+    if (boardTexture.isPaired && equity >= 55) return { shouldProbe: true, probeSize: 0.50 };
+    return { shouldProbe: false, probeSize: 0 };
+}
+
+/** Check-raise squeeze: OOP with monster hands or nut draws */
+function getPLOCheckRaise(isIP, madeHand, straightOuts, flushOuts, isNutFlushDraw, toCall, potSize) {
+    if (isIP || toCall === 0) return { shouldCheckRaise: false, crSize: 0 };
+    const cats = ['top_set', 'full_house', 'nut_flush', 'nut_straight'];
+    if (cats.includes(madeHand.category) && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
+    if (isNutFlushDraw && straightOuts >= 13 && Math.random() < 0.70) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
+    if (isNutFlushDraw && (straightOuts + flushOuts) >= 9 && Math.random() < 0.55) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.0) };
+    if (straightOuts >= 17 && Math.random() < 0.45) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.0) };
+    return { shouldCheckRaise: false, crSize: 0 };
+}
+
+/** Blocker awareness: holding Ace of dominant suit or key straight rank = bluff enabler */
+function getPLOBlockers(holeCards, boardCards) {
+    if (!boardCards || boardCards.length < 3) return { hasFlushBlocker: false, hasStraightBlocker: false, canBluffRiver: false };
+    const bSuits = boardCards.map(c => c.suit), bRanks = boardCards.map(c => c.rank);
+    const hRanks = holeCards.map(c => c.rank);
+    const sf = {}; for (const s of bSuits) sf[s] = (sf[s] || 0) + 1;
+    const dom = Object.entries(sf).sort(([, a], [, b]) => b - a)[0]?.[0];
+    const hasFlushBlocker = !!(dom && holeCards.some(c => c.suit === dom && c.rank === 12));
+    const bTop = Math.max(...bRanks, 0);
+    const nutRanks = [bTop + 1, bTop, bTop - 1, bTop - 2, bTop - 3];
+    const missing = nutRanks.filter(r => r >= 0 && !bRanks.includes(r));
+    const hasStraightBlocker = missing.length > 0 && missing.some(r => hRanks.includes(r));
+    return { hasFlushBlocker, hasStraightBlocker, canBluffRiver: hasFlushBlocker || hasStraightBlocker };
+}
+
+/** Tournament vs cash PLO adjustments: tighter play in tournaments, earlier push/fold */
+function getPLOGameTypeAdjustments(gameType, stackBB) {
+    if (gameType === 'tournament') return { tightnessFactor: stackBB <= 20 ? 1.3 : 1.1, shortStackThreshold: 20 };
+    return { tightnessFactor: 1.0, shortStackThreshold: 12 };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 3 — DEEP STRATEGY, MULTI-STREET PLANNING & EXPLOITATION
+// Pot geometry, c-bet frequency, turn/river barrels, showdown value,
+// range balance, implied odds, opponent reads, all-in equity short-cuts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 3a. PLO POT GEOMETRY CALCULATOR ──
+// In PLO, "pot" raise is: amount to call + current pot + your call = 3x previous bet.
+// Correct sizing prevents opponents from getting correct odds.
+/**
+ * Calculate the correct PLO pot-raise size.
+ * @param {number} toCall - Amount needed to call
+ * @param {number} potSize - Pot before this action
+ * @returns {number} Correct pot-raise total bet amount
+ */
+function calcPLOPotRaise(toCall, potSize) {
+    // PLO pot raise formula: call + (pot + call + call) = call + new_pot_after_call
+    // Proper formula: toCall + (potSize + 2 * toCall)
+    return toCall + (potSize + 2 * toCall);
+}
+
+/**
+ * Calculate a fractional pot bet (standard PLO sizing).
+ * @param {number} potSize - Current pot
+ * @param {number} fraction - 0.33 to 1.0
+ * @param {Object} raiseAction
+ * @returns {number} Clamped bet size
+ */
+function calcPLOBetSize(potSize, fraction, raiseAction) {
+    const size = Math.round(potSize * fraction);
+    return Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
+}
+
+// ── 3b. MULTI-STREET PLANNING (MSP) ──
+// Think beyond the current street. On the flop, consider whether
+// a hand will still be good on the turn and river.
+// Returns a "future_street_value" score that modifies current street equity.
+/**
+ * Multi-street planning: estimate whether our hand improves or deteriorates on future streets.
+ * @param {Object} madeHand - From evaluatePLOMadeHand
+ * @param {number} straightOuts - Current straight outs
+ * @param {number} flushOuts - Current flush outs
+ * @param {string} street - 'flop' | 'turn'
+ * @param {Object} boardTexture - From analyzePLOBoardTexture
+ * @param {boolean} isIP
+ * @returns {{ futureValue: number, shouldPlayFastNow: boolean, shouldSlowPlay: boolean }}
+ */
+function getPLOMultiStreetPlan(madeHand, straightOuts, flushOuts, street, boardTexture, isIP) {
+    let futureValue = 0;
+    let shouldPlayFastNow = false;
+    let shouldSlowPlay = false;
+
+    const totalOuts = straightOuts + flushOuts;
+
+    if (street === 'flop') {
+        // Two streets to act = more value for draws
+        if (totalOuts >= 15) futureValue += 18;   // Big draw: lots of equity over 2 streets
+        else if (totalOuts >= 9) futureValue += 10;
+        else if (totalOuts >= 4) futureValue += 4;
+
+        // Sets on dry boards: play fast NOW — turn can kill you (board pair kills your set)
+        if (madeHand.category === 'top_set' && !boardTexture.flushCompleted) {
+            shouldPlayFastNow = true;     // Build the pot before flush/straight hits
+            futureValue += 8;
+        }
+        // Dry board + top two pair + draw = slow-play is dangerous, play fast
+        if (madeHand.category === 'top_two_pair' && boardTexture.texture === 'rainbow') {
+            shouldPlayFastNow = true;
+        }
+        // Nut flush + redraw: slow-play OK (hand is already great)
+        if (madeHand.category === 'nut_flush' && madeHand.hasRedraw) {
+            shouldSlowPlay = isIP;  // Slow-play only IN position
+        }
+        // Monotone board: draws lose value each street (opponents can fold turns)
+        if (boardTexture.isMonotone && totalOuts > 0 && !flushOuts) {
+            futureValue -= 8;  // Straight draws on mono boards have poor future value
+        }
+    }
+
+    if (street === 'turn') {
+        // One street left: draws must pay now or fold
+        if (totalOuts >= 9) futureValue += 5;   // Good draws still have 1 shot
+        else if (totalOuts >= 4) futureValue += 2;
+        // Made hands: protect now — no future value from drawing
+        if (madeHand.strength >= 65) shouldPlayFastNow = true;
+        // Very strong hands OOP on turn: check-raise instead of donk
+        if (madeHand.strength >= 80 && !isIP) shouldSlowPlay = true;
+    }
+
+    return { futureValue, shouldPlayFastNow, shouldSlowPlay };
+}
+
+// ── 3c. C-BET FREQUENCY ENGINE ──
+// In PLO, as the pre-flop raiser you should c-bet selectively.
+// C-betting every flop is exploitable. Frequency depends on board texture.
+/**
+ * Determine c-bet frequency and sizing for PLO.
+ * @param {boolean} wasPFRaiser - Did this horse raise preflop?
+ * @param {Object} boardTexture
+ * @param {boolean} isIP
+ * @param {number} numPlayers
+ * @param {number} equity
+ * @returns {{ shouldCBet: boolean, cBetFraction: number, reason: string }}
+ */
+function getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity) {
+    if (!wasPFRaiser) return { shouldCBet: false, cBetFraction: 0, reason: 'not_pfr' };
+    if (numPlayers > 3) return { shouldCBet: equity >= 65, cBetFraction: 0.75, reason: 'multiway_value_only' };
+
+    // Dry boards: c-bet high frequency with strong hands + semi-bluffs (board misses opponents)
+    if (boardTexture.texture === 'rainbow') {
+        if (equity >= 50) return { shouldCBet: true, cBetFraction: 0.65, reason: 'dry_value' };
+        if (isIP && Math.random() < 0.35) return { shouldCBet: true, cBetFraction: 0.50, reason: 'dry_bluff_ip' };
+    }
+
+    // Monotone boards: check-back more (opponents could have flopped flushes)
+    if (boardTexture.isMonotone) {
+        if (equity >= 70) return { shouldCBet: true, cBetFraction: 0.75, reason: 'mono_value' };
+        return { shouldCBet: false, cBetFraction: 0, reason: 'mono_check' };
+    }
+
+    // Two-tone boards: mixed strategy
+    if (boardTexture.texture === 'two_tone') {
+        if (equity >= 60) return { shouldCBet: true, cBetFraction: 0.70, reason: '2tone_value' };
+        if (isIP && equity >= 40 && Math.random() < 0.30) return { shouldCBet: true, cBetFraction: 0.55, reason: '2tone_semi' };
+    }
+
+    // Paired boards: c-bet only with two pair+ (opponents often have trips or full houses)
+    if (boardTexture.isPaired) {
+        if (equity >= 65) return { shouldCBet: true, cBetFraction: 0.60, reason: 'paired_value' };
+        return { shouldCBet: false, cBetFraction: 0, reason: 'paired_no_cbet' };
+    }
+
+    // Default
+    if (equity >= 55) return { shouldCBet: true, cBetFraction: 0.65, reason: 'default_value' };
+    return { shouldCBet: false, cBetFraction: 0, reason: 'default_check' };
+}
+
+// ── 3d. TURN BARREL LOGIC ──
+// Firing the 2nd barrel on the turn in PLO requires conviction.
+// Don't barrel turns with weak hands — opponents don't fold PLO equity easily.
+/**
+ * Decide whether to fire a turn barrel (2nd street of betting).
+ * @param {number} equity - Phase 1/2 equity score
+ * @param {Object} madeHand
+ * @param {number} straightOuts
+ * @param {number} flushOuts
+ * @param {boolean} isScareTurn - Was a scare card dealt?
+ * @param {Object} boardTexture
+ * @param {boolean} isIP
+ * @returns {{ shouldBarrel: boolean, barrelFraction: number }}
+ */
+function getPLOTurnBarrel(equity, madeHand, straightOuts, flushOuts, isScareTurn, boardTexture, isIP) {
+    const totalOuts = straightOuts + flushOuts;
+
+    // Strong made hands always barrel
+    if (equity >= 75) return { shouldBarrel: true, barrelFraction: 0.85 };
+
+    // Scare card hit: slow down with medium hands
+    if (isScareTurn && equity < 70) return { shouldBarrel: false, barrelFraction: 0 };
+
+    // Big wrap (15+ outs): barrel to charge opponents
+    if (straightOuts >= 15) return { shouldBarrel: true, barrelFraction: 0.75 };
+
+    // Nut flush draw: barrel (semi-bluff with equity)
+    if (flushOuts >= 8) return { shouldBarrel: true, barrelFraction: 0.70 };
+
+    // Combo draws (flush + straight): always barrel turn
+    if (flushOuts >= 6 && straightOuts >= 8) return { shouldBarrel: true, barrelFraction: 0.80 };
+
+    // Medium equity: check back in position (pot control)
+    if (equity >= 50 && equity < 65 && isIP) return { shouldBarrel: false, barrelFraction: 0 };
+
+    // Medium equity OOP: barrel to deny free turns
+    if (equity >= 50 && !isIP && Math.random() < 0.40) return { shouldBarrel: true, barrelFraction: 0.60 };
+
+    // Trash: give up
+    return { shouldBarrel: false, barrelFraction: 0 };
+}
+
+// ── 3e. SHOWDOWN VALUE DETECTOR ──
+// Knowing when to check for showdown vs. bluff is critical.
+// A medium made hand on a dangerous board often has "showdown value" — 
+// just check it, don't bluff and turn it into a bluff-catcher.
+/**
+ * Determine if the hand has enough showdown value to avoid bluffing.
+ * @param {Object} madeHand
+ * @param {Object} boardTexture
+ * @param {number} numPlayers
+ * @param {string} street
+ * @returns {{ hasShowdownValue: boolean, sdvScore: number }}
+ */
+function getPLOShowdownValue(madeHand, boardTexture, numPlayers, street) {
+    let sdv = madeHand.strength;
+
+    // Pairs and two-pairs have showdown value heads-up but not multi-way
+    if (numPlayers > 2) sdv -= 15;
+
+    // On dangerous boards, medium hands lose showdown value
+    if (boardTexture.isDangerous && !madeHand.isNut) sdv -= 12;
+
+    // On the river, showdown value is critical — don't turn medium hands into bluffs
+    if (street === 'river') sdv += 10; // River = showdown value counts more
+
+    // Sets+ have showdown value on any board
+    const highSDVHands = ['top_set', 'set', 'full_house', 'nut_flush', 'nut_straight', 'flush', 'straight'];
+    const hasShowdownValue = highSDVHands.includes(madeHand.category) || sdv >= 45;
+
+    return { hasShowdownValue, sdvScore: Math.max(0, sdv) };
+}
+
+// ── 3f. RANGE BALANCE RANDOMIZER ──
+// To prevent exploitation, PLO horses should mix in unexpected lines:
+// - Check-back with monsters occasionally
+// - Bluff raise occasionally with air on safe boards
+// - Flat call instead of 3-betting some premium hands
+/**
+ * Get a range-balance randomization factor.
+ * Returns a modifier that occasionally forces unexpected lines.
+ * @param {string} profileId - For deterministic but varied behavior per horse
+ * @param {string} situation - 'preflop_3bet' | 'flop_lead' | 'turn_lead' | 'river_bet'
+ * @param {number} equity
+ * @returns {{ forceCheck: boolean, forceFlat: boolean, forceBluff: boolean }}
+ */
+function getPLORangeBalance(profileId, situation, equity) {
+    const h = getHash(profileId);
+    const r = Math.random();
+    // Seeded variation per horse for deterministic style differences
+    const styleOffset = (h % 20) / 100; // 0 to 0.19
+
+    let forceCheck = false, forceFlat = false, forceBluff = false;
+
+    switch (situation) {
+        case 'flop_lead':
+            // 15% of the time, check-back a strong hand to balance range
+            if (equity >= 80 && r < 0.12 + styleOffset) forceCheck = true;
+            // 8% of the time, bluff lead with air on dry boards
+            if (equity < 25 && r < 0.08) forceBluff = true;
+            break;
+        case 'turn_lead':
+            // 10% of the time, check strong hands OOP (disguise)
+            if (equity >= 75 && r < 0.10 + styleOffset) forceCheck = true;
+            break;
+        case 'river_bet':
+            // 20% of the time with blockers + air: bluff
+            if (equity < 35 && r < 0.18) forceBluff = true;
+            // 15% of the time with nuts: check-raise instead of lead
+            if (equity >= 88 && r < 0.15) forceCheck = true;
+            break;
+        case 'preflop_3bet':
+            // 8% of the time, flat a premium to balance
+            if (equity >= 80 && r < 0.08) forceFlat = true;
+            break;
+    }
+
+    return { forceCheck, forceFlat, forceBluff };
+}
+
+// ── 3g. IMPLIED ODDS CALCULATOR FOR PLO ──
+// Deep-stacked PLO draws are profitable even with bad immediate odds
+// if the implied odds are large enough to offset the immediate deficit.
+/**
+ * Calculate PLO implied odds for a drawing hand.
+ * Returns whether calling is +EV based on implied stack winnings.
+ * @param {number} toCall - Cost to call
+ * @param {number} potSize - Current pot
+ * @param {number} effectiveStack - Remaining stack
+ * @param {number} totalOuts - Number of outs
+ * @param {boolean} isNutDraw - Holding the nuts when we hit
+ * @returns {{ impliedOdds: number, isProfitableCall: boolean, impliedMultiplier: number }}
+ */
+function getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw) {
+    if (toCall <= 0) return { impliedOdds: Infinity, isProfitableCall: true, impliedMultiplier: 0 };
+
+    // Pot odds: what fraction of the final pot do we need to win with what hit-rate?
+    const hitRate = Math.min(totalOuts * 0.022, 0.46); // Rule of 2 per street
+    const potOdds = toCall / (potSize + toCall);
+
+    // Implied multiplier: how much total we expect to win when we hit
+    // Nut draws extract max implied; non-nut draws extract much less
+    const nutFactor = isNutDraw ? 1.0 : 0.55;
+    // Expected winnings when we hit: estimate remaining stack that can be won
+    const impliedWin = toCall + potSize + (effectiveStack * 0.65 * nutFactor);
+    // Implied odds = effective winnings / cost to call
+    const impliedMultiplier = impliedWin / toCall;
+    // Break-even: we need to win at least potOdds / hitRate ratio
+    const impliedOdds = hitRate * impliedMultiplier;
+    const isProfitableCall = impliedOdds >= potOdds + 0.05; // Require a small edge buffer
+
+    return { impliedOdds: Math.round(impliedOdds * 100) / 100, isProfitableCall, impliedMultiplier };
+}
+
+// ── 3h. OPPONENT-SPECIFIC PLO ADJUSTMENTS ──
+// Use stored opponent reads (bluff frequency, fold tendency)
+// to adjust PLO-specific call/raise thresholds.
+/**
+ * Adjust PLO thresholds based on opponent reads.
+ * @param {Object} opponentRead - { callMod, foldMod, bluffFrequency } from Supabase
+ * @returns {{ valueBetThreshold: number, foldThreshold: number, bluffThreshold: number }}
+ */
+function getPLOOpponentAdjustments(opponentRead) {
+    const base = { valueBetThreshold: 65, foldThreshold: 45, bluffThreshold: 30 };
+    if (!opponentRead) return base;
+
+    const { callMod = 0, foldMod = 0, bluffFrequency = 0.15 } = opponentRead;
+
+    // Against a station (high callMod): value bet thinner, never bluff
+    if (callMod > 0.3) {
+        base.valueBetThreshold -= 10; // Bet more hands for value
+        base.bluffThreshold = 999;    // Never bluff a station
+    }
+    // Against a folder (high foldMod): bluff more, value bet larger
+    else if (foldMod > 0.3) {
+        base.bluffThreshold -= 10;    // Bluff liberally
+        base.foldThreshold -= 8;      // They fold, so we fold less back
+    }
+    // Against a maniac (high bluffFrequency): call down lighter
+    if (bluffFrequency > 0.35) {
+        base.foldThreshold -= 12;     // Call them down with medium hands
+    }
+
+    return base;
+}
+
+// ── 3i. ALL-IN EQUITY SHORTCUT (Short-Stack Spots) ──
+// When effective stacks are very shallow (< 6 SPR equivalent),
+// compute an approximate all-in equity using hand + board directly.
+// This avoids the complex postflop tree and commits based on raw equity.
+/**
+ * Determine if we should commit all-in in a shallow-SPR spot.
+ * Considers both made hand strength AND draw equity together.
+ * @param {Object} madeHand
+ * @param {number} straightOuts
+ * @param {number} flushOuts
+ * @param {Object} sprZone
+ * @param {number} numPlayers
+ * @returns {{ shouldCommitAllIn: boolean, allInEquity: number }}
+ */
+function getPLOAllInEquity(madeHand, straightOuts, flushOuts, sprZone, numPlayers) {
+    const rawEquity = madeHand.strength + Math.min((straightOuts + flushOuts) * 2.2, 46);
+    // Multiway penalty is severe all-in
+    const mwPenalty = Math.max(0, (numPlayers - 2) * 8);
+    const allInEquity = Math.max(0, rawEquity - mwPenalty);
+
+    // Commit thresholds by SPR
+    let threshold = 56;
+    if (sprZone.zone === 'shallow') threshold = 50;
+    if (sprZone.zone === 'committed') threshold = 38;
+
+    const shouldCommitAllIn = allInEquity >= threshold;
+    return { shouldCommitAllIn, allInEquity };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 4 — ELITE FINISHING LAYER
+// Nut advantage, river overbets, donk responses, 4-bet pots,
+// GIF triggers, post-showdown reads, variance protection, blind defense.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 4a. NUT RANGE ADVANTAGE ANALYSIS ──
+/**
+ * Determine whether we have nut range advantage on this board.
+ * The player with more nut hands in their range should be the aggressor.
+ * In PLO: preflop raiser generally has nut advantage on high, connected boards.
+ * @param {Object} madeHand
+ * @param {Object} boardTexture
+ * @param {boolean} wasPreFlopAggressor
+ * @param {boolean} isIP
+ * @param {string} street
+ * @returns {{ hasNutAdvantage: boolean, advantageScore: number }}
+ */
+function getPLONutRangeAdvantage(madeHand, boardTexture, wasPreFlopAggressor, isIP, street) {
+    let score = 0;
+
+    // Preflop raiser has nut advantage on high-card boards (A-K-Q textures)
+    if (wasPreFlopAggressor) score += 12;
+
+    // In position = more nut combos (wider preflop range from later position)
+    if (isIP) score += 8;
+
+    // Dry boards favor the PFR range (opponents can't have flopped random 2-pairs)
+    if (boardTexture.texture === 'rainbow') score += 6;
+
+    // Paired boards: harder to have nut advantage (anyone could have trips)
+    if (boardTexture.isPaired) score -= 8;
+
+    // Monotone boards: anyone can have a flush
+    if (boardTexture.isMonotone) score -= 10;
+
+    // We actually have a nut hand ourselves = strong nut advantage
+    if (madeHand.isNut) score += 20;
+
+    // Later streets = advantage compounds (aggressor keeps applying pressure)
+    if (street === 'turn') score += 4;
+    if (street === 'river') score += 6;
+
+    const hasNutAdvantage = score >= 15;
+    return { hasNutAdvantage, advantageScore: Math.max(0, score) };
+}
+
+// ── 4b. RIVER OVERBET ENGINE ──
+/**
+ * Determine if the horse should overbet on the river.
+ * River overbets (1.5x-2.5x pot) with nut hands extract maximum value
+ * from opponents who are pot-committed or holding 2nd-best hands.
+ * Works best when: holding the nuts, opponent's range is capped (can't have nuts),
+ * and SPR allows for overbet to be < stack size.
+ * @param {Object} madeHand
+ * @param {boolean} hasBoardNutAdvantage
+ * @param {Object} sprZone
+ * @param {boolean} isIP
+ * @param {number} potSize
+ * @param {Object} raiseAction
+ * @returns {{ shouldOverbet: boolean, overbetFraction: number, overbetAmount: number }}
+ */
+function getPLORiverOverbet(madeHand, hasBoardNutAdvantage, sprZone, isIP, potSize, raiseAction) {
+    if (!madeHand.isNut && madeHand.strength < 85) return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
+    if (sprZone.zone === 'committed' || sprZone.zone === 'shallow') return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
+
+    // Best overbet candidates: nut flush on paired board (opponent can't have full house)
+    // or nut straight when flush missed, or nut low in PLO8
+    let overbetFrac = 0;
+
+    if (madeHand.category === 'nut_flush' && hasBoardNutAdvantage) {
+        overbetFrac = isIP ? 1.75 : 1.50; // Bigger overbet IP
+    } else if (madeHand.category === 'full_house' && madeHand.isNut) {
+        overbetFrac = isIP ? 2.0 : 1.60;
+    } else if (madeHand.category === 'nut_straight' && hasBoardNutAdvantage && Math.random() < 0.60) {
+        overbetFrac = 1.25;
+    } else if (madeHand.isNut && madeHand.strength >= 90 && Math.random() < 0.45) {
+        overbetFrac = isIP ? 1.50 : 1.20;
+    }
+
+    if (overbetFrac === 0) return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
+
+    const rawAmount = Math.round(potSize * overbetFrac);
+    const overbetAmount = Math.max(raiseAction?.minAmount || 1, Math.min(rawAmount, raiseAction?.maxAmount || rawAmount));
+    return { shouldOverbet: true, overbetFraction: overbetFrac, overbetAmount };
+}
+
+// ── 4c. DONK BET RESPONSE ──
+/**
+ * Handle donk bets (when an opponent bets into the preflop raiser on the flop/turn).
+ * Donk bets in PLO polarize the opponent's range: they have top pair or draws.
+ * Correct response: raise with nuts/strong draws (deny equity), fold weak hands,
+ * call with good pot odds and medium hands.
+ * @param {number} donkBetFraction - Size of donk bet relative to pot (0-1.0+)
+ * @param {number} equity - Current hand equity score
+ * @param {Object} madeHand
+ * @param {number} totalOuts
+ * @param {boolean} isIP
+ * @param {Object} raiseAction
+ * @param {boolean} canCall
+ * @param {number} potSize
+ * @returns {{ action: string, amount?: number }|null}
+ */
+function handlePLODonkBet(donkBetFraction, equity, madeHand, totalOuts, isIP, raiseAction, canCall, potSize) {
+    if (donkBetFraction <= 0) return null; // Not a donk situation
+
+    // Large donk (> 60% pot): opponent likely has top pair or draw strength
+    const isLargeDonk = donkBetFraction >= 0.60;
+    const isPolarized = isLargeDonk; // Large donks = polarized range (nuts or nothing)
+
+    // Nut hands: always re-raise against donk bets (deny equity, extract value)
+    if (madeHand.isNut || equity >= 82) {
+        const potRaise = Math.round(potSize * (isIP ? 2.5 : 2.0));
+        if (raiseAction) return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(potRaise, raiseAction.maxAmount || potRaise)) };
+    }
+
+    // Big draws facing a donk: semi-bluff raise
+    if (totalOuts >= 14 && isIP && Math.random() < 0.55) {
+        const potRaise = Math.round(potSize * 2.0);
+        if (raiseAction) return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(potRaise, raiseAction.maxAmount || potRaise)) };
+    }
+
+    // Medium equity with good immediate odds: flat call
+    if (equity >= 45 && canCall) return { action: 'call' };
+
+    // Small donk (< 40% pot) with any equity: call
+    if (!isLargeDonk && equity >= 30 && canCall) return { action: 'call' };
+
+    // Weak: fold
+    return { action: 'fold' };
+}
+
+// ── 4d. 4-BET POT DYNAMICS ──
+/**
+ * Special logic for playing in 4-bet pots.
+ * 4-bet pots have very shallow post-flop SPR (often < 2).
+ * This means: commit with top ~20% of your preflop range on any reasonable flop.
+ * Non-nut hands fold quickly; combo draws and top pairs commit.
+ * @param {boolean} isIn4BetPot - Was the preflop action a 4-bet?
+ * @param {Object} madeHand
+ * @param {number} straightOuts
+ * @param {number} flushOuts
+ * @param {number} equity
+ * @returns {{ shouldShoveFlopIn4Bet: boolean, shouldFoldWeakIn4Bet: boolean }}
+ */
+function getPLO4BetPotDecision(isIn4BetPot, madeHand, straightOuts, flushOuts, equity) {
+    if (!isIn4BetPot) return { shouldShoveFlopIn4Bet: false, shouldFoldWeakIn4Bet: false };
+
+    const totalOuts = straightOuts + flushOuts;
+
+    // In a 4-bet pot: SPR is ~1-2 postflop, so shove flop with:
+    // - Any top pair + decent kicker
+    // - Any draw with 8+ outs
+    // - Any made hand with equity > 45%
+    const shouldShoveFlopIn4Bet = equity >= 45 || totalOuts >= 8 ||
+        ['top_set', 'set', 'full_house', 'nut_flush', 'nut_straight', 'two_pair'].includes(madeHand.category);
+
+    // Fold weak holdings in 4-bet pot (no implied odds, SPR too shallow)
+    const shouldFoldWeakIn4Bet = equity < 35 && totalOuts < 6;
+
+    return { shouldShoveFlopIn4Bet, shouldFoldWeakIn4Bet };
+}
+
+// ── 4e. GIF ALL-IN TRIGGER ──
+/**
+ * When a horse goes all-in with a strong hand, trigger a GIF at the table.
+ * This fires through the existing game event bus and uses the GIF feature
+ * already implemented in the platform.
+ * @param {Object} madeHand
+ * @param {number} equity
+ * @param {number} allInEquity
+ * @param {string} profileId
+ * @returns {{ shouldThrowGif: boolean, gifCategory: string }}
+ */
+function getPLOGifTrigger(madeHand, equity, allInEquity, profileId) {
+    if (!madeHand) return { shouldThrowGif: false, gifCategory: null };
+
+    const hash = getHash(profileId);
+    const rand = Math.random();
+
+    // High equity all-in = confident GIF
+    if (allInEquity >= 72 && madeHand.isNut && rand < 0.70) {
+        return { shouldThrowGif: true, gifCategory: 'celebration' };
+    }
+
+    // Monster hand (set+) going all-in = dominant GIF
+    if (['full_house', 'top_set', 'nut_flush'].includes(madeHand.category) && rand < 0.55) {
+        return { shouldThrowGif: true, gifCategory: 'dominant' };
+    }
+
+    // Close-equity all-in (coin flip) = suspense GIF
+    if (allInEquity >= 48 && allInEquity < 65 && rand < 0.40) {
+        return { shouldThrowGif: true, gifCategory: 'suspense' };
+    }
+
+    // Behind but going for it (draw) = fighting GIF
+    if (allInEquity < 48 && allInEquity >= 30 && rand < 0.30) {
+        return { shouldThrowGif: true, gifCategory: 'fighting' };
+    }
+
+    return { shouldThrowGif: false, gifCategory: null };
+}
+
+// ── 4f. POST-SHOWDOWN READ UPDATER ──
+/**
+ * After a hand goes to showdown, update opponent reads in Supabase.
+ * Detects if opponent bluffed, value-bet, or slow-played based on
+ * the action vs. revealed hand strength.
+ * This runs AFTER a hand result and updates horse_opponent_reads.
+ * @param {string} horseId - This horse's profileId
+ * @param {string} opponentId - Opponent's profileId
+ * @param {Object} revealedHand - Opponent's actual hand category
+ * @param {Array<string>} opponentBettingLine - Actions taken by opponent
+ * @param {Object} supabaseClient - Supabase client reference
+ */
+async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponentBettingLine, supabaseClient) {
+    if (!supabaseClient || !opponentId) return;
+
+    try {
+        const wasAggressive = opponentBettingLine.includes('raise') || opponentBettingLine.includes('bet');
+        const handStrength = revealedHand?.strength || 0;
+
+        // Detect if opponent was bluffing (aggressive with weak hand)
+        const wasBluffing = wasAggressive && handStrength < 35;
+        // Detect calling station (called lots but had weak hand)
+        const wasStation = opponentBettingLine.filter(a => a === 'call').length >= 2 && handStrength < 45;
+        // Detect slow-player (passive with strong hand)
+        const wasSlowPlay = !wasAggressive && handStrength >= 75;
+
+        // Incremental updates: only adjust the specific tendencies we observed
+        const update = {};
+        if (wasBluffing) update.bluff_frequency = 0.02;   // Upward nudge
+        if (wasStation) update.fold_tendency = -0.02;     // Downward nudge (calls more)
+        if (wasSlowPlay) update.slow_play_tendency = 0.02;
+
+        if (Object.keys(update).length === 0) return;
+
+        // Read existing record first, then merge
+        const { data: existing } = await supabaseClient
+            .from('horse_opponent_reads')
+            .select('bluff_frequency, fold_tendency, slow_play_tendency')
+            .eq('horse_id', horseId)
+            .eq('opponent_id', opponentId)
+            .single();
+
+        const mergedUpdate = {
+            horse_id: horseId,
+            opponent_id: opponentId,
+            bluff_frequency: Math.min(0.80, Math.max(0.05, (existing?.bluff_frequency || 0.15) + (update.bluff_frequency || 0))),
+            fold_tendency: Math.min(0.80, Math.max(0.05, (existing?.fold_tendency || 0.35) + (update.fold_tendency || 0))),
+            slow_play_tendency: Math.min(0.70, Math.max(0.02, (existing?.slow_play_tendency || 0.10) + (update.slow_play_tendency || 0))),
+            updated_at: new Date().toISOString(),
+        };
+
+        await supabaseClient.from('horse_opponent_reads').upsert(mergedUpdate, { onConflict: 'horse_id,opponent_id' });
+    } catch (err) {
+        // Non-fatal: opponent reads are enrichment data
+        console.warn('[PLO][OpponentRead] Update failed:', err?.message);
+    }
+}
+
+// ── 4g. VARIANCE PROTECTION MODE ──
+/**
+ * When a horse is on a losing streak, tighten up to protect their bankroll.
+ * When on a heater (winning session), expand range slightly.
+ * Uses session metrics passed via the state object.
+ * @param {Object} sessionMetrics - { handsPlayed, buyin, currentStack, winRate }
+ * @returns {{ tightenFactor: number, isOnTilt: boolean, isOnHeater: boolean }}
+ */
+function getPLOVarianceProtection(sessionMetrics) {
+    if (!sessionMetrics) return { tightenFactor: 1.0, isOnTilt: false, isOnHeater: false };
+
+    const { handsPlayed = 0, buyin = 100, currentStack = 100 } = sessionMetrics;
+    const profitFraction = (currentStack - buyin) / buyin;
+
+    // On tilt: lost > 40% of buyin in this session
+    const isOnTilt = profitFraction < -0.40;
+
+    // On a heater: up > 60% of buyin
+    const isOnHeater = profitFraction > 0.60;
+
+    // Tighten up significantly when on tilt
+    if (isOnTilt) return { tightenFactor: 1.35, isOnTilt: true, isOnHeater: false };
+
+    // Loosen slightly on a heater (play more draws, call wider)
+    if (isOnHeater) return { tightenFactor: 0.90, isOnTilt: false, isOnHeater: true };
+
+    // Normal: no adjustment
+    return { tightenFactor: 1.0, isOnTilt: false, isOnHeater: false };
+}
+
+// ── 4h. BLIND DEFENSE STRATEGY ──
+/**
+ * Specific strategy for defending the SB and BB in PLO.
+ * BB has the best odds to defend (already invested 1bb);
+ * SB is the worst position (must act first post-flop).
+ * @param {string} position - 'SB' | 'BB'
+ * @param {number} strength - Preflop hand strength
+ * @param {number} toCall - Amount to call
+ * @param {number} bb - Big blind amount
+ * @param {number} potSize
+ * @param {number} numPlayers
+ * @param {Array} legalActions
+ * @returns {{ action: string, amount?: number }|null}
+ */
+function getPLOBlindDefense(position, strength, toCall, bb, potSize, numPlayers, legalActions) {
+    if (position !== 'BB' && position !== 'SB') return null;
+    if (toCall === 0) return null; // No preflop raise, no defense needed
+
+    const canCall = legalActions.some(a => a.type === 'call');
+    const canRaise = legalActions.some(a => a.type === 'raise');
+    const raiseAction = legalActions.find(a => a.type === 'raise');
+    const raiseFraction = toCall / bb; // How many BBs to call?
+
+    // BB defense: already invested 1BB, so pot odds are great
+    if (position === 'BB') {
+        // Defend vs single open (3x): call with top 60% of hands
+        if (raiseFraction <= 3.5 && strength >= 40 && canCall) return { action: 'call' };
+        // Defend vs 4x or 5x open: call with top 45%
+        if (raiseFraction <= 5.5 && strength >= 55 && canCall) return { action: 'call' };
+        // 3-bet squeeze (multi-way steal): squeeze with top 25%
+        if (numPlayers >= 3 && strength >= 75 && canRaise && raiseAction) {
+            const sqz = Math.round(potSize * 0.85);
+            return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(sqz, raiseAction.maxAmount || sqz)) };
+        }
+        // Fold weak hands
+        if (strength < 38) return { action: 'fold' };
+    }
+
+    // SB defense: worst position, very selective
+    if (position === 'SB') {
+        // SB vs BTN steal: defend with premium hands only (top 30%)
+        if (raiseFraction <= 3 && strength >= 60 && canCall) return { action: 'call' };
+        // 3-bet SB vs BTN with top 15%
+        if (strength >= 80 && canRaise && raiseAction) {
+            const threeB = Math.round(potSize * 1.0);
+            return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(threeB, raiseAction.maxAmount || threeB)) };
+        }
+        // Fold anything weaker in SB
+        if (strength < 58) return { action: 'fold' };
+    }
+
+    return null; // Let normal logic handle it
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 5 — ELITE PINNACLE LAYER
+// Card removal, runout quality, exploitation profiles, pot manipulation,
+// ICM bubble, river floats, deep-stack (200bb+), squeeze plays.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 5a. CARD REMOVAL EFFECTS (ADVANCED BLOCKERS) ──
+/**
+ * When we hold certain cards, we reduce the number of nutted combos our
+ * opponents can hold. Ace-blockers are the most powerful in PLO.
+ * @param {Array<{rank,suit}>} holeCards
+ * @param {Array<{rank,suit}>} boardCards
+ * @returns {{ nutCombosRemoved: number, blocksFlushedNuts: boolean, blocksTopSet: boolean, removalScore: number }}
+ */
+function getPLOCardRemovalEffects(holeCards, boardCards) {
+    if (!holeCards || holeCards.length < 2) return { nutCombosRemoved: 0, blocksFlushedNuts: false, blocksTopSet: false, removalScore: 0 };
+
+    const bSuits = boardCards.map(c => c.suit);
+    const bRanks = boardCards.map(c => c.rank);
+    const hRanks = holeCards.map(c => c.rank);
+    const hSuits = holeCards.map(c => c.suit);
+
+    let removalScore = 0;
+    let blocksFlushedNuts = false;
+    let blocksTopSet = false;
+    let nutCombosRemoved = 0;
+
+    // Ace blocker: holding an ace removes C(3,1) = 3 additional ace combinations from opponent
+    const aceCount = hRanks.filter(r => r === 12).length;
+    if (aceCount >= 1) {
+        removalScore += 12 * aceCount;
+        nutCombosRemoved += 3 * aceCount;
+    }
+
+    // Flush nut blocker: holding Ace of dominant suit blocks nut flush draw combos
+    const sFq = {}; for (const s of bSuits) sFq[s] = (sFq[s] || 0) + 1;
+    const dom = Object.entries(sFq).sort(([, a], [, b]) => b - a)[0]?.[0];
+    if (dom && bSuits.filter(s => s === dom).length >= 2) {
+        const hasAceOfFlushSuit = holeCards.some(c => c.suit === dom && c.rank === 12);
+        if (hasAceOfFlushSuit) {
+            blocksFlushedNuts = true;
+            removalScore += 18;
+            nutCombosRemoved += 4; // Removes all Axx flush nut combos
+        }
+    }
+
+    // Top set blocker: holding 2 cards of the top board rank blocks opponent top set
+    const topBoardRank = Math.max(...bRanks, 0);
+    const holeCountOfTopRank = hRanks.filter(r => r === topBoardRank).length;
+    if (holeCountOfTopRank >= 1) {
+        blocksTopSet = true;
+        removalScore += 8 * holeCountOfTopRank;
+        nutCombosRemoved += 2 * holeCountOfTopRank;
+    }
+
+    return { nutCombosRemoved, blocksFlushedNuts, blocksTopSet, removalScore };
+}
+
+// ── 5b. RUNOUT DISTRIBUTION ANALYZER ──
+/**
+ * Analyze how many "favorable" vs "unfavorable" remaining cards exist in the deck.
+ * A favorable turn card = hits our draw. An unfavorable turn = pairs the board for opponent.
+ * @param {Array<{rank,suit}>} holeCards
+ * @param {Array<{rank,suit}>} boardCards
+ * @param {number} straightOuts
+ * @param {number} flushOuts
+ * @returns {{ favorableCards: number, unfavorableCards: number, runoutQuality: string }}
+ */
+function analyzePLORunoutDistribution(holeCards, boardCards, straightOuts, flushOuts) {
+    const totalRemaining = 52 - holeCards.length - boardCards.length;
+    const favorable = straightOuts + flushOuts; // Cards that improve us
+    const bRanks = boardCards.map(c => c.rank);
+    // Unfavorable: cards that pair the board (give full house to someone who has trips)
+    const uniqueBoardRanks = [...new Set(bRanks)];
+    const pairingCards = uniqueBoardRanks.reduce((sum, r) => sum + (3 - bRanks.filter(x => x === r).length), 0);
+    const unfavorable = Math.min(pairingCards, 8); // Cap at 8 scare cards per street
+
+    let runoutQuality = 'neutral';
+    if (favorable >= 12) runoutQuality = 'excellent';
+    else if (favorable >= 8) runoutQuality = 'good';
+    else if (unfavorable >= 6) runoutQuality = 'dangerous';
+    else if (favorable < 4 && unfavorable >= 4) runoutQuality = 'poor';
+
+    return { favorableCards: favorable, unfavorableCards: unfavorable, runoutQuality, totalRemaining };
+}
+
+// ── 5c. EXPLOITATION PROFILER ──
+/**
+ * Build a counter-strategy based on opponent's general profile.
+ * Derived from the available opponent reads + action patterns.
+ * @param {Object} opponentRead - { bluffFrequency, foldTendency, slowPlayTendency, callMod, foldMod }
+ * @returns {{ profile: string, strategy: Object }}
+ */
+function buildPLOExploitationProfile(opponentRead) {
+    if (!opponentRead) return { profile: 'unknown', strategy: { valueWider: false, bluffMore: false, callDown: false, stealBlinds: false } };
+
+    const { bluffFrequency = 0.15, foldMod = 0.35, callMod = 0.25, slowPlayTendency = 0.10 } = opponentRead;
+
+    // Maniac: high bluff frequency → call down with medium hands, never bluff back
+    if (bluffFrequency > 0.40) {
+        return { profile: 'maniac', strategy: { valueWider: true, bluffMore: false, callDown: true, stealBlinds: false, checkRaiseMore: true } };
+    }
+    // Nit: folds too much → steal constantly, don't call their value bets
+    if (foldMod > 0.60) {
+        return { profile: 'nit', strategy: { valueWider: false, bluffMore: true, callDown: false, stealBlinds: true, checkRaiseMore: false } };
+    }
+    // Station: calls everything → value bet constantly, never bluff
+    if (callMod > 0.55) {
+        return { profile: 'station', strategy: { valueWider: true, bluffMore: false, callDown: false, stealBlinds: false, checkRaiseMore: false } };
+    }
+    // Slow-player: strong hands played passively → raise more when they check
+    if (slowPlayTendency > 0.30) {
+        return { profile: 'slow_player', strategy: { valueWider: false, bluffMore: false, callDown: false, stealBlinds: false, checkRaiseMore: true } };
+    }
+    // Balanced: normal game plan
+    return { profile: 'balanced', strategy: { valueWider: false, bluffMore: false, callDown: false, stealBlinds: false, checkRaiseMore: false } };
+}
+
+// ── 5d. POT MANIPULATION ENGINE ──
+/**
+ * Determine if the horse should manipulate pot size:
+ * - Isolate fishy players with a large raise
+ * - Keep multi-way when holding big draw (more implied odds)
+ * - Charge draws in multi-way pots to deny math
+ * @param {number} numPlayers
+ * @param {Object} exploitProfile
+ * @param {number} equity
+ * @param {boolean} isIP
+ * @param {Object} madeHand
+ * @param {number} totalOuts
+ * @param {number} potSize
+ * @param {Object} raiseAction
+ * @returns {{ shouldIsolate: boolean, shouldKeepMultiWay: boolean, chargeDrawSize: number }}
+ */
+function getPLOPotManipulation(numPlayers, exploitProfile, equity, isIP, madeHand, totalOuts, potSize, raiseAction) {
+    // Isolate a fish (maniac/station) with premium hand
+    const shouldIsolate = exploitProfile.profile === 'maniac' || exploitProfile.profile === 'station';
+    const isolateSize = shouldIsolate && equity >= 65
+        ? Math.max(raiseAction?.minAmount || 1, Math.min(Math.round(potSize * 1.2), raiseAction?.maxAmount || 9999))
+        : 0;
+
+    // Keep multi-way with big draws (more players = bigger pot when we hit)
+    const shouldKeepMultiWay = totalOuts >= 15 && !madeHand.isNut && numPlayers <= 4;
+
+    // In multi-way pot, charge draws by betting pot (deny correct odds)
+    // Should fire pot-sized bets to make draws unprofitable to chase
+    const isMultiWay = numPlayers >= 3;
+    const chargeDrawSize = isMultiWay && madeHand.strength >= 60 && isIP
+        ? Math.max(raiseAction?.minAmount || 1, Math.min(Math.round(potSize * 0.90), raiseAction?.maxAmount || 9999))
+        : 0;
+
+    return { shouldIsolate, isolateSize, shouldKeepMultiWay, chargeDrawSize };
+}
+
+// ── 5e. ICM BUBBLE PRESSURE ──
+/**
+ * Near the tournament bubble or final table, adjust PLO strategy:
+ * - Short stacks: jam wider (ICM pressure on others)
+ * - Big stacks: widen range to apply ICM pressure, steal more
+ * - Everyone: avoid all-ins unless dominating (ICM survival)
+ * @param {Object} icmData - { isBubble, isFinalTable, payoutSpots, stackRank, totalPlayers }
+ * @param {number} stackBB
+ * @returns {{ icmFactor: number, shouldShoveWider: boolean, shouldApplyPressure: boolean, avoidFlips: boolean }}
+ */
+function getPLOICMBubblePressure(icmData, stackBB) {
+    if (!icmData || (!icmData.isBubble && !icmData.isFinalTable)) {
+        return { icmFactor: 1.0, shouldShoveWider: false, shouldApplyPressure: false, avoidFlips: false };
+    }
+
+    const { isBubble, isFinalTable, stackRank, totalPlayers } = icmData;
+    const isBigStack = stackRank <= Math.ceil(totalPlayers * 0.25); // Top 25% of stacks
+    const isShortStack = stackBB <= 15;
+
+    // Bubble: short stacks shove wider, medium stacks tighten, big stacks apply pressure
+    if (isBubble) {
+        if (isShortStack) return { icmFactor: 0.85, shouldShoveWider: true, shouldApplyPressure: false, avoidFlips: false };
+        if (isBigStack) return { icmFactor: 0.90, shouldShoveWider: false, shouldApplyPressure: true, avoidFlips: true };
+        return { icmFactor: 1.20, shouldShoveWider: false, shouldApplyPressure: false, avoidFlips: true }; // Medium: super tight
+    }
+
+    // Final table: everyone tightens, ICM pressure is massive
+    if (isFinalTable) {
+        if (isShortStack) return { icmFactor: 0.80, shouldShoveWider: true, shouldApplyPressure: false, avoidFlips: false };
+        return { icmFactor: 1.25, shouldShoveWider: false, shouldApplyPressure: isBigStack, avoidFlips: true };
+    }
+
+    return { icmFactor: 1.0, shouldShoveWider: false, shouldApplyPressure: false, avoidFlips: false };
+}
+
+// ── 5f. RIVER FLOAT AND FIRE ──
+/**
+ * Float the turn (call with no made hand) then fire the river as a bluff
+ * when the draw misses. This exploits opponents who c-bet then check rivers.
+ * Works best: in position, against a single opponent, with blockers.
+ * @param {Object} madeHand
+ * @param {number} straightOuts
+ * @param {number} flushOuts
+ * @param {string} street
+ * @param {boolean} isIP
+ * @param {number} numPlayers
+ * @param {Object} blockers
+ * @param {number} potSize
+ * @param {Object} raiseAction
+ * @returns {{ shouldFloat: boolean, shouldFireRiver: boolean, fireSize: number }}
+ */
+function getPLORiverFloat(madeHand, straightOuts, flushOuts, street, isIP, numPlayers, blockers, potSize, raiseAction) {
+    // Float only in position, heads-up
+    if (!isIP || numPlayers > 2) return { shouldFloat: false, shouldFireRiver: false, fireSize: 0 };
+
+    const hasDraw = straightOuts + flushOuts >= 6;
+    const hasBlockers = blockers.canBluffRiver;
+    const hasMadeHand = madeHand.strength >= 50;
+
+    // Turn float: call with draws or blockers when PFR checks or makes a small c-bet
+    const shouldFloat = (hasDraw || hasBlockers) && !hasMadeHand && street === 'turn';
+
+    // River fire: when we floated and now the board is checked to us
+    const drawMissed = straightOuts < 3 && flushOuts < 3;
+    const shouldFireRiver = street === 'river' && drawMissed && isIP && hasBlockers && Math.random() < 0.55;
+
+    const fireSize = shouldFireRiver
+        ? Math.max(raiseAction?.minAmount || 1, Math.min(Math.round(potSize * 0.70), raiseAction?.maxAmount || 9999))
+        : 0;
+
+    return { shouldFloat, shouldFireRiver, fireSize };
+}
+
+// ── 5g. DEEP STACK ADJUSTMENTS (200BB+) ──
+/**
+ * Very deep stacked PLO (200bb+) is fundamentally different:
+ * - Set-mining becomes profitable (big implied odds)
+ * - Drawing hands gain enormous value
+ * - Premium hands must play bigger pots to avoid losing equity to runouts
+ * - Wider preflop ranges because implied odds are vastly higher
+ * @param {number} stackBB
+ * @returns {{ isDeepStack: boolean, preflopRangeExpansion: number, impliedOddsBonus: number, drawValueBonus: number }}
+ */
+function getPLODeepStackAdjustments(stackBB) {
+    if (stackBB < 150) return { isDeepStack: false, preflopRangeExpansion: 0, impliedOddsBonus: 0, drawValueBonus: 0 };
+
+    // How deep are we?
+    const deepnessMultiplier = Math.min((stackBB - 100) / 200, 1.0); // 0 at 100bb, 1.0 at 300bb+
+
+    // Expand preflop opening range (connected hands are more valuable deep)
+    const preflopRangeExpansion = Math.round(deepnessMultiplier * 12); // Up to +12 strength points
+
+    // Implied odds bonus for drawing hands (worth more because of deep stacks to be won)
+    const impliedOddsBonus = deepnessMultiplier * 0.15; // Up to +15% implied odds ERC
+
+    // Draw value bonus: pair + draw, set + draw become much stronger
+    const drawValueBonus = Math.round(deepnessMultiplier * 10); // Up to +10 equity points
+
+    return { isDeepStack: true, preflopRangeExpansion, impliedOddsBonus, drawValueBonus };
+}
+
+// ── 5h. SQUEEZE PLAY ENGINE ──
+/**
+ * Squeeze plays: 3-bet over multiple callers with premium or bluff hands.
+ * In PLO, squeezes are more effective than Hold'em due to range polarization.
+ * When there are 2+ callers and we are in a late position, squeeze to isolate.
+ * @param {number} numCallers - How many players called the initial raise
+ * @param {boolean} isIP
+ * @param {string} position
+ * @param {number} strength - Preflop hand strength
+ * @param {number} potSize
+ * @param {Object} raiseAction
+ * @param {boolean} canRaise
+ * @returns {{ shouldSqueeze: boolean, squeezeSize: number, isBluffSqueeze: boolean }}\n */
+function getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise) {
+    if (!canRaise || !raiseAction) return { shouldSqueeze: false, squeezeSize: 0, isBluffSqueeze: false };
+    if (numCallers < 2) return { shouldSqueeze: false, squeezeSize: 0, isBluffSqueeze: false }; // Need 2+ callers
+
+    const ipPositions = new Set(['BTN', 'CO']);
+    const isLatePos = ipPositions.has(position);
+
+    // Value squeeze: premium hands from any position
+    if (strength >= 78) {
+        const sqzSize = Math.round(potSize * 1.0); // Full pot squeeze
+        return { shouldSqueeze: true, squeezeSize: Math.max(raiseAction.minAmount || 1, Math.min(sqzSize, raiseAction.maxAmount || sqzSize)), isBluffSqueeze: false };
+    }
+
+    // Bluff squeeze: from late position with semi-premium or marginal hands
+    // Works because callers are likely holding marginal hands, not premiums
+    if (isLatePos && strength >= 58 && Math.random() < 0.35) {
+        const sqzSize = Math.round(potSize * 0.85);
+        return { shouldSqueeze: true, squeezeSize: Math.max(raiseAction.minAmount || 1, Math.min(sqzSize, raiseAction.maxAmount || sqzSize)), isBluffSqueeze: true };
+    }
+
+    return { shouldSqueeze: false, squeezeSize: 0, isBluffSqueeze: false };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 6 — PRECISION EQUITY & TABLE DYNAMICS
+// Combo draw de-dup, HvR approximation, reverse implied odds, table image,
+// check-behind calibration, flop continuance, river optimizer, GIF state machine.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 6a. COMBO DRAW DE-DUPLICATOR ──
+/**
+ * When a hand has BOTH a flush draw AND a straight draw, simply adding
+ * outs double-counts cards that simultaneously complete both.
+ * This function returns the de-duplicated, exact combo draw out count.
+ * @param {Array<{rank,suit}>} holeCards
+ * @param {Array<{rank,suit}>} boardCards
+ * @param {number} rawStraightOuts
+ * @param {number} rawFlushOuts
+ * @returns {{ exactOuts: number, isCombo: boolean, comboBonus: number }}
+ */
+function deduplicatePLOComboOuts(holeCards, boardCards, rawStraightOuts, rawFlushOuts) {
+    // If we have both a straight AND flush draw, some outs complete BOTH
+    const isCombo = rawStraightOuts >= 4 && rawFlushOuts >= 6;
+    if (!isCombo) {
+        return { exactOuts: rawStraightOuts + rawFlushOuts, isCombo: false, comboBonus: 0 };
+    }
+
+    // When we have both, typically 2-4 cards complete both draws simultaneously
+    // (the suited cards in the straight draw). We subtract the overlap.
+    const bSuits = boardCards.map(c => c.suit);
+    const hSuits = holeCards.map(c => c.suit);
+    const sFq = {}; for (const s of [...bSuits, ...hSuits]) sFq[s] = (sFq[s] || 0) + 1;
+    const dom = Object.entries(sFq).sort(([, a], [, b]) => b - a)[0]?.[0];
+
+    // Estimate overlap: straight outs that are also the flush suit
+    const flushStraightOverlap = dom ? Math.min(Math.floor(rawStraightOuts * 0.2), 3) : 0;
+    const exactOuts = rawStraightOuts + rawFlushOuts - flushStraightOverlap;
+
+    // Combo draws get a bonus because they have twice the ways to win
+    // (can win with flush OR straight), which has strategic implications
+    const comboBonus = isCombo ? 5 : 0; // Extra strategic value beyond raw outs
+
+    return { exactOuts, isCombo, comboBonus };
+}
+
+// ── 6b. HAND VS RANGE (HvR) APPROXIMATION ──
+/**
+ * Instead of thinking "my hand vs their hand", estimate our equity against
+ * the opponent's likely range given their actions.
+ * This is a heuristic approximation of what a HvR solver would compute.
+ * @param {Object} madeHand - Our hand
+ * @param {number} exactOuts - Exact collison-free outs
+ * @param {string[]} opponentActions - ['raise', 'call', 'bet', etc.]
+ * @param {Object} boardTexture
+ * @param {string} street
+ * @param {number} potOdds
+ * @returns {{ hvrEquity: number, opponentRangeType: string, hvrAdjustment: number }}
+ */
+function approximatePLOHvR(madeHand, exactOuts, opponentActions, boardTexture, street, potOdds) {
+    // Infer opponent's range type from actions
+    let opponentRangeType = 'balanced'; // Default
+    const raised = opponentActions?.includes('raise');
+    const bet = opponentActions?.includes('bet');
+    const checked = opponentActions?.includes('check');
+    const called = opponentActions?.includes('call');
+
+    // Raiser on flop: likely strong made hand or big draw
+    if (raised && street === 'flop') opponentRangeType = 'strong';
+    // Checked and then bet turn: likely medium top pair to two-pair
+    else if (checked && bet && street === 'turn') opponentRangeType = 'medium';
+    // Called flop and called turn: likely a draw or medium hand
+    else if (called && street === 'river') opponentRangeType = 'drawing_missed';
+    // Checked twice: often a weak hand or slow-play
+    else if (checked && checked) opponentRangeType = 'weak_or_slowplay';
+
+    // Base HvR equity: start with our raw hand strength
+    let hvrBaseEquity = madeHand.strength + Math.min(exactOuts * 2.2, 46);
+
+    // Adjust based on opponent's range type
+    let hvrAdjustment = 0;
+    switch (opponentRangeType) {
+        case 'strong':
+            // Against a strong range, our medium hands lose value
+            hvrAdjustment = madeHand.isNut ? 5 : -15;
+            break;
+        case 'medium':
+            // Against medium, our strong hands gain, medium stays neutral
+            hvrAdjustment = madeHand.strength >= 70 ? 8 : 0;
+            break;
+        case 'drawing_missed':
+            // River call with a missed draw = we have majority of equity
+            hvrAdjustment = 12; // Caller likely missed, our hand is best
+            break;
+        case 'weak_or_slowplay':
+            // Tricky: could be very weak OR very strong monster slow-played
+            hvrAdjustment = madeHand.strength >= 80 ? 10 : -8;
+            break;
+        default:
+            hvrAdjustment = 0;
+    }
+
+    const hvrEquity = Math.max(0, Math.min(100, hvrBaseEquity + hvrAdjustment));
+    return { hvrEquity, opponentRangeType, hvrAdjustment };
+}
+
+// ── 6c. REVERSE IMPLIED ODDS ──
+/**
+ * Reverse implied odds (RIO) answer: "When we hit our draw, how often do we
+ * still lose to a BETTER hand?" Non-nut draws on dangerous boards have terrible RIO.
+ * This is especially critical in PLO where hitting 2nd-best is a death trap.
+ * @param {boolean} isNutFlushDraw
+ * @param {boolean} isNutStraightDraw
+ * @param {Object} boardTexture
+ * @param {number} numPlayers
+ * @param {Object} madeHand
+ * @returns {{ rioMultiplier: number, rioRisk: string, rioDiscount: number }}
+ */
+function getPLOReverseImpliedOdds(isNutFlushDraw, isNutStraightDraw, boardTexture, numPlayers, madeHand) {
+    let rioDiscount = 0;
+    let rioRisk = 'low';
+
+    // Non-nut flush draw: could hit 2nd-best flush (VERY common in PLO)
+    if (!isNutFlushDraw && madeHand.category === 'flush') {
+        rioDiscount = numPlayers > 2 ? -18 : -10;
+        rioRisk = 'high';
+    }
+    // Non-nut straight draw on a monotone board: flush already beats us when we hit
+    if (!isNutStraightDraw && boardTexture.isMonotone) {
+        rioDiscount = numPlayers > 2 ? -22 : -14;
+        rioRisk = 'very_high';
+    }
+    // Non-nut flush draw on paired board: full house beats our flush
+    if (!isNutFlushDraw && boardTexture.isPaired) {
+        rioDiscount = -15;
+        rioRisk = 'high';
+    }
+    // Nut draws: minimal RIO
+    if (isNutFlushDraw || isNutStraightDraw) {
+        rioDiscount = numPlayers > 3 ? -5 : 0; // Small penalty multi-way even with nuts
+        rioRisk = 'low';
+    }
+
+    // RIO multiplier: 0.70 to 1.0 (how much of draw equity we actually realize)
+    const rioMultiplier = Math.max(0.60, 1.0 + rioDiscount / 100);
+    return { rioMultiplier, rioRisk, rioDiscount };
+}
+
+// ── 6d. TABLE IMAGE TRACKER ──
+/**
+ * Track the horse's table image based on recent showdowns.
+ * If we've been showing down strong hands: tight image → more bluffing license.
+ * If we've been caught bluffing: loose/aggressive image → value bet more, bluff less.
+ * @param {Object} sessionStats - { recentShowdowns, bluffsCaught, valueHandsShown }
+ * @returns {{ tableImage: string, bluffLicense: number, valueBetBias: number }}
+ */
+function getPLOTableImage(sessionStats) {
+    if (!sessionStats) return { tableImage: 'neutral', bluffLicense: 0.15, valueBetBias: 0 };
+
+    const { recentShowdowns = 0, bluffsCaught = 0, valueHandsShown = 0 } = sessionStats;
+
+    const totalShown = recentShowdowns;
+    if (totalShown === 0) return { tableImage: 'unknown', bluffLicense: 0.15, valueBetBias: 0 };
+
+    const bluffRate = bluffsCaught / Math.max(totalShown, 1);
+    const valueRate = valueHandsShown / Math.max(totalShown, 1);
+
+    // Tight image: mostly showing strong hands → more bluffing license
+    if (valueRate > 0.70) {
+        return { tableImage: 'tight', bluffLicense: 0.30, valueBetBias: -5 }; // Opponents call wider
+    }
+    // Loose/caught image: got caught bluffing → value bet more, bluff less
+    if (bluffRate > 0.40) {
+        return { tableImage: 'loose', bluffLicense: 0.05, valueBetBias: 10 }; // Opponents fold more to our value
+    }
+    // Balanced: moderate bluffing
+    return { tableImage: 'balanced', bluffLicense: 0.15, valueBetBias: 0 };
+}
+
+// ── 6e. FLOP CONTINUANCE OPTIMIZER ──
+/**
+ * A comprehensive flop continuance decision that synthesizes all available info
+ * to decide whether to continue (call/raise) or fold on the flop.
+ * This replaces the piecemeal checks with a unified decision score.
+ * @param {number} equityFinal - Phase 5 composite equity
+ * @param {number} exactOuts - De-duplicated outs
+ * @param {Object} madeHand
+ * @param {number} potOdds
+ * @param {Object} rioInfo
+ * @param {Object} hvrInfo
+ * @param {Object} boardTexture
+ * @param {boolean} isIP
+ * @param {number} numPlayers
+ * @returns {{ continuanceScore: number, shouldContinue: boolean, raiseThreshold: number }}
+ */
+function getPLOFlopContinuance(equityFinal, exactOuts, madeHand, potOdds, rioInfo, hvrInfo, boardTexture, isIP, numPlayers) {
+    // Start with HvR equity (more accurate than raw equity vs a range)
+    let score = hvrInfo.hvrEquity;
+
+    // Apply RIO discount to draws
+    if (exactOuts >= 4) {
+        const rawDrawEquity = Math.min(exactOuts * 2.2, 46);
+        score = score - rawDrawEquity + (rawDrawEquity * rioInfo.rioMultiplier);
+    }
+
+    // Position bonus: IP is worth extra in continuance decisions
+    if (isIP) score += 6;
+
+    // Multi-way: requires stronger hand to continue
+    score -= Math.max(0, (numPlayers - 2) * 4);
+
+    // Nut bonus: always continue with nuts
+    if (madeHand.isNut) score += 20;
+
+    // Dangerous board penalty for non-nuts
+    if (boardTexture.isDangerous && !madeHand.isNut) score -= 8;
+
+    // Compare to calling price
+    const breakEven = potOdds * 100; // Equity needed to break even
+    const shouldContinue = score >= breakEven - 5; // Allow 5pt buffer
+
+    // Raise threshold: need significantly more equity to raise vs call
+    const raiseThreshold = Math.max(60, breakEven + 20);
+
+    return { continuanceScore: Math.max(0, Math.min(100, score)), shouldContinue, raiseThreshold };
+}
+
+// ── 6f. CHECK-BEHIND CALIBRATOR ──
+/**
+ * Calibrate the precise frequency of checking behind in position.
+ * In PLO, checking back is often wrong but is correct with marginal
+ * hands that don't want to build a pot and can't bet for value.
+ * @param {number} equityFinal
+ * @param {Object} madeHand
+ * @param {Object} boardTexture
+ * @param {Object} sdvInfo
+ * @param {number} numPlayers
+ * @param {string} street
+ * @returns {{ shouldCheckBehind: boolean, checkBehindFrequency: number, reason: string }}
+ */
+function getPLOCheckBehindCalibration(equityFinal, madeHand, boardTexture, sdvInfo, numPlayers, street) {
+    // Strong hands: never check behind (build the pot)
+    if (equityFinal >= 80 || madeHand.isNut) return { shouldCheckBehind: false, checkBehindFrequency: 0, reason: 'too_strong' };
+
+    // Medium hands with showdown value on dangerous boards: check behind
+    if (sdvInfo.hasShowdownValue && boardTexture.isDangerous && equityFinal < 65) {
+        return { shouldCheckBehind: true, checkBehindFrequency: 0.75, reason: 'showdown_dangerous_board' };
+    }
+
+    // Weak hands that can't bet/call: just check
+    if (equityFinal < 30) {
+        return { shouldCheckBehind: true, checkBehindFrequency: 0.90, reason: 'too_weak_to_bet' };
+    }
+
+    // Medium-medium on safe board: mixed strategy
+    if (equityFinal >= 40 && equityFinal < 55 && boardTexture.texture === 'rainbow') {
+        const freq = numPlayers > 2 ? 0.60 : 0.35;
+        return { shouldCheckBehind: Math.random() < freq, checkBehindFrequency: freq, reason: 'medium_dry_board' };
+    }
+
+    // River: check behind more frequently with medium hands (pot control)
+    if (street === 'river' && equityFinal >= 45 && equityFinal < 65 && !madeHand.isNut) {
+        return { shouldCheckBehind: true, checkBehindFrequency: 0.55, reason: 'river_pot_control' };
+    }
+
+    return { shouldCheckBehind: false, checkBehindFrequency: 0, reason: 'bet' };
+}
+
+// ── 6g. RIVER DECISION OPTIMIZER ──
+/**
+ * A final synthesizer that takes ALL computed information and returns the
+ * single best river action. This is called LAST, after all Phase 1-5 logic,
+ * to make the definitive river decision.
+ * @param {Object} params - All computed Phase 1-6 data
+ * @returns {{ type: string, amount?: number, confidence: number }}
+ */
+function optimizePLORiverDecision({
+    riverEquity, hvrInfo, rioInfo, sdvInfo, blockers, nutAdvantage,
+    madeHand, boardTexture, isIP, canRaise, canCall, potOdds,
+    clamp, clampedPotRaise, halfPotBetSize, potBetSize, raiseAction,
+    tableImage, checkBehindCalibration, opposingBetSize, multiwayPenalty
+}) {
+    // Check-behind calibration takes highest priority for weak hands
+    if (checkBehindCalibration.shouldCheckBehind && !opposingBetSize) {
+        return { type: 'check', confidence: 0.85 };
+    }
+
+    // Facing a bet: use HvR equity to decide if we call
+    if (opposingBetSize > 0) {
+        const callEquity = Math.max(hvrInfo.hvrEquity, riverEquity);
+        // Strong enough to call?
+        if (callEquity >= 58 - multiwayPenalty) {
+            // Raise with nuts or near-nuts
+            if (callEquity >= 82 && canRaise && Math.random() < 0.60) {
+                return { type: raiseAction?.type || 'call', amount: clampedPotRaise, confidence: 0.90 };
+            }
+            return { type: 'call', confidence: 0.75 };
+        }
+        // Blocker-based hero call
+        if (blockers.hasFlushBlocker && potOdds < 0.28 && callEquity >= 32) {
+            return { type: 'call', confidence: 0.55 };
+        }
+        return { type: 'fold', confidence: 0.80 };
+    }
+
+    // No bet facing us — decide whether to bet, check, or overbet
+    // Tight image = more bluffing
+    const bluffThreshold = tableImage.bluffLicense > 0.20 ? 28 : 35;
+
+    if (madeHand.isNut && nutAdvantage.hasNutAdvantage && canRaise) {
+        // Overbet or large value bet with nuts + nut advantage
+        const size = riverEquity >= 90 ? clampedPotRaise : clamp(potBetSize);
+        return { type: raiseAction?.type || 'bet', amount: size, confidence: 0.95 };
+    }
+    if (riverEquity >= 68 && canRaise) {
+        const size = riverEquity >= 85 ? clamp(potBetSize) : clamp(halfPotBetSize);
+        return { type: raiseAction?.type || 'bet', amount: size, confidence: 0.80 };
+    }
+    if (riverEquity < bluffThreshold && blockers.canBluffRiver && canRaise && isIP && Math.random() < tableImage.bluffLicense) {
+        return { type: raiseAction?.type || 'bet', amount: clamp(halfPotBetSize), confidence: 0.50 };
+    }
+    if (sdvInfo.hasShowdownValue) {
+        return { type: 'check', confidence: 0.75 };
+    }
+    return { type: 'check', confidence: 0.60 };
+}
+
+// ── 6h. GIF STATE MACHINE ──
+/**
+ * A proper state machine for GIF timing.
+ * Tracks which phase of the hand we're in and fires GIFs at the right moment:
+ * - All-in: immediately
+ * - River showdown: when called and going to showdown
+ * - Bad beat: when we lose with a strong hand (detected post-result)
+ * @param {string} handPhase - 'allin' | 'river_call' | 'fold' | 'showdown_loss'
+ * @param {Object} gifInfo - From Phase 4 getPLOGifTrigger
+ * @param {string} profileId
+ * @returns {{ shouldThrowGif: boolean, gifCategory: string, gifTiming: string }}
+ */
+function getPLOGifStateMachine(handPhase, gifInfo, profileId) {
+    if (!gifInfo?.shouldThrowGif) return { shouldThrowGif: false, gifCategory: null, gifTiming: null };
+
+    switch (handPhase) {
+        case 'allin':
+            // Immediately fire when all-in
+            return { shouldThrowGif: true, gifCategory: gifInfo.gifCategory, gifTiming: 'immediate' };
+
+        case 'river_call':
+            // Fire a suspense GIF when calling on the river as the last action before showdown
+            if (Math.random() < 0.45) {
+                return { shouldThrowGif: true, gifCategory: 'suspense', gifTiming: 'river_call' };
+            }
+            return { shouldThrowGif: false, gifCategory: null, gifTiming: null };
+
+        case 'showdown_win':
+            if (Math.random() < 0.55) {
+                return { shouldThrowGif: true, gifCategory: 'celebration', gifTiming: 'showdown_win' };
+            }
+            return { shouldThrowGif: false, gifCategory: null, gifTiming: null };
+
+        case 'bad_beat':
+            // Bad beat loss: send a commiserating GIF
+            if (Math.random() < 0.60) {
+                return { shouldThrowGif: true, gifCategory: 'bad_beat', gifTiming: 'showdown_loss' };
+            }
+            return { shouldThrowGif: false, gifCategory: null, gifTiming: null };
+
+        default:
+            return { shouldThrowGif: false, gifCategory: null, gifTiming: null };
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 6. PREFLOP PLO BETTING STRATEGY
 // Proper raise sizing in PLO, position awareness, 3-bet/4-bet ranges.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -929,7 +2415,27 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ─── PREFLOP ───
     if (street === 'preflop') {
-        const strength = classifyPLOPreflop(holeCards) + loosenessBias;
+        // Phase 4: Blind defense — run specialized BB/SB logic first
+        if (position === 'BB' || position === 'SB') {
+            const baseStrength = holeCards.length > 4
+                ? getBestPLO5or6PreflopStrength(holeCards)
+                : classifyPLOPreflop(holeCards);
+            const blindDef = getPLOBlindDefense(position, baseStrength + loosenessBias, toCall, bb, potSize, numPlayers, legalActions);
+            if (blindDef) return { type: blindDef.action, amount: blindDef.amount };
+        }
+        // PLO5/PLO6: use best-combo strength; PLO4: use standard classifier
+        // Phase 5: Deep stack range expansion adds strength to all connected hands
+        const deepAdj = getPLODeepStackAdjustments(stackBB);
+        const baseStrengthPreflop = (holeCards.length > 4
+            ? getBestPLO5or6PreflopStrength(holeCards)
+            : classifyPLOPreflop(holeCards));
+        const strength = baseStrengthPreflop + loosenessBias + deepAdj.preflopRangeExpansion;
+
+        // Phase 5: Squeeze play — when 2+ callers, 3-bet to isolate
+        const numCallers = state.numCallers || 0;
+        const squeeze = getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise);
+        if (squeeze.shouldSqueeze) return { type: raiseAction?.type || 'raise', amount: squeeze.squeezeSize };
+
         return getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
             toCall, bb, stackBB, position, numPlayers);
     }
@@ -939,149 +2445,400 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const boardRanks = boardCards.map(c => c.rank);
     const effectiveStack = stackBB * bb - toCall;
 
-    // Evaluate made hand
-    const madeHand = evaluatePLOMadeHand(holeCards, boardCards);
+    // ── Phase 2: Game type adjustments (tournament tightness) ──
+    const gameType = state.gameType || 'cash';
+    const gameAdj = getPLOGameTypeAdjustments(gameType, stackBB);
 
-    // Count draws
+    // ── Phase 2: Board texture analysis ──
+    const boardTexture = analyzePLOBoardTexture(boardCards);
+
+    // ── Phase 2: Scare card detection ──
+    const scareInfo = detectScareCard(boardCards, street);
+
+    // ── Phase 1: Made hand (PLO5/PLO6 use best-combo evaluator) ──
+    const madeHand = holeCards.length > 4
+        ? getBestPLO5or6MadeHand(holeCards, boardCards)
+        : evaluatePLOMadeHand(holeCards, boardCards);
+
+    // ── Phase 1: Draw counting ──
     const flushDraw = countFlushOuts(holeCards, boardCards);
     const straightDraw = countStraightOuts(holeRanks, boardRanks);
     const backdoorOuts = countBackdoorOuts(holeCards, boardCards);
 
-    // PLO8 Hi-Lo evaluation
+    // ── Phase 5: Deep stack adjustments (200bb+) ──
+    const deepStack = getPLODeepStackAdjustments(stackBB);
+
+    // ── Phase 5: Card removal effects ──
+    const cardRemoval = getPLOCardRemovalEffects(holeCards, boardCards);
+
+    // ── Phase 5: Runout distribution ──
+    const runout = analyzePLORunoutDistribution(holeCards, boardCards, straightDraw.outs, flushDraw.outs);
+
+    // ── Phase 5: ICM bubble pressure ──
+    const icmData = state.icmData || null;
+    const icmPressure = getPLOICMBubblePressure(icmData, stackBB);
+
+    // ── PLO8 Hi-Lo evaluation ──
     const lo8 = isHiLo ? evaluatePLO8Low(holeCards, boardCards) : null;
 
-    // SPR zone
+    // ── SPR zone ──
     const sprZone = getPLOSPRZone(effectiveStack, potSize + toCall);
 
-    // Total equity (outs to a better hand)
-    const totalOuts = flushDraw.outs + straightDraw.outs + backdoorOuts;
-    const outEquity = Math.min(totalOuts * 2.2, 46); // Rough rule of 2
+    // ── Phase 2: Equity Realization Coefficient ──
+    const erc = getPLOEquityRealization(
+        isIP, sprZone.zone,
+        straightDraw.outs, flushDraw.outs,
+        madeHand.isNut, numPlayers
+    );
 
-    // Commitment thresholds adjusted for multiway (PLO multiway = tighter)
-    const multiwayPenalty = Math.max(0, (numPlayers - 2) * 5); // 5 per extra player
+    // ── Phase 2: Blocker awareness ──
+    const blockers = getPLOBlockers(holeCards, boardCards);
+
+    // ── Phase 6: Combo draw de-duplicator (exact, collision-free outs) ──
+    const comboDrawInfo = deduplicatePLOComboOuts(holeCards, boardCards, straightDraw.outs, flushDraw.outs);
+    const exactOuts = comboDrawInfo.exactOuts;
+
+    // ── Phase 6: Reverse implied odds ──
+    const rioInfo = getPLOReverseImpliedOdds(
+        flushDraw.isNutFlushDraw,
+        straightDraw.hasNutStraightDraw,
+        boardTexture, numPlayers, madeHand
+    );
+
+    // ── Phase 6: Table image tracker ──
+    const sessionStats = state.sessionStats || null;
+    const tableImage = getPLOTableImage(sessionStats);
+
+    // ── Phase 6: HvR approximation (opponent range inference from actions) ──
+    const opponentActions = state.opponentActionHistory || [];
+    const hvrInfo = approximatePLOHvR(madeHand, exactOuts, opponentActions, boardTexture, street, potOdds);
+
+    // ── Total equity (raw → realized), using exact combo outs ──
+    const totalOuts = exactOuts + backdoorOuts; // exact outs already de-duped
+    const outEquityRaw = Math.min(exactOuts * 2.2, 46) * rioInfo.rioMultiplier; // RIO-adjusted
+    const outEquity = outEquityRaw * erc;
+
+    // Commitment thresholds: multiway = tighter, nut bonus, PLO8 bonus
+    const multiwayPenalty = Math.max(0, (numPlayers - 2) * 5);
     const nutBonus = madeHand.isNut ? 15 : 0;
     const lo8Bonus = lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0;
+    const boardDangerPenalty = (!madeHand.isNut && boardTexture.isDangerous) ? boardTexture.monoBoardPenalty : 0;
+    const scareCardPenalty = (scareInfo.isScareTurn || scareInfo.isScareRiver) && !madeHand.isNut ? 12 : 0;
+    const tightnessOp = 1 / gameAdj.tightnessFactor;
 
-    // Composite score (0-100)
-    let equity = madeHand.strength + outEquity + nutBonus + lo8Bonus - multiwayPenalty + loosenessBias;
+    // Composite equity score (0-100)
+    let equity = (madeHand.strength + outEquity + nutBonus + lo8Bonus
+        - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias) * tightnessOp;
     equity = Math.max(0, Math.min(100, equity));
 
-    // Bet sizing helper: PLO uses pot-size bets
-    const potBetSize = Math.round(potSize * 0.9); // ~pot
-    const halfPotBetSize = Math.round(potSize * 0.5);
+    // ── Phase 3: Multi-street planning ──
+    const msp = getPLOMultiStreetPlan(madeHand, straightDraw.outs, flushDraw.outs, street, boardTexture, isIP);
+
+    // ── Phase 3: Showdown value detection ──
+    const sdvInfo = getPLOShowdownValue(madeHand, boardTexture, numPlayers, street);
+
+    // ── Phase 3: Opponent-specific adjustments (from Supabase opponent reads) ──
+    const oppRead = state.opponentRead || null;
+    const oppAdj = getPLOOpponentAdjustments(oppRead);
+
+    // ── Phase 3: All-in equity shortcut ──
+    const allInInfo = getPLOAllInEquity(madeHand, straightDraw.outs, flushDraw.outs, sprZone, numPlayers);
+
+    // ── Phase 3: Implied odds for drawing hands ──
+    const isNutDraw = flushDraw.isNutFlushDraw || straightDraw.hasNutStraightDraw;
+    const impliedOddsInfo = getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw);
+
+    // ── Phase 3: Range balance randomizer ──
+    const situation = street === 'river' ? 'river_bet' : street === 'turn' ? 'turn_lead' : 'flop_lead';
+    const rangeBalance = getPLORangeBalance(profileId, situation, equity);
+
+    // ── Phase 3: C-bet strategy (fires only if horse was PFR) ──
+    const wasPFRaiser = state.wasPFRaiser || false;
+    const cBetStrategy = getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity);
+
+    // ── Phase 3: Turn barrel decision ──
+    const turnBarrel = street === 'turn'
+        ? getPLOTurnBarrel(equity, madeHand, straightDraw.outs, flushDraw.outs, scareInfo.isScareTurn, boardTexture, isIP)
+        : null;
+
+    // ── Phase 3: Proper PLO pot geometry (correct raise sizing) ──
+    const ploProperPotRaise = calcPLOPotRaise(toCall, potSize);
     const clamp = (size) => Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
+    const clampedPotRaise = clamp(ploProperPotRaise);
+    const potBetSize = Math.round(potSize * 0.90);
+    const halfPotBetSize = Math.round(potSize * 0.50);
+
+    // ── Phase 4: Variance protection (tilt/heater detection) ──
+    const sessionMetrics = state.sessionMetrics || null;
+    const varianceProt = getPLOVarianceProtection(sessionMetrics);
+    // Apply variance factor on top of tightness (compound: both can be active)
+    const combinedTightnessOp = tightnessOp / varianceProt.tightenFactor;
+    // Re-derive equity with combined operator
+    const equityP4 = Math.max(0, Math.min(100,
+        (madeHand.strength + outEquity + nutBonus + lo8Bonus
+            - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias) * combinedTightnessOp
+    ));
+
+    // ── Phase 4: Nut range advantage ──
+    const nutAdvantage = getPLONutRangeAdvantage(madeHand, boardTexture, wasPFRaiser, isIP, street);
+
+    // ── Phase 4: 4-bet pot dynamics ──
+    const isIn4BetPot = state.isIn4BetPot || false;
+    const fourBetDecision = getPLO4BetPotDecision(isIn4BetPot, madeHand, straightDraw.outs, flushDraw.outs, equityP4);
+
+    // ── Phase 4: Donk bet detection ──
+    const donkBetFraction = state.donkBetFraction || 0;
+    const isDonkSituation = donkBetFraction > 0 && toCall > 0 && wasPFRaiser;
+
+    // ── Phase 4: GIF trigger pre-calculation ──
+    const gifInfo = getPLOGifTrigger(madeHand, equityP4, allInInfo.allInEquity, profileId);
+
+    // ── Phase 5: Exploitation profile (opponent-type counter-strategy) ──
+    const exploitProfile = buildPLOExploitationProfile(state.opponentRead || null);
+
+    // ── Phase 5: Pot manipulation ──
+    const potManip = getPLOPotManipulation(numPlayers, exploitProfile, equityP4, isIP, madeHand, totalOuts, potSize, raiseAction);
+
+    // ── Phase 5: River float and fire ──
+    const riverFloat = getPLORiverFloat(madeHand, straightDraw.outs, flushDraw.outs, street, isIP, numPlayers, blockers, potSize, raiseAction);
+
+    // ── Phase 5: Runout quality equity adjustment ──
+    const runoutBonus = runout.runoutQuality === 'excellent' ? 10
+        : runout.runoutQuality === 'good' ? 5
+            : runout.runoutQuality === 'poor' ? -8
+                : runout.runoutQuality === 'dangerous' ? -5 : 0;
+
+    // ── Phase 5: Deep stack draw bonus ──
+    const deepDrawBonus = deepStack.isDeepStack ? deepStack.drawValueBonus : 0;
+
+    // ── Phase 5: Card removal bluff bonus (more removal = more bluffing license) ──
+    const cardRemovalBluffBonus = cardRemoval.removalScore >= 18 ? 8 : cardRemoval.removalScore >= 10 ? 4 : 0;
+
+    // ── Phase 5: Exploitation threshold adjustments ──
+    const exploitValueThreshold = exploitProfile.strategy.valueWider
+        ? oppAdj.valueBetThreshold - 8
+        : exploitProfile.strategy.bluffMore
+            ? oppAdj.valueBetThreshold + 5
+            : oppAdj.valueBetThreshold;
+
+    const exploitFoldThreshold = exploitProfile.strategy.callDown
+        ? oppAdj.foldThreshold - 12  // Call down maniacs with weaker hands
+        : exploitProfile.strategy.stealBlinds
+            ? oppAdj.foldThreshold + 5   // Fold to nit value bets quickly
+            : oppAdj.foldThreshold;
+
+    // ── Phase 5: Final equity with all bonuses applied ──
+    const equityFinal = Math.max(0, Math.min(100, equityP4 + runoutBonus + deepDrawBonus));
+
+    // ── Phase 5: ICM avoidFlips override — avoid coin-flip all-ins at bubble/FT ──
+    const icmCommitThreshold = icmPressure.avoidFlips ? 62 : 52; // Need more equity to commit near bubble
 
     // ─── RIVER ───
     if (street === 'river') {
-        // No more draw equity on river — only made hand matters
-        const riverEquity = madeHand.strength + nutBonus + lo8Bonus - multiwayPenalty + loosenessBias;
+        const riverEquity = (madeHand.strength + nutBonus + lo8Bonus
+            - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias) * combinedTightnessOp;
 
+        // Phase 4: River overbet with nuts + nut range advantage (fires first, highest priority)
         if (toCall === 0) {
-            // Unopened: bet for value or check
-            if (riverEquity >= 72 && canRaise) {
-                // Value bet: size based on hand strength (nuts = big, medium = smaller)
-                const size = riverEquity >= 88 ? potBetSize : halfPotBetSize;
-                return { type: raiseAction.type, amount: clamp(size) };
-            }
-            // Trap with monsters in position
-            if (riverEquity >= 85 && isIP && Math.random() < 0.25) {
-                return { type: 'check' }; // Slow-play for check-raise
-            }
-            return { type: 'check' };
+            const overbet = getPLORiverOverbet(madeHand, nutAdvantage.hasNutAdvantage, sprZone, isIP, potSize, raiseAction);
+            if (overbet.shouldOverbet && canRaise)
+                return { type: raiseAction.type, amount: overbet.overbetAmount };
+
+            // Phase 3: Range balance — force check or bluff occasionally
+            if (rangeBalance.forceBluff && blockers.canBluffRiver && canRaise)
+                return { type: raiseAction?.type || 'bet', amount: clamp(halfPotBetSize) };
+            if (rangeBalance.forceCheck && madeHand.strength >= 80) return { type: 'check' };
         }
 
-        // Facing a bet on river
-        if (riverEquity >= 68 - multiwayPenalty) {
-            // Strong enough to call; raise with nuts
-            if (riverEquity >= 82 && canRaise && Math.random() < 0.55) {
-                return { type: raiseAction?.type || 'call', amount: clamp(potBetSize) };
-            }
-            return canCall ? { type: 'call' } : { type: 'fold' };
+        // Phase 6: Check-behind calibrator (IP river situations)
+        const checkBehindCalibration = getPLOCheckBehindCalibration(equityFinal, madeHand, boardTexture, sdvInfo, numPlayers, 'river');
+
+        // Phase 6: River decision optimizer — the final synthesizer for river actions
+        const optimizedRiver = optimizePLORiverDecision({
+            riverEquity,
+            hvrInfo,
+            rioInfo,
+            sdvInfo,
+            blockers,
+            nutAdvantage,
+            madeHand,
+            boardTexture,
+            isIP,
+            canRaise,
+            canCall,
+            potOdds,
+            clamp,
+            clampedPotRaise,
+            halfPotBetSize,
+            potBetSize,
+            raiseAction,
+            tableImage,
+            checkBehindCalibration,
+            opposingBetSize: toCall,
+            multiwayPenalty,
+        });
+
+        // GIF state machine: fire on river call (going to showdown)
+        if (optimizedRiver.type === 'call' && toCall > 0) {
+            const handPhase = 'river_call';
+            const gifSM = getPLOGifStateMachine(handPhase, gifInfo, profileId);
+            if (gifSM.shouldThrowGif) return { type: 'call', gifCategory: gifSM.gifCategory, gifTiming: gifSM.gifTiming };
         }
-        // Call if pot odds justify it and we have a decent hand
-        if (potOdds < 0.30 && riverEquity >= 48) {
-            return canCall ? { type: 'call' } : { type: 'fold' };
-        }
-        return { type: 'fold' };
+
+        return { type: optimizedRiver.type, amount: optimizedRiver.amount };
     }
 
     // ─── FLOP / TURN ───
 
-    // All-in situations: commit with equity over ~50%
-    if (sprZone.shouldCommit) {
-        if (equity >= 52) {
+    // Phase 4: Donk bet response (opponent bets into the PFR)
+    if (isDonkSituation) {
+        const donkResponse = handlePLODonkBet(donkBetFraction, equityP4, madeHand, totalOuts, isIP, raiseAction, canCall, potSize);
+        if (donkResponse) return { type: donkResponse.action, amount: donkResponse.amount };
+    }
+
+    // Phase 4: 4-bet pot — shove or fold quickly
+    if (isIn4BetPot) {
+        if (fourBetDecision.shouldShoveFlopIn4Bet) {
+            if (gifInfo.shouldThrowGif) {
+                // Attach GIF metadata for the game engine to process
+                return { type: 'all_in', gifCategory: gifInfo.gifCategory };
+            }
             return { type: 'all_in' };
         }
-        if (equity >= 40 && canCall) return { type: 'call' };
+        if (fourBetDecision.shouldFoldWeakIn4Bet) return { type: 'fold' };
+    }
+
+    // Phase 3+5: All-in equity check with ICM awareness
+    if (sprZone.shouldCommit || allInInfo.shouldCommitAllIn) {
+        if (allInInfo.allInEquity >= icmCommitThreshold) {
+            if (gifInfo.shouldThrowGif) return { type: 'all_in', gifCategory: gifInfo.gifCategory };
+            return { type: 'all_in' };
+        }
+        if (allInInfo.allInEquity >= 40 && canCall) return { type: 'call' };
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
     if (toCall === 0) {
-        // Checking around / leading
+        // Phase 2: OOP check-raise trigger (will raise on next action)
+        const cr = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
+        if (cr.shouldCheckRaise) return { type: 'check' };
 
-        // Monsters and nuts: build the pot
-        if (equity >= 80 && canRaise) {
-            const size = madeHand.isNut && !madeHand.hasRedraw ? halfPotBetSize : potBetSize;
-            return { type: raiseAction.type, amount: clamp(size) };
+        // Phase 3: Range balance — occasionally check monsters to balance range
+        if (rangeBalance.forceCheck && equityFinal >= 75) return { type: 'check' };
+
+        // Phase 5: Pot manipulation — isolate fishy opponents
+        if (potManip.shouldIsolate && potManip.isolateSize > 0 && canRaise && equityFinal >= 65)
+            return { type: raiseAction.type, amount: potManip.isolateSize };
+
+        // Phase 5: Charge draws in multi-way (deny pot odds)
+        if (potManip.chargeDrawSize > 0 && canRaise && !potManip.shouldKeepMultiWay)
+            return { type: raiseAction.type, amount: potManip.chargeDrawSize };
+
+        // Phase 3: MSP — play fast NOW if multi-street plan says protect the hand
+        if (msp.shouldPlayFastNow && canRaise && equityFinal >= 55)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.90, raiseAction) };
+
+        // Monsters: build pot (slow-play for range balance if MSP/SPR says so)
+        if (equityFinal >= 80 && canRaise) {
+            if ((sprZone.zone === 'very_deep' || msp.shouldSlowPlay) && isIP && !madeHand.isNut && Math.random() < 0.35)
+                return { type: 'check' }; // Slow-play
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, madeHand.isNut && !madeHand.hasRedraw ? 0.50 : 0.90, raiseAction) };
         }
 
-        // Strong draws: semi-bluff (wrap draws, combo draws with flush draw)
-        if (totalOuts >= 15 && canRaise) { // 15+ outs = committed draw territory
-            if (Math.random() < 0.65) { // Bet with strong draws most of the time
-                return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
-            }
-        }
-        if (totalOuts >= 9 && canRaise && Math.random() < 0.40) { // 9-14 outs
-            return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
-        }
+        // Phase 3: C-bet engine
+        if (cBetStrategy.shouldCBet && canRaise)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, cBetStrategy.cBetFraction, raiseAction) };
 
-        // Medium made hands + flush draw combo
-        if (equity >= 55 && madeHand.hasRedraw && canRaise) {
-            return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
-        }
+        // Phase 3: Turn barrel logic
+        if (turnBarrel?.shouldBarrel && canRaise)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, turnBarrel.barrelFraction, raiseAction) };
 
-        // Position: check back in position with medium made hands
-        if (equity >= 45 && isIP) return { type: 'check' };
-        if (equity >= 55 && canRaise && Math.random() < 0.35) {
-            return { type: raiseAction.type, amount: clamp(halfPotBetSize) };
-        }
+        // Phase 5: River float and fire (IP, draw missed, blockers)
+        if (riverFloat.shouldFireRiver && canRaise)
+            return { type: raiseAction.type, amount: riverFloat.fireSize };
+
+        // Phase 2: IP probe bet
+        const probe = getPLOProbeBet(isIP, equityFinal, boardTexture, numPlayers);
+        if (probe.shouldProbe && canRaise)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, probe.probeSize, raiseAction) };
+
+        // Strong draws: semi-bluff (ERC-adjusted + runout quality)
+        const realizedOuts = totalOuts * erc;
+        if (realizedOuts >= 14 && canRaise && Math.random() < 0.65)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.55, raiseAction) };
+        if (realizedOuts >= 9 && canRaise && Math.random() < 0.38)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.50, raiseAction) };
+
+        // Medium made hands + redraw: bet for protection
+        if (equityFinal >= 55 && madeHand.hasRedraw && canRaise)
+            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.55, raiseAction) };
+
+        // Phase 3: Showdown value — check hands that win at showdown instead of turning into bluffs
+        if (sdvInfo.hasShowdownValue) return { type: 'check' };
+
+        // Scare card: slow down with non-nut hands
+        if (scareInfo.isScareTurn && equityFinal < 70) return { type: 'check' };
+
         return { type: 'check' };
     }
 
     // ─── FACING A BET (Flop / Turn) ───
 
-    // Monster or nut draw facing a bet: raise for value + protection
-    if (equity >= 78 && canRaise) {
-        const size = Math.round(potSize * 1.0); // Pot-size raise
-        return { type: raiseAction?.type || 'call', amount: clamp(size) };
-    }
+    // Phase 2: Check-raise with nuts OOP
+    const crBet = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
+    if (crBet.shouldCheckRaise && canRaise)
+        return { type: raiseAction.type, amount: clamp(crBet.crSize) };
 
-    // Big wrap or combo draw with flush draw: raise/call
-    if (totalOuts >= 15 && canRaise && Math.random() < 0.50) {
-        return { type: raiseAction?.type || 'call', amount: clamp(potBetSize) };
-    }
+    // Monster facing a bet: raise using proper PLO pot geometry
+    if (equityFinal >= 78 && canRaise)
+        return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
 
-    // Strong hand or draw: call
-    if (equity >= 52 - multiwayPenalty) {
-        // Pot odds: must be getting at least 33% (outEquity / 100 vs potOdds)
-        const requiredEquity = potOdds;
-        const ourEquityFraction = equity / 100;
-        if (ourEquityFraction >= requiredEquity - 0.05 && canCall) {
-            return { type: 'call' };
-        }
-    }
+    // Big combo draw: raise for value + protection (use exact de-duped outs)
+    if (comboDrawInfo.isCombo && exactOuts >= 18 && canRaise && Math.random() < 0.55)
+        return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
+    if (flushDraw.outs >= 9 && straightDraw.outs >= 13 && !comboDrawInfo.isCombo && canRaise && Math.random() < 0.55)
+        return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
 
-    // Backdoor combo + medium made hand: call only with good odds
-    if (equity >= 38 && potOdds < 0.25 && canCall) {
+    // Phase 6: Flop continuance optimizer — use HvR + RIO for accurate continue/fold
+    const flopContinuance = getPLOFlopContinuance(
+        equityFinal, exactOuts, madeHand, potOdds,
+        rioInfo, hvrInfo, boardTexture, isIP, numPlayers
+    );
+
+    // High RIO risk with non-nut draw: fold even with many outs
+    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && exactOuts < 16 && potOdds >= 0.30)
+        return { type: 'fold' };
+
+    // Phase 3: Implied odds — reject calls on draws without sufficient implied odds
+    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35)
+        return { type: 'fold' };
+    if (exactOuts >= 9 && impliedOddsInfo.isProfitableCall && canCall)
         return { type: 'call' };
+
+    // Phase 6: Flop continuance score
+    if (!flopContinuance.shouldContinue) return { type: 'fold' };
+
+    // Worth raising if above raise threshold
+    if (flopContinuance.continuanceScore >= flopContinuance.raiseThreshold && canRaise)
+        return { type: raiseAction?.type || 'call', amount: clamp(Math.round(potSize * 0.75)) };
+
+    // Call if continuance says so
+    if (canCall) return { type: 'call' };
+
+    // Phase 5 opponent-adjusted threshold (fallback)
+    if (equityFinal >= exploitFoldThreshold - 5 && canCall) {
+        const ourEquityFraction = equityFinal / 100;
+        if (ourEquityFraction >= potOdds - 0.05) return { type: 'call' };
     }
 
-    // PLO Hi-Lo: Don't fold when scooping is possible
+    // Backdoor + medium equity with good immediate odds
+    if (equityFinal >= 38 && potOdds < 0.25 && canCall) return { type: 'call' };
+
+    // PLO Hi-Lo: never fold nut low
     if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
 
     return { type: 'fold' };
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FALLBACK DECISION ENGINE

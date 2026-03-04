@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Plus, Trophy, Clock, Users, DollarSign,
-  Calendar, Play, Pause, ChevronRight, Filter, Loader2, RefreshCw
+  Calendar, Play, ChevronRight, Filter, Loader2, RefreshCw, Sliders
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
@@ -194,6 +194,42 @@ export default function CommanderTournamentsPage() {
 
         {/* Main Content */}
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+          {/* ── Tournament Director Shortcut Card ── */}
+          <button
+            onClick={() => router.push('/commander/tournament-controls')}
+            className="w-full cmd-panel p-4 text-left flex items-center gap-4 hover:border-[#F59E0B]/50 transition-all active:scale-[0.99]"
+            style={{ borderColor: 'rgba(245,158,11,0.25)', background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(36,37,38,0.95) 100%)' }}
+          >
+            <div style={{
+              width: 56, height: 56, borderRadius: 14, flexShrink: 0,
+              background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <img
+                src="/images/commander/icons/tn-controls.png"
+                alt="Tournament Director"
+                style={{ width: 36, height: 36, objectFit: 'contain' }}
+                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+              />
+              <div style={{ display: 'none', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                <Sliders size={26} style={{ color: '#F59E0B' }} />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white">Tournament Director</p>
+              <p className="text-xs text-[#B0B3B8] mt-0.5">Clock · Structure · Payouts · Players · Tables</p>
+            </div>
+            <div style={{
+              padding: '7px 16px', borderRadius: 10, background: '#F59E0B',
+              color: '#000', fontSize: 13, fontWeight: 700, flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <Sliders size={14} />
+              Launch
+            </div>
+          </button>
+
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-4">
             <button onClick={() => { setFilter(filter === 'active' ? 'current_future' : 'active'); setPage(1); }} className={`cmd-panel p-4 text-center cursor-pointer transition-all hover:border-[#31A24C]/40 ${filter === 'active' ? 'border-[#31A24C]/60 ring-1 ring-[#31A24C]/30' : ''}`}>

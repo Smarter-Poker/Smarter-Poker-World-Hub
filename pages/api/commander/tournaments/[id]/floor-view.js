@@ -254,6 +254,12 @@ export default async function handler(req, res) {
           levels_until_late_reg_closes: lateRegOpen
             ? (tournament.late_registration_levels || 0) - currentLevel
             : 0,
+          // True once the re-entry window closes — signals that auto-break is now active
+          re_entry_period_over: currentLevel > Math.max(
+            tournament.rebuy_levels || 0,
+            tournament.late_registration_levels || 0
+          ),
+
           player_stacks: activeEntries
             .filter(e => e.current_chips > 0)
             .map(e => ({ name: avatarMap[e.player_id]?.display_name || e.player_name, chips: e.current_chips }))

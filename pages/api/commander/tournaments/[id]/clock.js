@@ -13,6 +13,8 @@ import {
   sendPushNotification,
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
+import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tournamentAutoBreak';
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -465,12 +467,26 @@ async function handleClockAction(req, res, tournamentId) {
       .eq('id', tournamentId)
       .single();
 
+    // --- AUTO BREAK CHECK (runs only after level advances, post re-entry period) ---
+    let autoBreakResult = null;
+    if (
+      (action === 'next_level' || action === 'set_level') &&
+      updates.current_level !== undefined &&
+      updated
+    ) {
+      // checkAndExecuteAutoBreak internally checks if re-entry period is over.
+      // If it is and a table can break, it executes the break and returns receipt data.
+      autoBreakResult = await checkAndExecuteAutoBreak(tournamentId, updated);
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         tournament: updated,
         clock: clockState,
-        message: `Tournament ${action} successful`
+        message: `Tournament ${action} successful`,
+        // Included when a table was automatically broken — frontend uses this to print receipts
+        auto_break: autoBreakResult || undefined
       }
     });
   } catch (error) {
