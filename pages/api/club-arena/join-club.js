@@ -4,6 +4,7 @@
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '@supabase/supabase-js';
+const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,6 +22,15 @@ export default async function handler(req, res) {
 
     const { clubCode } = req.body;
     if (!clubCode) return res.status(400).json({ error: 'Club code required' });
+
+    // BUG #281: No rate limit — attacker could brute-force all numeric club codes
+    if (!applyRateLimit(req, res, 'club-arena/join-club')) return;
+
+    // Validate club code is a reasonable integer
+    const codeNum = parseInt(clubCode);
+    if (!Number.isFinite(codeNum) || codeNum <= 0) {
+      return res.status(400).json({ error: 'Invalid club code' });
+    }
 
     try {
         // Find club

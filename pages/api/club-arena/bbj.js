@@ -40,6 +40,32 @@ export default async function handler(req, res) {
     const { clubId } = req.query;
     if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
+    // BUG #280: bbj endpoint had NO authentication — any unauthenticated request
+    // could enumerate club BBJ pools, winner history, and contribution rates.
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    // Verify caller is a member of this club (or union admin)
+    const { data: member } = await supabaseAdmin
+      .from('club_members')
+      .select('role')
+      .eq('club_id', clubId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!member) {
+      // Check union admin fallback
+      const { data: club } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).single();
+      let unionAuth = false;
+      if (club?.union_id) {
+        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', club.union_id).eq('user_id', user.id).single();
+        unionAuth = !!ua;
+      }
+      if (!unionAuth) return res.status(403).json({ error: 'Not a member of this club' });
+    }
+
     try {
       // Get pool
       const { data: pool } = await supabaseAdmin
