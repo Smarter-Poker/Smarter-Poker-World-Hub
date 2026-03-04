@@ -139,9 +139,11 @@ export default function DealerVault({ userId, completedGigs = [] }) {
             const year = parseInt(gig.start_date.slice(0, 4), 10);
             if (year !== currentYear) continue;
             const venue = gig.venue_name || 'Unknown Venue';
-            const total = (gig.days || []).reduce((sum, day) =>
-                sum + (day.downs || []).reduce((s, d) => s + (d.toke_amount || 0), 0), 0
-            );
+            // Use pre-computed totalTokes (attached by fetchGigs) — fallback to days traversal for safety
+            const total = gig.totalTokes !== undefined
+                ? gig.totalTokes
+                : (gig.days || []).reduce((sum, day) =>
+                    sum + (day.downs || []).reduce((s, d) => s + (d.toke_amount || 0), 0), 0);
             venueMap[venue] = (venueMap[venue] || 0) + total;
         }
         return Object.entries(venueMap)
