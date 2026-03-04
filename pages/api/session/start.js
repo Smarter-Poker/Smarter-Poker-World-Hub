@@ -29,15 +29,19 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { user_id, game_id, level = 1 } = req.body;
+        const { game_id, level = 1 } = req.body;
+        // BUG #272 FIX: Always use authenticated user ID, not client-supplied user_id.
+        // The auth middleware sets req.body.userId (camelCase) but this code was
+        // reading user_id (snake_case) from the body, ignoring the JWT identity.
+        const user_id = req.body.userId; // Set by auth middleware from JWT
 
         if (!game_id) {
             return res.status(400).json({ error: 'Missing game_id' });
         }
 
-        // Generate a session ID (use user_id if provided, otherwise anonymous)
+        // Generate a session ID
         const sessionId = uuidv4();
-        const effectiveUserId = user_id || `anon_${uuidv4()}`;
+        const effectiveUserId = user_id; // Always authenticated, no anonymous fallback
 
         // Get game info from registry
         let gameName = 'Training Game';

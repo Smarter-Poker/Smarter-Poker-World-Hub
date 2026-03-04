@@ -22,11 +22,10 @@ export default async function handler(req, res) {
     if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 
 
-    const { userId, hendonUrl } = req.body;
-
-    if (!userId) {
-        return res.status(400).json({ error: 'Missing userId' });
-    }
+    // BUG #273 FIX: Always use authenticated user's ID, ignore client-supplied userId.
+    // Previously an attacker could sync/overwrite HendonMob stats for any user.
+    const userId = _authUser.id;
+    const { hendonUrl } = req.body;
 
     try {
         // Get player name from profile
