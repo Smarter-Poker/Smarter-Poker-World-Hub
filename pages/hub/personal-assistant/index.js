@@ -93,6 +93,13 @@ export default function PersonalAssistantPage() {
       <div style={S.page}>
         <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
 
+        {/* Page Title Header */}
+        <div style={{ textAlign: 'center', marginTop: 20, marginBottom: 10 }}>
+          <h1 style={{ color: '#fff', fontSize: 'clamp(20px, 3.5vw, 32px)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', margin: 0 }}>
+            MEET JARVIS YOUR PERSONAL ASSISTANT
+          </h1>
+        </div>
+
         {/* ═══════════════════════════════════════════════════════════
             FULL-PAGE METAL FRAME — Image fills entire viewport
            ═══════════════════════════════════════════════════════════ */}
@@ -243,14 +250,8 @@ export default function PersonalAssistantPage() {
             id="hotspot-jarvis"
             style={{
               ...S.jarvisHotspot,
-              top: '74.02%', left: '78.88%', width: '11.86%', height: '11.13%',
+              top: '79.2%', left: '79.0%', width: '8.0%', height: '8.0%',
             }}
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                router.push('/hub/messenger?chat=jarvis');
-              }
-            }}
-            title="Chat with Jarvis"
           >
             <img
               src="/images/jarvis-avatar-circle.png"
@@ -345,7 +346,7 @@ const S = {
   jarvisHotspot: {
     position: 'absolute',
     borderRadius: '50%',
-    cursor: 'pointer',
+    pointerEvents: 'none',
     overflow: 'hidden',
     zIndex: 3,
     display: 'flex',
