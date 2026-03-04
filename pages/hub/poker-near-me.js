@@ -1923,6 +1923,95 @@ export default function PokerNearMePage() {
                         </div>
                     )}
 
+                    {/* Filter Panel (below HUD) */}
+                    {showFilters && (
+                        <div className="filter-panel" style={{ maxWidth: 720, margin: '0 auto 16px', padding: 16, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
+                            {activeTab === 'venues' && (
+                                <>
+                                    <div className="filter-group">
+                                        <label>Venue Type</label>
+                                        <div className="filter-chips">
+                                            {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
+                                                <button key={type} className={'chip' + (filters.venueType === type ? ' active' : '')}
+                                                    onClick={() => setFilters({ ...filters, venueType: type })}>
+                                                    {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="filter-group">
+                                        <label>Games</label>
+                                        <div className="filter-chips">
+                                            <button className={'chip' + (filters.hasNLH ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
+                                            <button className={'chip' + (filters.hasPLO ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
+                                            <button className={'chip' + (filters.hasMixed ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            {activeTab === 'tours' && (
+                                <div className="filter-group">
+                                    <label>Tour Type</label>
+                                    <div className="filter-chips">
+                                        {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
+                                            <button key={type} className={'chip' + (filters.tourType === type ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, tourType: type })}>
+                                                {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {activeTab === 'series' && (
+                                <>
+                                    <div className="filter-group">
+                                        <label>Timeframe</label>
+                                        <div className="filter-chips">
+                                            {[30, 60, 90, 180].map(days => (
+                                                <button key={days} className={'chip' + (filters.seriesTimeframe === days ? ' active' : '')}
+                                                    onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
+                                                    {days} Days
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="filter-group">
+                                        <label>Series Type</label>
+                                        <div className="filter-chips">
+                                            {['all', 'major', 'circuit', 'regional'].map(type => (
+                                                <button key={type} className={'chip' + (filters.seriesType === type ? ' active' : '')}
+                                                    onClick={() => setFilters({ ...filters, seriesType: type })}>
+                                                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            {activeTab === 'daily' && (
+                                <div className="filter-group">
+                                    <label>Buy-In Range</label>
+                                    <div className="filter-inputs" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                        <input type="number" placeholder="Min $" value={filters.minBuyin}
+                                            onChange={e => setFilters({ ...filters, minBuyin: e.target.value })}
+                                            style={{ width: 100, padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff', fontSize: 14 }} />
+                                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>To</span>
+                                        <input type="number" placeholder="Max $" value={filters.maxBuyin}
+                                            onChange={e => setFilters({ ...filters, maxBuyin: e.target.value })}
+                                            style={{ width: 100, padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff', fontSize: 14 }} />
+                                    </div>
+                                </div>
+                            )}
+                            <button onClick={() => { fetchAllData({ includeVenues: hasSearched }); setShowFilters(false); }}
+                                style={{ width: '100%', padding: 12, background: 'linear-gradient(135deg, #d4a853, #b8860b)', border: 'none', borderRadius: 10, color: '#000', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                                Apply Filters
+                            </button>
+                        </div>
+                    )}
+
                     {/* Main Content */}
                     <main className="pnm-content">
                         {renderContent()}
