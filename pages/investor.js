@@ -718,7 +718,7 @@ export default function InvestorPitchDeck() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -50 }}
                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                    style={{ width: '100%', height: '100%' }}
+                    style={{ width: '100%', height: '100%', textTransform: 'capitalize' }}
                 >
                     {slide.type === 'title' && <TitleSlide {...slide} />}
                     {slide.type === 'split' && <SplitSlide {...slide} />}
@@ -733,8 +733,38 @@ export default function InvestorPitchDeck() {
             </div>
 
             {/* NAVIGATION OVERLAYS (Click left/right side to advance) */}
-            <div onClick={() => setCurrentSlide(s => Math.max(0, s - 1))} style={{ position: 'absolute', top: '10%', bottom: '10%', left: 0, width: '20%', cursor: 'w-resize', zIndex: 90 }} />
-            <div onClick={() => setCurrentSlide(s => Math.min(SLIDES.length - 1, s + 1))} style={{ position: 'absolute', top: '10%', bottom: '10%', right: 0, width: '20%', cursor: 'e-resize', zIndex: 90 }} />
+            <div onClick={() => setCurrentSlide(s => Math.max(0, s - 1))} style={{ position: 'absolute', top: '10%', bottom: '10%', left: 0, width: '15%', cursor: 'w-resize', zIndex: 90 }} />
+            <div onClick={() => setCurrentSlide(s => Math.min(SLIDES.length - 1, s + 1))} style={{ position: 'absolute', top: '10%', bottom: '10%', right: 0, width: '15%', cursor: 'e-resize', zIndex: 90 }} />
+
+            {/* VISIBLE ARROW BUTTONS */}
+            <button
+                onClick={() => setCurrentSlide(s => Math.max(0, s - 1))}
+                style={{
+                    position: 'absolute', top: '50%', left: 20, transform: 'translateY(-50%)',
+                    width: 50, height: 50, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)',
+                    color: '#fff', fontSize: '28px', cursor: 'pointer', zIndex: 100,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: currentSlide === 0 ? 0 : 1, pointerEvents: currentSlide === 0 ? 'none' : 'auto',
+                    transition: 'opacity 0.2s', backdropFilter: 'blur(4px)'
+                }}
+            >
+                ‹
+            </button>
+            <button
+                onClick={() => setCurrentSlide(s => Math.min(SLIDES.length - 1, s + 1))}
+                style={{
+                    position: 'absolute', top: '50%', right: 20, transform: 'translateY(-50%)',
+                    width: 50, height: 50, borderRadius: '50%',
+                    background: 'rgba(0,180,216,0.1)', border: '1px solid rgba(0,180,216,0.5)',
+                    color: '#00B4D8', fontSize: '28px', cursor: 'pointer', zIndex: 100,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: currentSlide === SLIDES.length - 1 ? 0 : 1, pointerEvents: currentSlide === SLIDES.length - 1 ? 'none' : 'auto',
+                    transition: 'opacity 0.2s', backdropFilter: 'blur(4px)'
+                }}
+            >
+                ›
+            </button>
         </div>
     );
 }
