@@ -51,6 +51,19 @@ export const EMPLOYEE_PORTAL_ORB: OrbConfig = {
     description: 'YOUR WORK HUB — VIEW SCHEDULE, TRACK DOWNS, AND TIME CLOCK',
 };
 
+// Toke Tracker — always shown for ALL authenticated users (traveler/independent dealer access)
+export const TOKE_TRACKER_ORB: OrbConfig = {
+    id: 'toke-tracker',
+    color: '#f59e0b',
+    label: 'Toke Tracker',
+    gradient: ['#f59e0b', '#b45309'],
+    imageUrl: '/cards/toke-tracker.jpg',
+    description: 'DEALER INCOME ENGINE — TRACK TOKES, DOWNS, EXPENSES & CAREER STATS',
+};
+
+// Cards that can never be hidden by the user (core identity cards)
+export const PINNED_ORB_IDS: string[] = ['toke-tracker'];
+
 // Utility exports
 export const ORB_COUNT = POKER_IQ_ORBS.length;
 export const getOrbById = (id: string) => POKER_IQ_ORBS.find(orb => orb.id === id);

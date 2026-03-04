@@ -12,14 +12,15 @@ import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
-import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex } from '../state/userPreferences';
+import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex, getHiddenCardIds } from '../state/userPreferences';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
-import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS } from '../orbs/manifest/registry';
+import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
 import { useReturnBurst } from './components/ReturnBurst';
+import { CardCustomizerPanel } from './components/CardCustomizerPanel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📱 MOBILE DETECTION HOOK
@@ -360,7 +361,7 @@ function ProfileOrbInline({ onClick, size = 48, avatarUrl }: ProfileOrbInlinePro
 // ─────────────────────────────────────────────────────────────────────────────
 // 🌍 POKERBROS WORLD HUB — MAIN EXPORT
 // ─────────────────────────────────────────────────────────────────────────────
-export default function WorldHub() {
+export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomizer?: () => void } = {}) {
     // Get store actions for navigation
     const selectOrb = useWorldStore((state) => state.selectOrb);
     const exitOrb = useWorldStore((state) => state.exitOrb);
@@ -418,6 +419,8 @@ export default function WorldHub() {
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
     const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
     const [hasLinkedVenues, setHasLinkedVenues] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [hiddenCardIds, setHiddenCardIdsState] = useState<string[]>([]);
 
     // Check if user has a Commander account — localStorage first for instant display
     useEffect(() => {
@@ -429,16 +432,24 @@ export default function WorldHub() {
                 if (parsed?.id || parsed?.venue_id || parsed?.role) setHasCommanderAccount(true);
             }
         } catch { }
+        // Load hidden card preferences
+        setHiddenCardIdsState(getHiddenCardIds());
     }, []);
 
-    // Build carousel orbs — inject Commander and/or Employee Portal cards
+    // Build carousel orbs — inject Toke Tracker (always), Commander and/or Employee Portal cards
     const carouselOrbs = useMemo(() => {
-        if (!hasCommanderAccount && !hasLinkedVenues) return undefined; // use default POKER_IQ_ORBS
         const orbs = [...POKER_IQ_ORBS];
+        // Always inject Toke Tracker at position 2 (after Social Media + Diamond Arena)
+        if (!orbs.find(o => o.id === 'toke-tracker')) {
+            orbs.splice(2, 0, TOKE_TRACKER_ORB);
+        }
         if (hasLinkedVenues) orbs.unshift(EMPLOYEE_PORTAL_ORB);
         if (hasCommanderAccount) orbs.unshift(COMMANDER_ORB);
-        return orbs;
-    }, [hasCommanderAccount, hasLinkedVenues]);
+        // Filter out user-hidden cards
+        return hiddenCardIds.length > 0
+            ? orbs.filter(o => !hiddenCardIds.includes(o.id))
+            : orbs;
+    }, [hasCommanderAccount, hasLinkedVenues, hiddenCardIds]);
 
     // Fetch user profile data including avatar + Commander account detection via Supabase
     useEffect(() => {
@@ -516,6 +527,8 @@ export default function WorldHub() {
                         }
                     }
                 }
+                // Mark user as authenticated (sets isAuthenticated for future features)
+                if (user) setIsAuthenticated(true);
             } catch (e) {
                 console.error('Failed to fetch user profile:', e);
             }
@@ -589,6 +602,12 @@ export default function WorldHub() {
             return;
         }
 
+        // Toke Tracker card routes directly to the bankroll manager toke tab
+        if (cardId === 'toke-tracker') {
+            router.push('/hub/bankroll-manager?view=toke-tracker');
+            return;
+        }
+
         // Intro video config - same as handleOrbSelect
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
@@ -637,6 +656,12 @@ export default function WorldHub() {
             return;
         }
 
+        // Toke Tracker card routes directly to the bankroll manager toke tab
+        if (orbId === 'toke-tracker') {
+            router.push('/hub/bankroll-manager?view=toke-tracker');
+            return;
+        }
+
         // Immediately start prefetching the page while video plays
         router.prefetch(targetRoute);
 
@@ -665,6 +690,11 @@ export default function WorldHub() {
     // Toggle profile dropdown
     const handleProfileClick = () => {
         setIsProfileDropdownOpen(prev => !prev);
+    };
+
+    // Reload hidden card state when customizer panel closes (it may have changed)
+    const handleCustomizerClose = () => {
+        setHiddenCardIdsState(getHiddenCardIds());
     };
 
     return (

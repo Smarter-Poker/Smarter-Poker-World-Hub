@@ -4200,18 +4200,28 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Apply variance factor on top of tightness (compound: both can be active)
     // Phase 7: stack preservation factor also applies here
     const combinedTightnessOp = tightnessOp / (varianceProt.tightenFactor * Math.max(1.0, stackPreservation.preservationFactor - 0.35));
-    // Re-derive equity with combined operator + Phase 7 live-read adjustments
+    // ─── MODULE 12: PLO MULTIWAY EQUITY DEGRADATION SHIELD ───
+    // Discount the horse's effective strength based on number of active players.
+    // Prevents the horse from over-valuing medium hands in 4-5 way pots.
     const equityP4 = Math.max(0, Math.min(100,
-        (madeHand.strength + outEquity + nutBonus + lo8Bonus
-            - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias
-            + chipAccumulation.accumulationBonus
+        (applyMultiwayEquityDiscount(
+            madeHand.strength + outEquity + nutBonus + lo8Bonus
+            - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias,
+            numPlayers  // <─ Module 12 applies here instead of raw madeHand.strength
+        ) + chipAccumulation.accumulationBonus
             + betSizingTell.callAdjustment
             + timingTell.equityAdjustment
         ) * combinedTightnessOp
     ));
 
+    // ─── MODULE 13: PLO NUT-BIAS EXPLOIT DETECTOR ───
+    // On dry/rainbow/low boards, humans know the horse favors nut-heavy hands.
+    // They bluff into the horse expecting a fold. We add a check-raise option for medium hands.
+    const nutBiasInfo = detectNutBiasExploitBoard(boardCards, numPlayers);
+
     // ── Phase 4: Nut range advantage ──
     const nutAdvantage = getPLONutRangeAdvantage(madeHand, boardTexture, wasPFRaiser, isIP, street);
+
 
     // ── Phase 4: 4-bet pot dynamics ──
     const isIn4BetPot = state.isIn4BetPot || false;
@@ -4313,6 +4323,14 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             );
             if (riverCR.shouldCheckRaiseRiver) {
                 return { type: 'check' }; // Check now; will raise when opponent bets
+            }
+
+            // ─── MODULE 13: NUT-BIAS EXPLOIT DEFENSE (Check-Raise on Dry Boards) ───
+            // On boards where humans expect us to have nothing (nut-unlikely),
+            // we trap by checking medium-strength hands and check-raising their probe bet.
+            if (nutBiasInfo.shouldAddCheckRaise && equityFinal >= 35 && equityFinal <= 60 && Math.random() < 0.45) {
+                console.log(`[HorseBrain] 😈 MODULE 13 NUT-BIAS TRAP: checking to check-raise on dry board (equity=${equityFinal.toFixed(0)}, nutUnlikely=${nutBiasInfo.nutUnlikelyScore})`);
+                return { type: 'check' };
             }
         }
         // Opt D: River check-raise AFTER seeing the bet (toCall > 0 and we OOP can now raise)
@@ -5373,6 +5391,51 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         console.log(`[HorseBrain] 🛡️  Counter-mode: ${counterStrategy.mode} vs ${primaryOppId?.substring(0, 8) || 'N/A'}`);
     }
 
+    // ─── MODULE 9: THREAT INTEL LAZY-LOAD (Module 16: Threat Score Leaderboard) ───
+    // On first encounter with this human, pull their cross-session threat record.
+    // If already a known high-threat, pre-arm counter-mode without waiting for in-session evidence.
+    if (primaryOppId) {
+        _loadThreatIntel(primaryOppId).then(intel => {
+            if (intel && intel.totalScore >= 65 && counterStrategy.mode === 'standard') {
+                counterStrategy.mode = intel.totalScore >= 80 ? 'anti_bot_stealth' : 'anti_bot';
+                console.warn(`[HorseBrain] 📥 MODULE 9 PRE-ARM: ${primaryOppId.substring(0, 8)} known threat=${intel.totalScore} → mode=${counterStrategy.mode}`);
+            }
+        }).catch(() => { });
+
+        // Module 14: If opponent is actively blacklisted, spike horse tilt to escape table ASAP
+        if (isBlacklisted(primaryOppId)) {
+            console.error(`[HorseBrain] 🛑 MODULE 14 BLACKLIST: ${primaryOppId.substring(0, 8)} is blacklisted! Spiking tilt to escape.`);
+            if (!tiltMap.has(profileId)) tiltMap.set(profileId, {});
+            const ts = tiltMap.get(profileId);
+            ts.multiplier = 1.0;
+            ts.reason = `Blacklisted opponent ${primaryOppId.substring(0, 8)} at table`;
+        }
+    }
+
+    // ─── MODULE 15: TIMEBANK ABUSE CHECK ───
+    // If a human has been stalling at this table (avg action > 22s), trigger delayed stand-up
+    if (primaryOppId) {
+        const tbData = timeAbuseSuspicion.get(primaryOppId);
+        if (tbData && tbData.suspicionScore >= 70) {
+            const tableBlacklistedUntil = tableTimebankBlacklist.get(tableId) || 0;
+            if (Date.now() > tableBlacklistedUntil) {
+                tableTimebankBlacklist.set(tableId, Date.now() + 60 * 60 * 1000); // 60 min table ban
+                console.warn(`[HorseBrain] ⏱️ MODULE 15 STALL: ${primaryOppId.substring(0, 8)} stall score=${tbData.suspicionScore} — blacklisting table ${tableId.substring(0, 8)} for 60min`);
+                // Spike tilt to 1.0 so evaluateSessions triggers a stand-up
+                if (!tiltMap.has(profileId)) tiltMap.set(profileId, {});
+                tiltMap.get(profileId).multiplier = 1.0;
+                tiltMap.get(profileId).reason = `Stall attacker at table`;
+            }
+        }
+    }
+
+    // ─── MODULE 11: PROACTIVE RANGE ROTATION ───
+    // Get the current gear for this horse at this table.
+    // Gear adjustments cascade into all fold/raise threshold calculations below.
+    const rangeGear = getRangeRotationGear(profileId, tableId);
+    // These mods are added to any existing opponentAdjustment later in the pipeline
+    const gearFoldMod = rangeGear.foldMod;
+    const gearRaiseMod = rangeGear.raiseMod;
 
     // ─── PLO / VARIANT-AWARE ROUTING ───
     // PioSolver only has Holdem solved spots. For Omaha variants (PLO4, PLO5, PLO6, PLO8),
@@ -6075,6 +6138,16 @@ function recordRebuy(tableId, playerId, amount) {
  */
 function clearTableSessions(tableId) {
     sessionTracker.delete(tableId);
+
+    // ─── MODULE 10: Clean up cross-table radar ───
+    for (const [oppId, tableSet] of crossTableRadar) {
+        tableSet.delete(tableId);
+        if (tableSet.size === 0) crossTableRadar.delete(oppId);
+    }
+    // Clean up timebank blacklist if expired
+    if ((tableTimebankBlacklist.get(tableId) || 0) < Date.now()) {
+        tableTimebankBlacklist.delete(tableId);
+    }
 }
 
 // --- Audit 14: Anti-Collusion Tracker ---
@@ -6111,8 +6184,259 @@ const chaosSuppressionMap = new Map();
 // Map<opponentId, { perfectFolds:n, gtoSizes:n, humanErrors:n, handsObserved:n, suspectScore:n }>
 const suspectBotMap = new Map();
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 2: CROSS-SESSION THREAT INTELLIGENCE (MODULES 9-16)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// --- Module 9: Threat Intelligence Persistence ---
+// In-RAM threat intel cache, hydrated from Supabase on first encounter.
+// Map<opponentId, { suspectBotScore, patternBb, crossTableHits, timebankAbuseScore, totalScore, blacklistedUntil }>
+const threatIntelCache = new Map();
+// Debounce timers for upserting threat intel (avoid hammering DB every hand)
+const threatPersistTimers = new Map();
+
+// --- Module 10: Cross-Table Collusion Radar ---
+// Tracks which human opponents are seated at how many horse tables simultaneously.
+// Map<opponentId, Set<tableId>>
+const crossTableRadar = new Map();
+
+// --- Module 11: Proactive Range Rotation ---
+// Gear cycle (A/B/C/D) per horse per table, rotates every 30 hands.
+// Map<horseId+":"+tableId, { gear: 'A'|'B'|'C'|'D', handsSinceRotation: n }>
+const rangeRotationMap = new Map();
+const RANGE_GEARS = ['A', 'B', 'C', 'D'];
+const GEAR_ADJUSTMENTS = {
+    A: { foldMod: -5, raiseMod: +5, label: 'loose-aggressive' },
+    B: { foldMod: 0, raiseMod: 0, label: 'gto-standard' },
+    C: { foldMod: +5, raiseMod: -5, label: 'tight-passive' },
+    D: { foldMod: -3, raiseMod: +8, label: 'bluff-heavy' },
+};
+
+// --- Module 15: Anti-Timebank Abuse Detector ---
+// Map<opponentId, { actionTimes: number[], suspicionScore: number }>
+const timeAbuseSuspicion = new Map();
+// Map<tableId, blacklistedUntilMs>
+const tableTimebankBlacklist = new Map();
+
 // ─────────────────────────────────────────────────────────────────────────────
-// MODULE 8: COUNTER-EXPLOIT PROFILER
+// MODULE 9: THREAT INTEL PERSISTENCE FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Lazy-load a single opponent's threat intel from Supabase.
+ * Hydrates all Phase 1 + Phase 2 tracking structures from persistent storage.
+ * @param {string} opponentId
+ */
+async function _loadThreatIntel(opponentId) {
+    if (threatIntelCache.has(opponentId)) return threatIntelCache.get(opponentId);
+    const sb = getSupabase();
+    if (!sb) return null;
+    try {
+        const { data } = await sb
+            .from('horse_threat_intel')
+            .select('*')
+            .eq('opponent_id', opponentId)
+            .single();
+        if (!data) {
+            threatIntelCache.set(opponentId, null);
+            return null;
+        }
+        const intel = {
+            suspectBotScore: data.suspect_bot_score || 0,
+            patternExploitType: data.pattern_exploit_type || null,
+            patternExploitBb: data.pattern_exploit_bb || 0,
+            crossTableHits: data.cross_table_hits || 0,
+            timebankAbuseScore: data.timebank_abuse_score || 0,
+            totalScore: data.total_threat_score || 0,
+            blacklistedUntil: data.blacklisted_until ? new Date(data.blacklisted_until).getTime() : null,
+        };
+        threatIntelCache.set(opponentId, intel);
+        // Hydrate Phase 1 suspectBotMap from persistent score
+        if (intel.suspectBotScore > 0 && !suspectBotMap.has(opponentId)) {
+            suspectBotMap.set(opponentId, {
+                perfectFolds: 0, gtoSizes: 0, humanErrors: 0, handsObserved: 0,
+                suspectScore: intel.suspectBotScore
+            });
+        }
+        if (intel.totalScore >= 65) {
+            console.warn(`[HorseBrain] 📥 MODULE 9 LOADED: ${opponentId.substring(0, 8)} — known threat score ${intel.totalScore}/100`);
+        }
+        return intel;
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * Persist accumulated threat data for an opponent to Supabase (debounced 5s).
+ * @param {string} opponentId
+ */
+function _persistThreatIntel(opponentId) {
+    if (threatPersistTimers.has(opponentId)) {
+        clearTimeout(threatPersistTimers.get(opponentId));
+    }
+    const timer = setTimeout(async () => {
+        threatPersistTimers.delete(opponentId);
+        const sb = getSupabase();
+        if (!sb) return;
+        const botData = suspectBotMap.get(opponentId);
+        const patternData = [...(patternProfitMap.values())].flatMap(m => {
+            const v = m.get(opponentId);
+            return v ? [v] : [];
+        })[0] || null;
+        const crossHits = crossTableRadar.get(opponentId)?.size || 0;
+        const timebankData = timeAbuseSuspicion.get(opponentId);
+        const threatScore = getThreatScore(opponentId);
+        const blacklistedUntil = threatScore >= 80 ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+        const payload = {
+            opponent_id: opponentId,
+            suspect_bot_score: botData?.suspectScore || 0,
+            pattern_exploit_type: patternData ? Object.entries({ cbet: patternData.cbet, check_raise: patternData.check_raise, float: patternData.float, bluff: patternData.bluff }).sort((a, b) => b[1] - a[1])[0]?.[0] : null,
+            pattern_exploit_bb: patternData?.totalProfit || 0,
+            cross_table_hits: crossHits,
+            timebank_abuse_score: timebankData?.suspicionScore || 0,
+            total_threat_score: threatScore,
+            blacklisted_until: blacklistedUntil,
+            last_seen: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        try {
+            await sb.from('horse_threat_intel').upsert(payload, { onConflict: 'opponent_id' });
+            // Update cache
+            threatIntelCache.set(opponentId, {
+                suspectBotScore: payload.suspect_bot_score,
+                patternExploitType: payload.pattern_exploit_type,
+                patternExploitBb: payload.pattern_exploit_bb,
+                crossTableHits: crossHits,
+                timebankAbuseScore: payload.timebank_abuse_score,
+                totalScore: threatScore,
+                blacklistedUntil: blacklistedUntil ? new Date(blacklistedUntil).getTime() : null,
+            });
+            if (threatScore >= 80) {
+                console.warn(`[HorseBrain] 🔴 MODULE 14 BLACKLIST: ${opponentId.substring(0, 8)} — 24h blacklist applied (score=${threatScore}/100)`);
+            }
+        } catch (err) {
+            console.error(`[HorseBrain] Threat intel persist failed for ${opponentId.substring(0, 8)}: ${err.message}`);
+        }
+    }, 5000);
+    threatPersistTimers.set(opponentId, timer);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 14: DYNAMIC BLACKLIST ENFORCER — Unified Threat Score
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Compute combined threat score (0-100) from all Phase 1 + Phase 2 signals.
+ * @param {string} opponentId
+ * @returns {number}
+ */
+function getThreatScore(opponentId) {
+    // Bot score (0-100 from Phase 1, contributes up to 40 points)
+    const botScore = (suspectBotMap.get(opponentId)?.suspectScore || 0) * 0.40;
+    // Pattern exploitation (0-∞ BB won, contributes up to 30 points, capped at 30BB = 30pts)
+    const patternBb = [...(patternProfitMap.values())]
+        .flatMap(m => { const v = m.get(opponentId); return v ? [v.totalProfit] : []; })
+        .reduce((sum, v) => sum + v, 0);
+    const patternScore = Math.min(30, patternBb);
+    // Cross-table hits (up to 20 points)
+    const crossScore = Math.min(20, (crossTableRadar.get(opponentId)?.size || 0) * 7);
+    // Timebank abuse (up to 10 points)
+    const timebankScore = Math.min(10, (timeAbuseSuspicion.get(opponentId)?.suspicionScore || 0) * 0.10);
+    return Math.min(100, Math.round(botScore + patternScore + crossScore + timebankScore));
+}
+
+/**
+ * Check if an opponent is currently blacklisted (24h ban applied).
+ * @param {string} opponentId
+ * @returns {boolean}
+ */
+function isBlacklisted(opponentId) {
+    const cached = threatIntelCache.get(opponentId);
+    if (cached?.blacklistedUntil && cached.blacklistedUntil > Date.now()) return true;
+    return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 11: PROACTIVE RANGE ROTATION
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Get the current range rotation gear for a horse at a given table.
+ * Advances through A→B→C→D every 30 hands automatically.
+ * @param {string} horseId
+ * @param {string} tableId
+ * @returns {{ gear: string, foldMod: number, raiseMod: number }}
+ */
+function getRangeRotationGear(horseId, tableId) {
+    const key = `${horseId}:${tableId}`;
+    if (!rangeRotationMap.has(key)) {
+        // Stagger starting gear per horse to prevent all horses rotating in sync
+        const hash = horseId.charCodeAt(0) % 4;
+        rangeRotationMap.set(key, { gear: RANGE_GEARS[hash], handsSinceRotation: 0 });
+    }
+    const state = rangeRotationMap.get(key);
+    state.handsSinceRotation++;
+    if (state.handsSinceRotation >= 30) {
+        const nextIdx = (RANGE_GEARS.indexOf(state.gear) + 1) % RANGE_GEARS.length;
+        state.gear = RANGE_GEARS[nextIdx];
+        state.handsSinceRotation = 0;
+        console.log(`[HorseBrain] 🔄 MODULE 11 ROTATION: ${horseId.substring(0, 8)} gear → ${state.gear} (${GEAR_ADJUSTMENTS[state.gear].label})`);
+    }
+    return { gear: state.gear, ...GEAR_ADJUSTMENTS[state.gear] };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 12: PLO MULTIWAY EQUITY DEGRADATION SHIELD
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Discounts PLO hand strength for multiway pots. In PLO, equity degrades
+ * sharply as players are added — the horse must account for this.
+ * @param {number} strength - Raw made hand strength (0-100)
+ * @param {number} numPlayers - Active players in the pot
+ * @returns {number} - Discounted strength
+ */
+function applyMultiwayEquityDiscount(strength, numPlayers) {
+    const discounts = { 2: 0, 3: 10, 4: 18, 5: 25 };
+    const discount = discounts[Math.min(5, numPlayers)] ?? 25;
+    return Math.max(0, strength - discount);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 13: PLO NUT-BIAS EXPLOIT DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Detects whether the current board is a 'nut-unlikely' texture that humans
+ * attempt to exploit when they know the horse is nut-biased.
+ * High score = dry/rainbow/low board = humans likely to probe bluff.
+ * @param {Array} boardCards - Parsed board card objects [{rank, suit},...]
+ * @param {number} numPlayers
+ * @returns {{ nutUnlikelyScore: number, shouldAddCheckRaise: boolean }}
+ */
+function detectNutBiasExploitBoard(boardCards, numPlayers) {
+    if (!boardCards || boardCards.length < 3) return { nutUnlikelyScore: 0, shouldAddCheckRaise: false };
+    let score = 0;
+    // Rainbow (all different suits) = nut flush unlikely
+    const suits = boardCards.map(c => c.suit);
+    const uniqueSuits = new Set(suits).size;
+    if (uniqueSuits === boardCards.length) score += 25; // Fully rainbow
+    // Dry (no pair, no connected cards) = nut straight unlikely
+    const ranks = boardCards.map(c => c.rank).sort((a, b) => a - b);
+    const hasPair = ranks.some((r, i) => ranks[i + 1] === r);
+    if (!hasPair) score += 15;
+    // No cards above Jack = nut straight head-blockers unlikely
+    const maxRank = Math.max(...ranks);
+    if (maxRank <= 9) score += 15; // All low cards
+    // Single-gap or double-gap = no straight possible
+    const gaps = ranks.slice(1).map((r, i) => r - ranks[i]);
+    const maxGap = Math.max(...gaps);
+    if (maxGap > 3) score += 10;
+    // Multi-way reduces likelihood any individual holds the nuts
+    if (numPlayers >= 4) score -= 10; // In multiway the nuts are more likely to be out
+    const nutUnlikelyScore = Math.max(0, Math.min(100, score));
+    // If nut-unlikely board is confirmed, add check-raise to repertoire vs bluffers
+    const shouldAddCheckRaise = nutUnlikelyScore >= 40;
+    return { nutUnlikelyScore, shouldAddCheckRaise };
+}
+
+
 // Reads all tracking modules and returns a unified counter-strategy mode.
 // Called at the top of getDecision to set the strategic posture for the hand.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -6342,6 +6666,42 @@ async function processHandResult(handData, bb = 2) {
             if (botData.suspectScore >= 65 && botData.handsObserved >= 10) {
                 console.warn(`[HorseBrain] 🤖 MODULE 7 BOT DETECTED: ${oppId.substring(0, 8)} suspect score = ${botData.suspectScore}/100 (${botData.handsObserved} hands)`);
             }
+
+            // ─── MODULE 10: CROSS-TABLE COLLUSION RADAR ───
+            // Track how many horse tables this human is simultaneously farming.
+            const tableHR = handData.tableId || 'unknown';
+            if (!crossTableRadar.has(oppId)) crossTableRadar.set(oppId, new Set());
+            crossTableRadar.get(oppId).add(tableHR);
+            const tablesCount = crossTableRadar.get(oppId).size;
+            if (tablesCount >= 3) {
+                console.warn(`[HorseBrain] 🚫 MODULE 10 CROSS-TABLE: ${oppId.substring(0, 8)} at ${tablesCount} horse tables simultaneously!`);
+            }
+
+            // ─── MODULE 15: TIMEBANK ABUSE DETECTOR ───
+            // Track per-human average action time. >22s average = stall tactic.
+            const oppActionMs = opp.lastActionDurationMs || opp.actionTimeMs || 0;
+            if (oppActionMs > 0) {
+                if (!timeAbuseSuspicion.has(oppId)) timeAbuseSuspicion.set(oppId, { actionTimes: [], suspicionScore: 0 });
+                const tbTrack = timeAbuseSuspicion.get(oppId);
+                tbTrack.actionTimes.push(oppActionMs);
+                // Keep only last 10 action times for a rolling average
+                if (tbTrack.actionTimes.length > 10) tbTrack.actionTimes.shift();
+                const avgMs = tbTrack.actionTimes.reduce((s, t) => s + t, 0) / tbTrack.actionTimes.length;
+                // Stall threshold: avg > 22000ms (22 seconds)
+                if (avgMs > 22000) {
+                    tbTrack.suspicionScore = Math.min(100, tbTrack.suspicionScore + 5);
+                    if (tbTrack.suspicionScore >= 70) {
+                        console.warn(`[HorseBrain] ⏱️ MODULE 15 STALL: ${oppId.substring(0, 8)} avg=${(avgMs / 1000).toFixed(1)}s, suspicion=${tbTrack.suspicionScore}/100`);
+                    }
+                } else {
+                    // Decay suspicion for legitimate players
+                    tbTrack.suspicionScore = Math.max(0, tbTrack.suspicionScore - 2);
+                }
+            }
+
+            // ─── MODULE 9: PERSIST THREAT INTEL (Debounced — 5s) ───
+            // Trigger a debounced Supabase upsert of all accumulated threat signals.
+            _persistThreatIntel(oppId);
         }
     }
 }

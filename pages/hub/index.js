@@ -11,6 +11,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { claimReward } from '../../src/lib/claimReward';
+import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
 const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
@@ -34,6 +35,10 @@ const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
 export default function HubPage() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [user, setUser] = useState(null);
+    const [cardCustomizerOpen, setCardCustomizerOpen] = useState(false);
+
+    // Special unlocked card IDs for this user (for the customizer panel)
+    const [unlockedSpecialIds, setUnlockedSpecialIds] = useState([]);
 
     useEffect(() => {
         // getAuthUser is synchronous, returns user or null
@@ -45,9 +50,24 @@ export default function HubPage() {
             sessionStorage.setItem('dailyLoginClaimed', 'true');
             claimReward('/api/rewards/daily-login', { userId: authUser.id }, 'Daily Login Reward');
         }
+
+        // Detect which special cards are unlocked for this user
+        const unlocked = ['toke-tracker']; // Always unlocked
+        try {
+            const stored = localStorage.getItem('commander_staff');
+            if (stored && JSON.parse(stored)?.id) unlocked.push('club-commander');
+        } catch { }
+        setUnlockedSpecialIds(unlocked);
     }, []);
 
-    const menuConfig = getMenuConfig('hub-home', user, {}, {});
+    const handlers = {
+        openCardCustomizer: () => {
+            setMenuOpen(false);
+            setTimeout(() => setCardCustomizerOpen(true), 150); // slight delay after menu closes
+        },
+    };
+
+    const menuConfig = getMenuConfig('hub-home', user, {}, handlers);
 
     return (
         <>
@@ -70,7 +90,13 @@ export default function HubPage() {
                 menuItems={menuConfig.menuItems}
                 bottomLinks={menuConfig.bottomLinks}
             />
-            <WorldHub />
+            {/* Card Visibility Customizer Panel — triggered from hamburger menu or profile dropdown */}
+            <CardCustomizerPanel
+                isOpen={cardCustomizerOpen}
+                onClose={() => setCardCustomizerOpen(false)}
+                unlockedSpecialIds={unlockedSpecialIds}
+            />
+            <WorldHub onOpenCardCustomizer={() => setCardCustomizerOpen(true)} />
         </>
     );
 }

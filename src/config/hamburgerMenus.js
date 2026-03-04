@@ -185,11 +185,16 @@ export const MENU_CONFIGS = {
                 }
             ]),
             createMenuItem.divider(),
+            createMenuItem.section('Dealer Tools'),
+            createMenuItem.navigation('🎰 Toke Tracker', '/hub/bankroll-manager?view=toke-tracker'),
+            createMenuItem.navigation('📋 Work Schedule & Dealer Downs', '/hub/my-venues'),
+            createMenuItem.divider(),
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
+            createMenuItem.action('🎴 Customize My Hub', handlers.openCardCustomizer),
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [

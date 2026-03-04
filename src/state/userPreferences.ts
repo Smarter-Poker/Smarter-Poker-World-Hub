@@ -3,12 +3,14 @@
    Tracks most visited cards and last card position
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { POKER_IQ_ORBS, COMMANDER_ORB } from '../orbs/manifest/registry';
+import { POKER_IQ_ORBS, COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, TOKE_TRACKER_ORB } from '../orbs/manifest/registry';
 import type { OrbConfig } from '../orbs/manifest/registry';
 
-// Resolve an orb ID to its config — checks both standard orbs and Commander
+// Resolve an orb ID to its config — checks standard orbs, Commander, Employee Portal, and Toke Tracker
 function resolveOrb(id: string): OrbConfig | undefined {
     if (id === 'club-commander') return COMMANDER_ORB;
+    if (id === 'employee-portal') return EMPLOYEE_PORTAL_ORB;
+    if (id === 'toke-tracker') return TOKE_TRACKER_ORB;
     return POKER_IQ_ORBS.find(o => o.id === id);
 }
 
@@ -26,6 +28,7 @@ interface UserPreferences {
     lastVisitedCardId: string | null;
     mostVisitedCardIds: string[];  // Sorted by visit count, most visited first
     visitCounts: Record<string, number>;
+    hiddenCardIds: string[];       // Cards the user has toggled off in the Hub customizer
 }
 
 // Simple localStorage-based persistence
@@ -37,6 +40,7 @@ function loadPreferences(): UserPreferences {
             lastVisitedCardId: null,
             mostVisitedCardIds: [],
             visitCounts: {},
+            hiddenCardIds: [],
         };
     }
     try {
@@ -51,6 +55,7 @@ function loadPreferences(): UserPreferences {
         lastVisitedCardId: null,
         mostVisitedCardIds: [],
         visitCounts: {},
+        hiddenCardIds: [],
     };
 }
 
@@ -160,4 +165,24 @@ export function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'medium'): vo
         };
         navigator.vibrate(durations[type]);
     }
+}
+
+// ── Card Visibility Toggles ─────────────────────────────────────────────────
+// Get the list of card IDs the user has hidden
+export function getHiddenCardIds(): string[] {
+    if (typeof window === 'undefined') return [];
+    try {
+        const prefs = loadPreferences();
+        return prefs.hiddenCardIds || [];
+    } catch {
+        return [];
+    }
+}
+
+// Set (overwrite) the list of hidden card IDs
+export function setHiddenCardIds(ids: string[]): void {
+    if (typeof window === 'undefined') return;
+    const prefs = loadPreferences();
+    prefs.hiddenCardIds = ids;
+    savePreferences(prefs);
 }

@@ -19,6 +19,7 @@ interface MenuItem {
 const MENU_ITEMS: MenuItem[] = [
     { id: 'profile', icon: '👤', label: 'View Profile', route: '/hub/social-media?tab=profile' },
     { id: 'settings', icon: '⚙️', label: 'Settings', route: '/hub/settings' },
+    { id: 'customize-cards', icon: '🎴', label: 'Customize Hub Cards' },
     { id: 'help', icon: '❓', label: 'Help & Tutorial', route: '/hub/help' },
     { id: 'divider', icon: '', label: '' },
     { id: 'logout', icon: '🚪', label: 'Log Out', danger: true },
@@ -31,9 +32,10 @@ interface ProfileDropdownProps {
     isOpen: boolean;
     onClose: () => void;
     anchorRef: React.RefObject<HTMLDivElement>;
+    onCustomizeCards?: () => void;
 }
 
-export function ProfileDropdown({ isOpen, onClose, anchorRef }: ProfileDropdownProps) {
+export function ProfileDropdown({ isOpen, onClose, anchorRef, onCustomizeCards }: ProfileDropdownProps) {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
@@ -94,6 +96,11 @@ export function ProfileDropdown({ isOpen, onClose, anchorRef }: ProfileDropdownP
                     <button
                         key={item.id}
                         onClick={() => {
+                            if (item.id === 'customize-cards') {
+                                onCustomizeCards?.();
+                                onClose();
+                                return;
+                            }
                             if (item.route) {
                                 router.push(item.route);
                             } else if (item.id === 'logout') {
