@@ -502,7 +502,7 @@ export default function ClubArenaPage() {
                     {myUnions.length > 0 && (
                         <div style={{ marginBottom: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>
-                                 My Unions
+                                My Unions
                             </div>
                             {myUnions.map(union => (
                                 <div
