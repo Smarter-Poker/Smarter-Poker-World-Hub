@@ -125,8 +125,15 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // BUG #266 FIX: Require JWT auth — this endpoint calls paid Grok API
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
     try {
-        const { prompt, userId } = req.body;
+        const { prompt, userId: _clientUserId } = req.body;
+        const userId = authUser.id; // Always use JWT user ID
 
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required' });

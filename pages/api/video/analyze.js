@@ -125,6 +125,12 @@ Focus on actual poker hands and strategy moments. If no specific hands are discu
 }
 
 export default async function handler(req, res) {
+    // BUG #267 FIX: Require JWT auth — calls paid Grok API for AI analysis
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+
     const { videoId, title, forceRefresh } = req.query;
 
     if (!videoId) {
