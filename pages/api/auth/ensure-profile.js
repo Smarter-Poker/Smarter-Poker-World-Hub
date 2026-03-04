@@ -33,6 +33,21 @@ export default async function handler(req, res) {
         SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY
     );
 
+    // BUG #240 FIX: Require JWT auth and verify caller is the same user
+    // Without this, anyone can create/update profiles for arbitrary user IDs
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Auth token required' });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    if (authUser.id !== user_id) {
+        return res.status(403).json({ error: 'Cannot create/update profile for another user' });
+    }
+
     try {
         // Step 1: Check if profile exists
         const { data: existingProfile, error: checkError } = await supabase
@@ -88,7 +103,6 @@ export default async function handler(req, res) {
                 avatar_url: avatar_url || metadata?.avatar_url || null,
                 player_number: nextPlayerNumber,
                 streak_count: 0,
-                diamonds: 100,        // Welcome bonus
                 diamonds: 300,        // Welcome bonus
                 diamond_multiplier: 1.0,
                 skill_tier: 'Newcomer',

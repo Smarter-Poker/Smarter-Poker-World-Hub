@@ -119,6 +119,7 @@ async function handleCheckoutCompleted(session) {
                 .update({
                     status: 'completed',
                     stripe_checkout_session_id: id,
+                    stripe_payment_intent_id: session.payment_intent || null,
                     completed_at: new Date().toISOString()
                 })
                 .eq('id', metadata.purchase_id)

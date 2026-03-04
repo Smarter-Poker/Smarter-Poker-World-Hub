@@ -35,6 +35,16 @@ export default async function handler(req, res) {
         if (!token) return res.status(401).json({ error: 'Auth required' });
         const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
         if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+        // BUG #243 FIX: JWT users can only send to specific users (not broadcast to segments)
+        // This prevents any authenticated user from spamming all users via segments: ['All']
+        const { segments, playerIds, externalUserIds, tags } = req.body;
+        if (segments || tags || (playerIds && playerIds.length > 5) || (externalUserIds && externalUserIds.length > 5)) {
+            return res.status(403).json({ error: 'Broadcast notifications require admin access' });
+        }
+        if (!externalUserIds?.length && !playerIds?.length) {
+            return res.status(400).json({ error: 'Must specify target user(s) for notification' });
+        }
     }
 
     try {

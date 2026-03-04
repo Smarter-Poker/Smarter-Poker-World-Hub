@@ -67,6 +67,34 @@ export default async function handler(req, res) {
             });
         }
 
+        // ── 0d. Block if user owns any clubs (would orphan the club) ──
+        const { data: ownedClubs } = await supabaseAdmin
+            .from('clubs')
+            .select('id, name')
+            .eq('owner_id', userId);
+
+        if (ownedClubs?.length > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete account while you own clubs',
+                details: `You own ${ownedClubs.length} club(s): ${ownedClubs.map(c => c.name).join(', ')}. Transfer ownership or delete the club(s) first.`,
+                clubs_owned: ownedClubs.length,
+            });
+        }
+
+        // ── 0e. Block if user owns any unions (would orphan the union) ──
+        const { data: ownedUnions } = await supabaseAdmin
+            .from('unions')
+            .select('id, name')
+            .eq('owner_id', userId);
+
+        if (ownedUnions?.length > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete account while you own unions',
+                details: `You own ${ownedUnions.length} union(s): ${ownedUnions.map(u => u.name).join(', ')}. Transfer ownership first.`,
+                unions_owned: ownedUnions.length,
+            });
+        }
+
         // ── 0c. Cancel any pending cashout requests ──
         await supabaseAdmin
             .from('cashout_requests')
