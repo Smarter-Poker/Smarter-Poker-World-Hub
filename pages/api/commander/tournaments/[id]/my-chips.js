@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         // Find the player's active entry
         const { data: entry, error: eErr } = await supabase
             .from('commander_tournament_entries')
-            .select('id, player_id, current_chips, status')
+            .select('id, player_id, current_chips, status, metadata')
             .eq('tournament_id', tournamentId)
             .eq('player_id', user.id)
             .in('status', ['active', 'seated', 'registered'])
@@ -79,6 +79,7 @@ export default async function handler(req, res) {
             .update({
                 current_chips: newChips,
                 metadata: {
+                    ...(entry.metadata || {}),
                     last_self_reported: new Date().toISOString(),
                     previous_chips: previousChips,
                     reported_by: 'player'

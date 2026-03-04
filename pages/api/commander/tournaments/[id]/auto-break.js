@@ -214,12 +214,21 @@ async function handleExecute(req, res, tournament, user) {
 
   // Execute moves
   for (const a of assignments) {
+    const { data: currentEntry } = await supabase
+      .from('commander_tournament_entries')
+      .select('metadata')
+      .eq('id', a.entry_id)
+      .single();
+
+    const existingMetadata = currentEntry?.metadata || {};
+
     const { error } = await supabase
       .from('commander_tournament_entries')
       .update({
         table_number: a.to_table,
         seat_number: a.to_seat,
         metadata: {
+          ...existingMetadata,
           last_moved_at: new Date().toISOString(),
           last_moved_from: { table: a.from_table, seat: a.from_seat },
           move_reason: 'table_break'

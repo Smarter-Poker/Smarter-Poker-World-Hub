@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     for (const a of assignments) {
       const { data: entry } = await supabase
         .from('commander_tournament_entries')
-        .select('table_number, seat_number, player_name')
+        .select('table_number, seat_number, player_name, metadata')
         .eq('id', a.entry_id)
         .single();
 
@@ -95,6 +95,7 @@ export default async function handler(req, res) {
           table_number: a.to_table,
           seat_number: a.to_seat,
           metadata: {
+            ...(entry?.metadata || {}),
             last_moved_at: new Date().toISOString(),
             last_moved_from: { table: entry?.table_number, seat: entry?.seat_number },
             move_reason: 'table_break'
