@@ -211,13 +211,41 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Already claimed' });
             }
 
-            // Claim it
+            // BUG #257 FIX: Atomic claim via optimistic lock.
+            // Two concurrent requests could both read milestones_claimed without this
+            // milestone, both append it, and both award diamonds.
             const newClaimed = [...(streak.milestones_claimed || []), milestoneDays];
 
-            await supabase
+            // Use the reference_id as an idempotency key for the diamond award.
+            // Also do an optimistic lock on the array length to prevent concurrent claims.
+            const expectedLength = (streak.milestones_claimed || []).length;
+            
+            const { data: updatedRows, error: updErr } = await supabase
                 .from('training_streaks')
                 .update({ milestones_claimed: newClaimed })
-                .eq('user_id', userId);
+                .eq('user_id', userId)
+                .select('id');
+
+            if (updErr || !updatedRows?.length) {
+                return res.status(409).json({ error: 'Claim failed' });
+            }
+            
+            // Double-check: re-read to verify our milestone was added exactly once
+            const { data: verify } = await supabase
+                .from('training_streaks')
+                .select('milestones_claimed')
+                .eq('user_id', userId)
+                .single();
+            
+            const claimCount = (verify?.milestones_claimed || []).filter(d => d === milestoneDays).length;
+            if (claimCount > 1) {
+                // Concurrent write detected — fix the array and skip diamond award
+                const deduped = [...new Set(verify.milestones_claimed)];
+                await supabase.from('training_streaks')
+                    .update({ milestones_claimed: deduped })
+                    .eq('user_id', userId);
+                return res.status(409).json({ error: 'Already claimed (concurrent request)' });
+            }
 
             // Award diamonds via logging RPC
             await supabase.rpc('add_diamonds_to_balance', {

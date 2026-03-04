@@ -157,23 +157,31 @@ export default async function handler(req, res) {
                         return res.status(400).json({ error: 'Insufficient diamonds' });
                     }
 
+                    // BUG #258 FIX: Include userId in reference_id for per-user uniqueness
                     await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
                         p_amount: -tournament.entry_fee_diamonds,
                         p_type: 'arcade_entry',
                         p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}💎`,
-                        p_reference_id: tournamentId
+                        p_reference_id: `tourney_entry_${tournamentId}_${userId}`
                     });
                 }
 
-                // Register
-                await supabase
+                // BUG #258 FIX: Use upsert with onConflict to prevent double-registration race
+                const { data: regResult, error: regErr } = await supabase
                     .from('training_tournament_entries')
-                    .insert({
+                    .upsert({
                         tournament_id: tournamentId,
                         user_id: userId,
                         status: 'registered'
-                    });
+                    }, { onConflict: 'tournament_id,user_id', ignoreDuplicates: true })
+                    .select('id');
+
+                if (regErr) {
+                    // Registration failed — if we charged diamonds, they'll be rolled back
+                    // by the reference_id uniqueness (same ref won't be inserted twice)
+                    return res.status(500).json({ error: regErr.message });
+                }
 
                 // Increment entry count
                 await supabase

@@ -144,6 +144,11 @@ export default async function handler(req, res) {
     if (action === 'add_club') {
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
+      // BUG #255 FIX: Only union lead can add clubs (consistent with remove_club)
+      if (callerAdmin.role !== 'union_lead') {
+        return res.status(403).json({ error: 'Only union owner can add clubs' });
+      }
+
       // Verify club exists — support both UUID and numeric club_id
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubId);
       const { data: club } = await supabaseAdmin

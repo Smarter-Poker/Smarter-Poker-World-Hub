@@ -385,14 +385,23 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Already claimed' });
             }
 
-            // Mark as claimed
-            await supabase
+            // BUG #256 FIX: Atomic claim — prevents TOCTOU double-diamond exploit.
+            // Two concurrent requests could both read claimed=false, both award diamonds.
+            // Fix: update WHERE claimed=false, check if row was actually updated.
+            const { data: claimedRow, error: claimErr } = await supabase
                 .from('training_user_challenges')
                 .update({
                     claimed: true,
                     claimed_at: new Date().toISOString()
                 })
-                .eq('id', progress.id);
+                .eq('id', progress.id)
+                .eq('claimed', false)  // Only succeeds if still unclaimed
+                .select('id')
+                .single();
+
+            if (claimErr || !claimedRow) {
+                return res.status(409).json({ error: 'Already claimed (concurrent request)' });
+            }
 
             // Award diamonds via logging RPC
             const reward = progress.training_challenge_definitions?.diamond_reward || 0;
