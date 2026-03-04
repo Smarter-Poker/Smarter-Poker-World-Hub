@@ -427,6 +427,20 @@ class TournamentBridge {
         })
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('player_id', data.playerId);
+
+      // Deep Bug Hunt Parity Fix: 
+      // Mirror the elimination payload to `tournament_registrations` so the frontend UI
+      // immediately updates finish position, payout, and status for both Humans and AI.
+      await this.supabase
+        .from('tournament_registrations')
+        .update({
+          status: 'eliminated',
+          finish_position: data.finishPosition,
+          payout_amount: data.payout || 0,
+        })
+        .eq('tournament_id', this.tournament.tournamentId)
+        .eq('user_id', data.playerId);
+
     } catch (err) {
       console.error('[TournamentBridge] Elimination persist error:', err.message);
     }

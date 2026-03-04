@@ -169,6 +169,26 @@ async function handleRegister(req, res, tournamentId) {
 
     if (error) throw error;
 
+    // --- FINANCIAL FRAUD PROTECTION ---
+    // Record the cash liability atomically with the registration.
+    // This prevents a split-brain vulnerability where the client tab closes after creating the registration
+    // but before logging the cash drawer transaction.
+    const totalAmount = (tournament.buyin_amount || 0) + (tournament.buyin_fee || 0);
+    if (totalAmount > 0) {
+      const { data: profile } = await supabase.from('profiles').select('display_name, first_name, last_name').eq('id', player_id).single();
+      const pName = req.body.player_name || profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Unknown Player';
+
+      await supabase.from('commander_cash_transactions').insert({
+        venue_id: tournament.venue_id,
+        player_name: pName,
+        type: 'buy_in',
+        amount: totalAmount,
+        payment_method: 'cash',
+        processed_by: _staff.id || null,
+        notes: `Tournament: ${tournament.name || 'Tournament'} (Buy-In: $${tournament.buyin_amount || 0}, Fee: $${tournament.buyin_fee || 0})`
+      });
+    }
+
     // Note: current_entries is auto-updated by the update_tournament_stats trigger
 
     // XP system removed

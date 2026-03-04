@@ -87,7 +87,30 @@ export default function TournamentsPage() {
     setLoading(false);
   }, [clubId, user, tab]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Deep Bug Hunt Parity Fix: 100% real-time saving and UI updates
+  useEffect(() => {
+    loadData();
+
+    if (!clubId) return;
+
+    // Listen to changes on club_tournaments to instantly refresh the list
+    // when AI horses or humans register (registered_count updates)
+    const channel = supabase.channel(`tournaments_list_${clubId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_tournaments',
+        filter: `club_id=eq.${clubId}`
+      }, () => {
+        // We use a slight delay so rapid burst AI registrations don't spam the API
+        setTimeout(() => loadData(), 500);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadData, clubId]);
 
   // Register
   const handleRegister = async (tournamentId) => {
@@ -311,17 +334,21 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
         <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Create Tournament</h2>
 
         {F('Tournament Name', 'name')}
-        {F('Type', 'type', 'select', { options: [
-          { value: 'mtt', label: 'MTT (Multi-Table)' },
-          { value: 'sng', label: 'Sit & Go' },
-          { value: 'spin', label: 'Spin & Go' },
-          { value: 'xmtt', label: 'XMTT (Cross-Club)' },
-        ]})}
-        {F('Variant', 'variant', 'select', { options: [
-          { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
-          { value: 'plo5', label: 'PLO5' }, { value: 'short_deck', label: 'Short Deck' },
-          { value: 'pineapple', label: 'Crazy Pineapple' },
-        ]})}
+        {F('Type', 'type', 'select', {
+          options: [
+            { value: 'mtt', label: 'MTT (Multi-Table)' },
+            { value: 'sng', label: 'Sit & Go' },
+            { value: 'spin', label: 'Spin & Go' },
+            { value: 'xmtt', label: 'XMTT (Cross-Club)' },
+          ]
+        })}
+        {F('Variant', 'variant', 'select', {
+          options: [
+            { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
+            { value: 'plo5', label: 'PLO5' }, { value: 'short_deck', label: 'Short Deck' },
+            { value: 'pineapple', label: 'Crazy Pineapple' },
+          ]
+        })}
         {F('Buy-in', 'buyIn', 'number')}
         {F('Starting Chips', 'startingChips', 'number')}
         {(form.type === 'mtt' || form.type === 'xmtt') && F('Max Players', 'maxPlayers', 'number')}
@@ -438,7 +465,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           });
           const d = await res.json();
           if (d.success) setTourneyState(d);
-        } catch (_) {}
+        } catch (_) { }
       };
       poll();
       const iv = setInterval(poll, 5000);

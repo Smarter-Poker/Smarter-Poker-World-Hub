@@ -304,17 +304,43 @@ class GameController {
         }
       }
 
-      // 2. Auto-register for tournaments
-      // Find tournaments currently in 'registering' state
+      // 2. Auto-register for tournaments (Overlay Protection & Late Reg Flooding)
       for (const [tournamentId, entry] of this._tournaments.entries()) {
         const t = entry.controller;
-        if (t.state === 'registering') {
+
+        // Use t.status (not t.state)
+        const isRegistering = t.status === 'registering';
+        const isLateReg = t.status === 'late_reg' || (t.status === 'running' && t.currentLevel <= (t.lateRegLevels || 0));
+
+        if (isRegistering || isLateReg) {
           const currentEntries = t.entries?.size || 0;
-          const target = Math.min(t.maxPlayers || 100, 30); // Aim for at least 30 entries to fire
+          let target = Math.min(t.maxPlayers || 100, 30); // Aim for at least 30 entries to fire off ground
+          let batchSize = Math.floor(Math.random() * 3) + 1; // Normal 1-3 trickle
+
+          // ─── OVERLAY PROTECTION (Flooding) ───
+          if ((t.guaranteedPrize || 0) > 0) {
+            const overlayAmount = t.guaranteedPrize - (t.prizePool || 0);
+
+            if (overlayAmount > 0) {
+              // We have an overlay. We need to flood horses to cover the financial gap.
+              const buyIn = t.buyinAmount || 1;
+              const shortfallEntries = Math.ceil(overlayAmount / buyIn);
+
+              // Target is whatever we need to cover the gap, capped at table max.
+              target = Math.min(t.maxPlayers || 100, currentEntries + shortfallEntries);
+
+              // Aggressive batch sizing: 3 to 7 horses per heartbeat pulse.
+              batchSize = Math.min(shortfallEntries, Math.floor(Math.random() * 5) + 3);
+            } else if (isLateReg) {
+              // Guarantee is fully met. We don't need to keep adding AI horses in late reg.
+              target = 0;
+            }
+          } else if (isLateReg) {
+            // No guarantee, only fill up to 30 in registering. Stop completely in late reg.
+            target = 0;
+          }
 
           if (currentEntries < target) {
-            // Register horses in small batches over time to look natural
-            const batchSize = Math.floor(Math.random() * 3) + 1;
             await this.autoRegisterHorses(tournamentId, batchSize);
           }
         }

@@ -89,6 +89,20 @@ export default async function handler(req, res) {
 
     if (uErr) return res.status(500).json({ success: false, error: 'Failed to process rebuy' });
 
+    // --- FINANCIAL FRAUD PROTECTION ---
+    // Log the cash collected by the TD into the cashier vault
+    if (tournament.rebuy_cost > 0) {
+      await supabase.from('commander_cash_transactions').insert({
+        venue_id: tournament.venue_id,
+        player_name: entry.player_name,
+        type: 'buy_in',
+        amount: tournament.rebuy_cost,
+        payment_method: 'cash',
+        processed_by: _g.id || null, // staff ID from guardWriteStaff
+        notes: `Tournament Rebuy: ${entry.player_name} (ID: ${entryId})`
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: {

@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 
     const { data: entry } = await supabase
       .from('commander_tournament_entries')
-      .select('id, player_name, current_chips, status')
+      .select('id, player_name, current_chips, status, metadata')
       .eq('id', entryId)
       .eq('tournament_id', tournamentId)
       .single();
@@ -56,8 +56,10 @@ export default async function handler(req, res) {
       .update({
         current_chips: chips,
         metadata: {
+          ...(entry.metadata || {}),
           chip_updated_at: new Date().toISOString(),
-          previous_chips: previousChips
+          previous_chips: previousChips,
+          updated_by: _g.id || null
         }
       })
       .eq('id', entryId)

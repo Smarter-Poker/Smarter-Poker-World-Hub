@@ -285,16 +285,17 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
             // 2. Record buy-in as cashier transaction (if tournament has a buy-in)
             const buyinAmount = selectedTournament.buyin_amount || selectedTournament.buy_in || 0;
             const buyinFee = selectedTournament.buyin_fee || 0;
-            if (buyinAmount > 0) {
+            const totalAmount = buyinAmount + buyinFee;
+            if (totalAmount > 0) {
                 await fetch('/api/commander/cashier', {
                     method: 'POST', headers,
                     body: JSON.stringify({
                         venue_id: venueId,
                         player_name: selectedPlayer.player_name,
                         type: 'buy_in',
-                        amount: buyinAmount,
+                        amount: totalAmount,
                         payment_method: 'cash',
-                        notes: `Tournament: ${selectedTournament.name || 'Tournament'} (Buy-In)`,
+                        notes: `Tournament: ${selectedTournament.name || 'Tournament'} (Buy-In: $${buyinAmount}, Fee: $${buyinFee})`,
                     })
                 });
             }

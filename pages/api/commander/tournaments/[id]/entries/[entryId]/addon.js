@@ -75,6 +75,20 @@ export default async function handler(req, res) {
 
     if (uErr) return res.status(500).json({ success: false, error: 'Failed to process add-on' });
 
+    // --- FINANCIAL FRAUD PROTECTION ---
+    // Log the cash collected by the TD into the cashier vault
+    if (tournament.addon_cost > 0) {
+      await supabase.from('commander_cash_transactions').insert({
+        venue_id: tournament.venue_id,
+        player_name: entry.player_name,
+        type: 'buy_in',
+        amount: tournament.addon_cost,
+        payment_method: 'cash',
+        processed_by: _g.id || null, // staff ID from guardWriteStaff
+        notes: `Tournament Add-on: ${entry.player_name} (ID: ${entryId})`
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: {
