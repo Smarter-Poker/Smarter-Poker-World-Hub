@@ -6154,6 +6154,12 @@ function clearTableSessions(tableId) {
 // Tracks if a horse loses massive pots to the same human repeatedly.
 const collusionTracker = new Map(); // horseId -> Map<opponentId, count>
 
+// --- Escape Tilt Map ---
+// Signals evaluateSessions to stand a horse up immediately.
+// Used by: Anti-Collusion, Blacklist Enforcer (Module 14), Timebank Abuse (Module 15).
+// Map<horseId, { multiplier, reason }>
+const tiltMap = new Map();
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PHASE 7: 8 ADVANCED ANTI-EXPLOIT COUNTERMEASURE MODULES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -7473,4 +7479,18 @@ module.exports = {
     patternProfitMap,             // Module 4: Pattern Exploitation Detector
     chaosSuppressionMap,          // Module 6: Enhanced Chaos Cooldown
     suspectBotMap,                // Module 7: Bot/Solver Opponent Detector
+
+    // Phase 2: Cross-Session Threat Intelligence (Modules 9-16)
+    _loadThreatIntel,             // Module 9: Threat Intel lazy-load
+    _persistThreatIntel,          // Module 9: Threat Intel persistence
+    getThreatScore,               // Module 14: Unified Threat Score
+    isBlacklisted,                // Module 14: Blacklist check
+    crossTableRadar,              // Module 10: Cross-Table Collusion Radar
+    getRangeRotationGear,         // Module 11: Proactive Range Rotation
+    rangeRotationMap,             // Module 11: Range rotation state
+    applyMultiwayEquityDiscount,  // Module 12: PLO Multiway Equity Shield
+    detectNutBiasExploitBoard,    // Module 13: PLO Nut-Bias Exploit Detector
+    timeAbuseSuspicion,           // Module 15: Timebank Abuse Detector
+    tableTimebankBlacklist,       // Module 15: Timebank table blacklist
+    threatIntelCache,             // Module 16: Threat score cache (Supabase read)
 };
