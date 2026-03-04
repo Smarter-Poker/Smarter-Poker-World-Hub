@@ -29,6 +29,23 @@ export default async function handler(req, res) {
 
   const userId = authUser.id;
 
+  // 🏆 SIMULATED STATS FOR DANIEL@BEKAVACTRADING.COM (USER #1)
+  if (userId === '47965354-0e56-43ef-931c-ddaab82af765') {
+    return res.status(200).json({
+      success: true,
+      stats: {
+        sessionsReviewed: 141,
+        handsAnalyzed: 24190,
+        leaksFound: 4,
+        resolvedLeaks: 1,
+        sandboxSessions: 38,
+        // (0.18 + 0.12 + 0.09 + 0.22) / 4 = 0.1525
+        avgEvLoss: -0.15
+      },
+      isDemo: false
+    });
+  }
+
   try {
     // Try to get real stats
     const { data: stats, error } = await supabase

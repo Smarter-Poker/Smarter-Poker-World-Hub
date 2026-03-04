@@ -444,7 +444,7 @@ export default function DiamondArcade() {
                         style={{
                             width: '100%',
                             height: '100%',
-                            objectFit: 'cover'
+                            objectFit: 'contain'
                         }}
                     />
                     {/* Skip button */}
@@ -541,7 +541,7 @@ export default function DiamondArcade() {
                                                     animate={{ y: [0, -15, 0], scale: [1, 1.05, 1] }}
                                                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                                                 >
-                                                     Diamonds
+                                                    Diamonds
                                                 </motion.div>
                                                 {/* Floating Shards */}
                                                 {[...Array(8)].map((_, i) => (

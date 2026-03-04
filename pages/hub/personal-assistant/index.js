@@ -76,7 +76,7 @@ export default function PersonalAssistantPage() {
             onPlay={handleIntroPlay}
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}
-            style={S.introVideo}
+            style={{ ...S.introVideo, objectFit: 'contain' }}
           />
           <button onClick={handleIntroEnd} style={S.skipBtn}>Skip</button>
         </div>
@@ -309,7 +309,7 @@ const S = {
     zIndex: 99999, background: '#000',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  introVideo: { width: '100%', height: '100%', objectFit: 'cover' },
+  introVideo: { width: '100%', height: '100%', objectFit: 'contain' },
   skipBtn: {
     position: 'absolute', top: 20, right: 20,
     padding: '8px 20px', background: 'rgba(255,255,255,0.2)',
