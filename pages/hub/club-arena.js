@@ -526,7 +526,7 @@ export default function ClubArenaPage() {
                                             🏛️ {union.name}
                                         </div>
                                         <div style={{ fontSize: 12, color: '#B0B3B8' }}>
-                                            {union.adminRole === 'owner' ? '👑 Union Owner' : '🛡️ Union Admin'}
+                                            {union.adminRole === 'union_lead' ? '👑 Union Lead' : '🛡️ Union Admin'}
                                             {union.union_code ? ` • Code: ${union.union_code}` : ''}
                                         </div>
                                     </div>

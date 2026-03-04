@@ -625,10 +625,10 @@ export default function UnionDashboard() {
                                         {admin.profile?.display_name || admin.profile?.username || admin.user_id.slice(0, 8)}
                                     </div>
                                     <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                                        Role: <span style={{ color: admin.role === 'owner' ? FB.gold : FB.primary }}>{admin.role}</span>
+                                        Role: <span style={{ color: admin.role === 'union_lead' ? FB.gold : FB.primary }}>{admin.role === 'union_lead' ? 'Union Lead' : admin.role === 'union_admin' ? 'Union Admin' : admin.role}</span>
                                     </div>
                                 </div>
-                                {admin.role !== 'owner' && (
+                                {admin.role !== 'union_lead' && (
                                     <button onClick={async () => {
                                         if (!confirm(`Remove ${admin.profile?.display_name || admin.profile?.username || 'this admin'}?`)) return;
                                         try {

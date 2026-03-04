@@ -64,11 +64,11 @@ BEGIN
   VALUES (
     v_union_id,
     v_dan_id,
-    'owner',
+    'union_lead',
     '{"full_access": true, "manage_clubs": true, "mint_chips": true, "view_reports": true, "manage_admins": true, "manage_settlement": true, "manage_bbj": true}'::jsonb
   )
   ON CONFLICT (union_id, user_id) DO UPDATE SET
-    role = 'owner',
+    role = 'union_lead',
     permissions = '{"full_access": true, "manage_clubs": true, "mint_chips": true, "view_reports": true, "manage_admins": true, "manage_settlement": true, "manage_bbj": true}'::jsonb;
   RAISE NOTICE '✅ union_admins: Dan = owner';
 

@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       await supabaseAdmin.from('union_admins').insert({
         union_id: union.id,
         user_id: user.id,
-        role: 'owner',
+        role: 'union_lead',
         permissions: { full_access: true },
       });
 
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
     // UPDATE SETTINGS
     // ═══════════════════════════════════════════════════════════════
     if (action === 'update_settings') {
-      if (callerAdmin.role !== 'owner') return res.status(403).json({ error: 'Only union owner can update settings' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can update settings' });
 
       const updates = {};
       if (name?.trim()) updates.name = name.trim();
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'remove_club') {
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
-      if (callerAdmin.role !== 'owner') return res.status(403).json({ error: 'Only union owner can remove clubs' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can remove clubs' });
 
       await supabaseAdmin
         .from('union_clubs')
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'add_admin') {
       if (!adminUserId) return res.status(400).json({ error: 'adminUserId required' });
-      if (callerAdmin.role !== 'owner') return res.status(403).json({ error: 'Only union owner can add admins' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can add admins' });
 
       // Verify user exists
       const { data: profile } = await supabaseAdmin
@@ -175,12 +175,14 @@ export default async function handler(req, res) {
 
       if (!profile) return res.status(404).json({ error: 'User not found' });
 
+      // BUG #261 FIX: Prevent adding someone as 'owner' — only 'admin' role allowed
+      const safeRole = 'union_admin';
       const { error } = await supabaseAdmin
         .from('union_admins')
         .upsert({
           union_id: unionId,
           user_id: adminUserId,
-          role: adminRole || 'admin',
+          role: safeRole,
           permissions: { manage_clubs: true, mint_chips: true, view_reports: true },
         }, { onConflict: 'union_id,user_id' });
 
@@ -193,7 +195,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'remove_admin') {
       if (!adminUserId) return res.status(400).json({ error: 'adminUserId required' });
-      if (callerAdmin.role !== 'owner') return res.status(403).json({ error: 'Only union owner can remove admins' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can remove admins' });
       if (adminUserId === user.id) return res.status(400).json({ error: 'Cannot remove yourself' });
 
       const { error } = await supabaseAdmin
