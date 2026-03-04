@@ -90,6 +90,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'POST only' });
     }
 
+    // BUG #268 FIX: Require admin auth — batch job that calls paid Grok API
+    const adminSecret = req.headers['x-admin-secret'];
+    const envSecret = process.env.ADMIN_ROUTE_SECRET;
+    if (!envSecret || adminSecret !== envSecret) {
+        return res.status(401).json({ error: 'Admin authentication required' });
+    }
+
     const limit = parseInt(req.query.limit) || 5; // Process 5 at a time to avoid timeout
 
     console.log(`🎨 Generating avatars for up to ${limit} horses...`);

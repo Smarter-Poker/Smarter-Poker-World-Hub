@@ -53,6 +53,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // BUG #268 FIX: Require JWT or admin auth — calls paid Grok API
+    const adminSecret = req.headers['x-admin-secret'];
+    const envSecret = process.env.ADMIN_ROUTE_SECRET;
+    const hasAdminAuth = envSecret && adminSecret === envSecret;
+
+    if (!hasAdminAuth) {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    }
+
     try {
         const {
             question,
