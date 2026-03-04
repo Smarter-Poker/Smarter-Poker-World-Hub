@@ -747,6 +747,21 @@ class LobbyManager {
             console.error('[LobbyManager] Rake RPC failed:', rakeErr.message);
           }
 
+          // ── INCREMENT SETTLEMENT COUNTERS ──
+          // BUG #229 FIX: This was only in the HTTP API route (record-rake.js),
+          // but the engine calls record_rake RPC directly. Without this,
+          // settlement_periods.hands_played and total_rake stay at 0 forever,
+          // making auto-settlement distribute nothing.
+          try {
+            await sb.rpc('increment_settlement_counters', {
+              p_club_id: clubId,
+              p_rake_amount: rakeAmount,
+            });
+          } catch (settlErr) {
+            console.error('[LobbyManager] Settlement counter increment failed:', settlErr.message);
+            // Non-fatal — don't block hand progression
+          }
+
           // ── ADD BBJ CONTRIBUTION TO POOL ──
           if (bbjContribution > 0) {
             try {
