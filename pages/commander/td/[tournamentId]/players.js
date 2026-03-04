@@ -133,6 +133,34 @@ export default function TDPlayers() {
     });
   };
 
+  const printBluetoothReceipt = (player, actionType, cost, chips) => {
+    const pw = window.open('', '_blank', 'width=400,height=600');
+    if (!pw) return;
+
+    const tournamentName = floor?.tournament?.name || 'Tournament';
+    const timestamp = new Date().toLocaleTimeString();
+
+    pw.document.write(`<!DOCTYPE html><html><head><title>${actionType} Receipt</title>
+      <style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0;color:#000;-webkit-print-color-adjust:exact;}
+      .r{width:72mm;padding:4mm;margin:0 auto;page-break-after:always;border-bottom:1px dashed #000}
+      .r:last-child{page-break-after:avoid}.c{text-align:center}.b{font-weight:bold}
+      .lg{font-size:20px}.md{font-size:14px}.sm{font-size:11px}
+      .d{border-top:1px dashed #000;margin:3mm 0}.rw{display:flex;justify-content:space-between}
+      </style></head><body>
+      <div class="r">
+        <div class="c b md">${tournamentName}</div>
+        <div class="c sm">${actionType.toUpperCase()} RECEIPT</div><div class="d"></div>
+        <div class="c b lg" style="margin:2mm 0">${player.player_name || 'Player'}</div><div class="d"></div>
+        ${cost ? `<div class="rw md"><span>Cost:</span><span class="b">$${cost}</span></div>` : ''}
+        ${chips ? `<div class="rw md"><span>Chips Added:</span><span class="b">${Number(chips).toLocaleString()}</span></div>` : ''}
+        <div class="d"></div>
+        <div class="c sm" style="margin-top:2mm;opacity:.6">${timestamp}</div>
+        <div class="c sm" style="opacity:.4;margin-top:1mm">Smarter.Poker</div>
+      </div></body></html>`);
+    pw.document.close();
+    setTimeout(() => { pw.print(); pw.close(); }, 500);
+  };
+
   const executeConfirmedAction = async () => {
     if (!confirmAction) return;
     const { type, player } = confirmAction;
@@ -144,9 +172,15 @@ export default function TDPlayers() {
           entry_id: player.entry_id, finish_position: floor?.stats?.players_remaining || 0
         });
       } else if (type === 'rebuy') {
-        await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
+        const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/rebuy`, {});
+        if (res.success) {
+          printBluetoothReceipt(player, 'Rebuy', floor?.tournament?.rebuy_cost, floor?.tournament?.rebuy_chips || floor?.tournament?.starting_chips);
+        }
       } else if (type === 'addon') {
-        await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
+        const res = await apiCall(`/api/commander/tournaments/${tournamentId}/entries/${player.entry_id}/addon`, {});
+        if (res.success) {
+          printBluetoothReceipt(player, 'Add-on', floor?.tournament?.addon_cost, floor?.tournament?.addon_chips || floor?.tournament?.starting_chips);
+        }
       }
     } catch (err) { console.error(err); }
     setSelectedPlayer(null);

@@ -177,12 +177,16 @@ class TournamentBridge {
       }
     });
 
-    t.on('rebuy', (data) => {
-      this._broadcastTournament('rebuy', data);
+    t.on('player_rebuy', async (data) => {
+      this._broadcastTournament('player_rebuy', data);
+      await this._persistState(this.tournament.status, data); // Updates prize_pool dynamically
+      await this._persistRebuy(data);
     });
 
-    t.on('addon', (data) => {
-      this._broadcastTournament('addon', data);
+    t.on('player_addon', async (data) => {
+      this._broadcastTournament('player_addon', data);
+      await this._persistState(this.tournament.status, data); // Updates prize_pool dynamically
+      await this._persistAddon(data);
     });
 
     // ── BLIND / LEVEL EVENTS ─────────────────────────────────
@@ -459,6 +463,56 @@ class TournamentBridge {
         .eq('player_id', data.playerId);
     } catch (err) {
       console.error('[TournamentBridge] Payout persist error:', err.message);
+    }
+  }
+
+  async _persistRebuy(data) {
+    if (!this.supabase) return;
+    try {
+      const entry = this.tournament.entries.get(data.playerId);
+      if (!entry) return;
+      await this.supabase
+        .from('tournament_entries')
+        .update({
+          status: 'active',
+          rebuy_count: entry.rebuyCount,
+          total_invested: entry.totalInvested,
+        })
+        .eq('tournament_id', this.tournament.tournamentId)
+        .eq('player_id', data.playerId);
+
+      // Mirror to UI Table
+      await this.supabase
+        .from('tournament_registrations')
+        .update({
+          status: 'registered', // 'registered' is the UI's active state
+          // Depending on schema, we optionally update investment here if tracked.
+        })
+        .eq('tournament_id', this.tournament.tournamentId)
+        .eq('user_id', data.playerId);
+
+    } catch (err) {
+      console.error('[TournamentBridge] Rebuy persist error:', err.message);
+    }
+  }
+
+  async _persistAddon(data) {
+    if (!this.supabase) return;
+    try {
+      const entry = this.tournament.entries.get(data.playerId);
+      if (!entry) return;
+      await this.supabase
+        .from('tournament_entries')
+        .update({
+          addon_taken: true,
+          total_invested: entry.totalInvested,
+        })
+        .eq('tournament_id', this.tournament.tournamentId)
+        .eq('player_id', data.playerId);
+
+      // Mirror to UI Table (No status change, just ensuring hooks match if needed)
+    } catch (err) {
+      console.error('[TournamentBridge] Add-on persist error:', err.message);
     }
   }
 

@@ -282,23 +282,9 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                 return;
             }
 
-            // 2. Record buy-in as cashier transaction (if tournament has a buy-in)
-            const buyinAmount = selectedTournament.buyin_amount || selectedTournament.buy_in || 0;
-            const buyinFee = selectedTournament.buyin_fee || 0;
-            const totalAmount = buyinAmount + buyinFee;
-            if (totalAmount > 0) {
-                await fetch('/api/commander/cashier', {
-                    method: 'POST', headers,
-                    body: JSON.stringify({
-                        venue_id: venueId,
-                        player_name: selectedPlayer.player_name,
-                        type: 'buy_in',
-                        amount: totalAmount,
-                        payment_method: 'cash',
-                        notes: `Tournament: ${selectedTournament.name || 'Tournament'} (Buy-In: $${buyinAmount}, Fee: $${buyinFee})`,
-                    })
-                });
-            }
+            // NOTE: The registration cash transaction is now logged ATOMICALLY
+            // inside the /api/commander/tournaments/[id]/register API endpoint.
+            // This prevents a split-brain vulnerability where the UI crashes before the money is logged.
 
             // 3. Auto-print registration receipts — use REAL data from API response + tournament record
             const registeredEntry = regJson.data?.entry || {};

@@ -304,7 +304,7 @@ class GameController {
         }
       }
 
-      // 2. Auto-register for tournaments (Overlay Protection & Late Reg Flooding)
+      // 2. Auto-register & Manage Tournaments (Bulletproof Overlay Protection)
       for (const [tournamentId, entry] of this._tournaments.entries()) {
         const t = entry.controller;
 
@@ -312,34 +312,57 @@ class GameController {
         const isRegistering = t.status === 'registering';
         const isLateReg = t.status === 'late_reg' || (t.status === 'running' && t.currentLevel <= (t.lateRegLevels || 0));
 
+        // ─── BULLETPROOF OVERLAY DEFENSE ───
+        // Re-calculate live overlay Amount on every tick to perfectly calibrate response.
+        const overlayAmount = (t.guaranteedPrize || 0) > 0 ? t.guaranteedPrize - (t.prizePool || 0) : 0;
+
+        // 1. Weaponized Rebuys & Add-ons (Active Defense & Base 100% Addons)
+        if (t.entries) {
+          for (const [playerId, pEntry] of t.entries.entries()) {
+            if (!horseIds.has(playerId)) continue;
+
+            // Auto-Rebuy (Only forced if busted AND we still have an overlay to cover)
+            if (overlayAmount > 0 && t.allowsRebuys && pEntry.status === 'busted_rebuy') {
+              console.log(`[HorseAI Defense] 🔥 Forcing rebuy for ${playerId.substring(0, 8)} to cover overlay on ${tournamentId}`);
+              await t.processRebuy(playerId);
+            }
+            // Auto-Addon (ALWAYS executed 100% of the time during break, completely ignoring overlayAmount)
+            else if (t.allowsAddon && t.status === 'break' && pEntry.status === 'active' && !pEntry.addonTaken) {
+              console.log(`[HorseAI] ➕ 100% Add-On Mandate: Forcing Add-on for ${playerId.substring(0, 8)} on ${tournamentId}`);
+              await t.processAddon(playerId);
+            }
+          }
+        }
+
+        // 2. Late Registration Flooding & Desperation Curve (Passive Defense)
         if (isRegistering || isLateReg) {
           const currentEntries = t.entries?.size || 0;
-          let target = Math.min(t.maxPlayers || 100, 30); // Aim for at least 30 entries to fire off ground
-          let batchSize = Math.floor(Math.random() * 3) + 1; // Normal 1-3 trickle
+          let target = Math.min(t.maxPlayers || 100, 30); // Base fill aim
+          let batchSize = Math.floor(Math.random() * 3) + 1; // Normal trickle
 
-          // ─── OVERLAY PROTECTION (Flooding) ───
-          if ((t.guaranteedPrize || 0) > 0) {
-            const overlayAmount = t.guaranteedPrize - (t.prizePool || 0);
+          if (overlayAmount > 0) {
+            const buyIn = t.buyinAmount || 1;
+            const shortfallEntries = Math.ceil(overlayAmount / buyIn);
 
-            if (overlayAmount > 0) {
-              // We have an overlay. We need to flood horses to cover the financial gap.
-              const buyIn = t.buyinAmount || 1;
-              const shortfallEntries = Math.ceil(overlayAmount / buyIn);
+            // Target adjusts to exactly cover shortfall, bounded by table max.
+            target = Math.min(t.maxPlayers || 100, currentEntries + shortfallEntries);
 
-              // Target is whatever we need to cover the gap, capped at table max.
-              target = Math.min(t.maxPlayers || 100, currentEntries + shortfallEntries);
+            // ─── Desperation Curve ───
+            // If we are in the absolute final level of late registration, panic and dump the rest instantly.
+            const isDesperate = isLateReg && t.currentLevel >= Math.max(1, t.lateRegLevels || 0);
 
-              // Aggressive batch sizing: 3 to 7 horses per heartbeat pulse.
-              batchSize = Math.min(shortfallEntries, Math.floor(Math.random() * 5) + 3);
-            } else if (isLateReg) {
-              // Guarantee is fully met. We don't need to keep adding AI horses in late reg.
-              target = 0;
+            if (isDesperate) {
+              batchSize = shortfallEntries; // Immediate mass dump
+              console.warn(`[HorseAI Defense] 🚨 DESPERATION CURVE ACTIVATED on ${tournamentId}. Dumping ${batchSize} horses instantly to kill overlay.`);
+            } else {
+              batchSize = Math.min(shortfallEntries, Math.floor(Math.random() * 6) + 3); // Faster trickle of 3-8
             }
           } else if (isLateReg) {
-            // No guarantee, only fill up to 30 in registering. Stop completely in late reg.
+            // Guarantee fully met! Stop all late reg insertion to preserve server AI balance.
             target = 0;
           }
 
+          // Trigger registration if we are below target capacity.
           if (currentEntries < target) {
             await this.autoRegisterHorses(tournamentId, batchSize);
           }

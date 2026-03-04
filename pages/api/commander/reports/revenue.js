@@ -130,6 +130,24 @@ export default async function handler(req, res) {
       if (day) compByDay[day] = (compByDay[day] || 0) + Math.abs(c.amount || 0);
     });
 
+    // Daily tournament fee breakdown (for chart)
+    const tourneyFeesByDay = {};
+    for (const t of (tournaments || [])) {
+      const day = t.created_at?.split('T')[0];
+      if (day) {
+        const { data: entries } = await supabase
+          .from('commander_tournament_entries')
+          .select('id, rebuy_count')
+          .eq('tournament_id', t.id);
+
+        const count = (entries || []).length;
+        const rebuys = (entries || []).reduce((s, e) => s + (e.rebuy_count || 0), 0);
+        const dayFees = (count * (t.fee_amount || 0)) + (rebuys * (t.fee_amount || 0));
+
+        tourneyFeesByDay[day] = (tourneyFeesByDay[day] || 0) + dayFees;
+      }
+    }
+
     // Build daily revenue chart data
     const allDays = new Set();
     Object.keys(timeByDay).forEach(d => allDays.add(d));
@@ -142,7 +160,7 @@ export default async function handler(req, res) {
       date: day,
       time_revenue: timeByDay[day] || 0,
       comps_cost: compByDay[day] || 0,
-      tournament_fees: 0, // simplified — would need per-day aggregation
+      tournament_fees: tourneyFeesByDay[day] || 0,
     }));
 
     const totalRevenue = timeRevenue + tournamentFees;
