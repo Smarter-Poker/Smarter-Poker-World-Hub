@@ -275,8 +275,19 @@ export default async function handler(req, res) {
       }
 
       // Calculate union hold
-      const totalRake = period.total_rake_collected || 0;
+      // settlement_periods.total_rake_collected is never updated by record_rake RPC,
+      // so calculate actual total from agents' weekly_rake_generated
+      const actualTotalRake = (agents || []).reduce((sum, a) => sum + (a.weekly_rake_generated || 0), 0);
+      const totalRake = actualTotalRake || period.total_rake_collected || 0;
       const unionHold = Math.round(totalRake * unionRakeHold * 100) / 100;
+
+      // Update the period with the actual total
+      if (actualTotalRake > 0) {
+        await supabaseAdmin
+          .from('settlement_periods')
+          .update({ total_rake_collected: actualTotalRake })
+          .eq('id', pid);
+      }
 
       // Debit union hold from club treasury
       if (club.union_id && unionHold > 0) {
@@ -316,7 +327,9 @@ export default async function handler(req, res) {
             club_retained: totalRake - unionHold,
             period_number: period.period_number,
           },
-          status: 'generated',
+          status: 'paid',
+          chips_transferred: true,
+          transferred_at: new Date().toISOString(),
         }).catch(e => console.error('[settle-period] Invoice insert error:', e.message));
       }
 
@@ -448,6 +461,18 @@ export default async function handler(req, res) {
         .eq('period_start', periodData?.start_at)
         .eq('status', 'pending');
 
+      // Update the corresponding settlement invoice
+      if (agentData) {
+        await supabaseAdmin
+          .from('settlement_invoices')
+          .update({ status: 'paid', chips_transferred: true, transferred_at: now })
+          .eq('club_id', clubId)
+          .eq('period_id', cr.period_id)
+          .eq('invoice_type', 'club_to_agent')
+          .eq('to_entity_id', String(agentData.user_id))
+          .eq('status', 'generated');
+      }
+
       return res.status(200).json({ success: true, message: 'Commission marked as paid' });
     }
 
@@ -537,6 +562,18 @@ export default async function handler(req, res) {
           .eq('club_id', clubId)
           .eq('period_start', verifyPeriod.start_at)
           .eq('status', 'pending');
+
+        // Update settlement invoice for this agent
+        if (agentData) {
+          await supabaseAdmin
+            .from('settlement_invoices')
+            .update({ status: 'paid', chips_transferred: true, transferred_at: now })
+            .eq('club_id', clubId)
+            .eq('period_id', periodId)
+            .eq('invoice_type', 'club_to_agent')
+            .eq('to_entity_id', String(agentData.user_id))
+            .eq('status', 'generated');
+        }
 
         // NOTE: lifetime_earnings is already credited per-hand in real-time by the
         // calculate_cascading_commission RPC. We do NOT re-credit here to avoid

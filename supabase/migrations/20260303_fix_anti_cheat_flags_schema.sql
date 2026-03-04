@@ -48,6 +48,31 @@ BEGIN
   END IF;
 END $$;
 
+-- Fix commission_history: missing period_id column
+-- settle-period.js close action inserts period_id but column doesn't exist
+-- PostgREST silently ignores it, leaving records unlinked to periods
+ALTER TABLE commission_history ADD COLUMN IF NOT EXISTS period_id UUID REFERENCES settlement_periods(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_commission_hist_period ON commission_history (period_id);
+
+-- RPC: Atomic increment of settlement period counters
+-- record_rake RPC updates clubs.total_rake but NOT settlement_periods
+-- This RPC is called per-hand to keep the open period's counters accurate
+CREATE OR REPLACE FUNCTION increment_settlement_counters(
+  p_club_id UUID,
+  p_rake NUMERIC,
+  p_hands INTEGER DEFAULT 1
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE settlement_periods
+  SET total_rake_collected = COALESCE(total_rake_collected, 0) + COALESCE(p_rake, 0),
+      total_hands_dealt = COALESCE(total_hands_dealt, 0) + COALESCE(p_hands, 0)
+  WHERE club_id = p_club_id
+    AND status = 'open';
+END;
+$$;
+
 -- Fix commission_history: add period_id for reliable matching
--- Currently uses period_start TIMESTAMP which is fragile
-ALTER TABLE commission_history ADD COLUMN IF NOT EXISTS period_id UUID REFERENCES settlement_periods(id) ON DELETE CASCADE;

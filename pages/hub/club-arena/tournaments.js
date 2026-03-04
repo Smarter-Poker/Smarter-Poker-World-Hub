@@ -64,7 +64,7 @@ export default function TournamentsPage() {
     // Club info + role
     const { data: member } = await supabase
       .from('club_members')
-      .select('role, chip_balance, clubs(name, logo_url)')
+      .select('role, chip_balance, clubs(name, avatar_url)')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
       .single();

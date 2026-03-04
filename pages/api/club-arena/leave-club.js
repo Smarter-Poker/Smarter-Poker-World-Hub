@@ -169,7 +169,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     // 7. IF AGENT — Clean up downline
     // ═══════════════════════════════════════════════════════════════
-    if (member.role === 'agent' || member.role === 'sub_agent') {
+    if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
       // Unassign all players under this agent
       await supabaseAdmin
         .from('club_members')

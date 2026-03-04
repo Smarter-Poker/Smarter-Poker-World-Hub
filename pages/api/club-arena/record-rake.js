@@ -88,6 +88,19 @@ export default async function handler(req, res) {
       }
     }
 
+    // STEP 3: Increment the open settlement period's counters
+    // (record_rake RPC updates clubs.total_rake but NOT settlement_periods)
+    if (rakeAmount > 0) {
+      await supabaseAdmin.rpc('increment_settlement_counters', {
+        p_club_id: clubId,
+        p_rake: rakeAmount,
+        p_hands: 1,
+      }).catch(e => {
+        // Non-fatal: settlement close has a fallback that calculates from agents
+        console.warn('[record-rake] Settlement counter increment failed:', e.message);
+      });
+    }
+
     return res.status(200).json({
       success: true,
       rake: rakeResult,

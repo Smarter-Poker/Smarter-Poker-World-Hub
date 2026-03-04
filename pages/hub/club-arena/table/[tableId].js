@@ -42,7 +42,7 @@ export default function ClubArenaTable() {
       setLoading(true); setError(null);
       try {
         const { data: td, error: fe } = await supabase
-          .from('tables').select('*, clubs(name, logo_url)').eq('id', tableId).single();
+          .from('tables').select('*, clubs(name, avatar_url)').eq('id', tableId).single();
         if (fe || !td) { setError('Table not found'); setLoading(false); return; }
 
         const { data: { session } } = await supabase.auth.getSession();

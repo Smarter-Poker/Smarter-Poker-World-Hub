@@ -195,9 +195,18 @@ export default async function handler(req, res) {
           unionRakeHold = union?.settings?.union_rake_hold || 0.10;
         }
 
-        const totalRake = openPeriod.total_rake_collected || 0;
+        // Calculate actual total rake from agents' weekly_rake_generated
+        // (settlement_periods.total_rake_collected is never updated by record_rake RPC)
+        const actualTotalRake = agents.reduce((sum, a) => sum + (a.weekly_rake_generated || 0), 0);
+        const totalRake = actualTotalRake || openPeriod.total_rake_collected || 0;
         const totalHands = openPeriod.total_hands_dealt || 0;
         const unionHoldAmount = Math.round(totalRake * unionRakeHold * 100) / 100;
+
+        // Update the period with the actual total before closing
+        await supabaseAdmin
+          .from('settlement_periods')
+          .update({ total_rake_collected: totalRake })
+          .eq('id', openPeriod.id);
 
         // ─── INVOICE 1: Union → Club (rake hold charge) ───
         if (unionId && unionHoldAmount > 0) {
@@ -220,7 +229,9 @@ export default async function handler(req, res) {
               club_retained: totalRake - unionHoldAmount,
               period_number: openPeriod.period_number,
             },
-            status: 'generated',
+            status: 'paid',
+            chips_transferred: true,
+            transferred_at: now.toISOString(),
           });
           results.invoices_generated++;
 
@@ -431,6 +442,19 @@ export default async function handler(req, res) {
               }
 
               results.commissions_distributed++;
+
+              // Mark the commission record as paid (chips already distributed)
+              // The record is still in the array before batch insert
+              const crRef = commissionRecords.find(r => r.agent_id === agent.id);
+              if (crRef) {
+                crRef.status = 'paid';
+                crRef.paid_at = now.toISOString();
+              }
+              const chRef = commissionHistory.find(r => r.agent_id === agent.id && r.club_id === club.id);
+              if (chRef) {
+                chRef.status = 'paid';
+                chRef.paid_at = now.toISOString();
+              }
             }
           }
 

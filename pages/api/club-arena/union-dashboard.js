@@ -131,6 +131,12 @@ export default async function handler(req, res) {
     const totalLifetimeEarnings = agents.reduce((s, a) => s + (a.lifetime_earnings || 0), 0);
     const totalWeeklyRake = agents.reduce((s, a) => s + (a.weekly_rake_generated || 0), 0);
 
+    // Use current/open period rake for hold estimate (not lifetime)
+    const currentPeriodRake = periods
+      .filter(p => p.status === 'open')
+      .reduce((s, p) => s + (p.total_rake_collected || 0), 0);
+    const holdRate = union.settings?.union_rake_hold || 0.10;
+
     return res.status(200).json({
       success: true,
       union,
@@ -144,8 +150,9 @@ export default async function handler(req, res) {
         totalRake,
         totalLifetimeEarnings,
         totalWeeklyRake,
-        unionHoldRate: union.settings?.union_rake_hold || 0.10,
-        estimatedUnionHold: Math.round(totalRake * (union.settings?.union_rake_hold || 0.10)),
+        unionHoldRate: holdRate,
+        estimatedUnionHold: Math.round(currentPeriodRake * holdRate),
+        currentPeriodRake,
       },
       clubs,
       agents,
