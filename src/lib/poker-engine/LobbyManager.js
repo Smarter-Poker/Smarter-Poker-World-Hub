@@ -33,13 +33,13 @@ class LobbyManager {
    */
   constructor(config = {}) {
     this.supabase = config.supabase || null;
-    
+
     /** @type {Map<string, { table: TableManager, sync: RealtimeSync, timer: ActionTimer, history: HandHistoryRecorder }>} */
     this.tables = new Map();
-    
+
     /** @type {Map<string, Set<string>>} playerId → Set of tableIds */
     this.playerTables = new Map();
-    
+
     this._emptyTimers = new Map();
     this._lobbyChannel = null;
     this._lobbyBroadcastInterval = null;
@@ -58,9 +58,9 @@ class LobbyManager {
     this._lobbyChannel = this.supabase.channel('lobby', {
       config: { broadcast: { self: false } },
     });
-    
+
     await this._lobbyChannel.subscribe();
-    
+
     // Broadcast lobby state periodically
     this._lobbyBroadcastInterval = setInterval(() => {
       this._broadcastLobbyState();
@@ -91,7 +91,7 @@ class LobbyManager {
     if (this.tables.has(config.tableId)) {
       return { success: false, error: 'Table ID already exists' };
     }
-    
+
     // Create TableManager
     const table = new TableManager({
       tableId: config.tableId,
@@ -116,7 +116,7 @@ class LobbyManager {
       sevenDeuce: config.sevenDeuce || config.clubSettings?.seven_deuce || false,
       clubSettings: config.clubSettings || {},
     });
-    
+
     // ── Auto-Rebuy callback for club tables ──
     // When a player busts and has auto-rebuy ON, this locks chips from their balance
     if (config.clubId) {
@@ -138,7 +138,7 @@ class LobbyManager {
           throw new Error(lockResult.error || 'Insufficient balance for auto-rebuy');
         }
       };
-      
+
       // ── Auto Top-Up callback for club tables ──
       // Between hands, if player stack < target, lock additional chips from balance
       table.onAutoTopUp = async (playerId, amount, seatIndex) => {
@@ -158,16 +158,22 @@ class LobbyManager {
         }
       };
     }
-    
+
     // Create ActionTimer
     const timer = new ActionTimer({
       turnTime: config.turnTime || config.actionTime || 30,
       timebank: config.timebank || 30,
       onExpire: (playerId) => table.autoFold(playerId),
-      onTick: () => {},     // Wired by RealtimeSync
-      onWarning: () => {},  // Wired by RealtimeSync
+      onTick: () => { },     // Wired by RealtimeSync
+      onWarning: () => { },  // Wired by RealtimeSync
     });
-    
+
+    // Wire timer into table manager for pause/resume control
+    table.timer = timer;
+    if (table.game) {
+      table.game.timer = timer;
+    }
+
     // Create HandHistoryRecorder
     const history = new HandHistoryRecorder({
       supabase: this.supabase,
@@ -178,16 +184,16 @@ class LobbyManager {
       smallBlind: config.smallBlind,
       bigBlind: config.bigBlind,
     });
-    
+
     // Wire hand history recording to table events
     // Note: sync is created AFTER this call, so we pass a getter
     const getSyncForTable = () => this.tables.get(config.tableId)?.sync;
     this._wireHandHistory(table, history, config, getSyncForTable);
-    
+
     // Wire state serializer for crash recovery
     const serializer = new StateSerializer(config.tableId, this.supabase);
     serializer.wire(table);
-    
+
     // Create RealtimeSync
     const sync = new RealtimeSync({
       supabase: this.supabase,
@@ -195,9 +201,9 @@ class LobbyManager {
       tableManager: table,
       actionTimer: timer,
     });
-    
+
     await sync.initialize();
-    
+
     // Track player joins/leaves for multi-table tracking
     table.on('player_seated', (data) => {
       this._trackPlayerJoin(data.playerId, config.tableId);
@@ -233,7 +239,7 @@ class LobbyManager {
         }, 500);
       }
     });
-    
+
     // Store
     this.tables.set(config.tableId, {
       table,
@@ -256,28 +262,28 @@ class LobbyManager {
         createdAt: new Date().toISOString(),
       },
     });
-    
+
     // ── Game Length Timer: auto-close table after configured hours ──
     const gameLengthHours = config.clubSettings?.game_length_hours || config.gameLengthHours;
     if (gameLengthHours && gameLengthHours > 0) {
       const gameLengthMs = gameLengthHours * 60 * 60 * 1000;
       const warnMs = Math.max(gameLengthMs - (5 * 60 * 1000), 0); // 5min warning
-      
+
       // 5-minute warning
       if (warnMs > 0) {
         setTimeout(() => {
           table.emit('game_length_warning', { minutesRemaining: 5, closeAt: Date.now() + 5 * 60 * 1000 });
         }, warnMs);
       }
-      
+
       // Auto-close: finish current hand then close
       setTimeout(() => {
         console.log(`[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`);
-        
+
         // Auto-extension: if players are seated and auto_extension enabled, extend
         const autoExtension = config.clubSettings?.auto_extension || config.autoExtension;
         const seatedCount = table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
-        
+
         if (autoExtension && seatedCount >= 2) {
           console.log(`[LobbyManager] Auto-extending table ${config.tableId} (${seatedCount} players seated)`);
           table.emit('game_length_extended', { hours: gameLengthHours, seatedPlayers: seatedCount });
@@ -292,7 +298,7 @@ class LobbyManager {
           }, 60 * 60 * 1000);
           return;
         }
-        
+
         table.emit('game_length_expired', { hours: gameLengthHours });
         // Wait for current hand to finish, then close
         if (table.game.phase === 'idle') {
@@ -302,10 +308,10 @@ class LobbyManager {
         }
       }, gameLengthMs);
     }
-    
+
     // Broadcast lobby update
     this._broadcastLobbyState();
-    
+
     return { success: true, tableId: config.tableId };
   }
 
@@ -317,7 +323,7 @@ class LobbyManager {
   async closeTable(tableId) {
     const entry = this.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
-    
+
     // ── Collect seated players BEFORE close (close clears all seats) ──
     const clubId = entry.config?.clubId;
     const seatedPlayers = [];
@@ -328,10 +334,10 @@ class LobbyManager {
         }
       }
     }
-    
+
     // Close table (cashes out all players via _vacateSeat)
     entry.table.close();
-    
+
     // ── Unlock chips for ALL seated players (close() doesn't emit player_left) ──
     if (clubId && seatedPlayers.length > 0) {
       for (const { playerId, stack } of seatedPlayers) {
@@ -343,27 +349,27 @@ class LobbyManager {
         }
       }
     }
-    
+
     // Clean up
     await entry.sync.destroy();
     entry.timer.destroy();
     entry.table.destroy();
-    
+
     // Clear empty timer
     if (this._emptyTimers.has(tableId)) {
       clearTimeout(this._emptyTimers.get(tableId));
       this._emptyTimers.delete(tableId);
     }
-    
+
     // Remove player tracking
     for (const [playerId, tables] of this.playerTables) {
       tables.delete(tableId);
       if (tables.size === 0) this.playerTables.delete(playerId);
     }
-    
+
     this.tables.delete(tableId);
     this._broadcastLobbyState();
-    
+
     return { success: true };
   }
 
@@ -389,34 +395,34 @@ class LobbyManager {
    */
   getTableList(filters = {}) {
     const list = [];
-    
+
     for (const [tableId, entry] of this.tables) {
       const { table, config } = entry;
-      
+
       if (table.status === TABLE_STATUS.CLOSED) continue;
-      
+
       // Apply filters
       if (filters.clubId && config.clubId !== filters.clubId) continue;
       if (filters.variant && config.variant !== filters.variant) continue;
       if (filters.bettingStructure && config.bettingStructure !== filters.bettingStructure) continue;
       if (filters.minStakes && config.bigBlind < filters.minStakes) continue;
       if (filters.maxStakes && config.bigBlind > filters.maxStakes) continue;
-      
-      const seatedCount = table.seats.filter(s => 
+
+      const seatedCount = table.seats.filter(s =>
         s.status === 'occupied' || s.status === 'sitting_out' || s.status === 'disconnected'
       ).length;
       const openSeats = config.maxSeats - seatedCount;
-      
+
       if (filters.hasOpenSeats && openSeats <= 0) continue;
-      
+
       // Calculate average stack
       const stacks = table.seats
         .filter(s => s.status === 'occupied' && s.stack > 0)
         .map(s => s.stack);
-      const avgStack = stacks.length > 0 
+      const avgStack = stacks.length > 0
         ? Math.round(stacks.reduce((a, b) => a + b, 0) / stacks.length)
         : 0;
-      
+
       list.push({
         tableId,
         tableName: config.tableName,
@@ -438,7 +444,7 @@ class LobbyManager {
         handCount: table.handCount,
       });
     }
-    
+
     return list;
   }
 
@@ -469,7 +475,7 @@ class LobbyManager {
     table.on('hand_start', (data) => {
       history.beginHand(data);
     });
-    
+
     table.on('blinds_posted', (data) => {
       // blinds_posted emits { smallBlind: { playerId, amount }, bigBlind: { playerId, amount }, ante }
       const blinds = [];
@@ -481,7 +487,7 @@ class LobbyManager {
       }
       history.recordBlinds(blinds);
     });
-    
+
     table.on('cards_dealt', (data) => {
       // cards_dealt event only has { id, cardCount } for privacy.
       // Pull actual cards from the table engine for hand history recording.
@@ -492,13 +498,13 @@ class LobbyManager {
         }
       }
     });
-    
+
     table.on('street_start', (data) => {
       if (data.street && data.communityCards) {
         history.recordCommunityCards(data.street, data.communityCards);
       }
     });
-    
+
     table.on('action_processed', (data) => {
       if (data.street && data.action) {
         history.recordAction(data.street, {
@@ -509,7 +515,7 @@ class LobbyManager {
         });
       }
     });
-    
+
     table.on('showdown', (data) => {
       // showdown has { players: [{ id, holeCards, hand }], communityCards, winners: [playerId] }
       // Record shown cards from showdown event
@@ -521,7 +527,7 @@ class LobbyManager {
         })) || [],
       });
     });
-    
+
     table.on('payout', (data) => {
       // payout has { type, winners: [{ playerId, amount }], pots, rake }
       // Update winners, pots, and rake from payout event
@@ -689,12 +695,12 @@ class LobbyManager {
     table.on('run_it_thrice', (data) => {
       getSyncChannel()?.send({ type: 'broadcast', event: 'run_it_thrice', payload: data });
     });
-    
+
     table.on('hand_complete', async (data) => {
       const finalStacks = table.seats
         .filter(s => s.player)
         .map(s => ({ playerId: s.player.id, stack: s.stack }));
-      
+
       await history.completeHand(finalStacks);
 
       // ── Record rake to Club Arena DB via Supabase RPC ──
@@ -824,7 +830,7 @@ class LobbyManager {
             sb.from('tables').update({
               hands_dealt: table.handCount || 0,
               updated_at: new Date().toISOString(),
-            }).eq('id', config.tableId).then(() => {});
+            }).eq('id', config.tableId).then(() => { });
           });
         }
       } catch (_) {
@@ -842,7 +848,7 @@ class LobbyManager {
       this.playerTables.set(playerId, new Set());
     }
     this.playerTables.get(playerId).add(tableId);
-    
+
     // Clear empty timer if table was empty
     if (this._emptyTimers.has(tableId)) {
       clearTimeout(this._emptyTimers.get(tableId));
@@ -860,17 +866,17 @@ class LobbyManager {
       tables.delete(tableId);
       if (tables.size === 0) this.playerTables.delete(playerId);
     }
-    
+
     // Check if table is now empty — start auto-close timer
     const entry = this.tables.get(tableId);
     if (entry) {
-      const seatedCount = entry.table.seats.filter(s => 
+      const seatedCount = entry.table.seats.filter(s =>
         s.status === 'occupied' || s.status === 'sitting_out'
       ).length;
-      
+
       if (seatedCount === 0 && !this._emptyTimers.has(tableId)) {
         const autoRestart = entry.config?.clubSettings?.auto_restart || entry.config?.autoRestart;
-        
+
         if (autoRestart) {
           // Auto-restart: keep table alive, just set status to waiting
           entry.table.status = 'WAITING';
@@ -896,13 +902,13 @@ class LobbyManager {
    */
   async _updateTablePlayerCount(tableId, table) {
     try {
-      const count = table.seats.filter(s => 
+      const count = table.seats.filter(s =>
         s.status === SEAT_STATUS.OCCUPIED || s.status === SEAT_STATUS.SITTING_OUT
       ).length;
-      
+
       const sb = ChipBridge.getSupabase();
       if (sb) {
-        await sb.from('tables').update({ 
+        await sb.from('tables').update({
           current_players: count,
           updated_at: new Date().toISOString(),
         }).eq('id', tableId);
@@ -916,26 +922,26 @@ class LobbyManager {
   _checkAutoCreateTable(templateConfig) {
     const clubId = templateConfig.clubId;
     if (!clubId) return;
-    
+
     const variant = templateConfig.variant;
     const bigBlind = templateConfig.bigBlind;
-    
+
     // Find all tables for this club with same variant + stakes
     let allFull = true;
     let tableCount = 0;
-    
+
     for (const [, entry] of this.tables) {
       if (entry.config.clubId !== clubId) continue;
       if (entry.config.variant !== variant || entry.config.bigBlind !== bigBlind) continue;
       tableCount++;
-      
+
       const seated = entry.table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
       if (seated < entry.table.maxSeats) {
         allFull = false;
         break;
       }
     }
-    
+
     // Max 5 auto-created tables per variant+stakes
     if (allFull && tableCount < 5) {
       const newConfig = {
@@ -943,7 +949,7 @@ class LobbyManager {
         tableId: `auto_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         tableName: `${templateConfig.tableName || 'Table'} #${tableCount + 1}`,
       };
-      
+
       console.log(`[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`);
       this.createTable(newConfig).then(result => {
         if (result.success) {
@@ -961,9 +967,9 @@ class LobbyManager {
    */
   _broadcastLobbyState() {
     if (!this._lobbyChannel) return;
-    
+
     const tableList = this.getTableList();
-    
+
     this._lobbyChannel.send({
       type: 'broadcast',
       event: 'lobby_update',
@@ -983,16 +989,16 @@ class LobbyManager {
     if (this._lobbyBroadcastInterval) {
       clearInterval(this._lobbyBroadcastInterval);
     }
-    
+
     for (const timer of this._emptyTimers.values()) {
       clearTimeout(timer);
     }
-    
+
     // Close all tables
     for (const tableId of this.tables.keys()) {
       await this.closeTable(tableId);
     }
-    
+
     if (this._lobbyChannel) {
       await this.supabase.removeChannel(this._lobbyChannel);
     }
@@ -1009,13 +1015,13 @@ class LobbyManager {
  */
 function createLobbyClient(supabase, callbacks = {}) {
   const channel = supabase.channel('lobby');
-  
+
   channel.on('broadcast', { event: 'lobby_update' }, (payload) => {
     if (callbacks.onUpdate) callbacks.onUpdate(payload.payload);
   });
-  
+
   channel.subscribe();
-  
+
   return {
     channel,
     async disconnect() {

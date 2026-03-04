@@ -1357,6 +1357,9 @@ class TableManager {
    */
   pause() {
     this.status = TABLE_STATUS.PAUSED;
+    if (this.game && this.game.timer) {
+      this.game.timer.pause();
+    }
     this.emit('table_paused', { tableId: this.tableId });
   }
 
@@ -1365,6 +1368,9 @@ class TableManager {
    */
   resume() {
     this.status = TABLE_STATUS.BETWEEN_HANDS;
+    if (this.game && this.game.timer) {
+      this.game.timer.resume();
+    }
     this.emit('table_resumed', { tableId: this.tableId });
     this._checkAutoStart();
   }

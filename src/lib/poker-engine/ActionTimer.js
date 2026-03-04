@@ -39,14 +39,14 @@ class ActionTimer {
     this.timebank = config.timebank || DEFAULT_TIMEBANK;
     this.timebankRegenPerHand = config.timebankRegenPerHand || TIMEBANK_REGEN_PER_HAND;
     this.disconnectTurnTime = config.disconnectTurnTime || DISCONNECT_TURN_TIME;
-    
+
     this.onExpire = config.onExpire;
     this.onTick = config.onTick;
     this.onWarning = config.onWarning;
-    
+
     /** @type {Map<string|number, number>} Player timebank balances */
     this._timebankBalances = new Map();
-    
+
     // Current timer state
     this._currentPlayerId = null;
     this._mainTimer = null;
@@ -56,6 +56,8 @@ class ActionTimer {
     this._isTimebank = false;
     this._warningFired = false;
     this._isDisconnected = false;
+    this._isPaused = false;
+    this._timeRemainingAtPause = 0;
   }
 
   /**
@@ -88,24 +90,24 @@ class ActionTimer {
   startTurn(playerId, options = {}) {
     // Clear any existing timer
     this.cancelTurn();
-    
+
     this._currentPlayerId = playerId;
     this._isDisconnected = options.disconnected || false;
     this._isTimebank = false;
     this._warningFired = false;
-    
+
     const mainTime = this._isDisconnected ? this.disconnectTurnTime : this.turnTime;
     this._totalAllowed = mainTime;
     this._startTime = Date.now();
-    
+
     // Initialize player timebank if needed
     this.initPlayer(playerId);
-    
+
     // Start main timer
     this._mainTimer = setTimeout(() => {
       this._onMainExpire();
     }, mainTime * 1000);
-    
+
     // Start tick interval (1 second)
     this._tickInterval = setInterval(() => {
       this._onTick();
@@ -134,16 +136,80 @@ class ActionTimer {
    */
   getTimerState() {
     if (!this._currentPlayerId || !this._startTime) return null;
-    
+
+    if (this._isPaused) {
+      return {
+        playerId: this._currentPlayerId,
+        remaining: Math.ceil(this._timeRemainingAtPause),
+        isTimebank: this._isTimebank,
+        timebankBalance: this._timebankBalances.get(this._currentPlayerId) || 0,
+        isPaused: true
+      };
+    }
+
     const elapsed = (Date.now() - this._startTime) / 1000;
     const remaining = Math.max(0, this._totalAllowed - elapsed);
-    
+
     return {
       playerId: this._currentPlayerId,
       remaining: Math.ceil(remaining),
       isTimebank: this._isTimebank,
       timebankBalance: this._timebankBalances.get(this._currentPlayerId) || 0,
+      isPaused: false
     };
+  }
+
+  /**
+   * Pause the active timer (e.g., admin freezes table).
+   * Freezes the countdown and prevents auto-folding.
+   */
+  pause() {
+    if (!this._currentPlayerId || !this._startTime || this._isPaused) return;
+
+    this._isPaused = true;
+
+    // Calculate exact remaining time before clearing ticks
+    const elapsed = (Date.now() - this._startTime) / 1000;
+    this._timeRemainingAtPause = Math.max(0, this._totalAllowed - elapsed);
+
+    // Stop execution hooks immediately
+    if (this._mainTimer) {
+      clearTimeout(this._mainTimer);
+      this._mainTimer = null;
+    }
+    if (this._tickInterval) {
+      clearInterval(this._tickInterval);
+      this._tickInterval = null;
+    }
+  }
+
+  /**
+   * Resume the active timer after a pause.
+   */
+  resume() {
+    if (!this._currentPlayerId || !this._isPaused) return;
+
+    this._isPaused = false;
+
+    // Shift the startTime forward so elapsed time matches _timeRemainingAtPause
+    this._startTime = Date.now() - ((this._totalAllowed - this._timeRemainingAtPause) * 1000);
+
+    // Restart the main timer based on the EXACT seconds remaining
+    this._mainTimer = setTimeout(() => {
+      if (this._isTimebank) {
+        // If we paused while deep in the timebank, expiring means dead hand
+        this._timebankBalances.set(this._currentPlayerId, 0);
+        this._expire();
+      } else {
+        // If we paused in main time, expiration shifts them to timebank
+        this._onMainExpire();
+      }
+    }, this._timeRemainingAtPause * 1000);
+
+    // Restart the tick interval
+    this._tickInterval = setInterval(() => {
+      this._onTick();
+    }, 1000);
   }
 
   /**
@@ -153,21 +219,21 @@ class ActionTimer {
   _onMainExpire() {
     const playerId = this._currentPlayerId;
     if (!playerId) return;
-    
+
     const timebankBalance = this._timebankBalances.get(playerId) || 0;
-    
+
     if (timebankBalance <= 0 || this._isDisconnected) {
       // No timebank or disconnected — expire immediately
       this._expire();
       return;
     }
-    
+
     // Transition to timebank
     this._isTimebank = true;
     this._startTime = Date.now();
     this._totalAllowed = timebankBalance;
     this._warningFired = false;
-    
+
     // Start timebank timer
     this._mainTimer = setTimeout(() => {
       // Deduct used timebank
@@ -182,14 +248,14 @@ class ActionTimer {
    */
   _onTick() {
     if (!this._currentPlayerId || !this._startTime) return;
-    
+
     const elapsed = (Date.now() - this._startTime) / 1000;
     const remaining = Math.max(0, this._totalAllowed - elapsed);
-    
+
     if (this.onTick) {
       this.onTick(this._currentPlayerId, Math.ceil(remaining), this._isTimebank);
     }
-    
+
     // Fire warning
     if (!this._warningFired && remaining <= WARNING_THRESHOLD && remaining > 0) {
       this._warningFired = true;
@@ -197,7 +263,7 @@ class ActionTimer {
         this.onWarning(this._currentPlayerId, Math.ceil(remaining), this._isTimebank);
       }
     }
-    
+
     if (remaining <= 0) {
       // Clean up tick interval (timer should handle expiry)
       clearInterval(this._tickInterval);
@@ -211,7 +277,7 @@ class ActionTimer {
    */
   _expire() {
     const playerId = this._currentPlayerId;
-    
+
     // Clean up
     if (this._tickInterval) {
       clearInterval(this._tickInterval);
@@ -220,7 +286,7 @@ class ActionTimer {
     this._mainTimer = null;
     this._currentPlayerId = null;
     this._startTime = null;
-    
+
     // Callback to auto-fold/check
     if (this.onExpire && playerId) {
       this.onExpire(playerId);

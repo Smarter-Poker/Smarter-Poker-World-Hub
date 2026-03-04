@@ -240,6 +240,12 @@ class TournamentBridge {
       timeBank: this.tournament.timeBankSeconds || 30000,
     });
 
+    // Wire timer into table manager for pause/resume control
+    table.timer = timer;
+    if (table.game) {
+      table.game.timer = timer;
+    }
+
     // Wire timer to table
     timer.on('turn_timeout', ({ playerId }) => {
       // Auto-fold on timeout
