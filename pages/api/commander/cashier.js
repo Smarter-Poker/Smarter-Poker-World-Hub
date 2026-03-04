@@ -80,6 +80,11 @@ async function handlePost(req, res, staff) {
     if (!venue_id || !player_name || !type) {
       return res.status(400).json({ success: false, error: 'venue_id, player_name, and type required' });
     }
+
+    // BUG #252 FIX: Enforce staff can only create transactions in their own venue
+    if (staff.venue_id && String(venue_id) !== String(staff.venue_id)) {
+      return res.status(403).json({ success: false, error: 'Cannot create transactions for another venue' });
+    }
     if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({ success: false, error: `type must be one of: ${VALID_TYPES.join(', ')}` });
     }
@@ -156,8 +161,8 @@ async function handlePatch(req, res, staff) {
     }
 
     // SAFEGUARD: Scope to venue — staff can only void transactions in their venue
-    const staffVenueId = staff.venue_id || req.body.venue_id;
-    if (staffVenueId && existing.venue_id && String(existing.venue_id) !== String(staffVenueId)) {
+    // BUG #254 FIX: Always use staff.venue_id, never fall back to req.body
+    if (staff.venue_id && existing.venue_id && String(existing.venue_id) !== String(staff.venue_id)) {
       return res.status(403).json({ success: false, error: 'Cannot void transactions from another venue' });
     }
 
@@ -165,7 +170,7 @@ async function handlePatch(req, res, staff) {
       .from('commander_cash_transactions')
       .update({
         voided_at: new Date().toISOString(),
-        voided_by: voided_by || staff.id,
+        voided_by: staff.id, // BUG #253 FIX: Always use authenticated staff.id, never trust client input
         void_reason: void_reason || 'Voided by staff',
       })
       .eq('id', transaction_id)
