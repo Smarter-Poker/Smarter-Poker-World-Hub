@@ -241,8 +241,10 @@ export default function BankrollManagerPage() {
   const [scannerStep, setScannerStep] = useState('scan'); // 'scan' | 'post-capture' | 'pick-entry'
   const [scannerEntryId, setScannerEntryId] = useState(null);
   const [scannerImageUrl, setScannerImageUrl] = useState(null);
+  const [scannerExtractedData, setScannerExtractedData] = useState(null);
   const [defaultReceiptCategory, setDefaultReceiptCategory] = useState(null);
   const [defaultReceiptMedia, setDefaultReceiptMedia] = useState(null);
+  const [defaultReceiptData, setDefaultReceiptData] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
   const [isVip, setIsVip] = useState(false);
 
@@ -1618,7 +1620,7 @@ export default function BankrollManagerPage() {
                   {scannerStep === 'pick-entry' && 'Select Entry'}
                 </h2>
                 <button
-                  onClick={() => { setShowScanner(false); setScannerStep('scan'); setScannerEntryId(null); setScannerImageUrl(null); }}
+                  onClick={() => { setShowScanner(false); setScannerStep('scan'); setScannerEntryId(null); setScannerImageUrl(null); setScannerExtractedData(null); }}
                   style={styles.scannerCloseBtn}
                 >
                   ✕
@@ -1630,8 +1632,9 @@ export default function BankrollManagerPage() {
                 <div>
                   <ReceiptScanner
                     userId={userId}
-                    onScanComplete={({ imageUrl }) => {
+                    onScanComplete={({ imageUrl, extractedData }) => {
                       setScannerImageUrl(imageUrl);
+                      setScannerExtractedData(extractedData);
                       setScannerStep('post-capture');
                     }}
                   />
@@ -1659,11 +1662,13 @@ export default function BankrollManagerPage() {
                         // Open LogEntryModal as NEW entry with receipt pre-attached
                         setDefaultReceiptCategory('expense');
                         setDefaultReceiptMedia([scannerImageUrl]);
+                        setDefaultReceiptData(scannerExtractedData);
                         setEditEntry(null);
                         setShowLogModal(true);
                         setShowScanner(false);
                         setScannerStep('scan');
                         setScannerImageUrl(null);
+                        setScannerExtractedData(null);
                       }}
                       style={styles.scannerChoiceBtn}
                     >
@@ -1781,8 +1786,9 @@ export default function BankrollManagerPage() {
               editEntry={editEntry}
               defaultCategory={defaultReceiptCategory}
               defaultMediaUrls={defaultReceiptMedia}
-              onClose={() => { setShowLogModal(false); setEditEntry(null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); }}
-              onSubmit={() => { handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); }}
+              defaultPrefillData={defaultReceiptData}
+              onClose={() => { setShowLogModal(false); setEditEntry(null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null); }}
+              onSubmit={() => { handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null); }}
             />
           ) : (
             <motion.div

@@ -27,6 +27,7 @@ const EXPENSE_LABELS = {
 export default function ReceiptScanner({ onScanComplete, userId, displayEUR = false, tripId = null }) {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadedUrl, setUploadedUrl] = useState(null);
+    const [extractedData, setExtractedData] = useState(null);
     const [error, setError] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [showCropper, setShowCropper] = useState(false);
@@ -49,20 +50,14 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
     const handleCropConfirm = useCallback(async (croppedBase64) => {
         setShowCropper(false);
         setImagePreview(croppedBase64);
-        const res = await fetch(croppedBase64);
-        const blob = await res.blob();
-        const file = new File([blob], 'receipt-cropped.jpg', { type: 'image/jpeg' });
-        await uploadReceipt(file);
+        await processReceipt(croppedBase64, 'receipt-cropped.jpg');
     }, [userId]);
 
     const handleCropSkip = useCallback(async () => {
         setShowCropper(false);
         if (rawImage) {
             setImagePreview(rawImage);
-            const res = await fetch(rawImage);
-            const blob = await res.blob();
-            const file = new File([blob], 'receipt-original.jpg', { type: 'image/jpeg' });
-            await uploadReceipt(file);
+            await processReceipt(rawImage, 'receipt-original.jpg');
         }
     }, [rawImage, userId]);
 
@@ -70,17 +65,15 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
     const handleLiveCapture = useCallback(async (capturedBase64) => {
         setShowLiveCamera(false);
         setImagePreview(capturedBase64);
-        const res = await fetch(capturedBase64);
-        const blob = await res.blob();
-        const file = new File([blob], 'receipt-cropped.jpg', { type: 'image/jpeg' });
-        await uploadReceipt(file);
+        await processReceipt(capturedBase64, 'receipt-cropped.jpg');
     }, [userId]);
 
-    // Upload receipt image directly to Supabase Storage
-    const uploadReceipt = async (file) => {
+    // Upload receipt image and perform AI OCR simultaneously
+    const processReceipt = async (base64Data, fileName) => {
         setIsUploading(true);
         setError(null);
         setUploadedUrl(null);
+        setExtractedData(null);
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -89,24 +82,50 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                 return;
             }
 
+            // 1. Setup blob for storage upload
+            const res = await fetch(base64Data);
+            const blob = await res.blob();
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
+
             const uid = userId || session.user.id;
             const fileExt = file.name?.split('.').pop() || 'jpg';
-            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-            const filePath = `bankroll/${uid}/${fileName}`;
+            const storageName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+            const filePath = `bankroll/${uid}/${storageName}`;
 
-            const { error: uploadError } = await supabase.storage
+            // 2. Upload to Supabase Storage
+            const uploadPromise = supabase.storage
                 .from('images')
-                .upload(filePath, file);
+                .upload(filePath, file)
+                .then(async ({ error }) => {
+                    if (error) throw error;
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('images')
+                        .getPublicUrl(filePath);
+                    return publicUrl;
+                });
 
-            if (uploadError) throw uploadError;
+            // 3. Call OCR API
+            const ocrPromise = fetch('/api/bankroll/scan-receipt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ image: base64Data })
+            }).then(async r => {
+                if (!r.ok) return null; // Don't fail upload if OCR fails
+                return r.json();
+            }).catch(() => null);
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('images')
-                .getPublicUrl(filePath);
+            // Wait for both tasks to complete
+            const [publicUrl, ocrResult] = await Promise.all([uploadPromise, ocrPromise]);
 
             setUploadedUrl(publicUrl);
+            if (ocrResult?.success && ocrResult.data) {
+                setExtractedData(ocrResult.data);
+            }
         } catch (err) {
-            console.error('Upload error:', err);
+            console.error('Process error:', err);
             setError('UPLOAD FAILED - RETRY');
         } finally {
             setIsUploading(false);
@@ -115,7 +134,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
 
     const handleConfirm = () => {
         if (uploadedUrl && onScanComplete) {
-            onScanComplete({ imageUrl: uploadedUrl, tripId });
+            onScanComplete({ imageUrl: uploadedUrl, extractedData, tripId });
         }
         resetScanner();
     };
@@ -124,6 +143,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         setUploadedUrl(null);
         setImagePreview(null);
         setRawImage(null);
+        setExtractedData(null);
         setShowCropper(false);
         setShowLiveCamera(false);
         setError(null);
@@ -160,7 +180,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     )}
                     <div style={styles.scanningInfo}>
                         <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>UPLOADING RECEIPT...</span>
+                        <span>ANALYZING RECEIPT...</span>
                     </div>
                 </div>
             )}
@@ -232,6 +252,24 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                     <div style={styles.previewContainer}>
                         <img src={uploadedUrl} alt="Receipt" style={styles.previewImage} />
                     </div>
+
+                    {/* AI Data Extraction Preview */}
+                    {extractedData && (
+                        <div style={styles.dataGrid}>
+                            {extractedData.vendor && (
+                                <div style={styles.dataRow}>
+                                    <span style={styles.dataLabel}>VENDOR</span>
+                                    <span style={styles.dataValue}>{extractedData.vendor}</span>
+                                </div>
+                            )}
+                            {extractedData.amount != null && (
+                                <div style={styles.dataRow}>
+                                    <span style={styles.dataLabel}>AMOUNT</span>
+                                    <span style={{ ...styles.dataValue, color: '#4ade80' }}>${extractedData.amount.toFixed(2)}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Actions */}
                     <div style={styles.actions}>

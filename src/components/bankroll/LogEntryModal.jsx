@@ -41,7 +41,7 @@ const SPORTS = ['baseball', 'basketball', 'football', 'hockey', 'boxing_mma'];
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
-export default function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, onClose, onSubmit }) {
+export default function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, onClose, onSubmit }) {
   const isEditMode = !!editEntry;
   const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
@@ -128,22 +128,56 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         expense_type: e.expense_type || '',
       };
     }
+
+    // Pre-fill fields from OCR extracted data if available
+    let initGrossIn = '';
+    let initLocationName = '';
+    let initNotes = '';
+    let initExpenseType = '';
+
+    if (defaultPrefillData) {
+      initGrossIn = defaultPrefillData.amount?.toString() || '';
+      initLocationName = defaultPrefillData.vendor || '';
+
+      const desc = defaultPrefillData.description || '';
+      const date = defaultPrefillData.date || '';
+      if (initLocationName || desc || date) {
+        initNotes = `[Scan Data]\nVendor: ${initLocationName}\nDescription: ${desc}\nDate: ${date}`.trim();
+      }
+
+      const catMap = {
+        hotel: 'hotel',
+        flights: 'flight',
+        rental_car: 'rental_car',
+        gas: 'gas',
+        meals: 'meals',
+        transport: 'rideshare',
+        tips: 'tips',
+        tournament: 'tournament_fee',
+        buy_in: 'other',
+        other: 'other'
+      };
+      if (defaultPrefillData.category) {
+        initExpenseType = catMap[defaultPrefillData.category] || '';
+      }
+    }
+
     return {
-      gross_in: '',
+      gross_in: initGrossIn,
       gross_out: '0',
       location_id: '',
-      location_name: '',
+      location_name: initLocationName,
       venue_type: 'casino',
       poker_venue_id: null,
       venue_lat: null,
       venue_lng: null,
       trip_id: '',
-      entry_date: new Date().toLocaleDateString('en-CA'),
+      entry_date: defaultPrefillData?.date ? defaultPrefillData.date : new Date().toLocaleDateString('en-CA'),
       start_time_text: '',
       start_period: 'PM',
       end_time_text: '',
       end_period: 'PM',
-      notes: '',
+      notes: initNotes,
       emotional_tag: '',
       stakes: '',
       game_type: 'nlhe',
@@ -160,7 +194,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       bet_type: '',
       odds: '',
       bet_result: '',
-      expense_type: '',
+      expense_type: initExpenseType,
       inline_expense_amount: '',
       inline_expense_type: '',
       swap_player: '',
