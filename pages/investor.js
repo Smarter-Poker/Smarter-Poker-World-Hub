@@ -13,7 +13,7 @@ import {
     TabletFrame,
     HolographicHUD,
     DesktopMonitor
-} from '../../src/components/pitch/SlideLayouts';
+} from '../src/components/pitch/SlideLayouts';
 
 // =========================================================================
 // MOCK UI COMPONENTS (Rendered inside the 3D Device Frames)

@@ -411,30 +411,6 @@ export default function HamburgerMenu({
                     {menuItems.map((item, index) => renderMenuItem(item, index))}
                 </div>
 
-                {/* Pitch Deck Link - Injected Prominently */}
-                <div style={{ padding: '0 16px', borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}>
-                    <Link
-                        href="/hub/investor-pitch"
-                        onClick={onClose}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                            padding: '12px 0',
-                            textDecoration: 'none',
-                            color: colors.blueHover,
-                            width: '100%',
-                            fontSize: 16,
-                            fontWeight: 600,
-                            fontFamily: 'inherit',
-                        }}
-                    >
-                        <div style={{ width: 24, height: 24, fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📈</div>
-                        <span style={{ flex: 1, textAlign: 'left' }}>Investor Pitch Deck</span>
-                        <span style={{ color: colors.blueHover }}>›</span>
-                    </Link>
-                </div>
-
                 {/* Bottom Links */}
                 {bottomLinks.length > 0 && (
                     <div style={{ padding: '0 16px', borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}>
