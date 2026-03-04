@@ -267,7 +267,7 @@ export const GridSlide = ({ title, subtitle, items }) => (
                         boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
                     }}
                 >
-                    <div style={{ fontSize: '3rem', marginBottom: 20 }}>{item.icon}</div>
+                    <div style={{ width: 40, height: 4, background: '#00B4D8', borderRadius: 2, marginBottom: 20, boxShadow: '0 0 10px rgba(0,180,216,0.5)' }} />
                     <h3 style={{ fontSize: '1.5rem', margin: '0 0 10px 0', color: '#fff' }}>{item.title}</h3>
                     <p style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, margin: 0 }}>{item.desc}</p>
                 </motion.div>
