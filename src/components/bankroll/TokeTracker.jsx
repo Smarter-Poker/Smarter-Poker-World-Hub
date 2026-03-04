@@ -14,6 +14,7 @@ import TokeCalendar from './TokeCalendar';
 import TokeDashboard from './TokeDashboard';
 import DealerVault from './DealerVault';
 import VenueIntelligence from './VenueIntelligence';
+import TaxSummaryModal from './TaxSummaryModal';
 import {
     getActiveGig,
     fetchGigs,
@@ -104,7 +105,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         game_type: '',
         cash_variant: 'Holdem',
         cash_stakes: '1/3',
+        tournament_buyin: '',
     });
+
+    // Tax Summary modal
+    const [showTaxSummary, setShowTaxSummary] = useState(false);
 
     // Toke edit state  
     const [editingTokeId, setEditingTokeId] = useState(null);
@@ -483,10 +488,12 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 tournament_name: downForm.down_type === 'tournament' ? downForm.tournament_name : null,
                 table_number: downForm.table_number || null,
                 game_type: gameType,
+                tournament_buyin: downForm.down_type === 'tournament' && downForm.tournament_buyin
+                    ? parseFloat(downForm.tournament_buyin) : null,
             });
             toast.success(`${DOWN_TYPE_LABELS[downForm.down_type]} down started!`);
             setShowAddDown(false);
-            setDownForm({ down_type: 'cash', tournament_name: '', table_number: '', game_type: '', cash_variant: 'Holdem', cash_stakes: '1/3' });
+            setDownForm({ down_type: 'cash', tournament_name: '', table_number: '', game_type: '', cash_variant: 'Holdem', cash_stakes: '1/3', tournament_buyin: '' });
             startDownTimer(DOWN_TIMER_MS, down);
             await loadData();
         } catch (err) {
@@ -825,6 +832,20 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         {' · '}{stats.durationDays} day{stats.durationDays !== 1 ? 's' : ''}
                     </p>
 
+                    {/* Mileage IRS Deductible */}
+                    {gig.mileage > 0 && (() => {
+                        const year = gig.start_date ? parseInt(gig.start_date.slice(0, 4), 10) : new Date().getFullYear();
+                        const irsRates = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585 };
+                        const rate = irsRates[year] || 0.67;
+                        return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, fontSize: 13 }}>
+                                <span>🚗</span>
+                                <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} miles × ${rate}/mi</span>
+                                <span style={{ color: '#f59e0b', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} deductible</span>
+                            </div>
+                        );
+                    })()}
+
                     <div style={styles.reportStatsGrid}>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Total Earnings</span>
@@ -990,6 +1011,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
 
             {/* ── VENUE INTELLIGENCE ── */}
             <VenueIntelligence gigs={completedGigs} />
+
+            {/* ── TAX SUMMARY BUTTON ── */}
+            {completedGigs.length > 0 && (
+                <button style={styles.taxSummaryBtn} onClick={() => setShowTaxSummary(true)}>
+                    📄 Annual Tax Summary &amp; PDF Export
+                </button>
+            )}
 
             {/* ── MONTHLY INCOME GOAL ── */}
             {(monthlyGoal > 0 || showGoalEdit) && (
@@ -1324,6 +1352,11 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                         placeholder="0 miles"
                                         style={{ ...styles.formInput, width: 100, padding: '8px 12px' }}
                                     />
+                                    {mileageInput && parseFloat(mileageInput) > 0 && (
+                                        <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                            = ${(parseFloat(mileageInput) * 0.70).toFixed(2)} deductible
+                                        </span>
+                                    )}
                                     <button onClick={() => handleCompleteGig(mileageInput)} style={styles.confirmYes}>Yes, Complete</button>
                                     <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                                 </div>
@@ -1585,6 +1618,20 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                         value={downForm.table_number || ''}
                                         onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
                                         style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Tournament Buy-In Input Zone */}
+                            {downForm.down_type === 'tournament' && (
+                                <div style={{ position: 'absolute', top: '79.5%', left: '7%', width: '86%', height: '9%', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <input
+                                        type="number"
+                                        className="toke-img-map-element"
+                                        value={downForm.tournament_buyin || ''}
+                                        onChange={e => setDownForm({ ...downForm, tournament_buyin: e.target.value })}
+                                        placeholder="Buy-in $ (optional)"
+                                        style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12, width: '100%' }}
                                     />
                                 </div>
                             )}
@@ -1858,6 +1905,13 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             <div style={styles.calendarWrapper}>
                 <TokeCalendar userId={userId} />
             </div>
+            {/* ── TAX SUMMARY MODAL ── */}
+            {showTaxSummary && (
+                <TaxSummaryModal
+                    completedGigs={completedGigs}
+                    onClose={() => setShowTaxSummary(false)}
+                />
+            )}
         </div>
     );
 }
@@ -2208,6 +2262,12 @@ const styles = {
     jarvisHistoryItem: {
         background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: '10px 12px',
         border: '1px solid rgba(255,255,255,0.05)',
+    },
+    taxSummaryBtn: {
+        width: '100%', padding: '13px', background: 'rgba(54,187,106,0.08)',
+        border: '1px dashed rgba(54,187,106,0.4)', borderRadius: 10,
+        color: '#36bb6a', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        textAlign: 'center',
     },
     jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
     jarvisHistoryA: { fontSize: 12, color: '#B0B3B8', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
