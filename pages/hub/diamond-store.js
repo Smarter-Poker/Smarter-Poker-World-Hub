@@ -836,6 +836,9 @@ export default function DiamondStorePage() {
             const { clearCart } = useCartStore.getState();
             clearCart();
 
+            // Notify listeners (UniversalHeader, etc.) to refresh diamond balance immediately
+            window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+
         } catch (error) {
             console.error('Diamond payment error:', error);
             alert(error.message || 'Failed to complete diamond payment. Please try again.');
