@@ -137,18 +137,22 @@ export default async function handler(req, res) {
       }
     }
 
-    // Release the broken table back to inactive
-    await supabase
-      .from('commander_tables')
-      .update({
-        mode: 'inactive',
-        tournament_id: null,
-        status: 'available',
-        assigned_at: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('venue_id', tournament.venue_id)
-      .eq('table_number', table_number);
+    // Release the broken table back to inactive (ONLY if all players successfully moved)
+    if (errors.length === 0) {
+      await supabase
+        .from('commander_tables')
+        .update({
+          mode: 'inactive',
+          tournament_id: null,
+          status: 'available',
+          assigned_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('venue_id', tournament.venue_id)
+        .eq('table_number', table_number);
+    } else {
+      console.warn(`[break-table] Table ${table_number} not released because ${errors.length} player moves failed.`);
+    }
 
     // Build receipt data — full venue-level identity
     const now = new Date().toISOString();
