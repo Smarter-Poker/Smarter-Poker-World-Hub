@@ -325,6 +325,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                 license_number: '', amount: '', notes: '',
             });
             await loadDocs();
+            window.dispatchEvent(new CustomEvent('bankroll-updated'));
         } catch (err) {
             toast.error(err.message || 'Upload failed');
         } finally {
@@ -344,6 +345,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
             await supabase.from('dealer_documents').delete().eq('id', doc.id);
             toast.success('Document deleted');
             await loadDocs();
+            window.dispatchEvent(new CustomEvent('bankroll-updated'));
         } catch (err) {
             toast.error('Failed to delete document');
         }

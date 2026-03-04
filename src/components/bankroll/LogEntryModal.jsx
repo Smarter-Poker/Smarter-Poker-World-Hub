@@ -490,6 +490,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       } else {
         await createLedgerEntry(userId, entry);
       }
+
+      // Dispatch global event for real-time dashboard sync
+      window.dispatchEvent(new CustomEvent('bankroll-updated'));
+
       onSubmit(entry);
     } catch (error) {
       console.error('Error logging entry:', error);

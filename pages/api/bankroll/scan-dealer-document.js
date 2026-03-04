@@ -120,7 +120,12 @@ If any field is not visible or not relevant to the document type, use null. Be s
     // Parse JSON from response string
     const jsonMatch = content?.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+            return JSON.parse(jsonMatch[0]);
+        } catch (e) {
+            console.error('OCR Vault JSON Parse Error:', e);
+            throw new Error('Failed to parse structured data from AI response.');
+        }
     }
 
     throw new Error('Could not extract form data from image');

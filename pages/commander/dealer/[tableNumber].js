@@ -1042,3 +1042,7 @@ export default function DealerTablet() {
     </>
   );
 }
+
+export async function getServerSideProps(context) {
+  return { props: {} };
+}

@@ -136,7 +136,12 @@ If any field is not visible, use null. For poker buy-ins, look for "buy-in", "en
     // Parse JSON from response
     const jsonMatch = content?.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+            return JSON.parse(jsonMatch[0]);
+        } catch (e) {
+            console.error('OCR Receipt JSON Parse Error:', e);
+            throw new Error('Failed to parse structured data from AI response.');
+        }
     }
 
     throw new Error('Could not extract receipt data from image');

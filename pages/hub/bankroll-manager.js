@@ -440,6 +440,8 @@ export default function BankrollManagerPage() {
 
   useEffect(() => {
     loadData();
+    window.addEventListener('bankroll-updated', loadData);
+    return () => window.removeEventListener('bankroll-updated', loadData);
   }, [loadData]);
 
   // Geofence: start watching when userId is available
