@@ -1828,7 +1828,7 @@ export default function PokerNearMePage() {
 
                     {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
                     <div className="pnm-hud-panel">
-                        <img src="/images/poker-near-me-hud-frame.jpg" alt="" className="hud-bg-frame" aria-hidden="true" />
+                        <img src="/images/poker-near-me-hud-frame.png" alt="" className="hud-bg-frame" aria-hidden="true" />
                         <div className="hud-content-overlay">
                             {/* Invisible spacers for title + subtitle area */}
                             <div className="hud-spacer-title" aria-hidden="true"></div>
@@ -2101,6 +2101,7 @@ export default function PokerNearMePage() {
                         justify-content: flex-end;
                         padding: 0 18% 8%;
                         z-index: 2;
+                        pointer-events: none;
                     }
 
                     /* Spacer pushes interactive elements down past title area */
@@ -2114,6 +2115,7 @@ export default function PokerNearMePage() {
                         gap: 2%;
                         width: 100%;
                         margin-bottom: 3%;
+                        pointer-events: auto;
                     }
                     .hud-search-bar {
                         position: relative;
@@ -2135,6 +2137,8 @@ export default function PokerNearMePage() {
                         padding: clamp(6px, 1.5vw, 14px) 8px;
                         font-family: inherit;
                         caret-color: #d4a853;
+                        pointer-events: auto;
+                        cursor: text;
                     }
                     .hud-search-input::placeholder {
                         color: transparent;
@@ -2146,6 +2150,7 @@ export default function PokerNearMePage() {
                         padding: clamp(6px, 1.5vw, 14px) clamp(12px, 3vw, 28px);
                         color: transparent;
                         font-size: 0;
+                        pointer-events: auto;
                     }
 
                     /* HUD Controls Row (GPS + Filters) — transparent overlays */
@@ -2155,6 +2160,7 @@ export default function PokerNearMePage() {
                         width: 60%;
                         justify-content: center;
                         margin-bottom: 3%;
+                        pointer-events: auto;
                     }
                     .hud-ctrl-btn {
                         flex: 1;
@@ -2164,6 +2170,7 @@ export default function PokerNearMePage() {
                         padding: clamp(4px, 1vw, 10px) 0;
                         color: transparent;
                         font-size: 0;
+                        pointer-events: auto;
                     }
 
                     /* HUD Tab Row — transparent overlays */
@@ -2172,6 +2179,7 @@ export default function PokerNearMePage() {
                         gap: clamp(2px, 0.6vw, 6px);
                         width: 90%;
                         justify-content: center;
+                        pointer-events: auto;
                     }
                     .hud-tab-btn {
                         flex: 1;
@@ -2181,6 +2189,7 @@ export default function PokerNearMePage() {
                         padding: clamp(4px, 0.8vw, 8px) 0;
                         color: transparent;
                         font-size: 0;
+                        pointer-events: auto;
                     }
 
 
