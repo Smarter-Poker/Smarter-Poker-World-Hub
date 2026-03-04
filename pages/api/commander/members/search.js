@@ -191,9 +191,13 @@ export default async function handler(req, res) {
         const digits = searchQuery.replace(/\D/g, '');
         query = query.ilike('phone', `%${digits}%`);
       } else {
-        query = query.or(
-          `first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,member_number.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`
-        );
+        // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
+        const safeTerm = searchQuery.replace(/[,().]/g, ' ').trim();
+        if (safeTerm) {
+            query = query.or(
+              `first_name.ilike.%${safeTerm}%,last_name.ilike.%${safeTerm}%,member_number.ilike.%${safeTerm}%,phone.ilike.%${safeTerm}%,email.ilike.%${safeTerm}%`
+            );
+        }
       }
 
       const { data: members, error } = await query.order('last_visit', { ascending: false, nullsFirst: false });

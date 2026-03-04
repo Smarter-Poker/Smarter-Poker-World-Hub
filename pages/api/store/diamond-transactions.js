@@ -45,9 +45,11 @@ export default async function handler(req, res) {
             .range(offset, offset + limit - 1);
 
         if (type && type !== 'all') {
-            // Try transaction_type first (VIP system migration schema),
-            // fall back to type (original memory matrix schema)
-            query = query.or(`transaction_type.eq.${type},type.eq.${type}`);
+            // BUG #270 FIX: Sanitize type to prevent PostgREST filter injection
+            const safeType = type.replace(/[,().]/g, '');
+            if (safeType) {
+                query = query.or(`transaction_type.eq.${safeType},type.eq.${safeType}`);
+            }
         }
 
         const { data, count, error } = await query;

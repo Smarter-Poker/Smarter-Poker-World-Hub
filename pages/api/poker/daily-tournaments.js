@@ -78,12 +78,15 @@ export default async function handler(req, res) {
             .order('buy_in', { ascending: true });
 
         // Filter by day
-        const targetDay = day || getCurrentDay();
+        const targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
         query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
 
         // Filter by venue name
         if (venue) {
-            query = query.ilike('venue_name', `%${venue}%`);
+            const safeVenue = venue.replace(/[,().]/g, ' ').trim();
+            if (safeVenue) {
+                query = query.ilike('venue_name', `%${safeVenue}%`);
+            }
         }
 
         // Filter by buy-in range

@@ -36,7 +36,11 @@ export default async function handler(req, res) {
 
     // Check venue-specific or global exclusions
     if (venue_id) {
-      query = query.or(`venue_id.eq.${venue_id},venue_id.is.null`);
+      // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
+      const safeVenueId = String(venue_id).replace(/[^a-zA-Z0-9-]/g, '');
+      if (safeVenueId) {
+        query = query.or(`venue_id.eq.${safeVenueId},venue_id.is.null`);
+      }
     }
 
     const { data: exclusions, error } = await query;

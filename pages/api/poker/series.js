@@ -206,13 +206,20 @@ export default async function handler(req, res) {
       }
 
       if (tour) {
-        query = query.or(`tour.ilike.%${tour}%,short_name.ilike.%${tour}%`);
+        // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
+        const safeTour = tour.replace(/[,().]/g, ' ').trim();
+        if (safeTour) {
+            query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
+        }
       }
 
       if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,short_name.ilike.%${search}%,venue.ilike.%${search}%,city.ilike.%${search}%`
-        );
+        const safeSearch = search.replace(/[,().]/g, ' ').trim();
+        if (safeSearch) {
+            query = query.or(
+              `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
+            );
+        }
       }
 
       if (start_date) {

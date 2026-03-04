@@ -46,10 +46,13 @@ async function handleList(req, res) {
     }
 
     if (search) {
-        const s = search.trim();
-        query = query.or(
-            `first_name.ilike.%${s}%,last_name.ilike.%${s}%,member_number.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`
-        );
+        // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
+        const s = search.trim().replace(/[,().]/g, ' ').trim();
+        if (s) {
+            query = query.or(
+                `first_name.ilike.%${s}%,last_name.ilike.%${s}%,member_number.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`
+            );
+        }
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);

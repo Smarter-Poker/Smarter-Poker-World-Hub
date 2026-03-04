@@ -24,7 +24,12 @@ export default async function handler(req, res) {
             }
 
             if (search) {
-                query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+                // BUG #270 FIX: Sanitize search input to prevent PostgREST filter injection.
+                // Characters like commas, parentheses, and dots could break/modify the filter.
+                const sanitized = search.replace(/[,().]/g, ' ').trim();
+                if (sanitized) {
+                    query = query.or(`title.ilike.%${sanitized}%,content.ilike.%${sanitized}%`);
+                }
             }
 
             if (featured === 'true') {

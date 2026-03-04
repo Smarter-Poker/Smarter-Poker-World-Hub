@@ -130,8 +130,10 @@ export default async function handler(req, res) {
 
             const totalBonus = BASE_DAILY_BONUS + streakBonus;
 
-            // Record the claim
-            await supabase
+            // BUG #269 FIX: Atomic insert with error check before awarding diamonds.
+            // Previous code did check→insert→award without verifying insert succeeded,
+            // allowing concurrent requests to both award diamonds.
+            const { error: claimInsertErr } = await supabase
                 .from('training_daily_bonus')
                 .insert({
                     user_id: userId,
@@ -139,6 +141,18 @@ export default async function handler(req, res) {
                     diamonds_awarded: totalBonus,
                     streak_bonus: streakBonus
                 });
+
+            if (claimInsertErr) {
+                if (claimInsertErr.code === '23505') {
+                    return res.status(200).json({
+                        success: true,
+                        alreadyClaimed: true,
+                        message: 'Daily bonus already claimed for today'
+                    });
+                }
+                console.error('[DailyBonus] Insert error:', claimInsertErr);
+                throw claimInsertErr;
+            }
 
             // Award diamonds via logging RPC
             await supabase.rpc('add_diamonds_to_balance', {
