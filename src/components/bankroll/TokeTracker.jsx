@@ -6,11 +6,12 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Image as ImageIcon } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
 import TokeCalendar from './TokeCalendar';
+import TokeDashboard from './TokeDashboard';
 import {
     getActiveGig,
     fetchGigs,
@@ -130,6 +131,20 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const [timerSecondsLeft, setTimerSecondsLeft] = useState(0);
     const timerTickRef = useRef(null);
 
+    // Live hours ticker (updates every 60s without a DB call)
+    const [liveHours, setLiveHours] = useState(0);
+    const liveHoursTickRef = useRef(null);
+
+    // Toke-on-end flow
+    const [endingDown, setEndingDown] = useState(null); // the down being ended
+    const [endTokeValue, setEndTokeValue] = useState('');
+
+    // Day-close notes
+    const [closeDayNotes, setCloseDayNotes] = useState('');
+
+    // Green celebration flash after closing a day
+    const [showCelebration, setShowCelebration] = useState(false);
+
     // Create event form state
     const [newGig, setNewGig] = useState({
         venue_name: '',
@@ -196,8 +211,29 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         return () => {
             if (downTimerRef.current) clearTimeout(downTimerRef.current);
             if (timerTickRef.current) clearInterval(timerTickRef.current);
+            if (liveHoursTickRef.current) clearInterval(liveHoursTickRef.current);
         };
     }, []);
+
+    // ── Live hours ticker — recomputes every 60s from open day downs ──
+    useEffect(() => {
+        const computeLiveHours = () => {
+            const openDay = activeGig?.days?.find(d => !d.ended_at);
+            if (!openDay?.downs?.length) { setLiveHours(0); return; }
+            let ms = 0;
+            for (const d of openDay.downs) {
+                const start = new Date(d.started_at).getTime();
+                const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
+                ms += end - start;
+            }
+            setLiveHours(Math.round((ms / (1000 * 60 * 60)) * 10) / 10);
+        };
+
+        computeLiveHours();
+        if (liveHoursTickRef.current) clearInterval(liveHoursTickRef.current);
+        liveHoursTickRef.current = setInterval(computeLiveHours, 60_000);
+        return () => clearInterval(liveHoursTickRef.current);
+    }, [activeGig]);
 
     // ── 35-min Down Timer ──
     const startDownTimer = useCallback((durationMs, lastDown) => {
@@ -273,15 +309,37 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         if (!promptDown || !activeGig) return;
         const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
         if (!currentDay) { toast.error('No open day — start a new day first.'); return; }
+        // Optimistic: add a placeholder down immediately
+        const tempDown = {
+            id: `temp-${Date.now()}`,
+            gig_id: activeGig.id,
+            day_id: currentDay.id,
+            user_id: userId,
+            down_type: promptDown.down_type,
+            game_type: promptDown.game_type,
+            tournament_name: promptDown.tournament_name,
+            table_number: promptDown.table_number,
+            started_at: new Date().toISOString(),
+            toke_amount: 0,
+            is_double_down: true,
+            down_multiplier: 1.0,
+        };
+        setActiveGig(prev => prev ? ({
+            ...prev,
+            days: prev.days?.map(d =>
+                d.id === currentDay.id ? { ...d, downs: [...(d.downs || []), tempDown] } : d
+            ) || [],
+        }) : prev);
+        setShowDoubleDownPrompt(false);
+        setPromptDown(null);
         try {
-            await createDoubleDown(userId, activeGig.id, currentDay.id, promptDown);
+            const down = await createDoubleDown(userId, activeGig.id, currentDay.id, promptDown);
+            startDownTimer(DOWN_TIMER_MS, down);
             toast.success('Double down created!');
-            setShowDoubleDownPrompt(false);
-            setPromptDown(null);
-            await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to create double down');
         }
+        await loadData();
     };
 
     const handleDoubleDownNo = () => {
@@ -404,17 +462,72 @@ export default function TokeTracker({ userId, refreshTrigger }) {
         }
     };
 
-    const handleEndDown = async (downId) => {
+    // Begin toke-on-end flow: show inline toke input before closing the down
+    const handleEndDownPrompt = (down) => {
+        setEndingDown(down);
+        setEndTokeValue(down.toke_amount > 0 ? String(down.toke_amount) : '');
+    };
+
+    const handleEndDownConfirm = async () => {
+        if (!endingDown) return;
+        const tokeAmt = parseFloat(endTokeValue) || 0;
+        // Optimistic UI update
+        setActiveGig(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                days: prev.days?.map(day => ({
+                    ...day,
+                    downs: day.downs?.map(d =>
+                        d.id === endingDown.id
+                            ? { ...d, ended_at: new Date().toISOString(), toke_amount: tokeAmt }
+                            : d
+                    ) || [],
+                })) || [],
+            };
+        });
+        setEndingDown(null);
+        setEndTokeValue('');
+        if (downTimerRef.current) clearTimeout(downTimerRef.current);
+        if (timerTickRef.current) clearInterval(timerTickRef.current);
+        setTimerActive(false);
         try {
-            await endDown(downId);
+            await endDown(endingDown.id, tokeAmt);
             toast.success('Down ended');
-            if (downTimerRef.current) clearTimeout(downTimerRef.current);
-            if (timerTickRef.current) clearInterval(timerTickRef.current);
-            setTimerActive(false);
-            await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to end down');
         }
+        await loadData();
+    };
+
+    // Legacy direct-end (called from non-dealing downs like break/brush when no toke needed)
+    const handleEndDown = async (downId) => {
+        const openDay = activeGig?.days?.find(d => !d.ended_at);
+        const down = openDay?.downs?.find(d => d.id === downId);
+        if (down && (down.down_type === 'cash' || down.down_type === 'brush')) {
+            handleEndDownPrompt(down);
+            return;
+        }
+        try {
+            // Optimistic update
+            setActiveGig(prev => prev ? ({
+                ...prev,
+                days: prev.days?.map(day => ({
+                    ...day,
+                    downs: day.downs?.map(d =>
+                        d.id === downId ? { ...d, ended_at: new Date().toISOString() } : d
+                    ) || [],
+                })) || [],
+            }) : prev);
+            if (downTimerRef.current) clearTimeout(downTimerRef.current);
+            if (timerTickRef.current) clearInterval(timerTickRef.current);
+            setTimerActive(false);
+            await endDown(downId);
+            toast.success('Down ended');
+        } catch (err) {
+            toast.error(err.message || 'Failed to end down');
+        }
+        await loadData();
     };
 
     const handleDeleteDown = async (downId) => {
@@ -455,17 +568,32 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const handleCloseDay = async () => {
         const currentDay = activeGig?.days?.find(d => !d.ended_at) || null;
         if (!currentDay) return;
+        // Optimistic UI — mark day as ended immediately
+        setActiveGig(prev => prev ? ({
+            ...prev,
+            days: prev.days?.map(d =>
+                d.id === currentDay.id ? { ...d, ended_at: new Date().toISOString() } : d
+            ) || [],
+        }) : prev);
+        setConfirmCloseDay(false);
+        if (downTimerRef.current) clearTimeout(downTimerRef.current);
+        if (timerTickRef.current) clearInterval(timerTickRef.current);
+        setTimerActive(false);
+        // Show celebration
+        setShowCelebration(true);
+        setTimeout(() => setShowCelebration(false), 1800);
         try {
             await closeDay(currentDay.id);
-            toast.success(`Day ${currentDay.day_number} closed!`);
-            setConfirmCloseDay(false);
-            if (downTimerRef.current) clearTimeout(downTimerRef.current);
-            if (timerTickRef.current) clearInterval(timerTickRef.current);
-            setTimerActive(false);
-            await loadData();
+            // Save notes if any
+            if (closeDayNotes.trim()) {
+                await supabase.from('toke_gig_days').update({ notes: closeDayNotes.trim() }).eq('id', currentDay.id);
+            }
+            toast.success(`Day ${currentDay.day_number} closed! 🎉`);
+            setCloseDayNotes('');
         } catch (err) {
             toast.error(err.message || 'Failed to close day');
         }
+        await loadData();
     };
 
     const handleStartNewDay = async () => {
@@ -971,10 +1099,21 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 <button onClick={() => setEditMode(false)} style={styles.cancelEditBtn}>Cancel</button>
                             </>
                         ) : confirmCloseDay ? (
-                            <div style={styles.confirmRow}>
-                                <span style={styles.confirmText}>Close out Day {currentDayNumber}?</span>
-                                <button onClick={handleCloseDay} style={styles.confirmYes}>Yes, Close Day</button>
-                                <button onClick={() => setConfirmCloseDay(false)} style={styles.confirmNo}>Cancel</button>
+                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+                                <span style={styles.confirmText}>Close out Day {currentDayNumber}? Add a note (optional):</span>
+                                <input
+                                    type="text"
+                                    value={closeDayNotes}
+                                    onChange={e => setCloseDayNotes(e.target.value)}
+                                    placeholder="e.g. Short-handed all night, big tipped table..."
+                                    style={{ ...styles.formInput, width: '100%', padding: '8px 12px', fontSize: 13 }}
+                                    autoFocus
+                                    onKeyDown={e => { if (e.key === 'Enter') handleCloseDay(); }}
+                                />
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button onClick={handleCloseDay} style={styles.confirmYes}>✓ Close Day</button>
+                                    <button onClick={() => { setConfirmCloseDay(false); setCloseDayNotes(''); }} style={styles.confirmNo}>Cancel</button>
+                                </div>
                             </div>
                         ) : !confirmComplete ? (
                             <>
@@ -1318,12 +1457,19 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                             <h3 style={styles.promptTitle}>
                                 {promptDown.down_type === 'break' ? 'Still On Break?' :
                                     promptDown.down_type === 'brush' ? 'Still Brushing?' :
-                                        'Still Dealing The Same Table?'}
+                                        'Same Table — Double Down?'}
                             </h3>
                             <p style={styles.promptSub}>
                                 {promptDown.down_type === 'break' ? 'Your break has been going 35 minutes.' :
-                                    promptDown.down_type === 'brush' ? 'Your brush down has been 35 minutes.' :
-                                        `Your ${DOWN_TYPE_LABELS[promptDown.down_type].toLowerCase()} down${promptDown.table_number ? ` (Table ${promptDown.table_number})` : ''} hit 35 minutes.`}
+                                    promptDown.down_type === 'brush' ? 'Your brush down has been 35 minutes.' : (
+                                        <>
+                                            <span style={{ color: '#f59e0b', fontWeight: 700 }}>
+                                                {promptDown.game_type || DOWN_TYPE_LABELS[promptDown.down_type]}
+                                                {promptDown.table_number ? ` · Table ${promptDown.table_number}` : ''}
+                                            </span>
+                                            {' — still at this table after 35 minutes?'}
+                                        </>
+                                    )}
                             </p>
                             <div style={styles.promptActions}>
                                 <button onClick={handleDoubleDownYes} style={styles.promptYesBtn}>

@@ -130,7 +130,7 @@ body { font-family: 'Courier New', Courier, monospace; background: #fff; }
 ${receipts.map(r => `<div class="card">
   <div class="header">
     <div class="tournament">${r.tournament_name}</div>
-    <div class="label-sc">⬛ Seat Change Card ⬛</div>
+    <div class="label-sc">-- SEAT CHANGE CARD --</div>
   </div>
   <div class="divider"></div>
   <div class="player">${r.player_name}</div>
@@ -139,7 +139,7 @@ ${receipts.map(r => `<div class="card">
     <span class="from-label">Previous Table</span>
     <span class="from-val">Table ${r.from_table}, Seat ${r.from_seat}</span>
   </div>
-  <div class="arrow">⬇</div>
+  <div class="arrow">&#x2193;</div>
   <div class="new-seat-box">
     <div class="new-label">Report To</div>
     <div class="new-table">TABLE ${r.to_table}</div>
@@ -477,7 +477,7 @@ ${receipts.map(r => `<div class="card">
                                   <div class="c sm">TABLE BREAK</div><div class="d"></div>
                                   <div class="c b md">${r.player_name}</div><div class="d"></div>
                                   <div class="rw sm"><span>FROM:</span><span class="b">Table ${r.from_table}, Seat ${r.from_seat}</span></div>
-                                  <div class="ar">⬇</div>
+                                  <div class="ar">&#x2193;</div>
                                   <div class="rw"><span class="md">NEW SEAT:</span><span class="b lg">T${r.to_table} - S${r.to_seat}</span></div>
                                   <div class="d"></div>
                                   <div class="sm c" style="margin-top:2mm;opacity:.6">${new Date().toLocaleTimeString()}</div>

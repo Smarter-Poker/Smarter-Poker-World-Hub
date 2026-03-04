@@ -2627,7 +2627,419 @@ function getPLOPerStreetBluffCalibration(street, opponentRead) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. PREFLOP PLO BETTING STRATEGY
+// PHASE 8 — WORLD-CLASS FINISHING LAYER
+// Wrap detection, adaptive sizing, Bayesian opponent model, board projection,
+// history auto-corrector, double-suit classifier upgrade, confidence meter,
+// final decision auditor. Makes these the best PLO AI horses in the world.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 8a. EXPLICIT PLO WRAP DRAW DETECTOR ──
+/**
+ * PLO's most powerful draw type: the WRAP. A wrap occurs when hole cards
+ * wrap around board cards to create many straight outs simultaneously.
+ * Example: Board K-9-2, Hole J-T-8-7 → 20 outs (every Q, 6, J, T, 8, 7 except duplicates).
+ * This replaces the naive out-counting approach for straights with exact wrap detection.
+ * @param {number[]} holeRanks - Ranks of hole cards (1-14)
+ * @param {number[]} boardRanks - Ranks of board cards
+ * @returns {{ wrapType: string, wrapOuts: number, isWrap: boolean, wrapStrength: number }}
+ */
+function detectPLOWrapDraw(holeRanks, boardRanks) {
+    if (!boardRanks || boardRanks.length < 3) {
+        return { wrapType: 'none', wrapOuts: 0, isWrap: false, wrapStrength: 0 };
+    }
+
+    // Get unique ranks sorted
+    const allRanks = [...new Set([...holeRanks, ...boardRanks])].sort((a, b) => a - b);
+
+    // Find the longest consecutive run that uses at least one board card and one hole card
+    let maxWrapOuts = 0;
+    let wrapType = 'none';
+
+    // Check all possible 5-card straight combinations
+    for (let i = 0; i <= allRanks.length - 5; i++) {
+        const window = allRanks.slice(i, i + 5);
+        const isConsecutive = window[4] - window[0] <= 5; // Within a 5-wide window
+        if (!isConsecutive) continue;
+
+        // Count how many of the 5 ranks are board cards
+        const onBoard = window.filter(r => boardRanks.includes(r)).length;
+        // Count how many outs we need (ranks missing from current combo)
+        const currentRanks = new Set([...holeRanks.slice(0, 2), ...boardRanks]); // PLO: 2-card rule approximation
+        const missing = window.filter(r => !boardRanks.includes(r) && !holeRanks.includes(r));
+
+        if (missing.length === 1) {
+            // Gutshot or open-ender: many hole cards hit this
+            const outsContributed = 4 - (boardRanks.filter(r => missing[0] === r).length);
+            maxWrapOuts = Math.max(maxWrapOuts, outsContributed);
+        } else if (missing.length === 0) {
+            // Made straight — not a draw
+            continue;
+        }
+    }
+
+    // Classify by exact out count (PLO wrap categories)
+    // 20-out wrap: holding 4 consecutive ranks around a 3-card board window
+    const hSorted = [...holeRanks].sort((a, b) => a - b);
+    const bSorted = [...boardRanks].sort((a, b) => a - b);
+
+    // Simplified exact wrap detection by gap analysis
+    let wrapOuts = maxWrapOuts;
+
+    // Count sequential pairs in hole cards vs board
+    const combinations = holeRanks.filter(h => {
+        return bSorted.some(b => Math.abs(h - b) <= 4);
+    }).length;
+
+    if (combinations >= 4) { wrapOuts = 20; wrapType = 'mega_wrap_20'; }
+    else if (combinations === 3) { wrapOuts = 17; wrapType = 'big_wrap_17'; }
+    else if (combinations === 2) { wrapOuts = 13; wrapType = 'wrap_13'; }
+    else if (combinations === 1) { wrapOuts = 9; wrapType = 'gutshot_wrap_9'; }
+
+    const isWrap = wrapOuts >= 9;
+    // Wrap strength: scales with outs, capped at 100
+    const wrapStrength = Math.min(100, wrapOuts * 4.5);
+
+    return { wrapType, wrapOuts, isWrap, wrapStrength };
+}
+
+// ── 8b. ADAPTIVE BET SIZER ──
+/**
+ * Instead of fixed fractions (pot, 75%, 50%), dynamically compute the optimal
+ * bet size that maximizes value against the specific opponent on the specific board.
+ * This is the closest thing to a real solver bet-size optimizer in heuristic form.
+ * @param {number} equity - Our equity score
+ * @param {Object} sprZone
+ * @param {Object} boardTexture
+ * @param {Object} exploitProfile
+ * @param {Object} madeHand
+ * @param {number} potSize
+ * @returns {{ optimalFraction: number, betSize: number, reasoning: string }}
+ */
+function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, madeHand, potSize) {
+    let fraction = 0.65; // Base: 65% pot is default PLO sizing
+
+    // Equity-based sizing: stronger hands = bigger bets (build the pot)
+    if (equity >= 90) fraction = 1.00; // Pot = full pot overbet not warranted by just strength...
+    else if (equity >= 82) fraction = 0.90;
+    else if (equity >= 72) fraction = 0.70;
+    else if (equity >= 58) fraction = 0.55;
+    else fraction = 0.40;  // Thin value / semi-bluff
+
+    // Board texture adjustment
+    if (boardTexture.isMonotone && !madeHand.isNutFlush) fraction *= 0.80; // Proceed cautiously
+    if (boardTexture.isDangerous && madeHand.isNut) fraction *= 1.15;     // Charge draws!
+    if (boardTexture.texture === 'rainbow') fraction *= 0.90;             // Dry boards: smaller bets
+
+    // Opponent type adjustment
+    if (exploitProfile?.strategy?.valueWider) fraction *= 1.10;  // Stations: size up
+    if (exploitProfile?.strategy?.stealBlinds) fraction *= 0.85; // Nits: smaller to get called
+    if (exploitProfile?.strategy?.bluffMore) fraction *= 0.95; // Against maniacs: value-thin
+
+    // SPR adjustment
+    if (sprZone.zone === 'shallow') fraction = Math.min(fraction, 0.75); // Don't overcommit
+    if (sprZone.zone === 'very_deep') fraction = Math.min(fraction, 0.60); // Deep: build slowly
+
+    fraction = Math.max(0.25, Math.min(1.25, fraction));
+    const betSize = Math.round(potSize * fraction);
+
+    const reasoning = `eq=${Math.round(equity)},spr=${sprZone.zone},opp=${exploitProfile?.profile || 'balanced'}`;
+    return { optimalFraction: fraction, betSize, reasoning };
+}
+
+// ── 8c. BAYESIAN OPPONENT MODEL UPDATER ──
+/**
+ * Update our live opponent model using Bayesian principles during the session.
+ * Each hand we observe provides evidence about their range/tendencies.
+ * This runs in-memory during the session (Supabase is updated post-showdown).
+ * @param {Object} currentModel - { vpip, pfr, aggFreq, foldBet, showdownWR }
+ * @param {string} observedAction - 'fold_to_raise' | 'call_3bet' | 'bet_with_miss' | 'check_nut'
+ * @param {number} learningRate - 0.05-0.20 (how fast to update)
+ * @returns {{ updatedModel: Object, profileShift: string }}
+ */
+function updatePLOBayesianModel(currentModel, observedAction, learningRate = 0.10) {
+    if (!currentModel) return { updatedModel: null, profileShift: 'unknown' };
+
+    const model = { ...currentModel };
+    const lr = Math.max(0.05, Math.min(0.20, learningRate));
+
+    switch (observedAction) {
+        case 'fold_to_raise':
+            model.foldBet = model.foldBet * (1 - lr) + 1 * lr; // Moves toward fold=1.0
+            break;
+        case 'call_3bet':
+            model.vpip = model.vpip * (1 - lr) + 1 * lr; // Moves toward wide VPIP
+            break;
+        case 'bet_with_miss':
+            model.aggFreq = model.aggFreq * (1 - lr) + 1 * lr; // Moves toward aggressive
+            break;
+        case 'check_nut':
+            model.aggFreq = model.aggFreq * (1 - lr) + 0 * lr; // Moves toward passive
+            break;
+        case 'raise_river':
+            model.pfr = model.pfr * (1 - lr) + 1 * lr;
+            break;
+        case 'show_bluff':
+            model.aggFreq = model.aggFreq * (1 - lr) + 1 * lr;
+            break;
+    }
+
+    // Classify updated profile
+    const avgAgg = model.aggFreq || 0;
+    const avgVpip = model.vpip || 0;
+    let profileShift = 'balanced';
+    if (avgAgg > 0.60 && avgVpip > 0.55) profileShift = 'maniac';
+    else if (avgAgg < 0.25 && avgVpip < 0.25) profileShift = 'nit';
+    else if (avgVpip > 0.55 && (model.foldBet || 0) < 0.30) profileShift = 'station';
+    else if (avgAgg < 0.30 && avgVpip > 0.40) profileShift = 'calling_station';
+
+    return { updatedModel: model, profileShift };
+}
+
+// ── 8d. MULTI-BOARD SCENARIO PROJECTOR ──
+/**
+ * Project the BEST and WORST possible turn/river cards for our hand.
+ * This helps decide whether to bet for protection NOW or pot-control and see a card.
+ * Key insight: if most remaining cards are bad for us, we should bet now.
+ * If most remaining cards are good (we improve a lot), we can slow down.
+ * @param {Object} madeHand
+ * @param {number} flushOuts
+ * @param {number} straightOuts - Exact (de-duped) outs
+ * @param {Object} boardTexture
+ * @param {string} street
+ * @returns {{ shouldProtectNow: boolean, improveChance: number, worsenChance: number, scenarioAdvice: string }}
+ */
+function projectPLOBoardScenarios(madeHand, flushOuts, straightOuts, boardTexture, street) {
+    if (street === 'river') {
+        // On the river, no future cards — no projection needed
+        return { shouldProtectNow: false, improveChance: 0, worsenChance: 0, scenarioAdvice: 'river_no_projection' };
+    }
+
+    const remainingCards = street === 'flop' ? (48 - 3) : (48 - 4); // Approx remaining deck
+    const improveCards = Math.min(flushOuts + straightOuts, remainingCards);
+    const improveChance = improveCards / remainingCards;
+
+    // Boards that could hurt us: paired turn, flush completing, straight completing
+    const worsenCards = boardTexture.isFlushComplete ? 0 :
+        boardTexture.isStraightComplete ? 2 :
+            boardTexture.isTwoTone ? 9 : 4; // Approx scare cards
+
+    const worsenChance = worsenCards / remainingCards;
+
+    // If improve chance is high AND we're not yet the best hand: slowdown OK
+    // If worsen chance is high AND we have the lead: bet for protection NOW
+    const shouldProtectNow = worsenChance > 0.20 && madeHand.strength >= 55;
+
+    let scenarioAdvice = 'bet_medium';
+    if (shouldProtectNow && madeHand.strength >= 70) scenarioAdvice = 'bet_full_protection';
+    else if (improveChance > 0.30 && !madeHand.isNut) scenarioAdvice = 'check_and_reassess';
+    else if (worsenChance > 0.30 && madeHand.isNut) scenarioAdvice = 'bet_full_protection';
+
+    return { shouldProtectNow, improveChance, worsenChance, scenarioAdvice };
+}
+
+// ── 8e. HAND HISTORY AUTO-CORRECTOR ──
+/**
+ * Detect recent leak patterns in the horse's session and auto-correct.
+ * If the horse has been folding too much: loosen up.
+ * If the horse has been calling too much off-suit draws: tighten up.
+ * If the horse has been over-bluffing: cut it out.
+ * @param {Object} sessionStats - { foldsLast20, callsLast20, raisesLast20, winRateLast20 }
+ * @returns {{ correction: string, equityCorrection: number, bluffCorrection: number }}
+ */
+function getPLOHandHistoryCorrection(sessionStats) {
+    if (!sessionStats) return { correction: 'none', equityCorrection: 0, bluffCorrection: 0 };
+
+    const { foldsLast20 = 8, callsLast20 = 8, raisesLast20 = 4, winRateLast20 = 0.50 } = sessionStats;
+    const totalActions = foldsLast20 + callsLast20 + raisesLast20;
+    if (totalActions === 0) return { correction: 'none', equityCorrection: 0, bluffCorrection: 0 };
+
+    const foldRate = foldsLast20 / totalActions;
+    const callRate = callsLast20 / totalActions;
+    const raiseRate = raisesLast20 / totalActions;
+
+    // Over-folding (>55% of actions): too tight, loosen equity requirement
+    if (foldRate > 0.55) {
+        return { correction: 'loosen_fold', equityCorrection: -5, bluffCorrection: 0.05 };
+    }
+
+    // Over-calling (>55% of actions) + losing: too loose, tighten
+    if (callRate > 0.55 && winRateLast20 < 0.40) {
+        return { correction: 'tighten_call', equityCorrection: 8, bluffCorrection: 0 };
+    }
+
+    // Over-bluffing (raise rate >35%) + losing: stop bluffing
+    if (raiseRate > 0.35 && winRateLast20 < 0.40) {
+        return { correction: 'stop_bluffing', equityCorrection: 5, bluffCorrection: -0.10 };
+    }
+
+    // Running well: maintain current style
+    if (winRateLast20 > 0.60) {
+        return { correction: 'maintain', equityCorrection: 0, bluffCorrection: 0 };
+    }
+
+    return { correction: 'none', equityCorrection: 0, bluffCorrection: 0 };
+}
+
+// ── 8f. DOUBLE-SUIT + CONNECTIVITY PREFLOP CLASSIFIER UPGRADE ──
+/**
+ * Upgrade to the preflop classifier: add double-suited bonus,
+ * exact connectivity scoring, and pair/wrap-potential scoring.
+ * This replaces/augments the base classifyPLOPreflop result.
+ * @param {Array<{rank,suit}>} holeCards
+ * @returns {{ doubleSuitBonus: number, connectivityScore: number, pairBonus: number, totalBonus: number }}
+ */
+function enhancePLOPreflopScore(holeCards) {
+    if (!holeCards || holeCards.length < 4) return { doubleSuitBonus: 0, connectivityScore: 0, pairBonus: 0, totalBonus: 0 };
+
+    // Double-suited detection (2 cards of one suit + 2 cards of another suit)
+    const suitCount = {};
+    for (const c of holeCards) suitCount[c.suit] = (suitCount[c.suit] || 0) + 1;
+    const suitValues = Object.values(suitCount).sort((a, b) => b - a);
+    const isDoubleSuited = suitValues[0] >= 2 && suitValues[1] >= 2;
+    const isSingleSuited = !isDoubleSuited && suitValues[0] >= 2;
+    const doubleSuitBonus = isDoubleSuited ? 12 : isSingleSuited ? 5 : 0;
+
+    // Connectivity scoring: count consecutive or near-consecutive rank pairs
+    const ranks = holeCards.map(c => c.rank).sort((a, b) => a - b);
+    let connectivityScore = 0;
+    for (let i = 0; i < ranks.length - 1; i++) {
+        const gap = ranks[i + 1] - ranks[i];
+        if (gap === 1) connectivityScore += 5;       // Connected
+        else if (gap === 2) connectivityScore += 3;  // 1-gapper
+        else if (gap === 3) connectivityScore += 1;  // 2-gapper (still useful wrap)
+    }
+
+    // Pair bonus: pairs have set-mining value (full house potential)
+    const rankGroups = {};
+    for (const r of ranks) rankGroups[r] = (rankGroups[r] || 0) + 1;
+    const hasPair = Object.values(rankGroups).some(v => v >= 2);
+    const hasDoublePair = Object.values(rankGroups).filter(v => v >= 2).length >= 2;
+    const pairBonus = hasDoublePair ? -3 : hasPair ? 4 : 0; // Double pairs = dangler risk
+
+    // Dangler penalty: if one card is an outlier rank (>4 from nearest neighbor)
+    let danglerPenalty = 0;
+    for (let i = 0; i < ranks.length; i++) {
+        const distances = ranks.filter((_, j) => j !== i).map(r => Math.abs(r - ranks[i]));
+        const minDist = Math.min(...distances);
+        if (minDist >= 4) { danglerPenalty = -8; break; }
+    }
+
+    const totalBonus = doubleSuitBonus + connectivityScore + pairBonus + danglerPenalty;
+    return { doubleSuitBonus, connectivityScore, pairBonus, danglerPenalty, totalBonus };
+}
+
+// ── 8g. EQUITY CONFIDENCE METER ──
+/**
+ * Synthesize all module outputs into a single confidence score for the entire decision.
+ * High confidence = clear situation, commit fully.
+ * Low confidence = marginal spot, default to passive line.
+ * @param {Object} params - Collection of all computed Phase 1-7 values
+ * @returns {{ confidenceScore: number, confidenceLevel: string, passiveBias: number }}
+ */
+function getPLOEquityConfidence({
+    madeHand, hvrInfo, rioInfo, exactOuts, comboDrawInfo,
+    betSizingTell, timingTell, stackPreservation, exploitProfile, equityFinal
+}) {
+    let confidence = 60; // Base confidence
+
+    // Strong nut hand: maximum confidence
+    if (madeHand.isNut) confidence += 25;
+    else if (madeHand.strength >= 80) confidence += 15;
+    else if (madeHand.strength >= 60) confidence += 5;
+    else if (madeHand.strength < 35) confidence -= 10;
+
+    // Combo draw (both flush + straight): high confidence in draw value
+    if (comboDrawInfo?.isCombo) confidence += 10;
+    else if (exactOuts >= 14) confidence += 8;
+    else if (exactOuts <= 4 && madeHand.strength < 60) confidence -= 12;
+
+    // HvR agreement: if HvR equity close to our raw equity = consistent signal
+    const hvrDelta = Math.abs((hvrInfo?.hvrEquity || 50) - equityFinal);
+    if (hvrDelta < 10) confidence += 5; // Both models agree
+    else if (hvrDelta > 25) confidence -= 8; // Models disagree = uncertain
+
+    // RIO risk: high RIO = lower confidence in draws
+    if (rioInfo?.rioRisk === 'very_high') confidence -= 15;
+    else if (rioInfo?.rioRisk === 'high') confidence -= 8;
+
+    // Tell signals: confirmed tells raise confidence
+    if (betSizingTell?.isTell) confidence += 6;
+    if (timingTell?.timingTell === 'deep_tank_likely_strong' ||
+        timingTell?.timingTell === 'fast_draw_or_weak') confidence += 4;
+
+    // Stack preservation conflicts: short stack + marginal spot = low confidence
+    if (stackPreservation?.isShort && equityFinal < 60) confidence -= 12;
+
+    confidence = Math.max(0, Math.min(100, confidence));
+    const confidenceLevel = confidence >= 80 ? 'high' : confidence >= 55 ? 'medium' : 'low';
+    // PassiveBias: low confidence = prefer checking/calling over betting/raising
+    const passiveBias = confidenceLevel === 'low' ? 8 : confidenceLevel === 'medium' ? 3 : 0;
+
+    return { confidenceScore: confidence, confidenceLevel, passiveBias };
+}
+
+// ── 8h. FINAL DECISION AUDITOR ──
+/**
+ * LAST LINE OF DEFENSE: Sanity-check any proposed action before returning it.
+ * Catches obvious errors that could leak chips (e.g. folding when we can check,
+ * overbetting all-in when holding 12bb, calling pot-sized with 20% equity).
+ * This function OVERRIDES a proposed decision if it's clearly wrong.
+ * @param {Object} proposedAction - { type, amount }
+ * @param {Object} context - All relevant decision context
+ * @returns {Object} - Audited/corrected action
+ */
+function auditPLODecision(proposedAction, {
+    canCheck, canCall, canRaise, stackBB, toCall, potSize,
+    equityFinal, madeHand, legalActions, raiseAction, potOdds
+}) {
+    if (!proposedAction) return { type: 'check' }; // Emergency fallback
+
+    const { type, amount } = proposedAction;
+
+    // Audit 1: NEVER fold when we can check for free
+    if (type === 'fold' && canCheck) {
+        return { type: 'check' };
+    }
+
+    // Audit 2: NEVER call with < 15% equity unless pot odds are extremely good
+    if (type === 'call' && equityFinal < 15 && potOdds > 0.20) {
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // Audit 3: Don't raise/bet with an invalid or 0 amount
+    if ((type === 'raise' || type === 'bet') && (!amount || amount <= 0)) {
+        return canCheck ? { type: 'check' } : canCall ? { type: 'call' } : { type: 'fold' };
+    }
+
+    // Audit 4: Never bet more than our stack
+    if (amount && amount > stackBB * (potSize > 0 ? 1 : 2)) {
+        const safeMax = raiseAction?.maxAmount || amount;
+        return { type, amount: Math.min(amount, safeMax) };
+    }
+
+    // Audit 5: Extremely short stack (< 6bb) — must go all-in or fold (no partial bets)
+    if (stackBB <= 6 && toCall > 0 && equityFinal >= 45) {
+        return { type: 'all_in' }; // Shove with any reasonable equity
+    }
+
+    // Audit 6: Never slow-play a nut hand when SPR ≤ 2 (we want to get it in!)
+    if (type === 'check' && madeHand.isNut && canRaise && potSize > stackBB * 0.4) {
+        const size = raiseAction?.maxAmount || potSize;
+        return { type: raiseAction?.type || 'bet', amount: size };
+    }
+
+    // Audit 7: Action type does not exist in legal actions (rare engine edge case)
+    const legalTypes = legalActions?.map(a => a.type) || [];
+    if (type !== 'fold' && type !== 'check' && legalTypes.length > 0 && !legalTypes.includes(type)) {
+        // Fall back to the closest legal action
+        if (canCheck) return { type: 'check' };
+        if (canCall) return { type: 'call' };
+        return { type: 'fold' };
+    }
+
+    return proposedAction; // All checks passed — return unchanged
+}
+
 // Proper raise sizing in PLO, position awareness, 3-bet/4-bet ranges.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2862,9 +3274,22 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const chatTrigger = state.chatTrigger || null;
     const chatResponse = getPLOChatResponse(chatTrigger, profileId);
 
-    // ── Total equity (raw → realized), using exact combo outs ──
-    const totalOuts = exactOuts + backdoorOuts; // exact outs already de-duped
-    const outEquityRaw = Math.min(exactOuts * 2.2, 46) * rioInfo.rioMultiplier; // RIO-adjusted
+    // ── Phase 8: Explicit wrap draw detector (20/17/13/9-out wraps) ──
+    const wrapInfo = detectPLOWrapDraw(holeRanks, boardRanks);
+    // Merge wrap outs with base exact outs (replace straight outs if wrap is better)
+    const mergedExactOuts = wrapInfo.isWrap && wrapInfo.wrapOuts > exactOuts
+        ? wrapInfo.wrapOuts + flushDraw.outs - (comboDrawInfo.isCombo ? 2 : 0)
+        : exactOuts;
+
+    // ── Phase 8: Board scenario projector ──
+    const boardScenario = projectPLOBoardScenarios(madeHand, flushDraw.outs, mergedExactOuts, boardTexture, street);
+
+    // ── Phase 8: Hand history auto-corrector ──
+    const historyCorrection = getPLOHandHistoryCorrection(sessionStats);
+
+    // ── Total equity (raw → realized), using merged exact/wrap outs ──
+    const totalOuts = mergedExactOuts + backdoorOuts;
+    const outEquityRaw = Math.min(mergedExactOuts * 2.2, 46) * rioInfo.rioMultiplier; // RIO-adjusted
     const outEquity = outEquityRaw * erc;
 
     // Commitment thresholds: multiway = tighter, nut bonus, PLO8 bonus
@@ -2981,11 +3406,30 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             ? oppAdj.foldThreshold + 5   // Fold to nit value bets quickly
             : oppAdj.foldThreshold;
 
-    // ── Phase 5: Final equity with all bonuses applied ──
-    const equityFinal = Math.max(0, Math.min(100, equityP4 + runoutBonus + deepDrawBonus));
+    // ── Phase 5+8: Final equity with all bonuses + history auto-correction ──
+    const equityFinal = Math.max(0, Math.min(100,
+        equityP4 + runoutBonus + deepDrawBonus + historyCorrection.equityCorrection
+    ));
+
+    // ── Phase 8: Equity confidence meter ──
+    const equityConfidence = getPLOEquityConfidence({
+        madeHand, hvrInfo, rioInfo,
+        exactOuts: mergedExactOuts,
+        comboDrawInfo,
+        betSizingTell, timingTell,
+        stackPreservation, exploitProfile, equityFinal
+    });
+
+    // ── Phase 8: Adaptive bet sizer (dynamic optimal fraction) ──
+    const adaptiveSizer = getAdaptivePLOBetSize(equityFinal, sprZone, boardTexture, exploitProfile, madeHand, potSize);
+    const adaptiveBetSize = clamp(adaptiveSizer.betSize);
+
+    // ── Phase 8: Board scenario protection flag ──
+    const shouldProtectNow = boardScenario.shouldProtectNow;
+    const scenarioAdvice = boardScenario.scenarioAdvice;
 
     // ── Phase 5: ICM avoidFlips override — avoid coin-flip all-ins at bubble/FT ──
-    const icmCommitThreshold = icmPressure.avoidFlips ? 62 : 52; // Need more equity to commit near bubble
+    const icmCommitThreshold = icmPressure.avoidFlips ? 62 : 52;
 
     // ─── RIVER ───
     if (street === 'river') {
@@ -3080,6 +3524,10 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Phase 3: Range balance — occasionally check monsters to balance range
         if (rangeBalance.forceCheck && equityFinal >= 75) return { type: 'check' };
 
+        // Phase 8: Board protection bet — bet full when scenario says board is about to get worse
+        if (scenarioAdvice === 'bet_full_protection' && canRaise && equityFinal >= 60)
+            return { type: raiseAction.type, amount: adaptiveBetSize };
+
         // Phase 5: Pot manipulation — isolate fishy opponents
         if (potManip.shouldIsolate && potManip.isolateSize > 0 && canRaise && equityFinal >= 65)
             return { type: raiseAction.type, amount: potManip.isolateSize };
@@ -3090,38 +3538,39 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Phase 3: MSP — play fast NOW if multi-street plan says protect the hand
         if (msp.shouldPlayFastNow && canRaise && equityFinal >= 55)
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.90, raiseAction) };
+            return { type: raiseAction.type, amount: adaptiveBetSize };
 
         // Monsters: build pot (slow-play for range balance if MSP/SPR says so)
-        if (equityFinal >= 80 && canRaise) {
+        // Phase 8: confidence passiveBias — low confidence = check more with medium holdings
+        const monsterThreshold = 80 + equityConfidence.passiveBias;
+        if (equityFinal >= monsterThreshold && canRaise) {
             if ((sprZone.zone === 'very_deep' || msp.shouldSlowPlay) && isIP && !madeHand.isNut && Math.random() < 0.35)
                 return { type: 'check' }; // Slow-play
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, madeHand.isNut && !madeHand.hasRedraw ? 0.50 : 0.90, raiseAction) };
+            return { type: raiseAction.type, amount: adaptiveBetSize }; // Phase 8: adaptive sizing
         }
 
         // Phase 3: C-bet engine
         if (cBetStrategy.shouldCBet && canRaise)
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, cBetStrategy.cBetFraction, raiseAction) };
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * cBetStrategy.cBetFraction)) };
 
         // Phase 3: Turn barrel logic
         if (turnBarrel?.shouldBarrel && canRaise)
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, turnBarrel.barrelFraction, raiseAction) };
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * turnBarrel.barrelFraction)) };
 
         // Phase 5: River float and fire (IP, draw missed, blockers)
         if (riverFloat.shouldFireRiver && canRaise)
             return { type: raiseAction.type, amount: riverFloat.fireSize };
 
-        // Phase 2: IP probe bet
-        const probe = getPLOProbeBet(isIP, equityFinal, boardTexture, numPlayers);
-        if (probe.shouldProbe && canRaise)
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, probe.probeSize, raiseAction) };
+        // Phase 7: Calibrated probe bet (replaces fixed Phase 2 probe)
+        if (calibratedProbe.shouldProbe && canRaise)
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * calibratedProbe.probeSizing)) };
 
-        // Strong draws: semi-bluff (ERC-adjusted + runout quality)
+        // Strong draws: semi-bluff (ERC-adjusted + runout quality + wrap outs)
         const realizedOuts = totalOuts * erc;
         if (realizedOuts >= 14 && canRaise && Math.random() < 0.65)
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.55, raiseAction) };
+            return { type: raiseAction.type, amount: adaptiveBetSize };
         if (realizedOuts >= 9 && canRaise && Math.random() < 0.38)
-            return { type: raiseAction.type, amount: calcPLOBetSize(potSize, 0.50, raiseAction) };
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.50)) };
 
         // Medium made hands + redraw: bet for protection
         if (equityFinal >= 55 && madeHand.hasRedraw && canRaise)

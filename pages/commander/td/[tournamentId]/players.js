@@ -202,7 +202,7 @@ body { font-family: 'Courier New', Courier, monospace; background: #fff; }
 ${receipts.map(r => `<div class="card">
   <div class="header">
     <div class="tournament">${r.tournament_name}</div>
-    <div class="label-sc">⬛ Seat Change Card ⬛</div>
+    <div class="label-sc">-- SEAT CHANGE CARD --</div>
   </div>
   <div class="divider"></div>
   <div class="player">${r.player_name}</div>
@@ -211,7 +211,7 @@ ${receipts.map(r => `<div class="card">
     <span class="from-label">Previous Table</span>
     <span class="from-val">Table ${r.from_table}, Seat ${r.from_seat}</span>
   </div>
-  <div class="arrow">⬇</div>
+  <div class="arrow">&#x2193;</div>
   <div class="new-seat-box">
     <div class="new-label">Report To</div>
     <div class="new-table">TABLE ${r.to_table}</div>

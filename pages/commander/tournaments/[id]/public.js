@@ -164,8 +164,8 @@ export default function TournamentPublic() {
       const t = tournament;
       const url = typeof window !== 'undefined' ? window.location.href : '';
       const content = t.status === 'completed'
-        ? `🏆 Tournament Results: ${t.name}\n💰 $${t.buyin_amount || 0} Buy-In | ${entries.length} Entries | $${prizePool.toLocaleString()} Prize Pool\n📊 ${url}`
-        : `🃏 Playing in: ${t.name}\n💰 $${t.buyin_amount || 0} Buy-In | ${activeEntries.length} Players Remaining\n📊 ${url}`;
+        ? `Tournament Results: ${t.name} | $${t.buyin_amount || 0} Buy-In | ${entries.length} Entries | $${prizePool.toLocaleString()} Prize Pool | ${url}`
+        : `Playing in: ${t.name} | $${t.buyin_amount || 0} Buy-In | ${activeEntries.length} Players Remaining | ${url}`;
 
       const res = await fetch('/api/social/create-post', {
         method: 'POST',
