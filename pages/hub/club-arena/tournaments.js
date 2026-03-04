@@ -202,7 +202,7 @@ export default function TournamentsPage() {
               <span>Players: <strong style={{ color: FB.text }}>{t.registered_count}/{t.max_players}</strong></span>
               <span>Prize Pool: <strong style={{ color: FB.gold }}>
                 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}
-                {Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}
+                {Number(t.guaranteed_prize) >Number(t.prize_pool) ? ' GTD' : ''}
               </strong></span>
             </div>
 
@@ -372,7 +372,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
                 display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
                 borderRadius: 6, background: FB.primary + '20',
               }}>
-                <span style={{ fontSize: 16 }}>✅</span>
+                <span style={{ fontSize: 16 }}></span>
                 <span style={{ fontSize: 13, color: FB.text, fontWeight: 600 }}>This Club (host)</span>
               </div>
               {sisterClubs.length === 0 && (
@@ -387,7 +387,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
                   background: form.xmttClubIds.includes(sc.id) ? FB.green + '20' : 'transparent',
                 }}>
                   <span style={{ fontSize: 16 }}>
-                    {form.xmttClubIds.includes(sc.id) ? '✅' : '⬜'}
+                    {form.xmttClubIds.includes(sc.id) ? '' : '⬜'}
                   </span>
                   {sc.logo && <img src={sc.logo} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} />}
                   <span style={{ fontSize: 13, color: FB.text }}>{sc.name}</span>
@@ -488,7 +488,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
       if (d.success && d.tables) {
         // Search all tables for the user's seat
         for (const tbl of d.tables) {
-          const seated = tbl.players?.find(p => String(p.playerId) === String(userId));
+          const seated = tbl.players?.find(p =>String(p.playerId) === String(userId));
           if (seated) {
             router.push(`/hub/club-arena/table/${tbl.tableId}?tournament=${t.id}`);
             return;
@@ -603,7 +603,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         {/* Live Tournament Stats (when running) */}
         {tourneyState && ['running', 'late_reg'].includes(t.status) && (
           <div style={{ background: FB.bg, padding: 12, borderRadius: 8, marginBottom: 16, border: `1px solid ${FB.border}` }}>
-            <div style={{ fontSize: 11, color: FB.gold, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase' }}>🏆 Live Tournament</div>
+            <div style={{ fontSize: 11, color: FB.gold, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase' }}>Live Tournament</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
               <div><span style={{ color: FB.dim }}>Level:</span> <strong>{tourneyState.currentLevel}</strong></div>
               <div><span style={{ color: FB.dim }}>Blinds:</span> <strong>{tourneyState.blinds?.smallBlind}/{tourneyState.blinds?.bigBlind}</strong></div>
@@ -627,7 +627,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
               flex: 1, padding: 10, background: '#ea580c', color: '#fff',
               border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(234,88,12,0.4)',
-            }}>🎮 Go to Table</button>
+            }}>Go to Table</button>
           )}
 
           {canRegister && (

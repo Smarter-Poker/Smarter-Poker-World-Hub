@@ -22,7 +22,7 @@ const LiveKitCall = dynamic(
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎨 FACEBOOK DARK COLOR PALETTE
+//  FACEBOOK DARK COLOR PALETTE
 // ═══════════════════════════════════════════════════════════════════════════
 
 const C = {
@@ -41,7 +41,7 @@ const C = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📱 SVG ICONS
+//  SVG ICONS
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PhoneIcon = ({ size = 20, color = '#0084FF' }) => (
@@ -69,7 +69,7 @@ const InfoIcon = ({ size = 20, color = '#0084FF' }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔧 UTILITY FUNCTIONS
+//  UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
 function playMessageSound() {
@@ -99,7 +99,7 @@ function formatMessageTime(timestamp) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🖼️ AVATAR COMPONENT
+//  AVATAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Avatar({ src, name, size = 40, online, showOnline = true }) {
@@ -124,7 +124,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📣 TOAST COMPONENT
+//  TOAST COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Toast({ toast, onDismiss }) {
@@ -150,7 +150,7 @@ function Toast({ toast, onDismiss }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ⌨️ MESSAGE INPUT COMPONENT (Full-featured)
+// ⌨ MESSAGE INPUT COMPONENT (Full-featured)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function MessageInput({ onSend, onMediaUpload, disabled }) {
@@ -160,7 +160,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    const emojis = ['😀', '😂', '❤️', '👍', '🔥', '🎰', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🏆', '💰'];
+    const emojis = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
 
     const handleSend = () => {
         if (!text.trim()) return;
@@ -178,7 +178,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
     };
 
     const handleQuickLike = () => {
-        onSend('👍');
+        onSend('');
     };
 
     return (
@@ -255,7 +255,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💬 MESSAGE BUBBLE COMPONENT (with media support)
+//  MESSAGE BUBBLE COMPONENT (with media support)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup }) {
@@ -285,7 +285,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📋 CONVERSATION LIST ITEM
+//  CONVERSATION LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ConversationItem({ conversation, isActive, onClick }) {
@@ -309,7 +309,7 @@ function ConversationItem({ conversation, isActive, onClick }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🏠 MAIN MESSAGES PAGE
+//  MAIN MESSAGES PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function ClubMessages() {
@@ -342,7 +342,7 @@ export default function ClubMessages() {
     const [showMessageSearch, setShowMessageSearch] = useState(false);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 🔐 BULLETPROOF AUTH
+    //  BULLETPROOF AUTH
     // ═══════════════════════════════════════════════════════════════════════
 
     useEffect(() => {
@@ -442,7 +442,7 @@ export default function ClubMessages() {
     }, [user, clubMemberIds]);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 🔒 MESSAGING HIERARCHY PERMISSION CHECKER
+    //  MESSAGING HIERARCHY PERMISSION CHECKER
     // Hard Laws:
     // - Union Owner/Admins can message anyone
     // - Club Owners can message all their players
@@ -525,7 +525,7 @@ export default function ClubMessages() {
                 const clubConversations = result.conversations.filter(conv => {
                     const otherId = conv.otherUser?.id;
                     if (!otherId || !clubMemberIds.has(otherId)) return false;
-                    // 🔒 HIERARCHY: Only show conversations with permitted recipients
+                    //  HIERARCHY: Only show conversations with permitted recipients
                     const otherMember = clubMembers.find(m => m.user_id === otherId);
                     return otherMember ? canMessageUser(otherMember) : false;
                 });
@@ -545,7 +545,7 @@ export default function ClubMessages() {
         const query = searchQuery.toLowerCase();
         const results = clubMembers
             .filter(m => m.user_id !== user?.id)
-            .filter(m => canMessageUser(m)) // 🔒 HIERARCHY: Only show allowed recipients
+            .filter(m => canMessageUser(m)) //  HIERARCHY: Only show allowed recipients
             .filter(m => m.profiles?.username?.toLowerCase().includes(query) || m.profiles?.display_name?.toLowerCase().includes(query))
             .slice(0, 5);
         setSearchResults(results);
@@ -587,7 +587,7 @@ export default function ClubMessages() {
     }, [activeConversation?.id, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 📞 VIDEO/VOICE CALL FUNCTIONS
+    //  VIDEO/VOICE CALL FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════
 
     const startCall = async (type = 'video') => {
@@ -687,7 +687,7 @@ export default function ClubMessages() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 📤 MEDIA UPLOAD
+    //  MEDIA UPLOAD
     // ═══════════════════════════════════════════════════════════════════════
 
     const handleMediaUpload = async (file) => {
@@ -784,7 +784,7 @@ export default function ClubMessages() {
     const startConversation = async (member) => {
         if (!user || !member.profiles) return;
 
-        // 🔒 HIERARCHY CHECK: Verify permission before creating conversation
+        //  HIERARCHY CHECK: Verify permission before creating conversation
         if (!canMessageUser(member)) {
             let errorMsg = 'You cannot message this user.';
             if (currentUserMembership?.role === 'player') {
@@ -852,7 +852,7 @@ export default function ClubMessages() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 🎨 RENDER
+    //  RENDER
     // ═══════════════════════════════════════════════════════════════════════
 
     const S = {
@@ -992,7 +992,7 @@ export default function ClubMessages() {
                 </div>
 
                 <div style={S.searchBar}>
-                    <input type="text" placeholder="🔍  Search Club Members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />
+                    <input type="text" placeholder="  Search Club Members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />
 
                     {searchResults.length > 0 && (
                         <div style={{ marginTop: 8, background: C.card, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
@@ -1013,13 +1013,13 @@ export default function ClubMessages() {
                     conversations.map((conv, i) => <ConversationItem key={conv.id || i} conversation={conv} isActive={false} onClick={() => openConversation(conv)} />)
                 ) : user ? (
                     <div style={S.emptyState}>
-                        <div style={S.emptyIcon}>💬</div>
+                        <div style={S.emptyIcon}></div>
                         <p style={{ fontSize: 16, fontWeight: 500 }}>No Club Conversations Yet</p>
                         <p style={{ fontSize: 14, marginTop: 8 }}>Search For A Club Member Above To Start Chatting</p>
                     </div>
                 ) : (
                     <div style={S.emptyState}>
-                        <div style={S.emptyIcon}>💬</div>
+                        <div style={S.emptyIcon}></div>
                         <p style={{ fontSize: 16, fontWeight: 500 }}>Loading Your Session...</p>
                         <p style={{ fontSize: 14, marginTop: 8 }}>If You're Logged In, Your Chats Will Appear Shortly</p>
                     </div>

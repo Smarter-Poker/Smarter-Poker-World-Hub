@@ -502,7 +502,7 @@ export default function ClubArenaPage() {
                     {myUnions.length > 0 && (
                         <div style={{ marginBottom: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 4 }}>
-                                ⚡ My Unions
+                                 My Unions
                             </div>
                             {myUnions.map(union => (
                                 <div
@@ -523,10 +523,10 @@ export default function ClubArenaPage() {
                                 >
                                     <div>
                                         <div style={{ fontSize: 18, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>
-                                            🏛️ {union.name}
+                                             {union.name}
                                         </div>
                                         <div style={{ fontSize: 12, color: '#B0B3B8' }}>
-                                            {union.adminRole === 'union_lead' ? '👑 Union Lead' : '🛡️ Union Admin'}
+                                            {union.adminRole === 'union_lead' ? 'Union Lead' : 'Union Admin'}
                                             {union.union_code ? ` • Code: ${union.union_code}` : ''}
                                         </div>
                                     </div>

@@ -43,13 +43,14 @@ const apiGet = async (url) => {
     return data;
 };
 
-const StatCard = ({ label, value, icon, color }) => (
+const StatCard = ({ label, value, color, sub }) => (
     <div style={{
         background: FB.cardBg, borderRadius: 12, padding: '16px 14px',
         border: `1px solid ${FB.border}`, flex: '1 1 140px', minWidth: 140,
     }}>
-        <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4 }}>{icon} {label}</div>
+        <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
         <div style={{ fontSize: 22, fontWeight: 800, color: color || FB.textPrimary }}>{value}</div>
+        {sub && <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 2 }}>{sub}</div>}
     </div>
 );
 
@@ -57,12 +58,13 @@ const TABS = [
     { id: 'overview', label: 'Overview' },
     { id: 'clubs', label: 'Clubs' },
     { id: 'agents', label: 'Agents' },
+    { id: 'games', label: 'Games' },
     { id: 'settlement', label: 'Settlement' },
     { id: 'mint', label: 'Mint Chips' },
-    { id: 'manage_clubs', label: 'Manage Clubs' },
+    { id: 'bbj', label: 'BBJ' },
     { id: 'admins', label: 'Admins' },
+    { id: 'manage_clubs', label: 'Manage Clubs' },
     { id: 'settings', label: 'Settings' },
-    { id: 'bbj', label: '🎰 BBJ' },
 ];
 
 export default function UnionDashboard() {
@@ -366,26 +368,51 @@ export default function UnionDashboard() {
                 {/* ═══ OVERVIEW TAB ═══ */}
                 {activeTab === 'overview' && (
                     <div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-                            <StatCard label="Total Clubs" value={stats.totalClubs} icon="🏠" color={FB.primary} />
-                            <StatCard label="Total Members" value={stats.totalMembers?.toLocaleString()} icon="👥" color={FB.textPrimary} />
-                            <StatCard label="Total Agents" value={stats.totalAgents} icon="🕴️" color={FB.orange} />
-                            <StatCard label="Agent Players" value={stats.totalAgentPlayers} icon="🎮" color={FB.purple} />
-                            <StatCard label="Total Treasury" value={stats.totalTreasury?.toLocaleString()} icon="🏦" color={FB.gold} />
-                            <StatCard label="Total Rake" value={stats.totalRake?.toLocaleString()} icon="💰" color={FB.success} />
-                            <StatCard label="Weekly Rake" value={stats.totalWeeklyRake?.toLocaleString()} icon="📊" color={FB.primary} />
-                            <StatCard label="Union Hold" value={stats.estimatedUnionHold?.toLocaleString()} icon="🎯"
-                                color={FB.gold} />
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+                            <StatCard label="Clubs" value={stats.totalClubs} color={FB.primary} />
+                            <StatCard label="Members" value={stats.totalMembers?.toLocaleString()} color={FB.textPrimary} />
+                            <StatCard label="Agents" value={stats.totalAgents} color={FB.orange} />
+                            <StatCard label="Agent Players" value={stats.totalAgentPlayers} color={FB.purple} />
                         </div>
-                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}` }}>
-                            <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 8 }}>
-                                Union Hold Rate
-                            </h3>
-                            <p style={{ fontSize: 13, color: FB.textSecondary }}>
-                                Current hold rate: <span style={{ color: FB.gold, fontWeight: 700 }}>
-                                    {((stats.unionHoldRate || 0) * 100).toFixed(1)}%
-                                </span> of total rake collected across all clubs.
-                            </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+                            <StatCard label="Total Treasury" value={stats.totalTreasury?.toLocaleString()} color={FB.gold} />
+                            <StatCard label="Total Rake" value={stats.totalRake?.toLocaleString()} color={FB.success} />
+                            <StatCard label="Weekly Rake" value={stats.totalWeeklyRake?.toLocaleString()} color={FB.primary} />
+                            <StatCard label="Union Hold" value={stats.estimatedUnionHold?.toLocaleString()} color={FB.gold}
+                                sub={`${((stats.unionHoldRate || 0) * 100).toFixed(0)}% of period rake`} />
+                        </div>
+
+                        {/* BBJ Summary — shown if any balance > 0 */}
+                        {(union?.main_bbj_balance > 0 || union?.backup_bbj_balance > 0 || union?.promo_fund_balance > 0) && (
+                            <div style={{ background: 'rgba(255,215,0,0.06)', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid rgba(255,215,0,0.15)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#FFD700' }}>Bad Beat Jackpot</span>
+                                    <span style={{ fontSize: 18, fontWeight: 900, color: '#FFD700' }}>
+                                        {((union.main_bbj_balance || 0) + (union.backup_bbj_balance || 0) + (union.promo_fund_balance || 0)).toLocaleString()}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 20, fontSize: 12 }}>
+                                    <span style={{ color: '#FFD700' }}>Main: {(union.main_bbj_balance || 0).toLocaleString()}</span>
+                                    <span style={{ color: '#C0C0C0' }}>Backup: {(union.backup_bbj_balance || 0).toLocaleString()}</span>
+                                    <span style={{ color: '#4BB543' }}>Promo: {(union.promo_fund_balance || 0).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Quick Actions */}
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                            {[
+                                { label: 'View Games', tab: 'games', color: FB.primary },
+                                { label: 'Mint Chips', tab: 'mint', color: FB.gold },
+                                { label: 'Settlement', tab: 'settlement', color: FB.purple },
+                                { label: 'Add Club', tab: 'manage_clubs', color: FB.success },
+                            ].map(q => (
+                                <button key={q.tab} onClick={() => setActiveTab(q.tab)} style={{
+                                    background: q.color, color: q.color === FB.gold ? '#000' : '#fff',
+                                    border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700,
+                                    fontSize: 13, cursor: 'pointer', flex: '1 1 120px',
+                                }}>{q.label}</button>
+                            ))}
                         </div>
                     </div>
                 )}
@@ -408,9 +435,9 @@ export default function UnionDashboard() {
                                     <div style={{ fontSize: 12, color: FB.primary }}>View →</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.textSecondary }}>
-                                    <span>👥 {club.member_count || 0} members</span>
-                                    <span>🏦 {(club.chip_treasury || 0).toLocaleString()} treasury</span>
-                                    <span>💰 {(club.total_rake || 0).toLocaleString()} rake</span>
+                                    <span> {club.member_count || 0} members</span>
+                                    <span> {(club.chip_treasury || 0).toLocaleString()} treasury</span>
+                                    <span> {(club.total_rake || 0).toLocaleString()} rake</span>
                                 </div>
                             </div>
                         ))}
@@ -448,14 +475,54 @@ export default function UnionDashboard() {
                                     <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
                                         Club: {clubName} · Commission: {((agent.commission_rate || 0) * 100).toFixed(0)}%
                                     </div>
-                                    <div style={{ display: 'flex', gap: 14, fontSize: 12, color: FB.textSecondary }}>
-                                        <span>👥 {agent.active_player_count || 0} active</span>
-                                        <span>💰 {(agent.weekly_rake_generated || 0).toLocaleString()} wk rake</span>
-                                        <span>📈 {(agent.lifetime_earnings || 0).toLocaleString()} lifetime</span>
+                                    <div style={{ display: 'flex', gap: 14, fontSize: 12, color: FB.textSecondary, flexWrap: 'wrap' }}>
+                                        <span>{agent.active_player_count || 0} active players</span>
+                                        <span>{(agent.weekly_rake_generated || 0).toLocaleString()} wk rake</span>
+                                        <span>{(agent.lifetime_earnings || 0).toLocaleString()} lifetime</span>
+                                        {!agent.is_prepaid && agent.credit_limit > 0 && (
+                                            <span style={{ color: (agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 ? FB.danger : FB.textSecondary }}>
+                                                Credit: {(agent.credit_used || 0).toLocaleString()} / {(agent.credit_limit || 0).toLocaleString()}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* ═══ GAMES TAB ═══ */}
+                {activeTab === 'games' && (
+                    <div>
+                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 24, border: `1px solid ${FB.border}`, textAlign: 'center' }}>
+                            <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 8 }}>
+                                Union Games Management
+                            </h3>
+                            <p style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 20, maxWidth: 400, margin: '0 auto 20px' }}>
+                                Create and manage tournaments and cash games across all clubs in this union.
+                            </p>
+                            <button onClick={() => router.push(`/hub/club-arena/union-games?union=${unionIdParam}`)}
+                                style={{
+                                    background: FB.primary, color: '#fff', border: 'none', borderRadius: 10,
+                                    padding: '14px 32px', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                                }}>
+                                Open Games Dashboard
+                            </button>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+                            <div style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, flex: '1 1 200px' }}>
+                                <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4, textTransform: 'uppercase' }}>Clubs Available</div>
+                                <div style={{ fontSize: 20, fontWeight: 800, color: FB.primary }}>{clubs.length}</div>
+                                <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 2 }}>{clubs.map(c => c.name).join(', ') || 'None'}</div>
+                            </div>
+                            <div style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, flex: '1 1 200px' }}>
+                                <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4, textTransform: 'uppercase' }}>Total Members</div>
+                                <div style={{ fontSize: 20, fontWeight: 800, color: FB.textPrimary }}>{stats.totalMembers?.toLocaleString()}</div>
+                                <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 2 }}>Players across all clubs</div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -511,7 +578,8 @@ export default function UnionDashboard() {
                                             {clubName} — Period #{period.period_number || '?'}
                                         </span>
                                         <span style={{
-                                            fontSize: 11, fontWeight: 600,
+                                            fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
+                                            background: period.status === 'open' ? 'rgba(49,162,76,0.15)' : period.status === 'closed' ? 'rgba(245,166,35,0.15)' : 'rgba(176,179,184,0.15)',
                                             color: period.status === 'open' ? FB.success : period.status === 'closed' ? FB.orange : FB.textSecondary,
                                         }}>
                                             {period.status}
@@ -520,6 +588,11 @@ export default function UnionDashboard() {
                                     <div style={{ fontSize: 12, color: FB.textSecondary }}>
                                         Rake: {(period.total_rake_collected || 0).toLocaleString()} · Hands: {period.total_hands_dealt || 0}
                                     </div>
+                                    {period.start_at && (
+                                        <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 2 }}>
+                                            {new Date(period.start_at).toLocaleDateString()} — {period.end_at ? new Date(period.end_at).toLocaleDateString() : 'ongoing'}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -613,7 +686,7 @@ export default function UnionDashboard() {
                             <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{club.name}</div>
-                                    <div style={{ fontSize: 12, color: FB.textSecondary }}>👥 {club.member_count || 0} · 🏦 {(club.chip_treasury || 0).toLocaleString()}</div>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary }}> {club.member_count || 0} ·  {(club.chip_treasury || 0).toLocaleString()}</div>
                                 </div>
                                 <button onClick={async () => {
                                     if (!confirm(`Remove ${club.name} from union?`)) return;
@@ -696,7 +769,7 @@ export default function UnionDashboard() {
 
                         {/* Rake Routing Info */}
                         <div style={{ background: 'rgba(24,119,242,0.08)', borderRadius: 10, padding: 14, marginBottom: 16, border: '1px solid rgba(24,119,242,0.2)' }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: FB.primary, marginBottom: 4 }}>💰 Rake Routing</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: FB.primary, marginBottom: 4 }}>Rake Routing</div>
                             <div style={{ fontSize: 12, color: FB.textSecondary }}>
                                 100% of all rake and BBJ from member clubs flows to this union. Clubs in a union do not keep rake directly.
                             </div>
@@ -713,7 +786,7 @@ export default function UnionDashboard() {
 
                         {/* BBJ Split Config */}
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, display: 'block', marginBottom: 8 }}>🎰 BBJ Split Percentages</label>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, display: 'block', marginBottom: 8 }}>BBJ Split Percentages</label>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                                 <div>
                                     <label style={{ fontSize: 11, color: '#FFD700', display: 'block', marginBottom: 2 }}>Main BBJ %</label>
@@ -733,7 +806,7 @@ export default function UnionDashboard() {
                             </div>
                             {(parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)) !== 100 && (
                                 <div style={{ fontSize: 11, color: FB.danger, marginTop: 4 }}>
-                                    ⚠️ Must total 100% (currently {parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)}%)
+                                     Must total 100% (currently {parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)}%)
                                 </div>
                             )}
                         </div>
@@ -768,8 +841,41 @@ export default function UnionDashboard() {
                 {/* ═══ BBJ TAB ═══ */}
                 {activeTab === 'bbj' && (
                     <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
-                        <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 16 }}>🎰 Bad Beat Jackpot</h3>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 16 }}>Bad Beat Jackpot</h3>
 
+                        {/* Pool Balances — from union data directly */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+                            {[
+                                { label: 'Main BBJ', value: union?.main_bbj_balance || 0, color: '#FFD700' },
+                                { label: 'Backup BBJ', value: union?.backup_bbj_balance || 0, color: '#C0C0C0' },
+                                { label: 'Promo Fund', value: union?.promo_fund_balance || 0, color: '#4BB543' },
+                            ].map(p => (
+                                <div key={p.label} style={{ background: FB.background, borderRadius: 10, padding: 14, textAlign: 'center', border: `1px solid ${FB.border}` }}>
+                                    <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4 }}>{p.label}</div>
+                                    <div style={{ fontSize: 20, fontWeight: 900, color: p.color }}>{(p.value).toLocaleString()}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Total */}
+                        <div style={{ background: 'rgba(255,215,0,0.06)', borderRadius: 10, padding: 14, marginBottom: 16, textAlign: 'center', border: '1px solid rgba(255,215,0,0.2)' }}>
+                            <div style={{ fontSize: 12, color: '#FFD700', marginBottom: 2 }}>TOTAL BBJ POOL</div>
+                            <div style={{ fontSize: 28, fontWeight: 900, color: '#FFD700' }}>
+                                {((union?.main_bbj_balance || 0) + (union?.backup_bbj_balance || 0) + (union?.promo_fund_balance || 0)).toLocaleString()}
+                            </div>
+                        </div>
+
+                        {/* Split Config */}
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>BBJ Split Configuration</div>
+                            <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+                                <span style={{ color: '#FFD700' }}>Main: {union?.settings?.bbj_main_pct || 40}%</span>
+                                <span style={{ color: '#C0C0C0' }}>Backup: {union?.settings?.bbj_backup_pct || 30}%</span>
+                                <span style={{ color: '#4BB543' }}>Promo: {union?.settings?.bbj_promo_pct || 30}%</span>
+                            </div>
+                        </div>
+
+                        {/* Detailed activity loader */}
                         {!bbjData ? (
                             <button onClick={async () => {
                                 setBbjLoading(true);
@@ -778,81 +884,42 @@ export default function UnionDashboard() {
                                     if (error) throw error;
                                     setBbjData(data);
                                 } catch (e) {
-                                    showToast(e.message || 'Failed to load BBJ', 'error');
+                                    showToast('Detailed BBJ activity not available yet', 'error');
                                 } finally { setBbjLoading(false); }
                             }} disabled={bbjLoading} style={{
-                                width: '100%', background: FB.primary, color: '#fff', border: 'none',
-                                borderRadius: 10, padding: '12px', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                                width: '100%', background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`,
+                                borderRadius: 10, padding: '10px', fontWeight: 600, fontSize: 13, cursor: 'pointer',
                                 opacity: bbjLoading ? 0.5 : 1,
-                            }}>{bbjLoading ? 'Loading...' : 'Load BBJ Status'}</button>
+                            }}>{bbjLoading ? 'Loading...' : 'Load Detailed Activity'}</button>
                         ) : (
                             <div>
-                                {/* Pool Balances */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
-                                    {[
-                                        { label: 'Main BBJ', value: bbjData.main_bbj || 0, color: '#FFD700', icon: '🏆' },
-                                        { label: 'Backup BBJ', value: bbjData.backup_bbj || 0, color: '#C0C0C0', icon: '🔄' },
-                                        { label: 'Promo Fund', value: bbjData.promo_fund || 0, color: '#4BB543', icon: '🎁' },
-                                    ].map(p => (
-                                        <div key={p.label} style={{ background: FB.background, borderRadius: 10, padding: 14, textAlign: 'center', border: `1px solid ${FB.border}` }}>
-                                            <div style={{ fontSize: 20, marginBottom: 4 }}>{p.icon}</div>
-                                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4 }}>{p.label}</div>
-                                            <div style={{ fontSize: 20, fontWeight: 900, color: p.color }}>{(p.value).toLocaleString()}</div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Total */}
-                                <div style={{ background: 'rgba(255,215,0,0.06)', borderRadius: 10, padding: 14, marginBottom: 16, textAlign: 'center', border: '1px solid rgba(255,215,0,0.2)' }}>
-                                    <div style={{ fontSize: 12, color: '#FFD700', marginBottom: 2 }}>TOTAL BBJ POOL</div>
-                                    <div style={{ fontSize: 28, fontWeight: 900, color: '#FFD700' }}>
-                                        {(bbjData.total_bbj || 0).toLocaleString()}
+                                <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>Recent BBJ Activity</div>
+                                {(bbjData.recent_entries || []).length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: 20, color: FB.textSecondary, fontSize: 13 }}>
+                                        No BBJ activity yet. BBJ drops start when tables have bbj_percent configured.
                                     </div>
-                                </div>
-
-                                {/* Split Config */}
-                                <div style={{ marginBottom: 16 }}>
-                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>BBJ Split Configuration</div>
-                                    <div style={{ display: 'flex', gap: 8, fontSize: 13 }}>
-                                        <span style={{ color: '#FFD700' }}>Main: {bbjData.split_config?.main_pct || 50}%</span>
-                                        <span style={{ color: FB.textSecondary }}>·</span>
-                                        <span style={{ color: '#C0C0C0' }}>Backup: {bbjData.split_config?.backup_pct || 25}%</span>
-                                        <span style={{ color: FB.textSecondary }}>·</span>
-                                        <span style={{ color: '#4BB543' }}>Promo: {bbjData.split_config?.promo_pct || 25}%</span>
+                                ) : (bbjData.recent_entries || []).map((entry, i) => (
+                                    <div key={entry.id || i} style={{
+                                        background: FB.background, borderRadius: 8, padding: '10px 12px',
+                                        border: `1px solid ${FB.border}`, marginBottom: 6, fontSize: 12,
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ color: entry.entry_type === 'contribution' ? '#4BB543' : '#FA383E', fontWeight: 600 }}>
+                                                {entry.entry_type === 'contribution' ? '+' : ''}{(entry.main_amount || 0).toFixed(2)} main
+                                                {entry.backup_amount ? ` / ${(entry.backup_amount).toFixed(2)} backup` : ''}
+                                                {entry.promo_amount ? ` / ${(entry.promo_amount).toFixed(2)} promo` : ''}
+                                            </span>
+                                            <span style={{ color: FB.textSecondary }}>
+                                                {entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}
+                                            </span>
+                                        </div>
+                                        {entry.note && <div style={{ color: FB.textSecondary, marginTop: 2 }}>{entry.note}</div>}
                                     </div>
-                                </div>
-
-                                {/* Recent Entries */}
-                                <div>
-                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>Recent BBJ Activity</div>
-                                    {(bbjData.recent_entries || []).length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: 20, color: FB.textSecondary, fontSize: 13 }}>
-                                            No BBJ activity yet. BBJ drops start when tables have bbj_percent configured.
-                                        </div>
-                                    ) : (bbjData.recent_entries || []).map((entry, i) => (
-                                        <div key={entry.id || i} style={{
-                                            background: FB.background, borderRadius: 8, padding: '10px 12px',
-                                            border: `1px solid ${FB.border}`, marginBottom: 6, fontSize: 12,
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: entry.entry_type === 'contribution' ? '#4BB543' : '#FA383E', fontWeight: 600 }}>
-                                                    {entry.entry_type === 'contribution' ? '+' : ''}{(entry.main_amount || 0).toFixed(2)} main
-                                                    {entry.backup_amount ? ` / ${(entry.backup_amount).toFixed(2)} backup` : ''}
-                                                    {entry.promo_amount ? ` / ${(entry.promo_amount).toFixed(2)} promo` : ''}
-                                                </span>
-                                                <span style={{ color: FB.textSecondary }}>
-                                                    {entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}
-                                                </span>
-                                            </div>
-                                            {entry.note && <div style={{ color: FB.textSecondary, marginTop: 2 }}>{entry.note}</div>}
-                                        </div>
-                                    ))}
-                                </div>
+                                ))}
                             </div>
                         )}
                     </div>
                 )}
-            </div>
             {toast && (
                 <div style={{
                     position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',

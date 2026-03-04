@@ -43,11 +43,11 @@ const FB = {
 
 // Default shop items (used if no custom items in database)
 const DEFAULT_ITEMS = [
-    { id: 'custom_avatar', name: 'Custom Avatar Frame', description: 'Stand Out with a Premium Avatar Frame', price: 500, icon: '', category: 'cosmetic' },
-    { id: 'table_theme_gold', name: 'Gold Table Theme', description: 'Exclusive Gold-themed Table Design', price: 1000, icon: '', category: 'theme' },
-    { id: 'card_back_premium', name: 'Premium Card Back', description: 'Custom Card Back Design', price: 300, icon: '', category: 'cosmetic' },
-    { id: 'seat_preference', name: 'Seat Preference', description: 'Always Get Your Preferred Seat', price: 750, icon: '', category: 'perk' },
-    { id: 'emoji_pack', name: 'Premium Emoji Pack', description: 'Unlock 50+ Exclusive Table Emojis', price: 400, icon: '', category: 'cosmetic' },
+    { id: 'custom_avatar', name: 'Custom Avatar Frame', description: 'Stand Out with a Premium Avatar Frame', price: 500, category: 'cosmetic' },
+    { id: 'table_theme_gold', name: 'Gold Table Theme', description: 'Exclusive Gold-themed Table Design', price: 1000, category: 'theme' },
+    { id: 'card_back_premium', name: 'Premium Card Back', description: 'Custom Card Back Design', price: 300, category: 'cosmetic' },
+    { id: 'seat_preference', name: 'Seat Preference', description: 'Always Get Your Preferred Seat', price: 750, category: 'perk' },
+    { id: 'emoji_pack', name: 'Premium Emoji Pack', description: 'Unlock 50+ Exclusive Table Emojis', price: 400, category: 'cosmetic' },
     { id: 'vip_badge', name: 'VIP Badge', description: 'Display a VIP Badge on Your Profile', price: 2000, icon: 'Owner', category: 'badge' },
 ];
 
@@ -293,7 +293,7 @@ export default function Marketplace() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}> Marketplace</h1>
+                    <h1 style={S.pageTitle}>Marketplace</h1>
                     <p style={S.pageSubtitle}>Spend Your Chips On Exclusive Items</p>
 
                     {isLoading ? (
@@ -368,7 +368,7 @@ export default function Marketplace() {
                                                 onMouseLeave={e => e.currentTarget.style.borderColor = FB.border}
                                             >
                                                 {isOwned && <span style={S.ownedBadge}>OWNED</span>}
-                                                <span style={S.itemIcon}>{item.icon}</span>
+                                                <span style={S.itemIcon}></span>
                                                 <div style={S.itemName}>{item.name}</div>
                                                 <div style={S.itemDesc}>{item.description}</div>
                                                 <div style={S.itemPrice}>{item.price.toLocaleString()} chips</div>

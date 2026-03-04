@@ -267,7 +267,7 @@ export default function ClubLobby() {
                             {/* Club Header Card */}
                             <div style={styles.clubCard}>
                                 <div style={styles.clubAvatar}>
-                                    <span style={styles.clubLogo}>♠</span>
+                                    <span style={styles.clubLogo}></span>
                                 </div>
                                 <div style={styles.clubInfo}>
                                     <h2 style={styles.clubName}>{club.name}</h2>
@@ -278,7 +278,7 @@ export default function ClubLobby() {
                                             <span
                                                 onClick={(e) => { e.stopPropagation(); router.push(`/hub/club-arena/union-dashboard?union=${club.union_id}`); }}
                                                 style={{ fontSize: 11, color: '#2374E1', cursor: 'pointer', fontWeight: 600 }}
-                                            >🏛️ Union</span>
+                                            >Union</span>
                                         )}
                                     </div>
                                 </div>
@@ -329,7 +329,7 @@ export default function ClubLobby() {
                                             border: `1px solid rgba(35,116,225,0.2)`,
                                         }}>
                                             <div style={{ fontSize: '13px', fontWeight: 700, color: FB.textPrimary }}>
-                                                📢 {ann.title}
+                                                 {ann.title}
                                             </div>
                                             {ann.content && (
                                                 <div style={{ fontSize: '12px', color: FB.textSecondary, marginTop: '2px' }}>
@@ -409,7 +409,7 @@ export default function ClubLobby() {
                                             whiteSpace: 'nowrap',
                                         }}
                                     >
-                                        🏆 New Tournament
+                                         New Tournament
                                     </button>
                                 )}
                                 {club && (
@@ -422,7 +422,7 @@ export default function ClubLobby() {
                                             whiteSpace: 'nowrap',
                                         }}
                                     >
-                                        📋 View Tournaments
+                                         View Tournaments
                                     </button>
                                 )}
                             </div>
@@ -443,7 +443,7 @@ export default function ClubLobby() {
                                         onClick={() => router.push(`/hub/club-arena/agent-dashboard?club=${club.id}`)}
                                     >
                                         <span style={{ ...styles.heroActionLabel, color: '#000' }}>
-                                            {membership?.role === 'agent' ? '🕵️ Agent Dashboard' : '📊 Agent Panel'}
+                                            {membership?.role === 'agent' ? 'Agent Dashboard' : 'Agent Panel'}
                                         </span>
                                     </button>
                                 )}
@@ -513,8 +513,8 @@ export default function ClubLobby() {
                                     const statusColors = {
                                         running: { bg: '#31A24C', label: '● LIVE' },
                                         waiting: { bg: '#2374E1', label: '○ OPEN' },
-                                        paused: { bg: '#ea580c', label: '⏸ PAUSED' },
-                                        closed: { bg: '#666', label: '✕ CLOSED' },
+                                        paused: { bg: '#ea580c', label: 'PAUSED' },
+                                        closed: { bg: '#666', label: 'CLOSED' },
                                     };
                                     const statusInfo = statusColors[table.status] || statusColors.waiting;
 
@@ -522,7 +522,7 @@ export default function ClubLobby() {
                                         <div key={table.id} style={styles.iconItemWrapper} onClick={() => router.push(`/hub/club-arena/table/${table.id}`)}>
                                             <div style={{ ...styles.pillOuter, background: outerBg }}>
                                                 <div style={styles.pillInner}>
-                                                    <div style={styles.pushPin}>📌</div>
+                                                    <div style={styles.pushPin}></div>
 
                                                     {/* Status badge */}
                                                     <div style={{
@@ -535,7 +535,7 @@ export default function ClubLobby() {
 
                                                     {/* Left Graphic */}
                                                     <div style={styles.pillLeftArt}>
-                                                        <span style={styles.trophyEmoji}>{typeLabel ? '🏆' : '♠️'}</span>
+                                                        <span style={styles.trophyEmoji}>{typeLabel ? '' : ''}</span>
                                                         <div style={styles.artTextOverlay}>{displayType}</div>
                                                     </div>
 
@@ -551,11 +551,11 @@ export default function ClubLobby() {
 
                                                         <div style={styles.statsBottomRow}>
                                                             <div style={styles.statItem}>
-                                                                <span style={styles.statIcon}>⏱</span>
+                                                                <span style={styles.statIcon}></span>
                                                                 {table.action_time_seconds || 30}s
                                                             </div>
                                                             <div style={styles.statItem}>
-                                                                <span style={styles.statIcon}>👤</span>
+                                                                <span style={styles.statIcon}></span>
                                                                 {table.current_players || 0}/{table.max_players || 9}
                                                             </div>
                                                         </div>
@@ -578,20 +578,20 @@ export default function ClubLobby() {
                                                         {/* Game mode badges */}
                                                         {table.settings && (
                                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                                                {table.settings.bomb_pot_enabled && <span style={styles.modeBadge} title="Bomb Pot">💣</span>}
-                                                                {table.settings.seven_deuce && <span style={styles.modeBadge} title="7-2 Game">7️⃣</span>}
-                                                                {table.settings.double_board && <span style={styles.modeBadge} title="Double Board">2️⃣</span>}
-                                                                {table.settings.triple_board && <span style={styles.modeBadge} title="Triple Board">3️⃣</span>}
-                                                                {table.settings.straddle_enabled && <span style={styles.modeBadge} title="Straddle">🔺</span>}
-                                                                {table.settings.run_it_twice && <span style={styles.modeBadge} title="Run It Twice">♻️</span>}
-                                                                {table.settings.insurance && <span style={styles.modeBadge} title="Insurance">🛡️</span>}
-                                                                {table.settings.private_game && <span style={styles.modeBadge} title="Private">🔒</span>}
-                                                                {table.settings.anonymous_table && <span style={styles.modeBadge} title="Anonymous">🎭</span>}
-                                                                {table.settings.nit_game && <span style={styles.modeBadge} title={`VPIP ${table.settings.maintain_percent}%+`}>📊</span>}
-                                                                {table.settings.mixed_game && <span style={styles.modeBadge} title="Mixed Game Rotation">🔄</span>}
-                                                                {table.settings.cap && <span style={styles.modeBadge} title={`Cap ${table.settings.cap_amount}`}>🧢</span>}
-                                                                {table.settings.no_rathole && <span style={styles.modeBadge} title="No Rathole">🚫</span>}
-                                                                {table.settings.pineapple && <span style={styles.modeBadge} title="Pineapple">🍍</span>}
+                                                                {table.settings.bomb_pot_enabled && <span style={styles.modeBadge} title="Bomb Pot"></span>}
+                                                                {table.settings.seven_deuce && <span style={styles.modeBadge} title="7-2 Game">7</span>}
+                                                                {table.settings.double_board && <span style={styles.modeBadge} title="Double Board">2</span>}
+                                                                {table.settings.triple_board && <span style={styles.modeBadge} title="Triple Board">3</span>}
+                                                                {table.settings.straddle_enabled && <span style={styles.modeBadge} title="Straddle"></span>}
+                                                                {table.settings.run_it_twice && <span style={styles.modeBadge} title="Run It Twice"></span>}
+                                                                {table.settings.insurance && <span style={styles.modeBadge} title="Insurance"></span>}
+                                                                {table.settings.private_game && <span style={styles.modeBadge} title="Private"></span>}
+                                                                {table.settings.anonymous_table && <span style={styles.modeBadge} title="Anonymous"></span>}
+                                                                {table.settings.nit_game && <span style={styles.modeBadge} title={`VPIP ${table.settings.maintain_percent}%+`}></span>}
+                                                                {table.settings.mixed_game && <span style={styles.modeBadge} title="Mixed Game Rotation"></span>}
+                                                                {table.settings.cap && <span style={styles.modeBadge} title={`Cap ${table.settings.cap_amount}`}></span>}
+                                                                {table.settings.no_rathole && <span style={styles.modeBadge} title="No Rathole"></span>}
+                                                                {table.settings.pineapple && <span style={styles.modeBadge} title="Pineapple"></span>}
                                                             </div>
                                                         )}
                                                     </div>
@@ -600,7 +600,7 @@ export default function ClubLobby() {
                                                 {/* Bottom Ribbon */}
                                                 <div style={styles.ribbonWrapper}>
                                                     <div style={styles.ribbonBody}>
-                                                        <span style={styles.ribbonIcon}>🐦</span>
+                                                        <span style={styles.ribbonIcon}></span>
                                                         <span style={styles.ribbonText}>{table.name}</span>
                                                     </div>
                                                 </div>

@@ -24,7 +24,7 @@ const FB = {
 };
 
 // Card display helpers
-const SUIT_SYMBOLS = { h: '♥', d: '♦', c: '♣', s: '♠' };
+const SUIT_SYMBOLS = { h: '', d: '', c: '', s: '' };
 const SUIT_COLORS = { h: '#E74C3C', d: '#3498DB', c: '#27AE60', s: '#2C3E50' };
 
 export default function HandHistories() {
@@ -140,9 +140,9 @@ export default function HandHistories() {
                         // Transform each hand: extract per-player data from hand_data JSONB
                         let filtered = (handData || []).map(hand => {
                             const hd = hand.hand_data || {};
-                            const player = hd.players?.find(p => String(p.id) === String(userId));
+                            const player = hd.players?.find(p =>String(p.id) === String(userId));
                             const winnerIds = hand.winner_ids || [];
-                            const isWinner = winnerIds.some(w => String(w) === String(userId));
+                            const isWinner = winnerIds.some(w =>String(w) === String(userId));
                             const netResult = player?.netResult ?? 0;
 
                             return {
@@ -338,7 +338,7 @@ export default function HandHistories() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}> Hand Histories</h1>
+                    <h1 style={S.pageTitle}>Hand Histories</h1>
 
                     {/* Period Filter */}
                     <div style={S.filterRow}>
@@ -367,7 +367,7 @@ export default function HandHistories() {
                         {[
                             { id: 'all', label: 'All Results' },
                             { id: 'wins', label: 'Wins' },
-                            { id: 'losses', label: ' Losses' },
+                            { id: 'losses', label: 'Losses' },
                         ].map(r => (
                             <button
                                 key={r.id}
@@ -557,7 +557,7 @@ export default function HandHistories() {
 
                                         // Player name lookup
                                         const pName = (pid) => {
-                                            const p = selectedHand.players?.find(pl => String(pl.id) === String(pid));
+                                            const p = selectedHand.players?.find(pl =>String(pl.id) === String(pid));
                                             return p?.displayName || `Player`;
                                         };
 
@@ -580,7 +580,7 @@ export default function HandHistories() {
                                         };
 
                                         const streetLabel = street === 'preflop' ? '🃏 Preflop'
-                                            : street === 'flop' ? '🟢 Flop' : street === 'turn' ? '🔵 Turn' : '🔴 River';
+                                            : street === 'flop' ? ' Flop' : street === 'turn' ? ' Turn' : ' River';
 
                                         return (
                                             <div key={street} style={{ marginBottom: 12 }}>

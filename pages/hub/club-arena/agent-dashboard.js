@@ -289,13 +289,13 @@ export default function AgentDashboard() {
     const myAgent = agents?.find(a => a.user_id === user.id) || agents?.[0];
 
     const tabs = [
-        { id: 'overview', label: 'Overview', icon: '📊' },
-        { id: 'players', label: `Players (${stats?.totalPlayers || 0})`, icon: '👥' },
-        { id: 'cashouts', label: `Cashouts (${pendingCashouts?.length || 0})`, icon: '💸' },
-        { id: 'transactions', label: 'Transactions', icon: '📋' },
-        { id: 'commissions', label: 'Commissions', icon: '💰' },
-        { id: 'subagents', label: 'Sub-Agents', icon: '🔗' },
-        { id: 'promo', label: 'Promo Wallet', icon: '🎁' },
+        { id: 'overview', label: 'Overview' },
+        { id: 'players', label: `Players (${stats?.totalPlayers || 0})` },
+        { id: 'cashouts', label: `Cashouts (${pendingCashouts?.length || 0})` },
+        { id: 'transactions', label: 'Transactions' },
+        { id: 'commissions', label: 'Commissions' },
+        { id: 'subagents', label: 'Sub-Agents' },
+        { id: 'promo', label: 'Promo Wallet' },
     ];
 
     // Get clawback-eligible transactions (within last 10 minutes, type=send, from current user)
@@ -320,7 +320,7 @@ export default function AgentDashboard() {
                             Agent Dashboard
                         </h1>
                         <span style={{ fontSize: 12, color: FB.primary, fontWeight: 600, textTransform: 'uppercase' }}>
-                            {role === 'owner' ? '👑 Owner View' : role === 'admin' ? '🛡️ Admin View' : '🕵️ Agent View'}
+                            {role === 'owner' ? ' Owner View' : role === 'admin' ? ' Admin View' : ' Agent View'}
                         </span>
                     </div>
                     <button onClick={loadDashboard} style={{ ...btnStyle, padding: '6px 14px', fontSize: 12 }}>
@@ -338,7 +338,7 @@ export default function AgentDashboard() {
                             borderRadius: 20, padding: '6px 14px', fontSize: 13, fontWeight: 600,
                             cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
                         }}>
-                            {tab.icon} {tab.label}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -393,9 +393,9 @@ export default function AgentDashboard() {
                             </div>
                         ) : subAgents.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
-                                <div style={{ fontSize: 32, marginBottom: 12 }}>🔗</div>
+                                <div style={{ fontSize: 32, marginBottom: 12 }}></div>
                                 <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
-                                <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap ⬆️ to promote a player.</div>
+                                <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap  to promote a player.</div>
                             </div>
                         ) : subAgents.map(sa => (
                             <div key={sa.id} style={{ ...cardStyle, marginBottom: 10 }}>
@@ -405,7 +405,7 @@ export default function AgentDashboard() {
                                             {sa.profile?.display_name || sa.profile?.username || 'Unknown'}
                                         </div>
                                         <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                                            {sa.status === 'active' ? '🟢' : '🔴'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
+                                            {sa.status === 'active' ? '' : ''} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
                                         </div>
                                     </div>
                                 </div>
@@ -495,10 +495,10 @@ export default function AgentDashboard() {
                     />
                     <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                         <button onClick={handleCancelCashout} disabled={processing} style={{ ...actionBtn, flex: 1, background: FB.danger }}>
-                            {processing ? '...' : '✕ Decline'}
+                            {processing ? '...' : ' Decline'}
                         </button>
                         <button onClick={handleApproveCashout} disabled={processing} style={{ ...actionBtn, flex: 2, background: FB.success }}>
-                            {processing ? '...' : `✓ Approve ${cashoutModal.amount?.toLocaleString()}`}
+                            {processing ? '...' : ` Approve ${cashoutModal.amount?.toLocaleString()}`}
                         </button>
                     </div>
                 </ModalOverlay>
@@ -507,7 +507,7 @@ export default function AgentDashboard() {
             {/* ═══ CLAWBACK MODAL ═══ */}
             {clawbackModal && (
                 <ModalOverlay onClose={() => setClawbackModal(null)}>
-                    <h3 style={{ ...modalTitle, color: FB.danger }}>⚠️ Clawback Chips</h3>
+                    <h3 style={{ ...modalTitle, color: FB.danger }}>Clawback Chips</h3>
                     <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 12 }}>
                         This will reverse the transaction and return <strong style={{ color: FB.danger }}>
                         {Math.abs(clawbackModal.amount).toLocaleString()} chips</strong>.
@@ -540,12 +540,12 @@ export default function AgentDashboard() {
 
 function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
     const statCards = [
-        { label: 'My Players', value: stats?.totalPlayers || 0, color: FB.primary, icon: '👥' },
-        { label: 'Online Now', value: stats?.onlinePlayers || 0, color: FB.success, icon: '🟢' },
-        { label: 'Player Chip Total', value: (stats?.totalPlayerChips || 0).toLocaleString(), color: FB.gold, icon: '💰' },
-        { label: 'Pending Cashouts', value: stats?.pendingCashouts || 0, color: stats?.pendingCashouts > 0 ? FB.orange : FB.textSecondary, icon: '💸' },
-        { label: 'Pending Amount', value: (stats?.pendingCashoutAmount || 0).toLocaleString(), color: FB.orange, icon: '⏳' },
-        { label: 'Clawback Window', value: clawbackCount, color: clawbackCount > 0 ? FB.danger : FB.textSecondary, icon: '↩️' },
+        { label: 'My Players', value: stats?.totalPlayers || 0, color: FB.primary },
+        { label: 'Online Now', value: stats?.onlinePlayers || 0, color: FB.success },
+        { label: 'Player Chip Total', value: (stats?.totalPlayerChips || 0).toLocaleString(), color: FB.gold },
+        { label: 'Pending Cashouts', value: stats?.pendingCashouts || 0, color: stats?.pendingCashouts > 0 ? FB.orange : FB.textSecondary },
+        { label: 'Pending Amount', value: (stats?.pendingCashoutAmount || 0).toLocaleString(), color: FB.orange },
+        { label: 'Clawback Window', value: clawbackCount, color: clawbackCount > 0 ? FB.danger : FB.textSecondary, icon: '↩' },
     ];
 
     return (
@@ -553,7 +553,6 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 }}>
                 {statCards.map((s, i) => (
                     <div key={i} style={{ ...cardStyle, textAlign: 'center' }}>
-                        <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontVariantNumeric: 'tabular-nums' }}>
                             {s.value}
                         </div>
@@ -579,7 +578,7 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
             {pendingCashouts?.length > 0 && (
                 <div style={{ ...cardStyle, marginTop: 12, borderLeft: `3px solid ${FB.orange}` }}>
                     <h4 style={{ color: FB.orange, fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-                        ⚡ {pendingCashouts.length} Pending Cashout{pendingCashouts.length > 1 ? 's' : ''}
+                         {pendingCashouts.length} Pending Cashout{pendingCashouts.length > 1 ? 's' : ''}
                     </h4>
                     <p style={{ color: FB.textSecondary, fontSize: 12 }}>
                         Total: {pendingCashouts.reduce((s, c) => s + c.amount, 0).toLocaleString()} chips waiting for approval
@@ -631,7 +630,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                     }}>
                         {p.profile?.avatar_url
                             ? <img src={p.profile.avatar_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                            : '👤'}
+                            : ''}
                     </div>
 
                     {/* Info */}
@@ -640,7 +639,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                             {p.profile?.display_name || p.nickname || 'Unknown'}
                         </div>
                         <div style={{ fontSize: 11, color: FB.textSecondary }}>
-                            {p.profile?.is_online ? '🟢 Online' : `Last seen ${timeAgo(p.profile?.last_seen)}`}
+                            {p.profile?.is_online ? ' Online' : `Last seen ${timeAgo(p.profile?.last_seen)}`}
                             {p.tier && p.tier !== 'bronze' ? ` • ${p.tier}` : ''}
                         </div>
                     </div>
@@ -669,7 +668,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                             padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
                             flexShrink: 0,
                         }}>
-                            ⬆️
+                            
                         </button>
                     )}
                 </div>
@@ -686,7 +685,7 @@ function CashoutsTab({ cashouts, onAction }) {
     if (!cashouts?.length) {
         return (
             <div style={{ textAlign: 'center', padding: 60, color: FB.textSecondary }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 40, marginBottom: 12 }}></div>
                 <div style={{ fontSize: 16, fontWeight: 600 }}>No pending cashouts</div>
                 <div style={{ fontSize: 13, marginTop: 4 }}>All clear — no player requests waiting</div>
             </div>
@@ -732,8 +731,8 @@ function CashoutsTab({ cashouts, onAction }) {
 
 function TransactionsTab({ transactions, clawbackEligible, onClawback, userId }) {
     const typeLabels = {
-        send: '📤 Sent', deposit: '📥 Deposit', withdrawal: '📤 Withdrawal',
-        buyin: '🎰 Buy-in', table_lock: '🔒 Table Lock', table_unlock: '🔓 Table Unlock',
+        send: ' Sent', deposit: ' Deposit', withdrawal: ' Withdrawal',
+        buyin: ' Buy-in', table_lock: ' Table Lock', table_unlock: ' Table Unlock',
     };
 
     return (
@@ -741,7 +740,7 @@ function TransactionsTab({ transactions, clawbackEligible, onClawback, userId })
             {clawbackEligible.length > 0 && (
                 <div style={{ ...cardStyle, marginBottom: 16, borderLeft: `3px solid ${FB.danger}` }}>
                     <h4 style={{ color: FB.danger, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-                        ↩️ Clawback Window ({clawbackEligible.length})
+                        ↩ Clawback Window ({clawbackEligible.length})
                     </h4>
                     {clawbackEligible.map((t, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: i > 0 ? `1px solid ${FB.border}` : 'none' }}>
@@ -832,7 +831,7 @@ function CommissionsTab({ history, myAgent }) {
                                 fontSize: 11, fontWeight: 600,
                                 color: h.status === 'paid' ? FB.success : FB.orange,
                             }}>
-                                {h.status === 'paid' ? '✓ Paid' : '⏳ Pending'}
+                                {h.status === 'paid' ? ' Paid' : ' Pending'}
                             </div>
                             <div style={{ fontSize: 10, color: FB.textSecondary }}>
                                 {h.period_start ? new Date(h.period_start).toLocaleDateString() : ''} –
@@ -873,7 +872,7 @@ function ClawbackTimer({ createdAt }) {
             color: remaining === 'Expired' ? FB.textSecondary : FB.danger,
             marginTop: 2,
         }}>
-            {remaining === 'Expired' ? '⏰ Window expired' : `⏱ ${remaining} remaining`}
+            {remaining === 'Expired' ? ' Window expired' : ` ${remaining} remaining`}
         </div>
     );
 }
@@ -979,7 +978,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                 border: `1px solid ${FB.border}`, marginBottom: 16,
             }}>
                 <h3 style={{ color: FB.textPrimary, fontSize: 15, fontWeight: 700, marginTop: 0, marginBottom: 12 }}>
-                    🎁 Distribute Promo to Player
+                     Distribute Promo to Player
                 </h3>
 
                 <div style={{ marginBottom: 12 }}>

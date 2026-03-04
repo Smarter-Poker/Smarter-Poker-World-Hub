@@ -208,7 +208,7 @@ export default function UnionGames() {
         <button onClick={() => router.push(`/hub/club-arena/union-dashboard?union=${unionId}`)}
           style={{ background: 'none', border: 'none', color: FB.dim, cursor: 'pointer', fontSize: 20 }}>←</button>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20 }}>🎯 Union Games</h1>
+          <h1 style={{ margin: 0, fontSize: 20 }}>Union Games</h1>
           <span style={{ color: FB.dim, fontSize: 13 }}>{unionInfo?.name || 'Loading...'} — {clubs.length} clubs</span>
         </div>
         <div style={{ flex: 1 }} />
@@ -228,7 +228,7 @@ export default function UnionGames() {
 
       {/* Main tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${FB.border}`, background: FB.card }}>
-        {[{ id: 'tournaments', label: '🏆 Tournaments' }, { id: 'cash', label: '💰 Cash Games' }].map(t => (
+        {[{ id: 'tournaments', label: 'Tournaments' }, { id: 'cash', label: 'Cash Games' }].map(t => (
           <button key={t.id} onClick={() => { setTab(t.id); }}
             style={{
               flex: 1, padding: '12px 0', background: 'transparent', border: 'none',
@@ -325,11 +325,11 @@ export default function UnionGames() {
                   }}>{t.status?.replace('_', ' ')}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
-                  <span>🏠 {t.clubs?.name || 'Unknown Club'}</span>
-                  <span>🎰 {t.variant?.toUpperCase()} {t.type?.toUpperCase()}</span>
-                  <span>💎 {Number(t.buy_in).toLocaleString()}</span>
-                  <span>👥 {t.registered_count}/{t.max_players}</span>
-                  <span>🏆 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
+                  <span> {t.clubs?.name || 'Unknown Club'}</span>
+                  <span> {t.variant?.toUpperCase()} {t.type?.toUpperCase()}</span>
+                  <span> {Number(t.buy_in).toLocaleString()}</span>
+                  <span> {t.registered_count}/{t.max_players}</span>
+                  <span> {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) >Number(t.prize_pool) ? ' GTD' : ''}</span>
                 </div>
                 {/* Actions */}
                 {['scheduled', 'registering'].includes(t.status) && (
@@ -380,10 +380,10 @@ export default function UnionGames() {
                   }}>{t.status}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
-                  <span>🏠 {t.clubs?.name || 'Unknown'}</span>
-                  <span>🎰 {t.game_variant?.toUpperCase() || 'NLH'}</span>
-                  <span>💰 {t.small_blind}/{t.big_blind}</span>
-                  <span>👥 {t.current_players || 0}/{t.max_players}</span>
+                  <span> {t.clubs?.name || 'Unknown'}</span>
+                  <span> {t.game_variant?.toUpperCase() || 'NLH'}</span>
+                  <span> {t.small_blind}/{t.big_blind}</span>
+                  <span> {t.current_players || 0}/{t.max_players}</span>
                   <span>🃏 Buy-in: {t.min_buy_in}-{t.max_buy_in}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -515,7 +515,7 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
         background: FB.card, borderRadius: 16, padding: 24, width: 440, maxHeight: '85vh',
         overflow: 'auto', border: `1px solid ${FB.border}`,
       }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>🏆 Create Union Tournament</h2>
+        <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Create Union Tournament</h2>
 
         {F('Tournament Name', 'name')}
         {F('Type', 'type', 'select', { options: [
@@ -564,7 +564,7 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
                   borderRadius: 6, cursor: 'pointer', marginTop: 2,
                   background: form.selectedClubs.includes(c.id) ? FB.green + '20' : 'transparent',
                 }}>
-                  <span style={{ fontSize: 15 }}>{form.selectedClubs.includes(c.id) ? '✅' : '⬜'}</span>
+                  <span style={{ fontSize: 15 }}>{form.selectedClubs.includes(c.id) ? '' : '⬜'}</span>
                   {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} />}
                   <span style={{ fontSize: 13, color: FB.text }}>{c.name}</span>
                   {c.id === form.hostClubId && <span style={{ fontSize: 10, color: FB.gold, fontWeight: 700 }}>HOST</span>}
@@ -640,7 +640,7 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
         background: FB.card, borderRadius: 16, padding: 24, width: 420, maxHeight: '85vh',
         overflow: 'auto', border: `1px solid ${FB.border}`,
       }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>💰 Create Cash Table</h2>
+        <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Create Cash Table</h2>
 
         {F('Club', 'clubId', 'select', { options: clubs.map(c => ({ value: c.id, label: c.name })) })}
         {F('Table Name (optional)', 'tableName')}
@@ -772,7 +772,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         {/* Live HUD for running tournaments */}
         {tourneyState && ['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status) && (
           <div style={{ background: '#1a2332', borderRadius: 10, padding: 14, marginBottom: 16, border: '1px solid #2d4a6f' }}>
-            <div style={{ fontSize: 12, color: FB.gold, fontWeight: 700, marginBottom: 8 }}>🔴 LIVE — Engine State</div>
+            <div style={{ fontSize: 12, color: FB.gold, fontWeight: 700, marginBottom: 8 }}>LIVE — Engine State</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
               <div><span style={{ color: FB.dim }}>Level:</span> <strong>{tourneyState.currentLevel}</strong></div>
               <div><span style={{ color: FB.dim }}>Blinds:</span> <strong>{tourneyState.blinds?.smallBlind}/{tourneyState.blinds?.bigBlind}{tourneyState.blinds?.ante ? ` (${tourneyState.blinds.ante})` : ''}</strong></div>
@@ -793,7 +793,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
                 <div style={{ fontSize: 11, color: FB.dim, marginBottom: 4 }}>Tables ({tourneyState.tables.length})</div>
                 {tourneyState.tables.map((tbl, i) => (
                   <div key={i} style={{ fontSize: 11, color: FB.text, padding: '2px 0' }}>
-                    Table {i + 1}: {tbl.players?.length || 0} players {tbl.handInProgress ? '🃏' : '⏳'}
+                    Table {i + 1}: {tbl.players?.length || 0} players {tbl.handInProgress ? '🃏' : ''}
                   </div>
                 ))}
               </div>

@@ -26,10 +26,10 @@ const FB = {
 };
 
 const LEADERBOARD_TYPES = [
-    { id: 'chips', label: '💰 Chip Balance', field: 'chip_balance', desc: 'Highest chip counts' },
-    { id: 'profit', label: '📈 Profit', field: 'total_profit', desc: 'Most profitable players' },
+    { id: 'chips', label: 'Chip Balance', field: 'chip_balance', desc: 'Highest chip counts' },
+    { id: 'profit', label: 'Profit', field: 'total_profit', desc: 'Most profitable players' },
     { id: 'hands', label: '🃏 Hands Played', field: 'hands_played', desc: 'Most active players' },
-    { id: 'wins', label: '🏆 Win Rate', field: 'win_rate', desc: 'Highest win percentages' },
+    { id: 'wins', label: 'Win Rate', field: 'win_rate', desc: 'Highest win percentages' },
 ];
 
 const TIME_PERIODS = [
@@ -151,7 +151,7 @@ export default function Leaderboard() {
                             statsByUser[pid].handsPlayed++;
                             const netResult = p.netResult ?? 0;
                             statsByUser[pid].totalProfit += netResult;
-                            if (netResult > 0 || winnerIds.some(w => String(w) === pid)) {
+                            if (netResult > 0 || winnerIds.some(w =>String(w) === pid)) {
                                 statsByUser[pid].wins++;
                             }
                         }
@@ -251,9 +251,9 @@ export default function Leaderboard() {
     };
 
     const getRankEmoji = (rank) => {
-        if (rank === 1) return '🥇';
-        if (rank === 2) return '🥈';
-        if (rank === 3) return '🥉';
+        if (rank === 1) return '';
+        if (rank === 2) return '';
+        if (rank === 3) return '';
         return null;
     };
 
@@ -286,7 +286,7 @@ export default function Leaderboard() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>🏆 Leaderboard</h1>
+                    <h1 style={S.pageTitle}>Leaderboard</h1>
 
                     {/* Board Type Selector */}
                     <div style={S.boardSelector}>
@@ -327,7 +327,7 @@ export default function Leaderboard() {
                         <div style={S.loading}>Loading Rankings...</div>
                     ) : members.length === 0 ? (
                         <div style={S.emptyState}>
-                            <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🏆</span>
+                            <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}></span>
                             <p>No Players Yet</p>
                         </div>
                     ) : (
@@ -340,7 +340,7 @@ export default function Leaderboard() {
                                         <div style={S.rankValue}>#{userRank}</div>
                                     </div>
                                     <div style={{ fontSize: '40px' }}>
-                                        {getRankEmoji(userRank) || '🎯'}
+                                        {getRankEmoji(userRank) || ''}
                                     </div>
                                 </div>
                             )}
@@ -353,11 +353,11 @@ export default function Leaderboard() {
                                         <div style={{ ...S.podiumAvatar, background: FB.silver }}>
                                             {top3[1]?.profiles?.avatar_url ? (
                                                 <img src={top3[1].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : '👤'}
+                                            ) : ''}
                                         </div>
                                         <div style={S.podiumName}>{top3[1]?.profiles?.display_name || top3[1]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[1])}</div>
-                                        <div style={S.podiumRank}>🥈</div>
+                                        <div style={S.podiumRank}></div>
                                     </div>
 
                                     {/* 1st Place */}
@@ -365,11 +365,11 @@ export default function Leaderboard() {
                                         <div style={{ ...S.podiumAvatar, width: '60px', height: '60px', background: FB.gold }}>
                                             {top3[0]?.profiles?.avatar_url ? (
                                                 <img src={top3[0].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : '👤'}
+                                            ) : ''}
                                         </div>
                                         <div style={S.podiumName}>{top3[0]?.profiles?.display_name || top3[0]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.gold, fontSize: '18px' }}>{getDisplayValue(top3[0])}</div>
-                                        <div style={{ ...S.podiumRank, fontSize: '24px' }}>🥇</div>
+                                        <div style={{ ...S.podiumRank, fontSize: '24px' }}></div>
                                     </div>
 
                                     {/* 3rd Place */}
@@ -377,11 +377,11 @@ export default function Leaderboard() {
                                         <div style={{ ...S.podiumAvatar, width: '45px', height: '45px', background: FB.bronze }}>
                                             {top3[2]?.profiles?.avatar_url ? (
                                                 <img src={top3[2].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : '👤'}
+                                            ) : ''}
                                         </div>
                                         <div style={S.podiumName}>{top3[2]?.profiles?.display_name || top3[2]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[2])}</div>
-                                        <div style={S.podiumRank}>🥉</div>
+                                        <div style={S.podiumRank}></div>
                                     </div>
                                 </div>
                             )}
@@ -407,7 +407,7 @@ export default function Leaderboard() {
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
                                                     {member.profiles?.avatar_url ? (
                                                         <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : '👤'}
+                                                    ) : ''}
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
@@ -446,7 +446,7 @@ export default function Leaderboard() {
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
                                                     {member.profiles?.avatar_url ? (
                                                         <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : '👤'}
+                                                    ) : ''}
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>

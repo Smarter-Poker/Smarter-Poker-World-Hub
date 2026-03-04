@@ -143,7 +143,7 @@ export default function PlayerStats() {
 
                         for (const h of hands) {
                             const hd = h.hand_data || {};
-                            const player = hd.players?.find(p => String(p.id) === String(userId));
+                            const player = hd.players?.find(p =>String(p.id) === String(userId));
                             if (player) {
                                 totalWinnings += player.netResult || 0;
                             }
@@ -156,7 +156,7 @@ export default function PlayerStats() {
 
                             // VPIP: voluntarily put money in pot preflop (call/raise/bet/all-in, NOT just posting blinds)
                             const preflopActions = hd.streets?.preflop?.actions || [];
-                            const playerPreflopActions = preflopActions.filter(a => String(a.playerId) === String(userId));
+                            const playerPreflopActions = preflopActions.filter(a =>String(a.playerId) === String(userId));
                             const voluntaryPreflop = playerPreflopActions.some(a =>
                                 a.type === 'call' || a.type === 'raise' || a.type === 'bet' || a.type === 'all_in'
                             );
@@ -183,7 +183,7 @@ export default function PlayerStats() {
 
                         // Recent activity (last 10 hands)
                         setRecentActivity(hands.slice(0, 10).map(h => {
-                            const player = h.hand_data?.players?.find(p => String(p.id) === String(userId));
+                            const player = h.hand_data?.players?.find(p =>String(p.id) === String(userId));
                             const profit = player?.netResult || 0;
                             return {
                                 id: h.id,
@@ -218,7 +218,7 @@ export default function PlayerStats() {
                                 handsWon: wins.length,
                                 winRate: txns.length > 0 ? Math.round((wins.length / txns.length) * 100) : 0,
                                 totalWinnings,
-                                biggestPot: Math.max(...txns.map(t => Math.abs(t.amount || 0))),
+                                biggestPot: Math.max(...txns.map(t =>Math.abs(t.amount || 0))),
                                 bestHand: null,
                                 sessionsPlayed: memberData?.sessions_played || 0,
                                 hoursPlayed: 0,

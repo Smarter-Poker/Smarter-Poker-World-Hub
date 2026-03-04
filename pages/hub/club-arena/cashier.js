@@ -251,7 +251,7 @@ export default function Cashier() {
                 chipAmount: amount,
             });
 
-            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} 💎`, 'success');
+            showToast(`Bought ${amount.toLocaleString()} chips for ${diamondCost} `, 'success');
             setShowBuyInModal(false);
             setBuyInAmount('');
             loadData();
@@ -360,8 +360,8 @@ export default function Cashier() {
         }
     };
 
-    const getDiamondCost = (chips) => Math.ceil((parseInt(chips) || 0) / 100 * 38);
-    const getDiamondReturn = (chips) => Math.floor((parseInt(chips) || 0) / 100 * 38);
+    const getDiamondCost = (chips) =>Math.ceil((parseInt(chips) || 0) / 100 * 38);
+    const getDiamondReturn = (chips) =>Math.floor((parseInt(chips) || 0) / 100 * 38);
 
     return (
         <>
@@ -380,7 +380,7 @@ export default function Cashier() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}> Cashier</h1>
+                    <h1 style={S.pageTitle}>Cashier</h1>
 
                     {isLoading ? (
                         <div style={S.loading}>Loading...</div>
@@ -438,7 +438,7 @@ export default function Cashier() {
                                         }}>
                                             <div>
                                                 <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
-                                                    {co.status === 'pending' ? '⏳ Awaiting Agent Approval' : '✅ Approved'}
+                                                    {co.status === 'pending' ? ' Awaiting Agent Approval' : ' Approved'}
                                                 </div>
                                                 <div style={S.txDate}>
                                                     {co.created_at ? new Date(co.created_at).toLocaleString() : 'N/A'}
@@ -500,10 +500,10 @@ export default function Cashier() {
                                     <h2 style={S.sectionTitle}>Cashout History</h2>
                                     {cashoutHistory.slice(0, 20).map(co => {
                                         const statusColors = {
-                                            pending: { bg: 'rgba(255,165,0,0.08)', border: 'rgba(255,165,0,0.25)', text: '#FFA500', icon: '⏳' },
-                                            approved: { bg: 'rgba(75,181,67,0.08)', border: 'rgba(75,181,67,0.25)', text: '#4BB543', icon: '✅' },
-                                            cancelled: { bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.25)', text: '#FA383E', icon: '❌' },
-                                            completed: { bg: 'rgba(35,116,225,0.08)', border: 'rgba(35,116,225,0.25)', text: '#2374E1', icon: '💎' },
+                                            pending: { bg: 'rgba(255,165,0,0.08)', border: 'rgba(255,165,0,0.25)', text: '#FFA500' },
+                                            approved: { bg: 'rgba(75,181,67,0.08)', border: 'rgba(75,181,67,0.25)', text: '#4BB543' },
+                                            cancelled: { bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.25)', text: '#FA383E' },
+                                            completed: { bg: 'rgba(35,116,225,0.08)', border: 'rgba(35,116,225,0.25)', text: '#2374E1' },
                                         };
                                         const sc = statusColors[co.status] || statusColors.pending;
                                         return (
@@ -514,7 +514,7 @@ export default function Cashier() {
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
                                                         <span style={{ fontSize: '16px', fontWeight: 800, color: sc.text }}>
-                                                            {sc.icon} {(co.amount || 0).toLocaleString()} chips
+                                                            {(co.amount || 0).toLocaleString()} chips
                                                         </span>
                                                     </div>
                                                     <div style={{
@@ -571,7 +571,7 @@ export default function Cashier() {
                 <div style={S.modalOverlay} onClick={() => !processing && setShowBuyInModal(false)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Buy Chips</span>
+                            <span style={S.modalTitle}>Buy Chips</span>
                             <button style={S.modalClose} onClick={() => !processing && setShowBuyInModal(false)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
@@ -633,7 +633,7 @@ export default function Cashier() {
                 <div style={S.modalOverlay} onClick={() => !processing && setShowCashOutModal(false)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Request Cash Out</span>
+                            <span style={S.modalTitle}>Request Cash Out</span>
                             <button style={S.modalClose} onClick={() => !processing && setShowCashOutModal(false)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>

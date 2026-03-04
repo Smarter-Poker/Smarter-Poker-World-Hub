@@ -451,23 +451,23 @@ export default function Admin() {
     };
 
     const adminOptions = [
-        { id: 'members', icon: '', title: 'Manage Members', desc: 'Add, remove, or update player roles', color: FB.primary },
-        { id: 'chips', icon: '', title: 'Chip Management', desc: 'Distribute chips to members', color: FB.success },
-        { id: 'mint', icon: '', title: 'Mint Chips', desc: 'Add chips to club treasury', color: FB.gold },
-        { id: 'agents', icon: '', title: 'Agent Management', desc: 'Credit, commission, suspend agents', color: '#F5A623' },
-        { id: 'settlement', icon: '', title: 'Settlement', desc: 'Manage settlement periods', color: '#A855F7' },
-        { id: 'reports', icon: '', title: 'Club Reports', desc: 'View club statistics and activity', color: '#F582AE' },
-        { id: 'announcements', icon: '', title: 'Announcements', desc: 'Create and manage club announcements', color: '#4ECDC4' },
-        { id: 'shop', icon: '', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
-        { id: 'rakeback', icon: '', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
-        { id: 'promo', icon: '', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
+        { id: 'members', title: 'Manage Members', desc: 'Add, remove, or update player roles', color: FB.primary },
+        { id: 'chips', title: 'Chip Management', desc: 'Distribute chips to members', color: FB.success },
+        { id: 'mint', title: 'Mint Chips', desc: 'Add chips to club treasury', color: FB.gold },
+        { id: 'agents', title: 'Agent Management', desc: 'Credit, commission, suspend agents', color: '#F5A623' },
+        { id: 'settlement', title: 'Settlement', desc: 'Manage settlement periods', color: '#A855F7' },
+        { id: 'reports', title: 'Club Reports', desc: 'View club statistics and activity', color: '#F582AE' },
+        { id: 'announcements', title: 'Announcements', desc: 'Create and manage club announcements', color: '#4ECDC4' },
+        { id: 'shop', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
+        { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
+        { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
         { id: 'settings', icon: 'Admin', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
     // Only the club owner should see the Danger Zone
     const currentMemberForUI = members.find(m => m.user_id === user?.id);
     if (currentMemberForUI?.role === 'owner') {
-        adminOptions.push({ id: 'danger', icon: '', title: 'Danger Zone', desc: 'Delete club permanently', color: FB.danger });
+        adminOptions.push({ id: 'danger', title: 'Danger Zone', desc: 'Delete club permanently', color: FB.danger });
     }
 
     // Navigation tiles (open pages, not modals)
@@ -496,7 +496,7 @@ export default function Admin() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}> Club Admin</h1>
+                    <h1 style={S.pageTitle}>Club Admin</h1>
 
                     {isLoading ? (
                         <div style={S.loading}>Loading...</div>
@@ -516,7 +516,6 @@ export default function Admin() {
                                     onMouseEnter={e => e.currentTarget.style.background = FB.hover}
                                     onMouseLeave={e => e.currentTarget.style.background = FB.cardBg}
                                 >
-                                    <div style={{ ...S.iconBox, background: opt.color }}>{opt.icon}</div>
                                     <div>
                                         <div style={S.actionTitle}>{opt.title}</div>
                                         <div style={S.actionDesc}>{opt.desc}</div>
@@ -559,7 +558,7 @@ export default function Admin() {
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Manage Members</span>
+                            <span style={S.modalTitle}>Manage Members</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
@@ -640,7 +639,7 @@ export default function Admin() {
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Chip Management</span>
+                            <span style={S.modalTitle}>Chip Management</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
@@ -689,7 +688,7 @@ export default function Admin() {
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Club Reports</span>
+                            <span style={S.modalTitle}>Club Reports</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
@@ -763,12 +762,12 @@ export default function Admin() {
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
                     <div style={S.modal} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}> Danger Zone</span>
+                            <span style={S.modalTitle}>Danger Zone</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
                             <div style={{ padding: '20px', background: 'rgba(250,56,62,0.1)', borderRadius: '8px', border: `1px solid ${FB.danger}` }}>
-                                <h3 style={{ color: FB.danger, fontSize: '16px', marginBottom: '8px' }}> Delete Club</h3>
+                                <h3 style={{ color: FB.danger, fontSize: '16px', marginBottom: '8px' }}>Delete Club</h3>
                                 <p style={{ color: FB.textSecondary, fontSize: '14px', marginBottom: '16px' }}>
                                     This action cannot be undone. All members, tables, and data will be permanently deleted.
                                 </p>
@@ -849,7 +848,7 @@ export default function Admin() {
                                     {ann.content && <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 4 }}>{ann.content}</div>}
                                     <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 4 }}>
                                         {ann.created_at ? new Date(ann.created_at).toLocaleString() : ''}
-                                        {ann.pinned && <span style={{ color: FB.gold, marginLeft: 8 }}>📌 Pinned</span>}
+                                        {ann.pinned && <span style={{ color: FB.gold, marginLeft: 8 }}>Pinned</span>}
                                     </div>
                                 </div>
                             ))}
@@ -979,7 +978,7 @@ export default function Admin() {
                                     <div style={{ background: FB.background, borderRadius: 10, padding: 16, marginBottom: 16 }}>
                                         <div style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 4 }}>Current Period</div>
                                         <div style={{ fontSize: 18, fontWeight: 800, color: rakebackStatus?.activePeriod ? '#4BB543' : FB.textSecondary }}>
-                                            {rakebackStatus?.activePeriod ? '🟢 Open' : '⚫ No Active Period'}
+                                            {rakebackStatus?.activePeriod ? ' Open' : ' No Active Period'}
                                         </div>
                                         {rakebackStatus?.activePeriod && (
                                             <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 4 }}>
@@ -1352,7 +1351,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
         <div style={S.modalOverlay} onClick={onClose}>
             <div style={{ ...S.modal, maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
                 <div style={S.modalHeader}>
-                    <span style={S.modalTitle}>🎁 Promo Wallet</span>
+                    <span style={S.modalTitle}>Promo Wallet</span>
                     <button style={S.modalClose} onClick={onClose}>&times;</button>
                 </div>
                 <div style={S.modalBody}>
@@ -1384,7 +1383,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                     border: `1px solid ${FB.border}`, marginBottom: 16,
                                 }}>
                                     <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                        ✨ Mint Promo Chips
+                                         Mint Promo Chips
                                     </h4>
                                     <p style={{ fontSize: 12, color: FB.textSecondary, margin: '0 0 10px' }}>
                                         Add promo chips to the club balance. These can then be distributed to agents.
@@ -1428,7 +1427,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                 border: `1px solid ${FB.border}`, marginBottom: 16,
                             }}>
                                 <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                    🎯 Grant Promo to Agent
+                                     Grant Promo to Agent
                                 </h4>
                                 {agents.length === 0 ? (
                                     <p style={{ fontSize: 12, color: FB.textSecondary }}>
@@ -1506,7 +1505,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                                         {a.displayName}
                                                     </div>
                                                     <div style={{ fontSize: 11, color: FB.textSecondary }}>
-                                                        {a.status === 'suspended' ? '🔴 Suspended' : `Commission: ${((a.commissionRate || 0) * 100).toFixed(0)}%`}
+                                                        {a.status === 'suspended' ? ' Suspended' : `Commission: ${((a.commissionRate || 0) * 100).toFixed(0)}%`}
                                                     </div>
                                                 </div>
                                             </div>
