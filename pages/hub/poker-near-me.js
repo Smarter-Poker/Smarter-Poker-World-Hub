@@ -815,7 +815,14 @@ export default function PokerNearMePage() {
         setGpsLoading(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
+                setSearchQuery('');
+                setSelectedCity(null);
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                setHasSearched(true);
+                setTimeout(() => {
+                    fetchAllData({ includeVenues: true });
+                    fetchLiveGames();
+                }, 0);
                 setGpsLoading(false);
             },
             () => {
