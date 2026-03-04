@@ -253,7 +253,7 @@ export default function PersonalAssistantPage() {
             title="Chat with Jarvis"
           >
             <img
-              src="/images/jarvis-avatar.png"
+              src="/images/jarvis-avatar-circle.png"
               alt="Jarvis AI"
               style={S.jarvisImg}
               draggable={false}
