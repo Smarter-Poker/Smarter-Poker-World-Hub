@@ -77,6 +77,14 @@ export default function HubPage() {
         },
     };
 
+    // 🔴 BUS LISTENER — 'hub-open-customizer' can be dispatched from anywhere
+    // (UniversalHeader, Settings page, etc.) to open the customizer panel
+    useEffect(() => {
+        const handleOpenCustomizer = () => setCardCustomizerOpen(true);
+        window.addEventListener('hub-open-customizer', handleOpenCustomizer);
+        return () => window.removeEventListener('hub-open-customizer', handleOpenCustomizer);
+    }, []);
+
     const menuConfig = getMenuConfig('hub-home', user, {}, handlers);
 
     return (

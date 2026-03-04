@@ -1344,7 +1344,7 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                         ) : (
                             <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <span style={styles.confirmText}>Finalize This Event? Enter Total Mileage:</span>
-                                <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <input
                                         type="number"
                                         value={mileageInput}
@@ -1352,11 +1352,16 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                         placeholder="0 miles"
                                         style={{ ...styles.formInput, width: 100, padding: '8px 12px' }}
                                     />
-                                    {mileageInput && parseFloat(mileageInput) > 0 && (
-                                        <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                            = ${(parseFloat(mileageInput) * 0.70).toFixed(2)} deductible
-                                        </span>
-                                    )}
+                                    {mileageInput && parseFloat(mileageInput) > 0 && (() => {
+                                        const yr = new Date().getFullYear();
+                                        const IRS = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
+                                        const rate = IRS[yr] || 0.67;
+                                        return (
+                                            <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                                {parseFloat(mileageInput).toLocaleString()} mi × ${rate}/mi = <strong>${(parseFloat(mileageInput) * rate).toFixed(2)} deductible</strong>
+                                            </span>
+                                        );
+                                    })()}
                                     <button onClick={() => handleCompleteGig(mileageInput)} style={styles.confirmYes}>Yes, Complete</button>
                                     <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                                 </div>
@@ -1622,20 +1627,6 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 </div>
                             )}
 
-                            {/* Tournament Buy-In Input Zone */}
-                            {downForm.down_type === 'tournament' && (
-                                <div style={{ position: 'absolute', top: '79.5%', left: '7%', width: '86%', height: '9%', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <input
-                                        type="number"
-                                        className="toke-img-map-element"
-                                        value={downForm.tournament_buyin || ''}
-                                        onChange={e => setDownForm({ ...downForm, tournament_buyin: e.target.value })}
-                                        placeholder="Buy-in $ (optional)"
-                                        style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12, width: '100%' }}
-                                    />
-                                </div>
-                            )}
-
                             {/* Action Buttons */}
                             <button
                                 className="toke-img-map-element"
@@ -1650,6 +1641,28 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                                 title="Cancel"
                             />
                         </motion.div>
+
+                        {/* Tournament Buy-In — OUTSIDE image overlay (normal flow, no overlap) */}
+                        {downForm.down_type === 'tournament' && (
+                            <div style={{ padding: '10px 16px 2px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <label style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Buy-In Amount (optional)</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 14, color: '#B0B3B8' }}>$</span>
+                                    <input
+                                        type="number"
+                                        value={downForm.tournament_buyin || ''}
+                                        onChange={e => setDownForm({ ...downForm, tournament_buyin: e.target.value })}
+                                        placeholder="e.g. 200"
+                                        style={{ ...styles.formInput, flex: 1, padding: '8px 12px', fontSize: 14 }}
+                                    />
+                                    {downForm.tournament_buyin && parseFloat(downForm.tournament_buyin) > 0 && (
+                                        <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                            📊 Tracked for analysis
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

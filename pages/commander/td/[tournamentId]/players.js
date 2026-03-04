@@ -170,25 +170,25 @@ export default function TDPlayers() {
 <style>
 @page { margin: 0; size: 80mm auto; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000; font-size: 12px; }
-.card { width: 72mm; margin: 0 auto; padding: 5mm 4mm 6mm; border-bottom: 2px dashed #000; page-break-after: always; }
+body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000; font-size: 15px; }
+.card { width: 72mm; margin: 0 auto; padding: 7mm 5mm 9mm; border-bottom: 2px dashed #000; page-break-after: always; }
 .card:last-child { page-break-after: avoid; border-bottom: none; }
-.logo-wrap { text-align: center; margin-bottom: 2mm; }
-.logo-wrap img { max-width: 28mm; max-height: 14mm; object-fit: contain; }
-.venue-name { text-align: center; font-size: 18px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; margin-bottom: 0.5mm; }
-.venue-location { text-align: center; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: #444; margin-bottom: 1mm; }
-.receipt-type { text-align: center; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1mm; }
-.tourn-name { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 3mm; }
-.divider { border-top: 1px solid #000; margin: 2.5mm 0; }
-.field-row { display: flex; align-items: baseline; margin: 2mm 0; font-size: 11px; }
-.field-label { font-weight: bold; min-width: 18mm; }
-.field-val { font-size: 11px; text-transform: uppercase; }
-.boxes { display: flex; gap: 4mm; justify-content: center; margin: 4mm 0 2mm; }
+.logo-wrap { text-align: center; margin-bottom: 3mm; }
+.logo-wrap img { max-width: 36mm; max-height: 20mm; object-fit: contain; }
+.venue-name { text-align: center; font-size: 24px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; margin-bottom: 1mm; }
+.venue-location { text-align: center; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: #444; margin-bottom: 2mm; }
+.receipt-type { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1.5mm; }
+.tourn-name { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 4mm; }
+.divider { border-top: 1px solid #000; margin: 4mm 0; }
+.field-row { display: flex; align-items: baseline; margin: 4mm 0; font-size: 15px; }
+.field-label { font-weight: bold; min-width: 20mm; }
+.field-val { font-size: 17px; font-weight: bold; text-transform: uppercase; }
+.boxes { display: flex; gap: 8mm; justify-content: center; margin: 7mm 0; }
 .box-wrap { text-align: center; width: 90px; }
-.box-title { font-size: 11px; font-weight: bold; margin-bottom: 1mm; }
-.box-num { border: 2px solid #000; font-size: 30px; font-weight: 900; padding: 2mm 0; width: 90px; display: block; text-align: center; line-height: 1.1; }
-.footer-line { font-size: 9px; margin: 1mm 0; }
-.customer-copy { text-align: center; font-size: 9px; font-weight: bold; letter-spacing: 1px; margin-top: 3mm; }
+.box-title { font-size: 14px; font-weight: bold; margin-bottom: 1.5mm; }
+.box-num { border: 2.5px solid #000; font-size: 30px; font-weight: 900; padding: 3mm 0; width: 90px; display: block; text-align: center; line-height: 1.1; }
+.footer-line { font-size: 13px; margin: 1.5mm 0; }
+.customer-copy { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-top: 4mm; }
 </style></head><body>
 ${receipts.map(r => `<div class="card">
   ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" /></div>` : ''}

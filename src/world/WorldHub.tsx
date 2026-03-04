@@ -46,7 +46,7 @@ import { DiamondStat } from './components/HeaderStats';
 // WelcomeBack removed — was showing hardcoded 'PokerPro' mock data
 import { StreakPopup } from './components/StreakPopup';
 import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
-import { ProfileDropdown } from './components/ProfileDropdown';
+
 import { GeevesOrb } from './components/GeevesOrb';
 import { useLiveHelp, LiveHelpPanel } from './components/Geeves';
 import { SettingsOrb } from './components/SettingsOrb';
@@ -389,9 +389,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // UI STATE
     // ═══════════════════════════════════════════════════════════════════════
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const [introVideo, setIntroVideo] = useState<{ videoUrl: string; targetRoute: string } | null>(null);
-    const profileOrbRef = useRef<HTMLDivElement>(null);
 
     // ═══════════════════════════════════════════════════════════════════════
     // LOGIN DETECTION — Cinematic intro ONLY on login, not navigation
@@ -714,15 +712,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         router.push(route);
     };
 
-    // Toggle profile dropdown
-    const handleProfileClick = () => {
-        setIsProfileDropdownOpen(prev => !prev);
-    };
 
-    // Reload hidden card state when customizer panel closes (it may have changed)
-    const handleCustomizerClose = () => {
-        setHiddenCardIdsState(getHiddenCardIds());
-    };
 
     return (
         <>
@@ -1126,19 +1116,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 OVERLAYS — Search, Live Help (highest z-index)
                 ═══════════════════════════════════════════════════════════════ */}
                 <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-
-                {/* PROFILE DROPDOWN — slide-down from profile orb click */}
-                <ProfileDropdown
-                    isOpen={isProfileDropdownOpen}
-                    onClose={() => setIsProfileDropdownOpen(false)}
-                    anchorRef={profileOrbRef}
-                    onCustomizeCards={() => {
-                        setIsProfileDropdownOpen(false);
-                        if (onOpenCardCustomizer) {
-                            setTimeout(onOpenCardCustomizer, 150);
-                        }
-                    }}
-                />
 
                 {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
                 <LiveHelpPanel

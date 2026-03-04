@@ -4212,12 +4212,37 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         (applyMultiwayEquityDiscount(
             madeHand.strength + outEquity + nutBonus + lo8Bonus
             - multiwayPenalty - boardDangerPenalty - scareCardPenalty + loosenessBias,
-            numPlayers  // <─ Module 12 applies here instead of raw madeHand.strength
+            numPlayers  // ← Module 12 applies here instead of raw madeHand.strength
         ) + chipAccumulation.accumulationBonus
             + betSizingTell.callAdjustment
             + timingTell.equityAdjustment
         ) * combinedTightnessOp
     ));
+
+    // ─── MODULE 17: PLO RUNOUT EQUITY RE-EVALUATOR ───
+    // On turn/river, re-assess equity delta from the new board card.
+    // Multiplier escalates/deflates bet fraction based on how the runout changed our equity.
+    const prevEquityEstimate = state.prevEquity || equityP4; // Caller can pass prior street equity
+    const runoutReeval = (street === 'turn' || street === 'river')
+        ? reevaluatePLORunoutEquity(prevEquityEstimate, equityP4, street)
+        : { multiplier: 1.0, runoutType: 'blank' };
+    if (runoutReeval.runoutType !== 'blank') {
+        console.log(`[HorseBrain] 🔄 MODULE 17 RUNOUT: ${runoutReeval.runoutType} (×${runoutReeval.multiplier.toFixed(2)}) on ${street}`);
+    }
+
+    // ─── MODULE 23: OOP POSITIONAL EQUITY LEAK GUARD ───
+    // Prevent auto-betting from OOP without initiative (a classic PLO leak humans exploit).
+    const hasInitiative = state.wasPFRaiser || wasPFRaiser || false;
+    const oopGuard = getOOPPositionalGuard(isIP, hasInitiative, equityP4, street);
+    // oopGuard.equityBoost is subtracted from effective equity when guarding
+    const equityFinalRaw = equityP4 - (oopGuard.shouldGuard ? oopGuard.equityBoost : 0);
+    // Apply table image exposure penalty (Module 20): if exposed, -8% effective equity
+    const imageExposedMod = (state.imageExposed || false) ? -8 : 0;
+    // Apply probe-farm counter (Module 19): if opponent is probe-farming, add raise equity
+    const probeFarmMod = (state.probeFarmScore || 0) > 0.6 ? +6 : 0;
+    // Apply limp-trap penalty (Module 21): reduce raise aggression on preflop
+    // (handled via fold threshold below, not equity; placeholder)
+    const equityFinalAdjusted = Math.max(0, Math.min(100, equityFinalRaw + imageExposedMod + probeFarmMod));
 
     // ─── MODULE 13: PLO NUT-BIAS EXPLOIT DETECTOR ───
     // On dry/rainbow/low boards, humans know the horse favors nut-heavy hands.
@@ -4230,17 +4255,17 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 4: 4-bet pot dynamics ──
     const isIn4BetPot = state.isIn4BetPot || false;
-    const fourBetDecision = getPLO4BetPotDecision(isIn4BetPot, madeHand, straightDraw.outs, flushDraw.outs, equityP4);
+    const fourBetDecision = getPLO4BetPotDecision(isIn4BetPot, madeHand, straightDraw.outs, flushDraw.outs, equityFinalAdjusted);
 
     // ── Phase 4: Donk bet detection ──
     const donkBetFraction = state.donkBetFraction || 0;
     const isDonkSituation = donkBetFraction > 0 && toCall > 0 && wasPFRaiser;
 
     // ── Phase 4: GIF trigger pre-calculation ──
-    const gifInfo = getPLOGifTrigger(madeHand, equityP4, allInInfo.allInEquity, profileId);
+    const gifInfo = getPLOGifTrigger(madeHand, equityFinalAdjusted, allInInfo.allInEquity, profileId);
 
     // ── Phase 5: Pot manipulation ──
-    const potManip = getPLOPotManipulation(numPlayers, exploitProfile, equityP4, isIP, madeHand, totalOuts, potSize, raiseAction);
+    const potManip = getPLOPotManipulation(numPlayers, exploitProfile, equityFinalAdjusted, isIP, madeHand, totalOuts, potSize, raiseAction);
 
     // ── Phase 5: River float and fire ──
     const riverFloat = getPLORiverFloat(madeHand, straightDraw.outs, flushDraw.outs, street, isIP, numPlayers, blockers, potSize, raiseAction);
@@ -4258,6 +4283,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const cardRemovalBluffBonus = cardRemoval.removalScore >= 18 ? 8 : cardRemoval.removalScore >= 10 ? 4 : 0;
 
     // ── Phase 5: Exploitation threshold adjustments ──
+
     const exploitValueThreshold = exploitProfile.strategy.valueWider
         ? oppAdj.valueBetThreshold - 8
         : exploitProfile.strategy.bluffMore
@@ -4270,11 +4296,15 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             ? oppAdj.foldThreshold + 5   // Fold to nit value bets quickly
             : oppAdj.foldThreshold;
 
-    // ── Phase 5+8+GapF: Final equity with all bonuses + history + late-session fatigue exploitation ──
+    // ── Phase 5+8+GapF: Final equity with all bonuses + Phase 3 adjustments ──
+    // equityFinalAdjusted incorporates: Module 12 (multiway), Module 17 (runout),
+    // Module 20 (image exposure), Module 23 (OOP guard), Module 19 (probe farm counter)
     const equityFinal = Math.max(0, Math.min(100,
-        equityP4 + runoutBonus + deepDrawBonus + historyCorrection.equityCorrection
-        + lateSession.calldownLoosen  // Exploit tilting opponents: call them down looser
+        equityFinalAdjusted * runoutReeval.multiplier  // Module 17: runout multiplier
+        + runoutBonus + deepDrawBonus + historyCorrection.equityCorrection
+        + lateSession.calldownLoosen
     ));
+
 
     // ── Phase 8: Equity confidence meter ──
     const equityConfidence = getPLOEquityConfidence({
@@ -4384,8 +4414,25 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── FLOP / TURN ───
 
     // Phase 4: Donk bet response (opponent bets into the PFR)
+    // ─── MODULE 24: RIVER DONK-BET EXPLOITATION BLOCK ───
+    // River donk bets (OOP leads) are frequently thin-value or polarized.
+    // Module 24 counters them with a raise (strong equity), call (medium), or fold (weak).
+    if (street === 'river' && toCall > 0 && isIP) {
+        const donkBlock = evaluateDonkBet(toCall, potSize, isIP, equityFinal);
+        if (donkBlock.action === 'raise' && canRaise) {
+            console.log(`[HorseBrain] 🛡️ MODULE 24 DONK BLOCK: ${donkBlock.reason}`);
+            const raiseAmt = clamp(Math.round(potSize * 0.75));
+            return { type: raiseAction?.type || 'raise', amount: raiseAmt };
+        }
+        if (donkBlock.action === 'fold') {
+            console.log(`[HorseBrain] 🛡️ MODULE 24 DONK FOLD: ${donkBlock.reason}`);
+            return { type: 'fold' };
+        }
+        // 'call' or 'none' — fall through to existing logic
+    }
+
     if (isDonkSituation) {
-        const donkResponse = handlePLODonkBet(donkBetFraction, equityP4, madeHand, totalOuts, isIP, raiseAction, canCall, potSize);
+        const donkResponse = handlePLODonkBet(donkBetFraction, equityFinal, madeHand, totalOuts, isIP, raiseAction, canCall, potSize);
         if (donkResponse) return { type: donkResponse.action, amount: donkResponse.amount };
     }
 
@@ -5439,6 +5486,20 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     const gearFoldMod = rangeGear.foldMod;
     const gearRaiseMod = rangeGear.raiseMod;
 
+    // ─── MODULE 20: TABLE IMAGE EXPOSURE MONITOR ───
+    // If horse has been showing cards too much (>25% showdown rate), tighten up.
+    const imageExposed = isImageExposed(profileId, tableId);
+    if (imageExposed) {
+        console.log(`[HorseBrain] 📸 MODULE 20 IMAGE EXPOSED: ${profileId.substring(0, 8)} — humans floating lighter, tightening thresholds.`);
+    }
+
+    // ─── MODULE 22: ISOLATION SIZING TELL ───
+    // If primary opponent has mechanical iso sizing → widen 3-bet range vs them
+    const isoTell = primaryOppId ? isMechanicalIsolator(primaryOppId) : { isMechanical: false };
+    if (isoTell.isMechanical) {
+        console.log(`[HorseBrain] 📐 MODULE 22 ISO TELL: ${primaryOppId?.substring(0, 8)} mechanical isolator (avg=${isoTell.avgSize.toFixed(1)}bb, σ=${isoTell.stdDev.toFixed(2)}) — widening 3-bet range.`);
+    }
+
     // ─── PLO / VARIANT-AWARE ROUTING ───
     // PioSolver only has Holdem solved spots. For Omaha variants (PLO4, PLO5, PLO6, PLO8),
     // we route to a dedicated heuristic engine that understands 4-6 card hand strength
@@ -5446,6 +5507,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     const variant = engineState.variant || tableConfig.variant || 'holdem';
     const isPLO = ['omaha4', 'omaha5', 'omaha6', 'omaha_hilo', 'plo', 'plo4', 'plo5', 'plo6', 'plo8'].includes(variant.toLowerCase());
     const isHiLo = variant.toLowerCase().includes('hilo') || variant.toLowerCase().includes('hi_lo') || variant.toLowerCase().includes('hi-lo');
+
+    // ─── MODULE 21: PLO LIMP-TRAP DETECTOR (preflop only) ───
+    const numLimpers = engineState.numLimpers || 0;
+    const ploSPR = stackBB / (potSize / bb || 1);
+    const limpTrap = street === 'preflop' && isPLO
+        ? detectLimpTrap(numLimpers, mapPosition(heroPlayer.position || 'mp'), ploSPR, false)
+        : { isLimpTrap: false };
+    if (limpTrap.isLimpTrap) {
+        console.log(`[HorseBrain] 🪤 MODULE 21 LIMP TRAP: ${numLimpers} limpers, SPR=${ploSPR.toFixed(1)} — reducing raise freq.`);
+    }
 
     if (isPLO) {
         const ploDecision = makePLOFallbackDecision(profileId, {
@@ -5459,6 +5530,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             bb,
             numPlayers,
             isHiLo,
+            // ─── Phase 3 signals ───
+            imageExposed,          // Module 20
+            isLimpTrap: limpTrap.isLimpTrap, // Module 21
+            isoTellActive: isoTell.isMechanical, // Module 22
+            probeFarmScore: primaryOppId ? getProbeFarmScore(primaryOppId) : 0, // Module 19
         }, legalActions);
         const validPLO = validateAndClamp(ploDecision.type, ploDecision.amount, legalActions);
         const delayPLO = getActionDelay(profileId, validPLO.type, street === 'preflop');
@@ -6226,8 +6302,234 @@ const timeAbuseSuspicion = new Map();
 // Map<tableId, blacklistedUntilMs>
 const tableTimebankBlacklist = new Map();
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 3: IN-SESSION EXPLOITATION DEFENSE (MODULES 17-24)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// --- Module 19: Probe-Bet Frequency Harvester ---
+// Tracks systematic small-bet probing per opponent.
+// Map<opponentId, { probes, probeWins, totalProfit }>
+const probeBetMap = new Map();
+
+// --- Module 20: Table Image Exposure Monitor ---
+// Tracks showdown % per horse per table (resets on leave).
+// Map<horseId+":"+tableId, { showdowns, handsPlayed }>
+const imageExposureMap = new Map();
+
+// --- Module 22: Isolation Bet Sizing Tell Tracker ---
+// Tracks isolation raise sizes (in BB) per opponent to detect mechanical patterns.
+// Map<opponentId, number[]>
+const isoSizingMap = new Map();
+
 // ─────────────────────────────────────────────────────────────────────────────
-// MODULE 9: THREAT INTEL PERSISTENCE FUNCTIONS
+// MODULE 17: PLO RUNOUT EQUITY RE-EVALUATOR
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Re-evaluate how a runout card changed the horse's equity.
+ * Returns a multiplier: >1 = improved, <1 = degraded, 1 = blank.
+ * @param {number} prevEquity - Equity from the previous street
+ * @param {number} curEquity  - Equity after new board card revealed
+ * @param {string} street     - 'turn' | 'river'
+ * @returns {{ multiplier: number, runoutType: 'blank'|'scare'|'improve'|'nut_improve' }}
+ */
+function reevaluatePLORunoutEquity(prevEquity, curEquity, street) {
+    const delta = curEquity - prevEquity;
+    if (delta > 15) return { multiplier: 1.20, runoutType: 'nut_improve' };
+    if (delta > 7) return { multiplier: 1.10, runoutType: 'improve' };
+    if (delta < -12) return { multiplier: 0.75, runoutType: 'scare' };
+    if (delta < -5) return { multiplier: 0.88, runoutType: 'scare' };
+    return { multiplier: 1.0, runoutType: 'blank' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 18: SPR POT-COMMITMENT TRAP DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Detect if an opponent jam/overshove is designed to force a break-even call.
+ * Returns whether the horse should fold even at marginal commitment thresholds.
+ * @param {number} toCall   - Amount horse needs to call
+ * @param {number} potTotal - Pot size before the call
+ * @param {number} stack    - Horse's remaining stack
+ * @param {number} numPlayers - Active players
+ * @param {number} equity   - Horse's current equity (0–100)
+ * @returns {{ shouldFoldTrap: boolean, trueBreakEven: number, isTrap: boolean }}
+ */
+function detectSPRTrap(toCall, potTotal, stack, numPlayers, equity) {
+    if (toCall <= 0) return { shouldFoldTrap: false, trueBreakEven: 0, isTrap: false };
+    const trueBreakEven = (toCall / (potTotal + toCall)) * 100;
+    // PLO multiway premium: add 8% per extra player
+    const mwPremium = Math.max(0, (numPlayers - 2)) * 4;
+    const adjustedThreshold = trueBreakEven + mwPremium;
+    // "Trap" signature: pot-sized or larger jam on non-threatening board
+    const isOversized = toCall >= potTotal * 0.9;
+    const isTrap = isOversized && equity < (adjustedThreshold + 5);
+    const shouldFoldTrap = isTrap && equity < adjustedThreshold;
+    return { shouldFoldTrap, trueBreakEven, adjustedThreshold, isTrap };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 19: PROBE-BET FREQUENCY HARVESTER
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Record an opponent's bet and whether it qualifies as a probe (< 35% pot).
+ * @param {string} oppId
+ * @param {number} betFraction - bet / pot (0–1)
+ * @param {boolean} oppWon     - Did the opponent win this hand?
+ * @param {number}  chipDelta  - Net chips the opponent won/lost
+ */
+function recordProbeBet(oppId, betFraction, oppWon, chipDelta) {
+    if (betFraction <= 0 || betFraction > 0.35) return; // Not a probe
+    if (!probeBetMap.has(oppId)) probeBetMap.set(oppId, { probes: 0, probeWins: 0, totalProfit: 0 });
+    const p = probeBetMap.get(oppId);
+    p.probes++;
+    if (oppWon) { p.probeWins++; p.totalProfit += chipDelta || 0; }
+}
+
+/**
+ * Get the probe-bet farming score (0–1). >0.6 = systematic probe-farmer.
+ * @param {string} oppId
+ * @returns {number}
+ */
+function getProbeFarmScore(oppId) {
+    const p = probeBetMap.get(oppId);
+    if (!p || p.probes < 4) return 0;
+    return p.probeWins / p.probes;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 20: TABLE IMAGE EXPOSURE MONITOR
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Record a hand result for table image tracking.
+ * @param {string} horseId
+ * @param {string} tableId
+ * @param {boolean} showedCards
+ */
+function recordTableImageHand(horseId, tableId, showedCards) {
+    const key = `${horseId}:${tableId}`;
+    if (!imageExposureMap.has(key)) imageExposureMap.set(key, { showdowns: 0, handsPlayed: 0 });
+    const img = imageExposureMap.get(key);
+    img.handsPlayed++;
+    if (showedCards) img.showdowns++;
+}
+
+/**
+ * Returns true if the horse's table image is "exposed" (showdown rate > 25%).
+ * Exposed image = humans will float and bluff more light.
+ * @param {string} horseId
+ * @param {string} tableId
+ * @returns {boolean}
+ */
+function isImageExposed(horseId, tableId) {
+    const key = `${horseId}:${tableId}`;
+    const img = imageExposureMap.get(key);
+    if (!img || img.handsPlayed < 8) return false;
+    return (img.showdowns / img.handsPlayed) > 0.25;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 21: PLO PREFLOP LIMP-TRAP DETECTOR
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Detect if raising into a multi-limped pot is a limp-trap risk.
+ * @param {number} numLimpers    - Players who limped before us
+ * @param {string} position      - Our position ('btn','co','mp','ep','sb')
+ * @param {number} spr           - Stack-to-pot ratio if we raise
+ * @param {boolean} isNutHand    - Do we have a nutted PLO hand (AA+wraps etc.)?
+ * @returns {{ isLimpTrap: boolean, riskScore: number, recommendation: string }}
+ */
+function detectLimpTrap(numLimpers, position, spr, isNutHand) {
+    let riskScore = 0;
+    // More limpers = more limp-trap risk (they all checked with strong PLO hands)
+    if (numLimpers >= 3) riskScore += 3;
+    else if (numLimpers === 2) riskScore += 1;
+    // Shallow SPR means we commit more easily into traps
+    if (spr < 5) riskScore += 2;
+    // Being OOP into many limpers is more dangerous
+    if (['ep', 'mp', 'sb'].includes(position)) riskScore += 1;
+    // Nut hands can always raise (they're the trap setters)
+    if (isNutHand) riskScore = 0;
+    const isLimpTrap = riskScore >= 3;
+    const recommendation = isLimpTrap ? 'prefer_call_or_fold' : 'raise_ok';
+    return { isLimpTrap, riskScore, recommendation };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 22: ISOLATION BET SIZING TELL TRACKER
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Record an opponent's isolation raise size in BB.
+ * @param {string} oppId
+ * @param {number} sizeBB - Raise size in BBs
+ */
+function recordIsoSize(oppId, sizeBB) {
+    if (!isoSizingMap.has(oppId)) isoSizingMap.set(oppId, []);
+    const sizes = isoSizingMap.get(oppId);
+    sizes.push(sizeBB);
+    if (sizes.length > 10) sizes.shift(); // Rolling 10-sample window
+}
+
+/**
+ * Returns true if opponent has a mechanical, predictable isolation sizing pattern.
+ * Mechanical iso = 3-bettable from +10% range.
+ * @param {string} oppId
+ * @returns {{ isMechanical: boolean, avgSize: number, stdDev: number }}
+ */
+function isMechanicalIsolator(oppId) {
+    const sizes = isoSizingMap.get(oppId);
+    if (!sizes || sizes.length < 5) return { isMechanical: false, avgSize: 0, stdDev: 0 };
+    const avg = sizes.reduce((s, v) => s + v, 0) / sizes.length;
+    const variance = sizes.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / sizes.length;
+    const stdDev = Math.sqrt(variance);
+    return { isMechanical: stdDev < 0.8, avgSize: avg, stdDev };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 23: OOP POSITIONAL EQUITY LEAK GUARD
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Guard against auto-betting from OOP without initiative — a known leak.
+ * Returns a threshold adjustment for OOP no-initiative spots.
+ * @param {boolean} isIP          - Is the horse in position?
+ * @param {boolean} hasInitiative - Did horse raise preflop/have lead?
+ * @param {number}  equity        - Current equity
+ * @param {string}  street        - 'flop'|'turn'|'river'
+ * @returns {{ equityBoost: number, shouldGuard: boolean }}
+ */
+function getOOPPositionalGuard(isIP, hasInitiative, equity, street) {
+    if (isIP) return { equityBoost: 0, shouldGuard: false };
+    if (hasInitiative) return { equityBoost: 0, shouldGuard: false }; // C-bet OK
+    // OOP, no initiative: require more equity to bet
+    const boost = street === 'river' ? 12 : street === 'turn' ? 10 : 8;
+    return { equityBoost: boost, shouldGuard: equity < (50 + boost) };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULE 24: RIVER DONK-BET EXPLOITATION BLOCK
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Evaluate how to respond to an opponent's river donk-bet (OOP lead).
+ * @param {number} toCall    - Amount to call
+ * @param {number} potSize   - Pot before donk
+ * @param {boolean} isIP     - Is the horse in position (facing an OOP donk)?
+ * @param {number}  equity   - Horse's river equity (0–100)
+ * @returns {{ action: 'raise'|'call'|'fold'|'none', reason: string }}
+ */
+function evaluateDonkBet(toCall, potSize, isIP, equity) {
+    if (toCall <= 0 || !isIP) return { action: 'none', reason: 'not_a_donk' };
+    const donkFraction = toCall / potSize;
+    // Only applies to genuine donk-bets (< 80% pot, opponent leading OOP)
+    if (donkFraction > 0.8) return { action: 'none', reason: 'not_a_probe_donk' };
+    if (equity >= 65) {
+        return { action: 'raise', reason: `Donk into strong equity (${equity.toFixed(0)}) — raise to deny blocker bluffs` };
+    }
+    if (equity < 38) {
+        return { action: 'fold', reason: `Thin-value donk likely ahead (equity=${equity.toFixed(0)})` };
+    }
+    return { action: 'call', reason: `Medium equity (${equity.toFixed(0)}) vs donk — call and re-evaluate` };
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 /**
  * Lazy-load a single opponent's threat intel from Supabase.
@@ -6710,9 +7012,36 @@ async function processHandResult(handData, bb = 2) {
             // ─── MODULE 9: PERSIST THREAT INTEL (Debounced — 5s) ───
             // Trigger a debounced Supabase upsert of all accumulated threat signals.
             _persistThreatIntel(oppId);
+
+            // ─── MODULE 19: PROBE-BET FREQUENCY HARVESTER ───
+            // Record if opponent made a probe bet this hand (< 35% pot)
+            const oppBet = opp.betAmount || 0;
+            const handPotSize = handResult.potSize || handResult.result?.totalPot || 0;
+            if (oppBet > 0 && handPotSize > 0) {
+                const betFrac = oppBet / handPotSize;
+                const oppWon = (handResult.result?.winners || []).some(w => String(w.playerId) === oppId);
+                recordProbeBet(oppId, betFrac, oppWon, opp.chipDelta || 0);
+            }
+
+            // ─── MODULE 22: ISO SIZING TELL TRACKER ───
+            // Record isolation raise sizes if opponent raised preflop vs limpers
+            if (opp.lastAction === 'raise' && (handResult.street === 'preflop' || !handResult.street)) {
+                const bb = handResult.bigBlind || 2;
+                const isoSizeBB = oppBet / bb;
+                if (isoSizeBB > 0) recordIsoSize(oppId, isoSizeBB);
+            }
         }
     }
-}
+
+    // ─── MODULE 20: TABLE IMAGE EXPOSURE MONITOR ───
+    // Track showdown counts for every horse at this table
+    for (const p of (handResult.players || handResult.result?.players || [])) {
+        const pid = String(p.id || p.playerId || '');
+        if (!pid || !isHorse(pid)) continue;
+        const showedCards = p.showedCards === true || p.showdown === true;
+        recordTableImageHand(pid, handResult.tableId, showedCards);
+    }
+}  // ← end processHandResult
 
 
 /**
@@ -6723,6 +7052,7 @@ async function processHandResult(handData, bb = 2) {
  * @param {string} clubId - the club ID for chip balance lookups
  * @returns {Promise<boolean>}
  */
+
 async function canRebuy(tableId, playerId, minBuyIn = 0, clubId = null) {
     const tableSessions = sessionTracker.get(tableId);
     if (!tableSessions) return true; // Not tracking, allow
@@ -7495,4 +7825,20 @@ module.exports = {
     timeAbuseSuspicion,           // Module 15: Timebank Abuse Detector
     tableTimebankBlacklist,       // Module 15: Timebank table blacklist
     threatIntelCache,             // Module 16: Threat score cache (Supabase read)
+    // ─── PHASE 3: IN-SESSION EXPLOITATION DEFENSE ───
+    reevaluatePLORunoutEquity,    // Module 17: Runout Equity Re-Evaluator
+    detectSPRTrap,                // Module 18: SPR Pot-Commitment Trap Detector
+    probeBetMap,                  // Module 19: Probe-Bet Frequency Harvester (Map)
+    recordProbeBet,               // Module 19: Probe recording
+    getProbeFarmScore,            // Module 19: Probe farm score
+    imageExposureMap,             // Module 20: Table Image Exposure Monitor (Map)
+    recordTableImageHand,         // Module 20: Image recording
+    isImageExposed,               // Module 20: Is image exposed?
+    detectLimpTrap,               // Module 21: PLO Preflop Limp-Trap Detector
+    isoSizingMap,                 // Module 22: Isolation Sizing Tell Tracker (Map)
+    recordIsoSize,                // Module 22: Iso recording
+    isMechanicalIsolator,         // Module 22: Check for mechanical isolator
+    getOOPPositionalGuard,        // Module 23: OOP Positional Equity Leak Guard
+    evaluateDonkBet,              // Module 24: River Donk-Bet Exploitation Block
 };
+
