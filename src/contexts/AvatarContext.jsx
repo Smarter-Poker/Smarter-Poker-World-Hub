@@ -8,7 +8,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import supabase from '../lib/supabase.ts';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
 import { getAuthUser } from '../lib/authUtils';
-import { backupSession, restoreSessionBackup, hasSessionBackup } from '../lib/authUtils';
 
 const AvatarContext = createContext();
 
@@ -108,94 +107,49 @@ export function AvatarProvider({ children }) {
             // INITIAL_SESSION fires when Supabase restores session from localStorage
             if (event === 'INITIAL_SESSION') {
                 if (session?.user) {
-                    console.log('[AvatarContext] Session found, attempting background refresh...');
-                    // 🛡️ HARDENED: Backup session BEFORE attempting refresh
-                    backupSession();
-                    try {
-                        // 🛡️ CRITICAL FIX: Use the EXISTING session first, then try refreshing.
-                        // NEVER nuke localStorage on timeout — a stale token is infinitely
-                        // better than no token. Supabase auto-refreshes on the next API call.
-                        const refreshPromise = supabase.auth.refreshSession();
-                        const timeoutPromise = new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error('Session refresh timeout')), 8000)
-                        );
-                        const { data: refreshData, error: refreshError } = await Promise.race([refreshPromise, timeoutPromise]);
+                    // Use the existing session IMMEDIATELY — don't block on refresh
+                    console.log('[AvatarContext] Session found, using immediately');
+                    setUser(session.user);
+                    await ensureUserProfile(session.user);
+                    await fetchVipStatus(session.user.id);
 
-                        if (refreshError) {
-                            // Check if this is a PERMANENT auth failure (invalid_grant = token is truly dead)
-                            const isPermanentFailure =
-                                refreshError.message?.includes('invalid_grant') ||
-                                refreshError.message?.includes('Invalid Refresh Token') ||
-                                refreshError.status === 400;
-
-                            if (isPermanentFailure) {
-                                console.error('[AvatarContext] Permanent auth failure — clearing session:', refreshError.message);
+                    // Background refresh — non-blocking, won't affect UI if it fails
+                    supabase.auth.refreshSession().then(({ data, error }) => {
+                        if (data?.session?.user && !error) {
+                            console.log('[AvatarContext] Background refresh succeeded');
+                            setUser(data.session.user);
+                        } else if (error) {
+                            // Only clear session on permanent auth death (invalid_grant)
+                            const isPermanent = error.message?.includes('invalid_grant') ||
+                                error.message?.includes('Invalid Refresh Token');
+                            if (isPermanent) {
+                                console.error('[AvatarContext] Permanent auth failure:', error.message);
                                 setUser(null);
-                                try {
-                                    localStorage.removeItem('smarter-poker-auth');
-                                } catch (e) { /* ignore */ }
-                            } else {
-                                // Transient error (network, timeout, 5xx) — KEEP the existing session
-                                console.warn('[AvatarContext] Transient refresh error — keeping existing session:', refreshError.message);
-                                setUser(session.user);
-                                await ensureUserProfile(session.user);
-                                await fetchVipStatus(session.user.id);
+                                try { localStorage.removeItem('smarter-poker-auth'); } catch (_) { }
                             }
-                        } else if (refreshData?.session?.user) {
-                            console.log('[AvatarContext] Session refreshed successfully');
-                            setUser(refreshData.session.user);
-                            await ensureUserProfile(refreshData.session.user);
-                            await fetchVipStatus(refreshData.session.user.id);
-                        } else {
-                            // Refresh returned no user but no error — use existing session
-                            console.warn('[AvatarContext] Refresh returned empty — keeping existing session');
-                            setUser(session.user);
+                            // Transient errors (timeout, network) — keep existing session
                         }
-                    } catch (err) {
-                        // Timeout or network exception — KEEP the existing session, DO NOT nuke localStorage
-                        console.warn('[AvatarContext] Refresh timeout/exception — keeping existing session:', err.message);
-                        setUser(session.user);
-                        await ensureUserProfile(session.user);
-                        await fetchVipStatus(session.user.id);
-                    }
+                    }).catch(() => { /* Network failure — keep existing session */ });
                 } else {
-                    // 🛡️ HARDENED: No active session — try to restore from backup before giving up
-                    if (hasSessionBackup()) {
-                        console.log('[AvatarContext] 🛡️ No session found, attempting backup restoration...');
-                        const restored = restoreSessionBackup();
-                        if (restored) {
-                            // Backup restored — reload the page so Supabase picks up the restored token
-                            console.log('[AvatarContext] 🛡️ Session restored from backup! Reloading...');
-                            window.location.reload();
-                            return; // Don't continue, page will reload
-                        }
-                    }
-                    // No session and no backup — user is genuinely not logged in
+                    // No session — user is not logged in
                     setUser(null);
                 }
                 setInitializing(false);
-                return; // Don't process further for INITIAL_SESSION
+                return;
             }
 
-            // For other events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.)
+            // SIGNED_OUT — always respect it
             if (event === 'SIGNED_OUT') {
-                // 🛡️ HARDENED: Only accept SIGNED_OUT if there's genuinely no session
-                // Supabase sometimes fires spurious SIGNED_OUT events during token refresh
-                const localUser = getAuthUser();
-                if (localUser) {
-                    console.warn('[AvatarContext] 🛡️ Ignoring spurious SIGNED_OUT — localStorage still has valid session');
-                    return; // Ignore this event
-                }
+                setUser(null);
+                return;
             }
 
+            // For other events (SIGNED_IN, TOKEN_REFRESHED, etc.)
             setUser(session?.user ?? null);
             if (session?.user) {
-                // 🛡️ ANTIGRAVITY: Ensure profile exists on EVERY sign-in event
                 if (event === 'SIGNED_IN') {
                     await ensureUserProfile(session.user);
                 }
-                // 🛡️ Backup session on every successful auth state change
-                backupSession();
                 await fetchVipStatus(session.user.id);
             }
         });

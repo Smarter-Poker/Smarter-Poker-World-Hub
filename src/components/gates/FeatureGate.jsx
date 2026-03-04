@@ -57,9 +57,18 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
     }, [userId, featureKey]);
 
     const loadAccess = async () => {
-        const result = await checkFeatureAccess(userId, featureKey);
-        setAccess({ ...result, loading: false });
-        setDiamonds(result.diamonds || 0);
+        try {
+            const result = await checkFeatureAccess(userId, featureKey);
+            setAccess({ ...result, loading: false });
+            setDiamonds(result.diamonds || 0);
+            if (result.error) {
+                console.warn('[FeatureGate UI] Access check returned error:', result.error);
+            }
+        } catch (err) {
+            console.error('[FeatureGate UI] loadAccess crashed:', err);
+            setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: false });
+            setDiamonds(0);
+        }
     };
 
     const handleUnlock = async () => {
@@ -146,7 +155,7 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
                         <span style={s.priceValue}>{cost}</span>
                         <span style={s.priceUnit}>/ {config.durationHours} HRS</span>
                     </div>
-                    <button onClick={() => setShowModal(true)} style={s.unlockBtn}>
+                    <button onClick={() => { loadAccess(); setShowModal(true); }} style={s.unlockBtn}>
                         <Zap size={18} /> UNLOCK ACCESS
                     </button>
                     <p style={s.balanceNote}>

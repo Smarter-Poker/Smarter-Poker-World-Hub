@@ -15,20 +15,72 @@ import { supabase } from '../supabase';
 export async function checkFeatureAccess(userId, featureKey) {
     if (!userId) return { hasAccess: false, isVip: false, expiresAt: null, diamonds: 0 };
 
-    // Check VIP status first — VIPs get unlimited access
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_vip, diamonds')
-        .eq('id', userId)
-        .single();
+    // Ensure Supabase session is ready before querying
+    let sessionUserId = null;
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        sessionUserId = session?.user?.id;
+        if (!sessionUserId) {
+            console.warn('[FeatureGate] No active Supabase session — waiting for auth...');
+            // Wait briefly for session to establish (common on page load)
+            await new Promise(r => setTimeout(r, 500));
+            const { data: { session: retrySession } } = await supabase.auth.getSession();
+            sessionUserId = retrySession?.user?.id;
+        }
+    } catch (e) {
+        console.warn('[FeatureGate] Session check failed:', e);
+    }
 
-    if (profile?.is_vip) {
+    // Fetch profile with error handling + retry
+    let profile = null;
+    let fetchError = null;
+
+    const fetchProfile = async () => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('is_vip, diamonds')
+            .eq('id', userId)
+            .single();
+        if (error) {
+            console.warn('[FeatureGate] Profile fetch error:', error.message, '| userId:', userId);
+            return { data: null, error };
+        }
+        return { data, error: null };
+    };
+
+    // First attempt
+    const result1 = await fetchProfile();
+    if (result1.data) {
+        profile = result1.data;
+    } else {
+        // Retry once after a short delay (auth may have just initialized)
+        console.warn('[FeatureGate] Retrying profile fetch after 1s delay...');
+        await new Promise(r => setTimeout(r, 1000));
+        const result2 = await fetchProfile();
+        if (result2.data) {
+            profile = result2.data;
+        } else {
+            fetchError = result2.error;
+        }
+    }
+
+    // If profile fetch totally failed, log it clearly
+    if (!profile) {
+        console.error('[FeatureGate] CRITICAL: Could not fetch profile for userId:', userId, '| Error:', fetchError?.message);
+        // Return no access but don't block — diamonds shows 0 but user sees the issue
+        return { hasAccess: false, isVip: false, expiresAt: null, diamonds: 0, error: 'Profile fetch failed' };
+    }
+
+    console.log('[FeatureGate] Profile loaded — diamonds:', profile.diamonds, '| is_vip:', profile.is_vip);
+
+    // VIP users get unlimited access
+    if (profile.is_vip) {
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds || 0 };
     }
 
     // Check for active day pass
     const now = new Date().toISOString();
-    const { data: access } = await supabase
+    const { data: access, error: accessError } = await supabase
         .from('premium_feature_access')
         .select('expires_at')
         .eq('user_id', userId)
@@ -38,12 +90,17 @@ export async function checkFeatureAccess(userId, featureKey) {
         .limit(1)
         .single();
 
+    if (accessError && accessError.code !== 'PGRST116') {
+        // PGRST116 = no rows found (expected when no active pass)
+        console.warn('[FeatureGate] Access check error:', accessError.message);
+    }
+
     if (access) {
         return {
             hasAccess: true,
             isVip: false,
             expiresAt: new Date(access.expires_at),
-            diamonds: profile?.diamonds || 0
+            diamonds: profile.diamonds || 0
         };
     }
 
@@ -51,7 +108,7 @@ export async function checkFeatureAccess(userId, featureKey) {
         hasAccess: false,
         isVip: false,
         expiresAt: null,
-        diamonds: profile?.diamonds || 0
+        diamonds: profile.diamonds || 0
     };
 }
 
