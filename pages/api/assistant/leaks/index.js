@@ -14,19 +14,32 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Require JWT auth for write operations
-  if (req.method !== 'GET') {
-    const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ error: 'Authentication required' });
-    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
-    if (req.body) req.body.userId = _authUser.id;
+  let userId = req.query.userId;
+  const { status } = req.query;
+
+  // Extract userId from JWT mapping to auth user
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (!authError && authUser) {
+      if (req.method !== 'GET' && req.body) {
+        req.body.userId = authUser.id;
+      }
+      if (!userId) {
+        userId = authUser.id;
+      }
+    }
   }
-  const { userId, status } = req.query;
+
+  // Require JWT auth for write operations
+  if (req.method !== 'GET' && !userId) {
+    return res.status(401).json({ error: 'Authentication required or invalid token' });
+  }
 
   if (req.method === 'GET') {
     if (!userId) {
-      return res.status(400).json({ error: 'userId required' });
+      return res.status(400).json({ error: 'userId required or invalid token' });
     }
 
     try {

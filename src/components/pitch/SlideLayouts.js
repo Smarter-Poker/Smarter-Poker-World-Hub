@@ -278,3 +278,30 @@ export const GridSlide = ({ title, subtitle, items, bgImage }) => (
         </div>
     </SlideContainer>
 );
+
+// Layout: Full Image Cinematic Slide (V3)
+export const FullImageSlide = ({ bgImage }) => (
+    <div style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        position: 'relative'
+    }}>
+        <motion.img
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            src={bgImage}
+            alt="Cinematic Slide"
+            style={{
+                width: '100vw',
+                height: '100vh',
+                objectFit: 'contain'
+            }}
+        />
+    </div>
+);
