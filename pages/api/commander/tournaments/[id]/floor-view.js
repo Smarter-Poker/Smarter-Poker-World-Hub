@@ -232,7 +232,7 @@ export default async function handler(req, res) {
           next_blinds: nextBlinds,
           after_break_blinds: afterBreakBlinds,
           clock_state: {
-            ...(tournament.clock_state || {}),
+            ...(clockState || {}),
             remaining_seconds,
             status: clockState?.isRunning ? 'running' : 'paused',
             started_at: tournament.actual_start,

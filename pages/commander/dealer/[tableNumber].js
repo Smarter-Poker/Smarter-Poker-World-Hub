@@ -368,7 +368,9 @@ export default function DealerTablet() {
         })
       });
       const json = await res.json();
-      if (!json.success && json.error) console.error('Bust out error:', json.error);
+      if (!json.success && json.error) {
+        alert(json.error || 'Bust out failed.');
+      }
       // Also remove from table session if applicable
       if (player.session_id) {
         await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
@@ -378,7 +380,7 @@ export default function DealerTablet() {
       await fetchTable();
       broadcastChange('tables');
       broadcastChange('tournaments');
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Bust out failed. Check console.'); }
     finally { setBustingOut(null); }
   };
 
@@ -388,17 +390,22 @@ export default function DealerTablet() {
     setSavingChips(true);
     try {
       const entryId = chipEntryPlayer.entry_id || chipEntryPlayer.id;
-      await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/entries/${entryId}/chips`, {
+      const res = await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/entries/${entryId}/chips`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ chips: parseInt(chipEntryValue) || 0 })
       });
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        alert(json.error || 'Failed to update chips.');
+        return;
+      }
       setChipEntryPlayer(null);
       setChipEntryValue('');
       await fetchTable();
       broadcastChange('tables');
       broadcastChange('tournaments');
-    } catch (err) { console.error('Update chips error:', err); }
+    } catch (err) { console.error('Update chips error:', err); alert('Failed to update chips. Check console.'); }
     finally { setSavingChips(false); }
   };
 

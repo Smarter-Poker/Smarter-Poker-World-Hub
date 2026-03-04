@@ -76,12 +76,7 @@ export default function HubPage() {
                 const parsed = JSON.parse(commStored);
                 if (parsed?.id || parsed?.venue_id || parsed?.role) unlocked.push('club-commander');
             }
-            // Employee portal (venue-linked dealer) detection — check all possible cache keys
-            const venueCache = localStorage.getItem('emp_venues') || localStorage.getItem('hub_linked_venues');
-            if (venueCache) {
-                const parsed = JSON.parse(venueCache);
-                if (Array.isArray(parsed) && parsed.length > 0) unlocked.push('employee-portal');
-            }
+            // Employee Portal removed — Work Schedule merged into Toke Tracker
         } catch { }
         setUnlockedSpecialIds(unlocked);
     }, []);

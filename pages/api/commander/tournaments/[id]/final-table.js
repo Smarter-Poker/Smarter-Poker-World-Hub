@@ -88,17 +88,22 @@ export default async function handler(req, res) {
       }
     }
 
-    // Update tournament status
+    // Update tournament status — write to settings.clock_state (canonical path)
+    const settings = tournament.settings || {};
+    const clockState = settings.clock_state || {};
+    const updatedClockState = {
+      ...clockState,
+      hand_for_hand: false,
+      final_table: true,
+      final_table_started_at: timestamp
+    };
+    const updatedSettings = { ...settings, clock_state: updatedClockState };
+
     await supabase
       .from('commander_tournaments')
       .update({
         status: 'final_table',
-        clock_state: {
-          ...(tournament.clock_state || {}),
-          hand_for_hand: false,
-          final_table: true,
-          final_table_started_at: timestamp
-        }
+        settings: updatedSettings
       })
       .eq('id', tournamentId);
 

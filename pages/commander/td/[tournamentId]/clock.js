@@ -192,25 +192,33 @@ ${receipts.map(r => `<div class="card">
       });
       const json = await res.json();
 
-      // Auto-print break receipts if the level advance triggered an auto-break
-      if (json.success && json.data?.auto_break?.executed) {
-        printAutoBreakReceipts(json.data.auto_break);
+      if (json.success) {
+        // Auto-print break receipts if the level advance triggered an auto-break
+        if (json.data?.auto_break?.executed) {
+          printAutoBreakReceipts(json.data.auto_break);
+        }
+      } else {
+        alert(json.error?.message || json.error || 'Clock action failed.');
       }
 
       await fetchFloor();
       broadcastChange('tournaments');
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Clock action failed. Check console.'); }
     finally { setActionLoading(null); }
   };
 
 
   const toggleH4H = async () => {
     const isActive = floor?.alerts?.hand_for_hand;
-    await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
-      body: JSON.stringify({ active: !isActive })
-    });
+    try {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
+        body: JSON.stringify({ active: !isActive })
+      });
+      const json = await res.json();
+      if (!json.success) alert(json.error?.message || json.error || 'Failed to toggle Hand-for-Hand.');
+    } catch (err) { console.error(err); alert('Hand-for-Hand toggle failed.'); }
     await fetchFloor();
     broadcastChange('tournaments');
   };
@@ -218,14 +226,16 @@ ${receipts.map(r => `<div class="card">
   const triggerFinalTable = async () => {
     setActionLoading('final');
     try {
-      await fetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getToken() },
         body: JSON.stringify({ final_table_number: 1 })
       });
+      const json = await res.json();
+      if (!json.success) alert(json.error?.message || json.error || 'Final table action failed.');
       await fetchFloor();
       broadcastChange('tournaments');
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert('Final table action failed. Check console.'); }
     finally { setActionLoading(null); }
   };
 

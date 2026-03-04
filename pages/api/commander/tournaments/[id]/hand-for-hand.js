@@ -34,7 +34,9 @@ export default async function handler(req, res) {
     if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     const { active } = req.body;
-    const clockState = tournament.clock_state || {};
+    // Read clock_state from settings JSONB (canonical path — matches clock.js and floor-view.js)
+    const settings = tournament.settings || {};
+    const clockState = settings.clock_state || {};
 
     const updatedClockState = {
       ...clockState,
@@ -42,9 +44,11 @@ export default async function handler(req, res) {
       hand_for_hand_started_at: active !== false ? new Date().toISOString() : null
     };
 
+    const updatedSettings = { ...settings, clock_state: updatedClockState };
+
     const { error: uErr } = await supabase
       .from('commander_tournaments')
-      .update({ clock_state: updatedClockState })
+      .update({ settings: updatedSettings })
       .eq('id', tournamentId);
 
     if (uErr) return res.status(500).json({ success: false, error: 'Failed to update' });

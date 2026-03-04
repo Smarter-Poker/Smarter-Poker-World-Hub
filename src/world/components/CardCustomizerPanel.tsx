@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { POKER_IQ_ORBS, COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
+import { POKER_IQ_ORBS, COMMANDER_ORB, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../../orbs/manifest/registry';
 import type { OrbConfig } from '../../orbs/manifest/registry';
 import { getHiddenCardIds, setHiddenCardIds } from '../../state/userPreferences';
 import { getAuthUser } from '../../lib/authUtils';
@@ -13,7 +13,7 @@ import { getAuthUser } from '../../lib/authUtils';
 // ── Card emoji map for display ───────────────────────────────────────────────
 const CARD_EMOJI: Record<string, string> = {
     'toke-tracker': '🎰',
-    'employee-portal': '📋',
+
     'club-commander': '🏢',
     'social-media': '💬',
     'diamond-arena': '💎',
@@ -36,7 +36,6 @@ const CARD_EMOJI: Record<string, string> = {
 // Toke Tracker and Commander/Employee Portal are listed first as special cards
 const ALL_CUSTOMIZABLE = [
     TOKE_TRACKER_ORB,
-    EMPLOYEE_PORTAL_ORB,
     COMMANDER_ORB,
     ...POKER_IQ_ORBS,
 ];
@@ -101,7 +100,6 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
     // Filter the customizer list to only show cards available to this user
     const visibleCards = ALL_CUSTOMIZABLE.filter(orb => {
         if (orb.id === 'club-commander') return unlockedSpecialIds.includes('club-commander');
-        if (orb.id === 'employee-portal') return unlockedSpecialIds.includes('employee-portal');
         return true; // Standard + toke-tracker always listed
     });
 
@@ -157,7 +155,7 @@ export function CardCustomizerPanel({ isOpen, onClose, unlockedSpecialIds = [] }
                     {visibleCards.map(orb => {
                         const isPinned = PINNED_ORB_IDS.includes(orb.id);
                         const isHidden = hidden.includes(orb.id);
-                        const isSpecial = ['club-commander', 'employee-portal'].includes(orb.id);
+                        const isSpecial = orb.id === 'club-commander';
 
                         return (
                             <div key={orb.id} style={s.row}>

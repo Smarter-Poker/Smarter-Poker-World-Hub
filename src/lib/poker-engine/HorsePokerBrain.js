@@ -4395,6 +4395,23 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             }
         }
 
+        // ─── MODULE 24: RIVER DONK-BET EXPLOITATION BLOCK ───
+        // River donk bets (OOP leads) are frequently thin-value or polarized.
+        // Module 24 counters them with a raise (strong equity), call (medium), or fold (weak).
+        if (toCall > 0 && isIP) {
+            const donkBlock = evaluateDonkBet(toCall, potSize, isIP, equityFinal);
+            if (donkBlock.action === 'raise' && canRaise) {
+                console.log(`[HorseBrain] 🛡️ MODULE 24 DONK BLOCK: ${donkBlock.reason}`);
+                const raiseAmt = clamp(Math.round(potSize * 0.75));
+                return { type: raiseAction?.type || 'raise', amount: raiseAmt };
+            }
+            if (donkBlock.action === 'fold') {
+                console.log(`[HorseBrain] 🛡️ MODULE 24 DONK FOLD: ${donkBlock.reason}`);
+                return { type: 'fold' };
+            }
+            // 'call' or 'none' — fall through to optimizer
+        }
+
         // Phase 6: River decision optimizer — the final synthesizer for river actions
         const optimizedRiver = optimizePLORiverDecision({
             riverEquity,
@@ -4433,22 +4450,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── FLOP / TURN ───
 
     // Phase 4: Donk bet response (opponent bets into the PFR)
-    // ─── MODULE 24: RIVER DONK-BET EXPLOITATION BLOCK ───
-    // River donk bets (OOP leads) are frequently thin-value or polarized.
-    // Module 24 counters them with a raise (strong equity), call (medium), or fold (weak).
-    if (street === 'river' && toCall > 0 && isIP) {
-        const donkBlock = evaluateDonkBet(toCall, potSize, isIP, equityFinal);
-        if (donkBlock.action === 'raise' && canRaise) {
-            console.log(`[HorseBrain] 🛡️ MODULE 24 DONK BLOCK: ${donkBlock.reason}`);
-            const raiseAmt = clamp(Math.round(potSize * 0.75));
-            return { type: raiseAction?.type || 'raise', amount: raiseAmt };
-        }
-        if (donkBlock.action === 'fold') {
-            console.log(`[HorseBrain] 🛡️ MODULE 24 DONK FOLD: ${donkBlock.reason}`);
-            return { type: 'fold' };
-        }
-        // 'call' or 'none' — fall through to existing logic
-    }
+    // (Module 24 donk-block now correctly fires in the river section above)
 
     if (isDonkSituation) {
         const donkResponse = handlePLODonkBet(donkBetFraction, equityFinal, madeHand, totalOuts, isIP, raiseAction, canCall, potSize);
@@ -7315,7 +7317,7 @@ async function processHandResult(handData, bb = 2) {
     // Track showdown counts for every horse at this table
     for (const p of (handData.players || handData.result?.players || [])) {
         const pid = String(p.id || p.playerId || '');
-        if (!pid || !isHorse(pid)) continue;
+        if (!pid || !(await isHorse(pid))) continue;
         const showedCards = p.showedCards === true || p.showdown === true;
         recordTableImageHand(pid, handData.tableId, showedCards);
 
@@ -7324,9 +7326,9 @@ async function processHandResult(handData, bb = 2) {
             const absLossBB = Math.abs(p.chipDelta) / (handData.bigBlind || 2);
             // Classify leak pattern
             let pattern = 'general_loss';
-            if (handData.street === 'river' && p.invested > 0) pattern = 'river_call_loss';
-            if (handData.street === 'flop' && !p.hasInitiative && p.invested > 0) pattern = 'oop_check_call';
             if ((handData.numPlayers || 2) >= 4 && p.invested > 0) pattern = 'multiway_topset';
+            else if (handData.street === 'flop' && !p.hasInitiative && p.invested > 0) pattern = 'oop_check_call';
+            else if (handData.street === 'river' && p.invested > 0) pattern = 'river_call_loss';
 
             recordChipLeak(pid, handData.tableId, pattern, absLossBB);
         }

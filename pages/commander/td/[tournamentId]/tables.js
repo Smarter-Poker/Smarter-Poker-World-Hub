@@ -165,14 +165,18 @@ ${receipts.map(r => `<div class="card">
           });
           const elimJson = await elimRes.json();
           // Auto-print receipts if elimination triggered an auto table break
-          if (elimJson.success && elimJson.data?.auto_break?.executed) {
-            printAutoBreakReceipts(elimJson.data.auto_break);
+          if (elimJson.success) {
+            if (elimJson.data?.auto_break?.executed) {
+              printAutoBreakReceipts(elimJson.data.auto_break);
+            }
+          } else {
+            alert(elimJson.error || 'Elimination failed.');
           }
           await fetchFloor();
           broadcastChange('tournaments');
           // Close modal after elimination — fresh data shown on next open
           setSelectedTable(null);
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error(err); alert('Elimination failed. Check console.'); }
         finally { setActionLoading(null); }
       }
     });

@@ -16,7 +16,7 @@ import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, s
 import { getAuthUser } from '../lib/authUtils';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
-import { COMMANDER_ORB, EMPLOYEE_PORTAL_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
+import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
@@ -441,7 +441,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     const [notificationCount] = useState(0);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
     const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
-    const [hasLinkedVenues, setHasLinkedVenues] = useState(false);
+    // hasLinkedVenues removed — Work Schedule merged into Toke Tracker
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // Check if user has a Commander account — localStorage first for instant display
@@ -475,20 +475,19 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         return () => window.removeEventListener('hub-cards-hidden-changed', handleCardsHiddenChanged);
     }, []);
 
-    // Build carousel orbs — inject Toke Tracker (always), Commander and/or Employee Portal cards
+    // Build carousel orbs — inject Toke Tracker (always) and Commander card
     const carouselOrbs = useMemo(() => {
         const orbs = [...POKER_IQ_ORBS];
         // Always inject Toke Tracker at position 2 (after Social Media + Diamond Arena)
         if (!orbs.find(o => o.id === 'toke-tracker')) {
             orbs.splice(2, 0, TOKE_TRACKER_ORB);
         }
-        if (hasLinkedVenues) orbs.unshift(EMPLOYEE_PORTAL_ORB);
         if (hasCommanderAccount) orbs.unshift(COMMANDER_ORB);
         // Filter out user-hidden cards — PINNED cards are immune to filtering
         return hiddenCardIds.length > 0
             ? orbs.filter(o => !hiddenCardIds.includes(o.id) || PINNED_ORB_IDS.includes(o.id))
             : orbs;
-    }, [hasCommanderAccount, hasLinkedVenues, hiddenCardIds]);
+    }, [hasCommanderAccount, hiddenCardIds]);
 
     // Fetch user profile data including avatar + Commander account detection via Supabase
     useEffect(() => {
@@ -544,27 +543,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         }
                     }
 
-                    // 🏢 Employee Portal detection — check if user has linked venues
-                    if (!hasLinkedVenues) {
-                        try {
-                            const { getAccessToken } = await import('../lib/authUtils');
-                            const empToken = getAccessToken();
-                            if (empToken) {
-                                const empRes = await fetch('/api/employee/venues', {
-                                    headers: { 'Authorization': `Bearer ${empToken}` },
-                                });
-                                if (empRes.ok) {
-                                    const empData = await empRes.json();
-                                    if (empData.success && empData.data?.venues?.length > 0) {
-                                        setHasLinkedVenues(true);
-                                        console.log('[WorldHub] 📋 Employee venues detected —', empData.data.venues.length, 'linked');
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            console.warn('[WorldHub] Employee venue check failed (non-critical):', e);
-                        }
-                    }
+                    // Employee Portal removed — Work Schedule merged into Toke Tracker
                 }
                 // Mark user as authenticated (sets isAuthenticated for future features)
                 if (user) setIsAuthenticated(true);
@@ -635,11 +614,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
-        // Employee Portal card routes to my-venues
-        if (cardId === 'employee-portal') {
-            router.push('/hub/my-venues');
-            return;
-        }
+        // Employee Portal removed — Work Schedule merged into Toke Tracker
 
         // Toke Tracker card routes directly to the bankroll manager toke tab
         if (cardId === 'toke-tracker') {
@@ -689,11 +664,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
-        // Employee Portal card routes to my-venues
-        if (orbId === 'employee-portal') {
-            router.push('/hub/my-venues');
-            return;
-        }
+        // Employee Portal removed — Work Schedule merged into Toke Tracker
 
         // Toke Tracker card routes directly to the bankroll manager toke tab
         if (orbId === 'toke-tracker') {
@@ -731,7 +702,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     return (
         <>
             {/* EPIC CINEMATIC INTRO - Shows ONLY on login (Authentication Handshake Exception) */}
-            {CinematicIntroComponent}
+            <HubErrorBoundary name="Cinematic Intro" fallback={<></>}>
+                {CinematicIntroComponent}
+            </HubErrorBoundary>
 
             {/* INTRO VIDEO OVERLAY - Plays before navigating to specific pages */}
             {introVideo && (
@@ -1018,7 +991,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 {/* ═══════════════════════════════════════════════════════════════
                 NEURON LIGHTS — Subtle traveling pulses along circuit paths
                 ═══════════════════════════════════════════════════════════════ */}
-                <NeuronLights />
+                <HubErrorBoundary name="Neuron Lights" fallback={<></>}>
+                    <NeuronLights />
+                </HubErrorBoundary>
 
                 {/* ═══════════════════════════════════════════════════════════════
                 HUD OVERLAY LAYER — All interactive UI elements
@@ -1033,7 +1008,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                     {/* ═══════════════════════════════════════════════════════════════
                     STREAK POPUP — Subtle toast that appears and fades
                     ═══════════════════════════════════════════════════════════════ */}
-                    <StreakPopup />
+                    <HubErrorBoundary name="Streak Popup" fallback={<></>}>
+                        <StreakPopup />
+                    </HubErrorBoundary>
 
                     {/* 6 MOST VISITED CARDS AT BOTTOM */}
                     {!isMobile && (
@@ -1132,7 +1109,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 {/* ═══════════════════════════════════════════════════════════════
                 OVERLAYS — Search, Live Help (highest z-index)
                 ═══════════════════════════════════════════════════════════════ */}
-                <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+                <HubErrorBoundary name="Search Overlay" fallback={<></>}>
+                    <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+                </HubErrorBoundary>
 
                 {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
                 <LiveHelpPanel

@@ -39,6 +39,7 @@ import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
+import { HubErrorBoundary } from '../src/components/ui/HubErrorBoundary';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
 import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
@@ -377,23 +378,37 @@ export default function App({ Component, pageProps }) {
                           <PageErrorBoundary key={router.asPath}>
                             <Component {...pageProps} />
                           </PageErrorBoundary>
-                          <CelebrationManager />
-                          <DiamondToast />
-                          <ToastContainer />
-                          <GlobalNotificationPrompt />
-                          <PhoneVerifyGate />
-                          <ProactiveHelp
-                            onAccept={() => {
-                              // Open Jarvis when user accepts help
-                              if (typeof window !== 'undefined') {
-                                window.dispatchEvent(new CustomEvent('open-jarvis'));
-                              }
-                            }}
-                            onDismiss={() => {
-                              console.log('[ProactiveHelp] User dismissed help prompt');
-                            }}
-                          />
-                          <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                          <HubErrorBoundary name="Celebrations" fallback={<></>}>
+                            <CelebrationManager />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Diamond Toast" fallback={<></>}>
+                            <DiamondToast />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Toast Container" fallback={<></>}>
+                            <ToastContainer />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
+                            <GlobalNotificationPrompt />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>
+                            <PhoneVerifyGate />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Proactive Help" fallback={<></>}>
+                            <ProactiveHelp
+                              onAccept={() => {
+                                // Open Jarvis when user accepts help
+                                if (typeof window !== 'undefined') {
+                                  window.dispatchEvent(new CustomEvent('open-jarvis'));
+                                }
+                              }}
+                              onDismiss={() => {
+                                console.log('[ProactiveHelp] User dismissed help prompt');
+                              }}
+                            />
+                          </HubErrorBoundary>
+                          <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
+                            <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                          </HubErrorBoundary>
                         </WorldThemeProvider>
                       </ActiveIdentityProvider>
                     </NavigationGuard>

@@ -112,6 +112,15 @@ export function getFooterCards(excludeIds: string[] = []): OrbConfig[] {
         }
     }
 
+    // Ultimate fallback: draw from FULL orb registry if defaults were all excluded
+    if (cardIds.length < 6) {
+        for (const orb of POKER_IQ_ORBS) {
+            if (!cardIds.includes(orb.id) && !excludeIds.includes(orb.id) && cardIds.length < 6) {
+                cardIds.push(orb.id);
+            }
+        }
+    }
+
     // Map IDs to OrbConfig objects
     return cardIds.map(id => {
         const orb = resolveOrb(id);

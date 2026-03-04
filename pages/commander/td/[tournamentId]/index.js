@@ -137,15 +137,18 @@ export default function TDControlCenter() {
     const isActive = floor?.alerts?.hand_for_hand;
     try {
       const token = getToken();
-      await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': token },
         body: JSON.stringify({ active: !isActive })
       });
+      const json = await res.json();
+      if (!json.success) alert(json.error || 'Failed to toggle Hand-for-Hand.');
       await fetchFloor();
       broadcastChange('tournaments');
     } catch (err) {
       console.error('H4H toggle failed:', err);
+      alert('Hand-for-Hand toggle failed.');
     }
   };
 
