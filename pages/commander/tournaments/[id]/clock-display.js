@@ -75,6 +75,9 @@ export default function ClockDisplay() {
   // Editable ICM/Chop state
   const [editableStacks, setEditableStacks] = useState([]);
   const [chopMode, setChopMode] = useState('icm'); // 'icm' or 'chip_chop'
+  const [needsPayoutScroll, setNeedsPayoutScroll] = useState(false);
+  const payoutViewportRef = useRef(null);
+  const payoutContentRef = useRef(null);
   const timerRef = useRef(null);
   const handTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
@@ -83,6 +86,45 @@ export default function ClockDisplay() {
   const cycleRef = useRef(null);
   const prevLevelRef = useRef(null);
   const audioRef = useRef(null);
+
+  // Auto-scroll logic for payouts
+  useEffect(() => {
+    if (!payoutViewportRef.current || !payoutContentRef.current) return;
+    const checkScroll = () => {
+      if (payoutViewportRef.current && payoutContentRef.current) {
+        // If the inner content is taller than the viewport, we need to scroll it.
+        // We measure against half the scroll height if it's already duplicated and scrolling, 
+        // to prevent it toggling rapidly, but measuring the raw height is best. 
+        // Since the class might be applied, we just check if scrollHeight > clientHeight.
+        const scrollH = payoutContentRef.current.scrollHeight;
+        const clientH = payoutViewportRef.current.clientHeight;
+
+        // If it's already duplicating the array (needsPayoutScroll=true), the scrollHeight is 2x. 
+        // We only want to turn it off if the single list height would fit.
+        // A simple heuristic: if it needs scroll, actual single list height is roughly scrollH / 2.
+        const singleListHeight = payoutContentRef.current.classList.contains('payout-ticker') ? (scrollH / 2) : scrollH;
+
+        const needsScroll = singleListHeight > clientH + 5;
+        setNeedsPayoutScroll(prev => prev !== needsScroll ? needsScroll : prev);
+      }
+    };
+    checkScroll();
+
+    // Give DOM a tick to layout
+    const timeoutMsg = setTimeout(checkScroll, 100);
+
+    // Also re-check on resize
+    let observer;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(checkScroll);
+      if (payoutViewportRef.current) observer.observe(payoutViewportRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutMsg);
+      if (observer) observer.disconnect();
+    };
+  }, [activeScreen, data?.stats?.players_remaining, data?.tournament?.payout_structure, data?.stats?.payouts]);
 
   // Wake lock — keep screen on for TV/projector display
   useEffect(() => {
@@ -541,13 +583,13 @@ export default function ClockDisplay() {
                   <div style={S.statValue}>{nextBreakSec ? formatClock(nextBreakSec) : '--:--'}</div>
                 </div>
 
-                {/* Payouts — all white, auto-scrolling ticker */}
+                {/* Payouts — all white, auto-scrolling ticker (dynamic) */}
                 {remainingPayouts.length > 0 && (
                   <div style={S.rightSection}>
                     <div style={S.rightSectionHeader}>Remaining Payouts</div>
-                    <div style={S.payoutTickerViewport}>
-                      <div className="payout-ticker">
-                        {[...remainingPayouts, ...remainingPayouts].map((p, i) => {
+                    <div style={S.payoutTickerViewport} ref={payoutViewportRef}>
+                      <div className={needsPayoutScroll ? "payout-ticker" : ""} ref={payoutContentRef}>
+                        {(needsPayoutScroll ? [...remainingPayouts, ...remainingPayouts] : remainingPayouts).map((p, i) => {
                           const idx = i % remainingPayouts.length;
                           const amount = p.amount || (prizePool * (p.percentage || 0) / 100);
                           const place = idx === 0 ? '1st' : idx === 1 ? '2nd' : idx === 2 ? '3rd' : `${idx + 1}th`;

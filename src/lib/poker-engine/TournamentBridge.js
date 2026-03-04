@@ -357,9 +357,8 @@ class TournamentBridge {
     if (!this.supabase) return;
     try {
       const t = this.tournament;
-      // Write to the active Commander schema
       await this.supabase
-        .from('commander_tournaments')
+        .from('club_tournaments')
         .update({
           status,
           current_level: t.currentLevel,
@@ -400,9 +399,8 @@ class TournamentBridge {
   async _persistRegistration(data) {
     if (!this.supabase) return;
     try {
-      // Write to the active Commander schema
       await this.supabase
-        .from('commander_tournament_entries')
+        .from('tournament_entries')
         .upsert({
           tournament_id: this.tournament.tournamentId,
           player_id: data.playerId,
@@ -419,9 +417,8 @@ class TournamentBridge {
   async _persistElimination(data) {
     if (!this.supabase) return;
     try {
-      // Write to the active Commander schema
       await this.supabase
-        .from('commander_tournament_entries')
+        .from('tournament_entries')
         .update({
           status: 'eliminated',
           finish_position: data.finishPosition,
