@@ -65,8 +65,9 @@ async function analyzeDocument(imageBase64) {
     const prompt = `Analyze this employment/tax document or gaming license and extract the following information in JSON format:
 
 {
-  "category": "one of: gaming_license, I-9, W-4, paystub, tax, employment",
-  "label": "<a short descriptive name for the document, e.g. Nevada Gaming License 2025, or W-2 2024>",
+  "category": "MUST BE EXACTLY ONE OF: gaming_license, tax, employment, paystub",
+  "sub_type": "If category=tax: 'w2' | '1099' | 'tip_log' | 'other'. If category=employment: 'i9' | 'contract' | 'ein_letter' | 'other'. Else null.",
+  "label": "<a short descriptive name, e.g. Nevada Gaming License 2025, or W-2 2024>",
   "state": "<2-letter state code if applicable, e.g. NV, FL>",
   "license_number": "<the exact license or registration number if present>",
   "issued_date": "<YYYY-MM-DD if present>",

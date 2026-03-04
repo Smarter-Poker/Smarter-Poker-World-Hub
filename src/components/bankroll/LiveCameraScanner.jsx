@@ -97,7 +97,7 @@ function getCornerPoints(contour) {
 
         if (point.x < center.x && point.y < center.y) {
             if (d > tlDist) { tl = point; tlDist = d; }
-        } else if (point.x > Center.x && Point.y < center.y) {
+        } else if (point.x > center.x && point.y < center.y) {
             if (d > trDist) { tr = point; trDist = d; }
         } else if (point.x < center.x && point.y > center.y) {
             if (d > blDist) { bl = point; blDist = d; }
@@ -492,7 +492,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     </div>
 
                     {/* Progress ring */}
-                    {detected && progress > 0 && Progress < 1 && (
+                    {detected && progress > 0 && progress < 1 && (
                         <div style={styles.progressRing}>
                             <svg width="50" height="50" viewBox="0 0 50 50">
                                 <circle cx="25" cy="25" r="21" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />

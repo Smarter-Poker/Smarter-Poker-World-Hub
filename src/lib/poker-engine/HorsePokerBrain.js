@@ -4484,7 +4484,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             if (gifInfo.shouldThrowGif) return { type: 'all_in', gifCategory: gifInfo.gifCategory };
             return { type: 'all_in' };
         }
-        if (allInInfo.allInEquity >= 40 && canCall) return { type: 'call' };
+        // Force shallow SPR calls to respect the bomb-pot penalty
+        const shortStackCallThreshold = 40 + (bombPotBoost || 0);
+        if (allInInfo.allInEquity >= shortStackCallThreshold && canCall) {
+            return { type: 'call' };
+        }
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
@@ -4576,14 +4580,17 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         return { type: raiseAction.type, amount: clamp(crBet.crSize) };
 
     // Monster facing a bet: raise using proper PLO pot geometry
-    if (equityFinal >= 78 && canRaise)
+    if (equityFinal >= 78 && canRaise) {
         return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
+    }
 
     // Big combo draw: raise for value + protection (use exact de-duped outs)
-    if (comboDrawInfo.isCombo && exactOuts >= 18 && canRaise && Math.random() < 0.55)
+    if (comboDrawInfo.isCombo && exactOuts >= 18 && canRaise && Math.random() < 0.55) {
         return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
-    if (flushDraw.outs >= 9 && straightDraw.outs >= 13 && !comboDrawInfo.isCombo && canRaise && Math.random() < 0.55)
+    }
+    if (flushDraw.outs >= 9 && straightDraw.outs >= 13 && !comboDrawInfo.isCombo && canRaise && Math.random() < 0.55) {
         return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
+    }
 
     // Phase 6: Flop continuance optimizer — use HvR + RIO for accurate continue/fold
     const flopContinuance = getPLOFlopContinuance(
@@ -4595,22 +4602,23 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && exactOuts < 16 && potOdds >= 0.30)
         return { type: 'fold' };
 
+    // Phase 6: Flop/Turn continuance score
+    // ─── MODULE 32 / 29 / 28: GLOBAL EQUITY & THRESHOLD REDUCTIONS ───
+    // drawBoost penalty, bombPotBoost penalty tighten requirements
+    const continuanceScore = flopContinuance.continuanceScore - drawBoost - bombPotBoost;
+    if (continuanceScore < flopContinuance.callThreshold) return { type: 'fold' };
+
     // Phase 3: Implied odds — reject calls on draws without sufficient implied odds
     if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35)
         return { type: 'fold' };
     if (exactOuts >= 9 && impliedOddsInfo.isProfitableCall && canCall)
         return { type: 'call' };
 
-    // Phase 6: Flop/Turn continuance score
     // ─── MODULE 27: RIO GUARD — veto draw calls when RIO > forward implied odds ───
     if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade) {
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
-    // ─── MODULE 32 / 29 / 28: GLOBAL EQUITY & THRESHOLD REDUCTIONS ───
-    // drawBoost penalty, bombPotBoost penalty tighten requirements
-    const continuanceScore = flopContinuance.continuanceScore - drawBoost - bombPotBoost;
-    if (continuanceScore < flopContinuance.callThreshold) return { type: 'fold' };
 
     if (continuanceScore >= flopContinuance.raiseThreshold && canRaise) {
         // Module 32: Donk-overcall penalty

@@ -411,6 +411,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
             hasStraddle: false
         };
         const r = await Brain.getDecision(HR, bombSt, legal(20, 100, 30), { bigBlind: 2, variant: 'plo4' });
+        if (i === 0) console.log(`C5 first iteration action:`, r.action);
         if (r.action?.type === 'fold') bombFolds++;
     }
     // In a bomb-pot with a marginal draw at pot-odds facing a pot-size bet, should fold more

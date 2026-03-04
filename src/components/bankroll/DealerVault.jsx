@@ -254,6 +254,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                 setUploadForm(prev => ({
                     ...prev,
                     label: data.label || prev.label,
+                    sub_type: data.sub_type || prev.sub_type,
                     state: data.state || prev.state,
                     license_number: data.license_number || prev.license_number,
                     issued_date: data.issued_date || prev.issued_date,
