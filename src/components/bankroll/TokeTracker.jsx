@@ -12,6 +12,8 @@ import { Camera, Image as ImageIcon } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
 import TokeCalendar from './TokeCalendar';
 import TokeDashboard from './TokeDashboard';
+import DealerVault from './DealerVault';
+import VenueIntelligence from './VenueIntelligence';
 import {
     getActiveGig,
     fetchGigs,
@@ -124,6 +126,36 @@ export default function TokeTracker({ userId, refreshTrigger }) {
     const [jarvisLoading, setJarvisLoading] = useState(false);
     const [jarvisHistory, setJarvisHistory] = useState([]);
     const [jarvisExpanded, setJarvisExpanded] = useState(true);
+
+    // Monthly Income Goal (localStorage)
+    const [monthlyGoal, setMonthlyGoal] = useState(() => {
+        try { return parseFloat(localStorage.getItem('toke_monthly_goal') || '0') || 0; }
+        catch { return 0; }
+    });
+    const [goalInput, setGoalInput] = useState('');
+    const [showGoalEdit, setShowGoalEdit] = useState(false);
+
+    const currentMonthTokes = useMemo(() => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        return completedGigs.reduce((sum, gig) => {
+            if (!gig.start_date) return sum;
+            const d = new Date(gig.start_date + 'T12:00:00');
+            if (d.getFullYear() !== y || d.getMonth() !== m) return sum;
+            return sum + (gig.days || []).reduce((s2, day) =>
+                s2 + (day.downs || []).reduce((s3, dn) => s3 + (dn.toke_amount || 0), 0), 0
+            );
+        }, 0);
+    }, [completedGigs]);
+
+    const saveGoal = () => {
+        const val = parseFloat(goalInput) || 0;
+        setMonthlyGoal(val);
+        try { localStorage.setItem('toke_monthly_goal', String(val)); } catch { }
+        setShowGoalEdit(false);
+        setGoalInput('');
+    };
 
     // Timer for 35-min down reminder
     const downTimerRef = useRef(null);
@@ -956,6 +988,52 @@ export default function TokeTracker({ userId, refreshTrigger }) {
             {/* TokeDashboard — Dealer Analytics */}
             <TokeDashboard userId={userId} refreshTrigger={completedGigs.length} />
 
+            {/* ── VENUE INTELLIGENCE ── */}
+            <VenueIntelligence gigs={completedGigs} />
+
+            {/* ── MONTHLY INCOME GOAL ── */}
+            {(monthlyGoal > 0 || showGoalEdit) && (
+                <div style={styles.goalCard}>
+                    <div style={styles.goalHeader}>
+                        <span style={styles.goalTitle}>🎯 Monthly Goal</span>
+                        <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
+                    </div>
+                    {showGoalEdit ? (
+                        <div style={styles.goalEditRow}>
+                            <input
+                                type="number"
+                                style={styles.goalInput}
+                                placeholder="Monthly $ goal"
+                                value={goalInput}
+                                onChange={e => setGoalInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && saveGoal()}
+                                autoFocus
+                            />
+                            <button style={styles.goalSaveBtn} onClick={saveGoal}>Save</button>
+                            <button style={styles.goalCancelBtn} onClick={() => setShowGoalEdit(false)}>×</button>
+                        </div>
+                    ) : (() => {
+                        const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
+                        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                        const daysLeft = daysInMonth - new Date().getDate();
+                        const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#f59e0b' : '#f02849';
+                        return (
+                            <>
+                                <div style={styles.goalText}>
+                                    You're at <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) — {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                                </div>
+                                <div style={styles.goalBarBg}>
+                                    <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
+                                </div>
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+            {!monthlyGoal && !showGoalEdit && (
+                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>🎯 Set Monthly Income Goal</button>
+            )}
+
             {/* ── ACTIVE GIG VIEW ── */}
             {activeGig && (
                 <motion.div
@@ -1773,6 +1851,9 @@ export default function TokeTracker({ userId, refreshTrigger }) {
                 </AnimatePresence>
             </div>
 
+            {/* ── DEALER VAULT ── */}
+            <DealerVault userId={userId} completedGigs={completedGigs} />
+
             {/* ── YEARLY CALENDAR ── */}
             <div style={styles.calendarWrapper}>
                 <TokeCalendar userId={userId} />
@@ -2130,6 +2211,40 @@ const styles = {
     },
     jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
     jarvisHistoryA: { fontSize: 12, color: '#B0B3B8', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
+
+    // Monthly Income Goal
+    goalCard: {
+        background: '#242526', border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12, padding: '16px 20px',
+    },
+    goalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+    goalTitle: { fontSize: 15, fontWeight: 700, color: '#E4E6EB' },
+    goalEditBtn: {
+        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '1px solid #4A90D9',
+        borderRadius: 6, color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    },
+    goalText: { fontSize: 14, color: '#B0B3B8', marginBottom: 10, lineHeight: 1.5 },
+    goalBarBg: { height: 8, background: '#3A3B3C', borderRadius: 4, overflow: 'hidden' },
+    goalBarFill: { height: '100%', borderRadius: 4, transition: 'width 0.4s ease' },
+    goalEditRow: { display: 'flex', gap: 8, alignItems: 'center' },
+    goalInput: {
+        flex: 1, padding: '10px 12px', background: '#18191A', border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none',
+    },
+    goalSaveBtn: {
+        padding: '10px 16px', background: '#4A90D9', border: 'none',
+        borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+    },
+    goalCancelBtn: {
+        padding: '10px 12px', background: '#3A3B3C', border: 'none',
+        borderRadius: 8, color: '#B0B3B8', fontSize: 16, cursor: 'pointer',
+    },
+    setGoalBtn: {
+        width: '100%', padding: '13px', background: 'rgba(74,144,217,0.1)',
+        border: '1px dashed rgba(74,144,217,0.4)', borderRadius: 10,
+        color: '#4A90D9', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        textAlign: 'center',
+    },
 
     // Calendar wrapper
     calendarWrapper: {
