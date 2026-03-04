@@ -360,30 +360,18 @@ async function fastFailImageProxy(url) {
 async function extractCardPlayerImage(articleUrl) {
     if (!articleUrl) return null;
 
-    // Step 1: Try microlink proxy FIRST — CardPlayer blocks all direct access (403)
-    // but microlink.io can extract og:image from their pages
-    console.log(`   Trying microlink proxy for CardPlayer: ${articleUrl.substring(0, 50)}...`);
-    const proxyImage = await fetchOgImageViaProxy(articleUrl);
+    // Step 1: Fast-fail proxy chain — run microlink, noembed, Google cache IN PARALLEL
+    // CardPlayer blocks ALL direct access (403), so proxies are the primary extraction method.
+    // Using Promise.any() via fastFailImageProxy for speed — avoids sequential 3×8s delays
+    // that would blow past Vercel's 60s maxDuration when processing 5 articles.
+    console.log(`   Trying parallel proxy chain for CardPlayer: ${articleUrl.substring(0, 50)}...`);
+    const proxyImage = await fastFailImageProxy(articleUrl);
     if (proxyImage) {
-        console.log(`   ✓ CardPlayer image via microlink: ${proxyImage.substring(0, 60)}...`);
+        console.log(`   ✓ CardPlayer image via proxy: ${proxyImage.substring(0, 60)}...`);
         return proxyImage;
     }
 
-    // Step 2: Try noembed proxy as secondary
-    const noembedImage = await fetchOgImageViaNoEmbed(articleUrl);
-    if (noembedImage) {
-        console.log(`   ✓ CardPlayer image via noembed: ${noembedImage.substring(0, 60)}...`);
-        return noembedImage;
-    }
-
-    // Step 3: Try Google cache as tertiary
-    const cacheImage = await fetchOgImageViaGoogleCache(articleUrl);
-    if (cacheImage) {
-        console.log(`   ✓ CardPlayer image via cache: ${cacheImage.substring(0, 60)}...`);
-        return cacheImage;
-    }
-
-    // Step 4: Extract article ID and try CDN patterns as last resort
+    // Step 2: Extract article ID and try CDN patterns as last resort
     const idMatch = articleUrl.match(/poker-news\/(\d+)/);
     if (idMatch) {
         const articleId = idMatch[1];
@@ -1193,8 +1181,15 @@ async function scrapeSource(source) {
             }
         }
         if (!html) {
-            console.log(`   ⚠ Previous methods failed for ${source.name}, trying mobile Safari UA...`);
-            html = await fetchWithMobileUA(source.url);
+            // For MSPT, mobile UA was already tried first — use Googlebot as final fallback
+            // For other sources, mobile Safari is the final fallback
+            if (source.name === 'MSPT') {
+                console.log(`   ⚠ All UAs failed for MSPT, trying Googlebot as last resort...`);
+                html = await fetchArticlePage(source.url);
+            } else {
+                console.log(`   ⚠ Previous methods failed for ${source.name}, trying mobile Safari UA...`);
+                html = await fetchWithMobileUA(source.url);
+            }
         }
         if (!html) {
             console.log(`   ✗ All fetch methods failed for ${source.name}`);
