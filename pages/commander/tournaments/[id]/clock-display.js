@@ -377,6 +377,7 @@ export default function ClockDisplay() {
 
   const blinds = clock.current_blinds || {};
   const nextBlinds = clock.next_blinds || {};
+  const afterBreakBlinds = clock.after_break_blinds || null;
   const clockState = clock.clock_state || {};
   const displaySeconds = seconds ?? clockState.remaining_seconds ?? 0;
   const isBreak = alerts.on_break;
@@ -564,10 +565,24 @@ export default function ClockDisplay() {
                   {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                 </div>
 
-                {nextBlinds && (
+                {nextBlinds && Object.keys(nextBlinds).length > 0 && (
                   <div style={S.nextRound}>
-                    <strong>Next Round</strong> — {nextBlinds.is_break ? `BREAK (${nextBlinds.duration || 0} min)` : `Blinds: ${(nextBlinds.small_blind || 0).toLocaleString()} / ${(nextBlinds.big_blind || 0).toLocaleString()}`}
-                    {!nextBlinds.is_break && (nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                    {nextBlinds.is_break ? (
+                      <>
+                        <div><strong>Next Round</strong> — BREAK ({nextBlinds.duration || 0} min)</div>
+                        {afterBreakBlinds && (
+                          <div style={{ fontSize: '0.78em', opacity: 0.75, marginTop: 4 }}>
+                            After Break: {(afterBreakBlinds.small_blind || 0).toLocaleString()} / {(afterBreakBlinds.big_blind || 0).toLocaleString()}
+                            {(afterBreakBlinds.ante || 0) > 0 && <> — BB Ante: {(afterBreakBlinds.ante || 0).toLocaleString()}</>}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <strong>Next Round</strong> — Blinds: {(nextBlinds.small_blind || 0).toLocaleString()} / {(nextBlinds.big_blind || 0).toLocaleString()}
+                        {(nextBlinds.ante || 0) > 0 && <> | BB Ante: {(nextBlinds.ante || 0).toLocaleString()}</>}
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -901,8 +916,8 @@ const S = {
   blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
     background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
-    width: '100%', textAlign: 'center', padding: '16px 8px', fontSize: 22, lineHeight: 1.5, flexShrink: 0,
-    whiteSpace: 'nowrap', overflow: 'hidden',
+    width: '100%', textAlign: 'center', padding: '20px 12px', fontSize: 27, lineHeight: 1.5, flexShrink: 0,
+    overflow: 'hidden',
   },
   // Right panel sections — Prizes + Chip Leaders
   rightSection: {

@@ -151,6 +151,17 @@ export default async function handler(req, res) {
     const currentBlinds = blindStructure[currentLevel] || {};
     const nextBlinds = blindStructure[currentLevel + 1] || null;
 
+    // If the next level is a break, find the first normal play level after it
+    let afterBreakBlinds = null;
+    if (nextBlinds && nextBlinds.is_break) {
+      for (let i = currentLevel + 2; i < blindStructure.length; i++) {
+        if (!blindStructure[i].is_break) {
+          afterBreakBlinds = blindStructure[i];
+          break;
+        }
+      }
+    }
+
     // Compute remaining_seconds dynamically (mirrors clock.js logic)
     let remaining_seconds = 0;
     const tournamentSettings = tournament.settings || {};
@@ -219,6 +230,7 @@ export default async function handler(req, res) {
           current_level: currentLevel,
           current_blinds: currentBlinds,
           next_blinds: nextBlinds,
+          after_break_blinds: afterBreakBlinds,
           clock_state: {
             ...(tournament.clock_state || {}),
             remaining_seconds,
