@@ -28,13 +28,9 @@ export default async function handler(req, res) {
             }
         }
 
-        // Fallback: accept userId from query param (for simple client calls)
+        // BUG #243 FIX: Removed req.query.userId fallback — IDOR allowed checking anyone's VIP status
         if (!userId) {
-            userId = req.query.userId;
-        }
-
-        if (!userId) {
-            return res.status(400).json({ isVip: false, error: 'No user ID provided' });
+            return res.status(401).json({ isVip: false, error: 'Authentication required' });
         }
 
         // Query profiles for VIP status

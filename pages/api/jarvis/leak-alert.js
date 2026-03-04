@@ -27,11 +27,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // Also check for userId in query (for simple GET requests)
-    if (!userId && req.query.userId) {
-        userId = req.query.userId;
-    }
-
+    // BUG #242 FIX: Removed req.query.userId fallback — IDOR allowed viewing anyone's leak alerts
     if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
