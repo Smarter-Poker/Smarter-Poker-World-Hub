@@ -454,8 +454,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(typeof rot === 'number' || rot === null || rot !== undefined, `D4: getRangeRotationGear returns value (got: ${rot})`);
 
     console.log('\n--- D5: NutBias exploit detection ---');
-    const nutBoard = { isBoardMonotone: true, isFlushBoard: false, isDangerous: true };
-    const nbd = Brain.detectNutBiasExploitBoard(nutBoard);
+    const nbd = Brain.detectNutBiasExploitBoard(DRY_FLOP, 2);
     assert(typeof nbd === 'object' || nbd !== undefined, `D5: detectNutBiasExploitBoard returns object`);
 
     // ══════════════════════════════════════════════════════════════

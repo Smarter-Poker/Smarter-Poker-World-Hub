@@ -7,8 +7,11 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Camera, Scan, Loader2, Upload, Check, RefreshCw, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
+import LiveCameraScanner from './LiveCameraScanner';
+import DocumentCropper from './DocumentCropper';
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -93,6 +96,13 @@ export default function DealerVault({ userId, completedGigs = [] }) {
     const [pendingFile, setPendingFile] = useState(null);
     const [showUploadForm, setShowUploadForm] = useState(false);
 
+    // OCR Auto-Capture State
+    const [showLiveCamera, setShowLiveCamera] = useState(false);
+    const [showCropper, setShowCropper] = useState(false);
+    const [rawImage, setRawImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
     // Load docs from DB
     const loadDocs = useCallback(async () => {
         if (!userId) return;
@@ -152,7 +162,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
     })();
 
     // ── File handling ────────────────────────────────────────────
-    const handleFileSelect = (file) => {
+    const handleFileSelect = useCallback((file) => {
         if (!file) return;
         const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'];
         if (!allowed.includes(file.type)) {
@@ -163,15 +173,107 @@ export default function DealerVault({ userId, completedGigs = [] }) {
             toast.error('File too large — max 20MB');
             return;
         }
-        setPendingFile(file);
-        setShowUploadForm(true);
-    };
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setRawImage(ev.target.result);
+                setShowCropper(true);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setPendingFile(file);
+            setShowUploadForm(true);
+        }
+    }, []);
 
     const handleDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files?.[0];
         handleFileSelect(file);
+    };
+
+    const handleCropConfirm = useCallback(async (croppedBase64) => {
+        setShowCropper(false);
+        setRawImage(null);
+        setImagePreview(croppedBase64);
+        const res = await fetch(croppedBase64);
+        const blob = await res.blob();
+        const file = new File([blob], 'dealer-doc-cropped.jpg', { type: 'image/jpeg' });
+        setPendingFile(file);
+        setShowUploadForm(true);
+        analyzeDocument(croppedBase64);
+    }, []);
+
+    const handleCropSkip = useCallback(async () => {
+        setShowCropper(false);
+        if (rawImage) {
+            setImagePreview(rawImage);
+            const res = await fetch(rawImage);
+            const blob = await res.blob();
+            const file = new File([blob], 'dealer-doc-original.jpg', { type: 'image/jpeg' });
+            setPendingFile(file);
+            setShowUploadForm(true);
+            analyzeDocument(rawImage);
+        }
+        setRawImage(null);
+    }, [rawImage]);
+
+    const handleLiveCapture = useCallback(async (capturedBase64) => {
+        setShowLiveCamera(false);
+        setImagePreview(capturedBase64);
+        const res = await fetch(capturedBase64);
+        const blob = await res.blob();
+        const file = new File([blob], 'dealer-doc-scanned.jpg', { type: 'image/jpeg' });
+        setPendingFile(file);
+        setShowUploadForm(true);
+        analyzeDocument(capturedBase64);
+    }, []);
+
+    const analyzeDocument = async (imageBase64) => {
+        setIsAnalyzing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const res = await fetch('/api/bankroll/scan-dealer-document', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ image: imageBase64 })
+            });
+
+            if (!res.ok) throw new Error('OCR failed');
+
+            const { data } = await res.json();
+
+            if (data) {
+                setUploadForm(prev => ({
+                    ...prev,
+                    label: data.label || prev.label,
+                    state: data.state || prev.state,
+                    license_number: data.license_number || prev.license_number,
+                    issued_date: data.issued_date || prev.issued_date,
+                    expiry_date: data.expiry_date || prev.expiry_date,
+                    tax_year: data.tax_year || prev.tax_year,
+                    amount: data.amount || prev.amount,
+                }));
+
+                if (data.category && ['gaming_license', 'tax', 'employment', 'paystub'].includes(data.category)) {
+                    setActiveTab(data.category);
+                }
+
+                toast.success('Document data auto-extracted!');
+            }
+        } catch (err) {
+            console.error('OCR Error:', err);
+            toast.error('Could not auto-extract data. Please enter manually.');
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     const handleUpload = async () => {
@@ -300,31 +402,69 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                         </div>
                     )}
 
-                    {/* Drop Zone */}
-                    {!showUploadForm && (
-                        <div
-                            style={{ ...s.dropZone, ...(isDragging ? s.dropZoneActive : {}) }}
-                            onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                            onDragLeave={() => setIsDragging(false)}
-                            onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <div style={s.dropIcon}>📎</div>
-                            <div style={s.dropText}>Drop a document here or tap to upload</div>
-                            <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*,application/pdf"
-                                style={{ display: 'none' }}
-                                onChange={e => handleFileSelect(e.target.files?.[0])}
-                            />
+                    {/* Live Camera Scanner */}
+                    {showLiveCamera && !pendingFile && (
+                        <LiveCameraScanner
+                            onCapture={handleLiveCapture}
+                            onClose={() => setShowLiveCamera(false)}
+                        />
+                    )}
+
+                    {/* Camera Button & Drop Zone */}
+                    {!showUploadForm && !showLiveCamera && (
+                        <div>
+                            {/* Camera Scan Button */}
+                            <div
+                                style={{
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                    padding: '24px 0', cursor: 'pointer', background: METAL.mid,
+                                    borderRadius: 12, border: `1px solid ${METAL.highlight}`, marginBottom: 16
+                                }}
+                                onClick={() => setShowLiveCamera(true)}
+                            >
+                                <div style={{
+                                    width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(74,144,217,0.1)', border: `2px dashed ${METAL.primary}`,
+                                    borderRadius: '50%', color: METAL.primary, marginBottom: 12
+                                }}>
+                                    <Camera size={32} />
+                                </div>
+                                <div style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.05em' }}>TAP TO SCAN DOCUMENT</div>
+                                <div style={{ color: METAL.textSecondary, fontSize: 13, marginTop: 4 }}>Auto-Detects And Extracts Data</div>
+                            </div>
+
+                            <div style={{ textAlign: 'center', color: METAL.textSecondary, margin: '8px 0', fontSize: 14 }}>Or choose a file from device</div>
+
+                            <div
+                                style={{ ...s.dropZone, ...(isDragging ? s.dropZoneActive : {}) }}
+                                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={() => setIsDragging(false)}
+                                onDrop={handleDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <div style={s.dropIcon}>📎</div>
+                                <div style={s.dropText}>Drop a document here or tap to upload</div>
+                                <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    style={{ display: 'none' }}
+                                    onChange={e => handleFileSelect(e.target.files?.[0])}
+                                />
+                            </div>
                         </div>
                     )}
 
                     {/* Upload Form */}
                     {showUploadForm && (
                         <div style={s.uploadForm}>
+                            {isAnalyzing && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(74,144,217,0.1)', border: `1px solid ${METAL.primary}`, borderRadius: 8, marginBottom: 16, color: METAL.primary }}>
+                                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>Extracting document data with Vision OCR...</span>
+                                </div>
+                            )}
                             <div style={s.uploadFormTitle}>📄 {pendingFile?.name}</div>
 
                             <input
@@ -546,6 +686,15 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Document Cropper Overlay */}
+            {showCropper && rawImage && (
+                <DocumentCropper
+                    imageSrc={rawImage}
+                    onConfirm={handleCropConfirm}
+                    onCancel={handleCropSkip}
+                />
             )}
         </div>
     );

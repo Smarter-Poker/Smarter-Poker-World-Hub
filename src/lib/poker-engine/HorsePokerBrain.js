@@ -4299,12 +4299,23 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── Phase 5+8+GapF: Final equity with all bonuses + Phase 3 adjustments ──
     // equityFinalAdjusted incorporates: Module 12 (multiway), Module 17 (runout),
     // Module 20 (image exposure), Module 23 (OOP guard), Module 19 (probe farm counter)
-    const equityFinal = Math.max(0, Math.min(100,
+    let equityFinal = Math.max(0, Math.min(100,
         equityFinalAdjusted * runoutReeval.multiplier  // Module 17: runout multiplier
         + runoutBonus + deepDrawBonus + historyCorrection.equityCorrection
         + lateSession.calldownLoosen
     ));
 
+    // ─── MODULE 28 & 32: GLOBAL EQUITY REDUCTION ───
+    const coldCallPenalty = (state.isColdCallTrap) ? 10 : 0;
+    const { oopBoost = 0, multiwayBoost = 0, drawBoost = 0, donkBoost = 0 } = state.chipLeakBoosts || {};
+    const chipLeakFoldAdjust = (!isIP ? oopBoost : 0) + (numPlayers >= 4 ? multiwayBoost : 0);
+
+    // Cold-call trap reduces equity to dampen barrel aggression; chip-leak adjusts OOP/multiway over-aggression.
+    if (coldCallPenalty > 0 || chipLeakFoldAdjust > 0) {
+        equityFinal = Math.max(0, equityFinal - coldCallPenalty - chipLeakFoldAdjust);
+        if (coldCallPenalty > 0) console.log(`[HorseBrain] 🧊 MODULE 28 COLD-CALL TRAP: applying -${coldCallPenalty} global equity penalty to reduce barrel freq.`);
+        if (chipLeakFoldAdjust > 0) console.log(`[HorseBrain] 📉 MODULE 32 CHIP LEAK: applying -${chipLeakFoldAdjust} equity penalty for OOP/multiway leaks.`);
+    }
 
     // ── Phase 8: Equity confidence meter ──
     const equityConfidence = getPLOEquityConfidence({
@@ -4334,12 +4345,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const ritRefuserBoost = (state.isRITRefuser) ? 5 : 0;
     const finalCommitThreshold = adjustedCommitThreshold + ritRefuserBoost;
 
-    // ─── MODULE 28: COLD-CALL TRAP DETECTOR ───
-    const coldCallPenalty = (state.isColdCallTrap) ? -10 : 0;
-
-    // ─── MODULE 32: CHIP-LEAK FORENSICS ───
-    const { oopBoost = 0, multiwayBoost = 0, drawBoost = 0, donkBoost = 0 } = state.chipLeakBoosts || {};
-
     // ─── MODULE 27: REVERSE IMPLIED ODDS GUARD ───
     const rioGuard = detectReverseImplied(
         totalOuts,
@@ -4349,10 +4354,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         boardTexture.isWet || false
     );
     if (rioGuard.shouldBlock) console.log(`[HorseBrain] 🔄 MODULE 27 RIO BLOCK: ${rioGuard.reason}`);
-
-    // ─── MODULE 32: OOP EQUITY LEAK — tighten equityFinal for OOP patterns ───
-    const chipLeakFoldAdjust = (!isIP ? oopBoost : 0) + (numPlayers >= 4 ? multiwayBoost : 0);
-
 
     // ─── RIVER ───
     if (street === 'river') {
@@ -4598,8 +4599,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
-    // ─── MODULE 28: COLD-CALL TRAP — reduce continuance on boards vs trapping opponent ───
-    const continuanceScore = flopContinuance.continuanceScore + coldCallPenalty + drawBoost;
+    // ─── MODULE 32 / 29 / 28: GLOBAL EQUITY & THRESHOLD REDUCTIONS ───
+    // drawBoost penalty, bombPotBoost penalty tighten requirements
+    const continuanceScore = flopContinuance.continuanceScore - drawBoost - bombPotBoost;
     if (!flopContinuance.shouldContinue || continuanceScore < 0) return { type: 'fold' };
 
     if (continuanceScore >= flopContinuance.raiseThreshold && canRaise) {
@@ -5572,7 +5574,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
     // ─── MODULE 29: STRADDLE / BOMB-POT EQUITY ADJUSTER ───
     const hasStraddle = engineState.hasStraddle || false;
-    const bombPotInfo = detectBombPotOrStraddle(potTotal, bb, hasStraddle);
+    const bombPotInfo = detectBombPotOrStraddle(potSize, bb, hasStraddle);
     if (bombPotInfo.equityThresholdBoost > 0) {
         console.log(`[HorseBrain] 💣 MODULE 29 ${bombPotInfo.label.toUpperCase()}: equity threshold +${bombPotInfo.equityThresholdBoost}% — tightening commit threshold.`);
     }

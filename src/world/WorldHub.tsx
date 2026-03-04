@@ -373,6 +373,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // Mobile detection
     const isMobile = useIsMobile();
 
+    const [hiddenCardIds, setHiddenCardIdsState] = useState<string[]>(
+        // Lazy init: reads localStorage on first render (client-side only, no SSR flash)
+        () => getHiddenCardIds()
+    );
+
     // Get the 6 footer cards (most visited or defaults) — reactive to hiddenCardIds
     // Also ensures TOKE_TRACKER_ORB is always available for quick-launch
     const footerCards = useMemo(() => {
@@ -429,10 +434,6 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
     const [hasLinkedVenues, setHasLinkedVenues] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [hiddenCardIds, setHiddenCardIdsState] = useState<string[]>(
-        // Lazy init: reads localStorage on first render (client-side only, no SSR flash)
-        () => getHiddenCardIds()
-    );
 
     // Check if user has a Commander account — localStorage first for instant display
     useEffect(() => {

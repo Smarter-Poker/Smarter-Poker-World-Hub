@@ -220,19 +220,23 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
             }
         }
 
-        // ── Release the broken table — scoped to THIS tournament_id ──
-        await supabase
-            .from('commander_tables')
-            .update({
-                mode: 'inactive',
-                tournament_id: null,
-                status: 'available',
-                assigned_at: null,
-                updated_at: new Date().toISOString()
-            })
-            .eq('venue_id', tournament.venue_id)
-            .eq('tournament_id', tournamentId)
-            .eq('table_number', breakCandidate.table_number);
+        // ── Release the broken table (ONLY if all players successfully moved) ──
+        if (errors.length === 0) {
+            await supabase
+                .from('commander_tables')
+                .update({
+                    mode: 'inactive',
+                    tournament_id: null,
+                    status: 'available',
+                    assigned_at: null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('venue_id', tournament.venue_id)
+                .eq('tournament_id', tournamentId)
+                .eq('table_number', breakCandidate.table_number);
+        } else {
+            console.warn(`[auto-break] Table ${breakCandidate.table_number} not released because ${errors.length} player moves failed.`);
+        }
 
         // ── Build receipt data for Bluetooth printer ──
         const receipts = moved.map(a => ({
