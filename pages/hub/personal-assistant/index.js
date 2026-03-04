@@ -2,9 +2,9 @@
  * PERSONAL ASSISTANT — Strategy Hub
  * /hub/personal-assistant
  *
- * Futuristic Metal UI — Matching the World Hub card aesthetic
- * Two primary tools: Virtual Sandbox + Leak Finder
- * Jarvis AI assistant in the circular frame
+ * Image-based Futuristic Metal Frame with dynamic overlay buttons
+ * Uses the provided metal frame image as the visual skin
+ * Jarvis AI avatar in the circular frame (bottom-right)
  */
 
 import { useRouter } from 'next/router';
@@ -19,7 +19,7 @@ import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STRATEGY HUB — Main Landing Page (Futuristic Metal UI)
+// STRATEGY HUB — Image-Based Metal Frame Layout
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function PersonalAssistantPage() {
@@ -27,6 +27,8 @@ export default function PersonalAssistantPage() {
   const { user } = useAvatar();
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [hoveredZone, setHoveredZone] = useState(null);
+  const [sessionFilter, setSessionFilter] = useState('mine');
 
   // Intro video - only show once per session
   const [showIntro, setShowIntro] = useState(() => {
@@ -101,196 +103,196 @@ export default function PersonalAssistantPage() {
           <main style={S.main}>
 
             {/* ═══════════════════════════════════════════════════════════
-                OUTER METAL FRAME — Matches World Hub card aesthetic
+                IMAGE-BASED METAL FRAME with Dynamic Overlay Hotspots
                ═══════════════════════════════════════════════════════════ */}
-            <div style={S.outerFrame}>
+            <div style={S.frameContainer}>
+              {/* The metal frame image */}
+              <img
+                src="/images/personal-assistant-frame.jpg"
+                alt="Strategy Hub"
+                style={S.frameImage}
+                draggable={false}
+              />
 
-              {/* Corner Rivets */}
-              <div style={{ ...S.rivet, top: 8, left: 8 }} />
-              <div style={{ ...S.rivet, top: 8, right: 8 }} />
-              <div style={{ ...S.rivet, bottom: 8, left: 8 }} />
-              <div style={{ ...S.rivet, bottom: 8, right: 8 }} />
+              {/* ── HOTSPOT: Virtual Sandbox Card (entire left panel) ──── */}
+              <div
+                id="hotspot-sandbox"
+                style={{
+                  ...S.hotspot,
+                  top: '5%', left: '5%', width: '45%', height: '45%',
+                  ...(hoveredZone === 'sandbox' ? S.hotspotHover : {}),
+                }}
+                onClick={() => router.push('/hub/personal-assistant/sandbox')}
+                onMouseEnter={() => setHoveredZone('sandbox')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Virtual Sandbox — Explore Theoretical Hands"
+              />
 
-              {/* Cyan accent bars (top) */}
-              <div style={S.accentBarTop} />
+              {/* ── HOTSPOT: Enter Sandbox Button ──────────────────────── */}
+              <div
+                id="hotspot-enter-sandbox"
+                style={{
+                  ...S.hotspot,
+                  top: '39%', left: '7%', width: '38%', height: '6.5%',
+                  ...(hoveredZone === 'enterSandbox' ? S.hotspotBtnHover : {}),
+                }}
+                onClick={() => router.push('/hub/personal-assistant/sandbox')}
+                onMouseEnter={() => setHoveredZone('enterSandbox')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Enter Sandbox"
+              />
 
-              {/* Inner content area */}
-              <div style={S.innerFrame}>
+              {/* ── HOTSPOT: Leak Finder Card (entire right panel) ────── */}
+              <div
+                id="hotspot-leaks"
+                style={{
+                  ...S.hotspot,
+                  top: '5%', left: '52%', width: '44%', height: '45%',
+                  ...(hoveredZone === 'leaks' ? S.hotspotHover : {}),
+                }}
+                onClick={() => router.push('/hub/personal-assistant/leaks')}
+                onMouseEnter={() => setHoveredZone('leaks')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Leak Finder — Track and Improve Your Game"
+              />
 
-                {/* ── Two Tool Cards ──────────────────────────────────── */}
-                <div style={S.toolRow}>
+              {/* ── HOTSPOT: View Leaks Button ─────────────────────────── */}
+              <div
+                id="hotspot-view-leaks"
+                style={{
+                  ...S.hotspot,
+                  top: '39%', left: '55%', width: '38%', height: '6.5%',
+                  ...(hoveredZone === 'viewLeaks' ? S.hotspotBtnHover : {}),
+                }}
+                onClick={() => router.push('/hub/personal-assistant/leaks')}
+                onMouseEnter={() => setHoveredZone('viewLeaks')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="View Leaks"
+              />
 
-                  {/* Virtual Sandbox Card */}
-                  <div
-                    style={S.toolCard}
-                    onClick={() => router.push('/hub/personal-assistant/sandbox')}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(0,180,255,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(100,181,246,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    {/* Card inner rivets */}
-                    <div style={{ ...S.cardRivet, top: 6, left: 6 }} />
-                    <div style={{ ...S.cardRivet, top: 6, right: 6 }} />
-                    <div style={{ ...S.cardRivet, bottom: 6, left: 6 }} />
-                    <div style={{ ...S.cardRivet, bottom: 6, right: 6 }} />
+              {/* ── HOTSPOT: GTO Anchored Pillar ───────────────────────── */}
+              <div
+                id="hotspot-gto"
+                style={{
+                  ...S.hotspot,
+                  top: '63%', left: '5%', width: '28%', height: '12%',
+                  ...(hoveredZone === 'gto' ? S.hotspotHover : {}),
+                }}
+                onClick={() => router.push('/hub/personal-assistant/sandbox')}
+                onMouseEnter={() => setHoveredZone('gto')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="GTO Anchored — Tied To Solver Analysis"
+              />
 
-                    <div style={S.toolIconWrap}>
-                      <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
-                        <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                        <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2" />
-                        <circle cx="24" cy="24" r="4" fill="#64b5f6" />
-                      </svg>
-                    </div>
-                    <h2 style={S.toolTitle}>Virtual Sandbox</h2>
-                    <p style={S.toolSub}>Explore Theoretical Hands</p>
-                    <ul style={S.bulletList}>
-                      <li style={S.bulletItem}><span style={S.bullet} /> Run Any Poker Scenario</li>
-                      <li style={S.bulletItem}><span style={S.bullet} /> Test Complex Hands Vs Villain Types</li>
-                      <li style={S.bulletItem}><span style={S.bullet} /> See Solver-Verified GTO Results</li>
-                    </ul>
-                    <button style={S.toolBtn} onClick={(e) => { e.stopPropagation(); router.push('/hub/personal-assistant/sandbox'); }}>
-                      Enter Sandbox
-                    </button>
-                  </div>
+              {/* ── HOTSPOT: Safe & Fair Pillar ─────────────────────────── */}
+              <div
+                id="hotspot-safe"
+                style={{
+                  ...S.hotspot,
+                  top: '63%', left: '36%', width: '28%', height: '12%',
+                  ...(hoveredZone === 'safe' ? S.hotspotHover : {}),
+                }}
+                onMouseEnter={() => setHoveredZone('safe')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Safe and Fair — No Exploit Hunting"
+              />
 
-                  {/* Leak Finder Card */}
-                  <div
-                    style={S.toolCard}
-                    onClick={() => router.push('/hub/personal-assistant/leaks')}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(0,180,255,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(100,181,246,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    <div style={{ ...S.cardRivet, top: 6, left: 6 }} />
-                    <div style={{ ...S.cardRivet, top: 6, right: 6 }} />
-                    <div style={{ ...S.cardRivet, bottom: 6, left: 6 }} />
-                    <div style={{ ...S.cardRivet, bottom: 6, right: 6 }} />
+              {/* ── HOTSPOT: Results-Driven Pillar ──────────────────────── */}
+              <div
+                id="hotspot-results"
+                style={{
+                  ...S.hotspot,
+                  top: '63%', left: '67%', width: '28%', height: '12%',
+                  ...(hoveredZone === 'results' ? S.hotspotHover : {}),
+                }}
+                onClick={() => router.push('/hub/personal-assistant/leaks')}
+                onMouseEnter={() => setHoveredZone('results')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Results-Driven — Identify Leaks, Track Improvement"
+              />
 
-                    <div style={S.toolIconWrap}>
-                      <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
-                        <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none" />
-                        <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none" />
-                        <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none" />
-                        <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2" />
-                        <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2" />
-                        <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2" />
-                        <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2" />
-                      </svg>
-                    </div>
-                    <h2 style={S.toolTitle}>Leak Finder</h2>
-                    <p style={S.toolSub}>Track and Improve Your Game</p>
-                    <ul style={S.bulletList}>
-                      <li style={S.bulletItem}><span style={S.bullet} /> Detect Statistical Leaks</li>
-                      <li style={S.bulletItem}><span style={S.bullet} /> Track Progress Over Time</li>
-                      <li style={S.bulletItem}><span style={S.bullet} /> Get Targeted Training</li>
-                    </ul>
-                    <button style={{ ...S.toolBtn, background: 'linear-gradient(135deg, #374151, #1f2937)' }} onClick={(e) => { e.stopPropagation(); router.push('/hub/personal-assistant/leaks'); }}>
-                      View Leaks
-                    </button>
-                  </div>
-                </div>
-
-                {/* ── Trust Pillars Section ───────────────────────────── */}
-                <div style={S.trustSection}>
-                  <h3 style={S.trustTitle}>Honest, Regulator-Ready Poker Study</h3>
-                  <div style={S.pillarRow}>
-                    <div style={S.pillar}>
-                      <div style={S.pillarIcon}>
-                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                          <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                          <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                      </div>
-                      <h4 style={S.pillarTitle}>GTO Anchored</h4>
-                      <p style={S.pillarText}>Tied To Solver Analysis</p>
-                    </div>
-                    <div style={S.pillar}>
-                      <div style={S.pillarIcon}>
-                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                          <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                          <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                      </div>
-                      <h4 style={S.pillarTitle}>Safe and Fair</h4>
-                      <p style={S.pillarText}>No Exploit Hunting</p>
-                    </div>
-                    <div style={S.pillar}>
-                      <div style={S.pillarIcon}>
-                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                          <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                          <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <h4 style={S.pillarTitle}>Results-Driven</h4>
-                      <p style={S.pillarText}>Identify Leaks - Track Improvement</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Recent Sessions ─────────────────────────────────── */}
-                <div style={S.sessionsSection}>
-                  <div style={S.sessionsHeader}>
-                    <h3 style={S.sessionsTitle}>Recent Sessions</h3>
-                    <select style={S.sessionsFilter}>
-                      <option>My Sessions</option>
-                      <option>All Sessions</option>
-                    </select>
-                  </div>
-
+              {/* ── HOTSPOT: Recent Sessions Area ──────────────────────── */}
+              <div
+                id="hotspot-sessions"
+                style={{
+                  ...S.hotspot,
+                  top: '78%', left: '5%', width: '67%', height: '14%',
+                }}
+                title="Recent Sessions"
+              >
+                {/* Dynamic session list overlay */}
+                <div style={S.sessionOverlay}>
                   {isLoading ? (
-                    <div style={S.emptyState}>Loading Sessions...</div>
+                    <div style={S.sessionOverlayText}>Loading...</div>
                   ) : recentSessions.length === 0 ? (
-                    <div style={S.emptyState}>No Sessions Yet. Start Exploring In The Virtual Sandbox!</div>
+                    <div style={S.sessionOverlayText}>No Sessions Yet</div>
                   ) : (
-                    <div style={S.sessionsList}>
-                      {recentSessions.map((session) => (
-                        <div key={session.id} style={S.sessionRow}
-                          onClick={() => router.push(session.type === 'sandbox' ? '/hub/personal-assistant/sandbox' : '/hub/personal-assistant/leaks')}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(100,181,246,0.08)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                    <div style={S.sessionOverlayList}>
+                      {recentSessions.slice(0, 3).map((session) => (
+                        <div
+                          key={session.id}
+                          style={{
+                            ...S.sessionOverlayRow,
+                            ...(hoveredZone === `session-${session.id}` ? S.sessionRowHover : {}),
+                          }}
+                          onClick={() => router.push(
+                            session.type === 'sandbox'
+                              ? '/hub/personal-assistant/sandbox'
+                              : '/hub/personal-assistant/leaks'
+                          )}
+                          onMouseEnter={() => setHoveredZone(`session-${session.id}`)}
+                          onMouseLeave={() => setHoveredZone(null)}
                         >
-                          <div style={S.sessionLeft}>
-                            <div style={S.sessionDot}>
-                              {session.type === 'sandbox' ? (
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                                  <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none" />
-                                </svg>
-                              ) : (
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                                  <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
-                                </svg>
-                              )}
-                            </div>
-                            <div>
-                              <span style={S.sessionName}>{session.title}</span>
-                              {session.stack && <span style={S.sessionMeta}> - {session.stack}</span>}
-                            </div>
-                          </div>
-                          <div style={S.sessionRight}>
-                            <span style={{ ...S.sessionEv, color: session.evLoss < 0 ? '#ef4444' : '#22c55e' }}>
-                              {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
-                            </span>
-                          </div>
+                          <span style={S.sessionRowName}>{session.title}</span>
+                          <span style={{
+                            ...S.sessionRowEv,
+                            color: session.evLoss < 0 ? '#ef4444' : '#22c55e',
+                          }}>
+                            {session.evLoss < 0 ? '' : '+'}{session.evLoss?.toFixed(2) || '0.00'} BB
+                          </span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* ── Jarvis Circular Frame (bottom-right) ────────────── */}
-                <div
-                  style={S.jarvisFrame}
-                  onClick={() => {
-                    // Open Jarvis chat
-                    if (typeof window !== 'undefined') {
-                      window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
-                    }
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 0 20px rgba(0,212,255,0.5), inset 0 0 10px rgba(0,212,255,0.15)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 0 12px rgba(0,212,255,0.3), inset 0 0 6px rgba(0,0,0,0.4)'; }}
-                  title="Chat with Jarvis"
-                >
-                  <img src="/images/jarvis-avatar.png" alt="Jarvis AI" style={S.jarvisImg} />
-                </div>
+              {/* ── HOTSPOT: My Sessions Dropdown ──────────────────────── */}
+              <div
+                id="hotspot-my-sessions"
+                style={{
+                  ...S.hotspot,
+                  top: '80%', left: '74%', width: '22%', height: '6%',
+                  ...(hoveredZone === 'filterBtn' ? S.hotspotBtnHover : {}),
+                }}
+                onClick={() => setSessionFilter(f => f === 'mine' ? 'all' : 'mine')}
+                onMouseEnter={() => setHoveredZone('filterBtn')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Toggle Session Filter"
+              />
 
+              {/* ── JARVIS AVATAR in Circular Frame (bottom-right) ─────── */}
+              <div
+                id="hotspot-jarvis"
+                style={{
+                  ...S.jarvisHotspot,
+                  ...(hoveredZone === 'jarvis' ? S.jarvisHover : {}),
+                }}
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('open-jarvis-chat'));
+                  }
+                }}
+                onMouseEnter={() => setHoveredZone('jarvis')}
+                onMouseLeave={() => setHoveredZone(null)}
+                title="Chat with Jarvis"
+              >
+                <img
+                  src="/images/jarvis-avatar.png"
+                  alt="Jarvis AI"
+                  style={S.jarvisImg}
+                  draggable={false}
+                />
               </div>
             </div>
 
@@ -305,7 +307,7 @@ export default function PersonalAssistantPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES — Futuristic Metal Frame UI
+// STYLES
 // ═══════════════════════════════════════════════════════════════════════════
 const S = {
   // Page base
@@ -334,7 +336,7 @@ const S = {
   loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 16 },
   main: {
     position: 'relative', zIndex: 1,
-    padding: '8px 16px 40px',
+    padding: '8px 12px 40px',
     maxWidth: 720,
     margin: '0 auto',
   },
@@ -354,189 +356,119 @@ const S = {
     zIndex: 100000,
   },
 
-  // ── Outer metal frame ──────────────────────────────────────────────────
-  outerFrame: {
+  // ── Image-based frame container ─────────────────────────────────────────
+  frameContainer: {
     position: 'relative',
-    background: 'linear-gradient(145deg, #2a3040 0%, #1a1f2e 30%, #151a26 70%, #1e2432 100%)',
-    border: '3px solid #3a4050',
-    borderRadius: 16,
-    padding: 6,
-    boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
+    width: '100%',
+    maxWidth: 680,
+    margin: '0 auto',
+    userSelect: 'none',
   },
-  rivet: {
-    position: 'absolute', width: 12, height: 12, borderRadius: '50%',
-    background: 'linear-gradient(145deg, #4a5060, #2a3040)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.5)',
-    zIndex: 2,
-  },
-  accentBarTop: {
-    position: 'absolute', top: 0, left: '15%', right: '15%', height: 2,
-    background: 'linear-gradient(90deg, transparent, rgba(0,180,255,0.6), transparent)',
-    borderRadius: 1, zIndex: 2,
-  },
-  innerFrame: {
-    background: 'linear-gradient(180deg, rgba(15,20,30,0.95) 0%, rgba(10,15,25,0.98) 100%)',
-    border: '1px solid rgba(100,181,246,0.12)',
-    borderRadius: 12,
-    padding: '20px 16px 16px',
-    position: 'relative',
+  frameImage: {
+    width: '100%',
+    height: 'auto',
+    display: 'block',
+    borderRadius: 4,
+    // Remove the white background from the image edges
+    filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6))',
   },
 
-  // ── Tool cards row ─────────────────────────────────────────────────────
-  toolRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 12,
-    marginBottom: 16,
-  },
-  toolCard: {
-    position: 'relative',
-    background: 'linear-gradient(145deg, rgba(30,35,50,0.9) 0%, rgba(20,25,38,0.95) 100%)',
-    border: '1px solid rgba(100,181,246,0.2)',
-    borderRadius: 10,
-    padding: '20px 14px 16px',
-    cursor: 'pointer',
-    transition: 'all 0.25s ease',
-    textAlign: 'left',
-  },
-  cardRivet: {
-    position: 'absolute', width: 8, height: 8, borderRadius: '50%',
-    background: 'linear-gradient(145deg, #3a4050, #252a38)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    zIndex: 1,
-  },
-  toolIconWrap: {
-    width: 52, height: 52, borderRadius: '50%',
-    background: 'rgba(100,181,246,0.08)',
-    border: '1px solid rgba(100,181,246,0.15)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
-  },
-  toolTitle: {
-    fontSize: 17, fontWeight: 700, color: '#e2e8f0',
-    marginBottom: 4, fontFamily: 'Inter, sans-serif',
-  },
-  toolSub: {
-    fontSize: 12, color: 'rgba(255,255,255,0.5)',
-    marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px',
-    fontWeight: 600,
-  },
-  bulletList: {
-    listStyle: 'none', padding: 0, margin: '0 0 16px 0',
-  },
-  bulletItem: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '5px 0', fontSize: 13, color: 'rgba(255,255,255,0.8)',
-  },
-  bullet: {
-    width: 6, height: 6, borderRadius: '50%',
-    background: '#64b5f6', flexShrink: 0,
-  },
-  toolBtn: {
-    width: '100%', padding: '10px 16px',
-    background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-    border: '1px solid rgba(100,181,246,0.3)',
-    borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700,
-    cursor: 'pointer', transition: 'all 0.2s ease',
-    letterSpacing: '0.3px',
-  },
-
-  // ── Trust pillars ──────────────────────────────────────────────────────
-  trustSection: {
-    background: 'rgba(100,181,246,0.04)',
-    border: '1px solid rgba(100,181,246,0.1)',
-    borderRadius: 10,
-    padding: '16px 14px',
-    marginBottom: 12,
-  },
-  trustTitle: {
-    fontSize: 16, fontWeight: 700, color: '#e2e8f0',
-    textAlign: 'center', marginBottom: 14,
-    fontFamily: 'Inter, sans-serif',
-  },
-  pillarRow: {
-    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
-  },
-  pillar: {
-    background: 'rgba(100,181,246,0.05)',
-    border: '1px solid rgba(100,181,246,0.12)',
-    borderRadius: 8, padding: '14px 10px',
-    textAlign: 'center',
-  },
-  pillarIcon: { marginBottom: 8, display: 'flex', justifyContent: 'center' },
-  pillarTitle: {
-    fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 4,
-  },
-  pillarText: {
-    fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4,
-  },
-
-  // ── Recent sessions ────────────────────────────────────────────────────
-  sessionsSection: {
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(100,181,246,0.08)',
-    borderRadius: 10,
-    padding: '14px',
-  },
-  sessionsHeader: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 10,
-  },
-  sessionsTitle: {
-    fontSize: 16, fontWeight: 700, color: '#e2e8f0',
-    fontFamily: 'Inter, sans-serif',
-  },
-  sessionsFilter: {
-    padding: '6px 12px', background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
-    color: '#94a3b8', fontSize: 12, cursor: 'pointer',
-  },
-  emptyState: {
-    padding: '24px 16px', textAlign: 'center',
-    color: 'rgba(255,255,255,0.4)', fontSize: 13,
-  },
-  sessionsList: { display: 'flex', flexDirection: 'column', gap: 4 },
-  sessionRow: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '10px 12px',
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.04)',
-    borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s',
-  },
-  sessionLeft: { display: 'flex', alignItems: 'center', gap: 10 },
-  sessionDot: {
-    width: 28, height: 28, display: 'flex',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  sessionName: { fontSize: 13, fontWeight: 500, color: '#e2e8f0' },
-  sessionMeta: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
-  sessionRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end' },
-  sessionEv: { fontSize: 13, fontWeight: 600 },
-
-  // ── Jarvis circular frame ──────────────────────────────────────────────
-  jarvisFrame: {
+  // ── Generic hotspot (invisible interactive zone) ────────────────────────
+  hotspot: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
-    width: 48,
-    height: 48,
+    cursor: 'pointer',
+    borderRadius: 8,
+    transition: 'all 0.25s ease',
+    zIndex: 2,
+    // Debug: uncomment to see hotspot zones
+    // background: 'rgba(255,0,0,0.15)', border: '1px solid red',
+  },
+  hotspotHover: {
+    background: 'rgba(0,180,255,0.08)',
+    boxShadow: '0 0 20px rgba(0,180,255,0.15)',
+  },
+  hotspotBtnHover: {
+    background: 'rgba(0,180,255,0.15)',
+    boxShadow: '0 0 15px rgba(0,180,255,0.25)',
+    transform: 'scale(1.02)',
+  },
+
+  // ── Jarvis circular frame hotspot ───────────────────────────────────────
+  jarvisHotspot: {
+    position: 'absolute',
+    bottom: '6%',
+    right: '4%',
+    width: '12%',
+    height: '12%',
     borderRadius: '50%',
-    background: 'linear-gradient(145deg, #2a3040, #1a1f2e)',
-    border: '2px solid rgba(100,181,246,0.25)',
-    boxShadow: '0 0 12px rgba(0,212,255,0.3), inset 0 0 6px rgba(0,0,0,0.4)',
     cursor: 'pointer',
     overflow: 'hidden',
-    transition: 'box-shadow 0.3s ease',
     zIndex: 3,
+    transition: 'all 0.3s ease',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    // Glow ring effect
+    boxShadow: '0 0 12px rgba(0,212,255,0.4), inset 0 0 8px rgba(0,0,0,0.3)',
+  },
+  jarvisHover: {
+    boxShadow: '0 0 25px rgba(0,212,255,0.7), 0 0 50px rgba(0,212,255,0.3), inset 0 0 10px rgba(0,212,255,0.15)',
+    transform: 'scale(1.08)',
   },
   jarvisImg: {
-    width: '100%',
-    height: '100%',
+    width: '85%',
+    height: '85%',
     objectFit: 'cover',
     borderRadius: '50%',
+  },
+
+  // ── Dynamic session overlay ─────────────────────────────────────────────
+  sessionOverlay: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: '4% 6%',
+    overflow: 'hidden',
+  },
+  sessionOverlayText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    textAlign: 'center',
+    fontFamily: 'Inter, sans-serif',
+  },
+  sessionOverlayList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    overflow: 'hidden',
+  },
+  sessionOverlayRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '3px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    transition: 'background 0.15s',
+  },
+  sessionRowHover: {
+    background: 'rgba(100,181,246,0.12)',
+  },
+  sessionRowName: {
+    fontSize: 11,
+    fontWeight: 500,
+    color: '#e2e8f0',
+    fontFamily: 'Inter, sans-serif',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '60%',
+  },
+  sessionRowEv: {
+    fontSize: 11,
+    fontWeight: 700,
+    fontFamily: 'Inter, sans-serif',
   },
 };
