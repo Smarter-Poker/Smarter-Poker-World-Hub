@@ -187,6 +187,7 @@ export default async function handler(req, res) {
       data: {
         tournament: {
           id: tournament.id,
+          venue_id: tournament.venue_id,
           name: tournament.name,
           status: tournament.status,
           tournament_type: tournament.tournament_type,

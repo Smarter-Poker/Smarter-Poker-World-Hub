@@ -22,7 +22,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { calculateICM, calculateChipChop, formatPrize } from '../../../../src/lib/commander/icm-utils';
-import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
+import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -72,6 +72,7 @@ export default function ClockDisplay() {
   const [handTimerActive, setHandTimerActive] = useState(false);
   const [handTimerSeconds, setHandTimerSeconds] = useState(60);
   const [burnInOffset, setBurnInOffset] = useState({ x: 0, y: 0 });
+  const [venueId, setVenueId] = useState(null);
   // Editable ICM/Chop state
   const [editableStacks, setEditableStacks] = useState([]);
   const [chopMode, setChopMode] = useState('icm'); // 'icm' or 'chip_chop'
@@ -178,63 +179,8 @@ export default function ClockDisplay() {
     return () => { if (cycleRef.current) clearInterval(cycleRef.current); };
   }, [preset]);
 
-  // Fetch floor-view data
-  useEffect(() => {
-    if (!id) return;
-    const fetchData = async () => {
-      try {
-        const staffSession = localStorage.getItem('commander_staff') || '';
-        const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
-          headers: { 'x-staff-session': staffSession },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setData(json.data);
-          const cs = json.data.clock?.clock_state;
-          if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
-            // Only update local seconds if the clock is NOT running, OR if the server value is way off (manually adjusted by TD)
-            setSeconds(prev => {
-              if (cs.status !== 'running') return cs.remaining_seconds;
-              if (Math.abs(prev - cs.remaining_seconds) > 3) return cs.remaining_seconds;
-              return prev; // Trust local tick
-            });
-          } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
-            // Wait for next level to fetch
-            if (cs?.status !== 'running') {
-              const blindStructure = json.data.tournament?.blind_structure || [];
-              const currentLvl = json.data.clock?.current_level || 0;
-              const levelData = blindStructure[currentLvl];
-              if (levelData?.duration) {
-                setSeconds(levelData.duration * 60);
-              }
-            }
-          }
-          isRunningRef.current = cs?.status === 'running';
-
-          // Sound alerts — detect level change
-          const currentLevel = json.data.clock?.current_level;
-          const displayOpts = preset?.display_options || {};
-          if (prevLevelRef.current !== null && currentLevel !== prevLevelRef.current) {
-            if (displayOpts.sound_level_change) playAlert('level');
-          }
-          if (json.data.alerts?.on_break && displayOpts.sound_break) playAlert('break');
-          if (json.data.alerts?.final_table && displayOpts.sound_final_table) playAlert('final');
-          prevLevelRef.current = currentLevel;
-
-          // Load preset if tournament has clock_preset_id
-          if (!preset && json.data.tournament?.clock_preset_id) {
-            fetchPreset(json.data.tournament.clock_preset_id);
-          }
-        }
-      } catch (err) { console.error(err); }
-    };
-    fetchData();
-    const poll = setInterval(fetchData, 3000);
-    return () => clearInterval(poll);
-  }, [id, preset]);
-
   // Fetch clock preset
-  const fetchPreset = async (presetId) => {
+  const fetchPreset = useCallback(async (presetId) => {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/clock-presets', {
@@ -246,7 +192,71 @@ export default function ClockDisplay() {
         if (found) setPreset(found);
       }
     } catch (err) { console.error(err); }
-  };
+  }, []);
+
+  // Fetch floor-view data
+  const fetchData = useCallback(async () => {
+    if (!id) return;
+    try {
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
+        headers: { 'x-staff-session': staffSession },
+      });
+      const json = await res.json();
+      if (json.success) {
+        setData(json.data);
+        if (json.data.tournament?.venue_id) setVenueId(json.data.tournament.venue_id);
+
+        const cs = json.data.clock?.clock_state;
+        if (cs?.remaining_seconds !== undefined && cs.remaining_seconds > 0) {
+          // Only update local seconds if the clock is NOT running, OR if the server value is way off (manually adjusted by TD)
+          setSeconds(prev => {
+            if (cs.status !== 'running') return cs.remaining_seconds;
+            if (Math.abs(prev - cs.remaining_seconds) > 3) return cs.remaining_seconds;
+            return prev; // Trust local tick
+          });
+        } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
+          // Wait for next level to fetch
+          if (cs?.status !== 'running') {
+            const blindStructure = json.data.tournament?.blind_structure || [];
+            const currentLvl = json.data.clock?.current_level || 0;
+            const levelData = blindStructure[currentLvl];
+            if (levelData?.duration) {
+              setSeconds(levelData.duration * 60);
+            }
+          }
+        }
+        isRunningRef.current = cs?.status === 'running';
+
+        // Sound alerts — detect level change
+        const currentLevel = json.data.clock?.current_level;
+        const displayOpts = preset?.display_options || {};
+        if (prevLevelRef.current !== null && currentLevel !== prevLevelRef.current) {
+          if (displayOpts.sound_level_change) playAlert('level');
+        }
+        if (json.data.alerts?.on_break && displayOpts.sound_break) playAlert('break');
+        if (json.data.alerts?.final_table && displayOpts.sound_final_table) playAlert('final');
+        prevLevelRef.current = currentLevel;
+
+        // Load preset if tournament has clock_preset_id
+        if (!preset && json.data.tournament?.clock_preset_id) {
+          fetchPreset(json.data.tournament.clock_preset_id);
+        }
+      }
+    } catch (err) { console.error(err); }
+  }, [id, preset, fetchPreset]);
+
+  // Initial fetch and polling fallback
+  useEffect(() => {
+    fetchData();
+    const poll = setInterval(fetchData, 3000);
+    return () => clearInterval(poll);
+  }, [fetchData]);
+
+  // Instant Real-Time Synchronization
+  useCommanderSync(venueId, fetchData, { entities: ['tournaments'] });
+
+
 
   // Sound alert playback
   const playAlert = (type) => {
