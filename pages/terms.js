@@ -32,7 +32,7 @@ export default function TermsOfService() {
                         <span style={styles.logoText}>Smarter.Poker</span>
                     </Link>
                     <Link href="/auth/signup" style={{ display: 'inline-block' }}>
-                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} loading="lazy" decoding="async">
+                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                     </Link>
                 </header>
 

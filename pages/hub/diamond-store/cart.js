@@ -389,7 +389,7 @@ function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, on
             layout
         >
             {image && (
-                <img src={image} alt={name} style={styles.itemImage} loading="lazy" decoding="async">
+                <img src={image} alt={name} style={styles.itemImage} />
             )}
 
             <div style={styles.itemDetails}>

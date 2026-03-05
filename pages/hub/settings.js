@@ -673,13 +673,13 @@ export default function SettingsPage() {
                                                         <img
                                                             src={displayAvatar}
                                                             alt="Your Avatar"
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
                                                         <img
                                                             src={defaultPlaceholder}
                                                             alt="Default Avatar"
                                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                            onError={(e) = loading="lazy" decoding="async"> { e.target.style.display = 'none'; e.target.parentNode.innerHTML = ''; }}
+                                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = ''; }}
                                                         />
                                                     )}
                                                 </div>
@@ -766,7 +766,7 @@ export default function SettingsPage() {
                                                             <img
                                                                 src={avatarData.image_url}
                                                                 alt={`Avatar ${index + 1}`}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                             {isActive && (
                                                                 <div style={{
                                                                     position: 'absolute',
@@ -2407,7 +2407,7 @@ export default function SettingsPage() {
                                     ) : qrCode ? (
                                         <>
                                             <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan With Your Authenticator App</div>
-                                            <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} loading="lazy" decoding="async">
+                                            <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
                                             <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
                                                 Manual Entry Key: {manualEntryKey || 'Loading...'}
                                             </p>

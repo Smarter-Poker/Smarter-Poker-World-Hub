@@ -389,7 +389,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
                   <span style={{ fontSize: 16 }}>
                     {form.xmttClubIds.includes(sc.id) ? '' : '⬜'}
                   </span>
-                  {sc.logo && <img src={sc.logo} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} loading="lazy" decoding="async">}
+                  {sc.logo && <img src={sc.logo} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} />}
                   <span style={{ fontSize: 13, color: FB.text }}>{sc.name}</span>
                 </div>
               ))}

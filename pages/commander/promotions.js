@@ -1558,7 +1558,7 @@ export default function PromotionsPage() {
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-[#1877F2]/10 flex items-center justify-center">
                               {award.profiles?.avatar_url ? (
-                                <img src={award.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async">
+                                <img src={award.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                               ) : (
                                 <User className="w-4 h-4 text-[#1877F2]" />
                               )}

@@ -153,7 +153,7 @@ function PostCard({ post }) {
         <div className={`grid gap-1 ${post.image_urls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {post.image_urls.slice(0, 4).map((url, idx) => (
             <div key={idx} className={`relative ${post.image_urls.length > 1 ? 'aspect-video overflow-hidden' : ''}`}>
-              <img src={url} alt="" className={`${post.image_urls.length loading="lazy" decoding="async"> 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
+              <img src={url} alt="" className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
               {idx === 3 && post.image_urls.length > 4 && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <span className="text-white font-semibold text-lg">+{post.image_urls.length - 4}</span>
@@ -305,7 +305,7 @@ export default function HomeGamePage() {
             <img
               src={group.cover_photo_url}
               alt={group.name}
-              className="w-full h-full object-cover" loading="lazy" decoding="async">
+              className="w-full h-full object-cover" />
           )}
           {group.is_private && (
             <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 text-white text-sm rounded-full flex items-center gap-1">
@@ -323,7 +323,7 @@ export default function HomeGamePage() {
                 {/* Profile Photo */}
                 <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-xl border-4 border-white shadow-lg flex items-center justify-center -mt-16 md:-mt-20">
                   {group.profile_photo_url ? (
-                    <img src={group.profile_photo_url} alt="" className="w-full h-full object-cover rounded-lg" loading="lazy" decoding="async">
+                    <img src={group.profile_photo_url} alt="" className="w-full h-full object-cover rounded-lg" />
                   ) : (
                     <div className="w-full h-full bg-[#10B981]/10 rounded-lg flex items-center justify-center">
                       <Home className="w-12 h-12 text-[#10B981]" />
@@ -495,7 +495,7 @@ export default function HomeGamePage() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[#10B981]/10 rounded-full flex items-center justify-center">
                     {group.host_avatar ? (
-                      <img src={group.host_avatar} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" decoding="async">
+                      <img src={group.host_avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <Users className="w-5 h-5 text-[#10B981]" />
                     )}

@@ -231,7 +231,7 @@ export default function WaitlistDisplay() {
             <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
               <ArrowLeft size={16} color={c.accentColor} />
             </button>
-            {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} loading="lazy" decoding="async">}
+            {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />}
             <span style={{ fontSize: '22px', fontWeight: 700, color: c.accentColor, letterSpacing: '0.5px', textTransform: 'uppercase', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {venueName || 'Poker Room'}
             </span>

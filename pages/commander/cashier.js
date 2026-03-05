@@ -1748,7 +1748,7 @@ export default function Cashier() {
     <div class="tier">${tier} Member</div>
     <div class="id">ID: ${memberId}</div>
   </div>
-  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR" loading="lazy" decoding="async"></div>
+  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR" /></div>
 </div>
 </body></html>`);
                       w.document.close();
