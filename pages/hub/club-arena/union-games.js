@@ -79,14 +79,14 @@ export default function UnionGames() {
   }, [unionId, user]);
 
   const loadTournaments = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     if (!unionId) return;
     const statusMap = {
       upcoming: ['scheduled', 'registering', 'late_reg'],
       running: ['running', 'late_reg', 'break', 'paused', 'final_table'],
       past: ['complete', 'cancelled'],
-    });
+    };
     const res = await api('list_tournaments', { unionId, status: statusMap[subTab] });
     if (res.success) {
       setTournaments(res.tournaments || []);
@@ -95,8 +95,8 @@ export default function UnionGames() {
   }, [unionId, subTab]);
 
   const loadTables = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     if (!unionId) return;
     const res = await api('list_tables', { unionId });
     if (res.success) {
@@ -109,8 +109,8 @@ export default function UnionGames() {
   }, [unionId, tableFilter]);
 
   const loadData = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     setLoading(true);
     if (tab === 'tournaments') await loadTournaments();
     else await loadTables();
@@ -336,7 +336,7 @@ export default function UnionGames() {
                   <span> {t.variant?.toUpperCase()} {t.type?.toUpperCase()}</span>
                   <span> {Number(t.buy_in).toLocaleString()}</span>
                   <span> {t.registered_count}/{t.max_players}</span>
-                  <span> {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) >Number(t.prize_pool) ? ' GTD' : ''}</span>
+                  <span> {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
                 </div>
                 {/* Actions */}
                 {['scheduled', 'registering'].includes(t.status) && (
@@ -525,18 +525,22 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
         <h2 style={{ margin: '0 0 16px', fontSize: 18 }}>Create Union Tournament</h2>
 
         {F('Tournament Name', 'name')}
-        {F('Type', 'type', 'select', { options: [
-          { value: 'xmtt', label: 'XMTT (Cross-Club MTT)' },
-          { value: 'mtt', label: 'MTT (Single Club)' },
-          { value: 'sng', label: 'Sit & Go' },
-        ]})}
+        {F('Type', 'type', 'select', {
+          options: [
+            { value: 'xmtt', label: 'XMTT (Cross-Club MTT)' },
+            { value: 'mtt', label: 'MTT (Single Club)' },
+            { value: 'sng', label: 'Sit & Go' },
+          ]
+        })}
         {F('Host Club', 'hostClubId', 'select', {
           options: clubs.map(c => ({ value: c.id, label: c.name })),
         })}
-        {F('Variant', 'variant', 'select', { options: [
-          { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
-          { value: 'plo5', label: 'PLO5' }, { value: 'short_deck', label: 'Short Deck' },
-        ]})}
+        {F('Variant', 'variant', 'select', {
+          options: [
+            { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
+            { value: 'plo5', label: 'PLO5' }, { value: 'short_deck', label: 'Short Deck' },
+          ]
+        })}
         {F('Buy-in', 'buyIn', 'number')}
         {F('Starting Chips', 'startingChips', 'number')}
         {F('Max Players', 'maxPlayers', 'number')}
@@ -651,11 +655,13 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
 
         {F('Club', 'clubId', 'select', { options: clubs.map(c => ({ value: c.id, label: c.name })) })}
         {F('Table Name (optional)', 'tableName')}
-        {F('Game', 'gameVariant', 'select', { options: [
-          { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
-          { value: 'plo5', label: 'PLO5' }, { value: 'plo6', label: 'PLO6' },
-          { value: 'plo8', label: 'PLO Hi/Lo' }, { value: 'short_deck', label: 'Short Deck' },
-        ]})}
+        {F('Game', 'gameVariant', 'select', {
+          options: [
+            { value: 'nlh', label: "NL Hold'em" }, { value: 'plo4', label: 'PLO4' },
+            { value: 'plo5', label: 'PLO5' }, { value: 'plo6', label: 'PLO6' },
+            { value: 'plo8', label: 'PLO Hi/Lo' }, { value: 'short_deck', label: 'Short Deck' },
+          ]
+        })}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {F('Small Blind', 'smallBlind', 'number')}
@@ -666,11 +672,13 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
           {F('Min Buy-in', 'minBuyIn', 'number')}
           {F('Max Buy-in', 'maxBuyIn', 'number')}
         </div>
-        {F('Max Players', 'maxPlayers', 'select', { options: [
-          { value: 2, label: '2 (Heads Up)' }, { value: 6, label: '6-Max' },
-          { value: 8, label: '8-Max' }, { value: 9, label: '9-Max (Full Ring)' },
-          { value: 10, label: '10-Max' },
-        ]})}
+        {F('Max Players', 'maxPlayers', 'select', {
+          options: [
+            { value: 2, label: '2 (Heads Up)' }, { value: 6, label: '6-Max' },
+            { value: 8, label: '8-Max' }, { value: 9, label: '9-Max (Full Ring)' },
+            { value: 10, label: '10-Max' },
+          ]
+        })}
         {F('Action Time (seconds)', 'actionTime', 'number')}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {F('Rake %', 'rakePercent', 'number')}
@@ -713,8 +721,8 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     if (!['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status)) return;
     let active = true;
     const poll = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
+      const controller = new AbortController();
+      const { signal } = controller;
       try {
         const token = await getToken();
         const res = await fetch('/api/poker/engine/tournament', {
@@ -725,7 +733,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         const data = await res.json();
         if (active && data.success !== false) setTourneyState(data);
       } catch (e) { /* ignore */ }
-    });
+    };
     poll();
     const interval = setInterval(poll, 5000);
     return () => { active = false; clearInterval(interval); };

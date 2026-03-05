@@ -1941,7 +1941,7 @@ export default function MemoryGamesPage() {
         setMode('game');
 
         SoundEngine.play('levelUp');
-    });
+    };
 
     // Handle time up
     const handleTimeUp = () => {
@@ -2368,7 +2368,7 @@ export default function MemoryGamesPage() {
         } catch (error) {
             console.error('[MemoryGames] Fetch weak spots error:', error);
         }
-    });
+    };
 
     // Start adaptive training targeting weaknesses
     const startAdaptiveTraining = async () => {
@@ -2400,7 +2400,7 @@ export default function MemoryGamesPage() {
         } finally {
             setAdaptiveLoading(false);
         }
-    });
+    };
 
     // Fetch lobby suggestions for proactive learning
     const fetchLobbySuggestions = async () => {
@@ -2418,7 +2418,7 @@ export default function MemoryGamesPage() {
         } catch (error) {
             console.error('[MemoryGames] Lobby suggestions error:', error);
         }
-    });
+    };
 
     // Fetch weak spots and suggestions on mount when user is available
     useEffect(() => {

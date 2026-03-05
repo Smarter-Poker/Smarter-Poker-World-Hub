@@ -77,8 +77,8 @@ export default function TimeBilling() {
   };
 
   const fetchData = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     try {
       const token = getToken();
       const venueId = getVenueId();
@@ -144,8 +144,8 @@ export default function TimeBilling() {
   // Load pricing settings
   useEffect(() => {
     const loadPricing = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
+      const controller = new AbortController();
+      const { signal } = controller;
       try {
         const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
@@ -161,7 +161,7 @@ export default function TimeBilling() {
           }));
         }
       } catch { /* non-fatal */ }
-    });
+    };
     loadPricing();
     // Load membership plans
     const loadMemberPlans = async () => {
@@ -259,7 +259,7 @@ export default function TimeBilling() {
     } finally {
       setPinVerifying(false);
     }
-  });
+  };
 
   const handlePinDigit = (d) => {
     const next = pinDigits + d;

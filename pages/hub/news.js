@@ -1163,7 +1163,7 @@ export default function NewsHub() {
         } finally {
             setSubscribing(false);
         }
-    });
+    };
 
     // Link containment - stay inside smarter.poker
     const { openExternal } = useExternalLink();
@@ -1187,7 +1187,7 @@ export default function NewsHub() {
         } else {
             router.push(`/hub/article?id=${article.id}`);
         }
-    });
+    };
 
     // Video navigation - uses link containment for YouTube and direct URLs
     const openVideo = (video) => {

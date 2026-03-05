@@ -134,8 +134,8 @@ export default function DailyPresetsPage() {
   }
 
   const fetchData = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': localStorage.getItem('commander_staff') || '' };
@@ -223,7 +223,7 @@ export default function DailyPresetsPage() {
             min_buyin: gt.min_buyin,
             max_buyin: gt.max_buyin,
             max_players: gt.max_players
-          });
+          };
         }
       }
       return { ...prev, tables };

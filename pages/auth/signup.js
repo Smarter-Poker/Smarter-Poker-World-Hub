@@ -622,15 +622,25 @@ export default function SignUpPage() {
             // Award referral bonus to referrer if referral code was used
             if (isReferralCode && referralValid && referralDetails && authData.user) {
                 try {
-                    await fetch('/api/rewards/referral', {
+                    // BUG #10 FIX: Get session token — referral API requires Bearer auth
+                    const refSession = authData.session || (await supabase.auth.getSession()).data?.session;
+                    const refRes = await fetch('/api/rewards/referral', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(refSession?.access_token ? { Authorization: `Bearer ${refSession.access_token}` } : {}),
+                        },
                         body: JSON.stringify({
                             referrerId: referralDetails.referrerId,
                             referredUserId: authData.user.id,
                         }),
                     });
-                    console.log('Referral reward sent to:', referralDetails.referrerId);
+                    const refData = await refRes.json();
+                    if (refRes.ok && refData.success) {
+                        console.log('Referral reward sent to:', referralDetails.referrerId, refData.message);
+                    } else {
+                        console.warn('Referral reward failed:', refData.error || 'Unknown error');
+                    }
                 } catch (refErr) {
                     console.error('Referral reward error (non-blocking):', refErr);
                 }

@@ -393,15 +393,15 @@ export default function ProfilePage() {
                         const friendsData = friendsRes.ok ? await friendsRes.json() : [];
 
                         // Count followers
-                        const followersRes = await fetch(`${supabaseUrl}/rest/v1/follows?following_id=eq.${authUser.id}&select=id`, { signal,  headers });
+                        const followersRes = await fetch(`${supabaseUrl}/rest/v1/follows?following_id=eq.${authUser.id}&select=id`, { headers });
                         const followersData = followersRes.ok ? await followersRes.json() : [];
 
                         // Count following
-                        const followingRes = await fetch(`${supabaseUrl}/rest/v1/follows?follower_id=eq.${authUser.id}&select=id`, { signal,  headers });
+                        const followingRes = await fetch(`${supabaseUrl}/rest/v1/follows?follower_id=eq.${authUser.id}&select=id`, { headers });
                         const followingData = followingRes.ok ? await followingRes.json() : [];
 
                         // Count posts
-                        const postsRes = await fetch(`${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&select=id`, { signal,  headers });
+                        const postsRes = await fetch(`${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&select=id`, { headers });
                         const postsData = postsRes.ok ? await postsRes.json() : [];
 
                         setSocialStats({
@@ -479,7 +479,7 @@ export default function ProfilePage() {
                 console.error('[Profile] Auth error:', e);
             }
             setLoading(false);
-        });
+        };
         fetchUser();
     }, []);
 

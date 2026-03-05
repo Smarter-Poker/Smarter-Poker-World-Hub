@@ -15,9 +15,9 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const REFERRAL_REWARD = 500;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -31,9 +31,11 @@ export default async function handler(req, res) {
     if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { referrerId, referredUserId } = req.body;
-    // Enforce: referrer must be the authenticated user
-    if (referrerId !== authUser.id) {
-        return res.status(403).json({ success: false, error: 'Can only claim referral rewards for your own referrals' });
+    // Allow either the referrer or the referred user to trigger the reward
+    // During signup, the authenticated user is the referred user (new signup)
+    // The referrer will be credited regardless of who triggers the call
+    if (referrerId !== authUser.id && referredUserId !== authUser.id) {
+        return res.status(403).json({ success: false, error: 'Cannot claim referral rewards for unrelated accounts' });
     }
 
     if (!referrerId || !referredUserId) {

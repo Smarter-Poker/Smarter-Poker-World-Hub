@@ -521,7 +521,7 @@ export default function PromotionsPage() {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
-        fetch(`/api/commander/promotions/${id}`, { signal, method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+        fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
       if (failed > 0) alert(`${failed} of ${selectedIds.size} deletions failed`);
@@ -619,7 +619,7 @@ export default function PromotionsPage() {
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/promotions/${promo.id}`, { signal, method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {

@@ -1306,7 +1306,7 @@ export default function PokerNearMePage() {
             setLiveGames([]);
         }
         setLiveLoading(false);
-    });
+    };
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -1552,7 +1552,7 @@ export default function PokerNearMePage() {
         series: series.length,
         daily: dailyTournaments.length,
         live: liveGames.length
-    });
+    };
 
     const counts = getCounts();
 

@@ -173,7 +173,7 @@ export default function MemoryGamesStats() {
         highestLevel: 1,
         currentStreak: 0,
         longestStreak: 0
-    });
+    };
 
     const getPlaceholderLevelAccuracy = () => {
         return Array.from({ length: 10 }, (_, i) => ({
