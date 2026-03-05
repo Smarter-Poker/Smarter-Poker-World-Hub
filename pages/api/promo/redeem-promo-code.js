@@ -8,9 +8,9 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
                     .from('profiles')
                     .update({
                         is_vip: true,
-                        vip_trial_end: trialEnd.toISOString(),
+                        vip_expires_at: trialEnd.toISOString(),
                     })
                     .eq('id', userId);
 
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
                     .from('profiles')
                     .update({
                         is_vip: true,
-                        vip_trial_end: null, // null = no expiration = lifetime
+                        vip_expires_at: null, // null = no expiration = lifetime
                     })
                     .eq('id', userId);
 

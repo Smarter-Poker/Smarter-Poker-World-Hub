@@ -144,6 +144,7 @@ export default async function handler(req, res) {
             throw error;
         }
 
+        console.log('[DailyChallenge] Created:', {
             id: challenge.id,
             level,
             title: scenario.title,

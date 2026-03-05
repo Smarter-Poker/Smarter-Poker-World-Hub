@@ -709,7 +709,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_uploadSess?.access_token ? { Authorization: `Bearer ${_uploadSess.access_token}` } : {},
+                            ...(_uploadSess?.access_token ? { Authorization: `Bearer ${_uploadSess.access_token}` } : {}),
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -885,7 +885,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             setShowMentions(false);
             setMentionResults([]);
         }
-    });
+    };
 
     // Remove the detected link preview
     const removeLinkPreview = () => {
@@ -1756,7 +1756,7 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
             setError('Network error. Please try again.');
         }
         setCreating(false);
-    });
+    };
 
     return (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1968,7 +1968,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             }
         } catch (err) { console.error('Cover upload error:', err); alert('Cover upload error: ' + err.message); }
         setCoverUploading(false);
-    });
+    };
 
     const handleLogoUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -2011,7 +2011,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         } catch (err) { console.error('Logo upload error:', err); alert('Logo upload error: ' + err.message); }
         setLogoUploading(false);
         if (logoInputRef.current) logoInputRef.current.value = '';
-    });
+    };
 
     const handlePostMediaSelect = async (e) => {
         const files = Array.from(e.target.files || []);
@@ -2031,7 +2031,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {},
+                            ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {}),
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -2097,14 +2097,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     if (json.success) { setLiveGames(json.data || []); setTimerTick(0); }
                 } catch (e) { console.error('Games fetch error:', e); }
                 setLoadingGames(false);
-            });
+            };
             const fetchPending = async () => {
                 try {
                     const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`, { signal });
                     const json = await res.json();
                     if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
                 } catch (e) { console.error('Pending fetch error:', e); }
-            });
+            };
             fetchGames();
             fetchPending();
             const interval = setInterval(() => { fetchGames(); fetchPending(); }, 15000);
@@ -2120,7 +2120,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             });
             setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
         } catch (e) { console.error('Approve/reject error:', e); }
-    });
+    };
 
     // Save metadata helper
     const saveMetadata = async (newMeta, label) => {
@@ -2165,7 +2165,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             }
         } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
         setMetaSaving(false);
-    });
+    };
 
     // Fetch posts
     useEffect(() => {
@@ -2177,7 +2177,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 if (json.success) setPosts(json.data || []);
             } catch (e) { console.error('Club page posts fetch error:', e); }
             setLoadingPosts(false);
-        });
+        };
         fetchPosts();
     }, [page.id, userId]);
 
@@ -2206,11 +2206,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             alert('Post failed: ' + e.message);
         }
         setPosting(false);
-    });
+    };
 
     const handleDeletePost = async (postId) => {
-        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { signal,  method: 'DELETE' }); setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
-    });
+        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' }); setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
+    };
 
     const handleSavePage = async () => {
         const controller = new AbortController();
@@ -2227,14 +2227,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
         } catch (e) { console.error('Save error:', e); }
         setSaving(false);
-    });
+    };
 
     const handleTogglePin = async (post) => {
         try {
-            await fetch('/api/social/pages/posts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned } });
+            await fetch('/api/social/pages/posts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) });
             setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
         } catch (e) { console.error('Pin error:', e); }
-    });
+    };
 
     const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
     const labelSt = { display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 };
@@ -3110,7 +3110,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             } else { setFollowStatus('none'); }
         } catch { setFollowStatus('none'); }
         setFollowLoading(false);
-    });
+    };
 
     const fetchGames = async () => {
         const controller = new AbortController();
@@ -3128,7 +3128,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             }
         } catch (e) { console.error('Public games fetch error:', e); }
         setLoading(false);
-    });
+    };
 
     useEffect(() => {
         checkFollowStatus();
@@ -3158,7 +3158,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             } else { showMsg(json.error || 'Could not follow page'); }
         } catch { showMsg('Error following page'); }
         setFollowLoading(false);
-    });
+    };
 
     const handleTakeSeat = async (gameId, seatNumber) => {
         if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
@@ -3171,7 +3171,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             if (json.success) { showMsg(`Seat ${seatNumber} reserved!`); fetchGames(); }
             else { showMsg(json.error || 'Could not take seat'); }
         } catch (e) { showMsg('Error reserving seat'); }
-    });
+    };
 
     const handleJoinWaitlist = async (gameId) => {
         if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
@@ -3189,7 +3189,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             if (json.success) { showMsg(`Added to waitlist (position #${json.position})`); fetchGames(); }
             else { showMsg(json.error || 'Could not join waitlist'); }
         } catch (e) { showMsg('Error joining waitlist'); }
-    });
+    };
 
     const handleLeave = async (gameId) => {
         if (!playerName.trim()) return;
@@ -3200,7 +3200,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             });
             showMsg('You have been removed from the game'); fetchGames();
         } catch (e) { showMsg('Error leaving game'); }
-    });
+    };
 
     const canInteract = followStatus === 'approved';
 
@@ -3672,7 +3672,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
             });
         } catch { }
-    });
+    };
 
     const cats = [
         { key: 'all', label: 'All' },
@@ -4170,9 +4170,9 @@ export default function SocialMediaPage() {
                                 .select('id, username, full_name, avatar_url')
                                 .in('id', actorIds)
                                 .limit(50) // suggested profiles;
-                            (profilesById || []).forEach(p => {
-                                profileById[p.id] = p;
-                            });
+                                (profilesById || []).forEach(p => {
+                                    profileById[p.id] = p;
+                                });
                         }
 
                         // Lookup by full_name as fallback
@@ -4181,9 +4181,9 @@ export default function SocialMediaPage() {
                                 .select('id, username, full_name, avatar_url')
                                 .in('full_name', actorNames)
                                 .limit(50) // suggested profiles;
-                            (profilesByName || []).forEach(p => {
-                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                            });
+                                (profilesByName || []).forEach(p => {
+                                    if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                                });
                         }
 
                         // Merge actor profile data into notifications
@@ -4344,7 +4344,7 @@ export default function SocialMediaPage() {
                         .select('id, username, full_name, avatar_url')
                         .in('id', actorIds)
                         .limit(50) // suggested profiles;
-                    (profiles || []).forEach(p => { profileById[p.id] = p; });
+                        (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
                     const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id;
@@ -4355,7 +4355,7 @@ export default function SocialMediaPage() {
                         actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
                         actor_name: profile?.full_name || displayName,
                         actor_username: profile?.username || null
-                    });
+                    };
                 });
                 setNotifications(enriched);
             } catch (e) { console.error('[Social] Notification refresh failed:', e); }
@@ -4871,7 +4871,7 @@ export default function SocialMediaPage() {
             console.error('[Delete] Error:', e);
             alert('Error deleting post');
         }
-    });
+    };
 
     const loadContacts = async (userId) => {
         try {

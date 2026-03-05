@@ -8,8 +8,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
-import {
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import {
   sendPushNotification,
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
@@ -20,7 +20,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -97,7 +97,7 @@ async function handleRegister(req, res, tournamentId) {
       .select('id', { count: 'exact', head: true })
       .eq('tournament_id', tournamentId)
       .in('status', ['registered', 'seated', 'active'])
-          .limit(100);
+      .limit(100);
 
     if (tournament.max_entries && count >= tournament.max_entries) {
       return res.status(400).json({

@@ -7,8 +7,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
-import {
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import {
     sendPushNotification,
     isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
@@ -32,9 +32,9 @@ const NOTIFICATION_TYPES = [
 ];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     const _g = await guardWriteStaff(req, res); if (!_g) return;
 
@@ -92,12 +92,12 @@ export default async function handler(req, res) {
                 .select('player_id')
                 .eq('tournament_id', tournamentId)
                 .in('status', ['registered', 'seated', 'active'])
-                    .limit(100);
+                .limit(100);
 
             targetUserIds = (entries || [])
                 .map(e => e.player_id)
                 .filter(Boolean)
-                    .limit(100);
+                .limit(100);
         }
 
         if (targetUserIds.length === 0) {

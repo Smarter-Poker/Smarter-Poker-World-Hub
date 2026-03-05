@@ -27,7 +27,7 @@ const CORS = {
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
           .eq('club_id', clubId)
           .eq('is_active', true)
           .order('seated_at', { ascending: false })
-              .limit(200);
+          .limit(200);
 
         if (tableId) query = query.eq('table_id', tableId);
 
@@ -282,16 +282,16 @@ export default async function handler(req, res) {
             .from('anti_cheat_flags')
             .select('severity, flag_type', { count: 'exact' })
             .eq('club_id', clubId)
-            .eq('status', 'open'),
-            .limit(200)
+            .eq('status', 'open')
+            .limit(200),
 
           supabase
             .from('anti_cheat_events')
             .select('event_type', { count: 'exact' })
             .eq('club_id', clubId)
             .eq('event_type', 'seat_blocked')
-            .gte('created_at', new Date(Date.now() - 86400000).toISOString()),
-            .limit(200)
+            .gte('created_at', new Date(Date.now() - 86400000).toISOString())
+            .limit(200),
 
           supabase
             .from('table_sessions')

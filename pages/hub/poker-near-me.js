@@ -21,6 +21,16 @@ const VenueCard = dynamic(() => import('../../src/components/poker-near-me/Venue
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
 
+// Feature #3-#15 — New feature components
+const RoadTripPlanner = dynamic(() => import('../../src/components/poker-near-me/RoadTripPlanner'), { ssr: false });
+const SocialLayer = dynamic(() => import('../../src/components/poker-near-me/SocialLayer'), { ssr: false });
+const TournamentAlerts = dynamic(() => import('../../src/components/poker-near-me/TournamentAlerts'), { ssr: false });
+const VenueReviews = dynamic(() => import('../../src/components/poker-near-me/VenueReviews'), { ssr: false });
+const NearMeNowFeed = dynamic(() => import('../../src/components/poker-near-me/NearMeNowFeed'), { ssr: false });
+const VoiceSearch = dynamic(() => import('../../src/components/poker-near-me/VoiceSearch'), { ssr: false });
+const TripCostCalculator = dynamic(() => import('../../src/components/poker-near-me/TripCostCalculator'), { ssr: false });
+const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
+
 // Page configuration constants
 const PAGE_SIZE = 24;
 const PAGE_SIZE_DAILY = 30;
@@ -31,7 +41,7 @@ const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 
 // Tab order for swipe navigation
-const TAB_ORDER = ['venues', 'tours', 'series', 'daily', 'live', 'map', 'favorites'];
+const TAB_ORDER = ['venues', 'tours', 'series', 'daily', 'live', 'map', 'favorites', 'roadtrip', 'social', 'alerts', 'nearnow', 'calculator', 'calendar'];
 
 // API response cache with TTL
 const apiCache = {};
@@ -626,6 +636,21 @@ export default function PokerNearMePage() {
     const [geofenceAlert, setGeofenceAlert] = useState(null);
     const geofenceRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Review panel state (Feature #9)
+    const [reviewVenue, setReviewVenue] = useState(null);
+
+    // Auth token from Supabase session (for authenticated API calls)
+    const [authToken, setAuthToken] = useState(null);
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data }) => {
+            setAuthToken(data?.session?.access_token || null);
+        });
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setAuthToken(session?.access_token || null);
+        });
+        return () => subscription?.unsubscribe();
+    }, []);
 
     // Swipe gesture state
     const touchStartRef = useRef(null);
@@ -1581,6 +1606,18 @@ export default function PokerNearMePage() {
                 return renderSeries();
             case 'daily':
                 return renderDailyTournaments();
+            case 'roadtrip':
+                return <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />;
+            case 'social':
+                return <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={authToken} />;
+            case 'alerts':
+                return <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={authToken} />;
+            case 'nearnow':
+                return <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />;
+            case 'calculator':
+                return <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />;
+            case 'calendar':
+                return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
             default:
                 return renderVenues();
         }
@@ -2277,8 +2314,22 @@ export default function PokerNearMePage() {
                     </div>
 
                     {/* ═══ MOBILE TAB BAR — visible, accessible tab navigation ═══ */}
-                    <div className="mobile-tab-bar">
-                        {[{ key: 'venues', label: 'Venues', icon: '🏠' }, { key: 'tours', label: 'Tours', icon: '🌍' }, { key: 'series', label: 'Series', icon: '📅' }, { key: 'daily', label: 'Daily', icon: '🎯' }, { key: 'live', label: 'Live', icon: '🔴' }, { key: 'map', label: 'Map', icon: '🗺️' }, { key: 'favorites', label: 'Saved', icon: '❤️' }].map(tab => (
+                    <div className="mobile-tab-bar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        {[
+                            { key: 'venues', label: 'Venues', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" /><circle cx="12" cy="11" r="2" fill="currentColor" stroke="none" /></svg> },
+                            { key: 'tours', label: 'Tours', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg> },
+                            { key: 'series', label: 'Series', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
+                            { key: 'daily', label: 'Daily', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" /></svg> },
+                            { key: 'live', label: 'Live', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg> },
+                            { key: 'map', label: 'Map', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
+                            { key: 'favorites', label: 'Saved', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg> },
+                            { key: 'roadtrip', label: 'Trip', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 17h2l2-8h4l-1 4h3l5-6" /><circle cx="6.5" cy="17.5" r="2.5" fill="none" /><circle cx="16.5" cy="17.5" r="2.5" fill="none" /></svg> },
+                            { key: 'social', label: 'Friends', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg> },
+                            { key: 'alerts', label: 'Alerts', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /><circle cx="18" cy="4" r="2.5" fill="#ef4444" stroke="none" /></svg> },
+                            { key: 'nearnow', label: 'Near Me', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#d4a853" /><circle cx="12" cy="12" r="7" stroke="#d4a853" strokeWidth="1" opacity="0.4" /><circle cx="12" cy="12" r="10.5" stroke="#d4a853" strokeWidth="0.8" opacity="0.2" /></svg> },
+                            { key: 'calculator', label: 'Cost', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="10" x2="16" y2="10" /><line x1="8" y1="14" x2="12" y2="14" /></svg> },
+                            { key: 'calendar', label: 'Calendar', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><circle cx="8" cy="14" r="1" fill="#22c55e" stroke="none" /><circle cx="12" cy="14" r="1" fill="#3b82f6" stroke="none" /><circle cx="16" cy="14" r="1" fill="#d4a853" stroke="none" /></svg> },
+                        ].map(tab => (
                             <button
                                 key={tab.key}
                                 className={'mtab' + (activeTab === tab.key ? ' active' : '')}
@@ -2490,6 +2541,33 @@ export default function PokerNearMePage() {
                             onDismiss={() => setGeofenceAlert(null)}
                         />
                     )}
+
+                    {/* Voice Search Floating Button (Feature #11) */}
+                    <VoiceSearch
+                        onResult={(parsed) => {
+                            if (parsed.searchQuery) setSearchQuery(parsed.searchQuery);
+                            if (parsed.filters.gameType) setFilters(f => ({ ...f, gameType: parsed.filters.gameType }));
+                            if (parsed.filters.radius) setFilters(f => ({ ...f, radius: parsed.filters.radius }));
+                            if (parsed.filters.stakes) setFilters(f => ({ ...f, stakes: parsed.filters.stakes }));
+                            if (parsed.filters.venueType) setFilters(f => ({ ...f, venueType: parsed.filters.venueType }));
+                            if (parsed.filters.minBuyin) setFilters(f => ({ ...f, minBuyin: parsed.filters.minBuyin }));
+                            if (parsed.filters.maxBuyin) setFilters(f => ({ ...f, maxBuyin: parsed.filters.maxBuyin }));
+                            if (parsed.filters.tab) setActiveTab(parsed.filters.tab);
+                            setHasSearched(true);
+                            fetchAllData({ includeVenues: true });
+                        }}
+                    />
+
+                    {/* Venue Reviews Panel (Feature #9) */}
+                    <VenueReviews
+                        venueId={reviewVenue?.id}
+                        venueName={reviewVenue?.name}
+                        userId={userId}
+                        userName={user?.display_name || user?.email}
+                        authToken={authToken}
+                        isOpen={!!reviewVenue}
+                        onClose={() => setReviewVenue(null)}
+                    />
 
                     <style jsx global>{`
                     .pnm-page {
