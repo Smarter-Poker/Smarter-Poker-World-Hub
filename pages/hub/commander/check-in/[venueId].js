@@ -18,6 +18,7 @@ import {
 
 export default function PlayerCheckInPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { venueId } = router.query;
 
   const [venue, setVenue] = useState(null);

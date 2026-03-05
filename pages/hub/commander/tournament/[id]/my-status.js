@@ -18,6 +18,7 @@ import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtim
 
 export default function MyTournamentStatus() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { id } = router.query;
     const [tournament, setTournament] = useState(null);
     const [myEntry, setMyEntry] = useState(null);

@@ -213,6 +213,7 @@ function PostCard({ post, user, onLike, onComment }) {
 
 export default function SocialPageDetail() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { pageId } = router.query;
     const [user, setUser] = useState(null);
     const [page, setPage] = useState(null);

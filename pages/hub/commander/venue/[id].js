@@ -21,6 +21,7 @@ import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync
 
 export default function VenueDetail() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [venue, setVenue] = useState(null);

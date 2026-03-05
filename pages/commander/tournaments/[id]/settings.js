@@ -224,6 +224,7 @@ function calculatePayouts(entries, buyinAmount, structure) {
 
 export default function TournamentSettings() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);

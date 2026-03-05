@@ -36,6 +36,7 @@ function formatChips(n) {
 
 export default function TDPlayers() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tournamentId, move: moveEntryId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);

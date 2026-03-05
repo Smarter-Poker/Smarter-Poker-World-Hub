@@ -56,6 +56,7 @@ const apiGet = async (url) => {
 
 export default function Admin() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     // Core state

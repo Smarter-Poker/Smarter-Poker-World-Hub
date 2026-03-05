@@ -214,6 +214,7 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
 
 export default function ManageHomeGamePage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [group, setGroup] = useState(null);

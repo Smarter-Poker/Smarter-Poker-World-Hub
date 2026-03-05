@@ -21,6 +21,7 @@ import { Clock, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'luci
 
 export default function WaitlistStatus() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
   const [entry, setEntry] = useState(null);
   const [position, setPosition] = useState(null);

@@ -14,6 +14,7 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 
 export default function StructureDisplay() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
   const [tournament, setTournament] = useState(null);
   const [clockData, setClockData] = useState(null);

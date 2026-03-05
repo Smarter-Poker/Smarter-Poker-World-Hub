@@ -1,15 +1,14 @@
-/**
- * /hub/gto-trainer -> redirects to /hub/training
- */
-export default function GtoTrainerRedirect() {
-    return null;
-}
-
-export function getServerSideProps() {
+// Permanent redirect — now handled at Next.js build time (getStaticProps)
+// This eliminates the server-side function call on every request
+export function getStaticProps() {
     return {
         redirect: {
             destination: '/hub/training',
             permanent: true,
         },
     };
+}
+
+export default function RedirectPage() {
+    return null;
 }

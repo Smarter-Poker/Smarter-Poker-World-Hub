@@ -43,6 +43,7 @@ function GameRow({ game, onJoinWaitlist }) {
 
 export default function VenueDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [venue, setVenue] = useState(null);

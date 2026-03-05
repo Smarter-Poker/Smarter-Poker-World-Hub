@@ -23,6 +23,7 @@ const GAME_LABELS = {
 
 export default function PlayerWaitlistPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { venueId } = router.query;
 
   const [venue, setVenue] = useState(null);

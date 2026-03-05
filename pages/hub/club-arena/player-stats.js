@@ -25,6 +25,7 @@ const FB = {
 
 export default function PlayerStats() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     // State

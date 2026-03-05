@@ -54,6 +54,7 @@ function formatMoney(n) {
 
 export default function TDControlCenter() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tournamentId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -11,6 +11,7 @@ import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderS
 
 export default function TournamentClockDisplay() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);

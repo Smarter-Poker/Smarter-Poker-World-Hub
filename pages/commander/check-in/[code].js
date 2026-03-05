@@ -40,6 +40,7 @@ const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8',
 
 export default function PlayerCheckIn() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { code } = router.query;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

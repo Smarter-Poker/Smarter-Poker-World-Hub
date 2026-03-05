@@ -26,6 +26,7 @@ const GAME_TYPES = [
 
 export default function CreateSquadPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { venue_id } = router.query;
 
   const [step, setStep] = useState(1);

@@ -19,6 +19,7 @@ import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/us
 
 export default function MemberProfile() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
   const [member, setMember] = useState(null);
   const [sessions, setSessions] = useState([]);

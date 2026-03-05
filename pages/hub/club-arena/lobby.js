@@ -44,6 +44,7 @@ const apiGet = async (url) => {
 
 export default function ClubLobby() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     const [user, setUser] = useState(null);

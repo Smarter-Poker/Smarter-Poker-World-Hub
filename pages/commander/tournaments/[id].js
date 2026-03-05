@@ -46,6 +46,7 @@ function formatTime(seconds) {
 
 export default function TournamentDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [staff, setStaff] = useState(null);

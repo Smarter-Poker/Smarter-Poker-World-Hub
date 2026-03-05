@@ -10,6 +10,7 @@ import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, Alert
 
 export default function TournamentRegisterPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [tournament, setTournament] = useState(null);

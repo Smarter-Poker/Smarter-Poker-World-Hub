@@ -26,6 +26,7 @@ function formatCountdown(minutes) {
 
 export default function TableSeating() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
   const [table, setTable] = useState(null);
   const [sessions, setSessions] = useState([]);

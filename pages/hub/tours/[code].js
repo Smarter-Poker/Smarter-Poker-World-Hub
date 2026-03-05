@@ -103,6 +103,7 @@ function getSeriesTypeBadge(type) {
 
 export default function TourDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { code } = router.query;
 
   const [isFollowed, setIsFollowed] = useState(false);

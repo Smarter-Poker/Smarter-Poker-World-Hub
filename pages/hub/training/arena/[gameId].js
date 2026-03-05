@@ -140,6 +140,7 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 
 export default function TrainingArenaPage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { gameId, level = 1 } = router.query;
 
     const [loading, setLoading] = useState(true);

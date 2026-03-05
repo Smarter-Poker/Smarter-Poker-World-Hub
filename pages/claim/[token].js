@@ -11,6 +11,7 @@ import { supabase } from '../../src/lib/supabase';
 
 export default function ClaimPage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { token } = router.query;
 
     const [user, setUser] = useState(null);

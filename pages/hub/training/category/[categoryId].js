@@ -58,6 +58,7 @@ const CATEGORY_META = {
 
 export default function CategoryPage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { categoryId } = router.query;
     const { getGameProgress } = useTrainingProgress();
     const [showIntro, setShowIntro] = useState(false);

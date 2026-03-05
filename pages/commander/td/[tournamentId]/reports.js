@@ -39,6 +39,7 @@ function formatMoney(n) {
 
 export default function TDReports() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { tournamentId } = router.query;
     const [tab, setTab] = useState('registration');
     const [loading, setLoading] = useState(true);

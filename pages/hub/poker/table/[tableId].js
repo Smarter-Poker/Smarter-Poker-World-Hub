@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 
 export default function PokerTablePage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tableId } = router.query;
   const [userId, setUserId] = useState(null);
   const [displayName, setDisplayName] = useState('Player');

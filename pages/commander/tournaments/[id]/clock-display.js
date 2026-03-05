@@ -62,6 +62,7 @@ const SCREENS = { CLOCK: 'clock', PAYOUTS: 'payouts', SCHEDULE: 'schedule', ICM:
 
 export default function ClockDisplay() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);

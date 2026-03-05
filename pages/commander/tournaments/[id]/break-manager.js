@@ -24,6 +24,7 @@ import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander
 
 export default function BreakManager() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id: tournamentId } = router.query;
   const [loading, setLoading] = useState(true);
   const [breakData, setBreakData] = useState(null);

@@ -41,6 +41,7 @@ const TIME_PERIODS = [
 
 export default function Leaderboard() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     // State

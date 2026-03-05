@@ -81,6 +81,7 @@ function Toast({ message, type }) {
 
 export default function AgentDashboard() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     const [user, setUser] = useState(null);

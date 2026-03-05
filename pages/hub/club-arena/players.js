@@ -40,6 +40,7 @@ const ROLE_BADGES = {
 
 export default function Players() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     // State

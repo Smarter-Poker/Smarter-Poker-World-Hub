@@ -25,6 +25,7 @@ function formatClockTime(seconds) {
 
 export default function CombinedDisplay() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { layout = 'clock+waitlist', tournament } = router.query;
 
   const [clockData, setClockData] = useState(null);

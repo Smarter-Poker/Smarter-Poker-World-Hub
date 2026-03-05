@@ -121,6 +121,7 @@ function MemberCard({ member, isHost }) {
 
 export default function HomeGameDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [group, setGroup] = useState(null);

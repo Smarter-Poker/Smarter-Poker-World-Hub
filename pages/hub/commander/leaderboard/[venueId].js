@@ -53,6 +53,7 @@ function PromotionCard({ promo }) {
 
 export default function LeaderboardPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { venueId } = router.query;
 
   const [metric, setMetric] = useState('hours');

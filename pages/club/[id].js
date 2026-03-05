@@ -295,6 +295,7 @@ function TournamentCard({ tournament }) {
 
 export default function ClubPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [venue, setVenue] = useState(null);

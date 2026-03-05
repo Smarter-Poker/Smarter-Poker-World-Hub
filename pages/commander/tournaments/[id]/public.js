@@ -53,6 +53,7 @@ const STATUS_CONFIG = {
 
 export default function TournamentPublic() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
   const [tournament, setTournament] = useState(null);
   const [clock, setClock] = useState(null);

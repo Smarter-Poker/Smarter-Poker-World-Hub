@@ -132,6 +132,7 @@ function getLocationParts(series) {
 
 export default function SeriesDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [isFollowing, setIsFollowing] = useState(false);

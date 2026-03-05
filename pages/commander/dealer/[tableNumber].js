@@ -42,6 +42,7 @@ function getSeatPositions(count) {
 
 export default function DealerTablet() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tableNumber } = router.query;
   const [table, setTable] = useState(null);
   const [seatedPlayers, setSeatedPlayers] = useState([]);

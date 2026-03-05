@@ -14,6 +14,7 @@ import {
 
 export default function GodModePage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { hand: handId } = router.query;
 
   const [handData, setHandData] = useState(null);

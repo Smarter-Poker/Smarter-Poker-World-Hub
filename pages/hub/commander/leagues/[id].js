@@ -77,6 +77,7 @@ function EventCard({ event }) {
 
 export default function LeagueDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [isJoined, setIsJoined] = useState(false);

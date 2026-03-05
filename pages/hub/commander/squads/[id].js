@@ -69,6 +69,7 @@ function MemberCard({ member, isLeader, onRemove, canRemove }) {
 
 export default function SquadDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id } = router.query;
 
   const [loading, setLoading] = useState(true);

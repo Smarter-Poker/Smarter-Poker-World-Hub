@@ -69,6 +69,7 @@ const LOBBY_IMAGES = {
 
 export default function TriviaModePage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { mode } = router.query;
 
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results

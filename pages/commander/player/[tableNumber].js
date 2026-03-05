@@ -301,6 +301,7 @@ function PlayerInfoModal({ player, venueType, onRemove, onClose }) {
 
 export default function PlayerTableDisplay() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tableNumber } = router.query;
   const [players, setPlayers] = useState([]);
   const [table, setTable] = useState(null);

@@ -315,6 +315,7 @@ function ConversationItem({ conversation, isActive, onClick }) {
 
 export default function ClubMessages() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
     const messagesEndRef = useRef(null);
     const outgoingRingToneRef = useRef(null);

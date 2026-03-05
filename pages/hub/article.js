@@ -20,6 +20,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 export default function ArticlePage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { id, slug } = router.query;
     const [menuOpen, setMenuOpen] = useState(false);
     const [article, setArticle] = useState(null);

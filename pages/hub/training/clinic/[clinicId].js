@@ -23,6 +23,7 @@ const QUESTIONS_PER_CLINIC = 10;
 
 export default function ClinicPlayPage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { clinicId } = router.query;
     const { recordSession } = useTrainingProgress();
     const iframeRef = useRef(null);

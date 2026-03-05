@@ -13,6 +13,7 @@ import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 export default function TrainingPlayPage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { gameId } = router.query;
 
     const [userId, setUserId] = useState(null);

@@ -18,6 +18,7 @@ const TABS = ['settings', 'members', 'posts', 'invitations'];
 
 export default function ManageSocialPage() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { pageId } = router.query;
     const [user, setUser] = useState(null);
     const [page, setPage] = useState(null);

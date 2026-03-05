@@ -33,6 +33,7 @@ function formatMoney(n) {
 
 export default function TDPayouts() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { tournamentId } = router.query;
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);

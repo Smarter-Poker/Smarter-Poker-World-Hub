@@ -48,6 +48,7 @@ const apiCall = async (endpoint, body) => {
 
 export default function Cashier() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { club: clubIdParam } = router.query;
 
     // State

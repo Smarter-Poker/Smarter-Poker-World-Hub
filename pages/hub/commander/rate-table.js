@@ -19,6 +19,7 @@ const LABELS = {
 
 export default function RateTable() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { venue_id, table_number, game_type, stakes } = router.query;
   const [action, setAction] = useState(3);
   const [friendly, setFriendly] = useState(3);

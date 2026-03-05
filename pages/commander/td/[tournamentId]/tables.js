@@ -55,6 +55,7 @@ function getSeatPositions(maxSeats) {
 
 export default function TDTablesMap() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tournamentId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);

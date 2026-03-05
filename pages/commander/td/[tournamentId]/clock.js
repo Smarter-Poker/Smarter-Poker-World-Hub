@@ -23,6 +23,7 @@ const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts
 
 export default function TDClock() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { tournamentId } = router.query;
   const [floor, setFloor] = useState(null);
   const [loading, setLoading] = useState(true);

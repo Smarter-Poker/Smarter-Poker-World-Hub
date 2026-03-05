@@ -175,6 +175,7 @@ function StarRating({ rating, size, interactive, onRate }) {
 
 export default function VenueDetailPage() {
   const router = useRouter();
+  if (!router.isReady) return null;
   const { id, action } = router.query;
 
   const [isFollowed, setIsFollowed] = useState(false);

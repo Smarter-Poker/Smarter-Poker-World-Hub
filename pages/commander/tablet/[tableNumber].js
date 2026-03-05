@@ -80,6 +80,7 @@ function computeSeatPositions(maxSeats) {
 
 export default function TabletDisplay() {
     const router = useRouter();
+    if (!router.isReady) return null;
     const { tableNumber, venue } = router.query;
 
     const [data, setData] = useState(null);
