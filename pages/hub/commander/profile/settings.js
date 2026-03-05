@@ -4,6 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
@@ -33,46 +34,33 @@ function ToggleSetting({ label, description, value, onChange }) {
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [settings, setSettings] = useState({
-    notifications_waitlist: true,
-    notifications_promotions: true,
-    notifications_tournaments: true,
-    notifications_push: true,
-    notifications_sms: false,
-    privacy_show_stats: true,
-    privacy_show_activity: true,
-    privacy_show_venues: false,
+    notifications_waitlist: true, notifications_promotions: true,
+    notifications_tournaments: true, notifications_push: true,
+    notifications_sms: false, privacy_show_stats: true,
+    privacy_show_activity: true, privacy_show_venues: false,
     display_compact_mode: false
   });
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/profile/settings');
-      return;
-    }
-    fetchSettings();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/profile/settings');
   }, [router]);
 
-  async function fetchSettings() {
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const res = await fetch('/api/commander/profile', {
-        headers: { Authorization: `Bearer ${token}` }
+  const { isLoading: loading } = useSWR('/api/commander/profile', (url) => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data?.profile?.settings) {
+          setSettings(prev => ({ ...prev, ...data.data.profile.settings }));
+        }
+        return data;
       });
-      const data = await res.json();
-      if (data.success && data.data?.profile?.settings) {
-        setSettings(prev => ({ ...prev, ...data.data.profile.settings }));
-      }
-    } catch (err) {
-      console.error('Fetch settings failed:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  });
 
   async function handleSave() {
     setSaving(true);

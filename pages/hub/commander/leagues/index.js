@@ -5,6 +5,7 @@
  * Per API_REFERENCE.md: /leagues endpoints
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -16,6 +17,7 @@ import {
   Loader2,
   DollarSign
 } from 'lucide-react';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {
@@ -108,44 +110,24 @@ function MyLeagueCard({ league, onView }) {
 export default function LeaguesPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [leagues, setLeagues] = useState([]);
-  const [myLeagues, setMyLeagues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    fetchLeagues();
-  }, []);
-
-  async function fetchLeagues() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const [allRes, myRes] = await Promise.all([
-        fetch('/api/commander/leagues'),
-        token ? fetch('/api/commander/leagues/my', {
-          headers: { Authorization: `Bearer ${token}` }
-        }) : Promise.resolve({ json: () => ({ success: false }) })
-      ]);
-
-      const allData = await allRes.json();
-      const myData = await myRes.json();
-
-      if (allData.success) {
-        setLeagues(allData.data?.leagues || []);
-      }
-      if (myData.success) {
-        setMyLeagues(myData.data?.leagues || []);
-      }
-    } catch (err) {
-      console.error('Fetch leagues failed:', err);
-      setLeagues([]);
-      setMyLeagues([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: swrData, isLoading: loading } = useSWR('/api/commander/leagues', async () => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    const [allRes, myRes] = await Promise.all([
+      fetch('/api/commander/leagues'),
+      token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } })
+            : Promise.resolve({ json: () => ({ success: false }) })
+    ]);
+    const [all, my] = await Promise.all([allRes.json(), myRes.json()]);
+    return {
+      leagues: all.success ? (all.data?.leagues || []) : [],
+      myLeagues: my.success ? (my.data?.leagues || []) : []
+    };
+  });
+  const leagues = swrData?.leagues || [];
+  const myLeagues = swrData?.myLeagues || [];
 
   function handleViewLeague(leagueId) {
     router.push(`/hub/commander/leagues/${leagueId}`);
@@ -245,11 +227,7 @@ export default function LeaguesPage() {
           </div>
 
           {/* Leagues List */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-            </div>
-          ) : filteredLeagues.length > 0 ? (
+          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="card" count={4} /></div>) : filteredLeagues.length > 0 ? (
             <section>
               <h2 className="font-semibold text-white mb-3">
                 {filter === 'all' ? 'All Leagues' : filter === 'active' ? 'Active Leagues' : 'Upcoming Leagues'}

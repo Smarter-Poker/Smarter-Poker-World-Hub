@@ -10,7 +10,7 @@
  *   tournaments - if 'true', only venues with has_tournaments=true
  *   search     - search by name, city, address, or state (case-insensitive)
  *   lat + lng + radius (default 100km) - GPS-based search with Haversine distance
- *   limit      - max results (default 500)
+ *   limit      - max results (default 50, max 200)
  *   featured   - if 'true', only featured venues
  */
 import { createClient } from '@supabase/supabase-js';
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
             hasMixed,
         } = req.query;
 
-        const maxResults = parseInt(limit, 10) || 500;
+        const maxResults = Math.min(parseInt(limit, 10) || 50, 200);
         let venues = [];
 
         if (id) {

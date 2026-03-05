@@ -4,8 +4,10 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import {
   User,
   Clock,
@@ -84,71 +86,41 @@ function FavoriteVenue({ venue, rank }) {
 export default function PlayerProfilePage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [achievements, setAchievements] = useState([]);
-  const [favoriteVenues, setFavoriteVenues] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/profile');
-      return;
-    }
-    fetchProfile();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
   }, [router]);
 
-  async function fetchProfile() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const [profileRes, statsRes] = await Promise.all([
-        fetch('/api/commander/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('/api/commander/profile/stats', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
-      const profileData = await profileRes.json();
-      const statsData = await statsRes.json();
-
-      if (profileData.success) {
-        setProfile(profileData.data?.profile);
-        setAchievements(profileData.data?.achievements || []);
-
-        // Fetch AI-powered game recommendations for this player
-        if (profileData.data?.profile?.id) {
-          fetch(`/api/commander/ai/recommendations/${profileData.data.profile.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-            .then(r => r.json())
-            .then(recData => {
-              if (recData.success) {
-                setRecommendations(recData.data?.recommendations || []);
-              }
-            })
-            .catch(() => { });
-        }
-      }
-      if (statsData.success) {
-        setStats(statsData.data?.stats);
-        setFavoriteVenues(statsData.data?.favoriteVenues || []);
-      }
-    } catch (err) {
-      console.error('Fetch profile failed:', err);
-      setProfile(null);
-      setStats(null);
-      setAchievements([]);
-      setFavoriteVenues([]);
-    } finally {
-      setLoading(false);
+  const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    const h = { Authorization: `Bearer ${token}` };
+    const [profileRes, statsRes] = await Promise.all([
+      fetch('/api/commander/profile', { headers: h }),
+      fetch('/api/commander/profile/stats', { headers: h })
+    ]);
+    const [profileData, statsData] = await Promise.all([profileRes.json(), statsRes.json()]);
+    // Fire AI recommendations in background
+    if (profileData.success && profileData.data?.profile?.id) {
+      fetch(`/api/commander/ai/recommendations/${profileData.data.profile.id}`, { headers: h })
+        .then(r => r.json())
+        .then(rec => { if (rec.success) setRecommendations(rec.data?.recommendations || []); })
+        .catch(() => {});
     }
-  }
+    return {
+      profile: profileData.success ? profileData.data?.profile : null,
+      achievements: profileData.success ? (profileData.data?.achievements || []) : [],
+      stats: statsData.success ? statsData.data?.stats : null,
+      favoriteVenues: statsData.success ? (statsData.data?.favoriteVenues || []) : []
+    };
+  });
+  const profile = swrData?.profile || null;
+  const achievements = swrData?.achievements || [];
+  const stats = swrData?.stats || null;
+  const favoriteVenues = swrData?.favoriteVenues || [];
 
   // Check if user has a club page
   useEffect(() => {
@@ -174,13 +146,7 @@ export default function PlayerProfilePage() {
     { href: '/hub/commander/profile/settings', label: 'Settings', icon: Settings }
   ];
 
-  if (loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
-    );
-  }
+  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="profile" count={1} /></div>;
 
   const memberSince = profile?.member_since ? new Date(profile.member_since) : null;
   const unlockedCount = achievements.filter(a => a.unlocked).length;

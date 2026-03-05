@@ -487,3 +487,21 @@ body {
   mix-blend-mode: multiply;
   background: transparent;
 }
+/* ── CSS Animation Utilities ────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInFast {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn   { animation: fadeIn 0.3s ease forwards; }
+.animate-slideUp  { animation: slideUp 0.4s ease forwards; }

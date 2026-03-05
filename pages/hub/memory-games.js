@@ -8,7 +8,6 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import gsap from 'gsap';
-import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
     SoundEngine,

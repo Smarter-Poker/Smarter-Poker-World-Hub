@@ -4,6 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -18,6 +19,7 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -108,50 +110,31 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
 export default function PlayerNotificationsPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('all'); // 'all', 'unread'
+  const [notifications, setNotifications] = useState([]);
 
-  useEffect(() => {
-    // PRIMARY: Check new unified key
+  const getToken = () => {
     let token = localStorage.getItem('smarter-poker-auth');
-    // FALLBACK: Legacy sb-* keys for older users
     if (!token) {
       const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
       if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
     }
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/notifications');
-      return;
-    }
-    fetchNotifications();
+    return token;
+  };
+
+  useEffect(() => {
+    if (!getToken()) router.push('/auth/login?redirect=/hub/commander/notifications');
   }, [router]);
 
-  async function fetchNotifications() {
-    setLoading(true);
-    try {
-      // PRIMARY: Check new unified key
-      let token = localStorage.getItem('smarter-poker-auth');
-      // FALLBACK: Legacy sb-* keys for older users
-      if (!token) {
-        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
-      }
-      const res = await fetch('/api/commander/notifications/my', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setNotifications(data.data?.notifications || []);
-      }
-    } catch (err) {
-      console.error('Fetch notifications failed:', err);
-      setNotifications([]);
-    } finally {
-      setLoading(false);
+  const { isLoading: loading, mutate: refreshNotifications } = useSWR(
+    '/api/commander/notifications/my',
+    (url) => {
+      const token = getToken();
+      if (!token) return null;
+      return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => { if (d.success) setNotifications(d.data?.notifications || []); return d; });
     }
-  }
+  );
 
   async function handleMarkRead(notification) {
     // Optimistic update
@@ -297,11 +280,7 @@ export default function PlayerNotificationsPage() {
           </div>
 
           {/* Notifications List */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-            </div>
-          ) : filteredNotifications.length === 0 ? (
+          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="rows" rows={6} /></div>) : filteredNotifications.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <div className="cmd-icon-box mx-auto mb-3">
                 <Bell className="w-7 h-7" />

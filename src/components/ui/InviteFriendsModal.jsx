@@ -541,7 +541,7 @@ export default function InviteFriendsModal({
                         <div style={{ maxHeight: 150, overflowY: 'auto' }}>
                             {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
                                 <div key={u.id} onClick={() => { onOpenChat(u); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', cursor: 'pointer', borderRadius: 6, transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.05)' } }}>
-                                    <img src={u.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                                    <img src={u.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%' }}  alt="User avatar" />
                                     <span style={{ fontSize: 13, color: 'white' }}>{u.username}</span>
                                 </div>
                             ))}
@@ -549,7 +549,7 @@ export default function InviteFriendsModal({
                                 contacts.length === 0 ? <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'left', margin: 0 }}>No Contacts Yet</p> : contacts.map(c => (
                                     <div key={c.id} onClick={() => { onOpenChat(c); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', cursor: 'pointer', borderRadius: 6, transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.05)' } }}>
                                         <div style={{ position: 'relative' }}>
-                                            <img src={c.avatar || '/default-avatar.png'} style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                                            <img src={c.avatar || '/default-avatar.png'} style={{ width: 36, height: 36, borderRadius: '50%' }}  alt="User avatar" />
                                             {c.online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: '#42B72A', border: '2px solid #18191A' }} />}
                                         </div>
                                         <span style={{ fontSize: 13, fontWeight: 500, color: 'white' }}>{c.name}</span>

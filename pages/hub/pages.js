@@ -7,6 +7,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -57,67 +58,45 @@ const TYPE_COLORS = {
 export default function PokerPagesPage() {
     const router = useRouter();
 
-    const [pages, setPages] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [category, setCategory] = useState('all');
     const [sort, setSort] = useState('popular');
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [showFollowing, setShowFollowing] = useState(false);
-    const [summary, setSummary] = useState({});
     const [followingIds, setFollowingIds] = useState(new Set());
     const [userId, setUserId] = useState('');
 
     // Get authenticated user ID on mount
     useEffect(() => {
         const authUser = getAuthUser();
-        if (authUser?.id) {
-            setUserId(authUser.id);
-        }
+        if (authUser?.id) setUserId(authUser.id);
     }, []);
 
-    const fetchPages = useCallback(async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                category,
-                sort,
-                limit: '100',
-            });
-            if (search) params.set('search', search);
-            if (userId) params.set('user_id', userId);
-            if (showFollowing) params.set('followed_only', 'true');
+    // Debounce search input
+    useEffect(() => {
+        const t = setTimeout(() => setSearch(searchInput), 300);
+        return () => clearTimeout(t);
+    }, [searchInput]);
 
-            const res = await fetch(`/api/poker/pages?${params}`);
-            const json = await res.json();
+    // SWR-backed pages fetch — cached 60s, instant on filter change
+    const swrParams = new URLSearchParams({ category, sort, limit: '100' });
+    if (search) swrParams.set('search', search);
+    if (userId) swrParams.set('user_id', userId);
+    if (showFollowing) swrParams.set('followed_only', 'true');
+    const swrKey = `/api/poker/pages?${swrParams}`;
 
+    const { data: swrData, isLoading: loading, mutate: refreshPages } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(json => {
             if (json.success) {
-                setPages(json.data || []);
-                setSummary(json.summary || {});
-                // Track following state locally
                 const followSet = new Set();
-                (json.data || []).forEach(p => {
-                    if (p.is_following) followSet.add(`${p.page_type}:${p.page_id}`);
-                });
+                (json.data || []).forEach(p => { if (p.is_following) followSet.add(`${p.page_type}:${p.page_id}`); });
                 setFollowingIds(followSet);
             }
-        } catch (e) {
-            console.error('Failed to fetch pages:', e);
-        }
-        setLoading(false);
-    }, [category, sort, search, userId, showFollowing]);
-
-    useEffect(() => {
-        fetchPages();
-    }, [fetchPages]);
-
-    // Handle search with debounce
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            setSearch(searchInput);
-        }, 300);
-        return () => clearTimeout(timeout);
-    }, [searchInput]);
+            return json;
+        })
+    );
+    const pages = swrData?.data || [];
+    const summary = swrData?.summary || {};
 
     // Handle URL search param
     useEffect(() => {

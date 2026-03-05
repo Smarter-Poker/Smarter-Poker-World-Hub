@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🎮 ORB DEFINITIONS
@@ -42,7 +43,9 @@ interface WorldState {
 // ─────────────────────────────────────────────────────────────────────────────
 // 🏪 STORE CREATION
 // ─────────────────────────────────────────────────────────────────────────────
-export const useWorldStore = create<WorldState>((set) => ({
+export const useWorldStore = create<WorldState>()(
+  persist(
+    (set) => ({
   // Initial State
   diamonds: 12450,
   activeOrb: null,
@@ -69,7 +72,14 @@ export const useWorldStore = create<WorldState>((set) => ({
   syncWithBus: () => {
     console.log('Master-Bus Link Established on Port 4000');
   },
-}));
+    }),
+    {
+      name: 'world-store-v1',
+      // Only persist UI state — NOT diamonds (those come from Supabase)
+      partialize: (state) => ({ activeOrb: state.activeOrb }),
+    }
+  )
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔧 SELECTORS

@@ -8,6 +8,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { claimReward } from '../../../src/lib/claimReward';
@@ -176,11 +177,7 @@ export default function VenueDetailPage() {
   const router = useRouter();
   const { id, action } = router.query;
 
-  const [venue, setVenue] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
 
   // Live Games state
@@ -246,9 +243,6 @@ export default function VenueDetailPage() {
   // Nearby venues state
   const [nearbyVenues, setNearbyVenues] = useState([]);
 
-  // Social page state
-  const [socialPageSlug, setSocialPageSlug] = useState(null);
-
   // Related tours/series state
   const [relatedSeries, setRelatedSeries] = useState([]);
 
@@ -270,63 +264,38 @@ export default function VenueDetailPage() {
     }
   }
 
-  // Check follow status on mount
+  // Load follow state from localStorage instantly
   useEffect(function () {
     if (!id) return;
     try {
       var stored = localStorage.getItem('followed-venues');
       var ids = stored ? JSON.parse(stored) : [];
       setIsFollowed(ids.includes(String(id)));
-    } catch (e) {
-      // ignore parse errors
-    }
-    fetch('/api/poker/follow?page_type=venue&page_id=' + id)
-      .then(function (r) { return r.json(); })
-      .then(function (json) {
-        if (json.success) setFollowerCount(json.follower_count || 0);
-      })
-      .catch(function () { });
+    } catch (e) { }
   }, [id]);
 
-  // Fetch venue data
-  useEffect(function () {
-    if (!id) return;
-    var fetchVenue = async function () {
-      setLoading(true);
-      setError(null);
-      try {
-        var res = await fetch('/api/poker/venues?id=' + id);
-        var json = await res.json();
-        if (json.success && json.data) {
-          var venueData = Array.isArray(json.data)
-            ? json.data.find(function (v) { return String(v.id) === String(id); }) || json.data[0]
-            : json.data;
-          setVenue(venueData);
-        } else {
-          setError('Venue not found');
-        }
-      } catch (err) {
-        console.error('Failed to fetch venue:', err);
-        setError('Failed to load venue data');
-      } finally {
-        setLoading(false);
-      }
+  // SWR — parallel fetch venue + follow count + social page
+  const swrKey = id ? `/api/poker/venues?id=${id}` : null;
+  const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
+    const [venueRes, followRes, socialRes] = await Promise.all([
+      fetch('/api/poker/venues?id=' + id),
+      fetch('/api/poker/follow?page_type=venue&page_id=' + id),
+      fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1')
+    ]);
+    const [vj, fj, sj] = await Promise.all([venueRes.json(), followRes.json(), socialRes.json()]);
+    const venueData = vj.success && vj.data
+      ? (Array.isArray(vj.data) ? (vj.data.find(function (v) { return String(v.id) === String(id); }) || vj.data[0]) : vj.data)
+      : null;
+    return {
+      venue: venueData,
+      followerCount: fj.success ? (fj.follower_count || 0) : 0,
+      socialPageSlug: sj.success && sj.data && sj.data.length > 0 ? (sj.data[0].slug || sj.data[0].id) : null
     };
-    fetchVenue();
-  }, [id]);
-
-  // Fetch linked social page (if one exists for this venue)
-  useEffect(function () {
-    if (!id) return;
-    fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1')
-      .then(function (r) { return r.json(); })
-      .then(function (json) {
-        if (json.success && json.data && json.data.length > 0) {
-          setSocialPageSlug(json.data[0].slug || json.data[0].id);
-        }
-      })
-      .catch(function () { });
-  }, [id]);
+  });
+  const venue = swrData?.venue || null;
+  const [localFollowerCount, setFollowerCount] = useState(null);
+  const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
+  const socialPageSlug = swrData?.socialPageSlug || null;
 
   // Fetch live games
   var fetchLiveGames = async function () {

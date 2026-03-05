@@ -7,6 +7,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
@@ -104,95 +105,45 @@ export default function TourDetailPage() {
   const router = useRouter();
   const { code } = router.query;
 
-  const [tour, setTour] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
-  const [activities, setActivities] = useState([]);
-  const [results, setResults] = useState([]);
   const [notifPermission, setNotifPermission] = useState('default');
 
-  // Check initial notification permission on client
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotifPermission(Notification.permission);
-    }
+    if (typeof window !== 'undefined' && 'Notification' in window) setNotifPermission(Notification.permission);
   }, []);
 
-  // Load follow state - localStorage for instant UI, API for count
+  // Load follow state from localStorage instantly
   useEffect(() => {
     if (!code) return;
     try {
       const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
       setIsFollowed(followed.includes(code));
-    } catch {
-      setIsFollowed(false);
-    }
-    // Fetch follower count from API
-    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code))
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) setFollowerCount(json.follower_count || 0);
-      })
-      .catch(() => { });
+    } catch { setIsFollowed(false); }
   }, [code]);
 
-  // Fetch tour data
-  useEffect(() => {
-    if (!code) return;
-
-    async function fetchTour() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/poker/tours?tour_code=' + encodeURIComponent(code) + '&include_series=true');
-        if (!res.ok) {
-          throw new Error('Failed to fetch tour data (' + res.status + ')');
-        }
-        const response = await res.json();
-        if (response.data && response.data.length > 0) {
-          setTour(response.data[0]);
-        } else {
-          setError('Tour not found');
-        }
-      } catch (err) {
-        setError(err.message || 'Failed to load tour');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchTour();
-  }, [code]);
-
-  // Fetch activity feed
-  useEffect(() => {
-    if (!code) return;
-    fetch('/api/poker/activity?page_type=tour&page_id=' + encodeURIComponent(code) + '&limit=10')
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) {
-          var items = json.activities || json.data || [];
-          if (Array.isArray(items)) setActivities(items);
-        }
-      })
-      .catch(() => { });
-  }, [code]);
-
-  // Fetch tournament results
-  useEffect(() => {
-    if (!code) return;
-    fetch('/api/poker/results?tour_code=' + encodeURIComponent(code) + '&limit=10')
-      .then(r => r.json())
-      .then(json => {
-        if (json.success && Array.isArray(json.data)) {
-          setResults(json.data);
-        }
-      })
-      .catch(() => { });
-  }, [code]);
+  // SWR — parallel fetch all tour data
+  const swrKey = code ? `/api/poker/tours?tour_code=${encodeURIComponent(code)}&include_series=true` : null;
+  const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
+    const [tourRes, activityRes, resultsRes, followRes] = await Promise.all([
+      fetch('/api/poker/tours?tour_code=' + encodeURIComponent(code) + '&include_series=true'),
+      fetch('/api/poker/activity?page_type=tour&page_id=' + encodeURIComponent(code) + '&limit=10'),
+      fetch('/api/poker/results?tour_code=' + encodeURIComponent(code) + '&limit=10'),
+      fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code))
+    ]);
+    const [tj, aj, rj, fj] = await Promise.all([tourRes.json(), activityRes.json(), resultsRes.json(), followRes.json()]);
+    return {
+      tour: tj.data && tj.data.length > 0 ? tj.data[0] : null,
+      activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : [],
+      results: rj.success && Array.isArray(rj.data) ? rj.data : [],
+      followerCount: fj.success ? (fj.follower_count || 0) : 0
+    };
+  });
+  const tour = swrData?.tour || null;
+  const activities = swrData?.activities || [];
+  const results = swrData?.results || [];
+  const [localFollowerCount, setFollowerCount] = useState(null);
+  const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
 
   function handleFollow() {
     const newState = !isFollowed;

@@ -97,7 +97,7 @@ export default async function handler(req, res) {
             query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
         }
 
-        const parsedLimit = parseInt(limit, 10) || 200;
+        const parsedLimit = parseInt(limit, 10) || 50;
         query = query.limit(parsedLimit);
 
         const { data: dbTournaments, error } = await query;

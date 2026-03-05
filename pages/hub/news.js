@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
@@ -917,14 +918,37 @@ export default function NewsHub() {
     const userId = user?.id;
 
     // Core State
-    const [news, setNews] = useState([]);
-    const [sourceBoxes, setSourceBoxes] = useState([]); // HARDENED: 6 source-specific articles
-    const [videos, setVideos] = useState([]);
-    const [reels, setReels] = useState([]);
-    const [leaderboard, setLeaderboard] = useState([]);
-    const [events, setEvents] = useState([]);
-    const [msptNews, setMsptNews] = useState(FALLBACK_MSPT);
-    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('all');
+
+    // SWR-backed static data — cached 60s, survive navigation
+    const jsonFetch = (url) => fetch(url).then(r => r.json());
+    const { data: sourceBoxesData } = useSWR('/api/news/source-boxes', jsonFetch);
+    const sourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
+
+    const { data: videosData } = useSWR('/api/news/videos?limit=20', jsonFetch);
+    const videos = (videosData?.success && videosData.data?.length) ? videosData.data : (typeof FALLBACK_VIDEOS !== 'undefined' ? FALLBACK_VIDEOS : []);
+
+    const { data: reelsData } = useSWR('/api/news/reels?limit=20&sort=recent', jsonFetch);
+    const reels = (reelsData?.success && reelsData.data?.length) ? reelsData.data : [];
+
+    const { data: leaderboardData } = useSWR('/api/news/leaderboard?limit=5', jsonFetch);
+    const leaderboard = (leaderboardData?.success && leaderboardData.data?.length) ? leaderboardData.data : (typeof FALLBACK_POY !== 'undefined' ? FALLBACK_POY : []);
+
+    const { data: eventsData } = useSWR('/api/news/events?limit=3', jsonFetch);
+    const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : (typeof FALLBACK_EVENTS !== 'undefined' ? FALLBACK_EVENTS : []);
+
+    const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', jsonFetch);
+    const msptNews = (msptData?.success && msptData.data?.length)
+        ? msptData.data.map(a => ({ id: a.id, title: a.title, source_url: a.source_url || '#', published_at: a.published_at, prize_pool: null }))
+        : (typeof FALLBACK_MSPT !== 'undefined' ? FALLBACK_MSPT : []);
+
+    // News articles — key changes with activeTab so SWR re-fetches and caches per tab
+    const newsParams = new URLSearchParams({ limit: '100' });
+    if (activeTab !== 'all') newsParams.set('category', activeTab);
+    if (searchQuery) newsParams.set('search', searchQuery);
+    const { data: newsData, isLoading: loading } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
+    const news = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all');
 
@@ -1096,131 +1120,15 @@ export default function NewsHub() {
         confetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
     };
 
-    // Fetch data
-    useEffect(() => {
-        fetchAllData();
-    }, []);
-
-    useEffect(() => {
-        fetchNews();
-    }, [activeTab]);
-
-    const fetchAllData = async () => {
-        setLoading(true);
-        await Promise.all([
-            fetchSourceBoxes(), // HARDENED: Fetch 6 source-specific articles first
-            fetchNews(),
-            fetchVideos(),
-            fetchReels(),
-            fetchLeaderboard(),
-            fetchEvents(),
-            fetchMSPTNews()
-        ]);
-        setLoading(false);
-        setLastUpdate(new Date());
-    };
-
-    // HARDENED: Fetch exactly 1 article per source box from dedicated API
-    const fetchSourceBoxes = async () => {
-        try {
-            const res = await fetch('/api/news/source-boxes');
-            const { success, data } = await res.json();
-            if (success && data?.length) {
-                setSourceBoxes(data);
-            }
-        } catch (e) {
-            console.error('Failed to fetch source boxes:', e);
-        }
-    };
-
+    // Refresh button handler (triggers SWR revalidation)
+    const { mutate: mutateNews } = useSWR(`/api/news/articles?${newsParams}`, null, { revalidateOnMount: false });
     const refreshData = async () => {
         setIsRefreshing(true);
-        await fetchAllData();
+        await mutateNews();
+        setLastUpdate(new Date());
         setIsRefreshing(false);
     };
 
-    const fetchNews = async () => {
-        try {
-            // Fetch enough articles to ensure all 6 source boxes have content
-            const params = new URLSearchParams({ limit: '100' });
-            if (activeTab !== 'all') params.set('category', activeTab);
-            if (searchQuery) params.set('search', searchQuery);
-
-            const res = await fetch(`/api/news/articles?${params}`);
-            const { success, data } = await res.json();
-
-            if (success && data?.length) {
-                setNews(data);
-            } else {
-                setNews(FALLBACK_NEWS);
-            }
-        } catch (e) {
-            console.error('Failed to fetch news:', e);
-            setNews(FALLBACK_NEWS);
-        }
-    };
-
-    const fetchVideos = async () => {
-        try {
-            const res = await fetch('/api/news/videos?limit=20');
-            const { success, data } = await res.json();
-            setVideos(success && data?.length ? data : FALLBACK_VIDEOS);
-        } catch (e) {
-            setVideos(FALLBACK_VIDEOS);
-        }
-    };
-
-    const fetchReels = async () => {
-        try {
-            const res = await fetch('/api/news/reels?limit=20&sort=recent');
-            const { success, data } = await res.json();
-            setReels(success && data?.length ? data : []);
-        } catch (e) {
-            setReels([]);
-        }
-    };
-
-    const fetchLeaderboard = async () => {
-        try {
-            const res = await fetch('/api/news/leaderboard?limit=5');
-            const { success, data } = await res.json();
-            setLeaderboard(success && data?.length ? data : FALLBACK_POY);
-        } catch (e) {
-            setLeaderboard(FALLBACK_POY);
-        }
-    };
-
-    const fetchEvents = async () => {
-        try {
-            const res = await fetch('/api/news/events?limit=3');
-            const { success, data } = await res.json();
-            setEvents(success && data?.length ? data : FALLBACK_EVENTS);
-        } catch (e) {
-            setEvents(FALLBACK_EVENTS);
-        }
-    };
-
-    const fetchMSPTNews = async () => {
-        try {
-            // Fetch MSPT-specific news from articles API
-            const res = await fetch('/api/news/articles?search=MSPT&limit=10');
-            const { success, data } = await res.json();
-            if (success && data?.length) {
-                // Transform to MSPT format
-                setMsptNews(data.map(a => ({
-                    id: a.id,
-                    title: a.title,
-                    source_url: a.source_url || '#',
-                    published_at: a.published_at,
-                    prize_pool: null
-                })));
-            } else {
-                setMsptNews(FALLBACK_MSPT);
-            }
-        } catch (e) {
-            setMsptNews(FALLBACK_MSPT);
-        }
-    };
 
     // Search handler
     const handleSearch = useCallback((value) => {

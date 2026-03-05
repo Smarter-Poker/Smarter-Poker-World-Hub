@@ -5,8 +5,10 @@
  * Per API_REFERENCE.md: GET /leagues/:id, GET /leagues/:id/standings
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import {
   Trophy,
   Users,
@@ -89,62 +91,38 @@ export default function LeagueDetailPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const [loading, setLoading] = useState(true);
-  const [league, setLeague] = useState(null);
-  const [standings, setStandings] = useState([]);
-  const [events, setEvents] = useState([]);
   const [isJoined, setIsJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [activeTab, setActiveTab] = useState('standings');
-  const [currentUserId, setCurrentUserId] = useState(null);
 
-  useEffect(() => {
-    // Get current user ID from token
+  // Decode current user ID from token
+  const currentUserId = (() => {
+    if (typeof window === 'undefined') return null;
     const token = localStorage.getItem('smarter-poker-auth');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setCurrentUserId(payload.sub);
-      } catch (e) {
-        console.error('Failed to decode token:', e);
-      }
-    }
-    if (id) {
-      fetchLeagueData();
-    }
-  }, [id]);
+    if (!token) return null;
+    try { return JSON.parse(atob(token.split('.')[1])).sub; } catch { return null; }
+  })();
 
-  async function fetchLeagueData() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const [leagueRes, standingsRes] = await Promise.all([
-        fetch(`/api/commander/leagues/${id}`, { headers }),
-        fetch(`/api/commander/leagues/${id}/standings`, { headers })
-      ]);
-
-      const leagueData = await leagueRes.json();
-      const standingsData = await standingsRes.json();
-
-      if (leagueData.success) {
-        setLeague(leagueData.data?.league);
-        setEvents(leagueData.data?.events || []);
-        setIsJoined(leagueData.data?.is_joined || false);
-      }
-      if (standingsData.success) {
-        setStandings(standingsData.data?.standings || []);
-      }
-    } catch (err) {
-      console.error('Fetch failed:', err);
-      setLeague(null);
-      setStandings([]);
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // SWR — parallel fetch of league details + standings
+  const swrKey = id ? `/api/commander/leagues/${id}` : null;
+  const { data: swrData, isLoading: loading, mutate: refreshLeague } = useSWR(swrKey, async () => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const [leagueRes, standingsRes] = await Promise.all([
+      fetch(`/api/commander/leagues/${id}`, { headers }),
+      fetch(`/api/commander/leagues/${id}/standings`, { headers })
+    ]);
+    const [leagueData, standingsData] = await Promise.all([leagueRes.json(), standingsRes.json()]);
+    if (leagueData.success) setIsJoined(leagueData.data?.is_joined || false);
+    return {
+      league: leagueData.success ? leagueData.data?.league : null,
+      events: leagueData.success ? (leagueData.data?.events || []) : [],
+      standings: standingsData.success ? (standingsData.data?.standings || []) : []
+    };
+  });
+  const league = swrData?.league || null;
+  const standings = swrData?.standings || [];
+  const events = swrData?.events || [];
 
   async function handleJoinLeague() {
     setJoining(true);
@@ -163,7 +141,7 @@ export default function LeagueDetailPage() {
       const data = await res.json();
       if (data.success) {
         setIsJoined(true);
-        fetchLeagueData();
+        refreshLeague();
       }
     } catch (err) {
       console.error('Join failed:', err);
@@ -174,13 +152,7 @@ export default function LeagueDetailPage() {
 
   const myRank = currentUserId ? standings.findIndex(s => s.player_id === currentUserId) + 1 : 0;
 
-  if (loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
-    );
-  }
+  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={3} /></div>;
 
   if (!league) {
     return (

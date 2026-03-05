@@ -6,6 +6,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -47,51 +48,33 @@ function formatMoney(amount) {
 
 export default function DailyTournaments() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [tournaments, setTournaments] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState(DAYS[new Date().getDay()]);
     const [selectedState, setSelectedState] = useState(null);
     const [selectedType, setSelectedType] = useState('');
     const [selectedBuyin, setSelectedBuyin] = useState(BUYIN_RANGES[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [stats, setStats] = useState({});
 
     const menuConfig = getMenuConfig('tournaments', null, {}, {});
 
-    useEffect(() => {
-        fetchTournaments();
-    }, [selectedDay, selectedState, selectedType, selectedBuyin]);
+    // SWR-backed tournament fetch — cached 60s, instant on filter change
+    const swrParams = new URLSearchParams({ day: selectedDay });
+    if (selectedState) swrParams.set('state', selectedState.abbr);
+    if (selectedType) swrParams.set('type', selectedType);
+    if (selectedBuyin.min) swrParams.set('minBuyin', selectedBuyin.min.toString());
+    if (selectedBuyin.max) swrParams.set('maxBuyin', selectedBuyin.max.toString());
+    if (searchQuery) swrParams.set('venue', searchQuery);
 
-    const fetchTournaments = async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({ day: selectedDay });
-            if (selectedState) params.set('state', selectedState.abbr);
-            if (selectedType) params.set('type', selectedType);
-            if (selectedBuyin.min) params.set('minBuyin', selectedBuyin.min.toString());
-            if (selectedBuyin.max) params.set('maxBuyin', selectedBuyin.max.toString());
-            if (searchQuery) params.set('venue', searchQuery);
-
-            const res = await fetch(`/api/poker/daily-tournaments?${params}`);
-            const data = await res.json();
-
-            if (data.success) {
-                setTournaments(data.tournaments || []);
-                setStats(data.stats || {});
-            } else {
-                setTournaments([]);
-            }
-        } catch (e) {
-            console.error('Fetch tournaments error:', e);
-            setTournaments([]);
-        }
-        setLoading(false);
-    };
+    const { data: swrData, isLoading: loading, mutate: refreshTournaments } = useSWR(
+        `/api/poker/daily-tournaments?${swrParams}`,
+        (url) => fetch(url).then(r => r.json()).then(d => d.success ? d : { tournaments: [], stats: {} })
+    );
+    const tournaments = swrData?.tournaments || [];
+    const stats = swrData?.stats || {};
 
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchTournaments();
+        refreshTournaments();
     };
 
     const clearFilters = () => {
@@ -250,7 +233,7 @@ export default function DailyTournaments() {
                         </div>
                         <div className="filter-actions">
                             <button className="btn-clear" onClick={clearFilters}>Clear All</button>
-                            <button className="btn-apply" onClick={() => { fetchTournaments(); setShowFilters(false); }}>Apply Filters</button>
+                            <button className="btn-apply" onClick={() => { refreshTournaments(); setShowFilters(false); }}>Apply Filters</button>
                         </div>
                     </div>
                 )}
@@ -395,21 +378,21 @@ export default function DailyTournaments() {
 
                         <div className="sidebar-section quick-links">
                             <h3>Quick Links</h3>
-                            <a href="/hub/poker-near-me" className="quick-link">
+                            <Link href="/hub/poker-near-me" className="quick-link">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                     <circle cx="12" cy="10" r="3" />
                                 </svg>
                                 Find Poker Rooms
-                            </a>
-                            <a href="/hub/pages" className="quick-link">
+                            </Link>
+                            <Link href="/hub/pages" className="quick-link">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="2" y="3" width="20" height="18" rx="2" />
                                     <line x1="2" y1="9" x2="22" y2="9" />
                                 </svg>
                                 Browse Venue Pages
-                            </a>
-                            <a href="/hub/events-calendar" className="quick-link">
+                            </Link>
+                            <Link href="/hub/events-calendar" className="quick-link">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                     <line x1="16" y1="2" x2="16" y2="6" />
@@ -417,14 +400,14 @@ export default function DailyTournaments() {
                                     <line x1="3" y1="10" x2="21" y2="10" />
                                 </svg>
                                 Events Calendar
-                            </a>
-                            <a href="/hub/promotions" className="quick-link">
+                            </Link>
+                            <Link href="/hub/promotions" className="quick-link">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="2" y="5" width="20" height="14" rx="2" />
                                     <line x1="2" y1="10" x2="22" y2="10" />
                                 </svg>
                                 Promotions &amp; Deals
-                            </a>
+                            </Link>
                         </div>
                     </aside>
                 </div>

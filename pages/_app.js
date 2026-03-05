@@ -26,6 +26,8 @@ import '../styles/landing.css';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { SWRConfig } from 'swr';
+import { swrLocalStorageProvider, SWR_DEFAULTS } from '../src/lib/swrCacheProvider';
 import { useEffect, createContext, useState, useContext } from 'react';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
@@ -354,6 +356,7 @@ export default function App({ Component, pageProps }) {
   const isCommander = router.asPath.startsWith('/commander');
 
   return (
+    <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
     <>
       {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
       <Head>
@@ -438,6 +441,7 @@ export default function App({ Component, pageProps }) {
         </ThemeProvider>
       </AntiGravityProvider>
     </>
+    </SWRConfig>
   );
 }
 

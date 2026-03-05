@@ -4,6 +4,7 @@
  * QR code for instant check-in, quick actions, membership display
  */
 import { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import {
@@ -21,8 +22,6 @@ const TIER_COLORS = {
 
 export default function PlayerCard() {
   const router = useRouter();
-  const [player, setPlayer] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [qrData, setQrData] = useState(null);
   const [qrRefresh, setQrRefresh] = useState(0);
   const intervalRef = useRef(null);
@@ -30,32 +29,24 @@ export default function PlayerCard() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('sb-access-token') : null;
 
+  // QR rotation timer
   useEffect(() => {
-    fetchProfile();
-    // Rotate QR every 30 seconds
     intervalRef.current = setInterval(() => setQrRefresh(r => r + 1), 30000);
     return () => clearInterval(intervalRef.current);
   }, []);
 
+  // SWR-backed profile fetch
+  const { data: player, isLoading: loading } = useSWR('/api/hub/profile', (url) => {
+    const token = getToken();
+    if (!token) { router.push('/auth/login?redirect=/hub/commander/player-card'); return null; }
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(json => json.success || json.data ? (json.data || json) : null);
+  });
+
   useEffect(() => {
     if (player) generateQR();
   }, [player, qrRefresh]);
-
-  const fetchProfile = async () => {
-    try {
-      const token = getToken();
-      if (!token) { router.push('/auth/login?redirect=/hub/commander/player-card'); return; }
-
-      const res = await fetch('/api/hub/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const json = await res.json();
-      if (json.success || json.data) {
-        setPlayer(json.data || json);
-      }
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
 
   const generateQR = () => {
     // QR payload: timestamped token for scanning

@@ -8,6 +8,7 @@
  */
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -501,51 +502,42 @@ export default function MyVenuesPage() {
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [token, setToken] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [venues, setVenues] = useState([]);
     const [selectedVenue, setSelectedVenue] = useState(null);
     const [activeTab, setActiveTab] = useState('schedule');
     const [emailMatches, setEmailMatches] = useState([]);
 
-    // Load user and venues
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
+    // Get session once, redirect if unauthenticated
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session?.user) {
                 router.push('/login?redirect=/hub/my-venues');
-                return;
+            } else {
+                setUser(session.user);
+                setToken(session.access_token);
             }
-            setUser(session.user);
-            setToken(session.access_token);
-
-            // Fetch linked venues
-            const res = await fetch('/api/employee/venues', {
-                headers: { Authorization: `Bearer ${session.access_token}` },
-            });
-            const json = await res.json();
-            if (json.success) {
-                setVenues(json.data.venues || []);
-                if (json.data.venues?.length > 0 && !selectedVenue) {
-                    setSelectedVenue(json.data.venues[0]);
-                }
-            }
-
-            // Check email matches
-            const emailRes = await fetch('/api/employee/link-by-email', {
-                headers: { Authorization: `Bearer ${session.access_token}` },
-            });
-            const emailJson = await emailRes.json();
-            if (emailJson.success) {
-                setEmailMatches(emailJson.data.matches || []);
-            }
-        } catch (e) {
-            console.error('MyVenues load error:', e);
-        }
-        setLoading(false);
+        });
     }, []);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    // SWR-backed venues + email matches — fires once token is known
+    const { data: venuesData, isLoading: loading, mutate: reloadVenues } = useSWR(
+        token ? ['/api/employee/venues', token] : null,
+        async ([url, tok]) => {
+            const [venueRes, emailRes] = await Promise.all([
+                fetch(url, { headers: { Authorization: `Bearer ${tok}` } }).then(r => r.json()),
+                fetch('/api/employee/link-by-email', { headers: { Authorization: `Bearer ${tok}` } }).then(r => r.json()),
+            ]);
+            if (emailRes.success) setEmailMatches(emailRes.data.matches || []);
+            return venueRes.success ? (venueRes.data.venues || []) : [];
+        }
+    );
+    const venues = venuesData || [];
+
+    // Auto-select first venue
+    useEffect(() => {
+        if (venues.length > 0 && !selectedVenue) {
+            setSelectedVenue(venues[0]);
+        }
+    }, [venues]);
 
     // ── REAL-TIME BUS LISTENER ──
     // When Commander updates staff data (schedule, downs, time-clock), refresh the portal
@@ -558,27 +550,27 @@ export default function MyVenuesPage() {
                 // Refresh data when staff-related changes happen
                 if (['staff_schedule_update', 'dealer_rotation', 'time_clock_update', 'staff_update'].includes(type)) {
                     console.log('[MyVenues] Bus event received:', type);
-                    loadData(); // Re-fetch all data
+                    reloadVenues(); // Re-fetch all data
                 }
             };
         } catch (e) {
             // BroadcastChannel not supported in some browsers
         }
         return () => { if (bc) bc.close(); };
-    }, [loadData]);
+    }, [reloadVenues]);
 
     // ── AUTO-REFRESH: Check for new data every 60 seconds ──
     useEffect(() => {
         if (!user) return;
         const interval = setInterval(() => {
-            loadData();
+            reloadVenues();
         }, 60000);
         return () => clearInterval(interval);
-    }, [user, loadData]);
+    }, [user, reloadVenues]);
 
     const handleLinked = () => {
         // Clear the linked venue from emailMatches and refresh venues
-        loadData();
+        reloadVenues();
     };
 
     const tabs = [

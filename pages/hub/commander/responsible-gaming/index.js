@@ -5,6 +5,7 @@
  * Per DATABASE_SCHEMA.sql: commander_self_exclusions, commander_spending_limits
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -75,17 +76,11 @@ function ExclusionOption({ duration, label, description, selected, onSelect }) {
 export default function ResponsibleGamingPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [limits, setLimits] = useState({
-    daily_limit: null,
-    weekly_limit: null,
-    monthly_limit: null,
-    session_duration_limit: null,
-    loss_limit: null,
-    alerts_enabled: true
+    daily_limit: null, weekly_limit: null, monthly_limit: null,
+    session_duration_limit: null, loss_limit: null, alerts_enabled: true
   });
-  const [exclusion, setExclusion] = useState(null);
   const [activeExclusion, setActiveExclusion] = useState(null);
   const [showExclusionConfirm, setShowExclusionConfirm] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
@@ -93,56 +88,31 @@ export default function ResponsibleGamingPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
-      return;
-    }
-    fetchSettings();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
   }, [router]);
 
-  async function fetchSettings() {
-    setLoading(true);
-    try {
+  const { isLoading: loading, mutate: refreshSettings } = useSWR(
+    '/api/commander/responsible-gaming/limits',
+    async (url) => {
       const token = localStorage.getItem('smarter-poker-auth');
-      const [limitsRes, exclusionRes] = await Promise.all([
-        fetch('/api/commander/responsible-gaming/limits', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('/api/commander/responsible-gaming/exclusion', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+      if (!token) return null;
+      const h = { Authorization: `Bearer ${token}` };
+      const [limRes, exRes] = await Promise.all([
+        fetch(url, { headers: h }),
+        fetch('/api/commander/responsible-gaming/exclusion', { headers: h })
       ]);
-
-      const limitsData = await limitsRes.json();
-      const exclusionData = await exclusionRes.json();
-
-      if (limitsData.success && limitsData.data?.limits) {
-        setLimits(limitsData.data.limits);
-      }
-      if (exclusionData.success && exclusionData.data?.exclusion) {
-        setActiveExclusion(exclusionData.data.exclusion);
-      }
-
-      // Check responsible gaming status for this player
-      if (limitsData.data?.player_id) {
-        fetch(`/api/commander/responsible-gaming/check/${limitsData.data.player_id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(r => r.json())
-          .then(checkData => {
-            if (checkData.success) {
-              setRiskStatus(checkData.data?.risk_level || null);
-            }
-          })
+      const [limData, exData] = await Promise.all([limRes.json(), exRes.json()]);
+      if (limData.success && limData.data?.limits) setLimits(limData.data.limits);
+      if (exData.success && exData.data?.exclusion) setActiveExclusion(exData.data.exclusion);
+      // Background risk check
+      if (limData.data?.player_id) {
+        fetch(`/api/commander/responsible-gaming/check/${limData.data.player_id}`, { headers: h })
+          .then(r => r.json()).then(cd => { if (cd.success) setRiskStatus(cd.data?.risk_level || null); })
           .catch(() => {});
       }
-    } catch (err) {
-      console.error('Fetch failed:', err);
-      // Keep defaults
-    } finally {
-      setLoading(false);
+      return limData;
     }
-  }
+  );
 
   async function handleSaveLimits() {
     setSaving(true);

@@ -9,6 +9,7 @@ import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, Fragment } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
@@ -133,103 +134,47 @@ export default function SeriesDetailPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const [series, setSeries] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
-  const [results, setResults] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [activities, setActivities] = useState([]);
   const [expandedEvent, setExpandedEvent] = useState(null);
 
-  // Load follow state - localStorage for instant UI, API for count
+  // Load follow state from localStorage instantly
   useEffect(() => {
     if (!id) return;
     try {
       const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
       setIsFollowing(followed.includes(String(id)));
-    } catch {
-      // ignore parse errors
-    }
-    // Fetch follower count from API
-    fetch('/api/poker/follow?page_type=series&page_id=' + id)
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) setFollowerCount(json.follower_count || 0);
-      })
-      .catch(() => { });
+    } catch { }
   }, [id]);
 
-  // Fetch series data
-  useEffect(() => {
-    if (!id) return;
-    const fetchSeries = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/poker/series?id=' + id);
-        const json = await res.json();
-
-        if (json.success && json.data) {
-          // API may return data as object (single) or array
-          const seriesObj = Array.isArray(json.data) ? json.data[0] : json.data;
-          if (seriesObj) {
-            setSeries(seriesObj);
-          } else {
-            setError('Series not found');
-          }
-        } else {
-          setError('Series not found');
-        }
-      } catch (e) {
-        console.error('Error fetching series:', e);
-        setError('Failed to load series data');
-      }
-      setLoading(false);
+  // SWR — parallel fetch all series data
+  const swrKey = id ? `/api/poker/series?id=${id}` : null;
+  const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
+    const [seriesRes, resultsRes, followRes, activityRes] = await Promise.all([
+      fetch('/api/poker/series?id=' + id),
+      fetch('/api/poker/results?series_id=' + id),
+      fetch('/api/poker/follow?page_type=series&page_id=' + id),
+      fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10')
+    ]);
+    const [sj, rj, fj, aj] = await Promise.all([seriesRes.json(), resultsRes.json(), followRes.json(), activityRes.json()]);
+    const seriesObj = sj.success && sj.data ? (Array.isArray(sj.data) ? sj.data[0] : sj.data) : null;
+    const payload = rj.success ? (rj.data || {}) : {};
+    const results = payload.results && Array.isArray(payload.results) ? payload.results : (Array.isArray(payload) ? payload : []);
+    const leaderboard = payload.leaderboard && Array.isArray(payload.leaderboard) ? payload.leaderboard : (Array.isArray(rj.leaderboard) ? rj.leaderboard : []);
+    return {
+      series: seriesObj,
+      results,
+      leaderboard,
+      followerCount: fj.success ? (fj.follower_count || 0) : 0,
+      activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : []
     };
-
-    fetchSeries();
-  }, [id]);
-
-  // Fetch tournament results and leaderboard
-  useEffect(() => {
-    if (!id) return;
-    fetch('/api/poker/results?series_id=' + id)
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) {
-          // API returns { data: { results: [...], leaderboard: [...] } }
-          var payload = json.data || {};
-          if (payload.results && Array.isArray(payload.results)) {
-            setResults(payload.results);
-          } else if (Array.isArray(payload)) {
-            setResults(payload);
-          }
-          if (payload.leaderboard && Array.isArray(payload.leaderboard)) {
-            setLeaderboard(payload.leaderboard);
-          } else if (Array.isArray(json.leaderboard)) {
-            setLeaderboard(json.leaderboard);
-          }
-        }
-      })
-      .catch(() => { });
-  }, [id]);
-
-  // Fetch activity feed
-  useEffect(() => {
-    if (!id) return;
-    fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10')
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) {
-          var items = json.activities || json.data || [];
-          if (Array.isArray(items)) setActivities(items);
-        }
-      })
-      .catch(() => { });
-  }, [id]);
+  });
+  const series = swrData?.series || null;
+  const results = swrData?.results || [];
+  const leaderboard = swrData?.leaderboard || [];
+  const [localFollowerCount, setFollowerCount] = useState(null);
+  const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
+  const activities = swrData?.activities || [];
 
   const toggleFollow = () => {
     const sid = String(id);

@@ -130,7 +130,7 @@ export default function Cashier() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const today = new Date().toISOString().split('T')[0];
-      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=200`, { headers });
+      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers });
       const txJson = await txRes.json();
       setTransactions(txJson.data || []);
 

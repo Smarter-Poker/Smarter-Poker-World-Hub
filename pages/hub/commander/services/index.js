@@ -4,9 +4,11 @@
  * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import {
   Coffee,
   Coins,
@@ -283,50 +285,29 @@ function RequestModal({ type, session, onSubmit, onClose }) {
 export default function ServicesPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState(null);
-  const [requests, setRequests] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/services');
-      return;
-    }
-    fetchData();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/services');
   }, [router]);
 
-  async function fetchData() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const [sessionRes, requestsRes] = await Promise.all([
-        fetch('/api/commander/sessions/current', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('/api/commander/services/my', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
-      const sessionData = await sessionRes.json();
-      const requestsData = await requestsRes.json();
-
-      if (sessionData.success) {
-        setSession(sessionData.data?.session);
-      }
-      if (requestsData.success) {
-        setRequests(requestsData.data?.requests || []);
-      }
-    } catch (err) {
-      console.error('Fetch failed:', err);
-      setSession(null);
-      setRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR('/api/commander/sessions/current', async () => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    const h = { Authorization: `Bearer ${token}` };
+    const [sessRes, reqRes] = await Promise.all([
+      fetch('/api/commander/sessions/current', { headers: h }),
+      fetch('/api/commander/services/my', { headers: h })
+    ]);
+    const [sd, rd] = await Promise.all([sessRes.json(), reqRes.json()]);
+    return {
+      session: sd.success ? sd.data?.session : null,
+      requests: rd.success ? (rd.data?.requests || []) : []
+    };
+  });
+  const session = swrData?.session || null;
+  const requests = swrData?.requests || [];
 
   async function handleSubmitRequest(request) {
     try {
@@ -346,7 +327,7 @@ export default function ServicesPage() {
       const data = await res.json();
       if (data.success) {
         setSelectedType(null);
-        fetchData();
+        refreshServices();
       }
     } catch (err) {
       console.error('Submit failed:', err);
@@ -360,7 +341,7 @@ export default function ServicesPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchData();
+      refreshServices();
     } catch (err) {
       console.error('Cancel failed:', err);
       setRequests(prev => prev.filter(r => r.id !== requestId));
@@ -370,13 +351,7 @@ export default function ServicesPage() {
   const activeRequests = requests.filter(r => ['pending', 'in_progress'].includes(r.status));
   const hasActiveRequest = (type) => activeRequests.some(r => r.request_type === type);
 
-  if (loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
-    );
-  }
+  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
 
   if (!session) {
     return (

@@ -4,56 +4,39 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { ArrowLeft, Save, User, Camera, Loader2 } from 'lucide-react';
 
 export default function ProfileEditPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    display_name: '',
-    email: '',
-    phone: '',
-    bio: '',
-    avatar_url: ''
+    display_name: '', email: '', phone: '', bio: '', avatar_url: ''
   });
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/profile/edit');
-      return;
-    }
-    fetchProfile();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/profile/edit');
   }, [router]);
 
-  async function fetchProfile() {
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const res = await fetch('/api/commander/profile', {
-        headers: { Authorization: `Bearer ${token}` }
+  const { isLoading: loading } = useSWR('/api/commander/profile', (url) => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data?.profile) {
+          const p = data.data.profile;
+          setFormData({ display_name: p.display_name || '', email: p.email || '', phone: p.phone || '', bio: p.bio || '', avatar_url: p.avatar_url || '' });
+        }
+        return data;
       });
-      const data = await res.json();
-      if (data.success && data.data?.profile) {
-        const p = data.data.profile;
-        setFormData({
-          display_name: p.display_name || '',
-          email: p.email || '',
-          phone: p.phone || '',
-          bio: p.bio || '',
-          avatar_url: p.avatar_url || ''
-        });
-      }
-    } catch (err) {
-      console.error('Fetch profile failed:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  });
 
   async function handleSave() {
     if (!formData.display_name.trim()) {
@@ -86,13 +69,7 @@ export default function ProfileEditPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
-    );
-  }
+  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={5} /></div>;
 
   return (
     <>

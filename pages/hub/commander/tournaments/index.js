@@ -11,6 +11,7 @@ import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
   Play, CheckCircle
 } from 'lucide-react';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 function TournamentCard({ tournament, onRegister, isRegistered }) {
   const router = useRouter();
@@ -117,46 +118,24 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
 
 export default function PlayerTournamentsHub() {
   const router = useRouter();
-  const [tournaments, setTournaments] = useState([]);
   const [myRegistrations, setMyRegistrations] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, upcoming, live, registered
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
 
-  useEffect(() => {
-    loadTournaments();
-  }, []);
+  const { data: swrData, isLoading, mutate: refreshTournaments } = useSWR('/api/commander/tournaments?status=active', async (url) => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    const [tourRes, myRes] = await Promise.all([
+      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+      token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } })
+             : Promise.resolve({ json: () => ({ registrations: [] }) })
+    ]);
+    const [tourData, myData] = await Promise.all([tourRes.json(), myRes.json()]);
+    setMyRegistrations((myData.registrations || []).map(r => r.tournament_id));
+    return tourData.tournaments || [];
+  });
+  const tournaments = swrData || [];
 
-  const loadTournaments = async () => {
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-
-      // Load public tournaments
-      const res = await fetch('/api/commander/tournaments?status=active', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      const data = await res.json();
-      if (data.tournaments) {
-        setTournaments(data.tournaments);
-      }
-
-      // Load my registrations if logged in
-      if (token) {
-        const myRes = await fetch('/api/commander/tournaments/my', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const myData = await myRes.json();
-        if (myData.registrations) {
-          setMyRegistrations(myData.registrations.map(r => r.tournament_id));
-        }
-      }
-    } catch (err) {
-      console.error('Load error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const loadTournaments = () => refreshTournaments();
 
   const handleRegister = async (tournament) => {
     const token = localStorage.getItem('smarter-poker-auth');

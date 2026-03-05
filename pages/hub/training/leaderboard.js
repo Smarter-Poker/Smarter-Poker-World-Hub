@@ -8,48 +8,33 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import useSWR from 'swr';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 
 export default function TrainingLeaderboard() {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [timeframe, setTimeframe] = useState('all-time'); // 'daily', 'weekly', 'all-time'
     const [view, setView] = useState('global'); // 'global', 'friends'
-    const [leaderboard, setLeaderboard] = useState([]);
-    const [userRank, setUserRank] = useState(null);
 
+    // Load auth user once
     useEffect(() => {
-        loadLeaderboard();
-    }, [timeframe, view]);
+        getAuthUser().then(u => setUser(u)).catch(() => {});
+    }, []);
 
-    const loadLeaderboard = async () => {
-        try {
-            setLoading(true);
-            const authUser = await getAuthUser();
-            setUser(authUser);
+    // Map timeframe to API period format
+    const periodMap = { 'daily': 'daily', 'weekly': 'weekly', 'all-time': 'alltime' };
+    const period = periodMap[timeframe] || 'alltime';
 
-            // Map timeframe to API period format
-            const periodMap = {
-                'daily': 'daily',
-                'weekly': 'weekly',
-                'all-time': 'alltime'
-            };
-            const period = periodMap[timeframe] || 'alltime';
-
-            // Fetch from new leaderboard API
-            const response = await fetch(`/api/training/leaderboard?period=${period}&limit=100`);
-            const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load leaderboard');
-            }
-
-            // Transform API response to match expected format
-            const sorted = data.leaderboard.map(entry => ({
+    // SWR-backed leaderboard fetch — cached 60s, instant on timeframe switch
+    const swrKey = `/api/training/leaderboard?period=${period}&limit=100`;
+    const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(data => {
+            if (!data.success) throw new Error(data.error || 'Failed to load leaderboard');
+            return data.leaderboard.map(entry => ({
                 userId: entry.userId,
                 username: entry.username,
                 avatarUrl: entry.avatarUrl,
@@ -58,21 +43,10 @@ export default function TrainingLeaderboard() {
                 accuracy: entry.accuracy || 0,
                 score: (entry.questionsCorrect || 0) * (1 + (entry.accuracy || 0) / 100)
             }));
-
-            setLeaderboard(sorted);
-
-            // Find user rank
-            if (authUser) {
-                const rank = sorted.findIndex(s => s.userId === authUser.id);
-                setUserRank(rank >= 0 ? rank + 1 : null);
-            }
-
-            setLoading(false);
-        } catch (error) {
-            console.error('Error loading leaderboard:', error);
-            setLoading(false);
-        }
-    };
+        })
+    );
+    const leaderboard = swrData || [];
+    const userRank = user ? (() => { const r = leaderboard.findIndex(s => s.userId === user.id); return r >= 0 ? r + 1 : null; })() : null;
 
 
     return (
@@ -125,10 +99,7 @@ export default function TrainingLeaderboard() {
 
                     {/* Leaderboard */}
                     {loading ? (
-                        <div style={styles.loadingContainer}>
-                            <div style={styles.spinner}>Trophy</div>
-                            <p style={styles.loadingText}>Loading Leaderboard...</p>
-                        </div>
+                        <SkeletonLoader variant="leaderboard" rows={8} style={{ padding: '0 8px' }} />
                     ) : (
                         <div style={styles.leaderboardList}>
                             {leaderboard.map((entry, index) => (
@@ -210,7 +181,7 @@ function LeaderboardEntry({ rank, username, avatarUrl, totalQuestions, correctAn
                 <div style={styles.score}>{Math.round(score)}</div>
                 <div style={styles.scoreLabel}>Points</div>
             </div>
-        </motion.div>
+        </div>
     );
 }
 

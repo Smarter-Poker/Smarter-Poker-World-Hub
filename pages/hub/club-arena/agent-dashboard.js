@@ -629,7 +629,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                         border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
                     }}>
                         {p.profile?.avatar_url
-                            ? <img src={p.profile.avatar_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                            ? <img src={p.profile.avatar_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}  alt="User avatar" />
                             : ''}
                     </div>
 

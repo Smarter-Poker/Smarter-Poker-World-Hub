@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -289,32 +290,15 @@ export default function LeaderboardsPage() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overall');
     const [period, setPeriod] = useState('all');
-    const [leaders, setLeaders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     const menuConfig = getMenuConfig('leaderboards', null, {}, {});
 
-    const fetchLeaderboards = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await fetch(`/api/poker/leaderboards?type=${activeTab}&period=${period}&limit=50`);
-            if (!res.ok) throw new Error('Failed to load leaderboards');
-            const data = await res.json();
-            setLeaders(data.leaders || []);
-        } catch (err) {
-            console.error('Leaderboard fetch error:', err);
-            setError(err.message);
-            setLeaders([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [activeTab, period]);
-
-    useEffect(() => {
-        fetchLeaderboards();
-    }, [fetchLeaderboards]);
+    // SWR-backed fetch — cached 60s, instant on tab switch
+    const swrKey = `/api/poker/leaderboards?type=${activeTab}&period=${period}&limit=50`;
+    const { data: swrData, error, isLoading: loading, mutate: refreshLeaderboards } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => { if (!r.ok) throw new Error('Failed to load leaderboards'); return r.json(); })
+    );
+    const leaders = swrData?.leaders || [];
 
     // Set tab from URL query
     useEffect(() => {
@@ -513,7 +497,7 @@ export default function LeaderboardsPage() {
                                     </p>
                                     <p style={{ color: C.textSec, fontSize: 14, margin: '0 0 16px' }}>{error}</p>
                                     <button
-                                        onClick={fetchLeaderboards}
+                                        onClick={refreshLeaderboards}
                                         style={{
                                             padding: '8px 20px', background: C.blue, color: '#fff',
                                             border: 'none', borderRadius: 8, fontSize: 14,

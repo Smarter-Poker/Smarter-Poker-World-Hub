@@ -7,7 +7,6 @@
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useTheme } from '../../src/providers/ThemeProvider';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';

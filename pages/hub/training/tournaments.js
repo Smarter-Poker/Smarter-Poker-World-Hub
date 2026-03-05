@@ -8,48 +8,29 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 
 export default function TournamentsPage() {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [tournaments, setTournaments] = useState([]);
     const [activeTab, setActiveTab] = useState('live'); // 'live', 'upcoming', 'completed'
     const [registering, setRegistering] = useState(null);
 
+    // Load auth user once
     useEffect(() => {
-        loadData();
-    }, [activeTab]);
+        getAuthUser().then(u => setUser(u)).catch(() => {});
+    }, []);
 
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
-            const statusMap = {
-                'live': 'live',
-                'upcoming': 'upcoming',
-                'completed': 'completed'
-            };
-
-            const url = `/api/training/tournaments?status=${statusMap[activeTab]}${authUser ? `&userId=${authUser.id}` : ''}`;
-            const res = await fetch(url);
-            const data = await res.json();
-
-            if (data.success) {
-                setTournaments(data.tournaments || []);
-            }
-        } catch (error) {
-            console.error('Load error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // SWR key includes tab + user so switching tabs is instant on revisit
+    const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;
+    const { data: swrData, isLoading: loading, mutate: refreshTournaments } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(d => d.success ? (d.tournaments || []) : [])
+    );
+    const tournaments = swrData || [];
 
     const registerForTournament = async (tournamentId) => {
         if (!user) {
@@ -72,7 +53,7 @@ export default function TournamentsPage() {
             const data = await res.json();
             if (data.success) {
                 alert('🎉 Registered successfully!');
-                loadData(); // Refresh
+                refreshTournaments(); // Refresh
             } else {
                 alert(data.error || 'Registration failed');
             }
@@ -147,7 +128,7 @@ export default function TournamentsPage() {
 
                     {/* Tournament List */}
                     {loading ? (
-                        <div style={styles.loading}>Loading Tournaments...</div>
+                        <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
                     ) : tournaments.length === 0 ? (
                         <div style={styles.emptyState}>
                             <span style={styles.emptyIcon}>🏆</span>
@@ -234,7 +215,7 @@ export default function TournamentsPage() {
                                         {tournament.status === 'complete' && (
                                             <Link href={`/hub/training/tournament/${tournament.id}`} style={styles.viewBtn}>View Results</Link>
                                         )}
-                                    </motion.div>
+                                    </div>
                                 );
                             })}
                         </div>

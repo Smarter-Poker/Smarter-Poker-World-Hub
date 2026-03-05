@@ -8,7 +8,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -30,34 +30,19 @@ const CATEGORY_ICONS = {
 
 export default function TrainingAchievements() {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [achievements, setAchievements] = useState([]);
     const [activeCategory, setActiveCategory] = useState('all');
 
+    // Load auth user once
     useEffect(() => {
-        loadAchievements();
+        getAuthUser().then(u => setUser(u)).catch(() => {});
     }, []);
 
-    const loadAchievements = async () => {
-        try {
-            setLoading(true);
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
-            if (authUser) {
-                const response = await fetch(`/api/training/achievements?userId=${authUser.id}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    setAchievements(data.achievements || []);
-                }
-            }
-            setLoading(false);
-        } catch (error) {
-            console.error('Error loading achievements:', error);
-            setLoading(false);
-        }
-    };
+    // SWR-backed achievements fetch — only fires when user is known
+    const swrKey = user ? `/api/training/achievements?userId=${user.id}` : null;
+    const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(d => d.success ? (d.achievements || []) : [])
+    );
+    const achievements = swrData || [];
 
     const categories = ['all', 'accuracy', 'streak', 'volume', 'mastery'];
 
@@ -136,7 +121,7 @@ export default function TrainingAchievements() {
                                         <span style={styles.diamonds}>{ach.diamond_reward}</span>
                                         {ach.unlocked && <span style={styles.unlocked}>✓</span>}
                                     </div>
-                                </motion.div>
+                                </div>
                             ))}
 
                             {filteredAchievements.length === 0 && (

@@ -4,6 +4,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   Loader2
 } from 'lucide-react';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -85,64 +87,40 @@ function SessionCard({ session }) {
 export default function PlayerHistoryPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [sessions, setSessions] = useState([]);
-  const [stats, setStats] = useState({
-    totalSessions: 0,
-    totalHours: 0,
-    totalBuyins: 0,
-    avgSession: 0
-  });
   const [filter, setFilter] = useState('all'); // 'all', 'week', 'month', 'year'
 
+  // Auth redirect
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/history');
-      return;
-    }
-    fetchHistory();
-  }, [router, filter]);
+    if (!token) router.push('/auth/login?redirect=/hub/commander/history');
+  }, [router]);
 
-  async function fetchHistory() {
-    setLoading(true);
-    try {
+  // SWR-backed session history — re-fetches when filter changes
+  const { data: swrData, isLoading: loading } = useSWR(
+    `/api/commander/sessions?period=${filter}`,
+    (url) => {
       const token = localStorage.getItem('smarter-poker-auth');
-      const res = await fetch(`/api/commander/sessions?period=${filter}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        const sessionList = data.data?.sessions || [];
-        setSessions(sessionList);
-
-        // Calculate stats
-        const totalSessions = sessionList.length;
-        const totalMinutes = sessionList.reduce((sum, s) => sum + (s.total_time_minutes || 0), 0);
-        const totalBuyins = sessionList.reduce((sum, s) => sum + (s.total_buyin || 0), 0);
-
-        setStats({
-          totalSessions,
-          totalHours: Math.round(totalMinutes / 60),
-          totalBuyins,
-          avgSession: totalSessions > 0 ? Math.round(totalMinutes / totalSessions / 60 * 10) / 10 : 0
+      return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(data => {
+          const sessionList = data.success ? (data.data?.sessions || []) : [];
+          const totalSessions = sessionList.length;
+          const totalMinutes = sessionList.reduce((sum, s) => sum + (s.total_time_minutes || 0), 0);
+          const totalBuyins = sessionList.reduce((sum, s) => sum + (s.total_buyin || 0), 0);
+          return {
+            sessions: sessionList,
+            stats: {
+              totalSessions,
+              totalHours: Math.round(totalMinutes / 60),
+              totalBuyins,
+              avgSession: totalSessions > 0 ? Math.round(totalMinutes / totalSessions / 60 * 10) / 10 : 0
+            }
+          };
         });
-      }
-    } catch (err) {
-      console.error('Fetch history failed:', err);
-      setSessions([]);
-      setStats({
-        totalSessions: 0,
-        totalHours: 0,
-        totalBuyins: 0,
-        avgSession: 0
-      });
-    } finally {
-      setLoading(false);
     }
-  }
+  );
+  const sessions = swrData?.sessions || [];
+  const stats = swrData?.stats || { totalSessions: 0, totalHours: 0, totalBuyins: 0, avgSession: 0 };
 
   return (
     <>
@@ -209,11 +187,7 @@ export default function PlayerHistoryPage() {
           </div>
 
           {/* Sessions List */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-            </div>
-          ) : sessions.length === 0 ? (
+          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="table" rows={8} /></div>) : sessions.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <div className="cmd-icon-box mx-auto mb-3">
                 <History className="w-6 h-6" />

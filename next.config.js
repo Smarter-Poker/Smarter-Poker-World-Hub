@@ -2,13 +2,33 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
 const nextConfig = {
-  reactStrictMode: false, // Disabled - was causing AbortError on Supabase queries
+  reactStrictMode: false, // Kept false — Supabase auth triggers double-invoke side effects in strict mode
   eslint: { ignoreDuringBuilds: true },
+  compress: true, // Enable gzip compression for all responses
 
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
   // Build timestamp: 2026-01-24T10:00:00Z
   generateBuildId: async () => {
-    return 'build-v19-2-baked-assets-' + Date.now();
+    return 'build-v20-perf-sprint-' + Date.now();
+  },
+
+  // ─── next/image Optimization ──────────────────────────────────────────────
+  // Allows next/image to serve optimized WebP/AVIF from these external domains.
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'kuklfnapbkmacvwxktbh.supabase.co' }, // Supabase storage (avatars, uploads)
+      { protocol: 'https', hostname: '*.supabase.co' },                    // Any Supabase project
+      { protocol: 'https', hostname: 'images.unsplash.com' },              // Fallback stock photos
+      { protocol: 'https', hostname: 'smarter.poker' },                    // Platform CDN
+      { protocol: 'https', hostname: 'diamond.smarter.poker' },            // Diamond assets
+      { protocol: 'https', hostname: 'api.qrserver.com' },                 // QR code generation
+      { protocol: 'https', hostname: 'img.youtube.com' },                  // YouTube thumbnails
+      { protocol: 'https', hostname: 'club-arena.vercel.app' },            // Club Arena tile images
+    ],
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 3600, // Cache optimized images for 1 hour
   },
 
   // Club Arena static assets are proxied from the Club Arena Vercel deployment

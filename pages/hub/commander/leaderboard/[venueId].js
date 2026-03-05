@@ -4,6 +4,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -63,57 +64,31 @@ export default function LeaderboardPage() {
   const router = useRouter();
   const { venueId } = router.query;
 
-  const [venue, setVenue] = useState(null);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [promotions, setPromotions] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [metric, setMetric] = useState('hours');
   const [period, setPeriod] = useState('month');
-  const [leaderboardsList, setLeaderboardsList] = useState([]);
   const [selectedLeaderboard, setSelectedLeaderboard] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    if (!venueId) return;
-    setLoading(true);
-
-    try {
-      const [leaderboardRes, promosRes, venueRes, leaderboardsListRes] = await Promise.all([
-        fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`),
-        fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`),
-        fetch(`/api/commander/venues/${venueId}`),
-        fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`)
-      ]);
-
-      const leaderboardData = await leaderboardRes.json();
-      const promosData = await promosRes.json();
-      const venueData = await venueRes.json();
-      const leaderboardsListData = await leaderboardsListRes.json();
-
-      if (leaderboardData.success) {
-        setLeaderboard(leaderboardData.data?.entries || []);
-      }
-      if (promosData.success) {
-        setPromotions(promosData.data?.promotions || []);
-      }
-      if (venueData.success || venueData.venue) {
-        setVenue(venueData.venue || venueData.data?.venue);
-      }
-      if (leaderboardsListData.leaderboards) {
-        setLeaderboardsList(leaderboardsListData.leaderboards);
-      }
-    } catch (error) {
-      console.error('Fetch leaderboard failed:', error);
-      setLeaderboard([]);
-      setPromotions([]);
-      setVenue(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [venueId, metric, period]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  // SWR — parallel fetch, re-fires when metric/period/venueId changes
+  const swrKey = venueId ? `/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}` : null;
+  const { data: swrData, isLoading: loading } = useSWR(swrKey, async () => {
+    const [leaderboardRes, promosRes, venueRes, listRes] = await Promise.all([
+      fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`),
+      fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`),
+      fetch(`/api/commander/venues/${venueId}`),
+      fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`)
+    ]);
+    const [lb, pr, vn, ls] = await Promise.all([leaderboardRes.json(), promosRes.json(), venueRes.json(), listRes.json()]);
+    return {
+      leaderboard: lb.success ? (lb.data?.entries || []) : [],
+      promotions: pr.success ? (pr.data?.promotions || []) : [],
+      venue: vn.success || vn.venue ? (vn.venue || vn.data?.venue) : null,
+      leaderboardsList: ls.leaderboards || []
+    };
+  });
+  const leaderboard = swrData?.leaderboard || [];
+  const promotions = swrData?.promotions || [];
+  const venue = swrData?.venue || null;
+  const leaderboardsList = swrData?.leaderboardsList || [];
 
   const METRICS = [
     { value: 'hours', label: 'Hours Played', icon: Clock },
@@ -230,11 +205,7 @@ export default function LeaderboardPage() {
           </div>
 
           {/* Leaderboard */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-            </div>
-          ) : leaderboard.length === 0 ? (
+          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="leaderboard" rows={8} /></div>) : leaderboard.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
               <p className="text-[#64748B]">No Leaderboard Data Available</p>

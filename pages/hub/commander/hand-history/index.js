@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import {
   FileText,
   ChevronLeft,

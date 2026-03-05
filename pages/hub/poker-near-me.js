@@ -323,9 +323,10 @@ function VenueMap({ venues, userLocation }) {
     const userMarkerRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
-    // Dynamically load Leaflet scripts to ensure proper order
+    // Dynamically load Leaflet scripts — deferred until Map tab is selected (~200KB saved on initial load)
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (activeTab !== 'map') return; // ← lazy: only load when Map tab is active
 
         // Check if already loaded
         if (window.L && window.L.MarkerClusterGroup) {
@@ -399,7 +400,7 @@ function VenueMap({ venues, userLocation }) {
         };
 
         loadLeaflet();
-    }, []);
+    }, [activeTab]); // depends on activeTab — Leaflet only loads when Map tab is selected
 
     // Initialize map once Leaflet is ready
     useEffect(() => {

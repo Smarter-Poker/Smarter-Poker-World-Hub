@@ -4,53 +4,34 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Award, Star, Lock, Loader2 } from 'lucide-react';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 export default function AchievementsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [achievements, setAchievements] = useState([]);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/profile/achievements');
-      return;
-    }
-    fetchAchievements();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/profile/achievements');
   }, [router]);
 
-  async function fetchAchievements() {
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const res = await fetch('/api/commander/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setAchievements(data.data?.achievements || []);
-      }
-    } catch (err) {
-      console.error('Fetch achievements failed:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', (url) => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => d.success ? (d.data?.achievements || []) : []);
+  });
+  const achievements = swrData || [];
 
   const unlocked = achievements.filter(a => a.unlocked);
   const locked = achievements.filter(a => !a.unlocked);
   const filtered = filter === 'unlocked' ? unlocked : filter === 'locked' ? locked : achievements;
 
-  if (loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
-    );
-  }
+  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
 
   return (
     <>

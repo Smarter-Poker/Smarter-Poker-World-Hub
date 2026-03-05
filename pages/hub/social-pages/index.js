@@ -5,6 +5,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -148,8 +149,6 @@ export default function SocialPagesHub() {
     const [typeFilter, setTypeFilter] = useState('all');
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
-    const [pages, setPages] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [followingIds, setFollowingIds] = useState(new Set());
 
     useEffect(() => {
@@ -157,31 +156,31 @@ export default function SocialPagesHub() {
         if (u) setUser(u);
     }, []);
 
-    const fetchPages = useCallback(async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({ limit: '50' });
-            if (typeFilter !== 'all') params.set('page_type', typeFilter);
-            if (search) params.set('search', search);
-            if (user?.id) params.set('user_id', user.id);
-            if (tab === 'following') params.set('followed_only', 'true');
-            if (tab === 'managed' && user?.id) params.set('owner_id', user.id);
+    // SWR-backed pages fetch — cached 60s, instant on tab/filter switch
+    const swrParams = new URLSearchParams({ limit: '50' });
+    if (typeFilter !== 'all') swrParams.set('page_type', typeFilter);
+    if (search) swrParams.set('search', search);
+    if (user?.id) swrParams.set('user_id', user.id);
+    if (tab === 'following') swrParams.set('followed_only', 'true');
+    if (tab === 'managed' && user?.id) swrParams.set('owner_id', user.id);
+    const swrKey = user !== undefined ? `/api/social/pages?${swrParams}` : null;
 
-            const res = await fetch(`/api/social/pages?${params}`);
-            const json = await res.json();
+    const { data: swrData, isLoading: loading, mutate: refreshPages } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(json => {
             if (json.success) {
-                setPages(json.data || []);
                 const followSet = new Set();
                 (json.data || []).forEach(p => { if (p.is_following) followSet.add(p.id); });
                 setFollowingIds(followSet);
             }
-        } catch (e) {
-            console.error('Failed to fetch pages:', e);
-        }
-        setLoading(false);
-    }, [tab, typeFilter, search, user]);
+            return json.success ? (json.data || []) : [];
+        })
+    );
+    const pages = swrData || [];
 
-    useEffect(() => { fetchPages(); }, [fetchPages]);
+    useEffect(() => {
+        const u = getAuthUser();
+        if (u) setUser(u);
+    }, []);
 
     useEffect(() => {
         const t = setTimeout(() => setSearch(searchInput), 300);

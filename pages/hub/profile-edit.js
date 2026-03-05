@@ -8,7 +8,6 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { claimReward } from '../../src/lib/claimReward';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';

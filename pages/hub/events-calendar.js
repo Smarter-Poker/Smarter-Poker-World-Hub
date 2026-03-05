@@ -7,6 +7,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -298,98 +299,49 @@ function EventCard({ event, isToday }) {
 
 /* ---- Main Page ---- */
 export default function EventsCalendarPage() {
+  const now = new Date();
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
-  const [allEvents, setAllEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Calendar state
-  const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState(null);
-
-  // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [buyInRange, setBuyInRange] = useState('all');
   const [selectedSeries, setSelectedSeries] = useState('all');
-  const [seriesOptions, setSeriesOptions] = useState([]);
 
-  const menuConfig = getMenuConfig('events', null, {}, {});
-  const todayKey = getTodayKey();
-
-  /* ---- Fetch data ---- */
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/poker/series?limit=100');
-        if (!res.ok) throw new Error('Failed to load series data');
-        const json = await res.json();
+  // SWR-backed series fetch — cached 60s
+  const { data: swrData, error, isLoading: loading } = useSWR('/api/poker/series?limit=100', (url) =>
+    fetch(url).then(r => { if (!r.ok) throw new Error('Failed to load series data'); return r.json(); })
+      .then(json => {
         const seriesList = json.data || [];
-
-        // Collect all unique series for filter dropdown
         const seriesOpts = [];
         const seenSeries = new Set();
-
-        // Flatten events from all series
         const events = [];
         for (const series of seriesList) {
           const seriesName = series.name || series.short_name || 'Unknown Series';
           const seriesId = series.id;
           const venueName = series.venue || '';
           const venueId = series.venue_id || '';
-
-          if (!seenSeries.has(seriesName)) {
-            seenSeries.add(seriesName);
-            seriesOpts.push({ key: String(seriesId), label: seriesName });
-          }
-
+          if (!seenSeries.has(seriesName)) { seenSeries.add(seriesName); seriesOpts.push({ key: String(seriesId), label: seriesName }); }
           if (series.events && Array.isArray(series.events)) {
             for (const evt of series.events) {
-              events.push({
-                ...evt,
-                event_date: evt.event_date || evt.start_date || '',
-                series_name: seriesName,
-                series_id: seriesId,
-                venue_name: evt.venue_name || venueName,
-                venue_id: evt.venue_id || venueId,
-              });
+              events.push({ ...evt, event_date: evt.event_date || evt.start_date || '', series_name: seriesName, series_id: seriesId, venue_name: evt.venue_name || venueName, venue_id: evt.venue_id || venueId });
             }
           } else {
-            // If no events array, create an entry from the series itself
-            events.push({
-              event_name: seriesName,
-              event_date: series.start_date || '',
-              start_date: series.start_date || '',
-              start_time: '',
-              buy_in: series.main_event_buyin || null,
-              guaranteed: series.main_event_guaranteed || null,
-              series_name: seriesName,
-              series_id: seriesId,
-              venue_name: venueName,
-              venue_id: venueId,
-              game_type: series.series_type || '',
-            });
+            events.push({ event_name: seriesName, event_date: series.start_date || '', start_date: series.start_date || '', start_time: '', buy_in: series.main_event_buyin || null, guaranteed: series.main_event_guaranteed || null, series_name: seriesName, series_id: seriesId, venue_name: venueName, venue_id: venueId, game_type: series.series_type || '' });
           }
         }
-
-        // Sort by date
         events.sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''));
+        return { events, seriesOpts };
+      })
+  );
+  const allEvents = swrData?.events || [];
+  const seriesOptions = swrData?.seriesOpts || [];
 
-        setAllEvents(events);
-        setSeriesOptions(seriesOpts);
-      } catch (err) {
-        console.error('Events calendar fetch error:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  const menuConfig = getMenuConfig('events', null, {}, {});
+  const todayKey = getTodayKey();
+
+  /* ---- Fetch data ---- */
 
   /* ---- Filtered events ---- */
   const filteredEvents = allEvents.filter(evt => {

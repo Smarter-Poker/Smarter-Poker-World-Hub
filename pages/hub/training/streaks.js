@@ -8,6 +8,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -27,59 +28,31 @@ const STREAK_MILESTONES = [
 
 export default function StreaksPage() {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [claiming, setClaiming] = useState(null);
-    const [streak, setStreak] = useState({
-        currentStreak: 0,
-        longestStreak: 0,
-        lastTrainingDate: null,
-        streakStartDate: null,
-        allMilestones: [],
-        claimableMilestones: []
-    });
-    const [trainingDays, setTrainingDays] = useState([]);
 
     useEffect(() => {
-        loadStreakData();
+        getAuthUser().then(u => setUser(u)).catch(() => {});
     }, []);
 
-    const loadStreakData = async () => {
-        try {
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
-            if (!authUser) {
-                setLoading(false);
-                return;
-            }
-
-            // Fetch streak data
-            const streakRes = await fetch(`/api/training/streak?userId=${authUser.id}`);
-            const streakData = await streakRes.json();
-
-            if (streakData.success && streakData.streak) {
-                setStreak(streakData.streak);
-            }
-
-            // Fetch training days for calendar (last 30 days)
-            const { data: sessions } = await supabase
-                .from('jarvis_training_sessions')
+    const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
+    const { data: swrData, isLoading: loading, mutate: refreshStreak } = useSWR(swrKey, async (url) => {
+        const [streakRes, { data: sessions }] = await Promise.all([
+            fetch(url).then(r => r.json()),
+            supabase.from('jarvis_training_sessions')
                 .select('created_at')
-                .eq('user_id', authUser.id)
-                .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+                .eq('user_id', user.id)
+                .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        ]);
+        const uniqueDays = [...new Set((sessions || []).map(s => new Date(s.created_at).toISOString().split('T')[0]))];
+        return {
+            streak: streakRes.success && streakRes.streak ? streakRes.streak : { currentStreak: 0, longestStreak: 0, lastTrainingDate: null, streakStartDate: null, allMilestones: [], claimableMilestones: [] },
+            trainingDays: uniqueDays
+        };
+    });
+    const streak = swrData?.streak || { currentStreak: 0, longestStreak: 0, lastTrainingDate: null, streakStartDate: null, allMilestones: [], claimableMilestones: [] };
+    const trainingDays = swrData?.trainingDays || [];
 
-            // Extract unique dates
-            const uniqueDays = [...new Set(
-                (sessions || []).map(s => new Date(s.created_at).toISOString().split('T')[0])
-            )];
-            setTrainingDays(uniqueDays);
-
-            setLoading(false);
-        } catch (error) {
-            console.error('Error loading streak data:', error);
-            setLoading(false);
-        }
-    };
+    const loadStreakData = () => refreshStreak();
 
     const claimMilestone = async (milestoneDays) => {
         if (!user) return;
@@ -129,8 +102,9 @@ export default function StreaksPage() {
 
     if (loading) {
         return (
-            <div style={styles.loadingContainer}>
-                <div style={styles.loadingText}>Loading Your Streak...</div>
+            <div style={{ ...styles.loadingContainer, padding: 24 }}>
+                <SkeletonLoader variant="profile" style={{ maxWidth: 480, margin: '0 auto 24px' }} />
+                <SkeletonLoader variant="card" count={2} style={{ maxWidth: 480, margin: '0 auto' }} />
             </div>
         );
     }

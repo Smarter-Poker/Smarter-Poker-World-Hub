@@ -7,6 +7,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -53,37 +54,18 @@ function getDetailUrl(pageType, pageId) {
 
 export default function PromotionsPage() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [promotions, setPromotions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInput, setSearchInput] = useState('');
 
     const menuConfig = getMenuConfig('promotions', null, {}, {});
 
-    useEffect(() => {
-        async function fetchPromotions() {
-            setLoading(true);
-            setError(null);
-            try {
-                const res = await fetch('/api/poker/promotions');
-                if (!res.ok) throw new Error('Failed to fetch promotions');
-                const json = await res.json();
-                if (json.success) {
-                    setPromotions(json.promotions || json.data || []);
-                } else {
-                    setPromotions([]);
-                }
-            } catch (err) {
-                console.error('[Promotions] Fetch error:', err);
-                setError(err.message);
-                setPromotions([]);
-            }
-            setLoading(false);
-        }
-        fetchPromotions();
-    }, []);
+    // SWR-backed promotions — cached 60s, instant on revisit
+    const { data: swrData, error, isLoading: loading } = useSWR('/api/poker/promotions', (url) =>
+        fetch(url).then(r => { if (!r.ok) throw new Error('Failed to fetch promotions'); return r.json(); })
+            .then(json => json.success ? (json.promotions || json.data || []) : [])
+    );
+    const promotions = swrData || [];
 
     // Debounced search
     useEffect(() => {

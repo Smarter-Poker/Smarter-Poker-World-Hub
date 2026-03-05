@@ -4,6 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -83,12 +84,6 @@ function TransactionRow({ transaction }) {
 export default function PlayerRewardsPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(0);
-  const [lifetimeEarned, setLifetimeEarned] = useState(0);
-  const [earnRate, setEarnRate] = useState(1);
-  const [hoursPlayed, setHoursPlayed] = useState(0);
-  const [transactions, setTransactions] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [comingSoonMessage, setComingSoonMessage] = useState(null);
   const [redeemAmount, setRedeemAmount] = useState('');
@@ -97,50 +92,32 @@ export default function PlayerRewardsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/rewards');
-      return;
-    }
-    fetchRewardsData();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
   }, [router]);
 
-  async function fetchRewardsData() {
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [balanceRes, transactionsRes, ratesRes] = await Promise.all([
-        fetch('/api/commander/comps/balances', { headers }),
-        fetch('/api/commander/comps/transactions?limit=20', { headers }),
-        fetch('/api/commander/comps/rates', { headers })
-      ]);
-
-      const balanceData = await balanceRes.json();
-      const transactionsData = await transactionsRes.json();
-      const ratesData = await ratesRes.json();
-
-      if (balanceData.success) {
-        setBalance(balanceData.data?.balance || 0);
-        setLifetimeEarned(balanceData.data?.lifetime_earned || 0);
-        setHoursPlayed(balanceData.data?.total_hours || 0);
-      }
-      if (transactionsData.success) {
-        setTransactions(transactionsData.data?.transactions || []);
-      }
-      if (ratesData.success) {
-        setEarnRate(ratesData.data?.rate_per_hour || 1);
-      }
-    } catch (err) {
-      console.error('Fetch rewards failed:', err);
-      setBalance(0);
-      setLifetimeEarned(0);
-      setHoursPlayed(0);
-      setEarnRate(1);
-      setTransactions([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    const h = { Authorization: `Bearer ${token}` };
+    const [balRes, txRes, rateRes] = await Promise.all([
+      fetch('/api/commander/comps/balances', { headers: h }),
+      fetch('/api/commander/comps/transactions?limit=20', { headers: h }),
+      fetch('/api/commander/comps/rates', { headers: h })
+    ]);
+    const [bal, tx, rates] = await Promise.all([balRes.json(), txRes.json(), rateRes.json()]);
+    return {
+      balance: bal.success ? (bal.data?.balance || 0) : 0,
+      lifetimeEarned: bal.success ? (bal.data?.lifetime_earned || 0) : 0,
+      hoursPlayed: bal.success ? (bal.data?.total_hours || 0) : 0,
+      transactions: tx.success ? (tx.data?.transactions || []) : [],
+      earnRate: rates.success ? (rates.data?.rate_per_hour || 1) : 1
+    };
+  });
+  const balance = swrData?.balance || 0;
+  const lifetimeEarned = swrData?.lifetimeEarned || 0;
+  const hoursPlayed = swrData?.hoursPlayed || 0;
+  const transactions = swrData?.transactions || [];
+  const earnRate = swrData?.earnRate || 1;
 
   function handleRedeemClick(category) {
     if (balance <= 0) {
@@ -186,7 +163,7 @@ export default function PlayerRewardsPage() {
       if (data.success) {
         setBalance(prev => prev - finalAmount);
         setComingSoonMessage(`Successfully redeemed $${finalAmount} for ${category.label}!`);
-        fetchRewardsData(); // Refresh data
+        refreshRewards(); // Refresh data
       } else {
         setComingSoonMessage(data.error || 'Redemption failed');
       }
@@ -198,13 +175,7 @@ export default function PlayerRewardsPage() {
     setTimeout(() => setComingSoonMessage(null), 3000);
   }
 
-  if (loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
-    );
-  }
+  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={6} /></div>;
 
   return (
     <>

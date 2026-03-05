@@ -8,6 +8,7 @@
  * Requires authentication.
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -25,41 +26,37 @@ function ordinal(n) {
 
 export default function MyTournaments() {
     const router = useRouter();
-    const [tournaments, setTournaments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ played: 0, wins: 0, itm: 0, totalPrize: 0, totalBuyin: 0 });
+    const [sessionToken, setSessionToken] = useState(null);
+    const [authChecked, setAuthChecked] = useState(false);
 
+    // Get session token once, redirect if unauthenticated
     useEffect(() => {
-        fetchMyTournaments();
-    }, []);
-
-    const fetchMyTournaments = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
+        supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session?.access_token) {
                 router.push('/auth/login?redirect=/hub/my-tournaments');
-                setLoading(false);
-                return;
+            } else {
+                setSessionToken(session.access_token);
             }
+            setAuthChecked(true);
+        });
+    }, []);
 
-            const res = await fetch('/api/commander/tournaments/my?limit=50', {
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-            const json = await res.json();
+    // SWR-backed tournament fetch — only fires once token is available
+    const { data: swrData, isLoading: swrLoading } = useSWR(
+        sessionToken ? ['/api/commander/tournaments/my?limit=50', sessionToken] : null,
+        ([url, token]) => fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(json => json.success && json.data?.registrations ? json.data.registrations : [])
+    );
 
-            if (json.success && json.data?.registrations) {
-                const regs = json.data.registrations;
-                setTournaments(regs);
-
-                const played = regs.length;
-                const wins = regs.filter(r => r.finish_position === 1).length;
-                const itm = regs.filter(r => r.prize_amount > 0).length;
-                const totalPrize = regs.reduce((sum, r) => sum + (r.prize_amount || 0), 0);
-                const totalBuyin = regs.reduce((sum, r) => sum + (r.buyin || 0) + (r.fee || 0), 0);
-                setStats({ played, wins, itm, totalPrize, totalBuyin });
-            }
-        } catch (err) { console.error(err); }
-        finally { setLoading(false); }
+    const loading = !authChecked || swrLoading;
+    const tournaments = swrData || [];
+    const stats = {
+        played: tournaments.length,
+        wins: tournaments.filter(r => r.finish_position === 1).length,
+        itm: tournaments.filter(r => r.prize_amount > 0).length,
+        totalPrize: tournaments.reduce((sum, r) => sum + (r.prize_amount || 0), 0),
+        totalBuyin: tournaments.reduce((sum, r) => sum + (r.buyin || 0) + (r.fee || 0), 0),
     };
 
     if (loading) return (

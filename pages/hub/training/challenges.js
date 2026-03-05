@@ -9,39 +9,28 @@ import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 export default function ChallengesPage() {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [challenges, setChallenges] = useState([]);
     const [claiming, setClaiming] = useState(null);
 
+    // Load auth user once
     useEffect(() => {
-        loadData();
+        getAuthUser().then(u => setUser(u)).catch(() => {});
     }, []);
 
-    const loadData = async () => {
-        try {
-            const authUser = await getAuthUser();
-            setUser(authUser);
-
-            if (authUser) {
-                const res = await fetch(`/api/training/challenges?userId=${authUser.id}`);
-                const data = await res.json();
-                if (data.challenges) {
-                    setChallenges(data.challenges);
-                }
-            }
-        } catch (error) {
-            console.error('Load error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // SWR-backed challenges fetch — only fires when user is known
+    const swrKey = user ? `/api/training/challenges?userId=${user.id}` : null;
+    const { data: swrData, isLoading: loading, mutate: refreshChallenges } = useSWR(swrKey, (url) =>
+        fetch(url).then(r => r.json()).then(d => d.challenges || [])
+    );
+    const challenges = swrData || [];
 
     const claimReward = async (challenge) => {
         if (!user || claiming) return;
@@ -60,7 +49,7 @@ export default function ChallengesPage() {
             const data = await res.json();
             if (data.success) {
                 // Update local state
-                setChallenges(prev => prev.map(c =>
+                refreshChallenges(prev => prev.map(c =>
                     c.id === challenge.id ? { ...c, claimed: true } : c
                 ));
                 alert(`🎉 +${data.diamondsAwarded} diamonds claimed!`);
@@ -117,7 +106,7 @@ export default function ChallengesPage() {
 
                     {/* Loading */}
                     {loading ? (
-                        <div style={styles.loading}>Loading Goals...</div>
+                        <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
                     ) : challenges.length === 0 ? (
                         <div style={styles.emptyState}>
                             <span style={{ fontSize: 48 }}>🎯</span>

@@ -4,6 +4,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -15,6 +16,7 @@ import {
   Check,
   X
 } from 'lucide-react';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -94,40 +96,19 @@ function EmptyState({ onCreateSquad }) {
 export default function SquadsPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [squads, setSquads] = useState([]);
-  const [invitations, setInvitations] = useState([]);
-
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push('/auth/login?redirect=/hub/commander/squads');
-      return;
-    }
-    fetchSquads();
+    if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
   }, [router]);
 
-  async function fetchSquads() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('smarter-poker-auth');
-      const res = await fetch('/api/commander/squads/my', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setSquads(data.data?.squads || []);
-        setInvitations(data.data?.invitations || []);
-      }
-    } catch (err) {
-      console.error('Fetch squads failed:', err);
-      setSquads([]);
-      setInvitations([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', (url) => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) return null;
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => d.success ? d.data : { squads: [], invitations: [] });
+  });
+  const squads = swrData?.squads || [];
+  const invitations = swrData?.invitations || [];
 
   async function handleInvitation(invitationId, accept) {
     try {
@@ -136,7 +117,7 @@ export default function SquadsPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchSquads();
+      refreshSquads();
     } catch (err) {
       console.error('Invitation action failed:', err);
     }
@@ -181,11 +162,7 @@ export default function SquadsPage() {
         </header>
 
         <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-            </div>
-          ) : (
+          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="card" count={3} /></div>) : (
             <>
               {/* Invitations */}
               {invitations.length > 0 && (
