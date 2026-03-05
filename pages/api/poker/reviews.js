@@ -8,12 +8,12 @@ const supabase = createClient(
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
         .from('venue_reviews')
         .select('rating')
         .eq('venue_id', String(venueIdNum))
-            .limit(100);
+        .limit(100);
 
       if (ratingsError) {
         console.error('Error fetching ratings:', ratingsError);
@@ -157,6 +157,36 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true, deleted: data[0] });
+    }
+
+    if (req.method === 'PATCH') {
+      const { review_id, action } = req.body;
+      if (!review_id || action !== 'helpful') {
+        return res.status(400).json({ success: false, error: 'review_id and action="helpful" required' });
+      }
+
+      // Fetch current helpful_count then increment
+      const { data: existing, error: fetchErr } = await supabase
+        .from('venue_reviews')
+        .select('helpful_count')
+        .eq('id', review_id)
+        .single();
+
+      if (fetchErr || !existing) {
+        return res.status(404).json({ success: false, error: 'Review not found' });
+      }
+
+      const { error: updateErr } = await supabase
+        .from('venue_reviews')
+        .update({ helpful_count: (existing.helpful_count || 0) + 1 })
+        .eq('id', review_id);
+
+      if (updateErr) {
+        console.error('Error updating helpful count:', updateErr);
+        return res.status(500).json({ success: false, error: updateErr.message });
+      }
+
+      return res.status(200).json({ success: true });
     }
 
     return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });

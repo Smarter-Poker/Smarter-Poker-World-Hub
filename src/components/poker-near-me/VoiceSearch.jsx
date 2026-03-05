@@ -80,9 +80,14 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
     const [error, setError] = useState(null);
     const [supported, setSupported] = useState(true);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [animPhase, setAnimPhase] = useState(0); // 0=idle, 1=listening, 2=processing, 3=result
+    const [animPhase, setAnimPhase] = useState(0);
     const recognitionRef = useRef(null);
     const animFrameRef = useRef(null);
+    const transcriptRef = useRef('');
+    const onResultRef = useRef(onResult);
+
+    // Keep refs in sync
+    useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
     // Check browser support
     useEffect(() => {
@@ -116,6 +121,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
             setError(null);
             setResult(null);
             setTranscript('');
+            transcriptRef.current = '';
             setIsExpanded(true);
         };
 
@@ -127,19 +133,17 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
                 if (event.results[i].isFinal) finalTranscript += t;
                 else interimTranscript += t;
             }
-            setTranscript(finalTranscript || interimTranscript);
+            const text = finalTranscript || interimTranscript;
+            setTranscript(text);
+            transcriptRef.current = text;
         };
 
         recognition.onend = () => {
             setListening(false);
-            // Parse the final transcript
-            if (transcript || recognitionRef.current?._lastTranscript) {
-                const finalText = transcript || recognitionRef.current?._lastTranscript || '';
-                if (finalText.trim()) {
-                    const parsed = parseVoiceQuery(finalText);
-                    setResult(parsed);
-                    if (onResult) onResult(parsed);
-                }
+            const finalText = transcriptRef.current || '';
+            if (finalText.trim()) {
+                const parsed = parseVoiceQuery(finalText);
+                setResult(parsed);
             }
         };
 
@@ -152,14 +156,13 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
 
         recognitionRef.current = recognition;
         recognition.start();
-    }, [supported, transcript, onResult]);
+    }, [supported]);
 
     const stopListening = useCallback(() => {
         if (recognitionRef.current) {
-            recognitionRef.current._lastTranscript = transcript;
             recognitionRef.current.stop();
         }
-    }, [transcript]);
+    }, []);
 
     // Apply parsed result filters
     const applyResult = useCallback(() => {

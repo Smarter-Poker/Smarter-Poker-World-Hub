@@ -587,6 +587,8 @@ function UniversalDynamicTable({
     gtowScore = 100,               // Current session GTOW score
     totalSessionEVLoss = 0,        // Cumulative EV loss
     sessionMistakes = 0,           // Mistake count this session
+    // UI-2: Manual advance callback
+    onNextHand = null,             // Called when user clicks "Next Hand →"
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -755,6 +757,19 @@ function UniversalDynamicTable({
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [showFeedback, question, handleAnswer]);
+
+    // UI-2: Space/Enter to advance to next hand during feedback
+    useEffect(() => {
+        if (!showFeedback || !onNextHand) return;
+        const handler = (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                onNextHand();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [showFeedback, onNextHand]);
 
     // F6: Board texture classification
     const boardTexture = useMemo(() => classifyBoardTexture(boardCards), [boardCards]);
@@ -1196,7 +1211,31 @@ function UniversalDynamicTable({
                                         {shortcutKey}
                                     </span>
                                 )}
-                                <span style={styles.actionText}>{text}</span>
+                                <span style={styles.actionText}>
+                                    {text}
+                                    {/* UI-4: Pot-relative bet sizing label */}
+                                    {(() => {
+                                        if (pot <= 0) return null;
+                                        const betMatch = text.match(/(\d+\.?\d*)\s*(bb|BB)/i);
+                                        if (!betMatch) return null;
+                                        const betSize = parseFloat(betMatch[1]);
+                                        const pctOfPot = Math.round((betSize / pot) * 100);
+                                        if (pctOfPot > 0 && pctOfPot <= 500) {
+                                            return (
+                                                <span style={{
+                                                    display: 'block',
+                                                    fontSize: 9,
+                                                    opacity: 0.6,
+                                                    marginTop: 1,
+                                                    fontWeight: 'normal',
+                                                }}>
+                                                    {pctOfPot}% Pot
+                                                </span>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </span>
                                 {/* Show frequency label on feedback */}
                                 {showFeedback && (
                                     <motion.span
@@ -1297,14 +1336,40 @@ function UniversalDynamicTable({
                             show={!!question?.rawFrequencies}
                         />
 
-                        {/* Auto-advance indicator */}
-                        <motion.div
-                            animate={{ opacity: [0.5, 1, 0.5] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                            style={styles.continueHint}
-                        >
-                            Next hand in 2s...
-                        </motion.div>
+                        {/* UI-2: Next Hand button (replaces auto-advance timer) */}
+                        {onNextHand ? (
+                            <motion.button
+                                onClick={onNextHand}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                style={{
+                                    marginTop: 8,
+                                    padding: '10px 28px',
+                                    borderRadius: 10,
+                                    border: '1px solid rgba(0, 212, 255, 0.4)',
+                                    background: 'linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
+                                    color: '#00d4ff',
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    letterSpacing: 0.5,
+                                    fontFamily: "'Inter', -apple-system, sans-serif",
+                                }}
+                            >
+                                Next Hand →
+                            </motion.button>
+                        ) : (
+                            <motion.div
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ repeat: Infinity, duration: 1.5 }}
+                                style={styles.continueHint}
+                            >
+                                Next hand in 2s...
+                            </motion.div>
+                        )}
                     </motion.div>
                 </motion.div>
             )}

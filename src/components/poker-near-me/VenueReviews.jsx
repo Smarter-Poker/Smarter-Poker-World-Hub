@@ -170,11 +170,12 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         ));
         // Persist to API
         try {
-            await fetch('/api/poker/reviews', {
+            const resp = await fetch('/api/poker/reviews', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}) },
                 body: JSON.stringify({ review_id: reviewId, action: 'helpful' }),
             });
+            if (!resp.ok) throw new Error('API error');
         } catch {
             // Rollback on failure
             setReviews(prev => prev.map(r =>

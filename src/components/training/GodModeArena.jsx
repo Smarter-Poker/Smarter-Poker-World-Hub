@@ -437,15 +437,8 @@ function GodModeArena({
         return Math.min(100, Math.max(0, diversityScore));
     }, [handHistory]);
 
-    // Auto-advance after feedback
-    useEffect(() => {
-        if (showFeedback) {
-            const timer = setTimeout(() => {
-                nextQuestion();
-            }, 2500);
-            return () => clearTimeout(timer);
-        }
-    }, [showFeedback, nextQuestion]);
+    // UI-2: Manual advance — no auto-timer. User clicks "Next Hand →" button
+    // nextQuestion is passed down as onNextHand to UniversalDynamicTable
 
     // ═══════════════════════════════════════════════════════════════════════
     // POST-SESSION REVIEW SCREEN — GTO Wizard-style completion
@@ -688,6 +681,7 @@ function GodModeArena({
                         gtowScore={gtowScore}
                         totalSessionEVLoss={totalEVLoss}
                         sessionMistakes={sessionMistakes}
+                        onNextHand={nextQuestion}
                     />
                 ) : null}
             </div>
@@ -734,6 +728,7 @@ function GodModeArena({
                         gtowScore={gtowScore}
                         totalSessionEVLoss={totalEVLoss}
                         sessionMistakes={sessionMistakes}
+                        onNextHand={nextQuestion}
                     />
                 ) : null}
             </div>

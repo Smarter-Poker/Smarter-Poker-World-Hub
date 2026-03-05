@@ -82,6 +82,8 @@ export default function GameUIRouter({
     gtowScore = 100,
     totalSessionEVLoss = 0,
     sessionMistakes = 0,
+    // UI-2: Manual advance callback
+    onNextHand = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -99,6 +101,7 @@ export default function GameUIRouter({
                 showFeedback={showFeedback}
                 feedbackResult={feedbackResult}
                 explanation={explanation}
+                onNextHand={onNextHand}
             />
         );
     }
@@ -124,6 +127,8 @@ export default function GameUIRouter({
             gtowScore={gtowScore}
             totalSessionEVLoss={totalSessionEVLoss}
             sessionMistakes={sessionMistakes}
+            // UI-2: Manual advance
+            onNextHand={onNextHand}
         />
     );
 }
